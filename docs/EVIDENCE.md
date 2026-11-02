@@ -523,3 +523,22 @@ CI 수정 중 main의 c8461d66 병합으로 생긴 Makefile과 TESTING/EVIDENCE�
 양쪽 target과 기록을 모두 보존해 해소했다. 병합 후 CI 도구 9건, ToF 순수 91건과
 navigation colcon 198 reported tests가 통과했고 전체 rosdep simulate도 재통과했다.
 remote CI는 이 통합 tree에서 다시 실행한다.
+
+## 2026-11-02 책상 접근 ROS 검사의 수신 준비 동기화
+
+최신 main 통합 head d82edca4의 CI run 41369304125는 의존성 이미지 생성과 환경 검증을
+통과했지만 전체 2720 reported tests 중 부분 품질 책상 접근 검사 1건에서 goal 거부로
+실패했다(32 skipped). 같은 제어 코드는 직전 run 41367607054에서 전체 통과했다.
+기존 검사는 publisher sequence 증가만 기다려 서버의 실제 입력 수신과 권한 준비를
+보장하지 않았다. 검사에서 서버가 수신한 frame/odom의 나이가 source_timeout_s의
+1/4 이내이고 해당 Mission lease가 유효한지 확인한 뒤 요청하도록 바꿨다. 부분 품질
+시나리오는 실제 수신 관측에 UNRELIABLE 12개가 있는지도 요구한다. goal 수락, 전진,
+cancel과 정지 assertion은 유지했고 운용 코드와 freshness/lease 한계는 변경하지 않았다.
+
+Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 colcon
+247 reported tests가 통과했다(errors/failures 0, 기존 opt-in skip 15). ToF package 자체는
+74건, skip 0이다. 실제 로봇을 사용하지 않았다.
+
+다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
+반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
+repeat_ready.py와 readiness-repeat.log다.

@@ -94,11 +94,28 @@ class World(Node):
         cmd.linear.x = self.nav_speed
         self.nav.publish(cmd)
 
-    def goal(self, **kwargs):
+    def request(self, **kwargs):
         fields = dict(distance_m=.75, mission_id='test-mission', lease_id='test-lease',
                       lease_epoch='test-epoch', lease_version=1)
         fields.update(kwargs)
-        return self.client.send_goal_async(DeskApproach.Goal(**fields))
+        return DeskApproach.Goal(**fields)
+
+    def goal(self, **kwargs):
+        return self.client.send_goal_async(self.request(**kwargs))
+
+    def desk_ready(self, unreliable_zones=0):
+        # Publisher progress does not prove that the server received fresh data.
+        node = self.approach_node
+        try:
+            observation, age, _ = node.inputs.snapshot()
+            fresh = node.s.source_timeout_s/4
+            return (self.client.server_is_ready() and age <= fresh
+                    and node.inputs.age(node.inputs.odom.header.stamp) <= fresh
+                    and time.monotonic()-node.inputs.odom_at <= fresh
+                    and observation.counts()['unreliable'] == unreliable_zones
+                    and node.supervision.authorized(self.request()))
+        except ValueError:
+            return False
 
 
 @pytest.fixture
@@ -301,7 +318,7 @@ def test_measurement_failure_and_sensor_fault_stop_separately_from_no_return(gra
 
 def test_desk_action_aborts_when_measured_plane_disappears(graph):
     world, until = graph
-    until(lambda: world.client.server_is_ready() and world.seq > 8)
+    until(world.desk_ready)
     future = world.goal()
     until(future.done)
     handle = future.result()
@@ -318,7 +335,7 @@ def test_desk_action_aborts_when_measured_plane_disappears(graph):
 def test_desk_action_accepts_partial_quality_with_enough_measured_plane_support(graph):
     world, until = graph
     world.frame_mode = 'partial'
-    until(lambda: world.client.server_is_ready() and world.seq > 8)
+    until(lambda: world.desk_ready(unreliable_zones=12))
     future = world.goal()
     until(future.done)
     handle = future.result()
