@@ -303,3 +303,22 @@ def resolve_default_lattice(document: dict, primitive: Path) -> None:
     if not primitive.is_file():
         raise ValueError(f'Packaged Lattice primitive not found: {primitive}')
     planner['lattice_filepath'] = str(primitive.resolve())
+
+
+def configure_tof_route(document: dict) -> dict:
+    """Insert command selection before safety and the proximity guard after it."""
+    result = deepcopy(document)
+    for name in ('pan_motion_gate', 'depth_coverage', 'reactive_guard'):
+        params = result.get(name, {}).get('ros__parameters', {})
+        for key in ('command_topic', 'raw_command_topic'):
+            if params.get(key) == 'nav2/cmd_vel':
+                params[key] = 'motion/cmd_vel'
+    monitor = result['collision_monitor']['ros__parameters']
+    if monitor['cmd_vel_in_topic'] == 'nav2/cmd_vel':
+        monitor['cmd_vel_in_topic'] = 'motion/cmd_vel'
+    for name in ('collision_monitor', 'voxel_guard', 'reactive_guard'):
+        params = result.get(name, {}).get('ros__parameters', {})
+        key = 'cmd_vel_out_topic' if name == 'collision_monitor' else 'output_topic'
+        if params.get(key) == 'cmd_vel':
+            params[key] = 'proximity/input'
+    return result

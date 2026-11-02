@@ -1,0 +1,14 @@
+# Empty lease_id acquires; nonempty lease_id renews an existing unexpired lease.
+string epoch
+string mission_id
+string[] capabilities
+string lease_id
+uint64 version
+bool release
+---
+bool granted
+string epoch
+string lease_id
+uint64 version
+float64 valid_for_s
+string reason

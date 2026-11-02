@@ -56,6 +56,11 @@ class RgbdSnapshotBuffer:
         with self._condition:
             return self._sequence
 
+    @property
+    def latest_stamp_ns(self) -> int | None:
+        with self._condition:
+            return None if self._latest is None else self._latest.stamp_ns
+
     def add_color(self, message: Image) -> None:
         self._add('color', message)
 

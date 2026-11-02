@@ -16,7 +16,7 @@ voxel_guard:
     slowdown_ratio: 0.35
     max_speed: 0.15
     max_yaw_rate: 0.3
-    update_period_s: 0.05
+    update_period_s: 0.10
     command_timeout_s: 0.5
     source_timeout_s: 0.8
     wall_source_timeout_s: 5.0

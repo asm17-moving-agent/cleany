@@ -24,6 +24,10 @@ class DependencyImageTest(unittest.TestCase):
             'containers/ci/Dockerfile': 'FROM example@sha256:abc',
             'containers/ci/pip-constraints.txt': 'example==1',
             'containers/ci/install-dependencies': 'install dependencies',
+            'containers/ci/repository-snapshots.env': 'ROS_SNAPSHOT=2026-08-07',
+            'containers/ci/jetson-ros-versions.json': '{"packages": {}}',
+            'containers/ci/ros-snapshots-key.asc': 'public archive key',
+            'containers/ci/verify-versions.py': 'verify versions',
             'tools/ci/dependency_image.py': 'helper version 1',
             'ros2_ws/rosdep/cleany.yaml': 'rules: {}',
             'ros2_ws/src/robot/package.xml': '<package/>',
@@ -38,8 +42,8 @@ class DependencyImageTest(unittest.TestCase):
         path.write_text(content)
         return path
 
-    def key(self, epoch='2026w43', platform='linux/amd64'):
-        return IMAGE.dependency_key(self.root, epoch, platform)
+    def key(self, platform='linux/amd64'):
+        return IMAGE.dependency_key(self.root, platform)
 
     def test_application_changes_do_not_rebuild_the_dependency_image(self):
         before = self.key()
@@ -52,6 +56,8 @@ class DependencyImageTest(unittest.TestCase):
         for name in (
             'containers/ci/Dockerfile', 'containers/ci/pip-constraints.txt',
             'containers/ci/install-dependencies', 'tools/ci/dependency_image.py',
+            'containers/ci/repository-snapshots.env', 'containers/ci/jetson-ros-versions.json',
+            'containers/ci/ros-snapshots-key.asc', 'containers/ci/verify-versions.py',
             'ros2_ws/rosdep/cleany.yaml', 'ros2_ws/src/robot/package.xml',
         ):
             with self.subTest(name=name):
@@ -71,8 +77,7 @@ class DependencyImageTest(unittest.TestCase):
         path.rename(path.with_name('renamed.xml'))
         self.assertNotEqual(self.key(), original)
 
-    def test_refresh_epoch_and_architecture_are_separate(self):
-        self.assertNotEqual(self.key(), self.key(epoch='2026w44'))
+    def test_architecture_changes_invalidate_the_image(self):
         self.assertNotEqual(self.key(), self.key(platform='linux/arm64'))
 
     def test_touch_does_not_invalidate(self):
@@ -97,7 +102,7 @@ class DependencyImageTest(unittest.TestCase):
         result = subprocess.run([
             sys.executable, str(ROOT/'tools/ci/dependency_image.py'),
             '--root', str(self.root), '--context', str(context),
-            '--repository', 'Owner/Robot', '--epoch', '2026w43',
+            '--repository', 'Owner/Robot',
         ], capture_output=True, text=True, check=True)
         outputs = dict(line.split('=', 1) for line in result.stdout.splitlines())
         self.assertEqual(outputs['key'], self.key())

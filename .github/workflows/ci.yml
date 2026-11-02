@@ -21,7 +21,7 @@ jobs:
     name: build-and-unit
     runs-on: ubuntu-22.04
     # Image creation is a cold path; ordinary runs reuse the dependency image.
-    timeout-minutes: 25
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: write
@@ -120,6 +120,7 @@ jobs:
           '
           # Image construction populated rosdep metadata under root's ROS_HOME.
           tools/ci/run env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble
+          tools/ci/run python3 containers/ci/verify-versions.py
           tools/ci/run make check-gazebo-env
 
       - name: Publish dependency image

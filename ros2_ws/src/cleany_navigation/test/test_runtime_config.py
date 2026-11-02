@@ -309,3 +309,21 @@ def test_lattice_resolution_preserves_custom_file_and_other_planners(tmp_path):
     planner['plugin'] = 'nav2_smac_planner/SmacPlannerLattice'
     with pytest.raises(ValueError, match='Packaged Lattice primitive not found'):
         resolve_default_lattice(doc, tmp_path/'absent.json')
+
+
+@pytest.mark.parametrize('pan,voxel,mode', [(True, True, 'serial'), (False, False, 'serial'),
+                                         (False, False, 'reactive')])
+def test_tof_selects_before_all_safety_and_limits_after_all_safety(pan, voxel, mode):
+    from cleany_navigation.runtime_config import configure_tof_route
+    original = configure_safety(parameters(), pan_enabled=pan, voxel_enabled=voxel,
+                                memory_enabled=voxel, safety_mode=mode)
+    result = configure_tof_route(original)
+    monitor = result['collision_monitor']['ros__parameters']
+    assert monitor['cmd_vel_in_topic'] == ('pan_ready/cmd_vel' if pan and mode == 'serial' else 'motion/cmd_vel')
+    owner = 'reactive_guard' if mode == 'reactive' else 'voxel_guard' if voxel else 'collision_monitor'
+    key = 'cmd_vel_out_topic' if owner == 'collision_monitor' else 'output_topic'
+    assert result[owner]['ros__parameters'][key] == 'proximity/input'
+    assert result['pan_motion_gate']['ros__parameters']['command_topic'] == 'motion/cmd_vel'
+    if mode == 'reactive':
+        assert result[owner]['ros__parameters']['raw_command_topic'] == 'motion/cmd_vel'
+    assert original != result
