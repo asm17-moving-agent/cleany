@@ -45,6 +45,17 @@ Mecanum 변환 후 wheel limit을 넘으면 네 바퀴를 같은 비율로 축�
 
 실물 초기 속도 제한은 바퀴를 띄운 시험용이며 바닥 주행 승인값이 아니다. Mock geometry는 합성값이므로 실물 보정값으로 사용하지 않는다. Feedback 단절 중 이동량은 관측할 수 없다.
 
+## Diagnostics와 장애 구분
+
+`base_driver` status의 `feedback_received`는 현재 유효한 MCU 피드백 연결 여부다. 피드백이 stale이면 driver가 수신 기록을 초기화하므로 부팅 전과 연결 상실 뒤 모두 `False`다. `fault`는 다음 acknowledged ENABLE까지 유지되는 실제 장애 이유다.
+
+| 비활성 이유 | `fault` | 의미 |
+|---|---|---|
+| STOP 요청, `cmd_vel timeout`, 비유한 `cmd_vel` 거부, driver 종료 | 빈 값 | 의도한 안전 비활성. level은 기존처럼 ERROR |
+| MCU fault bit, 계약 불일치, MCU 재부팅, 무허가 enable, ENABLE ack timeout, 구동 중 피드백 stale | 이유 | base 장애 |
+
+STOP을 보낸 직후 MCU가 그 STOP을 처리하기 전에 보낸 피드백(`last_command_sequence`가 STOP보다 오래됨)은 0.25초까지 무허가 enable로 보지 않는다. 그 뒤에도 enabled면 장애다. System Supervisor는 level 대신 `fault`와 `feedback_received`로 base 가용성을 판단한다.
+
 ## Wheel odometry
 
 Wheel odometry는 joint position 차이를 적분해 `/wheel/odom`을 발행하며 TF는 발행하지 않는다. Joint velocity는 필수 입력이 아니다. 실물 driver가 reboot, 단절 baseline과 encoder rollover를 처리해 연속 position을 제공한다.

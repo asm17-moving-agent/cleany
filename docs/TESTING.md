@@ -45,6 +45,8 @@ flowchart TB
 | Mission과 Mock Action | `make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=186` | 공통 타입, Action, 조회, 취소와 재시작; 주행은 Mock |
 | Gazebo와 Mock Action | `make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | Nav2 도착과 정지, 두 수거, 추가 빈 관측과 보고 |
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
+| Supervisor core | `make test-supervision-core` | ROS 없는 Fault, 허가, 복구, 영속성, Runtime 감독 port, 안전 증거 |
+| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `$(CLEANY_DATA_ROOT)/runs/supervision/latency.json`에 기록 |
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
 | 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
@@ -211,3 +213,82 @@ make test-hardware-mapping-replay \
   MAPPING_BAG=/absolute/path/to/recordings/bags/session-id \
   MAPPING_TEST_OUTPUT=/absolute/path/to/replay-verification.json
 ```
+
+## ToF와 Supervisor 통합
+
+`make test-tof-core`는 거리 투영, 평면 fit, 제동 envelope, timeout과 navigation 경로의
+순수 검사를 실행한다. `make test-tof`는 interface, ToF, Mission, safety adapter와
+Supervisor를 빌드하고 패키지 검사를 실행한다. ToF ROS 검사는 독립 DDS domain의 합성
+frame/odom/lease와 pseudo-terminal을 사용하며 실제 센서나 모터를 열지 않는다.
+
+기존 navigation C++/Python 회귀 검사는 Humble 환경에서 `make test-navigation`으로
+실행한다. Mission의 선택 ROS 시나리오는 `CLEANY_RUN_ROS_TESTS=1`과 독립
+`ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
+실물 검증 항목은 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)을 따른다.
+
+ToF 분류 회귀에는 단독 보드 로그의 3개 frame과 합성 입력을 사용한다. 정상 미검출의
+주행 허용, 부분 품질 불량 제외, 전부 불량 정지, 인접/물리 cluster, 15Hz 지속 확인,
+flash/고립 noise, 비상 단일 검출, 해제 hysteresis와 필터 reset을 검사한다. ROS 검사는
+센서 fault와 stale 정지, 일부 불량 Zone의 책상 접근, 평면 소실과 기존 lease/cancel 경계를
+검사한다. Navigation은 ToF 활성 여부와 독립 head-pan observer 설정 조합을 검사한다.
+합성 graph는 기존 안전 chain을 identity로 대체하며 실제 Nav2/모터 주행이 아니다.
+
+원본 측정 로그를 ROS 개발환경에서 오프라인 감사하려면 다음을 사용한다. 장치를 열지 않는다.
+
+```bash
+PYTHONPATH="$PWD/ros2_ws/src/cleany_tof" python3 tools/validation/tof/replay.py \
+  /absolute/path/to/range-15hz-2min.jsonl --output /absolute/path/to/audit.json
+```
+
+
+## 얼굴 디스플레이
+
+상태 로직은 Jetson의 독립 설치 폴더에서 `make test`로 검사한다. 저장소의 `make test`가 실행하는 colcon 검사에도 같은 pytest가 등록된다.
+
+ROS→HTTP 전환, 결과 수량과 연결 복구는 구현 레포 루트에서 다음 명령으로 검사한다. `/cleany_display_validation/` 토픽과 domain 173을 사용하며 로봇 제어기는 실행하지 않는다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source /home/cleany/cleany-display/ros2_ws/install/local_setup.bash
+ROS_DOMAIN_ID=173 python3 tools/validation/verify_cleany_display_ros.py \
+  --config /home/cleany/cleany-display/config/display.json \
+  --output output/cleany-display-jetson/ros-verification.json
+```
+
+브라우저 검사는 [Dev Monitor 웹 의존성](DEVELOPMENT_SETUP.md#monitor-웹)과 로컬 Chrome을 설치한 구현 레포에서 `node tools/validation/verify_cleany_display_web.cjs`로 실행한다. 7개 표정의 60fps와 Zzz 주기, 화면 비율과 720p 상한, 설정 변경, 60.01Hz 입력에서 균등한 30fps 간격, 동일 상태의 DOM 변경 부재, 모션 감소 설정과 HTTP 복구를 검사한다. 결과는 Git에서 제외한 `output/cleany-display-jetson/`에 기록한다.
+
+전환 검사는 같은 환경에서 `node tools/validation/verify_cleany_display_transitions.cjs`로 실행한다. HTTP 상태를 바꾸면서 60Hz 프레임을 제어해 깜빡임의 연속성, 눈과 입의 중간 모양, 얼굴 위치, 땀방울과 Zzz의 사라짐을 확인한다. 안내 교체 중 추가 상태 수신, 도움 요청과 일반 안내의 겹침, 모션 감소 설정도 검사한다. 결과와 중간 프레임은 `output/cleany-display-jetson/transitions/`에 기록하며, 실제 장치의 프레임 성능 측정과 구분한다.
+
+실물 성능 측정은 Jetson에서 다음 순서로 실행한다.
+
+1. `systemctl --user set-environment CLEANY_DISPLAY_DEBUG_PORT=9223`과 `systemctl --user restart cleany-display-kiosk`로 전용 브라우저의 로컬 디버깅 포트를 연다.
+2. 설치 폴더의 `browser-tools/bin/python`으로 `tools/validation/measure_cleany_display.py --output <결과.json>`을 실행한다. `--modes idle moving checking collecting complete charging help`를 추가하면 브라우저 응답만 임시로 바꿔 표정별로 측정하고 실제 ROS 상태 화면으로 복구한다.
+3. 측정 종료 후 `systemctl --user unset-environment CLEANY_DISPLAY_DEBUG_PORT`와 키오스크 재시작으로 디버깅 포트를 닫는다.
+
+결과의 `frames.canvas.fps`는 실제 캔버스 렌더링 빈도이고 `frames.raf.fps`는 브라우저 콜백 빈도다. CPU 수치는 단일 코어 기준이며 GPU 사용률이 아니다. 실물 화면, 장시간 동시 운용과 재부팅 후 자동 시작은 별도 검증한다.
+## MoveIt 충돌 형상과 MuJoCo 동등성 검사
+
+`make test-description-models`는 ROS 2와 MuJoCo, NumPy, SciPy 환경에서
+원본 URDF와 MJCF의 동등성 및 최적화 충돌 자산을 검사합니다.
+원본 대조에는 `optimized_arm_collision_meshes:=false head_collision_meshes:=false`를
+명시하고, 기본 최적화 모델에는 시각 형상, 관성, 관절 보존과 모터 충돌 메시
+배치를 검사합니다. MuJoCo 물리 접촉 형상은 기존 MJCF를 유지하며,
+시뮬레이션의 MoveIt 경로 계획은 최적화 URDF를 사용합니다.
+`COLLISION_TEST_ARGS`로 `-k`와 `--junitxml` 등을 전달할 수 있습니다.
+
+## 충돌 메시와 내부 장애물 검사
+
+```bash
+make build COLCON_BUILD_ARGS="--packages-up-to cleany_moveit_config"
+make test-moveit-collision
+```
+
+첫 명령은 description, 충돌 플러그인과 기존 scene mapping 의존성을 함께
+빌드합니다. Jetson의 MoveIt 2.5.9 전용 환경을 사용하는 경우 해당 overlay를
+먼저 source합니다. 검사 시 불러오는 설치 경로는 `INSTALL_BASE`를 따릅니다.
+
+`test-moveit-collision`은 형상 검사, SolidFCL 단위 검사, 계획 설정 및 실제
+MoveIt 서비스 검사를 실행합니다. 서비스 검사는 기본 detector가 내부 장애물
+36개를 검출하는지, 같은 입력을 표면 FCL이 놓치는지와 존재하지 않는 detector를
+선택했을 때 프로세스가 종료하는지 확인합니다. 가상 장애물만 사용하고
+trajectory execution은 끄며 모터 드라이버를 실행하지 않습니다.

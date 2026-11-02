@@ -36,3 +36,7 @@ ros2_ws/slam_results/
 ros2_ws/build-*/
 ros2_ws/install-*/
 ros2_ws/log-*/
+
+# Cleany display exports and local validation captures.
+/output/cleany-display/
+/output/cleany-display-jetson/

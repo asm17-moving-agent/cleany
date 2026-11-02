@@ -199,6 +199,7 @@ def test_three_tenths_input_timeout_keeps_mcu_deadlines_bounded(peers):
     driver.tick()
     assert not driver.enabled and commands[-1].mode == WheelCommand.STOP
     assert driver.diagnostic_error == 'cmd_vel timeout'
+    assert driver.fault_reason == ''  # An intentional safe disable is not base unavailability.
     mock.command(commands[-1])
     assert not mock.enabled and mock.target == [0.] * 4
 
@@ -224,6 +225,7 @@ def test_driver_fault_recovery_input_timeout_and_feedback_validation(peers):
     now[0] = mock.valid_until_us / 1e6
     feedback()
     assert not driver.enabled and mock.faults
+    assert driver.fault_reason  # Expired MCU permission is a real fault until re-enabled.
     mock.command(commands[-1])
     _enable(driver)
     now[0] += .02
@@ -234,6 +236,7 @@ def test_driver_fault_recovery_input_timeout_and_feedback_validation(peers):
     now[0] += .02
     feedback()
     assert not mock.faults and driver.pending_enable is None
+    assert driver.fault_reason == ''  # Cleared by the acknowledged ENABLE.
     twist = Twist()
     twist.linear.x = .1
     driver.on_twist(twist)
@@ -285,3 +288,26 @@ def test_driver_reboot_restart_and_feedback_loss_rebase(peers):
     feedback()
     assert driver.encoder.totals == before and not driver.enabled
     assert driver.latest_twist is None
+
+
+def test_feedback_in_flight_before_stop_is_not_a_fault_but_ignored_stop_is(peers):
+    driver, mock, now, commands, feedback = peers
+    _enable(driver)
+    mock.command(commands[-1])
+    now[0] += .02
+    feedback()
+    assert driver.enabled and driver.pending_enable is None
+    driver._disable('stopped by request')  # STOP is sent but not yet processed by the MCU.
+
+    def enabled_feedback():
+        state = deepcopy(driver.latest)
+        state.sequence += 1
+        state.timestamp_us += 20000
+        state.enabled = True
+        driver.on_state(state)
+    now[0] += .02
+    enabled_feedback()
+    assert driver.fault_reason == ''
+    now[0] += .3
+    enabled_feedback()
+    assert driver.fault_reason == 'MCU enabled without host permission'

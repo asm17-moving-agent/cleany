@@ -1,0 +1,1229 @@
+{
+  "schema_version": 3,
+  "method": "partitioned_component_enclosure",
+  "bound_reference": "Enclosure: convex hull of each original component or clipped surface patch, in metres.",
+  "settings": {
+    "description_package": "ros2_ws/src/cleany_description",
+    "source_meshes": [
+      "Upper_Arm_5cm.stl",
+      "Lower_Arm_5cm.stl",
+      "Base.stl",
+      "Base_Motor.stl",
+      "Rotation_Pitch_Motor.stl",
+      "Upper_Arm_Motor.stl",
+      "Wrist_Pitch_Roll_Motor.stl",
+      "Fixed_Jaw_Motor.stl",
+      "Rotation_Pitch.stl",
+      "Lower_Arm_Motor.stl",
+      "Wrist_Pitch_Roll.stl",
+      "cad_frame/topbase1.stl",
+      "topbase2.stl",
+      "tophead1.stl",
+      "tophead4.stl",
+      "tophead5.stl",
+      "tophead6.stl"
+    ],
+    "output_directory": "meshes/collision",
+    "max_hull_expansion_m": 0.001,
+    "enclosure_margin_m": 1e-06,
+    "max_iterations": 1024,
+    "planes_per_iteration": 1,
+    "partition_components": {
+      "Lower_Arm_5cm.stl": {
+        "2": [
+          {
+            "axis": 0,
+            "offset_m": 0.032
+          }
+        ]
+      },
+      "Rotation_Pitch.stl": {
+        "0": [
+          {
+            "axis": 0,
+            "offset_m": -0.016
+          },
+          {
+            "axis": 0,
+            "offset_m": 0.016
+          }
+        ]
+      },
+      "Wrist_Pitch_Roll.stl": {
+        "0": [
+          {
+            "axis": 0,
+            "offset_m": -0.0272
+          },
+          {
+            "axis": 0,
+            "offset_m": -0.02
+          },
+          {
+            "axis": 0,
+            "offset_m": 0.015
+          },
+          {
+            "axis": 1,
+            "offset_m": -0.02
+          }
+        ]
+      },
+      "Lower_Arm_Motor.stl": {
+        "0": [
+          {
+            "axis": 0,
+            "offset_m": -0.014
+          },
+          {
+            "axis": 0,
+            "offset_m": 0.0148
+          }
+        ]
+      },
+      "cad_frame/topbase1.stl": {
+        "1": [
+          {
+            "axis": 2,
+            "offset_m": 0.75
+          },
+          {
+            "axis": 2,
+            "offset_m": 0.97
+          }
+        ]
+      },
+      "tophead5.stl": {
+        "0": [
+          {
+            "axis": 0,
+            "offset_m": -0.1545
+          }
+        ]
+      }
+    },
+    "mesh_scales": {
+      "topbase2.stl": 0.001,
+      "tophead1.stl": 0.001,
+      "tophead4.stl": 0.001,
+      "tophead5.stl": 0.001,
+      "tophead6.stl": 0.001
+    },
+    "already_planar_meshes": [
+      "Fixed_Jaw_part1.ply.convex.stl",
+      "Fixed_Jaw_part2.ply.convex.stl",
+      "Moving_Jaw_part1.ply.convex.stl",
+      "Moving_Jaw_part2.ply.convex.stl",
+      "Moving_Jaw_part3.ply.convex.stl"
+    ],
+    "enclosure_variants": {
+      "Upper_Arm_5cm.stl": [
+        "current",
+        "current",
+        "xyz_pruned"
+      ],
+      "Lower_Arm_5cm.stl": [
+        "current",
+        "current",
+        "xyz_pruned",
+        "current",
+        "xyz_pruned"
+      ],
+      "Base.stl": [
+        "principal_axes_pruned",
+        "current",
+        "xyz_pruned",
+        "current"
+      ],
+      "Base_Motor.stl": [
+        "xyz_pruned"
+      ],
+      "Rotation_Pitch_Motor.stl": [
+        "xyz_pruned"
+      ],
+      "Upper_Arm_Motor.stl": [
+        "xyz_pruned"
+      ],
+      "Wrist_Pitch_Roll_Motor.stl": [
+        "xyz_pruned"
+      ],
+      "Fixed_Jaw_Motor.stl": [
+        "xyz_pruned"
+      ],
+      "Rotation_Pitch.stl": [
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "current"
+      ],
+      "Lower_Arm_Motor.stl": [
+        "xyz_pruned",
+        "current",
+        "current",
+        "current",
+        "principal_axes_pruned"
+      ],
+      "Wrist_Pitch_Roll.stl": [
+        "xyz_pruned",
+        "xyz_pruned",
+        "current",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "current",
+        "current",
+        "current",
+        "current",
+        "current",
+        "xyz_pruned",
+        "current",
+        "current"
+      ],
+      "cad_frame/topbase1.stl": [
+        "current",
+        "principal_axes_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "xyz_pruned"
+      ],
+      "topbase2.stl": [
+        "xyz_pruned",
+        "principal_axes_pruned",
+        "xyz_pruned",
+        "xyz_pruned",
+        "principal_axes",
+        "xyz_pruned",
+        "principal_axes_pruned",
+        "xyz_pruned"
+      ],
+      "tophead1.stl": [
+        "current"
+      ],
+      "tophead4.stl": [
+        "xyz_pruned",
+        "principal_axes_pruned",
+        "principal_axes_pruned",
+        "principal_axes_pruned",
+        "xyz_pruned",
+        "principal_axes_pruned",
+        "xyz_pruned"
+      ],
+      "tophead5.stl": [
+        "current",
+        "xyz_pruned",
+        "xyz_pruned"
+      ],
+      "tophead6.stl": [
+        "xyz_pruned"
+      ]
+    }
+  },
+  "meshes": {
+    "Upper_Arm_5cm.stl": {
+      "source_sha256": "13cfcdbf071eb84bb201b6668a6791a82d67b844e275ecf5e6d81aa0bb024ad2",
+      "output_sha256": "645b232e1fc85ce3ac8386d0f698bb849f49c3cdd22b3d41bcce47f18f540eef",
+      "source_vertices": 37769,
+      "source_triangles": 75650,
+      "vertices": 146,
+      "triangles": 280,
+      "components": [
+        {
+          "source_vertices": 12925,
+          "source_triangles": 25930,
+          "vertices": 54,
+          "triangles": 104,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0008893090316887303,
+          "source_convex_hull_volume_m3": 7.271611980575984e-05,
+          "output_volume_m3": 7.312916255860869e-05,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 598,
+          "source_triangles": 1196,
+          "vertices": 16,
+          "triangles": 28,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.00037991898432315757,
+          "source_convex_hull_volume_m3": 2.1686946457471954e-05,
+          "output_volume_m3": 2.1707457815306238e-05,
+          "source_component": 1
+        },
+        {
+          "source_vertices": 24246,
+          "source_triangles": 48524,
+          "vertices": 76,
+          "triangles": 148,
+          "maximum_source_plane_violation_m": -9.98117988815217e-07,
+          "max_expansion_from_component_hull_m": 0.000969917866901585,
+          "source_convex_hull_volume_m3": 9.592295494781492e-05,
+          "output_volume_m3": 9.690991297914243e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        }
+      ]
+    },
+    "Lower_Arm_5cm.stl": {
+      "source_sha256": "f33a8b3d13362ffa3c1a2be79c358d5134ba37cf09c5f0aa44726636f0d91356",
+      "output_sha256": "68b59058d50899ca5794ede6cbcff5a5bb70928a07d0c3a11dec84f49a8119e1",
+      "source_vertices": 67843,
+      "source_triangles": 135758,
+      "vertices": 204,
+      "triangles": 388,
+      "components": [
+        {
+          "source_vertices": 11292,
+          "source_triangles": 22624,
+          "vertices": 52,
+          "triangles": 100,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0008835190581721332,
+          "source_convex_hull_volume_m3": 5.798878128690223e-05,
+          "output_volume_m3": 5.850320864529994e-05,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 592,
+          "source_triangles": 1184,
+          "vertices": 16,
+          "triangles": 28,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0003595088517022562,
+          "source_convex_hull_volume_m3": 2.0411794366020135e-05,
+          "output_volume_m3": 2.0431137348454067e-05,
+          "source_component": 1
+        },
+        {
+          "source_vertices": 7172,
+          "source_triangles": 13094,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0006242928147598089,
+          "source_convex_hull_volume_m3": 2.6443409260701596e-05,
+          "output_volume_m3": 2.655273569870804e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        },
+        {
+          "source_vertices": 43666,
+          "source_triangles": 86718,
+          "vertices": 60,
+          "triangles": 116,
+          "maximum_source_plane_violation_m": -9.977750311581518e-07,
+          "max_expansion_from_component_hull_m": 0.0009734124587656553,
+          "source_convex_hull_volume_m3": 1.797900183079877e-05,
+          "output_volume_m3": 1.821789451870057e-05,
+          "source_component": 2
+        },
+        {
+          "source_vertices": 7621,
+          "source_triangles": 14638,
+          "vertices": 52,
+          "triangles": 100,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0009263721531043928,
+          "source_convex_hull_volume_m3": 1.849239176340794e-05,
+          "output_volume_m3": 1.8803361288248836e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        }
+      ]
+    },
+    "Base.stl": {
+      "source_sha256": "bb8afb0303c0125f265a797625cfaf646ac214d5d2dc9c986348c415755e2a74",
+      "output_sha256": "166c6ef3c2868c37c85ac12a308a7a677247693f708d12ab8911395828fe4b5c",
+      "source_vertices": 4277,
+      "source_triangles": 8868,
+      "vertices": 136,
+      "triangles": 256,
+      "components": [
+        {
+          "source_vertices": 2992,
+          "source_triangles": 6276,
+          "vertices": 42,
+          "triangles": 80,
+          "maximum_source_plane_violation_m": -9.972544473824119e-07,
+          "max_expansion_from_component_hull_m": 0.0009159107121998101,
+          "source_convex_hull_volume_m3": 0.0003701682159260682,
+          "output_volume_m3": 0.0003707440200435194,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 176,
+          "source_triangles": 362,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.000841559867338741,
+          "source_convex_hull_volume_m3": 1.2320123426292999e-05,
+          "output_volume_m3": 1.2374568603016148e-05,
+          "source_component": 1
+        },
+        {
+          "source_vertices": 935,
+          "source_triangles": 1878,
+          "vertices": 46,
+          "triangles": 88,
+          "maximum_source_plane_violation_m": -9.982547363243666e-07,
+          "max_expansion_from_component_hull_m": 0.0009457429321722313,
+          "source_convex_hull_volume_m3": 9.002040517028469e-05,
+          "output_volume_m3": 9.026758869366139e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        },
+        {
+          "source_vertices": 174,
+          "source_triangles": 352,
+          "vertices": 16,
+          "triangles": 28,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0008339520565678288,
+          "source_convex_hull_volume_m3": 3.6774716896854073e-06,
+          "output_volume_m3": 3.7497635696257515e-06,
+          "source_component": 3
+        }
+      ]
+    },
+    "Base_Motor.stl": {
+      "source_sha256": "aac4485d448eca418d2a93df3f78f449bd59b21ec1af2a579171819fd44ea576",
+      "output_sha256": "1d7926509678a312bb561da7397890538305dd9689dfe3a242d1d302d0a21f0f",
+      "source_vertices": 1541,
+      "source_triangles": 3084,
+      "vertices": 44,
+      "triangles": 84,
+      "components": [
+        {
+          "source_vertices": 1541,
+          "source_triangles": 3084,
+          "vertices": 44,
+          "triangles": 84,
+          "maximum_source_plane_violation_m": -9.974502871573643e-07,
+          "max_expansion_from_component_hull_m": 0.0009863061844195523,
+          "source_convex_hull_volume_m3": 4.013232787849751e-05,
+          "output_volume_m3": 4.0457964073640813e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Rotation_Pitch_Motor.stl": {
+      "source_sha256": "f4fbcf18d8f2e91d12a767c1679430140dce0c81ea1478cc153bfce3a162db61",
+      "output_sha256": "c833e2a397a0f15fa65093eb74e0ef3ae6258d46c2ab0afc54799e624fcab1c4",
+      "source_vertices": 1528,
+      "source_triangles": 3084,
+      "vertices": 44,
+      "triangles": 84,
+      "components": [
+        {
+          "source_vertices": 1528,
+          "source_triangles": 3084,
+          "vertices": 44,
+          "triangles": 84,
+          "maximum_source_plane_violation_m": -9.983543726443944e-07,
+          "max_expansion_from_component_hull_m": 0.0009844809117657317,
+          "source_convex_hull_volume_m3": 4.013232382549642e-05,
+          "output_volume_m3": 4.045795425168016e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Upper_Arm_Motor.stl": {
+      "source_sha256": "bafdb2cb9e9a884e62b5fbf15b1f706a65771da82764dbe703df128d9f34d723",
+      "output_sha256": "3e73651fb7353cf75e801524c1c28538b026de86bd8367ad0f82e8b6767168ea",
+      "source_vertices": 1508,
+      "source_triangles": 3044,
+      "vertices": 50,
+      "triangles": 96,
+      "components": [
+        {
+          "source_vertices": 1508,
+          "source_triangles": 3044,
+          "vertices": 50,
+          "triangles": 96,
+          "maximum_source_plane_violation_m": -9.977315398174147e-07,
+          "max_expansion_from_component_hull_m": 0.0008835174687369559,
+          "source_convex_hull_volume_m3": 4.0133809206151465e-05,
+          "output_volume_m3": 4.04432364475187e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Wrist_Pitch_Roll_Motor.stl": {
+      "source_sha256": "89ac3fb1d2536fa4f7c40e7449be4b934d7d776f9cd0453c842767f980ff6c18",
+      "output_sha256": "3c23baa0fea7bc941b032e3861a6f5e94e2f6fdbf60630c70bf94a705bbb9937",
+      "source_vertices": 1330,
+      "source_triangles": 2672,
+      "vertices": 48,
+      "triangles": 92,
+      "components": [
+        {
+          "source_vertices": 1330,
+          "source_triangles": 2672,
+          "vertices": 48,
+          "triangles": 92,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0009710447776198163,
+          "source_convex_hull_volume_m3": 3.978213284922613e-05,
+          "output_volume_m3": 4.003012476340968e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Fixed_Jaw_Motor.stl": {
+      "source_sha256": "0321bfb902d5a119c4f2a934ab4be7e9ea8c93a02e1685f066f99c24a5ca3ecf",
+      "output_sha256": "c64e33628d55b3ffbe2931d5389cbf3d91502b88acc0a2f3a84883390982e738",
+      "source_vertices": 1504,
+      "source_triangles": 3036,
+      "vertices": 50,
+      "triangles": 96,
+      "components": [
+        {
+          "source_vertices": 1504,
+          "source_triangles": 3036,
+          "vertices": 50,
+          "triangles": 96,
+          "maximum_source_plane_violation_m": -9.983535181820602e-07,
+          "max_expansion_from_component_hull_m": 0.0008834813229982664,
+          "source_convex_hull_volume_m3": 4.0132343478357845e-05,
+          "output_volume_m3": 4.043948629629553e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Rotation_Pitch.stl": {
+      "source_sha256": "4a1476f57d28d2c065bc0ede6a674cb3ebacf1193372916ef1e0ff32eeb92cf0",
+      "output_sha256": "fde952e84e39ead1364a1d3d32f9d42d16bda4c0f7e54cf226f31c0e6128db28",
+      "source_vertices": 3379,
+      "source_triangles": 6950,
+      "vertices": 238,
+      "triangles": 448,
+      "components": [
+        {
+          "source_vertices": 582,
+          "source_triangles": 1011,
+          "vertices": 16,
+          "triangles": 28,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0009766349329653767,
+          "source_convex_hull_volume_m3": 9.465681154041837e-06,
+          "output_volume_m3": 9.566709536844868e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 350,
+          "source_triangles": 574,
+          "vertices": 52,
+          "triangles": 100,
+          "maximum_source_plane_violation_m": -9.98071009533641e-07,
+          "max_expansion_from_component_hull_m": 0.0009458744021833633,
+          "source_convex_hull_volume_m3": 8.557557115912955e-06,
+          "output_volume_m3": 8.714562022057062e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 2088,
+          "source_triangles": 3924,
+          "vertices": 56,
+          "triangles": 108,
+          "maximum_source_plane_violation_m": -9.977595741492151e-07,
+          "max_expansion_from_component_hull_m": 0.0009495467994146342,
+          "source_convex_hull_volume_m3": 0.000120695390975875,
+          "output_volume_m3": 0.00012110684543322317,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 306,
+          "source_triangles": 464,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0009346157621128458,
+          "source_convex_hull_volume_m3": 5.10516859243631e-06,
+          "output_volume_m3": 5.148092351160157e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 328,
+          "source_triangles": 546,
+          "vertices": 50,
+          "triangles": 96,
+          "maximum_source_plane_violation_m": -9.98071412530721e-07,
+          "max_expansion_from_component_hull_m": 0.0009541398404674165,
+          "source_convex_hull_volume_m3": 8.003787895213481e-06,
+          "output_volume_m3": 8.060761807339627e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 701,
+          "source_triangles": 1231,
+          "vertices": 22,
+          "triangles": 40,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0009328707887291933,
+          "source_convex_hull_volume_m3": 9.53829394251656e-06,
+          "output_volume_m3": 9.613211972582107e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 176,
+          "source_triangles": 352,
+          "vertices": 34,
+          "triangles": 64,
+          "maximum_source_plane_violation_m": -9.998968188481422e-07,
+          "max_expansion_from_component_hull_m": 0.0009191649572116337,
+          "source_convex_hull_volume_m3": 8.150664269662707e-07,
+          "output_volume_m3": 8.56230618867215e-07,
+          "source_component": 1
+        }
+      ]
+    },
+    "Lower_Arm_Motor.stl": {
+      "source_sha256": "07368fa4c50dea70e8157accee71072120c0cb374f672c85aba1d081702bc476",
+      "output_sha256": "c6b2be06a83443944aa3dcdc377a6def7d46f5918da5d59881736563fbaaa32f",
+      "source_vertices": 1504,
+      "source_triangles": 3036,
+      "vertices": 110,
+      "triangles": 200,
+      "components": [
+        {
+          "source_vertices": 947,
+          "source_triangles": 1818,
+          "vertices": 40,
+          "triangles": 76,
+          "maximum_source_plane_violation_m": -9.971847050316285e-07,
+          "max_expansion_from_component_hull_m": 0.000921722791309015,
+          "source_convex_hull_volume_m3": 4.080717595713062e-06,
+          "output_volume_m3": 4.149074377577742e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 40,
+          "source_triangles": 50,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.997412562367386e-07,
+          "max_expansion_from_component_hull_m": 0.00016563014396804747,
+          "source_convex_hull_volume_m3": 4.716671672020924e-11,
+          "output_volume_m3": 6.560679864672752e-11,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 40,
+          "source_triangles": 50,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.996377765050107e-07,
+          "max_expansion_from_component_hull_m": 0.00016563735038517205,
+          "source_convex_hull_volume_m3": 4.716747646807273e-11,
+          "output_volume_m3": 6.560809381598322e-11,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 96,
+          "source_triangles": 96,
+          "vertices": 16,
+          "triangles": 28,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.00032885019088586625,
+          "source_convex_hull_volume_m3": 3.2109705719876865e-05,
+          "output_volume_m3": 3.212713300059733e-05,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 685,
+          "source_triangles": 1326,
+          "vertices": 38,
+          "triangles": 72,
+          "maximum_source_plane_violation_m": -9.9381967644252e-07,
+          "max_expansion_from_component_hull_m": 0.0009755432471624198,
+          "source_convex_hull_volume_m3": 3.941925964925495e-06,
+          "output_volume_m3": 4.023305324573171e-06,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "Wrist_Pitch_Roll.stl": {
+      "source_sha256": "58e83ce1c8b24e1fa3a79672ea965ea4143986c81a21386dcd6da1cbcfdc94bb",
+      "output_sha256": "5a5016b09259c03abfa1411aaf7f7c5d700e6c775fa36553ce761d1f921e46b0",
+      "source_vertices": 3374,
+      "source_triangles": 6832,
+      "vertices": 378,
+      "triangles": 692,
+      "components": [
+        {
+          "source_vertices": 562,
+          "source_triangles": 880,
+          "vertices": 14,
+          "triangles": 24,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0007787863630828083,
+          "source_convex_hull_volume_m3": 9.871730804709282e-06,
+          "output_volume_m3": 9.894792792141999e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 225,
+          "source_triangles": 329,
+          "vertices": 12,
+          "triangles": 20,
+          "maximum_source_plane_violation_m": -9.994834745466474e-07,
+          "max_expansion_from_component_hull_m": 0.0008124046127184795,
+          "source_convex_hull_volume_m3": 4.6824287187656507e-07,
+          "output_volume_m3": 4.823041436772336e-07,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 614,
+          "source_triangles": 921,
+          "vertices": 48,
+          "triangles": 92,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.0007384394056810891,
+          "source_convex_hull_volume_m3": 3.132756729302503e-06,
+          "output_volume_m3": 3.1998988136442197e-06,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 264,
+          "source_triangles": 266,
+          "vertices": 12,
+          "triangles": 20,
+          "maximum_source_plane_violation_m": -9.999543733318905e-07,
+          "max_expansion_from_component_hull_m": 0.0001334553943125638,
+          "source_convex_hull_volume_m3": 1.779361592397989e-06,
+          "output_volume_m3": 1.7814609500004231e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 758,
+          "source_triangles": 1111,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.995213072783865e-07,
+          "max_expansion_from_component_hull_m": 0.000981686789791726,
+          "source_convex_hull_volume_m3": 4.4964784193973015e-06,
+          "output_volume_m3": 4.548129238334974e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 220,
+          "source_triangles": 224,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.00048674395590653566,
+          "source_convex_hull_volume_m3": 2.8316557642411625e-06,
+          "output_volume_m3": 2.835278642745594e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 22,
+          "source_triangles": 24,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.987574441094882e-07,
+          "max_expansion_from_component_hull_m": 6.911427879104595e-06,
+          "source_convex_hull_volume_m3": 1.4282501720619105e-07,
+          "output_volume_m3": 1.4301987589193616e-07,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 25,
+          "source_triangles": 27,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.995825895198207e-07,
+          "max_expansion_from_component_hull_m": 6.1899912947209716e-06,
+          "source_convex_hull_volume_m3": 1.42824210003409e-07,
+          "output_volume_m3": 1.43019056844128e-07,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 86,
+          "source_triangles": 110,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.996066837394957e-07,
+          "max_expansion_from_component_hull_m": 0.0007539469764066683,
+          "source_convex_hull_volume_m3": 1.370744043409059e-07,
+          "output_volume_m3": 1.505528195355053e-07,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 86,
+          "source_triangles": 110,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.996061065865869e-07,
+          "max_expansion_from_component_hull_m": 0.0007540530267817493,
+          "source_convex_hull_volume_m3": 1.3708984214041297e-07,
+          "output_volume_m3": 1.5043978720651252e-07,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 86,
+          "source_triangles": 110,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.997218500552157e-07,
+          "max_expansion_from_component_hull_m": 0.0007539016506700425,
+          "source_convex_hull_volume_m3": 1.370877541610844e-07,
+          "output_volume_m3": 1.5043963433556966e-07,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 86,
+          "source_triangles": 110,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.997212728363875e-07,
+          "max_expansion_from_component_hull_m": 0.000753935919058567,
+          "source_convex_hull_volume_m3": 1.3708055646697798e-07,
+          "output_volume_m3": 1.5055327130284434e-07,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 1652,
+          "source_triangles": 2834,
+          "vertices": 46,
+          "triangles": 88,
+          "maximum_source_plane_violation_m": -9.983533961407942e-07,
+          "max_expansion_from_component_hull_m": 0.0009188538121672246,
+          "source_convex_hull_volume_m3": 3.8973792515118575e-05,
+          "output_volume_m3": 3.940959759798004e-05,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 503,
+          "source_triangles": 740,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.99583316445285e-07,
+          "max_expansion_from_component_hull_m": 0.0009396059032426861,
+          "source_convex_hull_volume_m3": 1.206448822022815e-06,
+          "output_volume_m3": 1.2249250867518322e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 596,
+          "source_triangles": 963,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.993802203012159e-07,
+          "max_expansion_from_component_hull_m": 0.0009887244549812977,
+          "source_convex_hull_volume_m3": 6.5346786107623724e-06,
+          "output_volume_m3": 6.682634485903471e-06,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 529,
+          "source_triangles": 1005,
+          "vertices": 38,
+          "triangles": 72,
+          "maximum_source_plane_violation_m": -9.9927564805799e-07,
+          "max_expansion_from_component_hull_m": 0.0009419878472371312,
+          "source_convex_hull_volume_m3": 6.209924045834148e-06,
+          "output_volume_m3": 6.379989371980947e-06,
+          "source_component": 0
+        }
+      ]
+    },
+    "cad_frame/topbase1.stl": {
+      "source_sha256": "fddfa1a96c2c8894174e26e0d60ac6167b3cf34868b5cf145e03e83f3aba485f",
+      "output_sha256": "a959308c99d0b19a1e576dbd9eb0f12dc696920614c13582d272526b6b4b79fe",
+      "source_vertices": 2063,
+      "source_triangles": 4116,
+      "vertices": 120,
+      "triangles": 216,
+      "components": [
+        {
+          "source_vertices": 33,
+          "source_triangles": 46,
+          "vertices": 18,
+          "triangles": 32,
+          "maximum_source_plane_violation_m": -9.89607530255121e-07,
+          "max_expansion_from_component_hull_m": 4.094009596134077e-06,
+          "source_convex_hull_volume_m3": 0.0013281387244424426,
+          "output_volume_m3": 0.0013282163225171136,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 39,
+          "source_triangles": 57,
+          "vertices": 20,
+          "triangles": 36,
+          "maximum_source_plane_violation_m": -9.784866333850673e-07,
+          "max_expansion_from_component_hull_m": 0.0009648655035179898,
+          "source_convex_hull_volume_m3": 0.0001198052635761385,
+          "output_volume_m3": 0.00012011464412875726,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 1
+        },
+        {
+          "source_vertices": 85,
+          "source_triangles": 122,
+          "vertices": 14,
+          "triangles": 24,
+          "maximum_source_plane_violation_m": -9.822845459250829e-07,
+          "max_expansion_from_component_hull_m": 0.000813997020705239,
+          "source_convex_hull_volume_m3": 0.0009196235840957163,
+          "output_volume_m3": 0.0009205639882648625,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 1
+        },
+        {
+          "source_vertices": 1960,
+          "source_triangles": 3921,
+          "vertices": 46,
+          "triangles": 88,
+          "maximum_source_plane_violation_m": -9.572805020896524e-07,
+          "max_expansion_from_component_hull_m": 0.0009296320809721227,
+          "source_convex_hull_volume_m3": 0.00015255887221950188,
+          "output_volume_m3": 0.00015318790331057637,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 1
+        },
+        {
+          "source_vertices": 24,
+          "source_triangles": 44,
+          "vertices": 10,
+          "triangles": 16,
+          "maximum_source_plane_violation_m": -9.90316180726758e-07,
+          "max_expansion_from_component_hull_m": 0.0008524661577033727,
+          "source_convex_hull_volume_m3": 2.551233881848628e-08,
+          "output_volume_m3": 2.9653852935461213e-08,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        },
+        {
+          "source_vertices": 18,
+          "source_triangles": 22,
+          "vertices": 12,
+          "triangles": 20,
+          "maximum_source_plane_violation_m": -9.907351612992166e-07,
+          "max_expansion_from_component_hull_m": 1.2467013836787016e-05,
+          "source_convex_hull_volume_m3": 1.7147324468756254e-06,
+          "output_volume_m3": 1.7159206320413158e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 3
+        }
+      ]
+    },
+    "topbase2.stl": {
+      "source_sha256": "866c172149e274ffad3fbb9a98c2dcd348eb3556a8227b73e2c0c09d9ce2bbef",
+      "output_sha256": "3efec0677dd0acc35548a8ad1217b7c1f1ffc5992b473649409f822fc571c9b3",
+      "source_vertices": 843,
+      "source_triangles": 1664,
+      "vertices": 157,
+      "triangles": 282,
+      "components": [
+        {
+          "source_vertices": 308,
+          "source_triangles": 612,
+          "vertices": 36,
+          "triangles": 68,
+          "maximum_source_plane_violation_m": -9.551021948883687e-07,
+          "max_expansion_from_component_hull_m": 0.0009763706626154361,
+          "source_convex_hull_volume_m3": 1.3923209454050347e-05,
+          "output_volume_m3": 1.4353316364398576e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 72,
+          "source_triangles": 140,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.825699405219268e-07,
+          "max_expansion_from_component_hull_m": 0.0009845143933958087,
+          "source_convex_hull_volume_m3": 1.4947589341263956e-05,
+          "output_volume_m3": 1.5059765927754506e-05,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 1
+        },
+        {
+          "source_vertices": 376,
+          "source_triangles": 748,
+          "vertices": 38,
+          "triangles": 72,
+          "maximum_source_plane_violation_m": -9.593468008883832e-07,
+          "max_expansion_from_component_hull_m": 0.0009147155082141292,
+          "source_convex_hull_volume_m3": 9.424927229308853e-06,
+          "output_volume_m3": 9.604256307924554e-06,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 2
+        },
+        {
+          "source_vertices": 54,
+          "source_triangles": 112,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.432765264438814e-07,
+          "max_expansion_from_component_hull_m": 0.0009849389051594592,
+          "source_convex_hull_volume_m3": 3.4647853214383174e-07,
+          "output_volume_m3": 3.596098360304123e-07,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 3
+        },
+        {
+          "source_vertices": 5,
+          "source_triangles": 6,
+          "vertices": 8,
+          "triangles": 12,
+          "maximum_source_plane_violation_m": -9.646685328323912e-07,
+          "max_expansion_from_component_hull_m": 0.0009722106759097993,
+          "source_convex_hull_volume_m3": 1.0174708687632303e-09,
+          "output_volume_m3": 3.3853744919235405e-09,
+          "enclosure_variant": "principal_axes",
+          "source_component": 4
+        },
+        {
+          "source_vertices": 6,
+          "source_triangles": 8,
+          "vertices": 6,
+          "triangles": 8,
+          "maximum_source_plane_violation_m": -9.765624999769074e-07,
+          "max_expansion_from_component_hull_m": 0.0009479133270542973,
+          "source_convex_hull_volume_m3": 2.8652608666884945e-09,
+          "output_volume_m3": 3.5515512932877794e-09,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 5
+        },
+        {
+          "source_vertices": 6,
+          "source_triangles": 8,
+          "vertices": 6,
+          "triangles": 8,
+          "maximum_source_plane_violation_m": -9.861642044084462e-07,
+          "max_expansion_from_component_hull_m": 0.0009016403800048013,
+          "source_convex_hull_volume_m3": 2.725475547127493e-09,
+          "output_volume_m3": 4.292683180173033e-09,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 6
+        },
+        {
+          "source_vertices": 16,
+          "source_triangles": 30,
+          "vertices": 15,
+          "triangles": 26,
+          "maximum_source_plane_violation_m": -9.563096423637063e-07,
+          "max_expansion_from_component_hull_m": 0.0009032474227016716,
+          "source_convex_hull_volume_m3": 1.941922465333659e-09,
+          "output_volume_m3": 2.282056051048669e-09,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 7
+        }
+      ]
+    },
+    "tophead1.stl": {
+      "source_sha256": "bee7ae0af47d25b7d4d48675873f7943702535c470e25e9ffa4015441c4ff49d",
+      "output_sha256": "dd3678dfeb4c4e7f836a6e596517e680805b296f85a2eab3b28a4ca21d602d57",
+      "source_vertices": 1131,
+      "source_triangles": 2306,
+      "vertices": 68,
+      "triangles": 132,
+      "components": [
+        {
+          "source_vertices": 1131,
+          "source_triangles": 2306,
+          "vertices": 68,
+          "triangles": 132,
+          "maximum_source_plane_violation_m": -9.765624999769074e-07,
+          "max_expansion_from_component_hull_m": 0.0009747872174972718,
+          "source_convex_hull_volume_m3": 6.249216419964045e-05,
+          "output_volume_m3": 6.305045966125771e-05,
+          "source_component": 0
+        }
+      ]
+    },
+    "tophead4.stl": {
+      "source_sha256": "a427b70481f89f5fe41480613a8f1470e1e0ae18fd085142c0bee5cd5ad9254d",
+      "output_sha256": "483a18c8199d2061471d830bbc70d6a31ab4ed8b8e6b5fbed328209e9defd23c",
+      "source_vertices": 1201,
+      "source_triangles": 2384,
+      "vertices": 150,
+      "triangles": 272,
+      "components": [
+        {
+          "source_vertices": 391,
+          "source_triangles": 778,
+          "vertices": 36,
+          "triangles": 68,
+          "maximum_source_plane_violation_m": -9.765624999769074e-07,
+          "max_expansion_from_component_hull_m": 0.0009409984033851916,
+          "source_convex_hull_volume_m3": 1.3906839933392636e-05,
+          "output_volume_m3": 1.4269464065917028e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 71,
+          "source_triangles": 138,
+          "vertices": 28,
+          "triangles": 52,
+          "maximum_source_plane_violation_m": -9.577818401718119e-07,
+          "max_expansion_from_component_hull_m": 0.0009431444087998761,
+          "source_convex_hull_volume_m3": 1.4946978763915474e-05,
+          "output_volume_m3": 1.5060430360285076e-05,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 1
+        },
+        {
+          "source_vertices": 689,
+          "source_triangles": 1374,
+          "vertices": 40,
+          "triangles": 76,
+          "maximum_source_plane_violation_m": -9.556883968642182e-07,
+          "max_expansion_from_component_hull_m": 0.0009240899072157915,
+          "source_convex_hull_volume_m3": 9.33849278586662e-06,
+          "output_volume_m3": 9.418601052960477e-06,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 2
+        },
+        {
+          "source_vertices": 5,
+          "source_triangles": 6,
+          "vertices": 6,
+          "triangles": 8,
+          "maximum_source_plane_violation_m": -9.57046561222974e-07,
+          "max_expansion_from_component_hull_m": 0.0007851322569434171,
+          "source_convex_hull_volume_m3": 1.4076696165289813e-09,
+          "output_volume_m3": 1.558417545851687e-09,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 3
+        },
+        {
+          "source_vertices": 34,
+          "source_triangles": 70,
+          "vertices": 24,
+          "triangles": 44,
+          "maximum_source_plane_violation_m": -9.740373967392912e-07,
+          "max_expansion_from_component_hull_m": 0.0009699465613334517,
+          "source_convex_hull_volume_m3": 3.040082247888342e-07,
+          "output_volume_m3": 3.1124915672601914e-07,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 4
+        },
+        {
+          "source_vertices": 6,
+          "source_triangles": 12,
+          "vertices": 10,
+          "triangles": 16,
+          "maximum_source_plane_violation_m": -9.560691847099179e-07,
+          "max_expansion_from_component_hull_m": 0.0009237227823287271,
+          "source_convex_hull_volume_m3": 3.397345587634904e-10,
+          "output_volume_m3": 4.28728992278871e-10,
+          "enclosure_variant": "principal_axes_pruned",
+          "source_component": 5
+        },
+        {
+          "source_vertices": 5,
+          "source_triangles": 6,
+          "vertices": 6,
+          "triangles": 8,
+          "maximum_source_plane_violation_m": -9.550248696310604e-07,
+          "max_expansion_from_component_hull_m": 0.000986566120103785,
+          "source_convex_hull_volume_m3": 1.5565058106413377e-09,
+          "output_volume_m3": 2.2423142461936763e-09,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 6
+        }
+      ]
+    },
+    "tophead5.stl": {
+      "source_sha256": "54bda4db70209c444aff603267209e6b382ec11729ec2bde38989e360cbc7985",
+      "output_sha256": "4afc838144871b897c2bbe54c239941232aa33794dd848968ae1e697d3827dba",
+      "source_vertices": 676,
+      "source_triangles": 1400,
+      "vertices": 80,
+      "triangles": 148,
+      "components": [
+        {
+          "source_vertices": 369,
+          "source_triangles": 678,
+          "vertices": 34,
+          "triangles": 64,
+          "maximum_source_plane_violation_m": -9.399550267019663e-07,
+          "max_expansion_from_component_hull_m": 0.0008519949830701827,
+          "source_convex_hull_volume_m3": 1.8651788092780676e-05,
+          "output_volume_m3": 1.8925617202214995e-05,
+          "source_component": 0
+        },
+        {
+          "source_vertices": 388,
+          "source_triangles": 710,
+          "vertices": 34,
+          "triangles": 64,
+          "maximum_source_plane_violation_m": -9.75345640030767e-07,
+          "max_expansion_from_component_hull_m": 0.0009358542812134602,
+          "source_convex_hull_volume_m3": 1.0752299312436017e-05,
+          "output_volume_m3": 1.1002258602634662e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        },
+        {
+          "source_vertices": 251,
+          "source_triangles": 344,
+          "vertices": 12,
+          "triangles": 20,
+          "maximum_source_plane_violation_m": -9.939460568486602e-07,
+          "max_expansion_from_component_hull_m": 0.0009600781775019579,
+          "source_convex_hull_volume_m3": 1.024940620789783e-05,
+          "output_volume_m3": 1.0330248989710803e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    },
+    "tophead6.stl": {
+      "source_sha256": "3646936db777b61f57b6150cded1894b696e519d99071425fc3911458bb11c95",
+      "output_sha256": "acf953389cc6dfd27592d980df10cd4e2d75b9a0a033a7c8d5ec76361ef74d3b",
+      "source_vertices": 3135,
+      "source_triangles": 6266,
+      "vertices": 102,
+      "triangles": 200,
+      "components": [
+        {
+          "source_vertices": 3135,
+          "source_triangles": 6266,
+          "vertices": 102,
+          "triangles": 200,
+          "maximum_source_plane_violation_m": -9.74274293685795e-07,
+          "max_expansion_from_component_hull_m": 0.0009814749903810686,
+          "source_convex_hull_volume_m3": 3.945696893932079e-05,
+          "output_volume_m3": 4.0354647966533524e-05,
+          "enclosure_variant": "xyz_pruned",
+          "source_component": 0
+        }
+      ]
+    }
+  }
+}

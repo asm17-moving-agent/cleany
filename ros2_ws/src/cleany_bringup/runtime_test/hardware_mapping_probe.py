@@ -18,6 +18,7 @@ import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -61,6 +62,12 @@ def main():
 
     mapping_bridge = MappingBridge(node)
     publisher = node.create_publisher(LaserScan, "scan_raw", qos_profile_sensor_data)
+    odom_received = [None]
+
+    def observe_odom(message):
+        odom_received[0] = time.monotonic()
+
+    node.create_subscription(Odometry, "odom", observe_odom, 10)
 
     def scan():
         msg = LaserScan()
@@ -186,6 +193,15 @@ def main():
         infos = node.get_publishers_info_by_topic("/base/wheel_command")
         assert len(infos) == 1 and infos[0].node_name == "cleany_base_driver"
         results["sole_wheel_publisher"] = infos[0].node_name
+        # Phone feedback and base-driver DDS discovery can complete at different times.
+        # Canonical odom proves that the driver has validated wheel feedback too.
+        wait(
+            lambda: (
+                odom_received[0] is not None
+                and time.monotonic() - odom_received[0] < 0.5
+            )
+        )
+        results["base_odom_ready"] = True
         sequence = 1
         post(
             "/api/control",

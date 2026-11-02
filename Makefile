@@ -62,6 +62,8 @@ help:
 	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
 	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
 	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
+	@echo "  make test-moveit-collision    Test solid collision plugin and installed MoveIt services"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
@@ -89,6 +91,7 @@ help:
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
 	@echo "  make test-mission-runtime  Build and test mission ROS packages"
 	@echo "  make build-mission-mock / test-mission-mock  Build and test the integrated Mock Action"
+	@echo "  make test-supervision-core / test-supervision  Supervisor core, ROS graph and E2E with latency report"
 	@echo "  make test-gazebo-manipulation  Check study-cafe Nav2 + two Mock Action collections"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
@@ -336,6 +339,41 @@ test-mission-runtime: build-mission-runtime
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
+
+.PHONY: build-supervision test-supervision-core test-supervision
+SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
+SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
+SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/supervision/latency.json
+# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+build-supervision: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to $(SUPERVISION_PACKAGES)
+
+test-supervision-core:
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_system_supervisor:$(ROS2_WS)/src/cleany_safety_adapter:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_core.py" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_scenarios.py" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_runtime_supervision.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_arm_health.py"
+
+test-supervision: build-supervision
+	source "$(ROS_SETUP)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	mkdir -p "$$(dirname "$(SUPERVISION_LATENCY_REPORT)")" && rm -f "$(SUPERVISION_LATENCY_REPORT)" && \
+	ROS_DOMAIN_ID=$(SUPERVISION_TEST_ROS_DOMAIN_ID) SUPERVISOR_LATENCY_REPORT="$(SUPERVISION_LATENCY_REPORT)" \
+	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_interfaces/test" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_navigation/test/test_lifecycle_recovery.py" && \
+	echo "latency report: $(SUPERVISION_LATENCY_REPORT)"
 
 .PHONY: build-mission-mock test-mission-mock test-gazebo-manipulation
 build-mission-mock:
@@ -587,3 +625,33 @@ test-hardware-mapping-replay:
 HARDWARE_MAPPING_ARGS ?=
 run-hardware-mapping:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && ros2 launch cleany_bringup hardware_mapping.launch.py $(HARDWARE_MAPPING_ARGS)'
+
+.PHONY: test-tof-core build-tof test-tof
+
+test-tof-core:
+	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_tof/test/test_observation_policy.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
+
+build-tof:
+	$(BASE_EXEC) bash -c 'source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_tof cleany_mission_manager cleany_system_supervisor cleany_base_driver'
+
+test-tof: build-tof
+	$(BASE_EXEC) bash -c 'source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_navigation:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_interfaces cleany_tof cleany_mission_manager cleany_system_supervisor cleany_safety_adapter --return-code-on-test-failure && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
+
+.PHONY: test-description-models
+test-description-models:
+	source "$(ROS_SETUP)" && \
+	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
+	python3 -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
+		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)
+
+.PHONY: test-moveit-collision
+test-moveit-collision: test-description-models
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && \
+	ROS_LOCALHOST_ONLY=1 colcon --log-base "$(LOG_BASE)" test \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-select cleany_moveit_collision cleany_moveit_config \
+		--return-code-on-test-failure --ctest-args \
+		-R 'test_solid_collision|moveit_config_contract|simulation_collision_contract|study_cafe_collision_scene_contract|solid_collision_runtime'

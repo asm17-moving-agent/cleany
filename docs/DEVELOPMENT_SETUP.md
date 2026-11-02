@@ -124,6 +124,7 @@ make deps
 |---|---|
 | Native depth self-filter | Manifest의 `python3-dev` 개발 헤더 |
 | 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
+| MoveIt 내부 충돌 검사 | cleany_moveit_collision manifest의 libfcl-dev, geometric_shapes, pluginlib |
 | Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
 | 단일 물체 MuJoCo Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
 | Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
@@ -245,3 +246,7 @@ Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make 
 `sllidar_ros2`, `micro_ros_agent`만 명시적으로 제외한다. package.xml의 실행 의존성은 유지하고
 실물 실행 전 두 드라이버의 package prefix를 확인한다. CI는 호스트 Node 24에서 조종 UI와
 입력 검사를 먼저 빌드한 뒤 ROS 컨테이너의 workspace에 설치한다.
+
+## Jetson 얼굴 디스플레이 환경
+
+독립 디스플레이에는 ROS 2 Humble, colcon, `cleany_interfaces`의 rosdep 의존성, Python venv, Chromium, GNOME 그래픽 세션과 `gnome-session-inhibit`, curl, Noto CJK 글꼴이 필요하다. 부팅 후 전체 화면 표시에는 그래픽 자동 로그인이 필요하며 설치기는 로그인 설정을 바꾸지 않는다. `install-browser.sh`는 전용 폴더에 Playwright 1.64.1과 ARM64 브라우저를 설치하며 시스템 Python 패키지를 변경하지 않는다. 설치와 실행은 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다.

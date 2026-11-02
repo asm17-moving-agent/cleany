@@ -11,7 +11,9 @@ Backend는 queue와 배차를, Mission Runtime은 수락 이후 실행과 영속
 | `mission/snapshot` | 현재 상태와 보존된 최종 보고 |
 | `mission/reset_error` | 정지, 팔 주행 가능, Nav2 준비 확인 후 명시적 오류 해제 |
 | `mission/status`, `mission/result` | transient-local 상태와 최신 최종 보고 |
-| `robot/safety_fault`, `robot/safety_released` | 안전 소유자의 fault/release 알림 |
+| `mission/stop` | Supervisor의 정지 요청 Action. Runtime이 자기 동작의 정지를 확인한 뒤에만 stopped=true |
+| `system/check_permission`, `system/heartbeat`, `system/state`, `system/capabilities` | Supervisor 허가 lease와 가용성 입력 (`supervision_mode=required`) |
+| `robot/safety_fault`, `robot/safety_released` | 안전 소유자의 fault/release 알림 (`supervision_mode=disabled`일 때만) |
 
 Offer/Cancel의 accepted는 수락 응답이며 완료 증거가 아니다. 같은 ID로 같은 요청을 보내면 재실행하지 않고, 같은 ID에 다른 내용을 보내면 거절한다. Runtime 진단 sequence와 Backend 미션별 sequence는 별개다.
 
@@ -85,17 +87,52 @@ flowchart TB
 
 보고에는 skip, 사람 확인, 실패, 취소를 보존한다. Mock 관측 ID는 실제 사진이 아니다.
 
+## System Supervisor 감독
+
+`supervision_mode=required`(기본)에서는 System Supervisor가 시스템 Fault, Capability와 Nav2 lifecycle 가용성을 소유하고 Runtime은 실행, 정지, 재개와 journal을 소유한다. Supervisor 계약은 [System Supervisor](../../cleany_system_supervisor/docs/supervision.md)를 따른다.
+
+```mermaid
+sequenceDiagram
+    participant M as Mission Runtime
+    participant S as System Supervisor
+    participant N as Nav2 / 조작
+    M->>M: offer: 캐시된 Supervisor 가용성 확인
+    M->>S: CheckPermission (mission_id, supervision_capabilities)
+    S-->>M: lease (TTL, epoch, version)
+    M->>N: lease가 유효할 때만 첫 동작
+    loop TTL/3마다
+        M->>S: 갱신
+    end
+    S--)M: 철회 snapshot 또는 StopMission
+    M->>N: 취소
+    M->>M: 자기 동작의 정지 확인 / 최종 보고
+    M-->>S: StopMission stopped=true, 정상 종료면 release
+```
+
+| 상황 | 처리 |
+|---|---|
+| Offer | Runtime 준비 + Supervisor heartbeat, OPERATIONAL/DEGRADED, 요청 Capability AVAILABLE. 사유는 `SUPERVISOR_UNAVAILABLE`, `SYSTEM_<state>`, `CAPABILITY_UNAVAILABLE:<names>` |
+| 첫 동작 전 lease 대기 | `permission_timeout` 안에서만 대기, 초과 또는 거절이면 동작 없이 종료 |
+| 실행 중 lease 상실 | 만료, 철회, heartbeat 단절, epoch 변경 모두 즉시 정지. 최종 보고는 BLOCKED / `PERMISSION_REVOKED`, 조작 단계였으면 사람 확인 |
+| 상실 후 Runtime 상태 | 정지가 확인되면 IDLE. 시스템 Fault는 Runtime 실행 오류가 아니므로 ERROR가 아님 |
+| 정지 미확인 | 기존 규칙대로 ERROR. lease는 release하지 않고 abandon하여 Supervisor가 정지를 직접 재확인 |
+| StopMission | 해당 미션이면 정지를 시작한다. 이 Runtime에 실행 중인 미션이 없으면 정지 증거로만 답한다. 기한은 `cancel_timeout + 0.5 s` |
+| 독립 안전 fault | safety adapter → Supervisor ESTOP/SAFETY Fault → lease 철회. `robot/safety_*` 구독은 만들지 않음 |
+| 오류 해제 | Runtime ERROR는 `mission/reset_error`, Supervisor Fault는 `system/request_fault_reset`가 각각 소유 |
+
+Admission의 가용성 확인은 snapshot 하나만큼 늦을 수 있는 사전 확인이며, 동작 권한은 lease만이 부여한다. 팔 상태에 따른 주행 허가(`safe_to_drive`)는 계속 Runtime이 조작 결과로 판단한다.
+
 ## 취소, 안전, 재시작
 
-Nav2는 설정된 lifecycle node 모두 active이고 lifecycle_timeout 이내 응답해야 준비 상태다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor다. Deadline은 steady clock과 runtime.yaml 값을 사용한다.
+Nav2는 설정된 lifecycle node 모두 active이고 lifecycle_timeout 이내 응답해야 준비 상태다. 감독 모드에서는 이 확인을 Supervisor의 NAVIGATION Capability가 대신하며 Runtime은 action server, odom, localization TF만 확인한다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor다. Deadline은 steady clock과 runtime.yaml 값을 사용한다.
 
 | 조건 | 처리 |
 |---|---|
 | Nav2 action server만 준비 | NAV2_NOT_READY, goal 미전송 |
 | 취소 요청 | Nav2 terminal + fresh odom 정지 확인; ACK만으로 IDLE 전이 금지 |
 | 정지 확인 기한 초과 | ERROR 유지 |
-| Safety fault | Producer가 실제 정지 먼저 수행; Runtime은 물리 E-stop 아님 |
-| Fault 해제 | 일치하는 release + 정지 확인 + 명시적 reset |
+| Safety fault (감독 해제 모드) | Producer가 실제 정지 먼저 수행; Runtime은 물리 E-stop 아님 |
+| Fault 해제 (감독 해제 모드) | 일치하는 release + 정지 확인 + 명시적 reset |
 | 재시작 당시 미완료 미션 | INTERRUPTED, 사람 확인 필요; 자동 재개 금지 |
 | Backend 단절 | 수락한 미션 계속 실행; 재연결 후 상태와 결과 동기화 |
 

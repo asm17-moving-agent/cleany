@@ -16,8 +16,10 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>lifecycle_msgs</exec_depend>
+  <exec_depend>cleany_interfaces</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
 
+  <exec_depend>cleany_tof</exec_depend>
   <exec_depend>cleany_description</exec_depend>
   <depend>dwb_msgs</depend>
   <depend>dwb_core</depend>
@@ -66,7 +68,6 @@
   <export>
     <build_type>ament_cmake</build_type>
   </export>
-  <exec_depend>cleany_interfaces</exec_depend>
   <exec_depend>cleany_logger</exec_depend>
   <exec_depend>cartographer_ros_msgs</exec_depend>
   <exec_depend>python3-pil</exec_depend>

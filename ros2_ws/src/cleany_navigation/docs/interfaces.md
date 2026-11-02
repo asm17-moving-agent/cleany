@@ -103,7 +103,8 @@ Update 주기는 `update_period` 기본 0.5초이며, 출력별 실제 발행은
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body profile과 안전 설정이 필요하다.
+충돌 검사와 속도 출력 주기는 `update_period_s` 기본 0.10초(10Hz)다. 기존 Collision Monitor와
+ToF의 주기는 별도로 유지한다. 이름 외에도 body profile과 안전 설정이 필요하다.
 
 ## nav2_bt_trace
 
@@ -118,6 +119,33 @@ Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body prof
 
 시작할 때 `manifest_file`과 `xml_file`을 검증한다.
 
+## 매핑 세션 상태
+
 `mapping/status`의 `error_code`, `error_file`은 마지막 작업 실패의 단계 코드와
 진단 JSON 경로다. 오류가 없으면 빈 문자열이며 새 작업 접수 시 초기화된다.
 `output`은 시작 준비 단계부터 제공되고, `generation`은 성공한 시작 횟수만 나타낸다.
+
+## nav2_lifecycle_recovery
+
+실행 파일: `nav2_lifecycle_recovery`. 원본: [lifecycle_recovery_node.py](../cleany_navigation/lifecycle_recovery_node.py).
+
+| 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
+|---|---|---|---|
+| 액션 제공 | `navigation/recover` | `cleany_interfaces/action/RecoverComponent` | Action 기본값; `actions` |
+| 액션 제공 | `localization/recover` | `cleany_interfaces/action/RecoverComponent` | Action 기본값; `actions` |
+| 서비스 호출 | `lifecycle_manager_navigation/manage_nodes` | `nav2_msgs/srv/ManageLifecycleNodes` | Service 기본값; `lifecycle_managers`, `call_timeout_s` 10초 |
+| 서비스 호출 | `lifecycle_manager_localization/manage_nodes` | `nav2_msgs/srv/ManageLifecycleNodes` | Service 기본값; `lifecycle_managers` |
+
+System Supervisor의 복구 요청을 받아 해당 lifecycle manager에 RESET, STARTUP 순서로 위임한다. 모든 Action을 통틀어 한 번에 하나의 goal만 수락하고, cancel은 단계 사이에서만 적용한다. 성공은 manager가 성공을 응답했다는 뜻이며 실제 복구는 Supervisor가 이후 fresh lifecycle과 localization health로 검증한다. `lifecycle_manager_safety`의 collision_monitor와 Nav2 BT recovery는 다루지 않는다. 실제 Nav2 stack에서 RESET 뒤 AMCL 초기 pose와 지도 상태는 검증하지 않았다.
+
+## ToF를 활성화한 명령 경로
+
+`navigation.launch.py tof_enabled:=true`는 `nav2/cmd_vel`과 기존 안전 계층 사이에
+`motion/cmd_vel`을 선택하는 `desk_approach`를 둔다. 기존 최종 안전 출력은
+`proximity/input`으로 옮기고 `proximity_guard`가 유일한 `cmd_vel` 발행자가 된다.
+`depth_coverage`의 고정 구독도 선택된 명령으로 remap한다. 별도 Nav2 노드나 recovery는
+기존과 같은 경로를 사용한다. ToF endpoint와 계약은
+[ToF reference](../../cleany_tof/docs/interfaces.md)를 따른다.
+
+기존 `depth_coverage`와 `head_pan/coverage`는 원래 observer 설정에 따른다. ToF는
+RGB-D coverage 근거를 요청하지 않으며 observer를 강제로 활성화하지 않는다.

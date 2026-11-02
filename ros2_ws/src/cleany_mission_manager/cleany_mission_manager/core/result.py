@@ -25,6 +25,7 @@ class FailureCode(str, Enum):
     E_STOP = "E_STOP"
     HARDWARE_ERROR = "HARDWARE_ERROR"
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    PERMISSION_REVOKED = "PERMISSION_REVOKED"
 
 
 @dataclass(frozen=True)
