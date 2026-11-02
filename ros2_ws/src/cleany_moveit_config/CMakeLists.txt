@@ -49,6 +49,12 @@ if(BUILD_TESTING)
     test/test_move_group_shutdown.py
     TIMEOUT 90
   )
+  ament_add_pytest_test(
+    solid_collision_runtime
+    test/test_solid_collision_runtime.py
+    TIMEOUT 180
+    ENV ROS_LOCALHOST_ONLY=1
+  )
 endif()
 
 ament_package()

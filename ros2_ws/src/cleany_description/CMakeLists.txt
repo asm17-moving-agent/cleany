@@ -14,6 +14,8 @@ if(BUILD_TESTING)
   ament_add_pytest_test(camera_calibration test/test_camera_calibration.py)
   ament_add_pytest_test(wrist_mount_assets test/test_wrist_mount_assets.py)
   ament_add_pytest_test(wrist_cameras test/test_wrist_cameras.py)
+  ament_add_pytest_test(collision_meshes test/test_collision_meshes.py TIMEOUT 120
+    ENV OPENBLAS_NUM_THREADS=1)
 endif()
 
 ament_package()
