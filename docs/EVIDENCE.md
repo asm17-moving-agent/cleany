@@ -4,6 +4,43 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## CI 의존성의 Jetson 버전 기준
+
+2026-11-02에 `jetson-orin`의 Ubuntu 22.04 arm64 system Python과 `dpkg-query -W`를 읽었다.
+최종 검증 기준은 `c50c440540a7c5c4c0736635d9d122b4736b2a47`이며 변경은 `feat/ci-dependency-pinning` 작업 트리에서 검증했다.
+실물의 패키지 설치와 설정은 변경하지 않았다.
+
+ROS `2026-08-07` snapshot의 amd64와 arm64 package index 모두 Jetson의 ROS 패키지 388개와 upstream 버전이 일치했다.
+아키텍처별 Debian 빌드 시각은 비교에서 제외했다. MuJoCo `3.11.0`과 google-genai `2.18.0`의 Python 의존성 36개를 조회해 constraints로 보존했다.
+Ubuntu 저장소는 `20260807T000000Z` snapshot으로 고정했다. 이는 Jetson 전체 OS 패키지나 JetPack의 동일성을 뜻하지 않는다.
+
+로컬 arm64 이미지 생성은 해당 ROS snapshot에 `ros-humble-ros-gz-sim`이 없어 실패했다.
+같은 snapshot의 amd64에는 `0.244.25-1jammy.20260726.122251`이 있어 실제 CI와 같은 amd64에서 검증한다.
+첫 amd64 생성은 베이스에 남은 TF2 `0.25.20` 등과 Jetson의 `0.25.22` 차이를 버전 검사에서 감지해 실패했다.
+`rosdep install`이 이미 설치된 패키지를 갱신하지 않아, workspace 설치 전에 베이스 ROS 패키지를 snapshot으로 동기화하도록 수정했다.
+재생성은 저장소의 SHA256과 대조한 APT 파일 캐시를 사용하며 workspace 빌드와 테스트 결과는 재사용하지 않는다.
+첫 workspace 빌드는 BT.CPP `4.9.1`의 CMake export가 `lib/`에서 라이브러리를 찾지만 실제 파일은 `lib/x86_64-linux-gnu/`에 있어 실패했다.
+같은 바이너리에 대한 호환 링크를 추가한 뒤 `cleany_manipulation_bt` 단독 빌드를 통과했다.
+최종 검증은 amd64 Ubuntu 22.04, Python 3.10.12 컨테이너에서 새 workspace 빌드 디렉터리와 앞선 시도의 컴파일 캐시를 사용했다. 모든 테스트는 다시 실행했다.
+
+초기 `326c237c` 기준의 24개 패키지 빌드와 2,561개 검사도 통과했다.
+검증 도중 병합된 ToF와 Supervisor를 포함하도록 `c50c4405`에 동기화한 뒤 아래 전체 검사를 다시 실행했다.
+
+| 검사 | 결과 |
+|---|---|
+| 의존성 이미지 생성과 버전 검사 | Python 36개, 공통 ROS 311개 일치 |
+| `make test-ci-tools` | 13개 통과 |
+| `make test`: 전체 빌드 | 27개 패키지 통과 |
+| `make test`: workspace 검사 | 2,720개, 오류와 실패 0개, skip 32개 |
+| `make test-motor-core` | 통과 |
+| 합성 Navigation runtime | 3개 통과 |
+| Gazebo sensor/TF runtime | 1개 통과 |
+
+설치 버전, 이미지 ID와 dependency key는 원본의 `amd64-current/image.json`, `amd64-current/dpkg-packages.txt`, `amd64-current/pip-packages.txt`에 남겼다.
+
+원본 Jetson 환경, package index, 이미지 빌드와 검사 로그는 데이터 루트의
+`reports/ci-dependency-pinning-20261102/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
