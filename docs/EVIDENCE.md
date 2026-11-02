@@ -212,31 +212,94 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
 
-## 2026-10-31 Jetson 얼굴 디스플레이
+## MoveIt 충돌 메시 최적화와 MuJoCo 동등성 검사 (2026-10-24)
 
-로컬 `707538d` 기반 미커밋 `cleany_display`를 `/home/cleany/cleany-display`에 독립 빌드했다. 환경은 Ubuntu 22.04.5 ARM64, ROS 2 Humble, L4T 36.4.7, Chromium과 X11 자동 로그인 세션, 3840×2160 60Hz TV다. 기존 `/home/cleany/cleany`의 HEAD `94c0fcd`와 tracked diff hash는 최초 배포 전후 동일했다. 최종 얼굴 렌더링은 1280×720, 60fps다.
+`main`의 `eb2c56a190ad9fbb52cb104ff55282e955a56fcb`에서 충돌 메시 최적화만
+분리했다. 형상과 기본값은 Jetson에 적용한 로컬 `cffdddb`, 동등성 검사 수정은
+`707538d`를 따른다. STL 17종과 manifest, 선택 옵션, 생성 도구와 검사를 포함한다.
+MuJoCo 접촉용 MJCF, 관절, 시각 CAD와 MoveIt 자기 충돌 예외는 main을 유지한다.
+cuRobo와 GPU 계산 및 미병합 physical launch의 변경은 포함하지 않는다.
 
-| 검증 | 입력과 결과 |
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 MuJoCo 3.11.0의
+별도 main 사본에서 description 패키지를 빌드하고 설치 자산 18개의 hash를
+소스와 비교했다. `make test-description-models`에 description의 나머지 검사와
+기존 main의 MoveIt 설정, 시뮬레이션 충돌 예외 및 장면 검사를 추가해
+122개가 모두 통과했다. 이때 검사한 26개 core 파일은 분리 변경과 동일하다.
+NumPy/SciPy 호환 범위와 deprecated API 경고 2개는 남았다.
+
+공통 URDF 기본값 때문에 Gazebo navigation에도 최적화 메시 10개가 전달된다.
+이 변경은 Jetson과 같은 기본값을 유지하며, 별도 검토한 Gazebo 원본 형상 고정은
+포함하지 않는다. 앞선 122개 검사는 Gazebo 변환 모듈을 실행하지 않는다.
+Gazebo 시뮬레이션 실행과 실물 모터 동작을 검증한 결과는 아니다.
+
+원본은 Jetson의 `/home/cleany/cleany-data/reports/collision-main-review-20261024/`에
+있다. `main.tar.gz`, `candidate.json`, `installation.json`, `build.log`와
+`models-and-main-contracts.log/.xml`에 입력 main, core 파일 hash, 환경과 결과를
+보존했다. 해당 검토의 `candidate.patch`에는 별도로 제안한 Gazebo 원본 고정이
+포함되어 있으므로 이 PR의 패치와 구분한다. Jetson 운영 적용 기록은
+`/home/cleany/cleany-data/reports/collision-deployment-20261024/`에 있다.
+
+### PR 64 최신 메시와 SolidFCL 검증 (2026-10-29)
+
+기준 commit은 `5db7b12a34d2ba85c965d7d783039a947d456afa`이며, 이 절과 함께
+반영한 변경을 Jetson의 별도 workspace에서 검사했다. 최신 STL 17종의 삼각형
+합계는 4,686개에서 3,966개로 줄었다. 닫힌 볼록 조각 내부의 장애물을 검출하는
+`cleany/SolidFCL`을 독립 패키지로 분리하고, 요청한 detector의 로드 실패 시
+계획 서비스를 종료하는 검사를 추가했다. 시간 배정, cuRobo와 GPU 실행 변경은
+포함하지 않는다.
+
+환경은 Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, MoveIt 2.5.9와 해당 버전의
+Pilz 및 MoveGroup overlay다. `reviews/pr64-20261029/`의 분리된 build/install을
+사용했으며 운영 install은 참조하지 않았다. 검증한 소스 42개와 설치 STL
+17종의 SHA-256이 로컬 PR 작업트리와 일치한다. 소스 목록은
+`pr-source-hashes.json`, 설치 확인은 `pr-installation.json`에 있다.
+
+| 검사 | 결과 |
 |---|---|
-| 최초 배포 | 상태 로직 pytest 10개, domain 173의 ROS→HTTP 시나리오 11개 통과. 로봇 제어기 미실행 |
-| 최종 빌드와 브라우저 | 독립 workspace 두 패키지 빌드, 7개 표정의 60fps, Zzz의 동작 주기, 4개 viewport와 배율 2, 720p 상한, 15fps 설정 변경, 모션 감소 설정 해제 후 재개, HTTP 단절 복구 통과 |
-| 프레임 간격 회귀 | 60.01Hz 합성 입력에서 30fps 설정의 누적 오차로 생기던 3회 간격 갱신을 재현하고 수정. 1,200회 입력에서 2회 간격 유지 |
-| 화면 비교 | 동일 시각의 7개 표정에서 배경 캐시와 Zzz 처리 변경 전후 픽셀 채널 차이가 최대 1/255 |
-| TV 최종 측정 | 표정별 6초, 총 42초. 실제 캔버스 59.995–59.999fps, p95 최대 17.5ms, 최대 간격 22.5ms, 25ms 초과 0회, 페이지 오류 0개 |
-| CPU 비교 | 같은 TV와 60fps의 표정별 관측에서 브라우저 전체 평균 1.23→0.75코어, 약 39% 감소. 단일 코어를 1로 합산한 CPU 시간이므로 GPU 사용률과 구분 |
+| `make build`에 `COLCON_BUILD_ARGS="--packages-up-to cleany_moveit_config"` 지정 | description, collision, scene mapping, MoveIt config 4개 패키지 빌드 성공 |
+| `make test-description-models` | 모델 동등성과 메시 형상 85개 통과 |
+| SolidFCL gtest | 내부 장애물, 분리된 틈, ACM, 거리, OctoMap, attached object 및 링크 경계 상자 검사 6개 통과 |
+| MoveIt 설정, 시뮬레이션 충돌 예외와 장면 계약 | 18개 통과 |
+| 기존 Mock 계획/실행과 종료 검사 | 3개 통과 |
+| 설치된 MoveIt 서비스 | 3개 통과: 내부 장애물 36개 검출, 같은 입력의 표면 FCL 누락 재현, 잘못된 detector 요청 시 종료 |
 
-초기 Chromium Snap 권한 오류는 독립 브라우저 설치로, 안내 막대, 번역과 키링 팝업은 전용 프로필 설정으로 해소했다. 표정별 측정 도구에서 응답 가로채기를 해제할 때 진행 중 콜백과 충돌한 한 차례 실패는 콜백 완료를 기다리도록 수정했으며 최종 실행과 실제 상태 화면 복구가 통과했다. 첫 최종 측정 사본은 `60fps-final-initial.json`으로 보존했다.
+표의 최종 결과는 중복 없는 검사 115개이며 CTest 래퍼는 합산하지 않는다.
+서비스 입력은 원본 CAD에서 충돌했던 자세와 장애물 36건의 고정 fixture다.
+장애물 없는 상태의 유효성과 접촉 링크도 확인한다. Mock 실행은 가상
+ros2_control 하드웨어를 사용했으며 실물 드라이버나 모터 명령을 사용하지 않았다.
 
-최신 원본은 Jetson `/home/cleany/cleany-display/evidence/`의 `60fps-before.json`, `60fps-final.json`, `60fps-final-tegrastats.log`와 표정별 PNG다. 소스 hash, 픽셀 비교, 요약과 사본은 로컬 `output/cleany-display-jetson/60fps-review/`에 있다. 생성 자료와 GIF는 Git에서 제외한다. 16인치 실물, 재부팅과 다른 GPU 작업을 병행한 장시간 운용은 아직 검증하지 않았다.
+처음 세 패키지만 선택한 빌드는 기존 scene mapping의 미설치로 실패해
+`--packages-up-to cleany_moveit_config`로 의존 패키지를 함께 빌드했다.
+전체 `make test`는 내비게이션 의존성 `dwb_msgs`가 없어 빌드 단계에서 중단됐다.
+서비스 검사의 환경변수를 이어 붙인 실행은 `ROS_LOCALHOST_ONLY=0:1`이 되어
+2개가 통신 대기로 실패했다. CMake의 `ENV`로 값을 지정한 뒤 해당 3개를
+재실행해 통과했다. NumPy/SciPy 경고 2개는 유지된다. 전체 workspace,
+Gazebo 동적 실행과 새 성능 비교를 완료한 결과로 해석하지 않는다.
 
-PR 준비본은 `origin/main`의 `eb2c56a1`에 디스플레이 변경만 적용했다. 같은 Jetson의 별도 `pr-validation/`에서 main의 `cleany_interfaces`와 두 패키지 빌드, pytest와 colcon의 상태 검사 10개, domain 173의 ROS→HTTP 시나리오 11개를 통과했다. macOS Chrome에서 브라우저 검사도 통과했다. 웹 의존성은 pnpm lockfile을 사용하며 lockfile 형식이 다른 `npm ci` 시도는 실패했다. 원본 빌드와 검사 로그는 Jetson `/home/cleany/cleany-display/pr-validation/evidence/`, 소스 hash와 브라우저 결과는 PR 준비 worktree의 `output/cleany-display-jetson/`에 보존한다. GitHub CI와 전체 workspace 검사는 이 준비 단계에서 실행하지 않았다.
+운영 Jetson도 별도로 재확인했다. 로컬 `707538d` 및 Jetson `4f92bc0` 이후의
+미커밋 작업에서 대상 소스 32개와 설치 메시 17종이 일치했고, 운영 install의
+MoveIt 서비스가 내부 장애물 36개를 모두 검출했다. 양팔 계획은 각 5회, 총
+10회 성공했다. 운영 라이브러리를 교체하지 않았으며 trajectory execution을
+끄고 수행했다. 이 결과와 PR의 독립 패키지 검증을 구분한다.
 
-`7879aa94`의 [첫 CI 실행](https://github.com/asm17-moving-agent/cleany/actions/runs/41127145669)은 Ubuntu 22.04 amd64 의존성 이미지 생성 중 `Cannot locate rosdep definition for [ament_python]`으로 실패했다. 디스플레이 manifest에서 빌드 방식 이름을 설치 의존성으로 선언한 것이 원인이었다. 해당 의존성만 제거하고 `export/build_type`을 유지했다. Jetson의 별도 workspace에서 수정 전 같은 rosdep 오류를 재현했으며, 수정 후 `rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble`, 두 패키지 빌드와 상태 검사 10개가 통과했다. CI 도구 검사 9개도 통과했다. 원본은 PR 준비 worktree의 `output/cleany-display-jetson/pr-validation/ci-41127145669.log`와 Jetson `pr-validation/evidence/`의 `rosdep-check.log`, `build-ci-fix.log`, `pytest-ci-fix.log`에 보존한다.
+원본은 `/home/cleany/cleany-data/reports/pr64-update-20261029/`에 보관한다.
+`native/hash-verification.json`, `native/services.json`과 MoveIt 로그가 운영 확인,
+`pr-build-*.log`, `pr-models.xml`, `pr-tests/`, `pr-service-final.log`가 PR 검증
+근거다. 실패 로그는 `pr-build.log`, `pr-package-tests.log`와
+`pr-service-env-failure.log/.xml`에 남겼다. 로컬 사본은
+`/Users/hyeon/workspace/cleany/output/pr64-update-20261029/`에 있다.
 
-## 2026-11-01 얼굴 표정 전환
+### PR 64 미사용 경로 정리 검증 (2026-10-30)
 
-`021422f7` 기반 수정본을 macOS Chrome에서 검사하고 Jetson `/home/cleany/cleany-display`에 반영했다. 깜빡이는 중 다른 표정으로 전환하면 눈이 한 프레임에 열리는 현상을 배포 전 소스로 재현했다. 수정 후 6개 목적 상태에서 깜빡임이 이어졌으며, 완료→대기의 눈 중간 모양과 얼굴 위치, 확인 중 입 윤곽, 땀방울과 Zzz의 사라짐, 안내 교체 중 상태 변경과 도움 요청 안내의 겹침 검사를 통과했다. 기존 브라우저 검사도 통과했다. 로컬 7개 표정 녹화의 렌더링은 약 60fps이고 25ms 초과 간격과 페이지 오류는 없었다.
+`a84daa7`에 이 절과 함께 반영한 정리 패치를 Jetson Ubuntu 22.04 ARM64,
+Humble과 MoveIt 2.5.9의 별도 경로에서 검사했다. 미사용 표면 단순화와 전용
+검사 3개를 제거했다. 내부 장애물 36건의 자세를 공통 3개로 묶고 원본 입력과
+기대 결과가 모두 같음을 확인했다. STL 17종의 hash, 삼각형 3,966개와 조각별
+형상 검증 수치는 유지했다. 설치된 메시와 manifest 18개도 소스와 일치한다.
 
-Jetson의 두 패키지 빌드, HTTP 제공 소스 hash 일치, 디스플레이 서비스 재시작과 실행 상태를 확인했다. 기존 `/home/cleany/cleany`의 HEAD와 tracked diff hash는 배포 전후 동일했다. 당시 HDMI는 연결 해제 상태였으며 첫 장치 측정은 640×480 화면의 576×324 캔버스였다. 표정별 6초에서 약 59.33–60.16fps, 25ms 초과 4회와 최대 88ms 간격을 관측했으므로 720p 실물 성능의 근거로 사용하지 않는다. 이후 캡처 없이 1280×720 viewport와 캔버스로 비교한 표정별 4초 측정은 수정 전 59.50–60.00fps와 최대 61.9ms, 수정 후 59.99–60.00fps와 최대 25.6ms였다. 25ms 초과는 각각 2회와 1회였다. 종료 시 실제 상태 화면과 일반 키오스크로 복구했다. 이 결과는 HDMI 연결 없이 브라우저 크기를 지정한 장치 렌더링 검사이며 실물 표시 검증과 구분한다.
-
-원본은 PR worktree의 `output/cleany-display-jetson/transitions/`와 `animation-smoothing/`, Jetson `/home/cleany/cleany-display/evidence/animation-smoothing/`에 보존한다. `baseline.log`는 수정 전 실패, `verification.json`은 전환 검사, `web.log`는 기존 브라우저 검사, `review.json`과 영상은 로컬 관찰, `source-hashes.json`은 소스 식별 자료다. Jetson의 `performance.json`과 사본 `jetson/`에는 첫 장치 측정과 배포 근거가 있다. 비교 도구의 초기 CSP 오류, 해상도 전제 오류와 브라우저 준비 전 접속 오류는 진단 스크립트에서 수정했으며 배포 코드의 실패와 구분한다. 720p 비교 원본은 `comparison.json`이며, 일시적인 SSH 접속 실패 후 재접속해 로컬 사본과 서비스 복구를 확인했다. 이번 변경의 실물 화면 확인은 미완료다.
+4개 패키지 빌드, 형상 82개, 충돌과 계획 설정 및 Mock 검사 30개가 통과했다.
+`make test-moveit-collision`과 기존 Mock 계획, 종료 CTest를 실행했으며 실패와
+skip은 없다. NumPy/SciPy 경고 2개는 유지된다. 가상 장애물과 Mock 하드웨어를
+사용했고 실물 모터, 전체 workspace 및 Gazebo 동적 검사는 실행하지 않았다.
+소스 패치, 환경, 로그, JUnit과 자산 보존 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr64/`에 보관한다.

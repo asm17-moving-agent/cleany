@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>cleany_moveit_collision</name>
+  <version>0.1.0</version>
+  <description>Solid robot mesh collision checks and detector validation for MoveIt.</description>
+  <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>moveit_core</depend>
+  <depend>moveit_ros_move_group</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>geometric_shapes</depend>
+  <depend>libfcl-dev</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>urdf</test_depend>
+  <test_depend>srdfdom</test_depend>
+  <test_depend>octomap</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
