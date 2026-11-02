@@ -1,0 +1,12 @@
+# Simulation safety veto list; Gemini, not these label groups, decides category.
+schema_version: 1
+# YOLOE already applies per-class thresholds before Gemini: 0.25 for cup,
+# mouse and tissue; 0.08 for the small LEGO brick in this simulation.
+minimum_confidence: 0.08
+rules:
+  trash: [cup, crumpled tissue]
+  lost_item: [mouse, computer mouse, wireless mouse, lego brick]
+  hazardous: [person, knife, scissors, battery, broken glass]
+destinations:
+  trash: trash_right
+  lost_item: lost_items_left

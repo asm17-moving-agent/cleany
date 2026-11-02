@@ -15,6 +15,19 @@ from cleany_control_bridge.session import BridgeSession
 
 
 class ControlBridge(Node):
+    """Connect gateway WebSocket commands to the journaled mission runtime.
+
+    Services:
+        mission/offer (cleany_interfaces/srv/OfferMission): Client for admission.
+        mission/cancel (cleany_interfaces/srv/CancelMission): Client for cancellation.
+        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): Client for
+            reconciliation and heartbeat state.
+
+    Notes:
+        Socket I/O runs in a worker while the ROS executor handles RPC replies.
+        Commands wait for snapshot acknowledgement. RPC timeout leaves delivery
+        uncertain and triggers reconnection rather than fabricating rejection.
+    """
     def __init__(self) -> None:
         super().__init__("control_bridge")
         self.declare_parameter("url", "ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws")

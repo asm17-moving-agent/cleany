@@ -1,0 +1,152 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Geometry from mjcf/wrist_mount_v8.xml (handoff e78ac14), in Fixed_Jaw metres.
+       Keep separate component collisions; the merged visual STL is not a solid.
+       Attachment ignores the CAD export rounding (<1.3 um, <3 urad).
+       Camera extrinsics, joint frames and inertias are managed separately. -->
+  <xacro:macro name="cleany_wrist_mount_v8" params="side">
+    <visual name="${side}_wrist_mount_v8_mount_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/wrist_mount_v8/mount_legacy_jaw_m.stl" scale="1 1 1" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_mount_visual_material">
+        <color rgba=".38 .08 .66 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_case_back_collision">
+      <origin xyz="0.00123088555759804 -0.0489895729952997 0.055450135462964" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.0421 0.0507 0.004" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_case_lip_left_collision">
+      <origin xyz="0.021030885557598 -0.0466141748112739 0.0576682390374904" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.0025 0.0507 0.0025" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_case_lip_right_collision">
+      <origin xyz="-0.018569114442402 -0.0466141748112739 0.0576682390374904" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.0025 0.0507 0.0025" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_case_lip_top_collision">
+      <origin xyz="0.00123088555759804 -0.0630622659331465 0.0752827301867282" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.0371 0.0025 0.0025" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_case_lip_bottom_left_collision">
+      <origin xyz="0.013505885557598 -0.0301660836894013 0.0400537478882526" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.01255 0.0025 0.0025" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_case_lip_bottom_right_collision">
+      <origin xyz="-0.011044114442402 -0.0301660836894013 0.0400537478882526" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.01255 0.0025 0.0025" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_rear_clip_left_collision">
+      <origin xyz="0.011755885557598 -0.0470171485988188 0.0613965244512633" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.007 0.01 0.007" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_rear_clip_right_collision">
+      <origin xyz="-0.00929411444240196 -0.0470171485988188 0.0613965244512633" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.007 0.01 0.007" />
+      </geometry>
+    </collision>
+    <visual name="${side}_wrist_mount_v8_connector_visual">
+      <origin xyz="0.00123088555759804 -0.0566850165154868 0.0549" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/wrist_mount_v8/components/connector.stl" scale="1 1 1" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_connector_visual_material">
+        <color rgba=".84 .81 .66 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_connector_collision">
+      <origin xyz="0.00123088555759804 -0.0310325291912217 0.0457435872702014" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.008 0.006 0.005" />
+      </geometry>
+    </collision>
+    <visual name="${side}_wrist_mount_v8_front_camera_module_visual">
+      <origin xyz="0.00123088555759804 -0.0566850165154868 0.0549" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/wrist_mount_v8/components/front_camera_module.stl" scale="1 1 1" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_front_camera_module_visual_material">
+        <color rgba=".045 .045 .05 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_front_camera_module_collision">
+      <origin xyz="0.00123088555759804 -0.0548577871431592 0.0566062335188664" rpy="-2.3219650109899 0 3.14159265358979" />
+      <geometry>
+        <box size="0.018 0.018 0.003" />
+      </geometry>
+    </collision>
+    <visual name="${side}_wrist_mount_v8_lens_visual">
+      <origin xyz="0.00123088555759804 -0.0570504623899523 0.0545587532962267" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <cylinder radius="0.006" length="0.003" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_lens_visual_material">
+        <color rgba=".045 .045 .05 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_lens_collision">
+      <origin xyz="0.00123088555759804 -0.0570504623899523 0.0545587532962267" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <cylinder radius="0.006" length="0.003" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_foot_collision">
+      <origin xyz="0.00123088555759804 -0.0213708585215405 0.026" rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.026 0.004" />
+      </geometry>
+    </collision>
+    <collision name="${side}_wrist_mount_v8_upright_collision">
+      <origin xyz="0.00123088555759804 -0.0323708585215405 0.0318264606882467" rpy="0 0 0" />
+      <geometry>
+        <box size="0.03 0.004 0.0136529213764935" />
+      </geometry>
+    </collision>
+    <visual name="${side}_wrist_mount_v8_foot_screw_0_visual">
+      <origin xyz="0.00123088555759804 -0.0566850165154868 0.0549" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/wrist_mount_v8/components/foot_screw_0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_foot_screw_0_visual_material">
+        <color rgba=".67 .69 .72 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_foot_screw_0_collision">
+      <origin xyz="-0.00476911444240196 -0.0243708585215405 0.0286" rpy="0 0 0" />
+      <geometry>
+        <box size="0.005 0.005 0.0012" />
+      </geometry>
+    </collision>
+    <visual name="${side}_wrist_mount_v8_foot_screw_1_visual">
+      <origin xyz="0.00123088555759804 -0.0566850165154868 0.0549" rpy="2.3219650109899 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/wrist_mount_v8/components/foot_screw_1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="${side}_wrist_mount_v8_foot_screw_1_visual_material">
+        <color rgba=".67 .69 .72 1" />
+      </material>
+    </visual>
+    <collision name="${side}_wrist_mount_v8_foot_screw_1_collision">
+      <origin xyz="0.00723088555759804 -0.0243708585215405 0.0286" rpy="0 0 0" />
+      <geometry>
+        <box size="0.005 0.005 0.0012" />
+      </geometry>
+    </collision>
+  </xacro:macro>
+</robot>

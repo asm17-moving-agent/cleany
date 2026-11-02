@@ -1,0 +1,10 @@
+simulation_placement_verifier:
+  ros__parameters:
+    labels: [cup, cup, mouse, computer mouse, wireless mouse, crumpled tissue, lego brick]
+    bodies: [study_cafe_cup, study_cafe_cup_b, study_cafe_mouse, study_cafe_mouse, study_cafe_mouse, study_cafe_tissue, study_cafe_lego]
+    registration_maximum_distance_m: 0.05
+    registration_ambiguity_margin_m: 0.01
+    registration_maximum_size_error_m: 0.08
+    registration_observation_maximum_age_sec: 120.0
+    registration_ttl_sec: 600.0
+    registration_maximum_entries: 128

@@ -50,6 +50,31 @@ def localization_jumped(previous: np.ndarray | None, current: np.ndarray, max_m:
 
 
 class VoxelGuardNode(Node):
+    """Gate velocity against the body's predicted sweep through observed voxels.
+
+    Subscriptions:
+        safety_2d/cmd_vel (geometry_msgs/msg/Twist): Upstream command.
+        odom (nav_msgs/msg/Odometry): Measured motion.
+        obstacle_memory/voxels (sensor_msgs/msg/PointCloud2): Occupied voxels.
+        obstacle_memory/voxel_status (std_msgs/msg/String): Matching revision and age.
+
+    Publishers:
+        cmd_vel (geometry_msgs/msg/Twist): Gated velocity.
+        body_guard_3d/state (std_msgs/msg/String): JSON decision and timing evidence.
+        body_guard_3d/risk_voxels (sensor_msgs/msg/PointCloud2): Collision candidates.
+
+    TF:
+        Reads map/odom/base transforms; frame names are configurable defaults.
+
+    QoS:
+        Voxel/status inputs and diagnostic outputs use reliable, transient-local
+        depth 1. Odometry uses sensor_data.
+
+    Notes:
+        Input and velocity output names are configurable defaults. Requires a
+        body profile. Steady-clock checks stop on stale data, stalled simulation
+        time, transform discontinuity or exceeded processing budget.
+    """
     def __init__(self):
         super().__init__('voxel_guard')
         defaults = dict(profile='', allow_simulation_limits=False, map_frame='map', base_frame='base_link', odom_frame='odom', output_directory='',

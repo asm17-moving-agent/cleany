@@ -4,7 +4,9 @@ import json
 from dataclasses import asdict
 import time
 from math import isfinite
+from pathlib import Path
 
+from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
@@ -15,7 +17,7 @@ from std_srvs.srv import Trigger
 from cleany_interfaces.msg import (MissionResult, MissionStatus, DebugBTNode,
                                     RuntimeDebugSnapshot, RuntimeEvent)
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
-from cleany_mission_manager.adapters.config import load_targets
+from cleany_mission_manager.adapters.config import load_targets, validate_manipulation_fixture
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
 from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
 from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
@@ -28,6 +30,49 @@ from cleany_mission_manager.mocks.desk import MockDesk
 
 
 class MissionRuntimeNode(Node):
+    """Adapt the journaled mission state machine to ROS.
+
+    Subscriptions:
+        robot/safety_fault and robot/safety_released (std_msgs/msg/String):
+            E_STOP or HARDWARE_ERROR notifications from the safety owner.
+        odom (nav_msgs/msg/Odometry): Stop evidence with the Nav2 backend;
+            odom_topic default.
+        navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray):
+            Goal reconciliation in Nav2 mode.
+
+    Publishers:
+        mission/status (cleany_interfaces/msg/MissionStatus): Changed state.
+        mission/result (cleany_interfaces/msg/MissionResult): New terminal result.
+        mission/debug_snapshot (cleany_interfaces/msg/RuntimeDebugSnapshot):
+            Bounded diagnostic state, sampled at most twice per second.
+        mission/runtime_events (cleany_interfaces/msg/RuntimeEvent): Ordered events.
+
+    Services:
+        mission/offer (cleany_interfaces/srv/OfferMission): Admit or replay a request.
+        mission/cancel (cleany_interfaces/srv/CancelMission): Request cancellation.
+        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): Read state.
+        mission/reset_error (std_srvs/srv/Trigger): Request guarded recovery.
+        Nav2 mode queries lifecycle GetState services through Nav2Navigator.
+        action_mock mode queries mock/manipulation/get_execution
+            (cleany_interfaces/srv/GetManipulationExecution), configurable.
+
+    Actions:
+        navigate_to_pose (nav2_msgs/action/NavigateToPose): Client in Nav2 mode.
+        mock/manipulation/execute_skill
+            (cleany_interfaces/action/ExecuteManipulationSkill): Configurable
+            client in action_mock mode; the default desk backend is in-process mock.
+
+    TF:
+        Nav2Navigator reads localization transforms; this node broadcasts none.
+
+    QoS:
+        State/result/debug use reliable, transient-local depth 1; runtime events
+        retain depth 2048. Navigation odometry uses sensor_data.
+
+    Notes:
+        State transitions run on a steady-clock tick. A safety notification
+        assumes its producer has already stopped hardware; it is not a stop actuator.
+    """
     def __init__(self, **kwargs) -> None:
         super().__init__("mission_runtime", **kwargs)
         defaults = {
@@ -50,6 +95,7 @@ class MissionRuntimeNode(Node):
             "manipulation_query": "mock/manipulation/get_execution",
             "manipulation_initial_mock_safe": False,
             "manipulation_destination": "mock_trash_bin",
+            "manipulation_mock_fixture": "",
             "manipulation_mock_snapshot_ids": ["mock-snapshot-001", "mock-snapshot-002",
                                                "mock-snapshot-003", "mock-snapshot-004"],
         }
@@ -63,6 +109,13 @@ class MissionRuntimeNode(Node):
         snapshots = tuple(value("manipulation_mock_snapshot_ids")) if manipulation_backend == "action_mock" else ()
         if manipulation_backend == "action_mock" and (len(snapshots) < 4 or len(set(snapshots)) != len(snapshots)):
             raise ValueError("action_mock requires at least four distinct registered snapshot IDs")
+        if manipulation_backend == "action_mock":
+            fixture = value("manipulation_mock_fixture") or str(Path(get_package_share_directory(
+                "cleany_mission_manager")) / "config/manipulation_server_fixture.yaml")
+            validate_manipulation_fixture({
+                "manipulation_mock_snapshot_ids": snapshots,
+                "manipulation_destination": value("manipulation_destination"),
+            }, fixture)
         self.desk = MockDesk(
             time.monotonic, polls=value("mock_operation_polls"),
             destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
@@ -200,6 +253,9 @@ class MissionRuntimeNode(Node):
             return
         self.last_debug_at = time.monotonic()
         data = self.runtime.debug_snapshot()
+        if isinstance(self.manipulation, ManipulationPort):
+            data["manipulation_feedback"] = dict(self.manipulation.transport.feedback)
+            data["manipulation_details"] = dict(self.manipulation.details)
         data["modules"]["navigation"].update({
             "topics": ["/" + self.get_parameter("odom_topic").value.lstrip("/"), "/tf", "/cmd_vel"],
             "actions": ["navigate_to_pose"] if isinstance(self.navigator, Nav2Navigator) else [],

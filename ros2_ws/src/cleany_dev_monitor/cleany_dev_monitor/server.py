@@ -1,12 +1,9 @@
-"""Local HTTP/WebSocket reader. No ROS publishers, clients or control endpoints."""
+"""Live HTTP views, read-only archives and a remote logger control adapter."""
 
 import asyncio
 import contextlib
 import json
 import math
-import os
-import zlib
-import sqlite3
 import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -14,9 +11,19 @@ from uuid import uuid4
 
 from aiohttp import WSMsgType, web
 
+from cleany_logger import ArchiveReader
+from cleany_logger.controller import ControlConflict
+from cleany_logger.recording import LABELS, RAW, observation_policies, rate_profiles, validate
+
 from .camera import IMAGE_TYPES
-from .core import Recorder
-from .recording import validate, RAW
+from .resources import ResourceWorker
+from .sources import (
+    SCHEMA,
+    maximum_reference,
+    raw_maximum_references,
+    resolved,
+    validate_sources,
+)
 
 
 @web.middleware
@@ -26,81 +33,96 @@ async def local_origin(request, handler):
         raise web.HTTPForbidden(text="Same-origin requests only")
     try:
         return await handler(request)
+    except ControlConflict as exc:
+        raise web.HTTPConflict(text=str(exc)) from exc
+    except RuntimeError as exc:
+        raise web.HTTPServiceUnavailable(text=str(exc)) from exc
     except (ValueError, FileNotFoundError, json.JSONDecodeError) as exc:
         raise web.HTTPBadRequest(text=str(exc)) from exc
 
 
-def create_app(hub, config, recorder, assets):
+def create_app(hub, config, recorder, assets, control):
     app = web.Application(middlewares=[local_origin], client_max_size=16384)
     sockets = set()
-    controls = hub.recording
-    recorder.controls = controls
-    settings_file = recorder.directory / 'recording-settings.json'
-    if settings_file.exists():
-        try:
-            controls.configure(json.loads(settings_file.read_text()))
-            recorder.session_limit = controls.settings["limit_mib"]*1024**2
-        except (ValueError, OSError, TypeError):
-            pass
-    hub.put('recording_policy', 'settings', controls.view()['settings'], critical=True)
 
-    def apply_settings(settings, *, new_session=False):
-        recorder.append(hub.snapshot(recorder.last))
-        recorder.append_raw()
-        temporary = settings_file.with_suffix('.tmp')
-        with temporary.open('w') as handle:
-            json.dump(settings, handle)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temporary.replace(settings_file)
-        controls.configure(settings)
-        recorder.session_limit = settings['limit_mib']*1024**2
-        boundary = hub.snapshot()['sequence']
-        if new_session:
-            directory, total_limit = recorder.directory, recorder.total_limit
-            recorder.close()
-            recorder.__init__(directory, settings['limit_mib']*1024**2, total_limit, controls=controls)
-            controls.writer_error = recorder.reason
-        hub.put('recording_policy', 'settings', settings, critical=True)
-        snapshot = hub.snapshot(recorder.last)
-        if new_session:
-            snapshot['rows'] = [r for r in snapshot['rows'] if r['kind'] not in ('event','log','result','recording_policy') or r['seq']>boundary]
-        recorder.append(snapshot)
+    def recording_view(view):
+        current = {**config, 'resource_interval_s': view['resource_interval_s'],
+                   'bt_event_repeat_interval_s': view['bt_event_repeat_interval_s']}
+        requested = validate_sources({**resolved(config), **view['settings']['sources']})
+        view['settings']['sources'] = requested
+        return dict(view, labels=LABELS, observation=observation_policies(current),
+                    source_fields=SCHEMA, source_applied=requested,
+                    rate_profiles=rate_profiles(current.get('resource_interval_s', 1.)),
+                    rate_maximums={**raw_maximum_references(), 'resources': maximum_reference(1 / current.get('resource_interval_s', 1.), 'config', '호스트 리소스 수집 간격 기준')},
+                    source_pending=False, source_live=False)
 
     async def recording_settings(request):
         if request.method == 'PUT':
-            apply_settings(validate(await request.json()))
-        return web.json_response(dict(controls.view(recorder.reason), session_id=recorder.session_id))
+            view = await control.change(validate(await request.json()))
+        else:
+            view = await control.get_view()
+        return web.json_response(recording_view(view))
 
     async def new_recording(request):
         settings = validate(await request.json())
         settings['active'] = True
-        apply_settings(settings, new_session=True)
-        return web.json_response(dict(controls.view(recorder.reason), session_id=recorder.session_id))
+        view = await control.change(settings, new_session=True)
+        return web.json_response(recording_view(view))
 
     async def raw_message(request):
         at = float(request.query.get('at', '0'))
         key = request.query.get('category', '')
         if not math.isfinite(at) or key not in RAW:
             raise ValueError('Invalid raw recording request')
-        with sqlite3.connect(f"file:{recorder.resolve(request.match_info['session'])}?mode=ro", uri=True) as db:
-            if not db.execute("SELECT name FROM sqlite_master WHERE name='raw_messages'").fetchone():
-                raise web.HTTPNotFound(text='원본 녹화 없음')
-            row = db.execute('SELECT payload,type,topic FROM raw_messages WHERE category=? AND received<=? ORDER BY received DESC,id DESC LIMIT 1', (key,at)).fetchone()
-        if not row:
-            raise web.HTTPNotFound(text='이 시점 이전에 원본 녹화가 없습니다.')
-        return web.Response(body=zlib.decompress(row[0]), content_type='application/octet-stream',
-                            headers={'Content-Disposition': f'attachment; filename="{key}.cdr"', 'X-ROS-Message-Type':row[1], 'X-ROS-Topic':row[2]})
+        try:
+            data, message_type, topic = recorder.raw_message(request.match_info['session'], key, at)
+        except FileNotFoundError as exc:
+            raise web.HTTPNotFound(text=str(exc)) from exc
+        return web.Response(body=data, content_type='application/octet-stream',
+                            headers={'Content-Disposition': f'attachment; filename="{key}.cdr"', 'X-ROS-Message-Type':message_type, 'X-ROS-Topic':topic})
+
+    async def export_bag(request):
+        session = request.match_info['session']
+        recorder.resolve_bag(session)
+        status = archive_status()
+        if session == status['session_id'] and status['state'] in ('RECORDING', 'STOPPING'):
+            raise web.HTTPConflict(text='rosbag2 내보내기는 녹화를 정지한 뒤 가능합니다.')
+        if not recorder.bag_available(session):
+            raise web.HTTPNotFound(text='완료된 rosbag2 기록이 없습니다.')
+        # A closed bag includes native metadata and all storage segments. No CDR
+        # conversion or payload duplication into the dashboard database occurs.
+        with tempfile.TemporaryDirectory(prefix='cleany-bag-export-') as temporary:
+            archive = Path(temporary) / 'rosbag2.zip'
+            recorder.export_bag(session, archive)
+            response = web.StreamResponse(headers={
+                'Content-Type': 'application/zip',
+                'Content-Disposition': f'attachment; filename="{session}-rosbag2.zip"',
+            })
+            await response.prepare(request)
+            with archive.open('rb') as stream:
+                while chunk := stream.read(65536):
+                    await response.write(chunk)
+            await response.write_eof()
+            return response
 
     async def snapshot(request):
         return web.json_response(hub.snapshot())
 
+    def archive_status():
+        status = control.status()
+        recorder.session_id = status['session_id']
+        # Read-only metadata hint, never a writer or a storage lease.
+        recorder.bag = True if status['state'] in ('RECORDING', 'STOPPING') else None
+        return status
+
     async def sessions(request):
+        status = archive_status()
         return web.json_response(
             {
                 "sessions": recorder.sessions(),
-                "active": recorder.session_id,
-                "reason": recorder.reason,
+                "active": status["session_id"] if status["state"] in ("RECORDING", "STOPPING") else "",
+                "reason": status["reason"],
+                "state": status["state"],
             }
         )
 
@@ -108,6 +130,7 @@ def create_app(hub, config, recorder, assets):
         return web.json_response({"runs": recorder.navigation_runs()})
 
     async def replay(request):
+        archive_status()
         at = float(request.query.get("at", "0"))
         if not math.isfinite(at):
             raise ValueError("Invalid replay time")
@@ -118,11 +141,7 @@ def create_app(hub, config, recorder, assets):
         # SQLite backup includes committed data consistently even for active recordings.
         with tempfile.TemporaryDirectory(prefix="cleany-monitor-export-") as directory:
             target = Path(directory) / "recording.sqlite3"
-            with (
-                sqlite3.connect(f"file:{source}?mode=ro", uri=True) as src,
-                sqlite3.connect(target) as dst,
-            ):
-                src.backup(dst)
+            recorder.export_sqlite(request.match_info["session"], target)
             response = web.StreamResponse(
                 headers={
                     "Content-Type": "application/vnd.sqlite3",
@@ -148,16 +167,23 @@ def create_app(hub, config, recorder, assets):
         async def send():
             since = 0
             first = True
+            revision = hub.topic_revision
             while not ws.closed:
                 payload = hub.snapshot(since)
-                if not first:
+                changed = revision != payload["topic_revision"]
+                if changed:
+                    payload = hub.snapshot(0)
+                if not first and not changed:
                     payload["rows"] = [
                         row for row in payload["rows"] if row["seq"] > since
                     ]
-                payload["initial"] = first
+                payload["initial"] = first or changed
+                payload["sources_changed"] = changed
+                revision = payload["topic_revision"]
                 payload["recording"] = {
-                    "id": recorder.session_id,
-                    "reason": recorder.reason,
+                    "id": control.status()["session_id"],
+                    "reason": control.status()["reason"],
+                    "state": control.status()["state"],
                 }
                 # Slow clients disconnect and obtain a fresh snapshot + explicit gap on reconnect.
                 await asyncio.wait_for(ws.send_json(payload), timeout=2)
@@ -266,58 +292,44 @@ def create_app(hub, config, recorder, assets):
     app.router.add_get("/api/navigation/runs", navigation_runs)
     app.router.add_get("/api/recordings/{session}/replay", replay)
     app.router.add_get("/api/recordings/{session}/export", export)
+    app.router.add_get("/api/recordings/{session}/bag", export_bag)
     app.router.add_get("/ws", websocket)
     app.router.add_get("/", index)
     if (assets / "assets").is_dir():
         app.router.add_static("/assets", assets / "assets", follow_symlinks=True)
+    worker = ResourceWorker(hub, config)
+
+    async def start_resources(app):
+        worker.thread.start()
+
+    async def stop_resources(app):
+        worker.stop.set()
+        await asyncio.to_thread(worker.thread.join)
+
+    app.on_startup.append(start_resources)
+    app.on_cleanup.append(stop_resources)
     app.on_cleanup.append(cleanup)
     return app
 
 
-def serve(hub, config, stop):
+def serve(hub, config, stop, control):
     async def run():
         from ament_index_python.packages import get_package_share_directory
 
         assets = Path(get_package_share_directory("cleany_dev_monitor")) / "web"
-        recorder = Recorder(
-            config["state_directory"],
-            config["session_limit_bytes"],
-            config["total_limit_bytes"],
-        )
-        runner = web.AppRunner(create_app(hub, config, recorder, assets))
-        previous_status = None
+        archive = ArchiveReader(config["state_directory"])
+        runner = web.AppRunner(create_app(hub, config, archive, assets, control))
         await runner.setup()
         try:
             await web.TCPSite(runner, config["host"], config["port"]).start()
             while not stop.is_set():
-                try:
-                    recorder.append(hub.snapshot(recorder.last))
-                    recorder.append_raw()
-                    hub.recording.writer_error = recorder.reason
-                    status = hub.recording.view(recorder.reason)
-                    status = {key: {k:v for k,v in value.items() if k != 'received_at'} for key,value in status['status'].items()}
-                    if status != previous_status:
-                        hub.put('recording_status', 'writer', {'status':status, 'reason':recorder.reason})
-                        previous_status = status
-                except (OSError, sqlite3.Error, ValueError) as exc:
-                    recorder.reason = f"Recording stopped: {exc}"
-                    hub.recording.writer_error = recorder.reason
                 await asyncio.sleep(0.1)
         finally:
             await runner.cleanup()
-            recorder.append(hub.snapshot(recorder.last))
-            recorder.append_raw()
-            recorder.close()
 
     try:
         asyncio.run(run())
     except (OSError, RuntimeError, ValueError) as exc:
-        hub.put(
-            "event",
-            "server_error",
-            {"kind": "server_error", "message": str(exc)},
-            critical=True,
-        )
+        hub.put("event", "server_error", {"kind": "server_error", "message": str(exc)}, critical=True)
         from rclpy.logging import get_logger
-
         get_logger("cleany_dev_monitor").error(f"HTTP worker failed: {exc}")

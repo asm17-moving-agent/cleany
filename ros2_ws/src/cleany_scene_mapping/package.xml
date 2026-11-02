@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>cleany_scene_mapping</name>
+  <version>0.1.0</version>
+  <description>Optional known-geometry exclusion for sensor-derived MoveIt occupancy.</description>
+  <maintainer email="dev@cleany.local">Cleany</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>geometric_shapes</depend>
+  <depend>octomap</depend>
+  <depend>moveit_ros_perception</depend>
+  <depend>moveit_ros_occupancy_map_monitor</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_eigen</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>moveit_msgs</test_depend>
+  <test_depend>urdf</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

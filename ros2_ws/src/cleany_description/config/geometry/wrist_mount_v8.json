@@ -1,0 +1,223 @@
+{
+  "status": "existing_v8_simulation_proxy_export_not_manufacturing_cad",
+  "scope": "Existing purple wrist mount for both arms, plus camera/electronics proxies in assembly.xml",
+  "mesh_units": {
+    "mount_legacy_jaw_m.stl": "metres",
+    "mount_legacy_jaw_mm.stl": "millimetres",
+    "components": "metres in source camera geometry body frame; placement is in package-root mjcf/wrist_mount_v8.xml"
+  },
+  "confirmed_user_measurements_mm": {
+    "wrist_plate_width": 42.1,
+    "wrist_plate_height": 50.7,
+    "wrist_plate_top_to_lens_center": 20.5,
+    "wrist_mount_contact_to_lens_vertical_height": 30.9
+  },
+  "same_geometry_for_both_wrists_verified": true,
+  "target_branch_commit": "412f1c2270e378ee1b97529412db8d2005d62958",
+  "target_attachment": "Combined legacy_jaw STL coordinates equal the target canonical MJCF Fixed_Jaw/Fixed_Jaw_2 body coordinates. URDF Fixed_Jaw visuals retain tiny conversion-rounding origins (up to 1.2 micrometres); copy the side-specific visual origin when exact URDF mesh alignment is required.",
+  "source_side_mapping": {
+    "physical_left": "right_gripper_frame",
+    "physical_right": "left_gripper_frame"
+  },
+  "target_side_mapping": {
+    "physical_left": "left_gripper_frame",
+    "physical_right": "right_gripper_frame"
+  },
+  "matrix_convention": "parent_T_child maps child coordinates into parent; translation in metres",
+  "legacy_jaw_from_camera_geometry_body": [
+    [
+      0.9999999999999998,
+      0.0,
+      0.0,
+      0.0012308855575980408
+    ],
+    [
+      0.0,
+      -0.682493407546581,
+      -0.7308917489310275,
+      -0.05668501651548681
+    ],
+    [
+      0.0,
+      0.7308917489310275,
+      -0.682493407546581,
+      0.0549
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "camera_geometry_body_from_camera_cv": [
+    [
+      -1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "legacy_jaw_from_camera_cv_approximate": [
+    [
+      -0.9999999999999998,
+      0.0,
+      0.0,
+      0.0012308855575980408
+    ],
+    [
+      0.0,
+      0.682493407546581,
+      -0.7308917489310275,
+      -0.05668501651548681
+    ],
+    [
+      0.0,
+      -0.7308917489310275,
+      -0.682493407546581,
+      0.0549
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "camera_cv_axes": "+X image right, +Y image down, +Z optical forward",
+  "camera_optics": "Approximate geometry-derived frame. Keep the teammate hand-eye calibration separate and compare transforms; this export does not replace measured extrinsics or intrinsics.",
+  "assembly_camera_pose_source": "Active v8 camera-registration.json, not stale nominal camera/site orientation embedded in source bench.xml.",
+  "assembly_camera_intrinsics_note": "Viewer camera retains the source nominal fovy for geometry inspection; calibrated intrinsics and lens distortion are not exported into this MJCF camera.",
+  "assumptions": [
+    "Plate tilt 45 degrees from photographs, not directly measured",
+    "Foot placement relative to fixed jaw, foot dimensions, case thickness, lens depth and component mass remain approximate",
+    "CAD vertical mounting elevations retained",
+    "Preserve CAD support-box/mast relative geometry while translating central assembly"
+  ],
+  "parameters_m": {
+    "case_width": 0.0421,
+    "case_height": 0.0507,
+    "case_center_relative_lens_cv_y": 0.00485,
+    "case_backing_thickness": 0.004,
+    "case_lip_height": 0.0025,
+    "rear_clip_size": [
+      0.007,
+      0.01,
+      0.007
+    ],
+    "connector_size": [
+      0.008,
+      0.006,
+      0.005
+    ],
+    "foot_size": [
+      0.03,
+      0.026,
+      0.004
+    ],
+    "neck_width": 0.03,
+    "neck_thickness": 0.004,
+    "upright_height": 0.011652921376493482,
+    "foot_center_legacy_m": [
+      0.0012308855575980408,
+      -0.02137085852154048,
+      0.026
+    ],
+    "case_tilt_above_foot_deg": 43.03879530676899,
+    "lens_radius": 0.006,
+    "lens_protrusion": 0.003
+  },
+  "limitations": [
+    "No original editable CAD or STEP exists for this reconstructed asset.",
+    "Merged STL is a triangle concatenation of ten box components, not a boolean-unioned watertight manufacturing solid.",
+    "Fastener holes, exact wall thickness, material and mass properties were not measured.",
+    "The original v8 inertia and collision proxies are retained in assembly.xml; mass is assumed.",
+    "Lens, connector, cable and screw proxies are omitted from the purple-only merged STL.",
+    "No hardware or active training model was changed."
+  ],
+  "validation": {
+    "standalone_assembly_load": true,
+    "source_component_bytes_preserved": true,
+    "left_right_triangle_equality": true,
+    "export_transform_and_unit_roundtrip": true,
+    "optical_site_transform": true,
+    "target_fixed_jaw_mesh_sha256": "5528867073033eaa4c27a8087180954f3f0635bd69d517d5cace92f01dd266b2",
+    "purple_components": 10,
+    "purple_triangles": 120
+  },
+  "provenance": {
+    "source_snapshot": "Isaac measured-registration-v8, 2026-10-17",
+    "source_document_sha256": {
+      "bench.xml": "94c26b9962676dbad280d2c13806071cb2570d8fc426909f1be327bc633d5e3c",
+      "geometry-report.json": "bcce68e90995a70b2460bd3a6db67203af9642bec155e66b689e6dbe0f464cfa",
+      "camera-registration.json": "5332c81a7076dfa156ee0e2305fb6fdc336811d50386581d0c67f46fc05e6cf9"
+    },
+    "original_generator": "build_bench_photo_camera_mount.py; source parameter description retained under parameters_m",
+    "export_method": "Original component STL bytes copied; ten purple components rigidly transformed from the camera geometry body into the legacy fixed-jaw mesh frame and concatenated. The mm variant scales all vertices by 1000.",
+    "asset_license": "Apache-2.0, matching the cleany_description package declaration."
+  },
+  "source_component_sha256": {
+    "case_back.stl": "8ca547d2808df9ebfc713636402665a6cb37f89f44fe0ebc6198c9be487de04e",
+    "case_lip_bottom_left.stl": "24896293252c2b415f217f509298ef0e014b77721c7592d8789c44734c818087",
+    "case_lip_bottom_right.stl": "e1c641c38801a7ced98871edce6f2432c270e7e413803c4cb205af9fa1dfcb52",
+    "case_lip_left.stl": "ce5e709a32759755ad9a85c26f83d159bf52636349f53eba3b403dc2d0d7fec6",
+    "case_lip_right.stl": "4188cc1ab61b54ccd7ac33b47d174c7dd10c10cd8f7f7dbb97f830d65a0220a5",
+    "case_lip_top.stl": "a65718eb85ec9838c0f8e8a05522e6cf9cda95f3d718646beb1d4632ae602128",
+    "connector.stl": "f7ae0804347f71d1e1ec76dfbd11946bf9fc65eabcbfdf31a9e47fbc202e375c",
+    "foot.stl": "8f3cea64f2db86e42276b50cd60336be9dc573c8aefdf7046f3adba91ac6d49c",
+    "foot_screw_0.stl": "064de2e0506e98ab6742529efc89a329314978f50f438c52ad9d4aa6c5367029",
+    "foot_screw_1.stl": "99a91c8eaed0d399456f52fade1ff3a66f9f7a2c6da78edb61133d1be8926228",
+    "front_camera_module.stl": "c8acfc4c630948a5c2830eb3d5227e79126082e956e432e9b8396dd217b48d02",
+    "rear_clip_left.stl": "2f3e9da7356bb012275201aa65bea6b6f1911c15b59e15b7107f47949d9f0b4e",
+    "rear_clip_right.stl": "8782def0f44b6244f3b665b50aba7b384d978f3e3423557de64569b557344c98",
+    "upright.stl": "d63c189f32227f358fed7f46123763ec0bdd703115dda30d4269c27be31c2b4d"
+  },
+  "combined_mesh_sha256": {
+    "mount_legacy_jaw_m.stl": "d5cd2950da856964702347c8028cd0db89dbe89c24c485372693394e8cbf800f",
+    "mount_legacy_jaw_mm.stl": "9578c314e9b88c2ea4b22ce44104ac57964bfd97e766726812be2890b836ac4c"
+  },
+  "target_urdf_fixed_jaw_visual_origins": {
+    "left": {
+      "xyz_m": [
+        4.08950130704e-12,
+        1.55983906347e-12,
+        -1.16272394366e-06
+      ],
+      "rpy_rad": [
+        2.65358979337e-06,
+        -3.35526094755e-13,
+        9.74725855585e-12
+      ]
+    },
+    "right": {
+      "xyz_m": [
+        -1.75479422659e-13,
+        1.71668235183e-14,
+        -1.57319892476e-09
+      ],
+      "rpy_rad": [
+        3.58979306307e-09,
+        -3.35445863794e-13,
+        1.29896093881e-14
+      ]
+    }
+  }
+}

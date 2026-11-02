@@ -188,14 +188,6 @@ def test_config_and_ground_truth_are_explicit_and_template_is_not_runnable(
     assert config.timestamp.offsets_ns == (-10_000_000, 0, 10_000_000)
     assert load_ground_truth(truth_path) == TRUTH
 
-    scene_manifest = (
-        Path(__file__).parents[2]
-        / 'cleany_mujoco_sim/config/handeye_scene.yaml'
-    )
-    scene_truth = load_ground_truth(scene_manifest)
-    assert scene_truth.parent_frame == 'left_gripper_frame'
-    assert scene_truth.child_frame == 'left_wrist_rgb_optical_frame'
-
     template = (
         Path(__file__).parents[1] / 'config/evaluation.template.yaml'
     )

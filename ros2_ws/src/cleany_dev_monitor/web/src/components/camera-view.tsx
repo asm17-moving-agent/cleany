@@ -174,6 +174,7 @@ export function CameraView({
             <div className="empty">
               <VideoOff size={28} />
               <p>{label}</p>
+              {replay && <p>원본 rosbag2 영상은 RViz에서 재생하세요.</p>}
             </div>
           )}
         </div>

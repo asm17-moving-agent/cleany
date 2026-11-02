@@ -49,6 +49,23 @@
   font-size: 12px;
   margin: 0;
 }
+.nav-rviz-guide {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.nav-rviz-guide summary {
+  cursor: pointer;
+}
+.nav-rviz-guide p {
+  margin: 10px 0;
+  line-height: 1.7;
+}
+.nav-rviz-guide pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .nav-safety-decisions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

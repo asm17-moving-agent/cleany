@@ -1,4 +1,4 @@
-"""ROS nodes shared by the Fortress and Harmonic robot launches."""
+"""ROS nodes for the Fortress robot launch."""
 from __future__ import annotations
 
 from pathlib import Path

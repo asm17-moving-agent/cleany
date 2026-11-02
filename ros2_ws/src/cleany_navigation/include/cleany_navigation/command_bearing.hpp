@@ -2,7 +2,7 @@
 #include <optional>
 #include "dwb_core/trajectory_critic.hpp"
 namespace cleany_navigation {
-// Prefer consecutive translation bearings without banning any travel direction.
+/// Prefer consecutive translation bearings without banning any travel direction.
 class CommandBearingCritic : public dwb_core::TrajectoryCritic {
 public:
   void onInit() override;

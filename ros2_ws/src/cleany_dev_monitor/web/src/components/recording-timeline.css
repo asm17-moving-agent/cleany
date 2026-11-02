@@ -1,0 +1,197 @@
+.recording-timeline {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--panel, var(--background));
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.timeline-selected {
+  font-variant-numeric: tabular-nums;
+  margin-right: auto;
+}
+.timeline-navigation label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeline-track {
+  position: relative;
+  height: 21px;
+  background: color-mix(in srgb, var(--border) 65%, transparent);
+  border-radius: 6px;
+  touch-action: none;
+  cursor: none;
+  overflow: visible;
+}
+.timeline-track:active {
+  cursor: none;
+}
+.timeline-segment {
+  position: absolute;
+  top: 2.5px;
+  bottom: 2.5px;
+  background: #74a7f6;
+  border-radius: 3px;
+  cursor: none;
+}
+.timeline-pointer {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 3px;
+  background: var(--foreground);
+  transform: translateX(-50%);
+  cursor: none;
+  z-index: 2;
+}
+.timeline-pointer:before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -6px;
+  border-top: 10px solid var(--foreground);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+}
+.timeline-pointer:after {
+  content: "";
+  position: absolute;
+  inset: -4px -9px;
+}
+.timeline-pointer:focus-visible {
+  outline: 2px solid #74a7f6;
+  outline-offset: 5px;
+}
+.timeline-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+  gap: 4px;
+}
+@media (max-width: 650px) {
+  .timeline-ticks span:nth-child(even) {
+    display: none;
+  }
+  .timeline-navigation input {
+    max-width: 200px;
+  }
+}
+
+.timeline-surface {
+  position: relative;
+}
+.timeline-fine {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  width: min(560px, 100%);
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  z-index: 20;
+}
+.timeline-fine::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+.timeline-fine-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.timeline-fine-track {
+  height: 12px;
+  cursor: none;
+  overflow: visible;
+}
+.timeline-fine-track .timeline-segment {
+  top: 1.5px;
+  bottom: 1.5px;
+}
+.timeline-fine-track .timeline-pointer {
+  pointer-events: none;
+}
+.timeline-fine-track:focus-visible {
+  outline: 2px solid #74a7f6;
+  outline-offset: 3px;
+}
+.timeline-hover-pointer {
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 3;
+}
+.timeline-fine-help {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-top: 8px;
+}
+@media (max-width: 650px) {
+  .timeline-fine .timeline-ticks span:nth-child(even) {
+    display: inline;
+  }
+  .timeline-fine .timeline-ticks {
+    font-size: 10px;
+  }
+}
+
+.timeline-range-ticks {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  padding-block: 4px;
+}
+.timeline-range-ticks:active {
+  cursor: grabbing;
+}
+.timeline-track.timeline-pan-mode,
+.timeline-track.timeline-pan-mode .timeline-segment,
+.timeline-track.timeline-pan-mode .timeline-pointer {
+  cursor: grab;
+}
+.timeline-track.timeline-pan-mode:active,
+.timeline-track.timeline-pan-mode:active .timeline-segment,
+.timeline-track.timeline-pan-mode:active .timeline-pointer {
+  cursor: grabbing;
+}
+
+.timeline-toolbar input[type="date"] {
+  min-width: 0;
+  width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.timeline-primary-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.timeline-primary-controls select {
+  width: 56px;
+}
+.timeline-primary-controls button {
+  padding-inline: 10px;
+}

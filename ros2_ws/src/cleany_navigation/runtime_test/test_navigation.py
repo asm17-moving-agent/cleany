@@ -67,6 +67,30 @@ def test_map_reload_preserves_evidence_and_geometry_fault_cannot_be_enabled(monk
 
 
 class Backend(Node):
+    """Supply synthetic sensors for navigation runtime contract tests.
+
+    Subscriptions:
+        obstacle_memory/grid and global_costmap/costmap (nav_msgs/msg/OccupancyGrid):
+            Transient-local outputs under test.
+        {nav2,pan_ready,safety_2d}/cmd_vel and cmd_vel (geometry_msgs/msg/Twist):
+            Command stages under test.
+        head_pan/state and body_guard_3d/state (std_msgs/msg/String): Gate diagnostics.
+
+    Publishers:
+        clock (rosgraph_msgs/msg/Clock): Optional synthetic clock.
+        odom (nav_msgs/msg/Odometry), scan (sensor_msgs/msg/LaserScan), joint_states
+            (sensor_msgs/msg/JointState), camera/head/depth/camera_info
+            (sensor_msgs/msg/CameraInfo) and camera/head/depth/image_raw
+            (sensor_msgs/msg/Image): Synthetic sensor_data samples.
+        initialpose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization seed.
+
+    TF:
+        Broadcasts odom -> base_link and fixed LiDAR/depth-camera mounts.
+
+    Notes:
+        Tests can stop the clock or sensor publication independently to exercise
+        stale-input handling. These samples do not model physical sensor accuracy.
+    """
     def __init__(self, simulated_clock=False):
         super().__init__('synthetic_navigation_backend')
         self.sensors_enabled = True
@@ -246,9 +270,9 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
             wait(future.done)
             handle = future.result()
             assert handle.accepted, log.read_text()[-14000:]
-            wait(lambda: moving(backend.commands.get('cmd_vel')), 40.)
-            for name in ('nav2/cmd_vel', 'pan_ready/cmd_vel', 'safety_2d/cmd_vel'):
-                assert moving(backend.commands.get(name)), (name, backend.states)
+            command_topics = ('nav2/cmd_vel', 'pan_ready/cmd_vel', 'safety_2d/cmd_vel', 'cmd_vel')
+            # Topic callbacks update independently; await movement across the chain.
+            wait(lambda: all(moving(backend.commands.get(name)) for name in command_topics), 40.)
             assert backend.count_publishers('cmd_vel') == 1
             assert all('gazebo' not in name for name in backend.get_node_names())
             backend.obstacle = True

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import signal
 import time
+from types import FrameType
 
 import rclpy
 from geometry_msgs.msg import Twist
-from rclpy.executors import ExternalShutdownException
+from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.signals import SignalHandlerOptions
 
@@ -17,6 +19,19 @@ from cleany_gazebo_sim.command_limits import (
 
 
 class GazeboCommandGuard(Node):
+    """Bound planar commands before they reach Gazebo.
+
+    Subscriptions:
+        cmd_vel (geometry_msgs/msg/Twist): Body-frame planar velocity request.
+
+    Publishers:
+        gazebo_cmd_vel (geometry_msgs/msg/Twist): Limited command, or zero on
+            invalid input or command timeout.
+
+    Notes:
+        Unsupported axes are ignored. Command age uses monotonic time, but
+        timeout callbacks run on the node timer and depend on its clock advancing.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_command_guard')
         self.declare_parameter('max_linear_x', 0.3)
@@ -103,19 +118,32 @@ class GazeboCommandGuard(Node):
 
 
 def main(args: list[str] | None = None) -> None:
-    # Let Python interrupt spin before destroying the ROS context. Humble's
-    # asynchronous SIGINT shutdown can race with take_message conversion.
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.SIGTERM)
     node = GazeboCommandGuard()
+    executor = SingleThreadedExecutor(context=node.context)
+    executor.add_node(node)
+    stop_requested = False
+
+    def request_stop(_signum: int, _frame: FrameType | None) -> None:
+        nonlocal stop_requested
+        stop_requested = True
+
+    # Raising KeyboardInterrupt inside Humble's take_message conversion can
+    # surface as RuntimeError. Finish the callback before tearing ROS down.
+    previous_sigint = signal.signal(signal.SIGINT, request_stop)
     try:
-        rclpy.spin(node)
+        while rclpy.ok() and not stop_requested:
+            executor.spin_once(timeout_sec=0.1)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         try:
+            executor.shutdown()
             node.destroy_node()
             if rclpy.ok():
                 rclpy.shutdown()
         except KeyboardInterrupt:
             # ros2 launch can signal the process again while rclpy tears down.
             pass
+        finally:
+            signal.signal(signal.SIGINT, previous_sigint)

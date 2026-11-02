@@ -3,25 +3,25 @@
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "nav2_core/global_planner.hpp"
 namespace cleany_navigation {
-// Certify the entire linear center/yaw connection with conservative sweeps
-// on short angular intervals. The caller holds the costmap mutex.
+/// Certify the entire linear center/yaw connection with conservative sweeps
+/// on short angular intervals. The caller holds the costmap mutex.
 bool sweptPoseConnectionFree(const nav2_costmap_2d::Costmap2D &,
   const std::vector<geometry_msgs::msg::Point> &,
   const geometry_msgs::msg::Pose2D &,const geometry_msgs::msg::Pose2D &,
   const std::function<bool()> &cancel = [] {return false;});
-// Validate the exact supplied poses, without choosing another yaw strategy.
+/// Validate the exact supplied poses, without choosing another yaw strategy.
 bool sweptPathCollisionFree(const nav_msgs::msg::Path &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
   const std::function<bool()> &cancel = [] {return false;});
-// Search XY at a fixed body yaw. Use an immutable planning map: search holds
-// its mutex. Endpoint rotations, grid connections and every edge are swept.
+/// Search XY at a fixed body yaw. Use an immutable planning map: search holds
+/// its mutex. Endpoint rotations, grid connections and every edge are swept.
 nav_msgs::msg::Path checkedFixedHeadingGridPath(
   const geometry_msgs::msg::PoseStamped &,const geometry_msgs::msg::PoseStamped &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
   double heading,double cost_penalty,
   const std::function<bool()> &cancel = [] {return false;});
-// Search translation and in-place yaw with the full continuous footprint.
-// Weighted A* chooses a feasible route, not a guaranteed minimum-cost route.
+/// Search translation and in-place yaw with the full continuous footprint.
+/// Weighted A* chooses a feasible route, not a guaranteed minimum-cost route.
 nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const geometry_msgs::msg::PoseStamped &,const geometry_msgs::msg::PoseStamped &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
@@ -43,6 +43,11 @@ nav_msgs::msg::Path checkedHolonomicPath(
   const geometry_msgs::msg::PoseStamped &goal,
   nav2_costmap_2d::Costmap2D &map, const std::vector<geometry_msgs::msg::Point> &footprint,
   const std::function<bool()> &cancel = [] {return false;});
+/**
+ * @brief Try footprint-checked direct paths before invoking the fallback planner.
+ * Operates inside Nav2's lifecycle and costmap ownership; this plugin does not
+ * publish velocity commands or relax downstream collision checks.
+ */
 class StraightFirstPlanner : public nav2_core::GlobalPlanner {
 public:
   void configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &, std::string,

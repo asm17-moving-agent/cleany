@@ -1,5 +1,30 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({ json: { sessions: [], active: "", reason: "" } }),
+  );
+  await page.route("**/api/recording/settings", (route) =>
+    route.fulfill({
+      json: {
+        settings: {
+          active: false,
+          preset: "custom",
+          limit_mib: 100,
+          enabled: {},
+          hz: {},
+          topics: {},
+          sources: {},
+          source_hz: {},
+          source_enabled: {},
+        },
+        status: {},
+        reason: "",
+      },
+    }),
+  );
+});
+
 // UI transport fixture only; this does not claim a ROS or robot execution.
 const runtime = {
   boot_id: "fixture-runtime",
@@ -82,14 +107,70 @@ test("stale observations never imply drive readiness; replay remains isolated", 
   await expect(page.getByText("확인 불가", { exact: true })).toBeVisible({
     timeout: 6000,
   });
-  await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByRole("button", { name: "재생", exact: true }).click();
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page.getByText("기록 관리, 내보내기", { exact: true }).first().click();
+  await page
+    .getByRole("button", { name: "시각으로 이동", exact: true })
+    .click();
   await expect(page.locator(".header-status")).toContainText("REPLAY");
+  await page.getByRole("button", { name: "실행", exact: true }).click();
   await expect(page.getByText("주행 차단", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "실시간으로" }).click();
+  await page.getByRole("button", { name: "라이브" }).click();
   await expect(page.getByText("확인 불가", { exact: true })).toBeVisible();
   expect(commands).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("cleaning BT shows manipulation feedback and marks a stale observation", async ({
+  page,
+}) => {
+  const commands: unknown[] = [];
+  let sendFeedback: (stage: string, substage: string) => void = () => {};
+  await page.routeWebSocket("**/ws", (ws) => {
+    sendFeedback = (stage, substage) =>
+      ws.send(
+        JSON.stringify({
+          initial: true,
+          boot_id: "fixture",
+          rows: [
+            {
+              seq: 1,
+              kind: "runtime",
+              key: "runtime",
+              received_at: Date.now() / 1000,
+              data: {
+                ...runtime,
+                state: "WORKING",
+                active_request: { mission_id: "mission-1" },
+                manipulation_feedback: {
+                  execution_id: "execution-1",
+                  stage,
+                  substage,
+                },
+              },
+            },
+          ],
+        }),
+      );
+    sendFeedback("APPROACHING", "MoveToPregrasp");
+    ws.onMessage((message) => commands.push(JSON.parse(String(message))));
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
+  const observation = page.getByRole("region", { name: "조작 단계 관측" });
+  await expect(observation).toContainText("APPROACHING");
+  await expect(observation).toContainText("MoveToPregrasp");
+  await expect(observation).toContainText("진행 중");
+  sendFeedback("GRASPING", "GraspObject");
+  await expect(observation).toContainText("GRASPING");
+  await expect(observation).toContainText("GraspObject");
+  await expect(page.locator(".react-flow__node")).toHaveCount(
+    runtime.bt_nodes.length,
+  );
+  await expect(observation).toContainText("마지막 조작 관측 · 상태 미확인", {
+    timeout: 6000,
+  });
+  expect(commands).toEqual([]);
 });
 
 test("console navigation and diagnostics work at desktop and narrow widths", async ({
@@ -104,26 +185,27 @@ test("console navigation and diagnostics work at desktop and narrow widths", asy
     .click();
   await expect(page.getByRole("region", { name: "노드 상세" })).toBeVisible();
   await page.getByRole("button", { name: "상세 닫기" }).click();
-  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
   await expect(
     page.locator(".react-flow__node").filter({ hasText: "ExecuteOne" }),
   ).toBeVisible();
   await page.getByRole("tab", { name: "FSM", exact: true }).click();
   await page.getByRole("button", { name: "사이드바 접기" }).click();
-  await page.getByRole("button", { name: "ROS 탐색기", exact: true }).click();
-  await page.getByRole("tab", { name: "Topics", exact: true }).focus();
+  await page.getByRole("button", { name: "ROS", exact: true }).click();
+  await page.getByRole("tab", { name: "토픽", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "연결 그래프" })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "연결" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await page.getByRole("button", { name: "자율주행", exact: true }).click();
-  await expect(page.getByRole("link", { name: "연결 가이드" })).toHaveAttribute(
-    "href",
-    /docs.foxglove.dev/,
-  );
+  await page.getByRole("button", { name: "주행", exact: true }).click();
+  await page.getByRole("button", { name: "개요", exact: true }).click();
+  await expect(page.getByLabel("ROS 2D navigation map")).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "개요", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "사이드바 펼치기" }).click();
-  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
+  await page.getByRole("button", { name: "실행", exact: true }).click();
   await page.screenshot({
     path: "test-results/console-desktop.png",
     fullPage: true,
@@ -339,23 +421,21 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
               key: "ros",
               received_at: Date.now() / 1000,
               data: {
-                topics: [...topics]
-                  .reverse()
-                  .map((t) => ({
-                    name: t.name,
-                    types: ["std_msgs/msg/String"],
-                    state: "receiving",
-                    received_hz: sequence,
-                    publishers: [...t.publishers]
-                      .reverse()
-                      .map((node) => ({ node, qos: { depth: sequence } })),
-                    subscribers: [
-                      ...t.subscribers,
-                      ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
-                    ]
-                      .reverse()
-                      .map((node) => ({ node })),
-                  })),
+                topics: [...topics].reverse().map((t) => ({
+                  name: t.name,
+                  types: ["std_msgs/msg/String"],
+                  state: "receiving",
+                  received_hz: sequence,
+                  publishers: [...t.publishers]
+                    .reverse()
+                    .map((node) => ({ node, qos: { depth: sequence } })),
+                  subscribers: [
+                    ...t.subscribers,
+                    ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
+                  ]
+                    .reverse()
+                    .map((node) => ({ node })),
+                })),
               },
             },
           ],
@@ -364,7 +444,7 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
     send(1);
   });
   await page.goto("/#ros");
-  await page.getByRole("tab", { name: "연결 그래프", exact: true }).click();
+  await page.getByRole("tab", { name: "연결", exact: true }).click();
   const graph = page.locator(".ros-connections");
   await expect(graph.locator(".react-flow__node")).toHaveCount(8);
   // /base publishes odom and consumes cmd_vel, but appears only once.

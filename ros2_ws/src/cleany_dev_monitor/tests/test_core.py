@@ -6,8 +6,9 @@ import sqlite3
 import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
-from cleany_dev_monitor.core import Hub, Recorder, grid_origin, preview, transform_point
-from cleany_dev_monitor.server import create_app
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub, grid_origin, preview, transform_point
+from logger_fixture import create_app
 
 
 def test_preview_bounds_large_ros_payload_without_expanding_it():

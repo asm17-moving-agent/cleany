@@ -1,4 +1,4 @@
-# Fortress configuration is provided but this safety profile is validated on Jazzy/Harmonic.
+# Fortress depth inputs for the navigation safety profile.
 - ros_topic_name: /camera/head/depth/image_raw
   gz_topic_name: /model/cleany_mecanum/head_camera/depth/image
   ros_type_name: sensor_msgs/msg/Image

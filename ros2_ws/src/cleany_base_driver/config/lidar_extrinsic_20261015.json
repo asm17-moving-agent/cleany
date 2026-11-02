@@ -1,0 +1,20 @@
+{
+  "yaw_deg": 79.77007003626845,
+  "lever_arm_x_m": -0.07080703021158084,
+  "lever_arm_y_m": -0.038231842123824966,
+  "sensor_frame": "laser",
+  "base_frame": "base_link",
+  "scope": "planar odometry evaluation; z, roll and pitch not measured",
+  "physical_direction_anchor": {
+    "front": "approximately laser -Y",
+    "left": "approximately laser +X"
+  },
+  "measurement": {
+    "date": "2026-10-15",
+    "stationary_scan_count": 158,
+    "source": "artifacts/odometry_evaluation/lidar_extrinsic_20261015/physical_anchor_fit.json",
+    "cad_source_sha256": "db252ae1bc217637217f89618cd8a57e0addadf311c612c923021e87eeffa5df",
+    "surface_rmse_mm_range": [0.8718674159269604, 1.618706175895504],
+    "note": "Fit residual is not absolute accuracy. Remeasure after changing the sensor or profile mounting."
+  }
+}

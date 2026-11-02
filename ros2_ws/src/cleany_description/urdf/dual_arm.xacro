@@ -76,7 +76,7 @@
       <child link="${side}_pregrasp_aim_tip" />
       <origin xyz="0 -0.140 0" rpy="0 0 0" />
     </joint>
-    <!-- Wrist camera extrinsics are evaluation-only until calibrated.
-         Do not publish the MJCF ground-truth optical edge into runtime TF. -->
+    <!-- Measured wrist optical frames are added by the optional calibration profile.
+         MJCF ground-truth camera frames remain separate from runtime TF. -->
   </xacro:macro>
 </robot>

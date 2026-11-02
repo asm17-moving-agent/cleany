@@ -27,6 +27,32 @@ from cleany_navigation.voxel_guard_node import localization_jumped, pose_matrix,
 
 
 class ReactiveGuardNode(Node):
+    """Gate planar velocity using fresh sensor observations and braking bounds.
+
+    Subscriptions:
+        safety_2d/cmd_vel (geometry_msgs/msg/Twist): Upstream limited command.
+        nav2/cmd_vel (geometry_msgs/msg/Twist): Original requested command.
+        odom (nav_msgs/msg/Odometry): Measured planar motion.
+        scan (sensor_msgs/msg/LaserScan) and camera/head/depth/points
+            (sensor_msgs/msg/PointCloud2): Obstacle observations.
+        joint_states (sensor_msgs/msg/JointState): Pan feedback when required.
+
+    Publishers:
+        cmd_vel (geometry_msgs/msg/Twist): Accepted or stopped command.
+        reactive_guard/state (std_msgs/msg/String): JSON decision and input health.
+
+    TF:
+        Reads sensor transforms and map/odom continuity; default base frame is base_link.
+
+    QoS:
+        Sensor, joint and odometry inputs use sensor_data; velocity endpoints
+        use reliable depth 1.
+
+    Notes:
+        Input/output topics and frames are configurable defaults. An explicit
+        body profile and distinct command topics are required. Missing or stale
+        evidence produces a stop through the steady-clock watchdog.
+    """
     def __init__(self) -> None:
         super().__init__('reactive_guard')
         defaults = dict(profile='', allow_simulation_limits=False,

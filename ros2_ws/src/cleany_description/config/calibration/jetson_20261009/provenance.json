@@ -1,0 +1,99 @@
+{
+  "source_host": "jetson-orin",
+  "source_repository": "/home/cleany/cleany",
+  "source_head": "52e44abe89b7103bd832f3cbf806a121c37cb82c",
+  "source_worktree_dirty": true,
+  "captured_date": "2026-10-21",
+  "status": "provisional_20plus5_manual_stationary",
+  "absolute_calibration_verified": false,
+  "validation_summary": "Each camera used 20 training views and 5 held-out views. Per-camera validation metrics and limitations are preserved in the extrinsics YAML. Original reports remain at the source paths below; no image dataset is bundled.",
+  "sources": [
+    {
+      "source": "/home/cleany/cleany/configs/robot/poses/left_arm_ros_reference_20261005.json",
+      "sha256": "0163b8e36badcf74e45629790dee89529f242b318fb6f8997c069b70c184047d",
+      "bytes": 5739,
+      "bundled_as": "reference/left_arm_ros_reference_20261005.json"
+    },
+    {
+      "source": "/home/cleany/.cache/huggingface/lerobot/calibration/robots/so_follower/cleany_so101_left.json",
+      "sha256": "d93d5aeb19521b9b749c36efb682a738fc7c96fa86e3f3c47bfb72e9db631337",
+      "bytes": 916,
+      "bundled_as": "motors/cleany_so101_left.json"
+    },
+    {
+      "source": "/home/cleany/cleany/configs/robot/poses/right_arm_ros_reference_20261006.json",
+      "sha256": "42fe287b66af52774131d2bc0e4de27baa96890bba30533d32a817e02d9d5db4",
+      "bytes": 9583,
+      "bundled_as": "reference/right_arm_ros_reference_20261006.json"
+    },
+    {
+      "source": "/home/cleany/.cache/huggingface/lerobot/calibration/robots/so_follower/cleany_so101_right.json",
+      "sha256": "88277ec00de10be961ab0ed3c4d0a0c75517d48eb3d03fd8a5ebb0fc1d8cd113",
+      "bytes": 922,
+      "bundled_as": "motors/cleany_so101_right.json"
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/headcam/external_preparation_20261009_022321/intrinsics/rgb_intrinsics.json",
+      "sha256": "3071db92b41fdfe09a6ce6f72ecc4d900da4afb8bf5da35e956da0fb0ed5baaa",
+      "bytes": 1786,
+      "bundled_as": "intrinsics/head_rgb.json"
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/left_wrist_handeye/20261009_045633_666865/intrinsics_candidate_20261009_20.json",
+      "sha256": "921bedd45b4826fb29a0f496fe0cc7d463bebfaf54e3fb732a005759b81b15d3",
+      "bytes": 1788,
+      "bundled_as": "intrinsics/left_wrist.json"
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/intrinsics_candidate_20261009_20_fix_k3.json",
+      "sha256": "6cbd762649d713f134438939b408e4d6b0f5b0a66638a85fba237e50dd482b7c",
+      "bytes": 2004,
+      "bundled_as": "intrinsics/right_wrist.json"
+    },
+    {
+      "source": "/home/cleany/cleany/configs/robot/head_rgb_board_extrinsics.yaml",
+      "sha256": "8fa99a3a08cbfc3d17fd3e1e955c8a98490c5a4a459ad92cfff2848c401d543b",
+      "bytes": 1529,
+      "bundled_as": "head_rgb_extrinsics.yaml"
+    },
+    {
+      "source": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/left_wrist_camera_extrinsics.yaml",
+      "sha256": "e0704650fed6905bba087ed1fd7793d512df163ab08741f0d1b7e5c5c1939c6b",
+      "bytes": 2285,
+      "bundled_as": "left_wrist_camera_extrinsics.yaml"
+    },
+    {
+      "source": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/right_wrist_camera_extrinsics.yaml",
+      "sha256": "202a4ae91e3a504ef155175997b40da19ca64f6ab880b2aaed97bba72107509e",
+      "bytes": 2717,
+      "bundled_as": "right_wrist_camera_extrinsics.yaml"
+    },
+    {
+      "source": "/home/cleany/cleany/configs/robot/head_preview_joints.json",
+      "sha256": "61045da280b7ec6bab844848ebe2449907d68b27d0b273e487cf55e56e545f8b",
+      "bytes": 580,
+      "bundled_as": "head_joint_calibration.json"
+    },
+    {
+      "source": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml",
+      "sha256": "47c7f4a11dd94ee8fc685a6c454abb3afc14cf47cbf9c65cbb82b9e3e01e4f22",
+      "bytes": 2658,
+      "bundled_as": "arm_joint_calibration.yaml"
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/headcam/20261009_024038_896936/external_held_out_evaluation.json",
+      "sha256": "babe0333c5cb70ebf35ef002df6d70a4516a444167ff090279a833f8ff8b1838",
+      "bytes": 16937
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/left_wrist_handeye/20261009_045633_666865/analysis_20/validation_5/validation_report.json",
+      "sha256": "f78e2502ac3b2064d451525f6600eff494b21e391c28fdb60ba6a880b42cfcf3",
+      "bytes": 20239
+    },
+    {
+      "source": "/home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/analysis_20/validation_5/validation_report.json",
+      "sha256": "11e819ce026db160127f6f84745315216002277d20ed6369759b1af430f20e66",
+      "bytes": 20610
+    }
+  ]
+}

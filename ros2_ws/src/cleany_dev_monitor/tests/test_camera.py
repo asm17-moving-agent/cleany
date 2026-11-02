@@ -6,8 +6,9 @@ import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
 from cleany_dev_monitor.camera import Cameras, encode_image
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.server import create_app
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
+from logger_fixture import create_app
 from PIL import Image
 
 
@@ -60,6 +61,8 @@ def test_camera_http_staleness_leases_and_no_recorded_frames(tmp_path):
             },
         )
         recorder = Recorder(tmp_path)
+        # Resource sampling may run before any HTTP request; seed its record kind.
+        hub.put("resources", "host", {})
         async with (
             TestServer(create_app(hub, {}, recorder, tmp_path)) as server,
             ClientSession() as client,
@@ -89,7 +92,7 @@ def test_camera_http_staleness_leases_and_no_recorded_frames(tmp_path):
             assert {
                 r["kind"]
                 for r in recorder.replay(recorder.session_id, float("inf"))["rows"]
-            } == {"graph", "recording_policy"}
+            } == {"graph", "recording_policy", "resources"}
             now[0] = 6
             assert hub.cameras.selected() == set()
             assert not hub.cameras.frames

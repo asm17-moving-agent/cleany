@@ -14,6 +14,18 @@ from .relay import PoseRelay, quaternion_yaw
 
 
 class TelemetryNode(Node):
+    """Forward finite odometry poses to the telemetry WebSocket worker.
+
+    Subscriptions:
+        /odom (nav_msgs/msg/Odometry): Pose and capture timestamp; odom_topic default.
+
+    QoS:
+        Input uses best-effort, keep-last depth 1.
+
+    Notes:
+        The callback updates a shared latest pose; PoseRelay owns socket I/O,
+        rate limiting and stale-input handling. Coordinates retain the input frame.
+    """
     def __init__(self) -> None:
         super().__init__("cleany_telemetry")
         self.declare_parameter("odom_topic", "/odom")

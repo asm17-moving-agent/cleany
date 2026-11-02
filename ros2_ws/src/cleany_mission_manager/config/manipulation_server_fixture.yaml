@@ -1,6 +1,20 @@
 # Shared deterministic fixture for the external mock server; not camera evidence.
 # Mock verification settings only; these are not real robot safety limits.
-stage_duration_sec: 0.5
+# Observation profile: longer arm motion than checks; not measured hardware timing.
+# Normal collection totals 40 seconds, with at least 1 second per visible substage.
+stage_duration_sec: 1.0
+stage_durations_sec:
+  VALIDATING: 1.0
+  PREPARING_TARGET: 4.0
+  APPROACHING: 7.0
+  GRASPING: 3.0
+  LIFTING: 3.0
+  TRANSPORTING: 8.0
+  PLACING: 5.0
+  RETURNING_ARM: 7.0
+  VERIFYING_PLACEMENT: 2.0
+  RELEASING_IN_PLACE: 3.0
+  RECOVERING_ARM: 7.0
 stop_duration_sec: 0.1
 preparation_timeout_sec: 5.0
 verification_timeout_sec: 5.0

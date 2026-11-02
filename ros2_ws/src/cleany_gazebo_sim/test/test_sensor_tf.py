@@ -11,7 +11,6 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 BASE_CONFIG_PATH = PACKAGE_ROOT / 'config' / 'base.yaml'
 WORLD_PATHS = (
     PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf',
-    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf',
 )
 
 
@@ -49,7 +48,7 @@ def test_static_transform_spec_rejects_invalid_values(
         )
 
 
-def test_sensor_tf_config_matches_both_gazebo_worlds():
+def test_sensor_tf_config_matches_gazebo_world():
     config = yaml.safe_load(BASE_CONFIG_PATH.read_text(encoding='utf-8'))
     parameters = config['gazebo_sensor_tf_publisher']['ros__parameters']
 

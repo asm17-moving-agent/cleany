@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_random.h"
 #include "esp_timer.h"
+#include "esp_mac.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -19,6 +20,9 @@
 #include "wheel_command_gate.hpp"
 #include "wheel_order.hpp"
 #include "wheel_velocity_controller.hpp"
+#include "mpu6050.hpp"
+#include "imu_runtime.hpp"
+#include "imu_startup_config.hpp"
 #include "usb_stream_transport.hpp"
 #include "rcl/rcl.h"
 #include "rclc/rclc.h"
@@ -27,8 +31,10 @@
 #include "rmw_microros/custom_transport.h"
 #include "cleany_base_interfaces/msg/wheel_command.h"
 #include "cleany_base_interfaces/msg/wheel_state.h"
+#include "cleany_base_interfaces/msg/imu_state.h"
 #include "cleany_base_interfaces/msg/detail/wheel_command__type_support.h"
 #include "cleany_base_interfaces/msg/detail/wheel_state__type_support.h"
+#include "cleany_base_interfaces/msg/detail/imu_state__type_support.h"
 
 namespace {
 constexpr char kTag[] = "motor_controller";
@@ -38,7 +44,11 @@ constexpr uint32_t kPwmFrequencyHz = 20000;
 constexpr ledc_timer_bit_t kPwmResolution = LEDC_TIMER_8_BIT;
 constexpr uint32_t kMotorControlPeriodMs = 5;
 constexpr int kOutputSlewStepPercent = 1;
-constexpr float kVelocityFilterTimeConstantSeconds = 0.05F;
+// Conservative command rampup: step 1% every 20ms = 50% per second (0.6s to 0.3 m/s)
+constexpr int64_t kCommandSlewStepIntervalUs = 20000;
+constexpr cleany::MotorFilterConfig kDefaultMotorFilterConfig{
+    1, kCommandSlewStepIntervalUs, 0.5F, 50000, 3};
+constexpr float kVelocityFilterTimeConstantSeconds = 0.02F;
 constexpr float kMaximumTargetVelocityRadPerSecond = 10.0F;
 constexpr uint16_t kMicroRosWatchdogMs = 250;
 
@@ -64,24 +74,28 @@ struct Encoder {
 };
 
 // Per-wheel PI + FF settings: FF scale (rad/s), Kp, Ki, PWM limit (%).
-// The FF scale is not the command velocity ceiling (10 rad/s).
+// Ground-loaded calibrated on floor across 0.5m surge & sway to equalize per-wheel velocity:
 constexpr cleany::WheelVelocityControllerConfig kFlControllerConfig{
-    12.4261F, 4.655F, 9.309F, 100.0F};
+    11.9352F, 6.058F, 12.118F, 100.0F};
 constexpr cleany::WheelVelocityControllerConfig kFrControllerConfig{
-    12.1178F, 4.711F, 9.421F, 100.0F};
+    12.2596F, 6.030F, 12.058F, 100.0F};
 constexpr cleany::WheelVelocityControllerConfig kRlControllerConfig{
-    11.6403F, 4.864F, 9.728F, 100.0F};
+    11.7678F, 6.246F, 12.492F, 100.0F};
 constexpr cleany::WheelVelocityControllerConfig kRrControllerConfig{
-    11.8128F, 4.783F, 9.566F, 100.0F};
+    11.3872F, 6.154F, 12.309F, 100.0F};
 
 std::array<Motor, 4> motors = {{
-    {GPIO_NUM_2, GPIO_NUM_1, LEDC_CHANNEL_0, -1, 1, {},
+    {GPIO_NUM_2, GPIO_NUM_1, LEDC_CHANNEL_0, -1, 1,
+     cleany::MotorCommandFilter{kDefaultMotorFilterConfig},
      cleany::WheelVelocityController{kFlControllerConfig}},   // M1 FL
-    {GPIO_NUM_12, GPIO_NUM_11, LEDC_CHANNEL_1, 1, -1, {},
+    {GPIO_NUM_12, GPIO_NUM_11, LEDC_CHANNEL_1, 1, -1,
+     cleany::MotorCommandFilter{kDefaultMotorFilterConfig},
      cleany::WheelVelocityController{kFrControllerConfig}},   // M2 FR
-    {GPIO_NUM_5, GPIO_NUM_6, LEDC_CHANNEL_2, 1, -1, {},
+    {GPIO_NUM_5, GPIO_NUM_6, LEDC_CHANNEL_2, 1, -1,
+     cleany::MotorCommandFilter{kDefaultMotorFilterConfig},
      cleany::WheelVelocityController{kRrControllerConfig}},   // M3 RR
-    {GPIO_NUM_16, GPIO_NUM_17, LEDC_CHANNEL_3, -1, 1, {},
+    {GPIO_NUM_16, GPIO_NUM_17, LEDC_CHANNEL_3, -1, 1,
+     cleany::MotorCommandFilter{kDefaultMotorFilterConfig},
      cleany::WheelVelocityController{kRlControllerConfig}},   // M4 RL
 }};
 std::array<Encoder, 4> encoders = {{
@@ -91,12 +105,16 @@ std::array<Encoder, 4> encoders = {{
 SemaphoreHandle_t motorMutex;
 portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
 QueueHandle_t wheelCommandQueue;
+QueueHandle_t imuQueue;
+uint8_t microDeviceMac[6]{};
+uint32_t imuSequence = 0;
 portMUX_TYPE microStopMux = portMUX_INITIALIZER_UNLOCKED;
 bool microStopPending = false;
 uint32_t microStopSequence = 0;
 bool microStopHasSequence = false;
 cleany::WheelCommandGate* wheelGate = nullptr;
 uint32_t microBootId = 0, microStateSequence = 0;
+cleany::ImuCalibrationGate imuCalibrationGate;
 
 constexpr int8_t kEncoderTable[16] = {
     0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0,
@@ -241,7 +259,7 @@ bool takeMicroRosStop(bool& sequenced, uint32_t& sequence) {
   portEXIT_CRITICAL(&microStopMux);
   return pending;
 }
-void processMicroRosCommandLocked(int64_t nowUs) {
+void processMicroRosCommandLocked(int64_t nowUs, bool allowMotion) {
   if (wheelGate->expire(static_cast<uint64_t>(nowUs))) {
     stopMicroRosMotorsLocked();
   }
@@ -257,8 +275,9 @@ void processMicroRosCommandLocked(int64_t nowUs) {
                               static_cast<uint64_t>(nowUs));
     else wheelGate->disconnect();
     stopMicroRosMotorsLocked();
-  } else if (haveCommand &&
-             wheelGate->accept(command, static_cast<uint64_t>(nowUs))) {
+  } else if (haveCommand && cleany::acceptImuGatedWheelCommand(
+                 *wheelGate, imuCalibrationGate, command,
+                 static_cast<uint64_t>(nowUs), allowMotion)) {
     if (command.mode == cleany::WheelMode::kEnable) {
       stopMicroRosMotorsLocked();
     } else if (command.mode == cleany::WheelMode::kVelocity) {
@@ -273,12 +292,28 @@ void processMicroRosCommandLocked(int64_t nowUs) {
 }
 void motorControlTask(void*) {
   TickType_t wake = xTaskGetTickCount();
+  bool calibrationWasPending = true;
   while (true) {
     vTaskDelayUntil(&wake, pdMS_TO_TICKS(kMotorControlPeriodMs));
     const auto counts = readEncoderCounts();
     if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(5)) != pdTRUE) continue;
     const int64_t nowUs = esp_timer_get_time();
-    processMicroRosCommandLocked(nowUs);
+    processMicroRosCommandLocked(
+        nowUs, !imuCalibrationGate.pending() && !calibrationWasPending);
+    if (calibrationWasPending && !imuCalibrationGate.pending()) {
+      calibrationWasPending = false;
+      xQueueReset(wheelCommandQueue);
+      wheelGate->disconnect();
+      stopMicroRosMotorsLocked();
+      xSemaphoreGive(motorMutex);
+      continue;
+    }
+    if (imuCalibrationGate.pending()) {
+      stopMicroRosMotorsLocked();
+      for (size_t i=0;i<motors.size();++i) updateMotorVelocityLocked(motors[i], counts[i], nowUs);
+      xSemaphoreGive(motorMutex);
+      continue;
+    }
     for (size_t i = 0; i < motors.size(); ++i) {
       Motor& m = motors[i];
       updateMotorVelocityLocked(m, counts[i], nowUs);
@@ -298,6 +333,57 @@ void motorControlTask(void*) {
       }
     }
     xSemaphoreGive(motorMutex);
+  }
+}
+
+void imuAcquisitionTask(void*) {
+  cleany::Mpu6050 sensor;
+  const int64_t bootUs = esp_timer_get_time();
+  cleany::ImuStartupCalibration calibration(cleany::configuredImuStartup(), bootUs);
+  bool calibrationWasTerminal = false;
+  uint32_t retryMs = 250;
+  TickType_t wake = xTaskGetTickCount();
+  const auto enqueue = [&](cleany::ImuRuntimeValue value = cleany::ImuRuntimeValue{}) {
+    if (calibration.terminal()) {
+      imuCalibrationGate.complete();
+      calibrationWasTerminal = true;
+    }
+    value.calibration = calibration.value();
+    (void)xQueueOverwrite(imuQueue, &value);
+  };
+  while (true) {
+    if (sensor.initialize() != ESP_OK) {
+      calibration.sensorFailure();
+      enqueue();
+      ESP_LOGW(kTag, "MPU6050 init failed: %s", sensor.lastOperation());
+      vTaskDelay(pdMS_TO_TICKS(retryMs));
+      retryMs = std::min<uint32_t>(retryMs * 2, 5000);
+      continue;
+    }
+    wake = xTaskGetTickCount();
+    while (true) {
+      // Poll data-ready faster than the independent 100 Hz sensor clock.
+      vTaskDelayUntil(&wake, pdMS_TO_TICKS(2));
+      calibration.poll(esp_timer_get_time());
+      if (calibration.terminal() && !calibrationWasTerminal) {
+        enqueue();
+      }
+      cleany::ImuSample sample{};
+      const auto status = sensor.readSample(sample);
+      if (status == cleany::Mpu6050ReadStatus::kFresh) {
+        retryMs = 250;
+        calibration.addSample(sample);
+        enqueue(cleany::makeImuValue(sample, sensor.identity()));
+      } else if (status == cleany::Mpu6050ReadStatus::kError) {
+        calibration.sensorFailure();
+        enqueue();
+        ESP_LOGW(kTag, "MPU6050 read failed: %s", sensor.lastOperation());
+        sensor.shutdown();
+        break;
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(retryMs));
+    retryMs = std::min<uint32_t>(retryMs * 2, 5000);
   }
 }
 
@@ -338,6 +424,7 @@ void wheelCommandCallback(const void* msg) {
     requestMicroRosStop(true, in->sequence);
     return;
   }
+  if (imuCalibrationGate.pending()) return;
   cleany::WheelCommand c{};
   c.protocolVersion = in->protocol_version;
   c.sequence = in->sequence;
@@ -386,7 +473,8 @@ bool fillWheelState(cleany_base_interfaces__msg__WheelState* s) {
 }
 void ignoreRclCleanupResult(rcl_ret_t r) { (void)r; }
 bool createMicroRosEntities(rcl_allocator_t* a, rclc_support_t* support, rcl_node_t* node,
-                            rcl_publisher_t* pub, rcl_subscription_t* sub,
+                            rcl_publisher_t* pub, rcl_publisher_t* imuPub,
+                            rcl_subscription_t* sub,
                             rclc_executor_t* ex,
                             cleany_base_interfaces__msg__WheelCommand* command) {
   if (rclc_support_init(support, 0, nullptr, a) != RCL_RET_OK) return false;
@@ -403,33 +491,42 @@ bool createMicroRosEntities(rcl_allocator_t* a, rclc_support_t* support, rcl_nod
       "base/wheel_state", &qos) != RCL_RET_OK) {
     ignoreRclCleanupResult(rcl_node_fini(node)); (void)rclc_support_fini(support); return false;
   }
+  if (rclc_publisher_init(imuPub, node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(cleany_base_interfaces, msg, ImuState),
+      "base/imu_state", &qos) != RCL_RET_OK) {
+    ignoreRclCleanupResult(rcl_publisher_fini(pub,node));
+    ignoreRclCleanupResult(rcl_node_fini(node)); (void)rclc_support_fini(support); return false;
+  }
   if (rclc_subscription_init(sub, node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(cleany_base_interfaces, msg, WheelCommand),
       "base/wheel_command", &qos) != RCL_RET_OK) {
-    ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
+    ignoreRclCleanupResult(rcl_publisher_fini(imuPub,node)); ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
     (void)rclc_support_fini(support); return false;
   }
   if (rclc_executor_init(ex, &support->context, 1, a) != RCL_RET_OK) {
-    ignoreRclCleanupResult(rcl_subscription_fini(sub,node)); ignoreRclCleanupResult(rcl_publisher_fini(pub,node));
+    ignoreRclCleanupResult(rcl_subscription_fini(sub,node)); ignoreRclCleanupResult(rcl_publisher_fini(imuPub,node)); ignoreRclCleanupResult(rcl_publisher_fini(pub,node));
     ignoreRclCleanupResult(rcl_node_fini(node)); (void)rclc_support_fini(support); return false;
   }
   if (rclc_executor_add_subscription(ex, sub, command, wheelCommandCallback, ON_NEW_DATA) != RCL_RET_OK) {
     (void)rclc_executor_fini(ex); ignoreRclCleanupResult(rcl_subscription_fini(sub,node));
-    ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
+    ignoreRclCleanupResult(rcl_publisher_fini(imuPub,node)); ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
     (void)rclc_support_fini(support); return false;
   }
   return true;
 }
 void destroyMicroRosEntities(rclc_support_t* support, rcl_node_t* node, rcl_publisher_t* pub,
-                             rcl_subscription_t* sub, rclc_executor_t* ex) {
+                             rcl_publisher_t* imuPub, rcl_subscription_t* sub, rclc_executor_t* ex) {
   (void)rclc_executor_fini(ex); ignoreRclCleanupResult(rcl_subscription_fini(sub,node));
-  ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
+  ignoreRclCleanupResult(rcl_publisher_fini(imuPub,node)); ignoreRclCleanupResult(rcl_publisher_fini(pub,node)); ignoreRclCleanupResult(rcl_node_fini(node));
   (void)rclc_support_fini(support);
 }
 void microRosTask(void*) {
   rcl_allocator_t allocator = rcl_get_default_allocator();
   cleany_base_interfaces__msg__WheelCommand command{};
   cleany_base_interfaces__msg__WheelState state{};
+  cleany_base_interfaces__msg__ImuState imuState{};
+  cleany::ImuPublicationGate imuPublicationGate{};
+  cleany::ImuCalibrationValue calibrationMetadata{};
   if (rmw_uros_set_custom_transport(true, &nativeUsbTransport, microTransportOpen,
       microTransportClose, microTransportWrite, microTransportRead) != RMW_RET_OK) {
     vTaskDelete(nullptr); return;
@@ -440,10 +537,12 @@ void microRosTask(void*) {
       vTaskDelay(pdMS_TO_TICKS(500)); continue;
     }
     rclc_support_t support{}; rcl_node_t node = rcl_get_zero_initialized_node();
-    rcl_publisher_t pub{}; rcl_subscription_t sub{};
+    rcl_publisher_t pub{}; rcl_publisher_t imuPub{}; rcl_subscription_t sub{};
     rclc_executor_t ex = rclc_executor_get_zero_initialized_executor();
-    bool connected = createMicroRosEntities(&allocator,&support,&node,&pub,&sub,&ex,&command);
-    const bool ready = connected; int64_t lastState = 0, lastPing = esp_timer_get_time();
+    bool connected = createMicroRosEntities(&allocator,&support,&node,&pub,&imuPub,&sub,&ex,&command);
+    const bool ready = connected;
+    int64_t lastState = 0, lastPing = esp_timer_get_time();
+    int64_t lastImuSample = lastPing, lastImuFault = 0;
     while (connected) {
       const rcl_ret_t spin = rclc_executor_spin_some(&ex, RCL_MS_TO_NS(2));
       if (spin != RCL_RET_OK && spin != RCL_RET_TIMEOUT) { connected = false; break; }
@@ -457,10 +556,52 @@ void microRosTask(void*) {
         if (rcl_publish(&pub,&state,nullptr) != RCL_RET_OK) { connected = false; break; }
         lastState = now;
       }
+      {
+        cleany::ImuRuntimeValue imu{};
+        const bool received = xQueueReceive(imuQueue, &imu, 0) == pdTRUE;
+        if (received) calibrationMetadata=imu.calibration;
+        const int64_t imuNow = esp_timer_get_time();
+        const bool freshImu = received && imuPublicationGate.consume(imu, imuNow);
+        if (freshImu) lastImuSample = imuNow;
+        const bool sensorFault = (received && !freshImu) ||
+            imuNow - lastImuSample > cleany::kImuMaximumAgeUs;
+        // Empty mailbox between acquisitions is normal, not a sensor failure.
+        // Fault heartbeat is bounded at 10 Hz; valid data is acquisition-driven.
+        if (!freshImu && (!sensorFault ||
+            (lastImuFault != 0 && imuNow - lastImuFault < 100000))) {
+          vTaskDelay(pdMS_TO_TICKS(2));
+          continue;
+        }
+        imuState = {};
+        imuState.protocol_version = 2;
+        for (size_t i=0;i<6;++i) imuState.device_mac[i]=microDeviceMac[i];
+        imuState.boot_id = microBootId; imuState.sequence = imuSequence++;
+        imuState.timestamp_us = freshImu ? static_cast<uint64_t>(imu.sample.timestampUs) : static_cast<uint64_t>(imuNow);
+        imuState.who_am_i = imu.whoAmI; imuState.fault_bits = imu.faultBits;
+        if (!freshImu) imuState.fault_bits |= cleany::kImuFaultSensor;
+        if (freshImu) {
+          for (size_t i=0;i<3;++i) {
+            imuState.angular_velocity_rad_s[i]=imu.sample.angularVelocityRadS[i];
+            imuState.acceleration_mps2[i]=imu.sample.accelerationMps2[i];
+          }
+          imuState.temperature_c=imu.sample.temperatureC;
+        }
+        imuState.calibration_state=static_cast<uint8_t>(calibrationMetadata.state);
+        imuState.calibration_reason=static_cast<uint8_t>(calibrationMetadata.reason);
+        for(size_t i=0;i<3;++i) {
+          imuState.gyro_bias_rad_s[i]=calibrationMetadata.bias[i];
+          imuState.corrected_angular_velocity_rad_s[i]=freshImu &&
+              calibrationMetadata.state != cleany::ImuCalibrationState::kCalibrating
+            ? imu.sample.angularVelocityRadS[i]-calibrationMetadata.bias[i] : 0;
+        }
+        for(size_t i=0;i<9;++i) imuState.gyro_covariance_rad2_s2[i]=calibrationMetadata.covariance[i];
+        if (rcl_publish(&imuPub,&imuState,nullptr) != RCL_RET_OK) { connected = false; break; }
+        if (!freshImu) lastImuFault = imuNow;
+      }
       vTaskDelay(pdMS_TO_TICKS(2));
     }
     requestMicroRosStop(false);
-    if (ready) destroyMicroRosEntities(&support,&node,&pub,&sub,&ex);
+    if (ready) destroyMicroRosEntities(&support,&node,&pub,&imuPub,&sub,&ex);
     vTaskDelay(pdMS_TO_TICKS(250));
   }
 }
@@ -477,7 +618,13 @@ extern "C" void app_main() {
   ESP_ERROR_CHECK(wheelGate == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
   wheelCommandQueue = xQueueCreate(1, sizeof(cleany::WheelCommand));
   ESP_ERROR_CHECK(wheelCommandQueue == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
+  imuQueue = xQueueCreate(1, sizeof(cleany::ImuRuntimeValue));
+  ESP_ERROR_CHECK(imuQueue == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
+  const esp_err_t macResult = esp_read_mac(microDeviceMac, ESP_MAC_WIFI_STA);
+  if (macResult != ESP_OK) ESP_LOGE(kTag, "Failed to read MCU MAC: %s", esp_err_to_name(macResult));
   ESP_ERROR_CHECK(xTaskCreate(motorControlTask, "motor_control", 3072, nullptr, 6, nullptr) == pdPASS
+                      ? ESP_OK : ESP_ERR_NO_MEM);
+  ESP_ERROR_CHECK(xTaskCreate(imuAcquisitionTask, "imu_acquire", 6144, nullptr, 2, nullptr) == pdPASS
                       ? ESP_OK : ESP_ERR_NO_MEM);
   ESP_ERROR_CHECK(xTaskCreate(microRosTask, "micro_ros", 8192, nullptr, 4, nullptr) == pdPASS
                       ? ESP_OK : ESP_ERR_NO_MEM);

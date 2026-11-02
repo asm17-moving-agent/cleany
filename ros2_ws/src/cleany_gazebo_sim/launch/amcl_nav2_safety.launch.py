@@ -47,7 +47,7 @@ def _launch(context: LaunchContext) -> list:
     if dynamic_pan:
         adapters.extend([
             Node(package='ros_gz_bridge', executable='parameter_bridge', name='head_pan_bridge', output='screen',
-                 arguments=['/model/cleany_mecanum/head_pan/cmd_pos@std_msgs/msg/Float64]gz.msgs.Double'],
+                 arguments=['/model/cleany_mecanum/head_pan/cmd_pos@std_msgs/msg/Float64]ignition.msgs.Double'],
                  remappings=[('/model/cleany_mecanum/head_pan/cmd_pos', '/head_pan/command')]),
             Node(package='cleany_gazebo_sim', executable='gazebo_pan_tf_publisher',
                  parameters=[camera, {'use_sim_time': True}], output='screen'),

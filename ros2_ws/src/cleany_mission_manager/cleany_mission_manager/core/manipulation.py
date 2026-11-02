@@ -25,6 +25,18 @@ class ManipulationTransport(Protocol):
     def lookup(self, execution_id: str) -> Future: ...
 
 
+def diagnostic_details(value: Any) -> dict:
+    """Optional executor diagnostics never become physical evidence or report fields."""
+    if not isinstance(value, dict):
+        return {}
+    details = {key: value[key] for key in ("failed_substage", "cancel_mode", "substage")
+               if isinstance(value.get(key), str)}
+    completed = value.get("completed_substages")
+    if isinstance(completed, (list, tuple)) and all(isinstance(item, str) for item in completed):
+        details["completed_substages"] = list(completed)
+    return details
+
+
 def validate_backend(backend: str, journal: MissionJournal) -> None:
     if backend not in ("mock", "action_mock"):
         raise ValueError("manipulation_backend must be mock or action_mock")
@@ -97,6 +109,7 @@ class ManipulationPort:
         self.outcome = (ManipulationOutcome(**saved["outcome"])
                         if saved.get("outcome") else None)
         self.human_review = saved.get("human_review", False)
+        self.details = diagnostic_details(saved.get("details"))
         self.initial_mock_safe = initial_mock_safe and not saved
         self.result = map_outcome(self.outcome, self.goal["execution_id"]) if self.outcome else None
         self.send_future = self.result_future = self.lookup_future = self.cancel_future = None
@@ -108,6 +121,7 @@ class ManipulationPort:
         self.journal.set(self.KEY, json.dumps(dict(
             goal=self.goal, outcome=asdict(self.outcome) if self.outcome else None,
             human_review=self.human_review,
+            **({"details": self.details} if self.details else {}),
         )))
 
     def ready(self) -> tuple[bool, str]:
@@ -122,6 +136,7 @@ class ManipulationPort:
         if not self.ready()[0]:
             raise RuntimeError("manipulation is not ready for another execution")
         self.goal, self.outcome, self.result = goal, None, None
+        self.details = {}
         self.human_review = False
         self.initial_mock_safe = False
         self.cancel_requested = False
@@ -135,9 +150,11 @@ class ManipulationPort:
             self.cancel_requested = True
         return goal["execution_id"]
 
-    def _complete(self, outcome: ManipulationOutcome, ros_status=None, human_review=False) -> None:
+    def _complete(self, outcome: ManipulationOutcome, ros_status=None, human_review=False,
+                  details=None) -> None:
         assert self.goal is not None
         result = map_outcome(outcome, self.goal["execution_id"], ros_status)
+        self.details.update(diagnostic_details(details))
         self.outcome, self.human_review = outcome, human_review
         self._save()  # Durable physical evidence before releasing any gate.
         self.result = result
@@ -162,7 +179,8 @@ class ManipulationPort:
             future, self.result_future = self.result_future, None
             try:
                 response = future.result()
-                self._complete(ManipulationOutcome(**response["result"]), response["status"])
+                self._complete(ManipulationOutcome(**response["result"]), response["status"],
+                               details=response.get("details"))
             except Exception as exc:
                 logger.warning("Manipulation result rejected: %s", exc)
                 self.outcome = None
@@ -184,11 +202,20 @@ class ManipulationPort:
             future, self.lookup_future = self.lookup_future, None
             try:
                 record = future.result()
-                if (record and all(record.get(k) == v for k, v in self.goal.items())
-                        and record.get("record_state") == "FINISHED" and record.get("has_result")):
-                    outcome = ManipulationOutcome(**{k: record[k]
-                                                     for k in ManipulationOutcome.__dataclass_fields__})
-                    self._complete(outcome, human_review=record.get("human_confirmation_required", True))
+                if record and all(record.get(k) == v for k, v in self.goal.items()):
+                    if record.get("record_state") == "FINISHED" and record.get("has_result"):
+                        outcome = ManipulationOutcome(**{k: record[k]
+                                                         for k in ManipulationOutcome.__dataclass_fields__})
+                        self._complete(outcome, human_review=record.get("human_confirmation_required", True),
+                                       details=record)
+                    else:
+                        details = diagnostic_details(record)
+                        if any(self.details.get(key) != value for key, value in details.items()):
+                            self.details.update(details)
+                            try:
+                                self._save()
+                            except Exception as exc:
+                                logger.warning("Manipulation diagnostic recording failed: %s", exc)
             except Exception as exc:
                 logger.warning("Manipulation execution record rejected: %s", exc)
                 self.outcome = None

@@ -72,6 +72,37 @@ void testEncoderVelocityConversion() {
   assert(std::fabs(velocity - cleany::kTwoPi) < 0.0001F);
 }
 
+void testConservativeRampInterval() {
+  cleany::MotorFilterConfig config;
+  config.slewStepIntervalUs = 20000;
+  cleany::MotorCommandFilter filter(config);
+  filter.setTargetSpeed(50);
+
+  assert(filter.step(0.0F, 0) == 1);
+  assert(filter.step(0.0F, 5000) == 1);
+  assert(filter.step(0.0F, 15000) == 1);
+  assert(filter.step(0.0F, 20000) == 2);
+  assert(filter.step(0.0F, 39999) == 2);
+  assert(filter.step(0.0F, 40000) == 3);
+}
+
+void testAsymmetricDecelSlew() {
+  cleany::MotorFilterConfig config;
+  config.slewStepPercent = 1;
+  config.decelSlewStepPercent = 3;
+  cleany::MotorCommandFilter filter(config);
+
+  // Accel: steps by 1
+  filter.setTargetSpeed(10);
+  assert(filter.step(0.0F, 0) == 1);
+  assert(filter.step(0.0F, 0) == 2);
+  assert(filter.step(0.0F, 0) == 3);
+
+  // Decel to 0: steps down by 3
+  filter.setTargetSpeed(0);
+  assert(filter.step(0.0F, 0) == 0);  // 3 -> 0 directly (3 step)
+}
+
 }  // namespace
 
 int main() {
@@ -79,4 +110,6 @@ int main() {
   testWaitsForStoppedFeedbackBeforeReverse();
   testForceStopIsImmediate();
   testEncoderVelocityConversion();
+  testConservativeRampInterval();
+  testAsymmetricDecelSlew();
 }

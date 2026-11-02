@@ -6,7 +6,8 @@ from types import SimpleNamespace as NS
 import pytest
 
 from cleany_dev_monitor.navigation import NavigationObserver, cloud_points, transform_xyz
-from cleany_dev_monitor.core import Hub, Recorder
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
 
 
 def runtime(operation="op-13", state="RETURN_HOME"):

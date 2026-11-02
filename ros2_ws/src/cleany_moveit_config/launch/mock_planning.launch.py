@@ -23,7 +23,8 @@ def _mock_moveit_config():
             moveit_manage_controllers=False,
         )
         .planning_pipelines(
-            default_planning_pipeline='ompl', pipelines=['ompl']
+            default_planning_pipeline='ompl',
+            pipelines=['ompl', 'pilz_industrial_motion_planner'],
         )
         .planning_scene_monitor()
         .to_moveit_configs()
@@ -84,6 +85,8 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'allow_trajectory_execution': True,
                 'publish_robot_description_semantic': True,
+                'capabilities': 'cleany/RequireCollisionDetector',
+                'collision_detector': LaunchConfiguration('collision_detector'),
                 'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
             },
         ],
@@ -106,12 +109,14 @@ def generate_launch_description() -> LaunchDescription:
             moveit_config.joint_limits,
             moveit_config.planning_pipelines,
             common_parameters,
+            {'collision_detector': LaunchConfiguration('collision_detector')},
         ],
     )
 
     return LaunchDescription(
         [
             DeclareLaunchArgument('use_rviz', default_value='true'),
+            DeclareLaunchArgument('collision_detector', default_value='cleany/SolidFCL'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
             robot_state_publisher,
             ros2_control_node,

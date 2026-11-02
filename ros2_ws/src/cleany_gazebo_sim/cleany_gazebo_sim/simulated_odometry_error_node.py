@@ -18,7 +18,18 @@ from cleany_gazebo_sim.odometry_error import (
 
 
 class SimulatedOdometryErrorNode(Node):
-    """Apply stateful planar errors to simulation wheel odometry."""
+    """Apply stateful error profiles to simulated wheel odometry.
+
+    Subscriptions:
+        wheel/odom_raw (nav_msgs/msg/Odometry): Baseline wheel estimate.
+
+    Publishers:
+        wheel/odom (nav_msgs/msg/Odometry): Estimate with configured scale,
+            drift, noise and slip effects. Both topic names are defaults.
+
+    TF:
+        Publishes no transform; the output remains input to the odometry relay.
+    """
 
     def __init__(self) -> None:
         super().__init__('simulated_odometry_error')

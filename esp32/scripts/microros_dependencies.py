@@ -11,7 +11,7 @@ if not component.is_dir():
     raise RuntimeError("Run `make firmware-setup` before building micro-ROS firmware")
 
 spec = importlib.util.spec_from_file_location(
-    "micro_ros_setup", controller.parent / "tools/micro_ros_setup.py"
+    "micro_ros_setup", controller / "scripts/micro_ros_setup.py"
 )
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)
@@ -26,8 +26,9 @@ env["ENV"]["PATH"] = os.pathsep.join(
     path for path in env["ENV"].get("PATH", "").split(os.pathsep)
     if not path.startswith("/opt/ros/")
 )
-# ESP-IDF uses its own Python venv. Supply pinned generator modules even on
-# first build, before PlatformIO has created that interpreter.
+# ESP-IDF uses its own Python venv. Supply pinned modules to SCons actions;
+# cmake/microros_python.cmake restores this path for CMake configuration too,
+# because PlatformIO's ESP-IDF builder clears its process PYTHONPATH.
 env["ENV"]["PYTHONPATH"] = str(controller / ".venv/lib/python3.10/site-packages")
 env.PrependENVPath("PATH", str(controller / ".venv/bin"))
 env.PrependENVPath("PATH", str(controller / "micro_ros/bin"))

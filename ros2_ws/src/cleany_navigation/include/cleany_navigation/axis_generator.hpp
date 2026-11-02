@@ -3,6 +3,10 @@
 #include <vector>
 #include "dwb_plugins/standard_traj_generator.hpp"
 namespace cleany_axis_controller {
+/**
+ * @brief Generate axis-constrained DWB candidates with measured stop/settle gating.
+ * Plan resets clear candidates but preserve motion history across axis changes.
+ */
 class AxisGenerator : public dwb_plugins::StandardTrajectoryGenerator {
 public:
   void initialize(const nav2_util::LifecycleNode::SharedPtr &, const std::string &) override;

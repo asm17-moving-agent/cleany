@@ -16,6 +16,10 @@ inline int32_t modularAdd(int32_t value, int32_t delta) {
                                static_cast<uint32_t>(delta));
 }
 
+/**
+ * @brief Recover a signed encoder delta without signed-overflow arithmetic.
+ * The true count change must fit the int32 half-range between samples.
+ */
 inline int32_t modularDifference(int32_t newer, int32_t older) {
   return signedFromModularBits(static_cast<uint32_t>(newer) -
                                static_cast<uint32_t>(older));

@@ -1,7 +1,7 @@
 #pragma once
 #include "dwb_core/trajectory_critic.hpp"
 namespace cleany_axis_controller {
-// Continuous heading cost gives in-place rotation a benefit even when XY is unchanged.
+/// Continuous heading cost gives in-place rotation a benefit even when XY is unchanged.
 class PathHeadingCritic : public dwb_core::TrajectoryCritic {
 public:
   void onInit() override;

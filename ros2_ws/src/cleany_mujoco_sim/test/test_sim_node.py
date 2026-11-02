@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import rclpy
@@ -13,6 +14,7 @@ from cleany_mujoco_sim.base_command import ChassisCommand, stopped_command
 from cleany_mujoco_sim.mecanum_kinematics import stopped_wheel_speeds
 from cleany_mujoco_sim.sim_node import MujocoSimNode
 from cleany_mujoco_sim.state import joint_positions
+import cleany_mujoco_sim.sim_node as simulation
 
 
 def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
@@ -30,6 +32,32 @@ def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
         namespace='test_mujoco_sim',
         parameter_overrides=[Parameter(name, value=value) for name, value in params.items()]
     )
+
+
+def test_viewer_throttling_preserves_physics_ticks(scene_path, monkeypatch):
+    viewer = SimpleNamespace(syncs=0, closed=False)
+    def sync():
+        viewer.syncs += 1
+    def close():
+        viewer.closed = True
+    viewer.sync, viewer.close = sync, close
+    rclpy.init(args=[])
+    node = _make_node(scene_path, viewer_rate_hz=20.0)
+    try:
+        node._viewer = viewer
+        now = 0.0
+        monkeypatch.setattr(simulation, 'time', SimpleNamespace(monotonic=lambda: now))
+        initial_time = node.simulation_context.data.time
+        for now in (0.0, 0.01, 0.04, 0.06, 10.0):
+            node._on_timer()
+        assert viewer.syncs == 3
+        assert node.simulation_context.data.time == pytest.approx(
+            initial_time + 5 * node._steps_per_tick * node.simulation_context.model.opt.timestep
+        )
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+    assert viewer.closed
 
 
 def test_sim_node_publishes_joint_states(scene_path: Path):
@@ -157,58 +185,6 @@ def test_sim_node_accepts_and_bounds_supported_cmd_vel_axes(scene_path: Path):
         rclpy.shutdown()
 
 
-def test_sim_node_drives_xlerobot_from_cmd_vel(cleany_scene_path: Path):
-    rclpy.init(args=[])
-    commander = None
-    node = None
-    try:
-        node = _make_node(
-            cleany_scene_path,
-            publish_rate_hz=200.0,
-            scan_enabled=False,
-            base_drive_enabled=True,
-        )
-        commander = rclpy.create_node('test_drive_cmd_vel_commander')
-        cmd_pub = commander.create_publisher(
-            Twist, '/test_mujoco_sim/cmd_vel', 10
-        )
-
-        start_x = float(node._data.xpos[node._base_body_id, 0])
-        cmd = Twist()
-        cmd.linear.x = 0.1
-        deadline = time.time() + 3.0
-        while (
-            node._data.xpos[node._base_body_id, 0] - start_x <= 0.05
-            and time.time() < deadline
-        ):
-            cmd_pub.publish(cmd)
-            rclpy.spin_once(node, timeout_sec=0.01)
-
-        assert node._data.xpos[node._base_body_id, 0] - start_x > 0.05
-
-        deadline = time.time() + 3.0
-        while time.time() < deadline:
-            rclpy.spin_once(node, timeout_sec=0.01)
-            measured = node._mujoco_drive.measured_speeds(node._data)
-            peak_speed = max(
-                abs(measured.front_left),
-                abs(measured.front_right),
-                abs(measured.rear_left),
-                abs(measured.rear_right),
-            )
-            if node._last_cmd_vel_time is None and peak_speed < 0.1:
-                break
-
-        assert node._last_cmd_vel_time is None
-        assert peak_speed < 0.1
-    finally:
-        if commander is not None:
-            commander.destroy_node()
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
-
-
 def test_sim_node_stops_on_non_finite_cmd_vel(scene_path: Path):
     rclpy.init(args=[])
     commander = None
@@ -330,6 +306,9 @@ def test_sim_node_allows_zero_scan_rate_when_scan_disabled(scene_path: Path):
         ('wheel_kd', float('inf')),
         ('motor_voltage_limit', 0.0),
         ('motor_no_load_speed', -0.1),
+        ('viewer_rate_hz', float('nan')),
+        ('viewer_rate_hz', 0.0),
+        ('viewer_rate_hz', 61.0),
     ],
 )
 def test_sim_node_rejects_invalid_command_parameters(

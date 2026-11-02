@@ -1,0 +1,20 @@
+{
+  "reference_ticks": [
+    2009,
+    2067
+  ],
+  "encoder_directions": [
+    -1,
+    1
+  ],
+  "encoder_scale_rad_per_tick": 0.0015339807878856412,
+  "status": "manual_zero_and_direction_verified_not_axis_fit",
+  "direction_verification": {
+    "date": "2026-10-09",
+    "source": "User confirmed raw tick changes against physical head motion",
+    "pan_left_raw_decreases": true,
+    "tilt_up_raw_decreases": true
+  },
+  "motor_configuration_written": false,
+  "source_joint_calibration_file": "/home/cleany/.local/share/cleany/headcam/joint_calibration_20261009_015627_091517.json"
+}

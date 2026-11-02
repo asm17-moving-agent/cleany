@@ -1,0 +1,73 @@
+nearest_pregrasp_coordinator:
+  ros__parameters:
+    # Empty keeps direct PointCloud2 reception. The sensor-only launch starts
+    # a dedicated receipt node and supplies its reliable Header topic.
+    sensor_scene_receipt_topic: ''
+    # Wrist ROLL only: pitch remains free. Absolute deviations from grasp contact.
+    sorting_carry_wrist_tolerances_deg: [2.0, 5.0, 10.0, 20.0, 30.0]
+    # Wrist joint hold does not imply a fixed TCP world orientation.
+    sorting_carry_cartesian_rotation_limit_deg: 30.0
+    sorting_fixed_release_wrist_tolerance_deg: 0.5
+    # Retry only valid wrist frames with no target; confirm motor contact each time.
+    sorting_wrist_check_attempts: 1
+    sorting_wrist_contact_confirmation_sec: 0.3
+    sorting_gripper_feedback_max_age_sec: 0.5
+    # Fixed OBJECT-center destinations in base_link; not blind TCP drop commands.
+    sorting_fixed_release_lost_items_left_m: [-0.075, 0.105, 0.50]
+    sorting_fixed_release_trash_right_m: [-0.075, -0.105, 0.50]
+    # Empty return: STS3215 torque saturation + velocity damping preclude 30% yaw speed.
+    sorting_return_velocity_scaling: 0.12
+    sorting_return_acceleration_scaling: 0.15
+    inspection_action: /perception/inspect_scene
+    grasp_service: /grasp/plan
+    selection_action: /grasp/select_reachable
+    move_group_action: /move_action
+    query: Detect the paper cup, LEGO brick, crumpled tissue, and mouse on the table.
+    startup_timeout_sec: 60.0
+    inspection_timeout_sec: 60.0
+    grasp_timeout_sec: 30.0
+    selection_timeout_sec: 120.0
+    planning_timeout_sec: 5.0
+    planning_attempts: 3
+    replan_attempts: 2
+    replan_delay_sec: 0.25
+    velocity_scaling: 0.08
+    acceleration_scaling: 0.08
+    gripper_open_position_rad: 1.2
+    gripper_motion_sec: 3.0
+    preapproach_maximum_geometry_shift_m: 0.005
+    pilz_pipeline_id: pilz_industrial_motion_planner
+    pilz_planner_id: LIN
+    approach_velocity_scaling: 0.2
+    retreat_velocity_scaling: 0.4
+    lin_acceleration_scaling: 0.4
+    lin_position_tolerance_m: 0.001
+    lin_orientation_tolerance_rad: 0.01
+    lin_alignment_tolerance_deg: 10.0
+    use_joint_corridor_grasp: false
+    use_seeded_cartesian_grasp: false
+    cartesian_ik_step_m: 0.01
+    cartesian_validation_step_m: 0.001
+    cartesian_validation_joint_step_rad: 0.005
+    cartesian_maximum_points: 2000
+    cartesian_joint_acceleration_rad_s2: 1.0
+    attachment_scene_timeout_sec: 5.0
+    gripper_contact_feedback_timeout_sec: 5.0
+    gripper_contact_stable_duration_sec: 0.10
+    corridor_orientation_tolerance_deg: 5.0
+    corridor_time_margin: 2.0
+    cartesian_translation_speed_m_s: 0.10
+    cartesian_translation_acceleration_m_s2: 0.20
+    cartesian_rotation_speed_rad_s: 0.50
+    arm_stationary_velocity_rad_s: 0.02
+    arm_stationary_samples: 5
+    reinspection_max_center_shift_m: 0.03
+    reinspection_max_axis_change_deg: 15.0
+    reinspection_ambiguity_distance_m: 0.01
+    grasp_contact_stop_max_distance_m: 0.02
+    contact_min_joint_error_rad: 0.10
+    contact_max_joint_velocity_rad_s: 0.05
+    contact_consecutive_samples: 5
+    contact_effort_threshold: 0.0
+    lift_distance_m: 0.06
+    count_retreat_as_lift: false

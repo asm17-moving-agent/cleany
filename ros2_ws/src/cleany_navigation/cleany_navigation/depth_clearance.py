@@ -36,12 +36,7 @@ def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
 
 def _self_observation_mask_python(points: np.ndarray, sensor_origin: np.ndarray,
                           boxes: list[BodyBox], margin: float) -> np.ndarray:
-    """Keep rays whose finite segment does not intersect fixed self geometry.
-
-    A mixed edge pixel can report a hit behind a rail. Checking only the hit
-    position misses this self occlusion. Discard the ray instead of certifying
-    any space behind the robot as free.
-    """
+    """Python fallback for the ray-segment contract of self_observation_mask()."""
     if not math.isfinite(margin) or margin < 0:
         raise ValueError('Self-filter margin must be finite and nonnegative')
     keep = np.isfinite(points).all(axis=1)

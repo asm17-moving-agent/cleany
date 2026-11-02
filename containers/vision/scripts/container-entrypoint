@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+set +u
+source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+set -u
+
+role="${CLEANY_WORKSPACE_ROLE:-}"
+role_install="/workspace/cleany/ros2_ws/install-${role}/setup.bash"
+if [[ -n "${role}" && -f "${role_install}" ]]; then
+  set +u
+  source "${role_install}"
+  set -u
+fi
+
+exec "$@"

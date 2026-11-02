@@ -1,0 +1,8 @@
+# PC receives the calibration performed once at MCU boot.
+cleany_imu:
+  ros__parameters:
+    frame_id: imu_link
+    expected_device_mac: "90:e5:b1:d5:3f:34"
+    max_transport_delay_s: 0.10
+    max_clock_jump_s: 0.05
+    stale_timeout_s: 0.25

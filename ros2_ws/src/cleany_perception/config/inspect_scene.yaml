@@ -1,0 +1,77 @@
+perception_inspector:
+  ros__parameters:
+    action_name: perception/inspect_scene
+    objects_topic: perception/objects
+    detections_topic: perception/detections_2d
+    debug_image_topic: perception/debug_image
+    latched_debug_image_topic: perception/debug_image_latched
+    debug_republish_count: 5
+    debug_republish_period_seconds: 0.25
+    color_image_topic: camera/color/image_raw
+    color_info_topic: camera/color/camera_info
+    depth_image_topic: camera/depth/image_raw
+    depth_info_topic: camera/depth/camera_info
+    target_frame: base_link
+    default_query: Detect the box and can on the table.
+    detector_type: yoloe_gemini
+    segmenter_type: yoloe_seg
+    enable_wrist_observation: false
+    wrist_capture_timeout_seconds: 3.0
+    wrist_maximum_frame_age_seconds: 0.75
+    wrist_maximum_head_prior_age_seconds: 60.0
+    wrist_reference_ttl_seconds: 120.0
+    wrist_minimum_detection_confidence: 0.25
+    wrist_minimum_detection_iou: 0.2
+    wrist_near_plane_m: 0.005
+    wrist_minimum_box_edge_pixels: 8.0
+    wrist_minimum_visible_fraction: 0.6
+    wrist_minimum_mask_pixels: 100
+    wrist_maximum_mask_fraction: 0.7
+    wrist_minimum_mask_in_box_fraction: 0.65
+    simulation_color_minimum_pixels: 100
+    simulation_color_profile: legacy
+    yoloe_model_path: ''
+    yoloe_classes:
+    - cup
+    - computer mouse
+    - crumpled tissue
+    - lego brick
+    yoloe_device: cuda
+    yoloe_image_size: 640
+    yoloe_iou_threshold: 0.5
+    yoloe_text_encoder_directory: ''
+    snapshot_timeout_seconds: 2.0
+    depth_16u_scale_m: 0.001
+    # Simulation starting values, not calibrated real-robot identity limits.
+    tracking_maximum_distance_m: 0.03
+    tracking_ambiguity_margin_m: 0.01
+    tracking_session_ttl_seconds: 600.0
+    tracking_maximum_sessions: 32
+    tracking_label_aliases: [paper cup=cup, disposable paper cup=cup, computer mouse=mouse, wireless mouse=mouse]
+    snapshot_cache_max_entries: 2
+    snapshot_cache_ttl_seconds: 120.0
+    gemini_model: gemini-robotics-er-2-preview
+    gemini_api_key_environment: GEMINI_API_KEY
+    detector_timeout_seconds: 30.0
+    tf_timeout_seconds: 0.5
+    tf_cache_seconds: 60.0
+    minimum_detection_confidence: 0.25
+    maximum_detections: 10
+    minimum_depth_m: 0.1
+    maximum_depth_m: 3.0
+    nearest_object_central_bbox_fraction: 0.5
+    nearest_object_minimum_depth_pixels: 20
+    support_margin_pixels: 40
+    support_sample_stride: 4
+    plane_ransac_iterations: 200
+    plane_distance_threshold_m: 0.006
+    plane_minimum_inliers: 100
+    plane_minimum_inlier_ratio: 0.35
+    maximum_plane_tilt_degrees: 20.0
+    minimum_object_points: 30
+    minimum_object_height_m: 0.005
+    minimum_obb_extent_m: 0.005
+    grasp_context_margin_pixels: 80
+    grasp_cloud_voxel_size_m: 0.005
+    grasp_target_maximum_points: 12000
+    grasp_context_maximum_points: 30000

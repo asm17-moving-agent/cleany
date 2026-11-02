@@ -20,6 +20,32 @@ from .core import EncoderAdapter, Geometry, Limits, finite_twist_axes, newer, wh
 
 
 class BaseDriver(Node):
+    """Translate chassis commands into the MCU wheel permission protocol.
+
+    Subscriptions:
+        cmd_vel (geometry_msgs/msg/Twist): Requested body-frame planar velocity.
+        base/wheel_state (cleany_base_interfaces/msg/WheelState): MCU feedback
+            including boot identity, command acknowledgement and encoder counts.
+
+    Publishers:
+        base/wheel_command (cleany_base_interfaces/msg/WheelCommand): Enable,
+            stop or expiring wheel-velocity commands, in FL/FR/RL/RR order.
+        joint_states (sensor_msgs/msg/JointState): Unwrapped wheel angles in
+            radians and measured angular velocities.
+        diagnostics (diagnostic_msgs/msg/DiagnosticArray): Feedback health.
+
+    Services:
+        base/enable (std_srvs/srv/SetBool): Request enable or immediate stop.
+            A successful enable response means sent, not yet acknowledged.
+
+    QoS:
+        Wheel transport uses best-effort, volatile, depth 1 in both directions.
+
+    Notes:
+        Starts disabled; geometry and limits must be supplied. Commands remain
+        blocked until MCU acknowledgement. Steady-clock checks stop on stale
+        feedback, command expiry, reboot or incompatible feedback.
+    """
     def __init__(self, parameter_overrides=None) -> None:
         super().__init__('cleany_base_driver', parameter_overrides=parameter_overrides or [])
         self.declare_parameter('mock', False)
@@ -123,6 +149,12 @@ class BaseDriver(Node):
             self.get_logger().warning('unsupported cmd_vel axes ignored', throttle_duration_sec=2)
 
     def on_state(self, msg: WheelState) -> None:
+        """Validate feedback before refreshing health or advancing enable state.
+
+        Duplicate sequences and non-increasing MCU timestamps do not refresh the
+        watchdog. A boot change disarms motion and rebases encoder deltas; feedback
+        must acknowledge the pending enable sequence before velocity can be sent.
+        """
         now = time.monotonic()
         if msg.protocol_version != 2 or msg.boot_id == 0 or msg.counts_per_revolution != self.encoder.scale or \
                 msg.max_velocity_rad_s != 10.0 or msg.watchdog_ms != 250:

@@ -11,6 +11,18 @@ from tf2_ros import TransformBroadcaster
 
 
 class GazeboOdomTfPublisher(Node):
+    """Expose simulator odometry in configured canonical frames.
+
+    Subscriptions:
+        gazebo_odom (nav_msgs/msg/Odometry): Source pose; input_topic default.
+
+    Publishers:
+        odom (nav_msgs/msg/Odometry): Relabeled copy when publish_odometry is true.
+
+    TF:
+        Broadcasts odom -> base_link even when odometry publication is disabled.
+        Both frame names are parameter defaults; coordinates are not converted.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_odom_tf_publisher')
         self.declare_parameter('odom_frame_id', 'odom')

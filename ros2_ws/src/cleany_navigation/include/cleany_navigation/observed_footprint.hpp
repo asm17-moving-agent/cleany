@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 namespace cleany_navigation {
-// Preserve Nav2 scoring; retain the first all-obstacle-rejected cycle in an episode.
+/// Preserve Nav2 scoring; retain the first all-obstacle-rejected cycle in an episode.
 class ObservedFootprintCritic : public dwb_critics::ObstacleFootprintCritic {
 public:
   void onInit() override;

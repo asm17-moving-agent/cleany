@@ -1,0 +1,59 @@
+menu "Cleany MPU6050 calibration diagnostic"
+
+config CLEANY_IMU_I2C_TIMEOUT_MS
+    int "I2C transaction timeout (ms)"
+    range 1 100
+    default 10
+
+config CLEANY_IMU_SETTLING_MS
+    int "Settling interval before sampling (ms)"
+    range 0 600000
+    default 5000
+    help
+        Initial experimental settling interval, not a guarantee of thermal
+        equilibrium. Characterize temperature and bias on the actual module.
+
+config CLEANY_IMU_CALIBRATION_SECONDS
+    int "Stationary calibration window (seconds)"
+    range 1 60
+    default 10
+
+config CLEANY_IMU_VALIDATION_SECONDS
+    int "Independent stationary validation window (seconds)"
+    range 1 60
+    default 5
+
+config CLEANY_IMU_MAX_SAMPLE_GAP_MS
+    int "Maximum gap between fresh samples (ms)"
+    range 10 100
+    default 30
+
+config CLEANY_IMU_LIMITS_REVIEWED
+    bool "Motion and validation limits measured and reviewed"
+    default n
+    help
+        Off: collect candidate statistics and validation residuals, but report
+        accepted=false and limits_not_reviewed. Enable only with positive,
+        measured limits below and operator-confirmed stationary rest.
+
+config CLEANY_IMU_MAX_GYRO_STD_MICRORAD_S
+    int "Maximum per-axis gyro sample standard deviation (microrad/s)"
+    range 0 10000000
+    default 0
+
+config CLEANY_IMU_MAX_ACCEL_STD_MM_S2
+    int "Maximum per-axis acceleration sample standard deviation (mm/s^2)"
+    range 0 20000
+    default 0
+
+config CLEANY_IMU_MAX_VALIDATION_MEAN_MICRORAD_S
+    int "Maximum absolute corrected validation mean per axis (microrad/s)"
+    range 0 10000000
+    default 0
+
+config CLEANY_IMU_MAX_TEMPERATURE_SPAN_MILLIC
+    int "Maximum temperature span across both windows (millidegrees C)"
+    range 0 50000
+    default 0
+
+endmenu

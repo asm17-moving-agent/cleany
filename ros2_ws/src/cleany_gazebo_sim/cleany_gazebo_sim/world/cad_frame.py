@@ -14,6 +14,7 @@ import yaml
 
 
 from cleany_navigation.urdf_geometry import rotation, rpy, origin, freeze, apply_simulation_geometry
+from cleany_gazebo_sim.world.wrist_cameras import apply_wrist_cameras
 
 
 def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> list[list[float]]:
@@ -124,12 +125,15 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
             model.append(frame)
     for sensor in legacy.findall('.//sensor'):
         sensor = deepcopy(sensor)
-        if sensor.get('name', '').startswith(('left_wrist', 'right_wrist')) and sensor.find('pose').get('relative_to') not in {f.get('name') for f in model.findall('frame')}:
-            continue
+        if sensor.get('name', '').startswith(('left_wrist', 'right_wrist')):
+            side = sensor.get('name').split('_')[0]
+            if f'{side}_gripper_frame' not in transforms:
+                continue
         if pan_enabled and sensor.get('name', '').startswith('head_realsense'):
             model.find("link[@name='head_pan_link']").append(sensor)
         else:
             base.append(sensor)
+    apply_wrist_cameras(model, description)
     for plugin in legacy.findall('plugin'):
         plugin = deepcopy(plugin)
         if plugin.get('name', '').endswith('MecanumDrive'):
@@ -137,11 +141,9 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 plugin.find(key).text = str(profile[key])
         model.append(plugin)
     if pan_enabled:
-        fortress = any(p.get('name', '').startswith('ignition::') for p in legacy.findall('plugin'))
-        filename = 'ignition-gazebo-joint-position-controller-system' if fortress else 'gz-sim-joint-position-controller-system'
-        namespace = 'ignition::gazebo' if fortress else 'gz::sim'
-        plugin = ET.SubElement(model, 'plugin', filename=filename,
-                               name=namespace+'::systems::JointPositionController')
+        plugin = ET.SubElement(model, 'plugin',
+                               filename='ignition-gazebo-joint-position-controller-system',
+                               name='ignition::gazebo::systems::JointPositionController')
         for key, value in dict(joint_name='head_pan_joint', initial_position='0',
                 use_velocity_commands='true', cmd_max=str(profile.get('pan_speed_rad_s', 1.0)),
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():

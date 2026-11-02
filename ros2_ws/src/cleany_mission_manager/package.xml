@@ -5,7 +5,6 @@
   <description>Cleany mission lifecycle and FSM manager.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
 
   <exec_depend>python3</exec_depend>
   <exec_depend>rclpy</exec_depend>
@@ -27,6 +26,7 @@
   <exec_depend>cleany_control_bridge</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-websockets</test_depend>
 
   <export>
     <build_type>ament_python</build_type>

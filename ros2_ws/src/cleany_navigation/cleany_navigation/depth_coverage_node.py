@@ -23,6 +23,28 @@ from cleany_navigation.voxel_guard_node import pose_matrix, twist_vector
 
 
 class DepthCoverageNode(Node):
+    """Measure whether recent depth observations cover the predicted body sweep.
+
+    Subscriptions:
+        camera/head/depth/image_raw (sensor_msgs/msg/Image) and
+        camera/head/depth/camera_info (sensor_msgs/msg/CameraInfo): Depth and calibration;
+            configurable defaults.
+        nav2/cmd_vel (geometry_msgs/msg/Twist): Requested motion.
+        odom (nav_msgs/msg/Odometry): Measured motion.
+
+    Publishers:
+        head_pan/coverage (std_msgs/msg/String): JSON coverage decision and evidence.
+
+    TF:
+        Reads sensor and base transforms in fixed_frame, default odom.
+
+    QoS:
+        Depth, calibration and odometry use sensor_data.
+
+    Notes:
+        Requires a body profile. This observer reports coverage; it does not
+        publish a gated velocity command.
+    """
     def __init__(self):
         super().__init__('depth_coverage')
         defaults = dict(profile='', allow_simulation_limits=False, fixed_frame='odom', base_frame='base_link',

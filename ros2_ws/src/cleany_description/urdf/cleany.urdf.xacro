@@ -1,13 +1,26 @@
 <?xml version="1.0"?>
 <robot name="cleany" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="head_mast_rear_gap_m" default="0.05"/>
+  <xacro:arg name="calibration_profile" default=""/>
   <xacro:arg name="include_head_camera" default="true"/>
   <xacro:arg name="include_wheel_joints" default="true"/>
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/head_camera.xacro"/>
+  <xacro:include filename="$(find cleany_description)/urdf/camera_calibration.xacro"/>
+  <xacro:property name="calibration_directory"
+                  value="$(find cleany_description)/config/calibration/$(arg calibration_profile)"/>
 
-  <xacro:cleany_robot_geometry include_wheel_joints="$(arg include_wheel_joints)"/>
+  <xacro:cleany_robot_geometry include_wheel_joints="$(arg include_wheel_joints)"
+                              head_mast_rear_gap_m="$(arg head_mast_rear_gap_m)"/>
+  <xacro:if value="${'$(arg calibration_profile)' != ''}">
+    <xacro:cleany_calibrated_wrist_camera side="left"
+      calibration_file="${calibration_directory + '/left_wrist_camera_extrinsics.yaml'}"/>
+    <xacro:cleany_calibrated_wrist_camera side="right"
+      calibration_file="${calibration_directory + '/right_wrist_camera_extrinsics.yaml'}"/>
+  </xacro:if>
   <xacro:if value="$(arg include_head_camera)">
-    <xacro:cleany_head_camera/>
+    <xacro:cleany_head_camera
+      calibration_file="${calibration_directory + '/head_rgb_extrinsics.yaml' if '$(arg calibration_profile)' != '' else ''}"/>
   </xacro:if>
 </robot>

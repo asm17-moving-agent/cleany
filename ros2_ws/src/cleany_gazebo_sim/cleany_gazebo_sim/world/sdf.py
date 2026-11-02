@@ -27,13 +27,12 @@ def _set_physics(tree: ET.ElementTree, name: str, value: float) -> None:
 
 
 def materialize_friction_frames(
-    source: Path, *, harmonic: bool = False, max_step_size: float | None = None,
+    source: Path, *, max_step_size: float | None = None,
     real_time_factor: float | None = None,
 ) -> Path:
     """Repair external/generated worlds without editing the supplied artifact."""
     tree = ET.parse(source)
-    prefix = 'gz' if harmonic else 'ignition'
-    key = '{'+NAMESPACES[prefix]+'}expressed_in'
+    key = '{'+NAMESPACES['ignition']+'}expressed_in'
     modified = False
     if real_time_factor is not None:
         if not isfinite(real_time_factor) or real_time_factor <= 0:

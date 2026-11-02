@@ -27,6 +27,36 @@ from cleany_navigation.transforms import transform
 
 
 class ObstacleMemoryNode(Node):
+    """Maintain sensor-derived obstacle memory in a configured map frame.
+
+    Subscriptions:
+        map (nav_msgs/msg/OccupancyGrid): Map geometry and static occupancy.
+        scan (sensor_msgs/msg/LaserScan): LiDAR rays.
+        camera/head/depth/points (sensor_msgs/msg/PointCloud2): Depth rays.
+            These topic names are configurable defaults.
+
+    Publishers:
+        obstacle_memory/{grid,lidar,depth,navigation_grid}
+            (nav_msgs/msg/OccupancyGrid): Combined and source-specific projections.
+        obstacle_memory/{voxels,local_voxels} (sensor_msgs/msg/PointCloud2):
+            Global and local occupied voxels when 3D publication is enabled.
+        obstacle_memory/voxel_status (std_msgs/msg/String): Revision and freshness.
+
+    Services:
+        obstacle_memory/save (std_srvs/srv/Trigger): Save configured memory output.
+        obstacle_memory/set_enabled (std_srvs/srv/SetBool): Freeze or resume updates.
+
+    TF:
+        Reads capture-time sensor transforms into map_frame, default map.
+
+    QoS:
+        Map input and memory outputs use reliable, transient-local depth 1;
+        sensor inputs use sensor_data.
+
+    Notes:
+        Initialization waits for a map. Restore compatibility and source age are
+        checked; configured persistence writes snapshots to output_directory.
+    """
     def __init__(self):
         super().__init__('obstacle_memory')
         for name, value in [('map_topic', 'map'), ('scan_topic', 'scan'),

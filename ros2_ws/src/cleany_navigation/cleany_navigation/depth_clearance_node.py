@@ -21,6 +21,29 @@ from cleany_navigation.point_cloud import xyz_cloud
 
 
 class DepthClearanceNode(Node):
+    """Convert depth images into separate clearing and marking clouds.
+
+    Subscriptions:
+        camera/head/depth/image_raw (sensor_msgs/msg/Image): Depth samples.
+        camera/head/depth/camera_info (sensor_msgs/msg/CameraInfo): Intrinsics.
+
+    Publishers:
+        camera/head/depth/points (sensor_msgs/msg/PointCloud2): Adapted rays,
+            including configured free-space clearing endpoints.
+        camera/head/depth/obstacle_points (sensor_msgs/msg/PointCloud2): Measured
+            obstacle points within the configured base-frame height interval.
+
+    TF:
+        Reads capture-time optical/camera/base transforms. Frame defaults are
+        head_camera_depth_optical_frame, head_camera_depth_frame and base_link.
+
+    QoS:
+        Input image is best-effort depth 1; calibration and clouds use sensor_data.
+
+    Notes:
+        Topic and frame names are configurable. Missing TF is retried only within
+        tf_wait_timeout_s. Self-filtering requires an explicit body profile.
+    """
     def __init__(self) -> None:
         super().__init__('depth_clearance')
         for name, default in [('input_topic', 'camera/head/depth/image_raw'),

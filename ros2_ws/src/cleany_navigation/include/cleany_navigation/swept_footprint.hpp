@@ -1,11 +1,15 @@
 #pragma once
 #include "cleany_navigation/observed_footprint.hpp"
 namespace cleany_navigation {
-// Conservative continuous sweep for linearly interpolated center/yaw between
-// adjacent rollout poses. Occupied cells represent their full square area.
+/// Conservative continuous sweep for linearly interpolated center/yaw between
+/// adjacent rollout poses. Occupied cells represent their full square area.
 bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &,
   const std::vector<geometry_msgs::msg::Point> &,
   const geometry_msgs::msg::Pose2D &, const geometry_msgs::msg::Pose2D &);
+/**
+ * @brief Reject swept-body collisions between rollout poses and during command hold.
+ * Uses occupied cell areas rather than only center-point samples.
+ */
 class SweptFootprintCritic : public ObservedFootprintCritic {
 public:
   void onInit() override;

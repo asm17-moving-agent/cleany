@@ -205,7 +205,6 @@ def _launch_setup(
     )
     bridges = sensor_profile_bridges(
         package_share,
-        harmonic=False,
         bridge_config=LaunchConfiguration('bridge_config'),
     )
 

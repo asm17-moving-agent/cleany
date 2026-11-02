@@ -1,0 +1,25 @@
+{
+  "evaluation_config": "configs/mission/wheel_odometry_evaluation.json",
+  "output_dir": "artifacts/odometry_evaluation/p_response_tuning",
+  "repetitions": 1,
+  "translation_distance_m": 0.5,
+  "rotation_angle_deg": 90.0,
+  "trials": [
+    {"axis": "x", "kp": 1.0, "speed": 0.20},
+    {"axis": "x", "kp": 2.0, "speed": 0.20},
+    {"axis": "x", "kp": 3.0, "speed": 0.20},
+    {"axis": "y", "kp": 1.0, "speed": 0.20},
+    {"axis": "y", "kp": 2.0, "speed": 0.20},
+    {"axis": "y", "kp": 3.0, "speed": 0.20},
+    {"axis": "yaw", "kp": 2.0, "speed": 0.30},
+    {"axis": "yaw", "kp": 3.0, "speed": 0.30},
+    {"axis": "yaw", "kp": 4.0, "speed": 0.30}
+  ],
+  "guards": {
+    "session_radius_m": 0.75,
+    "cross_track_m": 0.08,
+    "translation_overshoot_m": 0.025,
+    "translation_yaw_drift_deg": 10.0,
+    "rotation_overshoot_deg": 5.0
+  }
+}

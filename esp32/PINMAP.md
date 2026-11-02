@@ -1,21 +1,12 @@
 # Motor controller pin map
 
-This pin map is derived from the electrical connections in
-[`pcb/motor_controller.kicad_sch`](pcb/motor_controller.kicad_sch) and cross-checked
-against the pad nets in
-[`pcb/motor_controller.kicad_pcb`](pcb/motor_controller.kicad_pcb). The schematic and
-PCB assignments match. Connector pin numbers are KiCad symbol/pad numbers. On
-the PCB, pin 1 has a round-rectangle pad; the remaining connector pads are
-oval. Verify the pin-1 mark before making a cable, since the order appears
-reversed when a connector is viewed from its mating side.
+[Schematic](pcb/motor_controller.kicad_sch)과 [PCB](pcb/motor_controller.kicad_pcb)의 배선, pad net을 기준으로 정리한 pin map입니다. Connector 번호는 KiCad symbol/pad 기준입니다.
 
-All connector logic and encoder power rails are 3.3 V. The `J_MOTOR*`
-connectors carry PWM and direction control signals, not motor phase current.
+Pin 1은 round-rectangle pad, 나머지는 oval pad입니다. Cable을 제작할 때 pin-1 mark를 확인하고 mating side에서 좌우 순서가 반전되는 점을 고려합니다. Logic, encoder 전원은 3.3 V이며, `J_MOTOR`는 PWM/DIR 신호용으로 모터 phase current를 전달하지 않습니다.
 
 ## ESP32-S3 signal assignment
 
-Motor placement, viewed from above with the robot front facing forward, is
-M1 front-left, M2 front-right, M3 rear-right, and M4 rear-left.
+로봇을 위에서 보고 전방을 기준으로 M1은 앞 왼쪽, M2는 앞 오른쪽, M3는 뒤 오른쪽, M4는 뒤 왼쪽입니다.
 
 | Function | ESP32-S3 GPIO | U1 pad | Connector pin |
 |---|---:|---:|---|
@@ -46,7 +37,7 @@ M1 front-left, M2 front-right, M3 rear-right, and M4 rear-left.
 
 ### Motor control
 
-All four motor-control headers use the same order.
+네 motor-control header는 같은 pin 순서를 사용합니다.
 
 | Connector | Pin 1 | Pin 2 | Pin 3 |
 |---|---|---|---|
@@ -71,8 +62,7 @@ All four motor-control headers use the same order.
 | `J_I2C1` | +3V3 | GND | SCL / GPIO42 | SDA / GPIO41 |
 | `J_I2C2` | +3V3 | GND | SCL / GPIO21 | SDA / GPIO4 |
 
-The PCB contains no discrete I2C pull-up resistors. Use pull-ups provided by
-the attached module or add appropriate external pull-ups.
+PCB에는 별도 I2C pull-up 저항이 없습니다. 연결 모듈의 pull-up을 사용하거나 적절한 외부 pull-up을 추가합니다.
 
 ### Other headers
 
@@ -81,8 +71,7 @@ the attached module or add appropriate external pull-ups.
 | `J1` | GPIO40, unnamed net | GPIO39, unnamed net |
 | `J2` | +3V3 | GND |
 
-`J1` has no functional net labels in the design, so its intended protocol is
-not defined by the PCB.
+`J1`에는 기능을 지정한 net label이 없으므로 PCB만으로 사용 프로토콜을 정할 수 없습니다.
 
 ## U1 power and unused pins
 

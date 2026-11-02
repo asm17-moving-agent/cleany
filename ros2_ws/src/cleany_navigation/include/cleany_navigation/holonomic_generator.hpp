@@ -5,6 +5,11 @@
 #include <string>
 #include "dwb_plugins/standard_traj_generator.hpp"
 namespace cleany_navigation {
+/**
+ * @brief Add holonomic and optional goal-directed candidates to DWB rollout.
+ * Candidate velocities remain subject to the configured trajectory critics;
+ * contexts supplied by the controller are valid for one iteration only.
+ */
 class HolonomicGenerator : public dwb_plugins::StandardTrajectoryGenerator {
 public:
   ~HolonomicGenerator() override;
@@ -13,12 +18,12 @@ public:
   bool hasMoreTwists() override {return index_<candidates_.size();}
   nav_2d_msgs::msg::Twist2D nextTwist() override {return candidates_.at(index_++);}
   void reset() override;
-  // Same-cycle controller input, in one common world frame. Consumed once;
-  // never retain a goal across reset, replan, or a failed control cycle.
+  /// Same-cycle controller input, in one common world frame. Consumed once;
+  /// never retain a goal across reset, replan, or a failed control cycle.
   void setGoalContext(const geometry_msgs::msg::Pose2D &pose,
     const geometry_msgs::msg::Pose2D &goal);
   void clearGoalContext() {goal_context_.reset();}
-  // Extra candidates, never a post-collision velocity filter. One-cycle input.
+  /// Extra candidates, never a post-collision velocity filter. One-cycle input.
   void setContinuityContext(const nav_2d_msgs::msg::Twist2D &velocity) {continuity_context_=velocity;}
   void clearContinuityContext() {continuity_context_.reset();}
   dwb_msgs::msg::Trajectory2D generateTrajectory(const geometry_msgs::msg::Pose2D &,

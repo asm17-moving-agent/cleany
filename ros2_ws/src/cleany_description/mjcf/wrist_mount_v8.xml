@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="cleany_existing_wrist_mount">
+  <compiler angle="radian" autolimits="true" meshdir="../meshes/wrist_mount_v8" />
+  <asset>
+    <mesh name="photo_left_case_back" file="components/case_back.stl" />
+    <mesh name="photo_left_case_lip_left" file="components/case_lip_left.stl" />
+    <mesh name="photo_left_case_lip_right" file="components/case_lip_right.stl" />
+    <mesh name="photo_left_case_lip_top" file="components/case_lip_top.stl" />
+    <mesh name="photo_left_case_lip_bottom_left" file="components/case_lip_bottom_left.stl" />
+    <mesh name="photo_left_case_lip_bottom_right" file="components/case_lip_bottom_right.stl" />
+    <mesh name="photo_left_rear_clip_left" file="components/rear_clip_left.stl" />
+    <mesh name="photo_left_rear_clip_right" file="components/rear_clip_right.stl" />
+    <mesh name="photo_left_connector" file="components/connector.stl" />
+    <mesh name="photo_left_front_camera_module" file="components/front_camera_module.stl" />
+    <mesh name="photo_left_foot" file="components/foot.stl" />
+    <mesh name="photo_left_upright" file="components/upright.stl" />
+    <mesh name="photo_left_foot_screw_0" file="components/foot_screw_0.stl" />
+    <mesh name="photo_left_foot_screw_1" file="components/foot_screw_1.stl" />
+  </asset>
+  <worldbody>
+    <body name="wrist_camera_geometry_body" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0.39843857271442656 0.9171950194878352 0.0 0.0">
+      <site name="approximate_wrist_camera_cv" pos="0 0 0" quat="0.0 0.0 0.0 1.0" size=".001" rgba="0 0 0 0" />
+      <camera name="registered_wrist_rgb" pos="0.0 0.0 0.0" quat="0.0 0.0 1.0 0.0" fovy="60.59297586266491" />
+      <geom name="left_camera_case_back_visual" type="mesh" mesh="photo_left_case_back" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_back_collision" type="box" pos="0.0 -0.00485 -0.006" size="0.02105 0.02535 0.002" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_case_lip_left_visual" type="mesh" mesh="photo_left_case_lip_left" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_lip_left_collision" type="box" pos="0.019799999999999998 -0.00485 -0.00925" size="0.00125 0.02535 0.00125" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_case_lip_right_visual" type="mesh" mesh="photo_left_case_lip_right" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_lip_right_collision" type="box" pos="-0.019799999999999998 -0.00485 -0.00925" size="0.00125 0.02535 0.00125" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_case_lip_top_visual" type="mesh" mesh="photo_left_case_lip_top" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_lip_top_collision" type="box" pos="0.0 0.01925 -0.00925" size="0.01855 0.00125 0.00125" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_case_lip_bottom_left_visual" type="mesh" mesh="photo_left_case_lip_bottom_left" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_lip_bottom_left_collision" type="box" pos="0.012275000000000001 -0.02895 -0.00925" size="0.006275 0.00125 0.00125" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_case_lip_bottom_right_visual" type="mesh" mesh="photo_left_case_lip_bottom_right" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_case_lip_bottom_right_collision" type="box" pos="-0.012275000000000001 -0.02895 -0.00925" size="0.006275 0.00125 0.00125" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_rear_clip_left_visual" type="mesh" mesh="photo_left_rear_clip_left" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_rear_clip_left_collision" type="box" pos="0.010525 -0.00185 -0.0115" size="0.0035 0.005 0.0035" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_rear_clip_right_visual" type="mesh" mesh="photo_left_rear_clip_right" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_rear_clip_right_collision" type="box" pos="-0.010525 -0.00185 -0.0115" size="0.0035 0.005 0.0035" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_connector_visual" type="mesh" mesh="photo_left_connector" rgba=".84 .81 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_connector_collision" type="box" pos="0.0 -0.0242 -0.0125" size="0.004 0.003 0.0025" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_front_camera_module_visual" type="mesh" mesh="photo_left_front_camera_module" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_front_camera_module_collision" type="box" pos="0.0 0.0 -0.0025" size="0.009 0.009 0.0015" quat="0.0 0.0 0.0 1.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_lens_visual" type="cylinder" pos="0.0 0.0 0.0005" size=".006 .0015" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_lens_collision" type="cylinder" pos="0.0 0.0 0.0005" size=".006 .0015" contype="1" conaffinity="1" group="3" density="0" />
+      <geom name="left_camera_foot_visual" type="mesh" mesh="photo_left_foot" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_foot_collision" type="box" pos="0.0 -0.04522445156803347 -0.006086767220125865" size="0.015 0.013 0.002" quat="-0.3984385727144266 0.9171950194878353 0.0 0.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_upright_visual" type="mesh" mesh="photo_left_upright" rgba=".38 .08 .66 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_upright_collision" type="box" pos="0.0 -0.033458512042510546 -0.0020234789909422783" size="0.015 0.002 0.006826460688246741" quat="-0.3984385727144266 0.9171950194878353 0.0 0.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_wire_0_visual" type="capsule" fromto="0.0018 -0.0262 -0.016 0.0018 -0.0382 -0.031" size=".00055" rgba=".04 .04 .04 1" group="2" density="0" contype="0" conaffinity="0" />
+      <geom name="left_camera_wire_1_visual" type="capsule" fromto="0.0006 -0.0262 -0.016 0.0006 -0.0382 -0.031" size=".00055" rgba=".12 .33 .22 1" group="2" density="0" contype="0" conaffinity="0" />
+      <geom name="left_camera_wire_2_visual" type="capsule" fromto="-0.0006 -0.0262 -0.016 -0.0006 -0.0382 -0.031" size=".00055" rgba=".78 .78 .73 1" group="2" density="0" contype="0" conaffinity="0" />
+      <geom name="left_camera_wire_3_visual" type="capsule" fromto="-0.0018 -0.0262 -0.016 -0.0018 -0.0382 -0.031" size=".00055" rgba=".55 .04 .04 1" group="2" density="0" contype="0" conaffinity="0" />
+      <geom name="left_camera_cable_visual" type="capsule" fromto="0.0 -0.0382 -0.031 -0.007230885557598041 -0.08565279105476103 -0.07282549209304397" size=".0022" rgba=".045 .045 .05 1" group="2" density="0" contype="0" conaffinity="0" />
+      <geom name="left_camera_foot_screw_0_visual" type="mesh" mesh="photo_left_foot_screw_0" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_foot_screw_0_collision" type="box" pos="-0.006 -0.04127665279817305 -0.0056685748329538925" size="0.0025 0.0025 0.0006" quat="-0.3984385727144266 0.9171950194878353 0.0 0.0" group="3" density="0" contype="1" conaffinity="1" />
+      <geom name="left_camera_foot_screw_1_visual" type="mesh" mesh="photo_left_foot_screw_1" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="left_camera_foot_screw_1_collision" type="box" pos="0.006 -0.04127665279817305 -0.0056685748329538925" size="0.0025 0.0025 0.0006" quat="-0.3984385727144266 0.9171950194878353 0.0 0.0" group="3" density="0" contype="1" conaffinity="1" />
+      <inertial mass="0.020179238339107532" pos="0.0 -0.010448902563078542 -0.004669420384191763" fullinertia="7.020930591554385e-06 1.7589296052540617e-06 8.236715922079786e-06 0.0 0.0 -3.5823571377412466e-07" />
+    </body>
+  </worldbody>
+</mujoco>
