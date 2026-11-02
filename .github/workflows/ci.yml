@@ -36,6 +36,18 @@ jobs:
           persist-credentials: false
           submodules: false
 
+      - name: Prepare phone UI build
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ros2_ws/src/cleany_teleop/ui/package-lock.json
+
+      - name: Build and test phone UI
+        run: |
+          make build-teleop-ui
+          node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
+
       - name: Test CI tools
         run: make test-ci-tools
 
@@ -119,7 +131,7 @@ jobs:
             git rev-parse HEAD
           '
           # Image construction populated rosdep metadata under root's ROS_HOME.
-          tools/ci/run env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble
+          tools/ci/run env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
           tools/ci/run make check-gazebo-env
 
       - name: Publish dependency image

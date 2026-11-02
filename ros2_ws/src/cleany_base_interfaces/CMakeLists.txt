@@ -6,6 +6,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WheelCommand.msg"
   "msg/WheelState.msg"
   "msg/ImuState.msg"
+  "srv/SetBaseEnabled.srv"
 )
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)

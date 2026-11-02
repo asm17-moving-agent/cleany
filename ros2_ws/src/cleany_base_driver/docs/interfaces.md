@@ -57,3 +57,10 @@
 | 토픽 발행 | `diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | R10; 상태 변경 시와 1 Hz |
 
 이름은 ROS remap으로 변경한다. 보정과 오류 상태는 [IMU 계약](imu.md)을 따른다.
+
+## 순서가 있는 구동 허가
+
+`base/set_enabled`는 host 전용 `cleany_base_interfaces/srv/SetBaseEnabled` 서비스다.
+client_id별 증가하는 request_sequence를 요구하며 늦게 도착한 ENABLE이 더 최신 STOP을
+덮지 못하게 한다. accepted는 발행 접수이며 command_sequence, boot_id를 fresh MCU
+feedback과 대조해야 구동/정지 완료다. 기존 `base/enable`은 그대로 제공한다.
