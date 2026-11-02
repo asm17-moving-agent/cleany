@@ -4,6 +4,14 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## Nav2 복구 자료의 저장소 외부 보관
+
+PR #73의 복구 자료 `recovered/nav2/`는 구현 코드와 분리해 데이터 루트의
+`archives/pr73-recovery-cleanup-20261102-c978e838/recovered/nav2/`로 옮겼다.
+이동 전 Git 기준은 `c978e838e9f9cca8afb1bb386fa7c960c47bfdb4`이며, 원본 출처와
+검증 기록은 보관 디렉터리의 `README.md`, `INDEX.json`, `provenance/`에 있다.
+활성 MPPI 구현과 설정은 `ros2_ws/src/cleany_navigation/`에 유지한다.
+
 ## PR #73 snapshot 다운로드 지연
 
 `25b8eca28ad7f493087d68464385414203715a32`의

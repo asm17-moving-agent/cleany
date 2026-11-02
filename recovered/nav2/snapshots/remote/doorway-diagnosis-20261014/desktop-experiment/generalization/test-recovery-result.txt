@@ -1,1 +1,0 @@
-PASS: failed backup permits replan, initial/controller persistent failure terminates after four recoveries, successful controller preserved
