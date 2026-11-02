@@ -386,3 +386,7 @@ ros2 action info /grasp/select_reachable
 | `/desk/approach` | `cleany_interfaces/action/DeskApproach` | desk_approach | mission_runtime |
 
 [ros-tof]: ../ros2_ws/src/cleany_tof/docs/interfaces.md
+
+## 로컬 얼굴 디스플레이
+
+`cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독한다. 로봇 명령을 발행하지 않는다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)를 따른다.
