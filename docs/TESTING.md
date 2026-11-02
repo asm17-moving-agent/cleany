@@ -99,6 +99,8 @@ Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지�
 CI artifact에는 test XML, 실패 로그, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
 
 최초 snapshot 이미지 생성과 전체 검사를 포함하도록 job 제한은 40분으로 둡니다.
+APT 다운로드는 최대 5회 재시도하며, 의존성 준비 명령은 10초와 20초 대기 후 최대 3회 실행합니다.
+계속 실패하면 원래 종료 코드로 CI를 실패 처리합니다. 빌드와 테스트는 이 재시도 대상에 포함하지 않습니다.
 
 ## 선택 runtime과 UI
 

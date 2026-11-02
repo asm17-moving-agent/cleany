@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+retry_dependency() {
+  python3 /opt/cleany-ci/retry-command.py -- "$@"
+}
+
 source /opt/cleany-ci/repository-snapshots.env
 fingerprint=$(gpg --batch --show-keys --with-colons /opt/cleany-ci/ros-snapshots-key.asc | awk -F: '$1 == "fpr" {print $10; exit}')
 test "$fingerprint" = 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA
@@ -16,20 +20,21 @@ EOF
 cat > /etc/apt/sources.list.d/ros-snapshot.list <<EOF
 deb [check-valid-until=no signed-by=/usr/share/keyrings/ros-snapshots.gpg] http://snapshots.ros.org/humble/${ROS_SNAPSHOT}/ubuntu jammy main
 EOF
-apt-get update
+printf 'Acquire::Retries "5";\n' > /etc/apt/apt.conf.d/80cleany-retries
+retry_dependency apt-get -o APT::Update::Error-Mode=any update
 # rosdep leaves installed packages untouched, including older ROS base packages.
 mapfile -t ros_packages < <(dpkg-query -W -f='${binary:Package}\n' 'ros-humble-*')
 if ((${#ros_packages[@]})); then
-  apt-get install -y --only-upgrade "${ros_packages[@]}"
+  retry_dependency apt-get install -y --only-upgrade "${ros_packages[@]}"
 fi
-apt-get install -y --no-install-recommends \
+retry_dependency apt-get install -y --no-install-recommends \
   ccache git make python3-pip libgl1-mesa-dri xauth xvfb
 source /opt/ros/humble/setup.bash
 printf 'yaml file:///opt/cleany-ci/ros2_ws/rosdep/cleany.yaml\n' \
   > /etc/ros/rosdep/sources.list.d/10-cleany.list
-rosdep update --rosdistro humble
+retry_dependency rosdep update --rosdistro humble
 PIP_CONSTRAINT=/opt/cleany-ci/pip-constraints.txt \
-  rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
+  retry_dependency rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
     --ignore-src --rosdistro humble -y
 # BT.CPP 4.9.1 exports lib/ but installs its library in lib/<multiarch>/.
 bt_cpp_library=/opt/ros/humble/lib/libbehaviortree_cpp.so

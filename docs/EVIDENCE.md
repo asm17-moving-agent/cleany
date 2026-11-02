@@ -6,6 +6,13 @@
 
 ## CI 의존성의 Jetson 버전 기준
 
+PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한
+[CI 41377740118](https://github.com/asm17-moving-agent/cleany/actions/runs/41377740118)은
+이미지 생성 중 Ubuntu snapshot 서버가 패키지 4개에 HTTP 502를 반환해 실패했다.
+`ros-humble-mujoco-ros2-control` 설치 단계에서 중단됐으며 코드 빌드와 테스트에는 도달하지 않았다.
+고정 snapshot과 Python constraints를 유지한 채 APT 다운로드 재시도 및 의존성 준비 명령의 제한된 재시도를 추가했다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41377740118-failed.log`다.
+
 2026-11-02에 `jetson-orin`의 Ubuntu 22.04 arm64 system Python과 `dpkg-query -W`를 읽었다.
 최종 검증 기준은 `c50c440540a7c5c4c0736635d9d122b4736b2a47`이며 변경은 `feat/ci-dependency-pinning` 작업 트리에서 검증했다.
 실물의 패키지 설치와 설정은 변경하지 않았다.
