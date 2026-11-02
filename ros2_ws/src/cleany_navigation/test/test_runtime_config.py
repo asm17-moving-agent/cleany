@@ -245,3 +245,21 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
     assert result['obstacle_memory']['ros__parameters']['projection_max_z'] == before['local_costmap']['local_costmap']['ros__parameters']['depth_layer']['max_obstacle_height']
     disabled = configure_safety(source, memory_enabled=False, voxel_enabled=False)
     assert 'depth_layer' in disabled['local_costmap']['local_costmap']['ros__parameters']['plugins']
+
+
+@pytest.mark.parametrize('pan,voxel,mode', [(True, True, 'serial'), (False, False, 'serial'),
+                                         (False, False, 'reactive')])
+def test_tof_selects_before_all_safety_and_limits_after_all_safety(pan, voxel, mode):
+    from cleany_navigation.runtime_config import configure_tof_route
+    original = configure_safety(parameters(), pan_enabled=pan, voxel_enabled=voxel,
+                                memory_enabled=voxel, safety_mode=mode)
+    result = configure_tof_route(original)
+    monitor = result['collision_monitor']['ros__parameters']
+    assert monitor['cmd_vel_in_topic'] == ('pan_ready/cmd_vel' if pan and mode == 'serial' else 'motion/cmd_vel')
+    owner = 'reactive_guard' if mode == 'reactive' else 'voxel_guard' if voxel else 'collision_monitor'
+    key = 'cmd_vel_out_topic' if owner == 'collision_monitor' else 'output_topic'
+    assert result[owner]['ros__parameters'][key] == 'proximity/input'
+    assert result['pan_motion_gate']['ros__parameters']['command_topic'] == 'motion/cmd_vel'
+    if mode == 'reactive':
+        assert result[owner]['ros__parameters']['raw_command_topic'] == 'motion/cmd_vel'
+    assert original != result

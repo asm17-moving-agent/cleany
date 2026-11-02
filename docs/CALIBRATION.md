@@ -168,3 +168,30 @@ make handeye-validate-mujoco \
 
 손목 외부 보정은 `cleany_description/config/calibration/jetson_20261009/`에서
 관리합니다. 실물 모델에는 `calibration_profile:=jetson_20261009`로 적용합니다.
+
+## ToF 근접 보호 commissioning
+
+[ToF 설정](../ros2_ws/src/cleany_tof/config/tof.yaml)은 실측하지 않은 후보값이다.
+모터를 분리하거나 바퀴를 띄운 상태에서 다음 항목을 확인한 뒤 별도 로봇 프로파일을 만든다.
+
+- 각 native zone에 작은 표적을 움직여 flip, 장착 roll/pitch/yaw, 위치와 유효 FOV를 측정한다.
+- 알려진 거리와 기울기의 넓은 평판으로 radial range, 거리 오차, sigma, fit residual,
+  접근 거리와 yaw 오차를 확인한다. 선택 행이 책상 앞면을 실제로 관측해야 한다.
+  약 3.5m 미검출 관찰은 검출 보장 거리나 자유 공간 하한으로 사용하지 않는다.
+- 빈 공간, 검정 표면, 유리, 금속, 햇빛, 책상 다리와 얇은 물체에서 zone 유효율과 사각을
+  기록한다. NO_RETURN과 불신뢰 분류, ROI의 보호 높이, 얇은 물체와 다른 센서도 놓치는 경우를 검증한다.
+- USB 부하, read 지연, 끊김과 재연결에서 acquisition 추정, 실제 정지 지연과 watchdog을
+  측정한다. first-frame 시간 offset의 불확실성도 reaction budget에 포함한다.
+- 감독자와 독립 e-stop이 있는 통제 공간에서 payload, 바닥, 배터리 조건별 전후진,
+  횡이동, 회전의 최악 제동 거리와 감속도 하한을 측정한다. `deceleration`,
+  `reaction_s`, footprint와 margin을 이에 맞추며 software 정지와 실제 정지를 구분한다.
+- 저속 접근, 비스듬한 평판, 전면 가림, Nav2 동시 goal, cancel, Mission/Supervisor/가드
+  재시작, lease 회수와 완료 후 정지 유지가 실제 구동에서 성립하는지 확인한다.
+- 정지 상태에서 ROI와 검출 점을 기록하고 바닥/몸체 return을 구분한다. 15Hz 기준 인접
+  검출 수, cluster 거리, confirm_s, release_s와 거리 hysteresis를 실제 물체와 순간 노이즈로
+  튜닝한다. 비상 단일 return과 일반 검출의 지연/오탐/미탐을 각각 측정한다.
+- 책상 ROI의 분산된 유효 column/row, 최소 폭, residual를 확인한다. 일부 품질 불량에서
+  평면을 유지하는 경우와 평면 소실 시 zero/abort를 구분하고 접근 거리/yaw 오차를 측정한다.
+
+위 근거와 사용한 설정을 보존한 뒤에만 `calibrated=true`를 적용한다. 평면의 좌우 중심은
+ToF만으로 관측되지 않으므로 staging 위치와 팔 도달성은 별도 검증한다.

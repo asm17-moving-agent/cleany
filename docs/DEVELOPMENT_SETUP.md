@@ -251,3 +251,7 @@ source "$HOME/.local/share/cleany/moveit-scene-runtime/local_setup.bash"
 export LD_LIBRARY_PATH="$HOME/.local/share/cleany/moveit-perception/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH):${LD_LIBRARY_PATH:-}"
 make build-jetson-control
 ```
+
+## Jetson 얼굴 디스플레이 환경
+
+독립 디스플레이에는 ROS 2 Humble, colcon, `cleany_interfaces`의 rosdep 의존성, Python venv, Chromium, GNOME 그래픽 세션과 `gnome-session-inhibit`, curl, Noto CJK 글꼴이 필요하다. 부팅 후 전체 화면 표시에는 그래픽 자동 로그인이 필요하며 설치기는 로그인 설정을 바꾸지 않는다. `install-browser.sh`는 전용 폴더에 Playwright 1.64.1과 ARM64 브라우저를 설치하며 시스템 Python 패키지를 변경하지 않는다. 설치와 실행은 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다.

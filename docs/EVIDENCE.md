@@ -4,6 +4,22 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 65 main 충돌 해소 검증 (2026-11-02)
+
+기존 #65 `db4ebed`에 main `c50c440`을 병합했다. `.gitignore`와 보정, 개발환경,
+실행, ROS 색인 문서 4개의 충돌에서 실물 제어와 디스플레이, ToF 내용을 유지했다.
+`/output/` 규칙이 디스플레이 산출물도 포함하므로 중복된 하위 경로 규칙은 제거했다.
+main 대비 기능 변경 81개 파일과 Makefile 추가 명령은 기존 #65와 동일하다.
+
+macOS Python 3.12의 별도 venv에서 가짜 버스와 합성 설정으로 제어 및 호스트 도구
+107개, 상위 상태와 복구 52개, ToF core 91개 검사가 통과했다. CI 도구 9개도
+통과했으며 제어 및 호스트 도구 107개에 포함된 검사다. 최초 누락된 Python 의존성은
+검증 venv에 설치했다. SDK 가상 시리얼 1개는 macOS PTY의 1 Mbps ioctl이 지원되지
+않아 실패했으며, 해당 검사를 제외한 로컬 재실행 결과를 위에 기록했다. 테스트는 유지했다.
+Jetson 이름 해석이 되지 않아 native ROS 빌드, C++와 ROS 연결 검사는 재실행하지 않았다.
+충돌 표식, 문서 링크, output 제외와 기능 변경 보존을 별도로 확인했다.
+원본 로그와 병합 검사는 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/`에 보관한다.
+
 ## 과거 생성 보고서 보관
 
 날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
@@ -223,6 +239,33 @@ Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개�
 
 Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6개도 다시 통과했다. Cartographer ROS 1개는 이전과 같이 `cartographer_ros_msgs`가 없어 제외했다. Gazebo는 142.52초에 두 execution ID의 수거와 각각 17동작, 추가 빈 관측을 확인했고 Mission DB와 서버 DB의 integrity_check가 모두 통과했다. 마지막 종료 잠금 수정은 별도 동시성 회귀 검사로 검증했다. 원본은 `monitor.log`, `web.log`, `ui-final.log`, `gazebo.log`, `gazebo-evidence.json`, `stage-contract.json`, `static-final.log`에 있다.
 
+## System Supervisor와 Mission Runtime 통합
+
+검증 코드는 `ad472e2`(main `d0afd48` 위 리베이스)다. Ubuntu 22.04.5 aarch64 Distrobox, ROS 2 Humble, Python 3.10.12에서 실행했다. 원본 로그, 지연 JSON과 `verification.json`은 데이터 루트의 `runs/supervision/20261023/`에 있다.
+
+| 검사 | 입력과 결과 | 원본 |
+|---|---|---|
+| `make test-supervision-core` | 50 passed | `test-supervision-core.log` |
+| `make test-supervision` | 69 passed. 실제 Supervisor, safety adapter, base driver와 MockMcu, `mission_runtime`(Nav2 backend, supervised), lifecycle 복구 owner. 센서, Nav2 action, lifecycle manager와 안전 하드웨어 Bool은 합성 | `test-supervision.log` |
+| 같은 Supervisor 검사, 18개 CPU busy loop | 47 passed | `test-supervisor-under-cpu-load.log` |
+| `make test-mission-core`, `test-base`, `test-navigation` | 77 passed와 17 skipped, 109개, 191개 통과 | 각 로그 |
+| `make test-mission-mock` | 233 passed, 2 skipped, 1 failed. `test_process_kill_restart_reports_interruption_without_action_result`는 main `d0afd48`에서도 5회 중 3회 실패 | `test-mission-mock.log`, `flaky-process-kill-*.log` |
+| Workspace colcon test, `cleany_manipulation_bt` 제외 | 2218개 중 실패 3. 위 flaky 1개와 이 문서의 기존 MoveIt mock planning `status == 6`(ctest와 xunit 두 번 집계) | `workspace-test-skip-bt.log` |
+| `make test` | 이 환경에 `behaviortree_cpp` v4가 없어 `cleany_manipulation_bt` build에서 중단 | `make-test.log` |
+
+Lease 승인과 상태 파일 기록 사이에 Supervisor가 종료되면 lease가 사라지는 결함을 부하 실행에서 발견해 승인 응답 전 기록하도록 수정했다. 수정 전 같은 부하에서 재시작 재확인 검사가 8회 중 4회 실패했고 수정 후 8회 모두 통과했다.
+
+LiDAR 무효 scan 발행부터의 지연이며, 같은 host 한 process 안의 DDS loopback과 Runtime tick 10 Hz 기준이다. 실제 Nav2 controller 정지, 모터 감속과 다중 host 지연은 포함하지 않는다.
+
+| 구간 (5회) | 중앙값 / 최대, 무부하 | 중앙값 / 최대, CPU 부하 |
+|---|---|---|
+| Lease 철회 | 42 / 46 ms | 24 / 53 ms |
+| Nav2 goal cancel 수신 | 46 / 50 ms | 28 / 57 ms |
+| Supervisor 정지 확인 (`MISSION_STOPPED`) | 96 / 112 ms | 121 / 201 ms |
+| Supervisor 종료 → Nav2 cancel | 0.995 s (heartbeat timeout 1 s) | 0.994 s |
+
+E-stop 회로, MCU 통신 차단 시 모터 정지, 실제 Nav2 lifecycle 복구, 실물 팔 controller, Jetson 다중 프로세스와 SROS2는 검증하지 않았다.
+
 ## CI 성능 검증 (2026-10-20)
 
 기준은 Ubuntu 22.04 GitHub runner, ROS Humble의 [실행 39417986298](https://github.com/asm17-moving-agent/cleany/actions/runs/39417986298), commit `11d1ba8`입니다. 전체 job은 804초, workspace 의존성 설치 288초, 빌드와 테스트 279초, 별도 Navigation 빌드와 runtime 123초였습니다. 입력은 해당 commit의 전체 workspace 검사와 기존 motor, Navigation, Gazebo runtime 검사입니다.
@@ -242,6 +285,194 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## 2026-10-26 ToF와 System Supervisor 통합
+
+기반은 `main`의 `eb2c56a1`과 `feat/system-supervisor`의 `e0d5001e`를 합친
+`cbe09bed8cc139e86d85f91201458f4a61693df9`다. 검증 당시 ToF 구현은 이 commit 위의 미커밋 변경이었다.
+원본과 설정 SHA256은 `CLEANY_DATA_ROOT/runs/tof-integration/source-manifest.sha256`에
+보존한다. KB는 Supervisor 브랜치의 gitlink를 사용하며 내부 내용을 수정하지 않았다.
+
+Ubuntu 22.04 arm64 Distrobox, ROS 2 Humble, Python 3.10에서 `make build-tof`,
+`make test-tof-core`, `make test-tof`, `make build-navigation`, `make test-navigation`을
+실행했다. 마지막 ToF 패키지 재검사를 반영한 colcon 결과는 207 tests, 오류/실패 0,
+선택 시나리오 skip 15다. ToF 자체 34 tests에는 합성 ROS와 pseudo-terminal이 포함된다.
+Navigation colcon 결과는 194 tests, 오류/실패/skip 0이다. 중복된 core 검사는 합산하지 않는다.
+
+선택 Mission ROS 검사는 별도로 13 passed, WebSocket 의존성 누락 skip 1이었다.
+이후 WebSocket 검사도 단독 통과했다. 최초 추가 실행은 Ubuntu의 websockets 9.1에서
+handshake reset으로 실패했으며 Python 3.10 호환 버전인 10.4를 별도 `testdeps` 경로에
+설치해 통과했다. 제품 Bridge 코드는 수정하지 않았다. 재현 시 이 경로를 PYTHONPATH에
+앞세운다. Gazebo 물리 시나리오는 실행하지 않았다.
+
+원본 결과는 `CLEANY_DATA_ROOT/builds/feat-tof-integration/build/*/pytest.xml`,
+`build-navigation/cleany_navigation/test_results/`, `log/`와 `log-navigation/`에 있다.
+별도 검사 요약은 `CLEANY_DATA_ROOT/runs/tof-integration/validation.json`에 있다.
+
+공급 펌웨어의 `evidence/range-15hz-2min.jsonl`에서 초기 10Hz 28 frames를 제외한
+15Hz 1,817 frames를 오프라인 파싱했다. 평균 유효 zone 33.7347, 기본 보호 coverage를
+만족한 frame은 0이었다. 마지막 통계 수신 중 추가 frame도 포함하므로 공급 보고서의
+120초 집계 1,816과 범위가 다르다. 원본 경로와 결과는 같은 runs 폴더의
+`firmware-replay.json`에 남겼다. 이는 신규 장치 통신이나 실물 정지 검증이 아니다.
+실물 commissioning과 한계는 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)과
+[ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md)을 따른다.
+
+## 2026-10-26 ToF 미검출과 방향별 관측 근거
+
+아래 결과는 `905f3d7b673f755a7a7bdbe87b731392558e322e` 위의 작업 트리에서 커밋 전에 검증한 기록이다.
+센서는 단독 측정만 완료했고 로봇에 미장착이라는 사용자 정정을 반영했다. 원본 firmware와
+실제 센서/모터 설정은 변경하지 않았다. 정책 계약은
+[ToF reference](../ros2_ws/src/cleany_tof/docs/interfaces.md)를 따른다.
+
+`range-15hz-2min.jsonl`(SHA256
+`ec02366ab656431fed101f7bcc50ca5e9b67b045fc144a1ea4f5f8aaacdcb361`)에서
+세션 이전 10Hz 28 frames를 제외한 15Hz 1,817 frames, 116,288 Zone samples를 분류했다.
+정상 미검출(count=0/status=255)은 53,109, 품질 조건을 통과한 RANGE는 60,868,
+UNRELIABLE은 2,311, NOT_UPDATED는 0 samples였다. 1,817 frames 모두 수신된 관측으로
+유지되지만 주행 가능 판정은 아니다. 기존 전체 Zone 조건을 만족한 frame은 0이었다.
+이 파일의 firmware-valid 거리 최댓값은 3.22m여서 약 3.5m 미검출의 별도 사용자 관찰을
+검출 보장 거리나 자유 공간 하한으로 일반화하지 않았다.
+
+원본의 시작 wrap status, 혼합 품질, 최장 valid 거리 frame 3개를
+[test fixture](../ros2_ws/src/cleany_tof/test/data/standalone_frames.json)에 측정 필드 그대로
+보존했다. 단독 측정에는 RGB-D의 동시 관측이나 실제 장착 coverage가 없다.
+재생 도구는 `tools/validation/tof/replay.py`, 결과는
+`CLEANY_DATA_ROOT/runs/tof-coverage/standalone-audit.json`이다. offline 도구의 도착 시각은
+검사 재현을 위한 device clock이며 신규 USB 지연 측정으로 해석하지 않는다.
+
+Ubuntu 22.04 arm64 Distrobox, ROS 2 Humble, Python 3.10의 기존 개발환경과 build cache에서
+다음 검사를 실행했다. 중복 검사는 합산하지 않는다.
+
+| 명령과 범위 | 결과 |
+|---|---|
+| `make test-tof-core` | 77 passed |
+| `make build-tof`, `make test-tof`와 최종 ToF package 재검사 | 9 packages build; colcon 231 tests, errors/failures 0, 선택 Mission/Gazebo skip 15 |
+| ToF package 자체 | 58 tests, errors/failures/skips 0 |
+| Humble의 `make test-navigation` | 6 packages build; colcon 199 tests, errors/failures/skips 0 |
+| `git diff --check` | 통과 |
+
+기존 finite-depth 기하와 실제 depth coverage 발행 노드→ToF 소비자 연결을 합성 RGB-D,
+TF와 odometry로 검사했다. 무효 pixel, stale/잘못된 model/명령 근거의 철회, 정상 미검출의
+조건부 속도 제한, 품질 불량 정지, firmware event status=255의 sensor_ready 철회와
+기존 lease/Action 취소 경계를 검사했다. 초기 연결 검사에서 test TF가 평가 시각보다
+미래였던 fixture를 실제 관측 시각과 일치시켰다. observer 설정이 없는 launch 프로파일도
+별도로 검사하여 구성 누락 경로를 수정했다. 검사 조건을 완화해 통과시키지 않았다.
+
+원본 XML과 로그는 `CLEANY_DATA_ROOT/builds/feat-tof-integration/{build,build-navigation,log,log-navigation}`에,
+이번 변경의 소스 SHA256과 요약은 `CLEANY_DATA_ROOT/runs/tof-coverage/`에 있다.
+합성 근거와 임시 sensor/body geometry는 실물 중첩을 입증하지 않는다. 실제 Nav2 전환을
+포함한 full-stack 주행, Gazebo 주행 시나리오, 장착 후 제동과 접근 정확도 검사는 수행하지
+않았다. `calibrated=false`를 유지하며 장착 후 항목은
+[CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)에서 확인한다.
+
+## 2026-10-26 ToF ROI 감지와 책상 접근 단순화
+
+기준 commit은 `162f3788a74c3674d4e1bb1f93df0f3efad8666b`이며 아래는 그 위 작업 트리의
+검증이다. 사용자 지시에 따라 정상 NO_RETURN을 장애물 미검출로 처리하고, ToF 전용
+RGB-D sweep proof와 전체 Zone coverage 요구를 제거했다. 위 절의 proof 정책은 이전
+실행 기록이며 현재 계약은 [ToF reference](../ros2_ws/src/cleany_tof/docs/interfaces.md)다.
+기존 head-pan observer, Nav2/Collision Monitor, Mission/Supervisor와 모터 watchdog은
+유지했다. 센서와 firmware를 새로 구동하거나 모터 명령을 보내지 않았다.
+
+Ubuntu 22.04 arm64 `ros2-humble` Distrobox, ROS 2 Humble, Python 3.10과 기존 build cache에서
+다음 명령을 실행했다. 순수 검사와 package 검사는 일부 중복되므로 합산하지 않는다.
+
+| 명령/범위 | 결과 |
+|---|---|
+| `make test-tof-core` | 91 passed |
+| `make test-tof` | 9 packages build, colcon 247 tests, errors/failures 0, 기존 opt-in Mission skip 15 |
+| ToF package 자체 | 74 tests, errors/failures/skips 0 |
+| Humble에서 `make test-navigation` | 6 packages build, colcon 198 tests, errors/failures/skips 0 |
+| `git diff --check` | 통과 |
+
+navigation의 colcon 198 집계에는 CTest 실행 단위 9개도 포함된다. 개별 pytest/gtest
+189 cases와 별도의 독립 검사 수로 합산하지 않는다.
+
+합성 입력으로 15Hz 인접/물리 cluster와 시간 확인, flash/고립/비인접 noise, 중복 frame,
+입력 공백 reset, ROI 제외, 단일 비상 return, 거리/해제 hysteresis를 검사했다. ROS 검사에서는
+실제 ToF 노드에 합성 frame/odom/lease를 넣어 정상 미검출의 proof 없는 주행 허용,
+전부 불량/센서 장애/stale 정지, 일부 불량 Zone의 접근 수락, 평면 소실 abort, 기존
+cancel/lease/정지 확인 경계를 검사했다. 드라이버 검사는 pseudo-terminal이며 실제 USB가
+아니다. graph의 기존 안전 chain은 identity 대역이다. navigation launch 검사는 ToF on/off와
+기존 observer on/off의 네 조합을 조립하며 실제 프로세스를 구동하지 않는다. 제거된 proof
+전용 검사와 별개로 원래 finite-depth observer 회귀는 유지했다.
+
+첫 순수 검사에서 ROI 제외 검사와 확인 검사에 같은 timestamp를 재사용한 fixture가
+실패했다. 필터의 동일 frame 중복 방지를 유지하고 별도 시나리오 사이 fixture를 reset했다.
+재검사 결과는 위 표와 같다. 선택 skip은 성공으로 처리하지 않았다.
+
+기존 `range-15hz-2min.jsonl`을 offline audit로 다시 분류했다. 원본 SHA256은
+`ec02366ab656431fed101f7bcc50ca5e9b67b045fc144a1ea4f5f8aaacdcb361`이며 10Hz 28 frames를
+제외한 1817 frames에서 RANGE 60868, NO_RETURN 53109, UNRELIABLE 2311 samples였다.
+이 재생은 새 USB latency 측정이나 로봇의 주행 허용률 검사가 아니다.
+
+원본 XML은 `CLEANY_DATA_ROOT/builds/feat-tof-integration/{build,build-navigation}`에,
+이번 audit와 작업 트리 manifest는 `CLEANY_DATA_ROOT/runs/tof-simplification/`에 보존한다.
+센서는 아직 미장착이며 `calibrated=false`다. full-stack Nav2/ToF 또는 Gazebo 주행,
+실물 검출/제동/접근 정확도 검사는 하지 않았다. 장착 후 ROI와 거리/시간 후보값 튜닝,
+오탐/미탐, 실제 지연과 정지는 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)의
+별도 검증 대상이다. ToF와 다른 센서가 같은 장애물을 모두 미검출할 수 있다.
+
+## 2026-11-02 voxel guard 10Hz 평가 설정
+
+기준은 `162f3788a74c3674d4e1bb1f93df0f3efad8666b` 위의 미커밋 작업 트리다.
+기존 ToF 단순화 변경을 보존하고, 여러 감지 경로를 함께 사용하는 구성에서 voxel
+충돌 검사와 속도 출력의 기본 주기를 0.05초에서 0.10초로 바꿨다. 공통 navigation,
+Gazebo YAML과 node fallback에 같은 값을 적용했다. 지도 갱신, Collision Monitor,
+ToF 주기, timeout과 제동 궤적의 `step_s`는 그대로다. 개별 robot profile의 명시적
+주기 override는 계속 우선한다.
+
+Ubuntu 22.04 arm64 `ros2-humble` Distrobox와 기존 build cache에서 다음을 확인했다.
+
+| 검사 | 결과 |
+|---|---|
+| Humble `make test-navigation` | 6 packages build, colcon 198 reported tests, errors/failures/skips 0 |
+| Gazebo package와 의존성 build | `colcon build --packages-up-to cleany_gazebo_sim`, 8 packages 성공 |
+| 실제 ToF selector/guard의 합성 10Hz 명령 입력 | 정상 구간 49개 출력 sample의 사유 CLEAR, 입력 중단 시 COMMAND_STALE와 zero 확인 |
+| `git diff --check` | 통과 |
+
+Gazebo package만 먼저 build한 시도는 해당 install tree의 cleany_base_odometry 누락으로
+실패했다. packages-up-to로 의존성을 함께 build해 해결했다. navigation의 198 집계는
+CTest 실행 단위 9개를 포함하므로 독립 case 수와 합산하지 않는다.
+
+합성 연결은 별도 DDS domain에서 15Hz frame/odom과 10Hz identity 중계로 실행했다.
+상류 명령의 관측 간격 평균은 0.1000초, 최대는 0.1049초였다. 실제 voxel 계산이나
+Collision Monitor, Nav2 구동은 이 중계에 포함하지 않았다. 임시 script와 result.json은
+`CLEANY_DATA_ROOT/runs/voxel-rate-10hz/`, build와 XML은 기존
+`CLEANY_DATA_ROOT/builds/feat-tof-integration/{build-navigation,log-navigation}`에 있다.
+실제 CPU 절감, 부하 중 worst-case 지연과 물리 정지 거리는 측정하지 않았다.
+
+## 2026-11-02 ToF PR 검증의 상태 전환 동기화
+
+`162f3788a74c3674d4e1bb1f93df0f3efad8666b` 위의 PR 준비 작업 트리에서 순수 검사
+91개를 재실행해 통과했다. 첫 `make test-tof`는 정상 미검출 전환 검사에서 이전 속도
+출력과 새 OBSTACLE_HOLD 사유를 비교해 실패했다. release_s 동안의 정상 정지 동작은
+유지하고, 테스트가 CLEAR와 정상 출력, AVAILABLE 및 실제 64개 NO_RETURN 수신을 함께
+기다리도록 수정했다. 기존 출력 임계값과 센서 상태 조건은 유지했다. 실제 하드웨어는
+사용하지 않았다. 재검사 XML은 기존 `build/cleany_tof/pytest.xml`에 있다.
+
+수정 후 make test-tof 재실행은 colcon 247 tests, errors/failures 0, 기존 선택 skip 15였으며
+ToF package 74 tests는 errors/failures/skips 0이었다. navigation 198 reported tests와
+합성 10Hz 연결 검사는 같은 소스의 앞선 실행 결과다.
+
+## 2026-11-02 PR #71 rosdep 초기화 실패 수정
+
+PR head `ea5adf40dad37c80aa5e4d1da98acbbe942f8769`의 CI run `41363593569`는 테스트 실행 전
+의존성 이미지 생성에서 실패했다. cleany_safety_adapter, cleany_system_supervisor,
+cleany_tof가 ament_python을 buildtool dependency로 선언해 rosdep이 해석하지 못했다.
+세 선언만 제거하고 export의 ament_python build type, 실제 runtime/test 의존성과 CI의
+의존성 검사는 유지했다. 기존 로컬 overlay의 package 빌드는 이 rosdep 오류를 검출하지 못했다.
+
+Ubuntu 22.04 arm64 Humble Distrobox와 기존 build cache에서 make test-ci-tools 9건,
+make test-tof의 9 packages build와 colcon 247 tests가 errors/failures 0으로 통과했다.
+기존 opt-in skip은 15건이며 ToF package 74 tests는 errors/failures/skips 0이다.
+공식 기본 rosdep source와 저장소의 ros2_ws/rosdep/cleany.yaml을 별도 ROS_HOME에 준비해
+전체 workspace의 rosdep install --simulate --ignore-src --rosdistro humble도 통과했다.
+로컬 기본 rosdep source가 초기화되지 않아 발생한 메타데이터 누락은 이 격리 설정으로
+해결했으며 전역 설정을 바꾸지 않았다. 실제 CI 이미지는 원격 workflow에서 재검증한다.
+
+로컬 rosdep 로그와 재현 script는 CLEANY_DATA_ROOT/runs/ci-pr71-fix/에, package XML은
+기존 builds/feat-tof-integration/build에 있다. 실제 센서나 모터를 사용하지 않았다.
 
 ## MoveIt 충돌 메시 최적화와 MuJoCo 동등성 검사 (2026-10-24)
 
@@ -334,3 +565,27 @@ skip은 없다. NumPy/SciPy 경고 2개는 유지된다. 가상 장애물과 Moc
 사용했고 실물 모터, 전체 workspace 및 Gazebo 동적 검사는 실행하지 않았다.
 소스 패치, 환경, 로그, JUnit과 자산 보존 근거는
 `/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr64/`에 보관한다.
+
+CI 수정 중 main의 c8461d66 병합으로 생긴 Makefile과 TESTING/EVIDENCE의 append 충돌은
+양쪽 target과 기록을 모두 보존해 해소했다. 병합 후 CI 도구 9건, ToF 순수 91건과
+navigation colcon 198 reported tests가 통과했고 전체 rosdep simulate도 재통과했다.
+remote CI는 이 통합 tree에서 다시 실행한다.
+
+## 2026-11-02 책상 접근 ROS 검사의 수신 준비 동기화
+
+최신 main 통합 head d82edca4의 CI run 41369304125는 의존성 이미지 생성과 환경 검증을
+통과했지만 전체 2720 reported tests 중 부분 품질 책상 접근 검사 1건에서 goal 거부로
+실패했다(32 skipped). 같은 제어 코드는 직전 run 41367607054에서 전체 통과했다.
+기존 검사는 publisher sequence 증가만 기다려 서버의 실제 입력 수신과 권한 준비를
+보장하지 않았다. 검사에서 서버가 수신한 frame/odom의 나이가 source_timeout_s의
+1/4 이내이고 해당 Mission lease가 유효한지 확인한 뒤 요청하도록 바꿨다. 부분 품질
+시나리오는 실제 수신 관측에 UNRELIABLE 12개가 있는지도 요구한다. goal 수락, 전진,
+cancel과 정지 assertion은 유지했고 운용 코드와 freshness/lease 한계는 변경하지 않았다.
+
+Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 colcon
+247 reported tests가 통과했다(errors/failures 0, 기존 opt-in skip 15). ToF package 자체는
+74건, skip 0이다. 실제 로봇을 사용하지 않았다.
+
+다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
+반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
+repeat_ready.py와 readiness-repeat.log다.

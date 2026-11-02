@@ -1,12 +1,19 @@
 mission_runtime:
   ros__parameters:
     navigation_backend: nav2
+    desk_approach_enabled: false
+    desk_distance_m: 0.75
     post_mission: return_home
     tick_hz: 10.0
     navigation_timeout: 180.0
     cleaning_timeout: 180.0
     operation_timeout: 30.0
     cancel_timeout: 5.0
+    # The System Supervisor owns system faults, capabilities and Nav2 lifecycle
+    # availability; disabled is for standalone mock and simulation runs only.
+    supervision_mode: required
+    supervision_capabilities: [NAVIGATION]
+    permission_timeout: 3.0
     max_actions: 30
     max_skill_retries: 2
     mock_operation_polls: 2

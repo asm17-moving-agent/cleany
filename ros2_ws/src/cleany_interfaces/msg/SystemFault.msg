@@ -1,0 +1,10 @@
+string code
+string source
+string severity
+string[] capabilities
+float64 first_seen_monotonic_s
+float64 last_seen_monotonic_s
+bool active
+bool latched
+string recovery_policy
+string detail
