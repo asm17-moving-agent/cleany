@@ -407,3 +407,22 @@ Collision Monitor, Nav2 구동은 이 중계에 포함하지 않았다. 임시 s
 수정 후 make test-tof 재실행은 colcon 247 tests, errors/failures 0, 기존 선택 skip 15였으며
 ToF package 74 tests는 errors/failures/skips 0이었다. navigation 198 reported tests와
 합성 10Hz 연결 검사는 같은 소스의 앞선 실행 결과다.
+
+## 2026-11-02 PR #71 rosdep 초기화 실패 수정
+
+PR head `ea5adf40dad37c80aa5e4d1da98acbbe942f8769`의 CI run `41363593569`는 테스트 실행 전
+의존성 이미지 생성에서 실패했다. cleany_safety_adapter, cleany_system_supervisor,
+cleany_tof가 ament_python을 buildtool dependency로 선언해 rosdep이 해석하지 못했다.
+세 선언만 제거하고 export의 ament_python build type, 실제 runtime/test 의존성과 CI의
+의존성 검사는 유지했다. 기존 로컬 overlay의 package 빌드는 이 rosdep 오류를 검출하지 못했다.
+
+Ubuntu 22.04 arm64 Humble Distrobox와 기존 build cache에서 make test-ci-tools 9건,
+make test-tof의 9 packages build와 colcon 247 tests가 errors/failures 0으로 통과했다.
+기존 opt-in skip은 15건이며 ToF package 74 tests는 errors/failures/skips 0이다.
+공식 기본 rosdep source와 저장소의 ros2_ws/rosdep/cleany.yaml을 별도 ROS_HOME에 준비해
+전체 workspace의 rosdep install --simulate --ignore-src --rosdistro humble도 통과했다.
+로컬 기본 rosdep source가 초기화되지 않아 발생한 메타데이터 누락은 이 격리 설정으로
+해결했으며 전역 설정을 바꾸지 않았다. 실제 CI 이미지는 원격 workflow에서 재검증한다.
+
+로컬 rosdep 로그와 재현 script는 CLEANY_DATA_ROOT/runs/ci-pr71-fix/에, package XML은
+기존 builds/feat-tof-integration/build에 있다. 실제 센서나 모터를 사용하지 않았다.

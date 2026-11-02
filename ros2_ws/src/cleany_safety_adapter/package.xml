@@ -5,7 +5,6 @@
   <description>Reports independent safety-layer evidence; never fabricates readiness.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>cleany_interfaces</exec_depend>
   <exec_depend>nav_msgs</exec_depend>

@@ -5,7 +5,6 @@
   <description>Capability-based system availability and recovery coordination.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>cleany_interfaces</exec_depend>
