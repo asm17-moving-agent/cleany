@@ -34,9 +34,10 @@ source /opt/ros/humble/setup.bash
 printf 'yaml file:///opt/cleany-ci/ros2_ws/rosdep/cleany.yaml\n' \
   > /etc/ros/rosdep/sources.list.d/10-cleany.list
 retry_dependency rosdep update --rosdistro humble
+# Hardware drivers have pinned source builds and are not needed by device-free CI.
 PIP_CONSTRAINT=/opt/cleany-ci/pip-constraints.txt \
   retry_dependency rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
-    --ignore-src --rosdistro humble -y
+    --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent" -y
 # BT.CPP 4.9.1 exports lib/ but installs its library in lib/<multiarch>/.
 bt_cpp_library=/opt/ros/humble/lib/libbehaviortree_cpp.so
 bt_cpp_multiarch="$(gcc -print-multiarch)/libbehaviortree_cpp.so"

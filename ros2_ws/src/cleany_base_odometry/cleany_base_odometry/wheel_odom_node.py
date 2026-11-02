@@ -8,6 +8,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
+from std_srvs.srv import Trigger
 
 from cleany_base_odometry.mecanum_odometry import (
     MecanumGeometry,
@@ -26,6 +27,10 @@ class WheelOdometryNode(Node):
     Publishers:
         wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
             base_link; topic and frame names are parameter defaults.
+
+    Services:
+        ~/reset (std_srvs/srv/Trigger): Reset pose and encoder baseline after the
+            mapping owner confirms STOP and terminates the previous SLAM.
 
     TF:
         Does not broadcast; the odometry relay owns odom -> base_link.
@@ -65,11 +70,13 @@ class WheelOdometryNode(Node):
                 self.get_parameter('wheel_separation_m').value
             ),
         )
+        self._geometry = geometry
         self._odometry = MecanumOdometry(
             geometry,
             velocity_window_s=float(self.get_parameter('velocity_window_s').value),
             yaw_scale=float(self.get_parameter('yaw_scale').value),
         )
+        self.create_service(Trigger, '~/reset', self._on_reset)
         self._odom_frame_id = str(self.get_parameter('odom_frame_id').value)
         self._base_frame_id = str(self.get_parameter('base_frame_id').value)
         self._joint_names = {
@@ -89,6 +96,16 @@ class WheelOdometryNode(Node):
             self._on_joint_state,
             qos_profile_sensor_data,
         )
+
+    def _on_reset(self, request, response):
+        """Reset pose and encoder baseline; the session manager confirms STOP first."""
+        self._odometry = MecanumOdometry(
+            self._geometry,
+            velocity_window_s=float(self.get_parameter('velocity_window_s').value),
+            yaw_scale=float(self.get_parameter('yaw_scale').value))
+        response.success = True
+        response.message = 'Odometry reset; waiting for fresh encoder baseline'
+        return response
 
     def _on_joint_state(self, message: JointState) -> None:
         """Integrate complete wheel samples, using node time for a zero stamp.

@@ -99,3 +99,9 @@ mailbox에서 소비해 발행하며, 연결 지연 중 누락된 샘플은 재�
 Gyro-only ROS 변환, MCU 부팅 보정과 기존 측정값 fallback은
 [`cleany_base_driver`](../../cleany_base_driver/docs/imu.md#imu-실시간-수신)를 따른다.
 v1과 payload가 다르므로 펌웨어와 ROS 인터페이스를 함께 빌드한다.
+
+## Host 구동 허가 서비스
+
+`SetBaseEnabled.srv`는 ROS host 사이의 순서 있는 허가 요청이다. MCU의 고정 크기 메시지나
+펌웨어 wire protocol을 변경하지 않는다. client_id별 request_sequence로 지연된 과거 요청을
+거절하고 응답의 command_sequence와 boot_id는 fresh WheelState에서 확인한다.

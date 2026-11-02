@@ -318,6 +318,55 @@ E-stop 회로, MCU 통신 차단 시 모터 정지, 실제 Nav2 lifecycle 복구
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
 
+## 실물 매핑 패키지 통합
+
+기준은 원격 main `eb2c56a190ad9fbb52cb104ff55282e955a56fcb`, 통합 작업은
+`feat/hardware-mapping-integration`이다. 변경 소스 hash는 로컬
+`artifacts/mapping-probe-11/source-manifest.json`에 보존한다. 환경은 Ubuntu 22.04
+Distrobox, ROS 2 Humble, Linux arm64이며 실물 USB는 열지 않았다.
+
+| 검사 | 입력과 확인한 경계 | 원본 |
+|---|---|---|
+| 설치 빌드 | lockfile UI와 관련 패키지 20개 빌드 | `artifacts/mapping-probe-11/build.log` |
+| 패키지 회귀 | 관련 ROS 검사, ordered permission과 odom reset, 기존 navigation/Logger 회귀 | 같은 디렉터리 `packages.log` |
+| 순수 core와 JS | 세션 직렬화, 저장 실패, origin yaw, PID 재사용과 지연 저장 세대 분리, 누름/해제/복구 | `core.log` |
+| 설치 launch | `/tmp`에서 실행, synthetic MCU와 합성 room scan, 단일 휠 publisher와 STOP 확인 | `verification.json`, `runtime.log` |
+| 세션 저장 | 초기화 2회, 서로 다른 generation과 output, 두 지도/pbstream, Logger flush와 정상 종료 | `runtime/maps/`, `runtime/recordings/` |
+| CDR 재생 | domain 175에서 원본 bag 재생, raw/filtered scan, 휠 상태/명령, joint state, odom, TF와 map 수신 | `replay-verification.json`, `replay-verification.log` |
+| 종료 소유권 | 기록된 PID와 시작 시각을 대조해 남은 owned child 없음 확인 | `ownership-verification.json` |
+| HTTP UI | 설치 자산, token/Origin 거절, 경로 이탈 차단과 CSP | `artifacts/integrated-ui/http-verification.json` |
+
+초기 재현은 `mapping-probe-01`부터 `-10`에 보존했다. 같은 ROS domain을 사용한 검사 간섭,
+Logger의 동적 구독 제거 중 InvalidHandle, 종료 래퍼의 신호 전달, symlink 설치 자산의
+경로 검사, 수신이 없거나 관측용 주기가 적용된 bag 토픽 누락을 구분해 수정했다.
+Logger는 구독별 callback group과 단일 executor로 retired handle이 제어 서비스를 막지 않게 하며,
+매핑용 원본은 명시적으로 수신마다 기록한다. ROS 패키지 검사는 domain 174에서 순서대로 실행한다.
+
+브라우저 연결 호스트가 없어 실제 화면 렌더링은 이번 실행에서 확인하지 못했다.
+실물 장착 TF, 물리 정지 거리, 바닥 주행과 지도 품질은 이 합성 검사의 범위가 아니다.
+
+의존성 점검에서는 Humble rosdep에 `sllidar_ros2`, `micro_ros_agent` 규칙이 없는 것을 확인했다.
+실행 의존성은 manifest에 유지하고, 일반 설치/장치 없는 CI에서는 두 외부 source-build 의존성만
+명시적으로 제외한다. CI의 조종 UI 빌드는 별도 Node 24 단계로 추가했다. 이 로컬 검사는 GitHub
+Actions 실행이나 실물 드라이버 설치를 대신하지 않는다.
+
+## 매핑과 조종 진단 검증 (2026-11-02)
+
+후속 진단 변경의 commit과 파일 hash는
+`artifacts/debug-diagnostics-02/source-manifest.json`에 기록한다. 환경은 로컬 Ubuntu 22.04
+ROS 2 Humble container이며 synthetic MCU와 합성 room scan을 사용했다.
+
+20개 패키지 빌드, Python core 61개와 조이스틱 17개, 관련 ROS 검사 428개가 통과했다.
+RPC 거절, 동기 및 비동기 예외, 빈 응답, 동일 실패 반복 조회, 시작과 정리의 동시 실패,
+진단 파일 저장 실패, 이벤트 큐 포화와 파일 회전은 core 검사로 확인했다.
+원본 로그는 같은 artifact 디렉터리의 `build.log`, `core.log`, `packages.log`에서 확인한다.
+
+설치 launch의 두 매핑 세션에서 지도와 pbstream, Logger bag 저장과 STOP 후 종료를 확인했다.
+관리자 종료 후 ROS 상태 캐시가 unavailable로 전환됐고 조종 사건 JSON Lines가 남았다.
+결과와 세션 경로는 `verification.json`, 종료 후 owned PID 확인은
+`ownership-verification.json`에 보존한다. 실물 USB, 실제 주행과 화면 렌더링은 검증 범위에
+포함하지 않았다. HTTP 자산 제공과 UI TypeScript 빌드는 확인했다.
+
 ## 2026-10-26 ToF와 System Supervisor 통합
 
 기반은 `main`의 `eb2c56a1`과 `feat/system-supervisor`의 `e0d5001e`를 합친

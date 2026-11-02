@@ -1,0 +1,27 @@
+schema_version: 1
+base_profile: base_hardware.yaml
+base_frame: base_link
+startup_timeout_s: 30
+mount:
+  translation_m:
+  - -0.07080703021158084
+  - -0.038231842123824966
+  - 0.0
+  yaw_deg: 79.77007003626845
+  source: cleany_base_driver/config/lidar_extrinsic_20261015.json
+  scope: planar odometry evaluation; z, roll and pitch not measured
+lidar:
+  serial_port: /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0
+  baudrate: 115200
+  frame_id: laser
+  scan_mode: Sensitivity
+  inverted: false
+  angle_compensate: true
+agent:
+  serial_port: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00
+  baudrate: 115200
+scan_filter:
+  min_range_m: 0.3
+  half_angle_deg: 90
+teleop:
+  max_wheel_speed: 10.0

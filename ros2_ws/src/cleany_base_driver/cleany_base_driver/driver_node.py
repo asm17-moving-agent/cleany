@@ -8,6 +8,7 @@ import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.executors import ExternalShutdownException
 from cleany_base_interfaces.msg import WheelCommand, WheelState
+from cleany_base_interfaces.srv import SetBaseEnabled
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
@@ -38,6 +39,8 @@ class BaseDriver(Node):
         diagnostics (diagnostic_msgs/msg/DiagnosticArray): Feedback health.
 
     Services:
+        base/set_enabled (cleany_base_interfaces/srv/SetBaseEnabled): Ordered
+            permission RPC with the sent command sequence and MCU boot identity.
         base/enable (std_srvs/srv/SetBool): Request enable or immediate stop.
             A successful enable response means sent, not yet acknowledged.
 
@@ -72,6 +75,8 @@ class BaseDriver(Node):
         self.create_subscription(WheelState, 'base/wheel_state', self.on_state, self.command_qos)
         self.create_subscription(Twist, 'cmd_vel', self.on_twist, 10)
         self.create_service(SetBool, 'base/enable', self.on_enable)
+        self.create_service(SetBaseEnabled, 'base/set_enabled', self.on_ordered_enable)
+        self.permission_requests = {}
         self.enabled = False
         self.latest = self.last_state_receipt = None
         self.last_cmd_receipt = self.last_state_sequence = self.last_mcu_timestamp = None
@@ -120,6 +125,22 @@ class BaseDriver(Node):
         """Feedback sent before the MCU processed our STOP still says enabled; bounded in time."""
         return (self._stop_sequence is not None and newer(self._stop_sequence, msg.last_command_sequence)
                 and now - self._stop_sent_at <= .25)
+
+    def on_ordered_enable(self, request, response):
+        """Reject delayed RPCs after a newer STOP from the same controller."""
+        client = request.client_id
+        if (not 1 <= len(client) <= 80 or request.request_sequence <= self.permission_requests.get(client, 0)
+                or (client not in self.permission_requests and len(self.permission_requests) >= 1024)):
+            response.reason = 'stale permission request or invalid client'
+            return response
+        self.permission_requests[client] = request.request_sequence
+        permission = SetBool.Request(data=request.enabled)
+        result = self.on_enable(permission, SetBool.Response())
+        response.accepted = result.success
+        response.command_sequence = self.command_sequence or 0
+        response.boot_id = self.boot_id or 0
+        response.reason = result.message
+        return response
 
     def on_enable(self, request, response):
         if not request.data:
