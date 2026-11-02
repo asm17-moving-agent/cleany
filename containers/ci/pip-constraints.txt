@@ -1,3 +1,4 @@
 # Refresh these versions deliberately, alongside the dependency image.
 google-genai==2.31.0
 mujoco==3.16.0
+feetech-servo-sdk==1.0.0

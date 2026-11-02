@@ -227,6 +227,10 @@ pnpm build
 실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
 ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
 
+rosdep의 pip 규칙에는 패키지 이름을 사용하고, CI의 Feetech SDK 1.0.0 고정은
+[`pip-constraints.txt`](../containers/ci/pip-constraints.txt)에서 관리합니다. 같은 버전으로
+로컬 의존성을 준비하려면 `PIP_CONSTRAINT="$PWD/containers/ci/pip-constraints.txt" make deps`를 사용합니다.
+
 ```bash
 make build-jetson-control
 source "$(make -s print-install-base)/setup.bash"

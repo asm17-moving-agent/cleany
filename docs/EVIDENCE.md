@@ -20,6 +20,29 @@ Jetson 이름 해석이 되지 않아 native ROS 빌드, C++와 ROS 연결 검�
 충돌 표식, 문서 링크, output 제외와 기능 변경 보존을 별도로 확인했다.
 원본 로그와 병합 검사는 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/`에 보관한다.
 
+### 하드웨어 매핑 병합 후 재검증
+
+main에 #70이 추가된 뒤 `102a63e`에서 main `32d2d9e`를 반영했다. 개발환경,
+실행과 ROS 색인 문서 3개의 충돌은 양쪽 절을 모두 유지해 해결했다.
+
+직전 GitHub CI run `41376624141`은 Feetech SDK 1.0.0 설치에는 성공했지만
+rosdep이 `feetech-servo-sdk==1.0.0`의 설치 완료를 인식하지 못해 의존성 이미지
+단계에서 실패했다. `102a63e`에 이 절과 함께 반영한 수정은 rosdep에 패키지
+이름을 지정하고 CI constraints로 버전 1.0.0을 유지한다. macOS Python 3.12,
+rosdep 0.27.0과 실제 설치된 SDK로 기존 규칙의 감지 실패와 수정 후 성공을
+재현했으며, constraints를 적용한 pip dry-run도 같은 버전을 확인했다.
+
+합성 입력과 가짜 transport를 사용한 매핑과 조종 Python 검사 60개, Node 입력
+검사 17개와 `make test-ci-tools` 9개가 통과했다. Make의 login shell이 macOS
+시스템 Python을 선택해 pytest를 찾지 못한 뒤, 동일 Python 검사 목록을 venv에서
+직접 실행했다. Linux `/proc` 기반 PID 재사용 검사는 macOS에서 실패했으며,
+해당 1개를 제외한 재실행 결과가 60개다. 검사 코드는 변경하지 않았다.
+Jetson 이름 해석 실패와 로컬 Docker daemon 부재로 native ROS 빌드와 전체
+workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증은 별도다.
+
+원본 실패, 재실행 로그와 rosdep 감지 결과는
+`/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/recheck/`에 보관한다.
+
 ## 과거 생성 보고서 보관
 
 날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
