@@ -99,6 +99,7 @@ jobs:
             --env CCACHE_DIR=/ci-ccache --env CCACHE_MAXSIZE=2G \
             --env CCACHE_COMPILERCHECK=content --env "CCACHE_BASEDIR=${GITHUB_WORKSPACE}" \
             --env "CMAKE_BUILD_PARALLEL_LEVEL=${compile_jobs}" \
+            --env "MAKEFLAGS=-j${compile_jobs} -l${compile_jobs}" \
             --env LIBGL_ALWAYS_SOFTWARE=1 --env ROS_DOMAIN_ID=42 \
             --env ROS_HOME=/tmp/cleany-ros "${IMAGE}" infinity
           docker exec cleany-ci git config --global --add safe.directory "${GITHUB_WORKSPACE}"

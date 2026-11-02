@@ -4,6 +4,23 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR #73 통합 빌드의 병렬 제한과 MPPI 계약 검사
+
+2026-11-02에 PR head `25b8eca28ad7f493087d68464385414203715a32`와 아래 수정 내용을
+고정 의존성 amd64 이미지 `61625b7ef43b330932899ca41fa455e0570962dbc1549dba6ae221a583b160d0`에서 검증했다.
+컨테이너는 CPU 3개 분량과 메모리 8 GiB로 제한했다. 첫 빌드에서는 colcon이
+`CMAKE_BUILD_PARALLEL_LEVEL=2`에도 `-j12 -l12`를 주입해 MPPI 컴파일러 5개가 OOM으로 종료됐다.
+`MAKEFLAGS=-j2 -l2`를 함께 전달한 뒤 28개 패키지가 빌드됐고 추가 OOM은 없었다.
+
+통합 검사에서 이전 GoalDirectedController와 배포판 MPPI를 기대하던 assertion 6건이 실패했다.
+기대 플러그인을 현재 Cleany MPPI로 갱신하고 Omni, 횡이동, footprint 비용과 Smac Lattice 조건을 확인했다.
+검사를 제거하거나 제어 설정을 완화하지 않았다. 관련 검사 22건과 전체 2820 reported tests가
+통과했다(errors/failures 0, 기존 skip 32). 별도 Nav2 synthetic ROS 실행 검사 3건,
+Gazebo 센서/TF 실행 검사 1건과 motor core 검사도 통과했다.
+실제 로봇 검증은 수행하지 않았다.
+
+원본 로그는 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-combined/`에 보관한다.
+
 ## CI 의존성의 Jetson 버전 기준
 
 PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한
