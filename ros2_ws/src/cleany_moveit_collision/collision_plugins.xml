@@ -1,0 +1,6 @@
+<library path="cleany_solid_collision">
+  <class name="cleany/SolidFCL" type="cleany::SolidCollisionPlugin"
+         base_class_type="collision_detection::CollisionPlugin">
+    <description>FCL with closed convex robot mesh components treated as solids.</description>
+  </class>
+</library>

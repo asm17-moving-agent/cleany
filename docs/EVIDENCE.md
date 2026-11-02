@@ -211,3 +211,95 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## MoveIt 충돌 메시 최적화와 MuJoCo 동등성 검사 (2026-10-24)
+
+`main`의 `eb2c56a190ad9fbb52cb104ff55282e955a56fcb`에서 충돌 메시 최적화만
+분리했다. 형상과 기본값은 Jetson에 적용한 로컬 `cffdddb`, 동등성 검사 수정은
+`707538d`를 따른다. STL 17종과 manifest, 선택 옵션, 생성 도구와 검사를 포함한다.
+MuJoCo 접촉용 MJCF, 관절, 시각 CAD와 MoveIt 자기 충돌 예외는 main을 유지한다.
+cuRobo와 GPU 계산 및 미병합 physical launch의 변경은 포함하지 않는다.
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 MuJoCo 3.11.0의
+별도 main 사본에서 description 패키지를 빌드하고 설치 자산 18개의 hash를
+소스와 비교했다. `make test-description-models`에 description의 나머지 검사와
+기존 main의 MoveIt 설정, 시뮬레이션 충돌 예외 및 장면 검사를 추가해
+122개가 모두 통과했다. 이때 검사한 26개 core 파일은 분리 변경과 동일하다.
+NumPy/SciPy 호환 범위와 deprecated API 경고 2개는 남았다.
+
+공통 URDF 기본값 때문에 Gazebo navigation에도 최적화 메시 10개가 전달된다.
+이 변경은 Jetson과 같은 기본값을 유지하며, 별도 검토한 Gazebo 원본 형상 고정은
+포함하지 않는다. 앞선 122개 검사는 Gazebo 변환 모듈을 실행하지 않는다.
+Gazebo 시뮬레이션 실행과 실물 모터 동작을 검증한 결과는 아니다.
+
+원본은 Jetson의 `/home/cleany/cleany-data/reports/collision-main-review-20261024/`에
+있다. `main.tar.gz`, `candidate.json`, `installation.json`, `build.log`와
+`models-and-main-contracts.log/.xml`에 입력 main, core 파일 hash, 환경과 결과를
+보존했다. 해당 검토의 `candidate.patch`에는 별도로 제안한 Gazebo 원본 고정이
+포함되어 있으므로 이 PR의 패치와 구분한다. Jetson 운영 적용 기록은
+`/home/cleany/cleany-data/reports/collision-deployment-20261024/`에 있다.
+
+### PR 64 최신 메시와 SolidFCL 검증 (2026-10-29)
+
+기준 commit은 `5db7b12a34d2ba85c965d7d783039a947d456afa`이며, 이 절과 함께
+반영한 변경을 Jetson의 별도 workspace에서 검사했다. 최신 STL 17종의 삼각형
+합계는 4,686개에서 3,966개로 줄었다. 닫힌 볼록 조각 내부의 장애물을 검출하는
+`cleany/SolidFCL`을 독립 패키지로 분리하고, 요청한 detector의 로드 실패 시
+계획 서비스를 종료하는 검사를 추가했다. 시간 배정, cuRobo와 GPU 실행 변경은
+포함하지 않는다.
+
+환경은 Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, MoveIt 2.5.9와 해당 버전의
+Pilz 및 MoveGroup overlay다. `reviews/pr64-20261029/`의 분리된 build/install을
+사용했으며 운영 install은 참조하지 않았다. 검증한 소스 42개와 설치 STL
+17종의 SHA-256이 로컬 PR 작업트리와 일치한다. 소스 목록은
+`pr-source-hashes.json`, 설치 확인은 `pr-installation.json`에 있다.
+
+| 검사 | 결과 |
+|---|---|
+| `make build`에 `COLCON_BUILD_ARGS="--packages-up-to cleany_moveit_config"` 지정 | description, collision, scene mapping, MoveIt config 4개 패키지 빌드 성공 |
+| `make test-description-models` | 모델 동등성과 메시 형상 85개 통과 |
+| SolidFCL gtest | 내부 장애물, 분리된 틈, ACM, 거리, OctoMap, attached object 및 링크 경계 상자 검사 6개 통과 |
+| MoveIt 설정, 시뮬레이션 충돌 예외와 장면 계약 | 18개 통과 |
+| 기존 Mock 계획/실행과 종료 검사 | 3개 통과 |
+| 설치된 MoveIt 서비스 | 3개 통과: 내부 장애물 36개 검출, 같은 입력의 표면 FCL 누락 재현, 잘못된 detector 요청 시 종료 |
+
+표의 최종 결과는 중복 없는 검사 115개이며 CTest 래퍼는 합산하지 않는다.
+서비스 입력은 원본 CAD에서 충돌했던 자세와 장애물 36건의 고정 fixture다.
+장애물 없는 상태의 유효성과 접촉 링크도 확인한다. Mock 실행은 가상
+ros2_control 하드웨어를 사용했으며 실물 드라이버나 모터 명령을 사용하지 않았다.
+
+처음 세 패키지만 선택한 빌드는 기존 scene mapping의 미설치로 실패해
+`--packages-up-to cleany_moveit_config`로 의존 패키지를 함께 빌드했다.
+전체 `make test`는 내비게이션 의존성 `dwb_msgs`가 없어 빌드 단계에서 중단됐다.
+서비스 검사의 환경변수를 이어 붙인 실행은 `ROS_LOCALHOST_ONLY=0:1`이 되어
+2개가 통신 대기로 실패했다. CMake의 `ENV`로 값을 지정한 뒤 해당 3개를
+재실행해 통과했다. NumPy/SciPy 경고 2개는 유지된다. 전체 workspace,
+Gazebo 동적 실행과 새 성능 비교를 완료한 결과로 해석하지 않는다.
+
+운영 Jetson도 별도로 재확인했다. 로컬 `707538d` 및 Jetson `4f92bc0` 이후의
+미커밋 작업에서 대상 소스 32개와 설치 메시 17종이 일치했고, 운영 install의
+MoveIt 서비스가 내부 장애물 36개를 모두 검출했다. 양팔 계획은 각 5회, 총
+10회 성공했다. 운영 라이브러리를 교체하지 않았으며 trajectory execution을
+끄고 수행했다. 이 결과와 PR의 독립 패키지 검증을 구분한다.
+
+원본은 `/home/cleany/cleany-data/reports/pr64-update-20261029/`에 보관한다.
+`native/hash-verification.json`, `native/services.json`과 MoveIt 로그가 운영 확인,
+`pr-build-*.log`, `pr-models.xml`, `pr-tests/`, `pr-service-final.log`가 PR 검증
+근거다. 실패 로그는 `pr-build.log`, `pr-package-tests.log`와
+`pr-service-env-failure.log/.xml`에 남겼다. 로컬 사본은
+`/Users/hyeon/workspace/cleany/output/pr64-update-20261029/`에 있다.
+
+### PR 64 미사용 경로 정리 검증 (2026-10-30)
+
+`a84daa7`에 이 절과 함께 반영한 정리 패치를 Jetson Ubuntu 22.04 ARM64,
+Humble과 MoveIt 2.5.9의 별도 경로에서 검사했다. 미사용 표면 단순화와 전용
+검사 3개를 제거했다. 내부 장애물 36건의 자세를 공통 3개로 묶고 원본 입력과
+기대 결과가 모두 같음을 확인했다. STL 17종의 hash, 삼각형 3,966개와 조각별
+형상 검증 수치는 유지했다. 설치된 메시와 manifest 18개도 소스와 일치한다.
+
+4개 패키지 빌드, 형상 82개, 충돌과 계획 설정 및 Mock 검사 30개가 통과했다.
+`make test-moveit-collision`과 기존 Mock 계획, 종료 CTest를 실행했으며 실패와
+skip은 없다. NumPy/SciPy 경고 2개는 유지된다. 가상 장애물과 Mock 하드웨어를
+사용했고 실물 모터, 전체 workspace 및 Gazebo 동적 검사는 실행하지 않았다.
+소스 패치, 환경, 로그, JUnit과 자산 보존 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr64/`에 보관한다.

@@ -1,0 +1,604 @@
+{
+  "description": "CAD-contacting spheres fully enclosed by optimized collision components; triangle-surface FCL misses these contacts. Head-free arm model uses unchanged base and arm transforms.",
+  "source_fixture_sha256": "e6632efc5f46697eb94ed930a320f1a51fb2834e154f1408632847b06199ec83",
+  "joint_names": [
+    "left_shoulder_yaw_joint",
+    "left_shoulder_pitch_joint",
+    "left_elbow_pitch_joint",
+    "left_wrist_pitch_joint",
+    "left_wrist_roll_joint",
+    "left_gripper_joint",
+    "right_shoulder_yaw_joint",
+    "right_shoulder_pitch_joint",
+    "right_elbow_pitch_joint",
+    "right_wrist_pitch_joint",
+    "right_wrist_roll_joint",
+    "right_gripper_joint"
+  ],
+  "poses": [
+    [
+      -1.6,
+      2.87,
+      3.13,
+      -0.4,
+      1.55,
+      -0.2,
+      1.87,
+      2.44,
+      3.08,
+      -1.42,
+      1.55,
+      -0.26
+    ],
+    [
+      -1.6,
+      2.87,
+      3.13,
+      -0.25,
+      1.55,
+      -0.2,
+      1.87,
+      2.44,
+      3.08,
+      -1.27,
+      1.55,
+      -0.26
+    ],
+    [
+      -1.6,
+      2.87,
+      3.13,
+      -0.10000000000000003,
+      1.55,
+      -0.2,
+      1.87,
+      2.44,
+      3.08,
+      -1.1199999999999999,
+      1.55,
+      -0.26
+    ]
+  ],
+  "probes": [
+    {
+      "source_index": 65,
+      "sphere": {
+        "center": [
+          0.14860034335612693,
+          0.20343172739339738,
+          0.462997000166893
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_shoulder_yaw_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 71,
+      "sphere": {
+        "center": [
+          0.12480034329205632,
+          0.18218172716987502,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 107,
+      "sphere": {
+        "center": [
+          0.10760083759611519,
+          -0.182127072139001,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 113,
+      "sphere": {
+        "center": [
+          0.1386516372041748,
+          0.17026502638436358,
+          0.554096993097416
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 131,
+      "sphere": {
+        "center": [
+          0.13698247065981967,
+          0.18161861112163927,
+          0.58049699295453
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 176,
+      "sphere": {
+        "center": [
+          0.019639033411549725,
+          0.18504607453317048,
+          0.580207783648008
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 194,
+      "sphere": {
+        "center": [
+          0.11562033401516145,
+          0.18664371482267222,
+          0.5562225884354524
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 215,
+      "sphere": {
+        "center": [
+          0.12129339420980839,
+          0.18207611923234185,
+          0.5825141496031381
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 635,
+      "sphere": {
+        "center": [
+          0.1458275119970612,
+          -0.21351461335083774,
+          0.5540969930978743
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 698,
+      "sphere": {
+        "center": [
+          0.0513523455127402,
+          -0.230831412479007,
+          0.6303414184329363
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 716,
+      "sphere": {
+        "center": [
+          0.1288565973052028,
+          -0.20231957172995588,
+          0.572721949984057
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 737,
+      "sphere": {
+        "center": [
+          0.14462286843337435,
+          -0.20206082030158876,
+          0.5949851589286541
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_lower_arm_link"
+      ],
+      "pose_index": 0
+    },
+    {
+      "source_index": 1289,
+      "sphere": {
+        "center": [
+          0.14860034335612693,
+          0.20343172739339738,
+          0.462997000166893
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_shoulder_yaw_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1295,
+      "sphere": {
+        "center": [
+          0.12480034329205632,
+          0.18218172716987502,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1331,
+      "sphere": {
+        "center": [
+          0.10760083759611519,
+          -0.182127072139001,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1337,
+      "sphere": {
+        "center": [
+          0.1386516372041748,
+          0.17026502638436358,
+          0.554096993097416
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1355,
+      "sphere": {
+        "center": [
+          0.13698247065981967,
+          0.18161861112163927,
+          0.58049699295453
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1400,
+      "sphere": {
+        "center": [
+          0.019639033411549725,
+          0.18504607453317048,
+          0.580207783648008
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1418,
+      "sphere": {
+        "center": [
+          0.11562033401516145,
+          0.18664371482267222,
+          0.5562225884354524
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1439,
+      "sphere": {
+        "center": [
+          0.12129339420980839,
+          0.18207611923234185,
+          0.5825141496031381
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1859,
+      "sphere": {
+        "center": [
+          0.1458275119970612,
+          -0.21351461335083774,
+          0.5540969930978743
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1922,
+      "sphere": {
+        "center": [
+          0.0513523455127402,
+          -0.230831412479007,
+          0.6303414184329363
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1940,
+      "sphere": {
+        "center": [
+          0.1288565973052028,
+          -0.20231957172995588,
+          0.572721949984057
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 1961,
+      "sphere": {
+        "center": [
+          0.14462286843337435,
+          -0.20206082030158876,
+          0.5949851589286541
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_lower_arm_link"
+      ],
+      "pose_index": 1
+    },
+    {
+      "source_index": 2513,
+      "sphere": {
+        "center": [
+          0.14860034335612693,
+          0.20343172739339738,
+          0.462997000166893
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_shoulder_yaw_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2519,
+      "sphere": {
+        "center": [
+          0.12480034329205632,
+          0.18218172716987502,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2555,
+      "sphere": {
+        "center": [
+          0.10760083759611519,
+          -0.182127072139001,
+          0.4379969993473291
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "base_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2561,
+      "sphere": {
+        "center": [
+          0.1386516372041748,
+          0.17026502638436358,
+          0.554096993097416
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2579,
+      "sphere": {
+        "center": [
+          0.13698247065981967,
+          0.18161861112163927,
+          0.58049699295453
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2624,
+      "sphere": {
+        "center": [
+          0.019639033411549725,
+          0.18504607453317048,
+          0.580207783648008
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2642,
+      "sphere": {
+        "center": [
+          0.11562033401516145,
+          0.18664371482267222,
+          0.5562225884354524
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 2663,
+      "sphere": {
+        "center": [
+          0.12129339420980839,
+          0.18207611923234185,
+          0.5825141496031381
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "left_lower_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 3083,
+      "sphere": {
+        "center": [
+          0.1458275119970612,
+          -0.21351461335083774,
+          0.5540969930978743
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 3146,
+      "sphere": {
+        "center": [
+          0.0513523455127402,
+          -0.230831412479007,
+          0.6303414184329363
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 3164,
+      "sphere": {
+        "center": [
+          0.1288565973052028,
+          -0.20231957172995588,
+          0.572721949984057
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_upper_arm_link"
+      ],
+      "pose_index": 2
+    },
+    {
+      "source_index": 3185,
+      "sphere": {
+        "center": [
+          0.14462286843337435,
+          -0.20206082030158876,
+          0.5949851589286541
+        ],
+        "radius": 0.003
+      },
+      "expected_links": [
+        "right_lower_arm_link"
+      ],
+      "pose_index": 2
+    }
+  ]
+}

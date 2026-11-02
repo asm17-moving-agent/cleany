@@ -1,0 +1,6 @@
+<library path="cleany_collision_detector_guard">
+  <class name="cleany/RequireCollisionDetector" type="cleany::CollisionDetectorGuard"
+         base_class_type="move_group::MoveGroupCapability">
+    <description>Stop planning when the requested collision detector failed to load.</description>
+  </class>
+</library>
