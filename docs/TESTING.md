@@ -9,6 +9,8 @@
 MuJoCo 로드 후 관절과 actuator가 없고 주요 부품 경계가 URDF 메시와 같은지도
 검사합니다. 기존 Make 변수 `GEOMETRY_PYTHON`으로 NumPy, pytest와 MuJoCo가 있는
 Python을 선택할 수 있으며 이 검사는 ROS나 모터를 실행하지 않습니다.
+내보내기 도구 검사는 메시 분할 경계의 삼각형 보존, 이전 manifest의 호환과
+재실행 시 중복 제거를 확인합니다. 출력 실패 후 재시도와 사용자 파일 보존도 검사합니다.
 
 `make test-description-models`와 패키지의 colcon test에도 새 모델 검사가
 포함됩니다. 기존 실행 모델의 FK와 관절 검사 통과는 새 CAD의 운동학이나

@@ -199,8 +199,8 @@
     <mesh name="HeadCameraScrewRight" file="HeadCameraScrewRight.stl" />
     <mesh name="HeadCameraScrewLeft" file="HeadCameraScrewLeft.stl" />
     <mesh name="LidarPlate" file="LidarPlate.stl" />
-    <mesh name="RPLidarA1M8__chunk_00" file="mujoco/RPLidarA1M8__chunk_00.stl" />
-    <mesh name="RPLidarA1M8__chunk_01" file="mujoco/RPLidarA1M8__chunk_01.stl" />
+    <mesh name="RPLidarA1M8__chunk_00" file="RPLidarA1M8__chunk_00.stl" />
+    <mesh name="RPLidarA1M8__chunk_01" file="RPLidarA1M8__chunk_01.stl" />
     <mesh name="LidarStandoffs" file="LidarStandoffs.stl" />
     <mesh name="LidarProfileBolts" file="LidarProfileBolts.stl" />
     <mesh name="LidarLowerBolts" file="LidarLowerBolts.stl" />

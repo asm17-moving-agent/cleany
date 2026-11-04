@@ -11,6 +11,7 @@ import hashlib
 import io
 import json
 import struct
+import warnings
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
@@ -406,10 +407,58 @@ def write_image_mesh(path: Path, vertices: np.ndarray, source_timestamp: str) ->
     save_xml(path, root)
 
 
+def load_static_manifest(package: Path) -> dict[str, Any]:
+    """Read the shared mesh list, including manifests from the first preview."""
+    manifest = json.loads((package / "config/geometry/freecad_final.json").read_text())
+    if manifest["schema_version"] not in (1, 2):
+        raise ValueError(
+            f"Unsupported static manifest schema: {manifest['schema_version']}"
+        )
+    if manifest["schema_version"] == 1:
+        for part in manifest["parts"]:
+            part["meshes"] = part["mujoco_meshes"]
+    return manifest
+
+
+def add_part_geometry(
+    link: ET.Element, part: dict, offset: np.ndarray | None = None
+) -> None:
+    """Add the same mesh pieces to the URDF visual and collision geometry."""
+    for mesh in part["meshes"]:
+        for kind in ("visual", "collision"):
+            element = ET.SubElement(link, kind, name=mesh["name"] + "_" + kind)
+            if offset is not None:
+                ET.SubElement(element, "origin", xyz=numbers(offset), rpy="0 0 0")
+            ET.SubElement(
+                ET.SubElement(element, "geometry"),
+                "mesh",
+                filename="package://cleany_description/" + mesh["mesh"],
+                scale="1 1 1",
+            )
+            if kind == "visual":
+                ET.SubElement(
+                    ET.SubElement(element, "material", name=part["name"] + "_color"),
+                    "color",
+                    rgba=numbers(part["color_rgba"]),
+                )
+
+
 def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str, Any]:
     """Write metre-scale assets and static model files under a package directory."""
     if not np.isfinite(deflection_mm) or deflection_mm <= 0:
         raise ValueError("Deflection must be a finite positive millimetre value")
+    manifest_path = package / "config/geometry/freecad_final.json"
+    previous_meshes = []
+    if manifest_path.exists():
+        previous = load_static_manifest(package)
+        previous_meshes = [
+            mesh for part in previous["parts"] for mesh in part["meshes"]
+        ]
+        previous_meshes.extend(
+            {"mesh": part["mesh"], "sha256": part["sha256"]}
+            for part in previous["parts"]
+            if "mesh" in part
+        )
     with ZipFile(source) as archive:
         parts, metadata = read_assembly(archive, deflection_mm)
         mesh_dir = package / "meshes" / PROFILE
@@ -434,7 +483,7 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
         world = ET.SubElement(mjcf, "worldbody")
         body = ET.SubElement(world, "body", name="freecad_final_static", pos="0 0 0.38")
         manifest: dict[str, Any] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "profile": PROFILE,
             "model_kind": "saved_static_assembly",
             "source": {
@@ -493,48 +542,26 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
             return links[name]
 
         for part in parts:
-            filename = part.name + ".stl"
             data = stl_bytes(part)
-            (mesh_dir / filename).write_bytes(data)
-            link = group_link(part.groups)
-            for kind in ("visual", "collision"):
-                element = ET.SubElement(link, kind, name=part.name + "_" + kind)
-                ET.SubElement(
-                    ET.SubElement(element, "geometry"),
-                    "mesh",
-                    filename="package://cleany_description/meshes/freecad_final/"
-                    + filename,
-                    scale="1 1 1",
-                )
-                if kind == "visual":
-                    ET.SubElement(
-                        ET.SubElement(element, "material", name=part.name + "_color"),
-                        "color",
-                        rgba=numbers(part.color),
-                    )
-            mjcf_meshes = []
+            meshes = []
             for index, start in enumerate(
                 range(0, len(part.faces), MJCF_MAX_STL_TRIANGLES)
             ):
-                if len(part.faces) <= MJCF_MAX_STL_TRIANGLES:
-                    name, relative, chunk_data = part.name, filename, data
-                    count = len(part.faces)
-                else:
-                    name = part.name + f"__chunk_{index:02}"
-                    relative = "mujoco/" + name + ".stl"
-                    chunk = Part(
-                        name,
-                        part.label,
-                        part.groups,
-                        part.vertices,
-                        part.faces[start : start + MJCF_MAX_STL_TRIANGLES],
-                        part.color,
-                        part.source_brep_sha256,
+                count = min(MJCF_MAX_STL_TRIANGLES, len(part.faces) - start)
+                name = part.name
+                chunk_data = data
+                if count < len(part.faces):
+                    name += f"__chunk_{index:02}"
+                    # Preserve the original triangle records and write a new STL count.
+                    stride = STL_TRIANGLE.itemsize
+                    first = 84 + start * stride
+                    chunk_data = (
+                        data[:80]
+                        + struct.pack("<I", count)
+                        + data[first : first + count * stride]
                     )
-                    chunk_data = stl_bytes(chunk)
-                    count = len(chunk.faces)
-                    (mesh_dir / "mujoco").mkdir(exist_ok=True)
-                    (mesh_dir / relative).write_bytes(chunk_data)
+                relative = f"{name}.stl"
+                (mesh_dir / relative).write_bytes(chunk_data)
                 ET.SubElement(assets, "mesh", name=name, file=relative)
                 ET.SubElement(
                     body,
@@ -547,31 +574,31 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
                     conaffinity="0",
                     group="2",
                 )
-                mjcf_meshes.append(
+                meshes.append(
                     {
                         "name": name,
-                        "mesh": "meshes/freecad_final/" + relative,
+                        "mesh": f"meshes/{PROFILE}/{relative}",
                         "triangles": count,
                         "sha256": hashlib.sha256(chunk_data).hexdigest(),
                     }
                 )
-            manifest["parts"].append(
-                {
-                    "name": part.name,
-                    "label": part.label,
-                    "groups": part.groups,
-                    "mesh": "meshes/freecad_final/" + filename,
-                    "sha256": hashlib.sha256(data).hexdigest(),
-                    "source_brep_sha256": part.source_brep_sha256,
-                    "triangles": len(part.faces),
-                    "color_rgba": part.color,
-                    "mujoco_meshes": mjcf_meshes,
-                    "bounds_base_link_m": [
-                        part.vertices.min(axis=0).tolist(),
-                        part.vertices.max(axis=0).tolist(),
-                    ],
-                }
-            )
+            record = {
+                "name": part.name,
+                "label": part.label,
+                "groups": part.groups,
+                "source_brep_sha256": part.source_brep_sha256,
+                "triangles": len(part.faces),
+                "color_rgba": part.color,
+                "meshes": meshes,
+                "bounds_base_link_m": [
+                    part.vertices.min(axis=0).tolist(),
+                    part.vertices.max(axis=0).tolist(),
+                ],
+            }
+            if len(meshes) > 1:
+                record["unpartitioned_stl_sha256"] = hashlib.sha256(data).hexdigest()
+            manifest["parts"].append(record)
+            add_part_geometry(group_link(part.groups), record)
         for image in metadata["images"]:
             name, vertices = image["name"], image["vertices"]
             image_data = archive.read(image["source_file"])
@@ -621,11 +648,35 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
             )
         save_xml(package / "urdf" / "cleany_freecad_final.urdf", urdf)
         save_xml(package / "mjcf" / "cleany_freecad_final.xml", mjcf)
-        manifest_path = package / "config" / "geometry" / "freecad_final.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
         )
+        current_paths = {
+            (package / mesh["mesh"]).resolve()
+            for part in manifest["parts"]
+            for mesh in part["meshes"]
+        }
+        for mesh in previous_meshes:
+            path = package / mesh["mesh"]
+            if (
+                path.resolve() in current_paths
+                or not path.resolve().is_relative_to(mesh_dir.resolve())
+                or path.is_symlink()
+                or not path.is_file()
+            ):
+                continue
+            if hashlib.sha256(path.read_bytes()).hexdigest() != mesh["sha256"]:
+                warnings.warn(f"Keeping modified obsolete mesh: {path}", stacklevel=2)
+                continue
+            path.unlink()
+        old_chunk_dir = mesh_dir / "mujoco"
+        if (
+            old_chunk_dir.is_dir()
+            and not old_chunk_dir.is_symlink()
+            and not any(old_chunk_dir.iterdir())
+        ):
+            old_chunk_dir.rmdir()
         return manifest
 
 

@@ -2683,17 +2683,30 @@
         <mesh filename="package://cleany_description/meshes/freecad_final/LidarPlate.stl" scale="1 1 1" />
       </geometry>
     </collision>
-    <visual name="RPLidarA1M8_visual">
+    <visual name="RPLidarA1M8__chunk_00_visual">
       <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8.stl" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8__chunk_00.stl" scale="1 1 1" />
       </geometry>
       <material name="RPLidarA1M8_color">
         <color rgba="0.188235294118 0.211764705882 0.239215686275 1" />
       </material>
     </visual>
-    <collision name="RPLidarA1M8_collision">
+    <collision name="RPLidarA1M8__chunk_00_collision">
       <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8.stl" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8__chunk_00.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RPLidarA1M8__chunk_01_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8__chunk_01.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RPLidarA1M8_color">
+        <color rgba="0.188235294118 0.211764705882 0.239215686275 1" />
+      </material>
+    </visual>
+    <collision name="RPLidarA1M8__chunk_01_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8__chunk_01.stl" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="LidarStandoffs_visual">

@@ -195,9 +195,8 @@ def test_mocap_preview_matches_delta_fk_without_mass_or_actuators() -> None:
             for p in STATIC["parts"]
             if KINEMATICS["part_owners"][p["name"]] == spec["link"]
         )
-        geom = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_GEOM, part["mujoco_meshes"][0]["name"]
-        )
+        piece = part["meshes"][0]
+        geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, piece["name"])
         mesh = model.geom_dataid[geom]
         start, count = model.mesh_vertadr[mesh], model.mesh_vertnum[mesh]
         actual_vertices = (
@@ -209,7 +208,7 @@ def test_mocap_preview_matches_delta_fk_without_mass_or_actuators() -> None:
             [("normal", "<f4", (3,)), ("v", "<f4", (3, 3)), ("attr", "<u2")]
         )
         source_vertices = np.frombuffer(
-            (PACKAGE / part["mesh"]).read_bytes(), dtype=dtype, offset=84
+            (PACKAGE / piece["mesh"]).read_bytes(), dtype=dtype, offset=84
         )["v"].reshape(-1, 3)
         transform = expected[spec["link"]]
         expected_vertices = (

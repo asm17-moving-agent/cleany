@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import struct
 import sys
 import xml.etree.ElementTree as ET
@@ -104,3 +106,130 @@ def test_mesher_origin_artifact_is_rejected_but_unused_nodes_are_ignored() -> No
     assert exporter.within_bounds(vertices, np.array([[0, 1, 2]]), bounds, 0.35)
     assert not exporter.within_bounds(vertices, np.array([[0, 1, 3]]), bounds, 0.35)
     assert not exporter.within_bounds(vertices, np.array([[0, 1, 8]]), bounds, 0.35)
+
+
+@pytest.fixture
+def export_input(tmp_path, monkeypatch):
+    part = exporter.Part(
+        "p",
+        "p",
+        (),
+        np.array([[0.0, 0, 0], [0.1, 0, 0], [0, 0.2, 0], [0, 0, 0.3]]),
+        np.array([[0, 1, 2], [0, 2, 3], [0, 3, 1], [1, 3, 2]]),
+        (1, 1, 1, 1),
+        "source",
+    )
+    source = tmp_path / "sample.FCStd"
+    with ZipFile(source, "w"):
+        pass
+    monkeypatch.setattr(exporter, "MJCF_MAX_STL_TRIANGLES", 2)
+    monkeypatch.setattr(
+        exporter,
+        "read_assembly",
+        lambda *_: (
+            [part],
+            {"program": "test", "design_status": "draft", "images": []},
+        ),
+    )
+    return source, tmp_path / "package", part
+
+
+@pytest.mark.parametrize("triangle_count", [1, 2, 3, 4])
+def test_export_shares_complete_triangle_records_across_model_formats(
+    export_input, triangle_count
+) -> None:
+    source, package, part = export_input
+    part.faces.resize((triangle_count, 3), refcheck=False)
+    manifest = exporter.export(source, package)
+    meshes = manifest["parts"][0]["meshes"]
+    assert sum(mesh["triangles"] for mesh in meshes) == triangle_count
+    assert all(mesh["triangles"] <= 2 for mesh in meshes)
+    files = {package / mesh["mesh"] for mesh in meshes}
+    assert set((package / "meshes").rglob("*.stl")) == files
+    pieces = [(package / mesh["mesh"]).read_bytes() for mesh in meshes]
+    reconstructed = pieces[0][:80] + struct.pack("<I", triangle_count)
+    reconstructed += b"".join(piece[84:] for piece in pieces)
+    assert reconstructed == exporter.stl_bytes(part)
+    urdf = ET.parse(package / "urdf/cleany_freecad_final.urdf")
+    mjcf = ET.parse(package / "mjcf/cleany_freecad_final.xml")
+    for kind in ("visual", "collision"):
+        assert {
+            m.get("filename") for m in urdf.findall(f".//{kind}/geometry/mesh")
+        } == {"package://cleany_description/" + mesh["mesh"] for mesh in meshes}
+    assert {m.get("file") for m in mjcf.findall("asset/mesh")} == {
+        p.name for p in files
+    }
+
+
+@pytest.mark.parametrize("modified", [False, True])
+def test_legacy_export_cleanup_preserves_user_files_and_retries(
+    export_input, monkeypatch, modified
+):
+    source, package, part = export_input
+    manifest_path = package / "config/geometry/freecad_final.json"
+    manifest_path.parent.mkdir(parents=True)
+    old_mesh = package / "meshes/freecad_final/p.stl"
+    old_chunk = old_mesh.parent / "mujoco/p__chunk_00.stl"
+    old_chunk.parent.mkdir(parents=True)
+    data = exporter.stl_bytes(part)
+    old_mesh.write_bytes(data)
+    old_chunk.write_bytes(data)
+    outside = package / "preserve.stl"
+    untracked = old_mesh.parent / "notes.stl"
+    outside.write_bytes(data)
+    untracked.write_bytes(data)
+    legacy = {
+        "schema_version": 1,
+        "parts": [
+            {
+                "mesh": str(old_mesh.relative_to(package)),
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "mujoco_meshes": [
+                    {
+                        "mesh": str(p.relative_to(package)),
+                        "sha256": hashlib.sha256(data).hexdigest(),
+                    }
+                    for p in (old_chunk, outside)
+                ],
+            }
+        ],
+    }
+    manifest_path.write_text(json.dumps(legacy))
+    assert (
+        exporter.load_static_manifest(package)["parts"][0]["meshes"]
+        == legacy["parts"][0]["mujoco_meshes"]
+    )
+    if modified:
+        old_mesh.write_bytes(b"user edit")
+    with monkeypatch.context() as failure:
+
+        def fail_save(*_):
+            raise OSError("injected write failure")
+
+        failure.setattr(exporter, "save_xml", fail_save)
+        with pytest.raises(OSError, match="injected"):
+            exporter.export(source, package)
+    assert old_mesh.exists() and old_chunk.exists()
+    assert json.loads(manifest_path.read_text()) == legacy
+    if modified:
+        with pytest.warns(UserWarning, match="Keeping modified obsolete mesh"):
+            exporter.export(source, package)
+        assert old_mesh.read_bytes() == b"user edit"
+    else:
+        exporter.export(source, package)
+        assert not old_mesh.exists()
+    assert not old_chunk.parent.exists()
+    assert outside.read_bytes() == untracked.read_bytes() == data
+    generated = {p: p.read_bytes() for p in package.rglob("*") if p.is_file()}
+    exporter.export(source, package)
+    assert {p: p.read_bytes() for p in package.rglob("*") if p.is_file()} == generated
+
+
+def test_unknown_manifest_schema_is_rejected_before_export(export_input):
+    source, package, _ = export_input
+    path = package / "config/geometry/freecad_final.json"
+    path.parent.mkdir(parents=True)
+    path.write_text('{"schema_version": 99}')
+    with pytest.raises(ValueError, match="Unsupported static manifest schema"):
+        exporter.export(source, package)
+    assert not (package / "meshes").exists()

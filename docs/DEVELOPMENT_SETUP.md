@@ -40,6 +40,9 @@ python3.12 -m venv /tmp/cleany-cad-export
 추가합니다. 도구는 저장된 형상만 읽고 FreeCAD 매크로나 expression을 실행하지
 않습니다. [모델 계약](../ros2_ws/src/cleany_description/docs/freecad-model.md)에
 따라 원본 해시, 좌표 변환과 미확정 값도 함께 기록합니다.
+기존 출력에 다시 내보낼 때는 위 두 명령을 순서대로 실행해 정적 모델과 운동학
+모델을 함께 갱신합니다. 내보내기 도구는 이전 manifest와 해시가 일치하는
+미사용 메시를 정리합니다. 임의로 추가하거나 수정한 파일은 보존합니다.
 
 ## 1. Ubuntu 기본 설정
 

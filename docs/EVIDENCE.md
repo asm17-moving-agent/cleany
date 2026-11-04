@@ -715,3 +715,17 @@ macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0에서 네 팁의 원통 구멍
 적용 범위를 기록했다. ROS 빌드는 Humble setup 부재로 시작하지 못했으며
 `ros-build.txt`에 보존했다. 실제 팁의 고정력·변형·파지 성능이나 실물 구동은
 검증하지 않았고 모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-04 FreeCAD 메시 중복 제거
+
+`af6cddd9` 기반에서 위와 동일한 FCStd 입력을 Python 3.12와 MuJoCo 3.17.0으로
+검증했다. LiDAR의 250,442개 삼각형을 합쳐 기존 STL과 바이트 단위로 대조했고,
+나머지 자산과 운동학 manifest도 기존 파일과 일치했다. 자동 검사 50개와 URDF
+두 파일의 xacro 처리를 통과했다. 이전 schema 1 출력에서 다시 내보낸 320개
+파일이 이번 출력과 바이트 단위로 같았으며 기존 통파일과 분할 디렉터리는
+제거됐다. 테스트에서 주입한 출력 실패 후 재시도와 사용자 파일 보존도 확인했다.
+헤드 회전 미리보기는 로컬 `/tmp/cleany-freecad-dedup.bOWzos/full-preview.gif`에
+생성했다. 원본 검증 기록은 `$CLEANY_DATA_ROOT/runs/freecad-mesh-dedup-20261104/`의
+`migration.json`, `verification.json`, `export_freecad_model.txt`,
+`extract_freecad_kinematics.txt`에 있다. ROS 빌드는 Humble setup 파일 부재로
+시작하지 못했으며 오류를 같은 경로의 `ros-build.txt`에 보존했다.

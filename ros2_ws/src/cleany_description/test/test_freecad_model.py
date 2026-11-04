@@ -30,22 +30,28 @@ def test_every_source_solid_has_matching_visual_collision_and_integrity() -> Non
     visuals = {v.attrib["name"]: v for v in URDF.findall("link/visual")}
     collisions = {c.attrib["name"]: c for c in URDF.findall("link/collision")}
     for part in MANIFEST["parts"]:
-        path = PACKAGE / part["mesh"]
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == part["sha256"]
-        vertices = triangles(path).reshape(-1, 3)
+        meshes = []
+        for mesh in part["meshes"]:
+            path = PACKAGE / mesh["mesh"]
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == mesh["sha256"]
+            vertices = triangles(path)
+            assert len(vertices) == mesh["triangles"]
+            meshes.append(vertices.reshape(-1, 3))
+            visual = visuals.pop(mesh["name"] + "_visual")
+            collision = collisions.pop(mesh["name"] + "_collision")
+            assert (
+                visual.find("geometry/mesh").attrib
+                == collision.find("geometry/mesh").attrib
+            )
+            expected = "package://cleany_description/" + mesh["mesh"]
+            assert visual.find("geometry/mesh").attrib["filename"] == expected
+        vertices = np.concatenate(meshes)
+        assert len(vertices) == 3 * part["triangles"]
         assert np.isfinite(vertices).all()
         assert [vertices.min(axis=0), vertices.max(axis=0)] == pytest.approx(
             np.asarray(part["bounds_base_link_m"]),
             abs=2e-7,
         )
-        visual = visuals.pop(part["name"] + "_visual")
-        collision = collisions.pop(part["name"] + "_collision")
-        assert (
-            visual.find("geometry/mesh").attrib
-            == collision.find("geometry/mesh").attrib
-        )
-        expected = "package://cleany_description/" + part["mesh"]
-        assert visual.find("geometry/mesh").attrib["filename"] == expected
     assert not collisions
     assert set(visuals) == {"DefaultExpressionScreen"}
 
@@ -124,7 +130,7 @@ def test_mujoco_loads_the_same_static_assembly_without_actuation() -> None:
     mujoco.mj_forward(model, data)
     assert model.nq == model.nv == model.nu == 0
     assert np.all(model.body_mass == 0)
-    assert model.ngeom == sum(len(p["mujoco_meshes"]) for p in MANIFEST["parts"]) + 1
+    assert model.ngeom == sum(len(p["meshes"]) for p in MANIFEST["parts"]) + 1
     assert np.all(model.geom_contype == 0)
     assert np.all(model.geom_conaffinity == 0)
     for name in (
@@ -150,15 +156,16 @@ def test_mujoco_loads_the_same_static_assembly_without_actuation() -> None:
 
 def test_mujoco_stl_chunks_preserve_every_source_triangle() -> None:
     for part in MANIFEST["parts"]:
-        chunks = []
-        for chunk in part["mujoco_meshes"]:
-            path = PACKAGE / chunk["mesh"]
-            assert chunk["triangles"] <= 200_000
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == chunk["sha256"]
-            chunks.append(triangles(path))
-        np.testing.assert_array_equal(
-            np.concatenate(chunks), triangles(PACKAGE / part["mesh"])
-        )
+        meshes = part["meshes"]
+        assert all(mesh["triangles"] <= 200_000 for mesh in meshes)
+        if len(meshes) == 1:
+            continue
+        pieces = [(PACKAGE / mesh["mesh"]).read_bytes() for mesh in meshes]
+        header = pieces[0][:80] + struct.pack("<I", part["triangles"])
+        records = b"".join(piece[84:] for piece in pieces)
+        assert hashlib.sha256(header + records).hexdigest() == part[
+            "unpartitioned_stl_sha256"
+        ]
 
 
 def test_launch_rejects_old_calibration_on_new_assembly() -> None:

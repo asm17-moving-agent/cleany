@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from export_freecad_model import load_static_manifest
 from extract_freecad_kinematics import forward_kinematics
 from freecad_gripper_linkage import resolved_deltas
 
@@ -28,7 +29,7 @@ def render(
     from PIL import Image
     from vtk.util.numpy_support import vtk_to_numpy
 
-    static = json.loads((package / "config/geometry/freecad_final.json").read_text())
+    static = load_static_manifest(package)
     kinematics = json.loads(
         (package / "config/geometry/freecad_kinematics.json").read_text()
     )
@@ -52,10 +53,13 @@ def render(
             role = part["name"].removeprefix(prefix)
             if role in ["Top_Plate", "servo", "servo_middle", "servo_other", "CamHorn"]:
                 continue
-        reader = vtk.vtkSTLReader()
-        reader.SetFileName(str(package / part["mesh"]))
+        geometry = vtk.vtkAppendPolyData()
+        for mesh in part["meshes"]:
+            reader = vtk.vtkSTLReader()
+            reader.SetFileName(str(package / mesh["mesh"]))
+            geometry.AddInputConnection(reader.GetOutputPort())
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(reader.GetOutputPort())
+        mapper.SetInputConnection(geometry.GetOutputPort())
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         actor.GetProperty().SetColor(part["color_rgba"][:3])

@@ -19,6 +19,8 @@ from zipfile import ZipFile
 import numpy as np
 from export_freecad_model import (
     ROOT,
+    add_part_geometry,
+    load_static_manifest,
     numbers,
     placement,
     properties,
@@ -160,7 +162,7 @@ def matched_axis(
 
 
 def extract(source: Path, package: Path, recipe_path: Path) -> dict[str, Any]:
-    static = json.loads((package / "config/geometry/freecad_final.json").read_text())
+    static = load_static_manifest(package)
     source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     if source_hash != static["source"]["sha256"]:
         raise ValueError("CAD source differs from the exported static assets")
@@ -369,25 +371,9 @@ def write_models(package: Path, static: dict, kinematics: dict) -> None:
     for part in static["parts"]:
         owner = kinematics["part_owners"][part["name"]]
         offset = -origins[owner]
-        for kind in ("visual", "collision"):
-            element = ET.SubElement(
-                urdf_links[owner], kind, name=part["name"] + "_" + kind
-            )
-            ET.SubElement(element, "origin", xyz=numbers(offset), rpy="0 0 0")
-            ET.SubElement(
-                ET.SubElement(element, "geometry"),
-                "mesh",
-                filename="package://cleany_description/" + part["mesh"],
-                scale="1 1 1",
-            )
-            if kind == "visual":
-                ET.SubElement(
-                    ET.SubElement(element, "material", name=part["name"] + "_color"),
-                    "color",
-                    rgba=numbers(part["color_rgba"]),
-                )
+        add_part_geometry(urdf_links[owner], part, offset)
         if owner != "base_link":
-            for mesh in part["mujoco_meshes"]:
+            for mesh in part["meshes"]:
                 geom = body.find(f"geom[@name='{mesh['name']}']")
                 body.remove(geom)
                 geom.set("pos", numbers(offset))
