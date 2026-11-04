@@ -6,6 +6,7 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
+GEOMETRY_PYTHON ?= python3
 SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
@@ -62,6 +63,7 @@ help:
 	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
 	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
 	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-freecad-model  Test the static CAD assembly (GEOMETRY_PYTHON override)"
 	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
 	@echo "  make test-moveit-collision    Test solid collision plugin and installed MoveIt services"
 	@echo "  make deps          Install workspace dependencies with rosdep"
@@ -637,13 +639,25 @@ build-tof:
 test-tof: build-tof
 	$(BASE_EXEC) bash -c 'source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_navigation:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_interfaces cleany_tof cleany_mission_manager cleany_system_supervisor cleany_safety_adapter --return-code-on-test-failure && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
 
-.PHONY: test-description-models
+.PHONY: test-freecad-model test-description-models
+test-freecad-model:
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 $(GEOMETRY_PYTHON) -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_gripper_linkage.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_tip_mounts.py \
+		$(REPO_ROOT)tests/tools/test_export_freecad_model.py
+
 test-description-models:
 	source "$(ROS_SETUP)" && \
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
 	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
 	python3 -m pytest -q -p no:cacheprovider \
 		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_gripper_linkage.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_tip_mounts.py \
 		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)
 
 .PHONY: test-moveit-collision

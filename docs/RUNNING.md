@@ -9,6 +9,57 @@ source "$(make -s print-install-base)/setup.bash"
 
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
+## FreeCAD 형상 미리보기
+
+description의 기본 모델은 새 FreeCAD 파일에 저장된 정적 조립 형상입니다.
+관절이나 모터를 명령하지 않으며, RViz의 Fixed Frame은 `base_link`로 지정합니다.
+기존 동작 모델과 [미확정 값의 범위](../ros2_ws/src/cleany_description/docs/freecad-model.md)를
+구분합니다. 실행 중인 로봇의 `/robot_description`과 섞이지 않도록 별도 터미널과
+DDS domain에서 확인합니다.
+
+```bash
+make build COLCON_BUILD_ARGS='--packages-select cleany_description'
+source "$(make -s print-install-base)/setup.bash"
+ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py use_sim_time:=false
+```
+
+기존 관절 모델을 표시하려면 `model_variant:=legacy_runtime`을 지정합니다.
+기존 카메라 보정 비교에는 이 선택과 `calibration_profile:=jetson_20261009`를
+함께 사용합니다. `freecad_final`에는 이전 조립체의 보정 프로파일을 적용할 수
+없습니다. 별도 MuJoCo 뷰어의 정적 기준 모델은 다음 경로입니다.
+
+```bash
+python3 -m mujoco.viewer --mjcf=ros2_ws/src/cleany_description/mjcf/cleany_freecad_final.xml
+```
+
+관절축을 확인하려면 `model_variant:=freecad_kinematic`을 선택합니다. 관절 상태의
+이름은 `cad_delta_*`이며 값은 저장된 자세에서의 변화량입니다. 별도 터미널의
+`joint_state_publisher`로 초기 변화량 0 상태를 표시할 수 있습니다.
+
+```bash
+ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py model_variant:=freecad_kinematic use_sim_time:=false
+ROS_DOMAIN_ID=173 ros2 run joint_state_publisher joint_state_publisher
+```
+
+ROS와 모터 없이 동작을 확인하는 예시는 아래와 같습니다. 지정한 각도는 표시용
+입력이며 가동 한계나 실제 안전한 동작 각도가 아닙니다. Python 환경에는 기존
+CAD 도구의 NumPy, VTK와 Pillow가 필요합니다.
+
+```bash
+python3 tools/validation/preview_freecad_kinematics.py \
+  --delta cad_delta_right_shoulder_yaw=-15 \
+  --delta cad_delta_left_shoulder_yaw=15 \
+  --delta cad_delta_head_pan=15 \
+  --output /tmp/cleany-cad-motion.gif
+```
+
+GIF, 최대 변화량의 PNG와 입력·출처 JSON을 생성합니다.
+집게의 명목 연동은 `--delta cad_delta_right_gripper_cam=-25 --focus-gripper right`로
+확인할 수 있습니다. 집게 종속 관절은 해석기가 계산하며 개별 입력을 받지 않습니다.
+실물 보정과 접촉은 [집게 미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-gripper.md)에
+따라 별도로 연결합니다. MuJoCo의 운동학 미리보기는 `cleany_freecad_kinematic.xml`의
+mocap body를 같은 FK로 배치하며 물리 actuator를 사용하지 않습니다.
+
 ## 실행 선택과 준비 순서
 
 ```mermaid

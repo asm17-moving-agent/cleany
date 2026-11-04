@@ -591,3 +591,127 @@ Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 col
 다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
 반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
 repeat_ready.py와 readiness-repeat.log다.
+
+## 2026-11-02 FreeCAD 정적 기준 모델
+
+`707538de9d28291c679fcfd954f5587368d5a460` 기반의 기존 미커밋 작업을 유지하며
+`Cleany-final.FCStd`를 별도 정적 기준 모델로 반영했다. 원본은
+`~/Downloads/Cleany-final.FCStd`이며 SHA-256은
+`91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0`이다.
+macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0, MuJoCo 3.17.0에서 확인했다.
+
+| 검증 | 결과 |
+|---|---|
+| 원본 형상 | 308개 입체 부품, 화면 1개, 최종 입체 메시 934,253개 삼각형 |
+| 자동 검사 | `make test-freecad-model GEOMETRY_PYTHON=/tmp/cleany-cad-comparison/venv/bin/python`: 16개 통과 |
+| 독립 CAD 대조 | 삼각분할을 사용하지 않은 BREP 경계와 308개 부품 대조; 최대 차이 0.1694 mm |
+| 재현성 | 별도 출력 디렉터리에서 다시 내보낸 모델·자산·manifest 315개 파일이 바이트 단위로 동일 |
+| 파서와 정적 실행 | URDF 파서, Collada 텍스처 로드, MuJoCo 로드와 FK 통과; 구동 관절·actuator·추정 질량 없음 |
+| 코드와 범위 | 추가 Python의 Ruff 검사와 `git diff --check` 통과; 기존 제어 URDF와 canonical MJCF 수정 없음 |
+| ROS 빌드 | `make build BASE_EXEC= COLCON_BUILD_ARGS='--packages-select cleany_description'` 실패: `/opt/ros/humble/setup.bash` 없음. Docker daemon도 사용 불가 |
+
+초기 변환에서 작은 면의 삼각분할 누락과 헤드 브래킷의 원점으로 튀는 정점을
+발견했다. 각 원본 면의 해석적 경계로 확인하고 더 세밀하게 다시 삼각분할하여
+수정했다. MuJoCo의 STL당 200,000개 삼각형 제한은 LiDAR 메시를 순서대로
+분할하여 해결했으며, 원본 삼각형의 삭제나 단순화는 하지 않았다. 초기 검사에서
+발견한 XML 공백 비교 오류도 수정한 뒤 전체 검사를 다시 통과했다.
+
+검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-model-20261102/`의
+`environment.json`, `tests.txt`, `independent-geometry-check.json`,
+`reproducibility.json`, `preview.png`에 있다. 저장소의
+[형상 manifest](../ros2_ws/src/cleany_description/config/geometry/freecad_final.json)는
+입력과 부품 해시를 보존하고, [미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-model.md)은
+관절, 집게, TCP, 관성, 센서 보정과 실행 검증을 구분한다. ROS 실시간 launch,
+RViz, 동적 파지와 주행, 실물 장착·보정은 검증하지 않았다. 배포, commit과 push는
+수행하지 않았다.
+
+## 2026-11-02 FreeCAD 관절축과 변화량 미리보기
+
+동일한 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 원본 FCStd 해시를
+사용했다. macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0과 MuJoCo 3.17.0에서
+원통면을 직접 읽어 양팔 10축, 헤드 2축, 바퀴 4축을 추출했다. 각 축은 서보와
+구동 혼의 공통 중심선이며 지지 혼이 있는 경우 함께 대조했다. 16개 모두 지지되는
+후보가 하나였고 최대 중심선 거리는 0.00003375 mm, 최대 축 방향 차이는
+0.000003674 rad였다. 이는 CAD 내부 정합성 수치이며 실물 오차가 아니다.
+
+좌우 PincOpen 구동축도 추출했지만 캠·링크의 연동과 개구 곡선은 확정하지 않았다.
+미리보기의 `cad_delta_*`는 저장된 자세 대비 변화량이며, 물리 영점과 encoder
+대응, 운용 제한은 null로 남겼다. 기존 제어 관절과 actuator는 변경하지 않았다.
+
+`make test-freecad-model GEOMETRY_PYTHON=/tmp/cleany-cad-comparison/venv/bin/python`의
+24개 검사를 통과했다. 원본 자세 재현, 6개 임의 변화량 벡터의 독립 URDF FK,
+MuJoCo mocap과 실제 메시 배치, 집게의 강체 유지와 모호한 축의 거부를 검사했다.
+새 URDF는 별도 파서로 17개 링크와 16개 변화량 관절을 읽었다. 분리된 출력 경로에서
+재생성한 manifest, URDF와 MJCF는 바이트 단위로 동일했다. Ruff와
+`git diff --check`도 통과했다.
+
+표시용 입력은 양팔 yaw ±15°, head pan +15°, 양팔 elbow ±10°이며 24프레임 GIF를
+생성했다. 각도는 검증용 입력이고 실제 가동 범위나 안전한 자세를 뜻하지 않는다.
+원본은 `$CLEANY_DATA_ROOT/runs/freecad-kinematics-20261102/`의 `verification.json`,
+`tests.txt`, `motion.gif`, `motion.png`, `motion.json`에 보존했다.
+[축 근거와 미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-kinematics.md)에
+링크 구조, 부품 소유와 사용 제한을 정리했다.
+
+ROS 패키지 빌드는 `/opt/ros/humble/setup.bash`가 없어 시작하지 못했다.
+`ros-build.txt`에 실패를 보존했다. ROS launch, RViz, 물리 시뮬레이션과 실물
+동작은 미검증이며 모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-02 FreeCAD 집게 핀 연동
+
+같은 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 FCStd 원본을 사용해
+PincOpen 캠·로드의 공통 원통축을 분석했다. 환경은 macOS 26.6.2 arm64,
+Python 3.12.14, OCP 8.0.1.1.0, NumPy 2.5.4, MuJoCo 3.17.0이다.
+캠-혼의 중앙축과 네 체결 구멍, 편심핀-구동 로드, 로드-내측 링크, 고정판-내·외측
+링크, 손끝 운반 링크의 핀을 연결해 양손 각각 두 개의 명목 폐쇄 링크를 만들었다.
+
+내·외측 링크 길이 40 mm, 고정축·손끝 핀 간격 11.5 mm와 구동 로드 약
+32.64768 mm를 확인했다. 편심핀 사이 각도 178.68°는 180°로 보정하지 않았다.
+저장된 자세의 교점 방향을 유지하며, 해가 없거나 접선으로 합쳐지는 자세는
+계산 오류로 처리한다. 기존 팔·헤드·바퀴 16축은 변경하지 않았다.
+
+명목 연동은 캠 입력 2개와 종속 좌표 16개를 추가한다. 전체 34개 좌표 중 독립
+입력은 18개다. `make test-freecad-model`의 36개 검사를 통과했다. 양손의
+캠 변화량 `[-0.6, -0.3, 0, 0.15]` rad 표본에서 핀 거리의 최대 수치 잔차는
+`1.39e-17` m였다. 이는 수학적 폐쇄 검사이며 실물 정밀도가 아니다. URDF와
+MuJoCo에서 움직이는 핀 위치도 대조했다. 새 URDF는 별도 파서로 35개 링크와
+34개 관절을 읽었으며 재생성한 manifest, URDF, MJCF는 바이트 단위로 동일했다.
+Ruff와 `git diff --check`도 통과했다.
+
+오른쪽 캠 변화량 -25°로 24프레임 GIF를 만들었다. 덮개와 서보 일부를 숨기고
+링크 종류별 진단 색상을 사용했으며 실제 동작 한계나 안전한 입력값으로 채택하지
+않았다. 검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-gripper-20261102/`의
+`verification.json`, `tests.txt`, `gripper.gif`, `gripper.png`, `gripper.json`이다.
+[연결 근거와 미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-gripper.md)에
+형상 해석과 적용 범위를 기록했다.
+
+물리 영점, encoder 대응, 실물 개구 폭 보정과 접촉·유격·마찰은 미확정이다.
+외피·팁·패드는 명목 시각 부품으로 손끝 운반 링크를 따라가지만 체결·수동 회전·탄성
+구속은 확정하지 않았다. ROS 빌드는 `/opt/ros/humble/setup.bash` 부재로 시작하지
+못했으며 `ros-build.txt`에 보존했다. 실제 제어·구동과 파지는 검증하지 않았고
+모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-02 FreeCAD 팁 체결 자리
+
+동일한 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 원본 FCStd를 사용했다.
+macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0에서 네 팁의 원통 구멍과
+강체 회전 간섭을 분석했다. 공통축에서 운반 링크의 구멍 2.05 mm, 팁·쉘의
+구멍 3.10 mm, 쉘의 추가 자리 5.50 mm를 확인했다. 쉘과 운반 링크의 최소
+거리는 약 0.20217 mm다. 원본 위치의 체적 중첩은 없었다.
+
+공통축에 대한 ±0.1°, ±1° 검사에서 네 팁 모두 내부 팁 형상과 운반 링크의
+교차 체적이 양수였다. 쉘 하나만의 여유 공간을 팁 전체의 자유 회전으로
+해석하지 않았다. 이 근거로 명목 조립 모델에서 네 팁을 운반 링크의 고정
+자식으로 분리했다. 새로운 수동 회전 좌표나 운용 제한은 추가하지 않았다.
+나사 규격, 체결력, 패드 고정 방법, 실제 탄성과 유격은 null로 남겼다.
+
+`make test-freecad-model`의 43개 검사를 통과했다. 변경된 URDF는 파서로 39개
+링크와 38개 관절을 읽었으며 이 중 회전 변화량은 기존 34개, 고정 연결은 4개다.
+고정 팁의 상대 배치와 MuJoCo 배치를 대조했고, 재생성한 manifest·URDF·MJCF는
+바이트 단위로 같았다. Ruff와 `git diff --check`도 통과했다.
+
+검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-tips-20261102/`의 `verification.json`,
+`reproducibility.json`, `tests.txt`, `gripper.gif`와 `gripper.json`이다.
+[팁 분석 근거와 남은 실물 확인](../ros2_ws/src/cleany_description/docs/freecad-tip-mounts.md)에
+적용 범위를 기록했다. ROS 빌드는 Humble setup 부재로 시작하지 못했으며
+`ros-build.txt`에 보존했다. 실제 팁의 고정력·변형·파지 성능이나 실물 구동은
+검증하지 않았고 모터 명령, 배포, commit과 push는 수행하지 않았다.

@@ -28,13 +28,13 @@ v8 손목 마운트 형상 반영 시 Jetson의 양손목 외부 보정 파일�
 
 ```bash
 ros2 launch cleany_description description.launch.py \
-  use_sim_time:=false calibration_profile:=jetson_20261009
+  model_variant:=legacy_runtime use_sim_time:=false calibration_profile:=jetson_20261009
 ```
 
 이 launch는 `robot_state_publisher`만 실행한다. 관절 상태는 별도 `/joint_states`
 입력이 필요하며, 저장된 encoder 영점으로 tick을 변환하거나 모터를 제어하지 않는다.
-`calibration_profile`의 기본값은 빈 문자열이다. 기본 실행은 명목 헤드 TF를
-유지하고 손목 보정 optical frame을 추가하지 않는다.
+`calibration_profile`의 기본값은 빈 문자열이다. `legacy_runtime`에서 보정을 지정하지
+않으면 명목 헤드 TF를 유지하고 손목 보정 optical frame을 추가하지 않는다.
 
 노드를 실행하지 않고 보정된 URDF만 확인하려면 다음 명령을 사용한다.
 

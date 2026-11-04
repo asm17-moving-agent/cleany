@@ -1,0 +1,4182 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="cleany_freecad_final_static">
+  <!--Saved CAD assembly only. No calibrated joint zeros, actuators or inertias.-->
+  <link name="base_link" />
+  <link name="cad_snapshot_FrameStructure">
+    <visual name="InstalledProfile00_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile00.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile00_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile00_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile00.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile01_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile01.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile01_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile01_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile01.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile02_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile02.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile02_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile02_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile02.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile03_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile03.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile03_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile03_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile03.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile04_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile04.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile04_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile04_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile04.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile05_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile05.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile05_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile05_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile05.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile06_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile06.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile06_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile06_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile06.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile07_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile07.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile07_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile07_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile07.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile08_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile08.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile08_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile08_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile08.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile09_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile09.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile09_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile09_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile09.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile10_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile10.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile10_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile10_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile10.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile11_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile11.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile11_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile11_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile11.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile12_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile12.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile12_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile12_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile12.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile13_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile13.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile13_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile13_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile13.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile14_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile14.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile14_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile14_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile14.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile15_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile15.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile15_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile15_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile15.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile16_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile16.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile16_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile16_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile16.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile17_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile17.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile17_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile17_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile17.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile18_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile18.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile18_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile18_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile18.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile19_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile19.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile19_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile19_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile19.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile20_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile20.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile20_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile20_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile20.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile21_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile21.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile21_color">
+        <color rgba="0.870588235294 0.549019607843 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile21_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile21.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledProfile22_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile22.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledProfile22_color">
+        <color rgba="0.870588235294 0.549019607843 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="InstalledProfile22_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledProfile22.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledPanelRearSupport_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledPanelRearSupport.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledPanelRearSupport_color">
+        <color rgba="0.729411764706 0.760784313725 0.788235294118 1" />
+      </material>
+    </visual>
+    <collision name="InstalledPanelRearSupport_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledPanelRearSupport.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_FrameStructure_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_FrameStructure" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_InstalledMounts">
+    <visual name="InstalledMountBracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledMountBracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledMountBracket_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="InstalledMountBracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledMountBracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledMast_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledMast.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledMast_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="InstalledMast_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledMast.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="InstalledArmMountPanel_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledArmMountPanel.stl" scale="1 1 1" />
+      </geometry>
+      <material name="InstalledArmMountPanel_color">
+        <color rgba="0.901960784314 0.639215686275 0.2 1" />
+      </material>
+    </visual>
+    <collision name="InstalledArmMountPanel_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/InstalledArmMountPanel.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftMountPlate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftMountPlate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftMountPlate_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftMountPlate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftMountPlate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightMountPlate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightMountPlate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightMountPlate_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightMountPlate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightMountPlate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_InstalledMounts_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_InstalledMounts" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightBase">
+    <visual name="BasePrint_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BasePrint.stl" scale="1 1 1" />
+      </geometry>
+      <material name="BasePrint_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="BasePrint_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BasePrint.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="BaseCover_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BaseCover.stl" scale="1 1 1" />
+      </geometry>
+      <material name="BaseCover_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="BaseCover_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BaseCover.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightBase_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightBase" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightYaw">
+    <visual name="YawPrint_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawPrint.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawPrint_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="YawPrint_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawPrint.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="ShoulderMotorHolder_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/ShoulderMotorHolder.stl" scale="1 1 1" />
+      </geometry>
+      <material name="ShoulderMotorHolder_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="ShoulderMotorHolder_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/ShoulderMotorHolder.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="YawDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="YawDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="YawIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawIdlerHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="YawIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightYaw_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightYaw" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightUpper">
+    <visual name="AssembledShoulderSocket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledShoulderSocket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledShoulderSocket_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="AssembledShoulderSocket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledShoulderSocket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="AssembledUpperTube_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledUpperTube.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledUpperTube_color">
+        <color rgba="0.219607843137 0.321568627451 0.4 1" />
+      </material>
+    </visual>
+    <collision name="AssembledUpperTube_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledUpperTube.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="AssembledElbowASocket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledElbowASocket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledElbowASocket_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="AssembledElbowASocket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledElbowASocket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="UpperDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="UpperDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="UpperDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="UpperIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="UpperIdlerHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="UpperIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightUpper_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightUpper" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightLower">
+    <visual name="Aligned_WristMotorHolder_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_WristMotorHolder.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_WristMotorHolder_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_WristMotorHolder_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_WristMotorHolder.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledElbowBSocket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledElbowBSocket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledElbowBSocket_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledElbowBSocket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledElbowBSocket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledLowerTube_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledLowerTube.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledLowerTube_color">
+        <color rgba="0.219607843137 0.321568627451 0.4 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledLowerTube_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledLowerTube.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledWristSocket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledWristSocket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledWristSocket_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledWristSocket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledWristSocket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_LowerDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_LowerDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_LowerDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_LowerIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_LowerIdlerHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_LowerIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightLower_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightLower" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightWrist">
+    <visual name="WristPrint_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristPrint.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristPrint_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="WristPrint_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristPrint.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="WristDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="WristDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="WristIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristIdlerHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="WristIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightWrist_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightWrist" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightTool">
+    <visual name="RightKinematic_CameraTool180_ToolDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_ToolDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_ToolDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_ToolDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_ToolDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Bottom_Plate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Bottom_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Bottom_Plate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Top_Plate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Top_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Top_Plate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Cam_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Cam.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Cam_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Cam_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Cam.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Interface_ARM100_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Interface_ARM100_color">
+        <color rgba="0.921568627451 0.450980392157 0.160784313725 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Interface_ARM100_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Distal_Shell_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Distal_Shell_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Distal_Shell_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Distal_Shell_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Distal_Shell_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Driving_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Driving_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Driving_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Driving_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Driving_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Driving_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_External_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_External_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_External_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_External_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_External_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_External_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_External_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_External_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_External_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_External_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Removable_Tip_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Removable_Tip_L_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Removable_Tip_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Removable_Tip_R_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Tip_Support_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Tip_Support_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Tip_Support_L_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Tip_Support_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_Tip_Support_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Tip_Support_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_Tip_Support_R_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Tip_Support_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightKinematic_CameraTool180_Pinc_CamHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_CamHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightKinematic_CameraTool180_Pinc_CamHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="RightKinematic_CameraTool180_Pinc_CamHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_CamHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightTool_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightTool" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_RightCameraComponents">
+    <visual name="RightCamera_FixedMount_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_FixedMount_color">
+        <color rgba="0.180392156863 0.521568627451 0.650980392157 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_FixedMount_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCB_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCB_color">
+        <color rgba="0.121568627451 0.419607843137 0.23137254902 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCB_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_Lens_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_Lens_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_Lens_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_Glass_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_Glass_color">
+        <color rgba="0.121568627451 0.321568627451 0.541176470588 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_Glass_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_Connector_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_Connector_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_Connector_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBScrew0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBScrew0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBNut0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBNut0_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBNut0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBScrew1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBScrew1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBNut1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBNut1_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBNut1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBScrew2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBScrew2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBNut2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBNut2_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBNut2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBScrew3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBScrew3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_PCBNut3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_PCBNut3_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_PCBNut3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_BaseScrew0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_BaseScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_BaseScrew0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_BaseScrew1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_BaseScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_BaseScrew1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_BaseScrew2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_BaseScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_BaseScrew2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RightCamera_BaseScrew3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RightCamera_BaseScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="RightCamera_BaseScrew3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_RightCameraComponents_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_RightCameraComponents" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftBase">
+    <visual name="BasePrint001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BasePrint001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="BasePrint001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="BasePrint001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BasePrint001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="BaseCover001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BaseCover001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="BaseCover001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="BaseCover001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/BaseCover001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo_middle001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo_middle001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo_middle001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Base_servo_other001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Base_servo_other001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Base_servo_other001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Base_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftBase_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftBase" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftYaw">
+    <visual name="YawPrint001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawPrint001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawPrint001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="YawPrint001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawPrint001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="ShoulderMotorHolder001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/ShoulderMotorHolder001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="ShoulderMotorHolder001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="ShoulderMotorHolder001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/ShoulderMotorHolder001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo_middle001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo_middle001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo_middle001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Yaw_servo_other001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Yaw_servo_other001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Yaw_servo_other001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Yaw_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="YawDriveHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawDriveHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="YawDriveHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="YawIdlerHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="YawIdlerHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="YawIdlerHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/YawIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftYaw_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftYaw" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftUpper">
+    <visual name="AssembledShoulderSocket001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledShoulderSocket001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledShoulderSocket001_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="AssembledShoulderSocket001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledShoulderSocket001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="AssembledUpperTube001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledUpperTube001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledUpperTube001_color">
+        <color rgba="0.219607843137 0.321568627451 0.4 1" />
+      </material>
+    </visual>
+    <collision name="AssembledUpperTube001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledUpperTube001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="AssembledElbowASocket001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledElbowASocket001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="AssembledElbowASocket001_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="AssembledElbowASocket001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/AssembledElbowASocket001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo_middle001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo_middle001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo_middle001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Upper_servo_other001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Upper_servo_other001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Upper_servo_other001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Upper_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="UpperDriveHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="UpperDriveHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="UpperDriveHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="UpperIdlerHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="UpperIdlerHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="UpperIdlerHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/UpperIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftUpper_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftUpper" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftLower">
+    <visual name="Aligned_WristMotorHolder001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_WristMotorHolder001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_WristMotorHolder001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_WristMotorHolder001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_WristMotorHolder001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledElbowBSocket001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledElbowBSocket001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledElbowBSocket001_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledElbowBSocket001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledElbowBSocket001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledLowerTube001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledLowerTube001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledLowerTube001_color">
+        <color rgba="0.219607843137 0.321568627451 0.4 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledLowerTube001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledLowerTube001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_AssembledWristSocket001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledWristSocket001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_AssembledWristSocket001_color">
+        <color rgba="0.219607843137 0.670588235294 0.490196078431 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_AssembledWristSocket001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_AssembledWristSocket001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo_middle001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo_middle001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo_middle001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_Lower_servo_other001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_Lower_servo_other001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_Lower_servo_other001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_Lower_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_LowerDriveHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_LowerDriveHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_LowerDriveHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Aligned_LowerIdlerHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Aligned_LowerIdlerHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="Aligned_LowerIdlerHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Aligned_LowerIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftLower_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftLower" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftWrist">
+    <visual name="WristPrint001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristPrint001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristPrint001_color">
+        <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
+      </material>
+    </visual>
+    <collision name="WristPrint001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristPrint001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo_middle001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo_middle001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo_middle001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_middle001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Wrist_servo_other001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Wrist_servo_other001_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="Wrist_servo_other001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo_other001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="WristDriveHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristDriveHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="WristDriveHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristDriveHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="WristIdlerHorn001_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+      <material name="WristIdlerHorn001_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="WristIdlerHorn001_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/WristIdlerHorn001.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftWrist_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftWrist" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftTool">
+    <visual name="LeftKinematic_CameraTool180_ToolDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_ToolDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_ToolDriveHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_ToolDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_ToolDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Top_Plate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Top_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Top_Plate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Cam_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Cam.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Cam_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Cam_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Cam.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_color">
+        <color rgba="0.921568627451 0.450980392157 0.160784313725 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_External_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_External_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_External_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_External_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_External_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_External_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_External_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_External_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_External_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_External_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Tip_Support_L.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Tip_Support_L.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Tip_Support_R.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R_color">
+        <color rgba="0.180392156863 0.2 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Tip_Support_R.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_middle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_middle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_other_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_other_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_CamHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_CamHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_CamHorn_color">
+        <color rgba="0.780392156863 0.8 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_CamHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_CamHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftTool_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftTool" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LeftCameraComponents">
+    <visual name="LeftCamera_FixedMount_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_FixedMount_color">
+        <color rgba="0.180392156863 0.521568627451 0.650980392157 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_FixedMount_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCB_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCB_color">
+        <color rgba="0.121568627451 0.419607843137 0.23137254902 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCB_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Lens_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Lens_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Lens_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Glass_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Glass_color">
+        <color rgba="0.121568627451 0.321568627451 0.541176470588 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Glass_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Connector_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Connector_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Connector_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut0_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut1_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut2_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut3_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew0_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew0_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew1_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew1_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew2_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew2_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew3_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew3_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LeftCameraComponents_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LeftCameraComponents" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_HeadRig">
+    <visual name="HeadFixedBracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadFixedBracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadFixedBracket_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="HeadFixedBracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadFixedBracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanBracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanBracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanBracket_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanBracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanBracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltBracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltBracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltBracket_color">
+        <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltBracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltBracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadCamera_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCamera.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadCamera_color">
+        <color rgba="0.658823529412 0.690196078431 0.721568627451 1" />
+      </material>
+    </visual>
+    <collision name="HeadCamera_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCamera.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadCameraWindow_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraWindow.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadCameraWindow_color">
+        <color rgba="0.0705882352941 0.0862745098039 0.101960784314 1" />
+      </material>
+    </visual>
+    <collision name="HeadCameraWindow_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraWindow.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanServoCase_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoCase.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanServoCase_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanServoCase_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoCase.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanServoFront_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoFront.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanServoFront_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanServoFront_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoFront.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanServoMiddle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoMiddle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanServoMiddle_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanServoMiddle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoMiddle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanDriveHorn_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadPanIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanIdlerHorn_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltServoCase_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoCase.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltServoCase_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltServoCase_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoCase.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltServoFront_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoFront.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltServoFront_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltServoFront_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoFront.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltServoMiddle_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoMiddle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltServoMiddle_color">
+        <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltServoMiddle_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltServoMiddle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltDriveHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltDriveHorn_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltDriveHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltDriveHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadTiltIdlerHorn_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadTiltIdlerHorn_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadTiltIdlerHorn_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadTiltIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadCameraScrewRight_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraScrewRight.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadCameraScrewRight_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadCameraScrewRight_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraScrewRight.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="HeadCameraScrewLeft_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraScrewLeft.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadCameraScrewLeft_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadCameraScrewLeft_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadCameraScrewLeft.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_HeadRig_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_HeadRig" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_LidarRig">
+    <visual name="LidarPlate_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarPlate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LidarPlate_color">
+        <color rgba="0.239215686275 0.6 0.819607843137 1" />
+      </material>
+    </visual>
+    <collision name="LidarPlate_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarPlate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="RPLidarA1M8_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8.stl" scale="1 1 1" />
+      </geometry>
+      <material name="RPLidarA1M8_color">
+        <color rgba="0.188235294118 0.211764705882 0.239215686275 1" />
+      </material>
+    </visual>
+    <collision name="RPLidarA1M8_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/RPLidarA1M8.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LidarStandoffs_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarStandoffs.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LidarStandoffs_color">
+        <color rgba="0.819607843137 0.678431372549 0.321568627451 1" />
+      </material>
+    </visual>
+    <collision name="LidarStandoffs_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarStandoffs.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LidarProfileBolts_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarProfileBolts.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LidarProfileBolts_color">
+        <color rgba="0.701960784314 0.721568627451 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="LidarProfileBolts_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarProfileBolts.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LidarLowerBolts_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarLowerBolts.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LidarLowerBolts_color">
+        <color rgba="0.701960784314 0.721568627451 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="LidarLowerBolts_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/LidarLowerBolts.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_LidarRig_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_LidarRig" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_IMURig">
+    <visual name="IMUMount_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUMount.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUMount_color">
+        <color rgba="0.8 0.878431372549 0.941176470588 1" />
+      </material>
+    </visual>
+    <collision name="IMUMount_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUMount.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUPCB_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUPCB.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUPCB_color">
+        <color rgba="0.0705882352941 0.349019607843 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="IMUPCB_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUPCB.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUHeader_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUHeader.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUHeader_color">
+        <color rgba="0.219607843137 0.219607843137 0.239215686275 1" />
+      </material>
+    </visual>
+    <collision name="IMUHeader_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUHeader.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUChip_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUChip.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUChip_color">
+        <color rgba="0.121568627451 0.121568627451 0.129411764706 1" />
+      </material>
+    </visual>
+    <collision name="IMUChip_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUChip.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUProfileBolts_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUProfileBolts.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUProfileBolts_color">
+        <color rgba="0.701960784314 0.721568627451 0.741176470588 1" />
+      </material>
+    </visual>
+    <collision name="IMUProfileBolts_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUProfileBolts.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUBoardBolts_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUBoardBolts.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUBoardBolts_color">
+        <color rgba="0.701960784314 0.721568627451 0.741176470588 1" />
+      </material>
+    </visual>
+    <collision name="IMUBoardBolts_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUBoardBolts.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="IMUBoardNuts_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUBoardNuts.stl" scale="1 1 1" />
+      </geometry>
+      <material name="IMUBoardNuts_color">
+        <color rgba="0.701960784314 0.721568627451 0.741176470588 1" />
+      </material>
+    </visual>
+    <collision name="IMUBoardNuts_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/IMUBoardNuts.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_IMURig_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_IMURig" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_DriveBase">
+    <visual name="Drive_rear_left_wheel_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_wheel.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_left_wheel_color">
+        <color rgba="0.129411764706 0.129411764706 0.149019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_left_wheel_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_wheel.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_rear_left_motor_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_motor.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_left_motor_color">
+        <color rgba="0.619607843137 0.690196078431 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_left_motor_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_motor.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_rear_left_bracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_bracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_left_bracket_color">
+        <color rgba="0.301960784314 0.478431372549 0.721568627451 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_left_bracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_left_bracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_rear_right_wheel_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_wheel.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_right_wheel_color">
+        <color rgba="0.129411764706 0.129411764706 0.149019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_right_wheel_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_wheel.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_rear_right_motor_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_motor.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_right_motor_color">
+        <color rgba="0.619607843137 0.690196078431 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_right_motor_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_motor.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_rear_right_bracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_bracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_rear_right_bracket_color">
+        <color rgba="0.301960784314 0.478431372549 0.721568627451 1" />
+      </material>
+    </visual>
+    <collision name="Drive_rear_right_bracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_rear_right_bracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_left_wheel_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_wheel.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_left_wheel_color">
+        <color rgba="0.129411764706 0.129411764706 0.149019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_left_wheel_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_wheel.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_left_motor_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_motor.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_left_motor_color">
+        <color rgba="0.619607843137 0.690196078431 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_left_motor_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_motor.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_left_bracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_bracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_left_bracket_color">
+        <color rgba="0.301960784314 0.478431372549 0.721568627451 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_left_bracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_left_bracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_right_wheel_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_wheel.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_right_wheel_color">
+        <color rgba="0.129411764706 0.129411764706 0.149019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_right_wheel_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_wheel.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_right_motor_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_motor.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_right_motor_color">
+        <color rgba="0.619607843137 0.690196078431 0.749019607843 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_right_motor_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_motor.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="Drive_front_right_bracket_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_bracket.stl" scale="1 1 1" />
+      </geometry>
+      <material name="Drive_front_right_bracket_color">
+        <color rgba="0.301960784314 0.478431372549 0.721568627451 1" />
+      </material>
+    </visual>
+    <collision name="Drive_front_right_bracket_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/Drive_front_right_bracket.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_DriveBase_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_DriveBase" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_FramePanels">
+    <visual name="FomexFrontLowerMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerMountCut_color">
+        <color rgba="0.160784313725 0.16862745098 0.180392156863 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperMountCut_color">
+        <color rgba="0.921568627451 0.921568627451 0.890196078431 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerMountCut_color">
+        <color rgba="0.160784313725 0.16862745098 0.180392156863 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperMountCut_color">
+        <color rgba="0.921568627451 0.921568627451 0.890196078431 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerMountCut_color">
+        <color rgba="0.160784313725 0.16862745098 0.180392156863 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperMountCut_color">
+        <color rgba="0.921568627451 0.921568627451 0.890196078431 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerMountCut_color">
+        <color rgba="0.160784313725 0.16862745098 0.180392156863 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperMountCut_color">
+        <color rgba="0.921568627451 0.921568627451 0.890196078431 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontMountCut_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontMountCut.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontMountCut_color">
+        <color rgba="0.921568627451 0.921568627451 0.890196078431 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontMountCut_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontMountCut.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopRearBacking_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopRearBacking.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopRearBacking_color">
+        <color rgba="0.83137254902 0.850980392157 0.83137254902 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopRearBacking_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopRearBacking.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_FramePanels_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_FramePanels" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_VirtualDisplay">
+    <visual name="VirtualDisplayBody_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/VirtualDisplayBody.stl" scale="1 1 1" />
+      </geometry>
+      <material name="VirtualDisplayBody_color">
+        <color rgba="0.0235294117647 0.0313725490196 0.0352941176471 1" />
+      </material>
+    </visual>
+    <collision name="VirtualDisplayBody_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/VirtualDisplayBody.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="DefaultExpressionScreen">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/DefaultExpressionScreen.dae" scale="1 1 1" />
+      </geometry>
+    </visual>
+  </link>
+  <joint name="cad_snapshot_VirtualDisplay_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_VirtualDisplay" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_FrontBranding">
+    <visual name="FrontCleanyLogo_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FrontCleanyLogo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FrontCleanyLogo_color">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision name="FrontCleanyLogo_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FrontCleanyLogo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_FrontBranding_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_FrontBranding" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+  <link name="cad_snapshot_PanelMounting">
+    <visual name="FomexFrontLowerM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontLowerM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontLowerM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontLowerM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexFrontUpperM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexFrontUpperM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexFrontUpperM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexFrontUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftLowerM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftLowerM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftLowerM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexLeftUpperM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexLeftUpperM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexLeftUpperM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexLeftUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackLowerM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackLowerM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackLowerM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexBackUpperM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexBackUpperM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexBackUpperM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexBackUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightLowerM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightLowerM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightLowerM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightLowerM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexRightUpperM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexRightUpperM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexRightUpperM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexRightUpperM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool01Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool01Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool01Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool01Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool01Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool01Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool01Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool01Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool02Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool02Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool02Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool02Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool02Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool02Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool02Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool02Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool03Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool03Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool03Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool03Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool03Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool03Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool03Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool03Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool04Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool04Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool04Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool04Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool04Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool04Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool04Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool04Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool05Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool05Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool05Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool05Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool05Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool05Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool05Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool05Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool05Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool05Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool06Screw_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool06Screw.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool06Screw_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool06Screw_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool06Screw.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="FomexTopFrontM4Tool06Washer_visual">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool06Washer.stl" scale="1 1 1" />
+      </geometry>
+      <material name="FomexTopFrontM4Tool06Washer_color">
+        <color rgba="0.721568627451 0.741176470588 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="FomexTopFrontM4Tool06Washer_collision">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/FomexTopFrontM4Tool06Washer.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cad_snapshot_PanelMounting_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="cad_snapshot_PanelMounting" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+</robot>

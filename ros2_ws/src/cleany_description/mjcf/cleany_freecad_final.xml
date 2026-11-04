@@ -1,0 +1,631 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="cleany_freecad_final_static">
+  <compiler angle="radian" inertiafromgeom="false" meshdir="../meshes/freecad_final" texturedir="../meshes/freecad_final" />
+  <asset>
+    <mesh name="InstalledProfile00" file="InstalledProfile00.stl" />
+    <mesh name="InstalledProfile01" file="InstalledProfile01.stl" />
+    <mesh name="InstalledProfile02" file="InstalledProfile02.stl" />
+    <mesh name="InstalledProfile03" file="InstalledProfile03.stl" />
+    <mesh name="InstalledProfile04" file="InstalledProfile04.stl" />
+    <mesh name="InstalledProfile05" file="InstalledProfile05.stl" />
+    <mesh name="InstalledProfile06" file="InstalledProfile06.stl" />
+    <mesh name="InstalledProfile07" file="InstalledProfile07.stl" />
+    <mesh name="InstalledProfile08" file="InstalledProfile08.stl" />
+    <mesh name="InstalledProfile09" file="InstalledProfile09.stl" />
+    <mesh name="InstalledProfile10" file="InstalledProfile10.stl" />
+    <mesh name="InstalledProfile11" file="InstalledProfile11.stl" />
+    <mesh name="InstalledProfile12" file="InstalledProfile12.stl" />
+    <mesh name="InstalledProfile13" file="InstalledProfile13.stl" />
+    <mesh name="InstalledProfile14" file="InstalledProfile14.stl" />
+    <mesh name="InstalledProfile15" file="InstalledProfile15.stl" />
+    <mesh name="InstalledProfile16" file="InstalledProfile16.stl" />
+    <mesh name="InstalledProfile17" file="InstalledProfile17.stl" />
+    <mesh name="InstalledProfile18" file="InstalledProfile18.stl" />
+    <mesh name="InstalledProfile19" file="InstalledProfile19.stl" />
+    <mesh name="InstalledProfile20" file="InstalledProfile20.stl" />
+    <mesh name="InstalledProfile21" file="InstalledProfile21.stl" />
+    <mesh name="InstalledProfile22" file="InstalledProfile22.stl" />
+    <mesh name="InstalledPanelRearSupport" file="InstalledPanelRearSupport.stl" />
+    <mesh name="InstalledMountBracket" file="InstalledMountBracket.stl" />
+    <mesh name="InstalledMast" file="InstalledMast.stl" />
+    <mesh name="InstalledArmMountPanel" file="InstalledArmMountPanel.stl" />
+    <mesh name="LeftMountPlate" file="LeftMountPlate.stl" />
+    <mesh name="RightMountPlate" file="RightMountPlate.stl" />
+    <mesh name="BasePrint" file="BasePrint.stl" />
+    <mesh name="BaseCover" file="BaseCover.stl" />
+    <mesh name="Base_servo" file="Base_servo.stl" />
+    <mesh name="Base_servo_middle" file="Base_servo_middle.stl" />
+    <mesh name="Base_servo_other" file="Base_servo_other.stl" />
+    <mesh name="YawPrint" file="YawPrint.stl" />
+    <mesh name="ShoulderMotorHolder" file="ShoulderMotorHolder.stl" />
+    <mesh name="Yaw_servo" file="Yaw_servo.stl" />
+    <mesh name="Yaw_servo_middle" file="Yaw_servo_middle.stl" />
+    <mesh name="Yaw_servo_other" file="Yaw_servo_other.stl" />
+    <mesh name="YawDriveHorn" file="YawDriveHorn.stl" />
+    <mesh name="YawIdlerHorn" file="YawIdlerHorn.stl" />
+    <mesh name="AssembledShoulderSocket" file="AssembledShoulderSocket.stl" />
+    <mesh name="AssembledUpperTube" file="AssembledUpperTube.stl" />
+    <mesh name="AssembledElbowASocket" file="AssembledElbowASocket.stl" />
+    <mesh name="Upper_servo" file="Upper_servo.stl" />
+    <mesh name="Upper_servo_middle" file="Upper_servo_middle.stl" />
+    <mesh name="Upper_servo_other" file="Upper_servo_other.stl" />
+    <mesh name="UpperDriveHorn" file="UpperDriveHorn.stl" />
+    <mesh name="UpperIdlerHorn" file="UpperIdlerHorn.stl" />
+    <mesh name="Aligned_WristMotorHolder" file="Aligned_WristMotorHolder.stl" />
+    <mesh name="Aligned_AssembledElbowBSocket" file="Aligned_AssembledElbowBSocket.stl" />
+    <mesh name="Aligned_AssembledLowerTube" file="Aligned_AssembledLowerTube.stl" />
+    <mesh name="Aligned_AssembledWristSocket" file="Aligned_AssembledWristSocket.stl" />
+    <mesh name="Aligned_Lower_servo" file="Aligned_Lower_servo.stl" />
+    <mesh name="Aligned_Lower_servo_middle" file="Aligned_Lower_servo_middle.stl" />
+    <mesh name="Aligned_Lower_servo_other" file="Aligned_Lower_servo_other.stl" />
+    <mesh name="Aligned_LowerDriveHorn" file="Aligned_LowerDriveHorn.stl" />
+    <mesh name="Aligned_LowerIdlerHorn" file="Aligned_LowerIdlerHorn.stl" />
+    <mesh name="WristPrint" file="WristPrint.stl" />
+    <mesh name="Wrist_servo" file="Wrist_servo.stl" />
+    <mesh name="Wrist_servo_middle" file="Wrist_servo_middle.stl" />
+    <mesh name="Wrist_servo_other" file="Wrist_servo_other.stl" />
+    <mesh name="WristDriveHorn" file="WristDriveHorn.stl" />
+    <mesh name="WristIdlerHorn" file="WristIdlerHorn.stl" />
+    <mesh name="RightKinematic_CameraTool180_ToolDriveHorn" file="RightKinematic_CameraTool180_ToolDriveHorn.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Bottom_Plate" file="RightKinematic_CameraTool180_Pinc_Bottom_Plate.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Top_Plate" file="RightKinematic_CameraTool180_Pinc_Top_Plate.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Cam" file="RightKinematic_CameraTool180_Pinc_Cam.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Interface_ARM100" file="RightKinematic_CameraTool180_Pinc_Interface_ARM100.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L" file="RightKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R" file="RightKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Distal_Shell_L" file="RightKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Distal_Shell_R" file="RightKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Driving_Rod_L" file="RightKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Driving_Rod_R" file="RightKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_External_Rod_L" file="RightKinematic_CameraTool180_Pinc_External_Rod_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_External_Rod_R" file="RightKinematic_CameraTool180_Pinc_External_Rod_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L" file="RightKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R" file="RightKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Removable_Tip_L" file="RightKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Removable_Tip_R" file="RightKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Tip_Support_L" file="RightKinematic_CameraTool180_Pinc_Tip_Support_L.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_Tip_Support_R" file="RightKinematic_CameraTool180_Pinc_Tip_Support_R.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_servo" file="RightKinematic_CameraTool180_Pinc_servo.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_servo_middle" file="RightKinematic_CameraTool180_Pinc_servo_middle.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_servo_other" file="RightKinematic_CameraTool180_Pinc_servo_other.stl" />
+    <mesh name="RightKinematic_CameraTool180_Pinc_CamHorn" file="RightKinematic_CameraTool180_Pinc_CamHorn.stl" />
+    <mesh name="RightCamera_FixedMount" file="RightCamera_FixedMount.stl" />
+    <mesh name="RightCamera_PCB" file="RightCamera_PCB.stl" />
+    <mesh name="RightCamera_Lens" file="RightCamera_Lens.stl" />
+    <mesh name="RightCamera_Glass" file="RightCamera_Glass.stl" />
+    <mesh name="RightCamera_Connector" file="RightCamera_Connector.stl" />
+    <mesh name="RightCamera_PCBScrew0" file="RightCamera_PCBScrew0.stl" />
+    <mesh name="RightCamera_PCBNut0" file="RightCamera_PCBNut0.stl" />
+    <mesh name="RightCamera_PCBScrew1" file="RightCamera_PCBScrew1.stl" />
+    <mesh name="RightCamera_PCBNut1" file="RightCamera_PCBNut1.stl" />
+    <mesh name="RightCamera_PCBScrew2" file="RightCamera_PCBScrew2.stl" />
+    <mesh name="RightCamera_PCBNut2" file="RightCamera_PCBNut2.stl" />
+    <mesh name="RightCamera_PCBScrew3" file="RightCamera_PCBScrew3.stl" />
+    <mesh name="RightCamera_PCBNut3" file="RightCamera_PCBNut3.stl" />
+    <mesh name="RightCamera_BaseScrew0" file="RightCamera_BaseScrew0.stl" />
+    <mesh name="RightCamera_BaseScrew1" file="RightCamera_BaseScrew1.stl" />
+    <mesh name="RightCamera_BaseScrew2" file="RightCamera_BaseScrew2.stl" />
+    <mesh name="RightCamera_BaseScrew3" file="RightCamera_BaseScrew3.stl" />
+    <mesh name="BasePrint001" file="BasePrint001.stl" />
+    <mesh name="BaseCover001" file="BaseCover001.stl" />
+    <mesh name="Base_servo001" file="Base_servo001.stl" />
+    <mesh name="Base_servo_middle001" file="Base_servo_middle001.stl" />
+    <mesh name="Base_servo_other001" file="Base_servo_other001.stl" />
+    <mesh name="YawPrint001" file="YawPrint001.stl" />
+    <mesh name="ShoulderMotorHolder001" file="ShoulderMotorHolder001.stl" />
+    <mesh name="Yaw_servo001" file="Yaw_servo001.stl" />
+    <mesh name="Yaw_servo_middle001" file="Yaw_servo_middle001.stl" />
+    <mesh name="Yaw_servo_other001" file="Yaw_servo_other001.stl" />
+    <mesh name="YawDriveHorn001" file="YawDriveHorn001.stl" />
+    <mesh name="YawIdlerHorn001" file="YawIdlerHorn001.stl" />
+    <mesh name="AssembledShoulderSocket001" file="AssembledShoulderSocket001.stl" />
+    <mesh name="AssembledUpperTube001" file="AssembledUpperTube001.stl" />
+    <mesh name="AssembledElbowASocket001" file="AssembledElbowASocket001.stl" />
+    <mesh name="Upper_servo001" file="Upper_servo001.stl" />
+    <mesh name="Upper_servo_middle001" file="Upper_servo_middle001.stl" />
+    <mesh name="Upper_servo_other001" file="Upper_servo_other001.stl" />
+    <mesh name="UpperDriveHorn001" file="UpperDriveHorn001.stl" />
+    <mesh name="UpperIdlerHorn001" file="UpperIdlerHorn001.stl" />
+    <mesh name="Aligned_WristMotorHolder001" file="Aligned_WristMotorHolder001.stl" />
+    <mesh name="Aligned_AssembledElbowBSocket001" file="Aligned_AssembledElbowBSocket001.stl" />
+    <mesh name="Aligned_AssembledLowerTube001" file="Aligned_AssembledLowerTube001.stl" />
+    <mesh name="Aligned_AssembledWristSocket001" file="Aligned_AssembledWristSocket001.stl" />
+    <mesh name="Aligned_Lower_servo001" file="Aligned_Lower_servo001.stl" />
+    <mesh name="Aligned_Lower_servo_middle001" file="Aligned_Lower_servo_middle001.stl" />
+    <mesh name="Aligned_Lower_servo_other001" file="Aligned_Lower_servo_other001.stl" />
+    <mesh name="Aligned_LowerDriveHorn001" file="Aligned_LowerDriveHorn001.stl" />
+    <mesh name="Aligned_LowerIdlerHorn001" file="Aligned_LowerIdlerHorn001.stl" />
+    <mesh name="WristPrint001" file="WristPrint001.stl" />
+    <mesh name="Wrist_servo001" file="Wrist_servo001.stl" />
+    <mesh name="Wrist_servo_middle001" file="Wrist_servo_middle001.stl" />
+    <mesh name="Wrist_servo_other001" file="Wrist_servo_other001.stl" />
+    <mesh name="WristDriveHorn001" file="WristDriveHorn001.stl" />
+    <mesh name="WristIdlerHorn001" file="WristIdlerHorn001.stl" />
+    <mesh name="LeftKinematic_CameraTool180_ToolDriveHorn" file="LeftKinematic_CameraTool180_ToolDriveHorn.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate" file="LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Top_Plate" file="LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Cam" file="LeftKinematic_CameraTool180_Pinc_Cam.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100" file="LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L" file="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R" file="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L" file="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R" file="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L" file="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R" file="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_External_Rod_L" file="LeftKinematic_CameraTool180_Pinc_External_Rod_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_External_Rod_R" file="LeftKinematic_CameraTool180_Pinc_External_Rod_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L" file="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R" file="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L" file="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R" file="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L" file="LeftKinematic_CameraTool180_Pinc_Tip_Support_L.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R" file="LeftKinematic_CameraTool180_Pinc_Tip_Support_R.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_servo" file="LeftKinematic_CameraTool180_Pinc_servo.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_servo_middle" file="LeftKinematic_CameraTool180_Pinc_servo_middle.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_servo_other" file="LeftKinematic_CameraTool180_Pinc_servo_other.stl" />
+    <mesh name="LeftKinematic_CameraTool180_Pinc_CamHorn" file="LeftKinematic_CameraTool180_Pinc_CamHorn.stl" />
+    <mesh name="LeftCamera_FixedMount" file="LeftCamera_FixedMount.stl" />
+    <mesh name="LeftCamera_PCB" file="LeftCamera_PCB.stl" />
+    <mesh name="LeftCamera_Lens" file="LeftCamera_Lens.stl" />
+    <mesh name="LeftCamera_Glass" file="LeftCamera_Glass.stl" />
+    <mesh name="LeftCamera_Connector" file="LeftCamera_Connector.stl" />
+    <mesh name="LeftCamera_PCBScrew0" file="LeftCamera_PCBScrew0.stl" />
+    <mesh name="LeftCamera_PCBNut0" file="LeftCamera_PCBNut0.stl" />
+    <mesh name="LeftCamera_PCBScrew1" file="LeftCamera_PCBScrew1.stl" />
+    <mesh name="LeftCamera_PCBNut1" file="LeftCamera_PCBNut1.stl" />
+    <mesh name="LeftCamera_PCBScrew2" file="LeftCamera_PCBScrew2.stl" />
+    <mesh name="LeftCamera_PCBNut2" file="LeftCamera_PCBNut2.stl" />
+    <mesh name="LeftCamera_PCBScrew3" file="LeftCamera_PCBScrew3.stl" />
+    <mesh name="LeftCamera_PCBNut3" file="LeftCamera_PCBNut3.stl" />
+    <mesh name="LeftCamera_BaseScrew0" file="LeftCamera_BaseScrew0.stl" />
+    <mesh name="LeftCamera_BaseScrew1" file="LeftCamera_BaseScrew1.stl" />
+    <mesh name="LeftCamera_BaseScrew2" file="LeftCamera_BaseScrew2.stl" />
+    <mesh name="LeftCamera_BaseScrew3" file="LeftCamera_BaseScrew3.stl" />
+    <mesh name="HeadFixedBracket" file="HeadFixedBracket.stl" />
+    <mesh name="HeadPanBracket" file="HeadPanBracket.stl" />
+    <mesh name="HeadTiltBracket" file="HeadTiltBracket.stl" />
+    <mesh name="HeadCamera" file="HeadCamera.stl" />
+    <mesh name="HeadCameraWindow" file="HeadCameraWindow.stl" />
+    <mesh name="HeadPanServoCase" file="HeadPanServoCase.stl" />
+    <mesh name="HeadPanServoFront" file="HeadPanServoFront.stl" />
+    <mesh name="HeadPanServoMiddle" file="HeadPanServoMiddle.stl" />
+    <mesh name="HeadPanDriveHorn" file="HeadPanDriveHorn.stl" />
+    <mesh name="HeadPanIdlerHorn" file="HeadPanIdlerHorn.stl" />
+    <mesh name="HeadTiltServoCase" file="HeadTiltServoCase.stl" />
+    <mesh name="HeadTiltServoFront" file="HeadTiltServoFront.stl" />
+    <mesh name="HeadTiltServoMiddle" file="HeadTiltServoMiddle.stl" />
+    <mesh name="HeadTiltDriveHorn" file="HeadTiltDriveHorn.stl" />
+    <mesh name="HeadTiltIdlerHorn" file="HeadTiltIdlerHorn.stl" />
+    <mesh name="HeadCameraScrewRight" file="HeadCameraScrewRight.stl" />
+    <mesh name="HeadCameraScrewLeft" file="HeadCameraScrewLeft.stl" />
+    <mesh name="LidarPlate" file="LidarPlate.stl" />
+    <mesh name="RPLidarA1M8__chunk_00" file="mujoco/RPLidarA1M8__chunk_00.stl" />
+    <mesh name="RPLidarA1M8__chunk_01" file="mujoco/RPLidarA1M8__chunk_01.stl" />
+    <mesh name="LidarStandoffs" file="LidarStandoffs.stl" />
+    <mesh name="LidarProfileBolts" file="LidarProfileBolts.stl" />
+    <mesh name="LidarLowerBolts" file="LidarLowerBolts.stl" />
+    <mesh name="IMUMount" file="IMUMount.stl" />
+    <mesh name="IMUPCB" file="IMUPCB.stl" />
+    <mesh name="IMUHeader" file="IMUHeader.stl" />
+    <mesh name="IMUChip" file="IMUChip.stl" />
+    <mesh name="IMUProfileBolts" file="IMUProfileBolts.stl" />
+    <mesh name="IMUBoardBolts" file="IMUBoardBolts.stl" />
+    <mesh name="IMUBoardNuts" file="IMUBoardNuts.stl" />
+    <mesh name="Drive_rear_left_wheel" file="Drive_rear_left_wheel.stl" />
+    <mesh name="Drive_rear_left_motor" file="Drive_rear_left_motor.stl" />
+    <mesh name="Drive_rear_left_bracket" file="Drive_rear_left_bracket.stl" />
+    <mesh name="Drive_rear_right_wheel" file="Drive_rear_right_wheel.stl" />
+    <mesh name="Drive_rear_right_motor" file="Drive_rear_right_motor.stl" />
+    <mesh name="Drive_rear_right_bracket" file="Drive_rear_right_bracket.stl" />
+    <mesh name="Drive_front_left_wheel" file="Drive_front_left_wheel.stl" />
+    <mesh name="Drive_front_left_motor" file="Drive_front_left_motor.stl" />
+    <mesh name="Drive_front_left_bracket" file="Drive_front_left_bracket.stl" />
+    <mesh name="Drive_front_right_wheel" file="Drive_front_right_wheel.stl" />
+    <mesh name="Drive_front_right_motor" file="Drive_front_right_motor.stl" />
+    <mesh name="Drive_front_right_bracket" file="Drive_front_right_bracket.stl" />
+    <mesh name="FomexFrontLowerMountCut" file="FomexFrontLowerMountCut.stl" />
+    <mesh name="FomexFrontUpperMountCut" file="FomexFrontUpperMountCut.stl" />
+    <mesh name="FomexLeftLowerMountCut" file="FomexLeftLowerMountCut.stl" />
+    <mesh name="FomexLeftUpperMountCut" file="FomexLeftUpperMountCut.stl" />
+    <mesh name="FomexBackLowerMountCut" file="FomexBackLowerMountCut.stl" />
+    <mesh name="FomexBackUpperMountCut" file="FomexBackUpperMountCut.stl" />
+    <mesh name="FomexRightLowerMountCut" file="FomexRightLowerMountCut.stl" />
+    <mesh name="FomexRightUpperMountCut" file="FomexRightUpperMountCut.stl" />
+    <mesh name="FomexTopFrontMountCut" file="FomexTopFrontMountCut.stl" />
+    <mesh name="FomexTopRearBacking" file="FomexTopRearBacking.stl" />
+    <mesh name="VirtualDisplayBody" file="VirtualDisplayBody.stl" />
+    <mesh name="FrontCleanyLogo" file="FrontCleanyLogo.stl" />
+    <mesh name="FomexFrontLowerM4Tool01Screw" file="FomexFrontLowerM4Tool01Screw.stl" />
+    <mesh name="FomexFrontLowerM4Tool01Washer" file="FomexFrontLowerM4Tool01Washer.stl" />
+    <mesh name="FomexFrontLowerM4Tool02Screw" file="FomexFrontLowerM4Tool02Screw.stl" />
+    <mesh name="FomexFrontLowerM4Tool02Washer" file="FomexFrontLowerM4Tool02Washer.stl" />
+    <mesh name="FomexFrontLowerM4Tool03Screw" file="FomexFrontLowerM4Tool03Screw.stl" />
+    <mesh name="FomexFrontLowerM4Tool03Washer" file="FomexFrontLowerM4Tool03Washer.stl" />
+    <mesh name="FomexFrontLowerM4Tool04Screw" file="FomexFrontLowerM4Tool04Screw.stl" />
+    <mesh name="FomexFrontLowerM4Tool04Washer" file="FomexFrontLowerM4Tool04Washer.stl" />
+    <mesh name="FomexFrontUpperM4Tool01Screw" file="FomexFrontUpperM4Tool01Screw.stl" />
+    <mesh name="FomexFrontUpperM4Tool01Washer" file="FomexFrontUpperM4Tool01Washer.stl" />
+    <mesh name="FomexFrontUpperM4Tool02Screw" file="FomexFrontUpperM4Tool02Screw.stl" />
+    <mesh name="FomexFrontUpperM4Tool02Washer" file="FomexFrontUpperM4Tool02Washer.stl" />
+    <mesh name="FomexFrontUpperM4Tool03Screw" file="FomexFrontUpperM4Tool03Screw.stl" />
+    <mesh name="FomexFrontUpperM4Tool03Washer" file="FomexFrontUpperM4Tool03Washer.stl" />
+    <mesh name="FomexFrontUpperM4Tool04Screw" file="FomexFrontUpperM4Tool04Screw.stl" />
+    <mesh name="FomexFrontUpperM4Tool04Washer" file="FomexFrontUpperM4Tool04Washer.stl" />
+    <mesh name="FomexLeftLowerM4Tool01Screw" file="FomexLeftLowerM4Tool01Screw.stl" />
+    <mesh name="FomexLeftLowerM4Tool01Washer" file="FomexLeftLowerM4Tool01Washer.stl" />
+    <mesh name="FomexLeftLowerM4Tool02Screw" file="FomexLeftLowerM4Tool02Screw.stl" />
+    <mesh name="FomexLeftLowerM4Tool02Washer" file="FomexLeftLowerM4Tool02Washer.stl" />
+    <mesh name="FomexLeftLowerM4Tool03Screw" file="FomexLeftLowerM4Tool03Screw.stl" />
+    <mesh name="FomexLeftLowerM4Tool03Washer" file="FomexLeftLowerM4Tool03Washer.stl" />
+    <mesh name="FomexLeftLowerM4Tool04Screw" file="FomexLeftLowerM4Tool04Screw.stl" />
+    <mesh name="FomexLeftLowerM4Tool04Washer" file="FomexLeftLowerM4Tool04Washer.stl" />
+    <mesh name="FomexLeftUpperM4Tool01Screw" file="FomexLeftUpperM4Tool01Screw.stl" />
+    <mesh name="FomexLeftUpperM4Tool01Washer" file="FomexLeftUpperM4Tool01Washer.stl" />
+    <mesh name="FomexLeftUpperM4Tool02Screw" file="FomexLeftUpperM4Tool02Screw.stl" />
+    <mesh name="FomexLeftUpperM4Tool02Washer" file="FomexLeftUpperM4Tool02Washer.stl" />
+    <mesh name="FomexLeftUpperM4Tool03Screw" file="FomexLeftUpperM4Tool03Screw.stl" />
+    <mesh name="FomexLeftUpperM4Tool03Washer" file="FomexLeftUpperM4Tool03Washer.stl" />
+    <mesh name="FomexLeftUpperM4Tool04Screw" file="FomexLeftUpperM4Tool04Screw.stl" />
+    <mesh name="FomexLeftUpperM4Tool04Washer" file="FomexLeftUpperM4Tool04Washer.stl" />
+    <mesh name="FomexBackLowerM4Tool01Screw" file="FomexBackLowerM4Tool01Screw.stl" />
+    <mesh name="FomexBackLowerM4Tool01Washer" file="FomexBackLowerM4Tool01Washer.stl" />
+    <mesh name="FomexBackLowerM4Tool02Screw" file="FomexBackLowerM4Tool02Screw.stl" />
+    <mesh name="FomexBackLowerM4Tool02Washer" file="FomexBackLowerM4Tool02Washer.stl" />
+    <mesh name="FomexBackLowerM4Tool03Screw" file="FomexBackLowerM4Tool03Screw.stl" />
+    <mesh name="FomexBackLowerM4Tool03Washer" file="FomexBackLowerM4Tool03Washer.stl" />
+    <mesh name="FomexBackLowerM4Tool04Screw" file="FomexBackLowerM4Tool04Screw.stl" />
+    <mesh name="FomexBackLowerM4Tool04Washer" file="FomexBackLowerM4Tool04Washer.stl" />
+    <mesh name="FomexBackUpperM4Tool01Screw" file="FomexBackUpperM4Tool01Screw.stl" />
+    <mesh name="FomexBackUpperM4Tool01Washer" file="FomexBackUpperM4Tool01Washer.stl" />
+    <mesh name="FomexBackUpperM4Tool02Screw" file="FomexBackUpperM4Tool02Screw.stl" />
+    <mesh name="FomexBackUpperM4Tool02Washer" file="FomexBackUpperM4Tool02Washer.stl" />
+    <mesh name="FomexBackUpperM4Tool03Screw" file="FomexBackUpperM4Tool03Screw.stl" />
+    <mesh name="FomexBackUpperM4Tool03Washer" file="FomexBackUpperM4Tool03Washer.stl" />
+    <mesh name="FomexBackUpperM4Tool04Screw" file="FomexBackUpperM4Tool04Screw.stl" />
+    <mesh name="FomexBackUpperM4Tool04Washer" file="FomexBackUpperM4Tool04Washer.stl" />
+    <mesh name="FomexRightLowerM4Tool01Screw" file="FomexRightLowerM4Tool01Screw.stl" />
+    <mesh name="FomexRightLowerM4Tool01Washer" file="FomexRightLowerM4Tool01Washer.stl" />
+    <mesh name="FomexRightLowerM4Tool02Screw" file="FomexRightLowerM4Tool02Screw.stl" />
+    <mesh name="FomexRightLowerM4Tool02Washer" file="FomexRightLowerM4Tool02Washer.stl" />
+    <mesh name="FomexRightLowerM4Tool03Screw" file="FomexRightLowerM4Tool03Screw.stl" />
+    <mesh name="FomexRightLowerM4Tool03Washer" file="FomexRightLowerM4Tool03Washer.stl" />
+    <mesh name="FomexRightLowerM4Tool04Screw" file="FomexRightLowerM4Tool04Screw.stl" />
+    <mesh name="FomexRightLowerM4Tool04Washer" file="FomexRightLowerM4Tool04Washer.stl" />
+    <mesh name="FomexRightUpperM4Tool01Screw" file="FomexRightUpperM4Tool01Screw.stl" />
+    <mesh name="FomexRightUpperM4Tool01Washer" file="FomexRightUpperM4Tool01Washer.stl" />
+    <mesh name="FomexRightUpperM4Tool02Screw" file="FomexRightUpperM4Tool02Screw.stl" />
+    <mesh name="FomexRightUpperM4Tool02Washer" file="FomexRightUpperM4Tool02Washer.stl" />
+    <mesh name="FomexRightUpperM4Tool03Screw" file="FomexRightUpperM4Tool03Screw.stl" />
+    <mesh name="FomexRightUpperM4Tool03Washer" file="FomexRightUpperM4Tool03Washer.stl" />
+    <mesh name="FomexRightUpperM4Tool04Screw" file="FomexRightUpperM4Tool04Screw.stl" />
+    <mesh name="FomexRightUpperM4Tool04Washer" file="FomexRightUpperM4Tool04Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool01Screw" file="FomexTopFrontM4Tool01Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool01Washer" file="FomexTopFrontM4Tool01Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool02Screw" file="FomexTopFrontM4Tool02Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool02Washer" file="FomexTopFrontM4Tool02Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool03Screw" file="FomexTopFrontM4Tool03Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool03Washer" file="FomexTopFrontM4Tool03Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool04Screw" file="FomexTopFrontM4Tool04Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool04Washer" file="FomexTopFrontM4Tool04Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool05Screw" file="FomexTopFrontM4Tool05Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool05Washer" file="FomexTopFrontM4Tool05Washer.stl" />
+    <mesh name="FomexTopFrontM4Tool06Screw" file="FomexTopFrontM4Tool06Screw.stl" />
+    <mesh name="FomexTopFrontM4Tool06Washer" file="FomexTopFrontM4Tool06Washer.stl" />
+    <texture name="DefaultExpressionScreen_texture" type="2d" file="idle.png" />
+    <material name="DefaultExpressionScreen_material" texture="DefaultExpressionScreen_texture" />
+  </asset>
+  <worldbody>
+    <body name="freecad_final_static" pos="0 0 0.38">
+      <geom name="InstalledProfile00" type="mesh" mesh="InstalledProfile00" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile01" type="mesh" mesh="InstalledProfile01" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile02" type="mesh" mesh="InstalledProfile02" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile03" type="mesh" mesh="InstalledProfile03" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile04" type="mesh" mesh="InstalledProfile04" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile05" type="mesh" mesh="InstalledProfile05" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile06" type="mesh" mesh="InstalledProfile06" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile07" type="mesh" mesh="InstalledProfile07" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile08" type="mesh" mesh="InstalledProfile08" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile09" type="mesh" mesh="InstalledProfile09" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile10" type="mesh" mesh="InstalledProfile10" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile11" type="mesh" mesh="InstalledProfile11" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile12" type="mesh" mesh="InstalledProfile12" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile13" type="mesh" mesh="InstalledProfile13" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile14" type="mesh" mesh="InstalledProfile14" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile15" type="mesh" mesh="InstalledProfile15" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile16" type="mesh" mesh="InstalledProfile16" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile17" type="mesh" mesh="InstalledProfile17" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile18" type="mesh" mesh="InstalledProfile18" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile19" type="mesh" mesh="InstalledProfile19" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile20" type="mesh" mesh="InstalledProfile20" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile21" type="mesh" mesh="InstalledProfile21" rgba="0.870588235294 0.549019607843 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledProfile22" type="mesh" mesh="InstalledProfile22" rgba="0.870588235294 0.549019607843 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledPanelRearSupport" type="mesh" mesh="InstalledPanelRearSupport" rgba="0.729411764706 0.760784313725 0.788235294118 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledMountBracket" type="mesh" mesh="InstalledMountBracket" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledMast" type="mesh" mesh="InstalledMast" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="InstalledArmMountPanel" type="mesh" mesh="InstalledArmMountPanel" rgba="0.901960784314 0.639215686275 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftMountPlate" type="mesh" mesh="LeftMountPlate" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightMountPlate" type="mesh" mesh="RightMountPlate" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="BasePrint" type="mesh" mesh="BasePrint" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="BaseCover" type="mesh" mesh="BaseCover" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo" type="mesh" mesh="Base_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo_middle" type="mesh" mesh="Base_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo_other" type="mesh" mesh="Base_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawPrint" type="mesh" mesh="YawPrint" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="ShoulderMotorHolder" type="mesh" mesh="ShoulderMotorHolder" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo" type="mesh" mesh="Yaw_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo_middle" type="mesh" mesh="Yaw_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo_other" type="mesh" mesh="Yaw_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawDriveHorn" type="mesh" mesh="YawDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawIdlerHorn" type="mesh" mesh="YawIdlerHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledShoulderSocket" type="mesh" mesh="AssembledShoulderSocket" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledUpperTube" type="mesh" mesh="AssembledUpperTube" rgba="0.219607843137 0.321568627451 0.4 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledElbowASocket" type="mesh" mesh="AssembledElbowASocket" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo" type="mesh" mesh="Upper_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo_middle" type="mesh" mesh="Upper_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo_other" type="mesh" mesh="Upper_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="UpperDriveHorn" type="mesh" mesh="UpperDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="UpperIdlerHorn" type="mesh" mesh="UpperIdlerHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_WristMotorHolder" type="mesh" mesh="Aligned_WristMotorHolder" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledElbowBSocket" type="mesh" mesh="Aligned_AssembledElbowBSocket" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledLowerTube" type="mesh" mesh="Aligned_AssembledLowerTube" rgba="0.219607843137 0.321568627451 0.4 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledWristSocket" type="mesh" mesh="Aligned_AssembledWristSocket" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo" type="mesh" mesh="Aligned_Lower_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo_middle" type="mesh" mesh="Aligned_Lower_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo_other" type="mesh" mesh="Aligned_Lower_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_LowerDriveHorn" type="mesh" mesh="Aligned_LowerDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_LowerIdlerHorn" type="mesh" mesh="Aligned_LowerIdlerHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristPrint" type="mesh" mesh="WristPrint" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo" type="mesh" mesh="Wrist_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo_middle" type="mesh" mesh="Wrist_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo_other" type="mesh" mesh="Wrist_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristDriveHorn" type="mesh" mesh="WristDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristIdlerHorn" type="mesh" mesh="WristIdlerHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_ToolDriveHorn" type="mesh" mesh="RightKinematic_CameraTool180_ToolDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Bottom_Plate" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Bottom_Plate" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Top_Plate" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Top_Plate" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Cam" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Cam" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Interface_ARM100" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Interface_ARM100" rgba="0.921568627451 0.450980392157 0.160784313725 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Distal_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Distal_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Distal_Shell_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Distal_Shell_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Distal_Shell_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Distal_Shell_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Driving_Rod_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Driving_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Driving_Rod_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Driving_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_External_Rod_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_External_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_External_Rod_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_External_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Internal_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Internal_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Removable_Tip_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Removable_Tip_L" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Removable_Tip_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Removable_Tip_R" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Tip_Support_L" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Tip_Support_L" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_Tip_Support_R" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_Tip_Support_R" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_servo" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_servo_middle" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_servo_other" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightKinematic_CameraTool180_Pinc_CamHorn" type="mesh" mesh="RightKinematic_CameraTool180_Pinc_CamHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_FixedMount" type="mesh" mesh="RightCamera_FixedMount" rgba="0.180392156863 0.521568627451 0.650980392157 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCB" type="mesh" mesh="RightCamera_PCB" rgba="0.121568627451 0.419607843137 0.23137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_Lens" type="mesh" mesh="RightCamera_Lens" rgba="0.121568627451 0.141176470588 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_Glass" type="mesh" mesh="RightCamera_Glass" rgba="0.121568627451 0.321568627451 0.541176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_Connector" type="mesh" mesh="RightCamera_Connector" rgba="0.121568627451 0.141176470588 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBScrew0" type="mesh" mesh="RightCamera_PCBScrew0" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBNut0" type="mesh" mesh="RightCamera_PCBNut0" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBScrew1" type="mesh" mesh="RightCamera_PCBScrew1" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBNut1" type="mesh" mesh="RightCamera_PCBNut1" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBScrew2" type="mesh" mesh="RightCamera_PCBScrew2" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBNut2" type="mesh" mesh="RightCamera_PCBNut2" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBScrew3" type="mesh" mesh="RightCamera_PCBScrew3" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_PCBNut3" type="mesh" mesh="RightCamera_PCBNut3" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_BaseScrew0" type="mesh" mesh="RightCamera_BaseScrew0" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_BaseScrew1" type="mesh" mesh="RightCamera_BaseScrew1" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_BaseScrew2" type="mesh" mesh="RightCamera_BaseScrew2" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RightCamera_BaseScrew3" type="mesh" mesh="RightCamera_BaseScrew3" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="BasePrint001" type="mesh" mesh="BasePrint001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="BaseCover001" type="mesh" mesh="BaseCover001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo001" type="mesh" mesh="Base_servo001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo_middle001" type="mesh" mesh="Base_servo_middle001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Base_servo_other001" type="mesh" mesh="Base_servo_other001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawPrint001" type="mesh" mesh="YawPrint001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="ShoulderMotorHolder001" type="mesh" mesh="ShoulderMotorHolder001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo001" type="mesh" mesh="Yaw_servo001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo_middle001" type="mesh" mesh="Yaw_servo_middle001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Yaw_servo_other001" type="mesh" mesh="Yaw_servo_other001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawDriveHorn001" type="mesh" mesh="YawDriveHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="YawIdlerHorn001" type="mesh" mesh="YawIdlerHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledShoulderSocket001" type="mesh" mesh="AssembledShoulderSocket001" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledUpperTube001" type="mesh" mesh="AssembledUpperTube001" rgba="0.219607843137 0.321568627451 0.4 1" contype="0" conaffinity="0" group="2" />
+      <geom name="AssembledElbowASocket001" type="mesh" mesh="AssembledElbowASocket001" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo001" type="mesh" mesh="Upper_servo001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo_middle001" type="mesh" mesh="Upper_servo_middle001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Upper_servo_other001" type="mesh" mesh="Upper_servo_other001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="UpperDriveHorn001" type="mesh" mesh="UpperDriveHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="UpperIdlerHorn001" type="mesh" mesh="UpperIdlerHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_WristMotorHolder001" type="mesh" mesh="Aligned_WristMotorHolder001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledElbowBSocket001" type="mesh" mesh="Aligned_AssembledElbowBSocket001" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledLowerTube001" type="mesh" mesh="Aligned_AssembledLowerTube001" rgba="0.219607843137 0.321568627451 0.4 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_AssembledWristSocket001" type="mesh" mesh="Aligned_AssembledWristSocket001" rgba="0.219607843137 0.670588235294 0.490196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo001" type="mesh" mesh="Aligned_Lower_servo001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo_middle001" type="mesh" mesh="Aligned_Lower_servo_middle001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_Lower_servo_other001" type="mesh" mesh="Aligned_Lower_servo_other001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_LowerDriveHorn001" type="mesh" mesh="Aligned_LowerDriveHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Aligned_LowerIdlerHorn001" type="mesh" mesh="Aligned_LowerIdlerHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristPrint001" type="mesh" mesh="WristPrint001" rgba="0.650980392157 0.690196078431 0.729411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo001" type="mesh" mesh="Wrist_servo001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo_middle001" type="mesh" mesh="Wrist_servo_middle001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Wrist_servo_other001" type="mesh" mesh="Wrist_servo_other001" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristDriveHorn001" type="mesh" mesh="WristDriveHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="WristIdlerHorn001" type="mesh" mesh="WristIdlerHorn001" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_ToolDriveHorn" type="mesh" mesh="LeftKinematic_CameraTool180_ToolDriveHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Bottom_Plate" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Top_Plate" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Top_Plate" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Cam" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Cam" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Interface_ARM100" rgba="0.921568627451 0.450980392157 0.160784313725 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Distal_Shell_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Distal_Shell_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Driving_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Driving_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_External_Rod_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_External_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_External_Rod_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_External_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R" rgba="0.870588235294 0.619607843137 0.301960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Removable_Tip_L" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Removable_Tip_R" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Tip_Support_L" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_Tip_Support_R" rgba="0.180392156863 0.2 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_servo" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_servo" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_servo_middle" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_servo_middle" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_servo_other" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_servo_other" rgba="0.141176470588 0.16862745098 0.2 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftKinematic_CameraTool180_Pinc_CamHorn" type="mesh" mesh="LeftKinematic_CameraTool180_Pinc_CamHorn" rgba="0.780392156863 0.8 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_FixedMount" type="mesh" mesh="LeftCamera_FixedMount" rgba="0.180392156863 0.521568627451 0.650980392157 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCB" type="mesh" mesh="LeftCamera_PCB" rgba="0.121568627451 0.419607843137 0.23137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_Lens" type="mesh" mesh="LeftCamera_Lens" rgba="0.121568627451 0.141176470588 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_Glass" type="mesh" mesh="LeftCamera_Glass" rgba="0.121568627451 0.321568627451 0.541176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_Connector" type="mesh" mesh="LeftCamera_Connector" rgba="0.121568627451 0.141176470588 0.16862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBScrew0" type="mesh" mesh="LeftCamera_PCBScrew0" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBNut0" type="mesh" mesh="LeftCamera_PCBNut0" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBScrew1" type="mesh" mesh="LeftCamera_PCBScrew1" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBNut1" type="mesh" mesh="LeftCamera_PCBNut1" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBScrew2" type="mesh" mesh="LeftCamera_PCBScrew2" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBNut2" type="mesh" mesh="LeftCamera_PCBNut2" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBScrew3" type="mesh" mesh="LeftCamera_PCBScrew3" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_PCBNut3" type="mesh" mesh="LeftCamera_PCBNut3" rgba="0.721568627451 0.549019607843 0.219607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_BaseScrew0" type="mesh" mesh="LeftCamera_BaseScrew0" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_BaseScrew1" type="mesh" mesh="LeftCamera_BaseScrew1" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_BaseScrew2" type="mesh" mesh="LeftCamera_BaseScrew2" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LeftCamera_BaseScrew3" type="mesh" mesh="LeftCamera_BaseScrew3" rgba="0.701960784314 0.729411764706 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadFixedBracket" type="mesh" mesh="HeadFixedBracket" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanBracket" type="mesh" mesh="HeadPanBracket" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltBracket" type="mesh" mesh="HeadTiltBracket" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadCamera" type="mesh" mesh="HeadCamera" rgba="0.658823529412 0.690196078431 0.721568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadCameraWindow" type="mesh" mesh="HeadCameraWindow" rgba="0.0705882352941 0.0862745098039 0.101960784314 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanServoCase" type="mesh" mesh="HeadPanServoCase" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanServoFront" type="mesh" mesh="HeadPanServoFront" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanServoMiddle" type="mesh" mesh="HeadPanServoMiddle" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanDriveHorn" type="mesh" mesh="HeadPanDriveHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanIdlerHorn" type="mesh" mesh="HeadPanIdlerHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltServoCase" type="mesh" mesh="HeadTiltServoCase" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltServoFront" type="mesh" mesh="HeadTiltServoFront" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltServoMiddle" type="mesh" mesh="HeadTiltServoMiddle" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltDriveHorn" type="mesh" mesh="HeadTiltDriveHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadTiltIdlerHorn" type="mesh" mesh="HeadTiltIdlerHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadCameraScrewRight" type="mesh" mesh="HeadCameraScrewRight" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadCameraScrewLeft" type="mesh" mesh="HeadCameraScrewLeft" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LidarPlate" type="mesh" mesh="LidarPlate" rgba="0.239215686275 0.6 0.819607843137 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RPLidarA1M8__chunk_00" type="mesh" mesh="RPLidarA1M8__chunk_00" rgba="0.188235294118 0.211764705882 0.239215686275 1" contype="0" conaffinity="0" group="2" />
+      <geom name="RPLidarA1M8__chunk_01" type="mesh" mesh="RPLidarA1M8__chunk_01" rgba="0.188235294118 0.211764705882 0.239215686275 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LidarStandoffs" type="mesh" mesh="LidarStandoffs" rgba="0.819607843137 0.678431372549 0.321568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LidarProfileBolts" type="mesh" mesh="LidarProfileBolts" rgba="0.701960784314 0.721568627451 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="LidarLowerBolts" type="mesh" mesh="LidarLowerBolts" rgba="0.701960784314 0.721568627451 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUMount" type="mesh" mesh="IMUMount" rgba="0.8 0.878431372549 0.941176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUPCB" type="mesh" mesh="IMUPCB" rgba="0.0705882352941 0.349019607843 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUHeader" type="mesh" mesh="IMUHeader" rgba="0.219607843137 0.219607843137 0.239215686275 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUChip" type="mesh" mesh="IMUChip" rgba="0.121568627451 0.121568627451 0.129411764706 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUProfileBolts" type="mesh" mesh="IMUProfileBolts" rgba="0.701960784314 0.721568627451 0.741176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUBoardBolts" type="mesh" mesh="IMUBoardBolts" rgba="0.701960784314 0.721568627451 0.741176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="IMUBoardNuts" type="mesh" mesh="IMUBoardNuts" rgba="0.701960784314 0.721568627451 0.741176470588 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_left_wheel" type="mesh" mesh="Drive_rear_left_wheel" rgba="0.129411764706 0.129411764706 0.149019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_left_motor" type="mesh" mesh="Drive_rear_left_motor" rgba="0.619607843137 0.690196078431 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_left_bracket" type="mesh" mesh="Drive_rear_left_bracket" rgba="0.301960784314 0.478431372549 0.721568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_right_wheel" type="mesh" mesh="Drive_rear_right_wheel" rgba="0.129411764706 0.129411764706 0.149019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_right_motor" type="mesh" mesh="Drive_rear_right_motor" rgba="0.619607843137 0.690196078431 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_rear_right_bracket" type="mesh" mesh="Drive_rear_right_bracket" rgba="0.301960784314 0.478431372549 0.721568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_left_wheel" type="mesh" mesh="Drive_front_left_wheel" rgba="0.129411764706 0.129411764706 0.149019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_left_motor" type="mesh" mesh="Drive_front_left_motor" rgba="0.619607843137 0.690196078431 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_left_bracket" type="mesh" mesh="Drive_front_left_bracket" rgba="0.301960784314 0.478431372549 0.721568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_right_wheel" type="mesh" mesh="Drive_front_right_wheel" rgba="0.129411764706 0.129411764706 0.149019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_right_motor" type="mesh" mesh="Drive_front_right_motor" rgba="0.619607843137 0.690196078431 0.749019607843 1" contype="0" conaffinity="0" group="2" />
+      <geom name="Drive_front_right_bracket" type="mesh" mesh="Drive_front_right_bracket" rgba="0.301960784314 0.478431372549 0.721568627451 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerMountCut" type="mesh" mesh="FomexFrontLowerMountCut" rgba="0.160784313725 0.16862745098 0.180392156863 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperMountCut" type="mesh" mesh="FomexFrontUpperMountCut" rgba="0.921568627451 0.921568627451 0.890196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerMountCut" type="mesh" mesh="FomexLeftLowerMountCut" rgba="0.160784313725 0.16862745098 0.180392156863 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperMountCut" type="mesh" mesh="FomexLeftUpperMountCut" rgba="0.921568627451 0.921568627451 0.890196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerMountCut" type="mesh" mesh="FomexBackLowerMountCut" rgba="0.160784313725 0.16862745098 0.180392156863 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperMountCut" type="mesh" mesh="FomexBackUpperMountCut" rgba="0.921568627451 0.921568627451 0.890196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerMountCut" type="mesh" mesh="FomexRightLowerMountCut" rgba="0.160784313725 0.16862745098 0.180392156863 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperMountCut" type="mesh" mesh="FomexRightUpperMountCut" rgba="0.921568627451 0.921568627451 0.890196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontMountCut" type="mesh" mesh="FomexTopFrontMountCut" rgba="0.921568627451 0.921568627451 0.890196078431 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopRearBacking" type="mesh" mesh="FomexTopRearBacking" rgba="0.83137254902 0.850980392157 0.83137254902 1" contype="0" conaffinity="0" group="2" />
+      <geom name="VirtualDisplayBody" type="mesh" mesh="VirtualDisplayBody" rgba="0.0235294117647 0.0313725490196 0.0352941176471 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FrontCleanyLogo" type="mesh" mesh="FrontCleanyLogo" rgba="1 1 1 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool01Screw" type="mesh" mesh="FomexFrontLowerM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool01Washer" type="mesh" mesh="FomexFrontLowerM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool02Screw" type="mesh" mesh="FomexFrontLowerM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool02Washer" type="mesh" mesh="FomexFrontLowerM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool03Screw" type="mesh" mesh="FomexFrontLowerM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool03Washer" type="mesh" mesh="FomexFrontLowerM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool04Screw" type="mesh" mesh="FomexFrontLowerM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontLowerM4Tool04Washer" type="mesh" mesh="FomexFrontLowerM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool01Screw" type="mesh" mesh="FomexFrontUpperM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool01Washer" type="mesh" mesh="FomexFrontUpperM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool02Screw" type="mesh" mesh="FomexFrontUpperM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool02Washer" type="mesh" mesh="FomexFrontUpperM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool03Screw" type="mesh" mesh="FomexFrontUpperM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool03Washer" type="mesh" mesh="FomexFrontUpperM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool04Screw" type="mesh" mesh="FomexFrontUpperM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexFrontUpperM4Tool04Washer" type="mesh" mesh="FomexFrontUpperM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool01Screw" type="mesh" mesh="FomexLeftLowerM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool01Washer" type="mesh" mesh="FomexLeftLowerM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool02Screw" type="mesh" mesh="FomexLeftLowerM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool02Washer" type="mesh" mesh="FomexLeftLowerM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool03Screw" type="mesh" mesh="FomexLeftLowerM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool03Washer" type="mesh" mesh="FomexLeftLowerM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool04Screw" type="mesh" mesh="FomexLeftLowerM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftLowerM4Tool04Washer" type="mesh" mesh="FomexLeftLowerM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool01Screw" type="mesh" mesh="FomexLeftUpperM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool01Washer" type="mesh" mesh="FomexLeftUpperM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool02Screw" type="mesh" mesh="FomexLeftUpperM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool02Washer" type="mesh" mesh="FomexLeftUpperM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool03Screw" type="mesh" mesh="FomexLeftUpperM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool03Washer" type="mesh" mesh="FomexLeftUpperM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool04Screw" type="mesh" mesh="FomexLeftUpperM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexLeftUpperM4Tool04Washer" type="mesh" mesh="FomexLeftUpperM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool01Screw" type="mesh" mesh="FomexBackLowerM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool01Washer" type="mesh" mesh="FomexBackLowerM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool02Screw" type="mesh" mesh="FomexBackLowerM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool02Washer" type="mesh" mesh="FomexBackLowerM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool03Screw" type="mesh" mesh="FomexBackLowerM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool03Washer" type="mesh" mesh="FomexBackLowerM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool04Screw" type="mesh" mesh="FomexBackLowerM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackLowerM4Tool04Washer" type="mesh" mesh="FomexBackLowerM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool01Screw" type="mesh" mesh="FomexBackUpperM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool01Washer" type="mesh" mesh="FomexBackUpperM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool02Screw" type="mesh" mesh="FomexBackUpperM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool02Washer" type="mesh" mesh="FomexBackUpperM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool03Screw" type="mesh" mesh="FomexBackUpperM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool03Washer" type="mesh" mesh="FomexBackUpperM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool04Screw" type="mesh" mesh="FomexBackUpperM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexBackUpperM4Tool04Washer" type="mesh" mesh="FomexBackUpperM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool01Screw" type="mesh" mesh="FomexRightLowerM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool01Washer" type="mesh" mesh="FomexRightLowerM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool02Screw" type="mesh" mesh="FomexRightLowerM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool02Washer" type="mesh" mesh="FomexRightLowerM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool03Screw" type="mesh" mesh="FomexRightLowerM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool03Washer" type="mesh" mesh="FomexRightLowerM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool04Screw" type="mesh" mesh="FomexRightLowerM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightLowerM4Tool04Washer" type="mesh" mesh="FomexRightLowerM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool01Screw" type="mesh" mesh="FomexRightUpperM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool01Washer" type="mesh" mesh="FomexRightUpperM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool02Screw" type="mesh" mesh="FomexRightUpperM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool02Washer" type="mesh" mesh="FomexRightUpperM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool03Screw" type="mesh" mesh="FomexRightUpperM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool03Washer" type="mesh" mesh="FomexRightUpperM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool04Screw" type="mesh" mesh="FomexRightUpperM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexRightUpperM4Tool04Washer" type="mesh" mesh="FomexRightUpperM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool01Screw" type="mesh" mesh="FomexTopFrontM4Tool01Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool01Washer" type="mesh" mesh="FomexTopFrontM4Tool01Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool02Screw" type="mesh" mesh="FomexTopFrontM4Tool02Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool02Washer" type="mesh" mesh="FomexTopFrontM4Tool02Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool03Screw" type="mesh" mesh="FomexTopFrontM4Tool03Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool03Washer" type="mesh" mesh="FomexTopFrontM4Tool03Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool04Screw" type="mesh" mesh="FomexTopFrontM4Tool04Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool04Washer" type="mesh" mesh="FomexTopFrontM4Tool04Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool05Screw" type="mesh" mesh="FomexTopFrontM4Tool05Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool05Washer" type="mesh" mesh="FomexTopFrontM4Tool05Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool06Screw" type="mesh" mesh="FomexTopFrontM4Tool06Screw" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="FomexTopFrontM4Tool06Washer" type="mesh" mesh="FomexTopFrontM4Tool06Washer" rgba="0.721568627451 0.741176470588 0.76862745098 1" contype="0" conaffinity="0" group="2" />
+      <geom name="DefaultExpressionScreen" type="plane" pos="0.1996 0 0.1555" xyaxes="0 1 0 -2.86698573671e-16 0 1" size="0.172109 0.096811 0.01" material="DefaultExpressionScreen_material" contype="0" conaffinity="0" group="2" />
+    </body>
+  </worldbody>
+</mujoco>

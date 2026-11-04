@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "basis": "Coaxial bores/pins and rigid CAD part geometry; nominal planar pin-joint closure only. No calibration, stiffness or operating limits.",
+  "plane_parallel_tolerance_rad": 0.0001,
+  "geometry_tolerance_m": 2e-05,
+  "numerical_tolerance_m": 1e-09,
+  "hands": [
+    {
+      "hand": "right",
+      "prefix": "RightKinematic_CameraTool180_Pinc_",
+      "parent": "cad_right_wrist_roll",
+      "cam_parts": [
+        "Cam",
+        "CamHorn"
+      ],
+      "fixed_parts": [
+        "Bottom_Plate",
+        "Top_Plate",
+        "Interface_ARM100",
+        "servo",
+        "servo_middle",
+        "servo_other"
+      ],
+      "fingers": {
+        "L": {
+          "driving": [
+            "Driving_Rod_L"
+          ],
+          "internal": [
+            "Internal_Rod_L"
+          ],
+          "external": [
+            "External_Rod_L"
+          ],
+          "distal": [
+            "Distal_Rod_L",
+            "Distal_Shell_L",
+            "Removable_Tip_L",
+            "Tip_Support_L"
+          ]
+        },
+        "R": {
+          "driving": [
+            "Driving_Rod_R"
+          ],
+          "internal": [
+            "Internal_Rod_R"
+          ],
+          "external": [
+            "External_Rod_R"
+          ],
+          "distal": [
+            "Distal_Rod_R",
+            "Distal_Shell_R",
+            "Removable_Tip_R",
+            "Tip_Support_R"
+          ]
+        }
+      }
+    },
+    {
+      "hand": "left",
+      "prefix": "LeftKinematic_CameraTool180_Pinc_",
+      "parent": "cad_left_wrist_roll",
+      "cam_parts": [
+        "Cam",
+        "CamHorn"
+      ],
+      "fixed_parts": [
+        "Bottom_Plate",
+        "Top_Plate",
+        "Interface_ARM100",
+        "servo",
+        "servo_middle",
+        "servo_other"
+      ],
+      "fingers": {
+        "L": {
+          "driving": [
+            "Driving_Rod_L"
+          ],
+          "internal": [
+            "Internal_Rod_L"
+          ],
+          "external": [
+            "External_Rod_L"
+          ],
+          "distal": [
+            "Distal_Rod_L",
+            "Distal_Shell_L",
+            "Removable_Tip_L",
+            "Tip_Support_L"
+          ]
+        },
+        "R": {
+          "driving": [
+            "Driving_Rod_R"
+          ],
+          "internal": [
+            "Internal_Rod_R"
+          ],
+          "external": [
+            "External_Rod_R"
+          ],
+          "distal": [
+            "Distal_Rod_R",
+            "Distal_Shell_R",
+            "Removable_Tip_R",
+            "Tip_Support_R"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "basis": "Source component groups plus coaxial servo, drive-horn and idler surfaces. No encoder mapping or physical zero.",
+  "axis_match_distance_mm": 0.02,
+  "axis_match_angle_rad": 0.0001,
+  "links": [
+    {
+      "link": "cad_right_shoulder_yaw",
+      "parent": "base_link",
+      "joint": "cad_delta_right_shoulder_yaw",
+      "groups": [
+        "RightYaw"
+      ],
+      "parts": [],
+      "servo": "Base_servo",
+      "drive_horn": "YawDriveHorn",
+      "supports": [
+        "YawIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "parent": "cad_right_shoulder_yaw",
+      "joint": "cad_delta_right_shoulder_pitch",
+      "groups": [
+        "RightUpper"
+      ],
+      "parts": [],
+      "servo": "Yaw_servo",
+      "drive_horn": "UpperDriveHorn",
+      "supports": [
+        "UpperIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "parent": "cad_right_shoulder_pitch",
+      "joint": "cad_delta_right_elbow_pitch",
+      "groups": [
+        "RightLower"
+      ],
+      "parts": [],
+      "servo": "Upper_servo",
+      "drive_horn": "Aligned_LowerDriveHorn",
+      "supports": [
+        "Aligned_LowerIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_right_wrist_pitch",
+      "parent": "cad_right_elbow_pitch",
+      "joint": "cad_delta_right_wrist_pitch",
+      "groups": [
+        "RightWrist"
+      ],
+      "parts": [],
+      "servo": "Aligned_Lower_servo",
+      "drive_horn": "WristDriveHorn",
+      "supports": [
+        "WristIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "parent": "cad_right_wrist_pitch",
+      "joint": "cad_delta_right_wrist_roll",
+      "groups": [
+        "RightTool",
+        "RightCameraComponents"
+      ],
+      "parts": [],
+      "servo": "Wrist_servo",
+      "drive_horn": "RightKinematic_CameraTool180_ToolDriveHorn",
+      "supports": []
+    },
+    {
+      "link": "cad_left_shoulder_yaw",
+      "parent": "base_link",
+      "joint": "cad_delta_left_shoulder_yaw",
+      "groups": [
+        "LeftYaw"
+      ],
+      "parts": [],
+      "servo": "Base_servo001",
+      "drive_horn": "YawDriveHorn001",
+      "supports": [
+        "YawIdlerHorn001"
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "parent": "cad_left_shoulder_yaw",
+      "joint": "cad_delta_left_shoulder_pitch",
+      "groups": [
+        "LeftUpper"
+      ],
+      "parts": [],
+      "servo": "Yaw_servo001",
+      "drive_horn": "UpperDriveHorn001",
+      "supports": [
+        "UpperIdlerHorn001"
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "parent": "cad_left_shoulder_pitch",
+      "joint": "cad_delta_left_elbow_pitch",
+      "groups": [
+        "LeftLower"
+      ],
+      "parts": [],
+      "servo": "Upper_servo001",
+      "drive_horn": "Aligned_LowerDriveHorn001",
+      "supports": [
+        "Aligned_LowerIdlerHorn001"
+      ]
+    },
+    {
+      "link": "cad_left_wrist_pitch",
+      "parent": "cad_left_elbow_pitch",
+      "joint": "cad_delta_left_wrist_pitch",
+      "groups": [
+        "LeftWrist"
+      ],
+      "parts": [],
+      "servo": "Aligned_Lower_servo001",
+      "drive_horn": "WristDriveHorn001",
+      "supports": [
+        "WristIdlerHorn001"
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "parent": "cad_left_wrist_pitch",
+      "joint": "cad_delta_left_wrist_roll",
+      "groups": [
+        "LeftTool",
+        "LeftCameraComponents"
+      ],
+      "parts": [],
+      "servo": "Wrist_servo001",
+      "drive_horn": "LeftKinematic_CameraTool180_ToolDriveHorn",
+      "supports": []
+    },
+    {
+      "link": "cad_head_pan",
+      "parent": "base_link",
+      "joint": "cad_delta_head_pan",
+      "groups": [],
+      "parts": [
+        "HeadPanBracket",
+        "HeadPanDriveHorn",
+        "HeadPanIdlerHorn",
+        "HeadTiltServoCase",
+        "HeadTiltServoFront",
+        "HeadTiltServoMiddle"
+      ],
+      "servo": "HeadPanServoCase",
+      "drive_horn": "HeadPanDriveHorn",
+      "supports": [
+        "HeadPanIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_head_tilt",
+      "parent": "cad_head_pan",
+      "joint": "cad_delta_head_tilt",
+      "groups": [],
+      "parts": [
+        "HeadTiltBracket",
+        "HeadCamera",
+        "HeadCameraWindow",
+        "HeadTiltDriveHorn",
+        "HeadTiltIdlerHorn",
+        "HeadCameraScrewRight",
+        "HeadCameraScrewLeft"
+      ],
+      "servo": "HeadTiltServoCase",
+      "drive_horn": "HeadTiltDriveHorn",
+      "supports": [
+        "HeadTiltIdlerHorn"
+      ]
+    },
+    {
+      "link": "cad_front_right_wheel",
+      "parent": "base_link",
+      "joint": "cad_delta_front_right_wheel",
+      "groups": [],
+      "parts": [
+        "Drive_rear_left_wheel"
+      ],
+      "servo": "Drive_rear_left_motor",
+      "drive_horn": "Drive_rear_left_wheel",
+      "supports": []
+    },
+    {
+      "link": "cad_front_left_wheel",
+      "parent": "base_link",
+      "joint": "cad_delta_front_left_wheel",
+      "groups": [],
+      "parts": [
+        "Drive_rear_right_wheel"
+      ],
+      "servo": "Drive_rear_right_motor",
+      "drive_horn": "Drive_rear_right_wheel",
+      "supports": []
+    },
+    {
+      "link": "cad_rear_right_wheel",
+      "parent": "base_link",
+      "joint": "cad_delta_rear_right_wheel",
+      "groups": [],
+      "parts": [
+        "Drive_front_left_wheel"
+      ],
+      "servo": "Drive_front_left_motor",
+      "drive_horn": "Drive_front_left_wheel",
+      "supports": []
+    },
+    {
+      "link": "cad_rear_left_wheel",
+      "parent": "base_link",
+      "joint": "cad_delta_rear_left_wheel",
+      "groups": [],
+      "parts": [
+        "Drive_front_right_wheel"
+      ],
+      "servo": "Drive_front_right_motor",
+      "drive_horn": "Drive_front_right_wheel",
+      "supports": []
+    }
+  ],
+  "unarticulated_drives": [
+    {
+      "name": "right_gripper_drive",
+      "servo": "RightKinematic_CameraTool180_Pinc_servo",
+      "drive_horn": "RightKinematic_CameraTool180_Pinc_CamHorn",
+      "supports": []
+    },
+    {
+      "name": "left_gripper_drive",
+      "servo": "LeftKinematic_CameraTool180_Pinc_servo",
+      "drive_horn": "LeftKinematic_CameraTool180_Pinc_CamHorn",
+      "supports": []
+    }
+  ]
+}
