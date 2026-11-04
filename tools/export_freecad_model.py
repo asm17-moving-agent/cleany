@@ -499,7 +499,7 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
                 "cad_to_base_link": CAD_TO_BASE.tolist(),
                 "base_link_height_above_ground_m": 0.38,
                 "cad_ground_z_mm": -95.5,
-                "meaning": "Coordinate convention, not a measured calibration. Front is the display side (CAD -Y), ROS +X.",
+                "meaning": "Coordinate convention, not a measured calibration. Front is the LiDAR side (CAD -Y), ROS +X.",
             },
             "tessellation": {
                 "linear_deflection_mm": deflection_mm,

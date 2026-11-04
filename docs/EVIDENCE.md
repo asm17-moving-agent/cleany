@@ -750,3 +750,25 @@ namespace 적용과 기본 namespace 실행도 확인했다.
 이 모델은 CAD -Y를 전방으로 사용한다. 실물 팔의 11월 2일 영점도 이전 URDF
 기준이다. 조립 상태, 전방과 높이 원점의 대응 및 새 CAD 자세의 encoder 대응이
 미확정이므로 실물 관절 피드백, MoveIt, 모터 제어로의 연결은 보류 상태다.
+
+## 2026-11-04 실물 전방 확인과 LiDAR 위치 수정
+
+사용자가 실물이 FreeCAD와 같은 구성이고 LiDAR 장착 쪽이 전방이라고 확인했다.
+`a2f44d30` 기반 모델의 CAD -Y → ROS +X 규약과 일치한다. LiDAR 회전부의
+CAD 입체 경계에서 Y 중심 -139.275mm를 대조하고, Jetson의 기존 mount x=-0.139275m를
+`mapping_cad_lidar_front.yaml`의 +0.139275m로 수정했다. 기존 전방 표적 관측의
+yaw=180도와 평면 높이 규약 z=0을 사용하며 광학 원점 실측값으로 취급하지 않는다.
+
+변경 전 5초간 바퀴 피드백과 명령의 정지를 확인했다. 처음 저장 요청은 기존 로거의
+`get_config` 응답 timeout으로 실패했다. Cartographer WriteState로 33,394,847-byte
+pbstream을 별도 보존했고, service 종료 재시도에서 `mapping_saved=true`와
+`stop_confirmed=true`를 확인했다. 새 프로필로 재시작한 세션은
+`hardware-slam-20261104T203935-41e3aa02`다. 5초 검사에서 raw scan 39개, filtered
+scan 35개, wheel state 225개를 받았으며 실제 base_link → lidar_link의
+x=0.139275m와 yaw=180도를 확인했다. 바퀴 명령과 속도는 정지 상태였다.
+
+검증 원본은 Jetson의 `~/cleany-data/runs/freecad-front-20261104/`에 있는
+`readiness.json`, `mapping-save.json`, `manual-map-save.json`,
+`shutdown-before-restart.json`, `mapping-reset.json`, `live-verification.json`이다.
+로컬의 같은 run 경로에 CAD 입체 경계와 변경 전 프로필도 보존했다.
+실물 팔의 새 CAD 기준 영점과 집게 encoder 대응은 여전히 별도 확인이 필요하다.

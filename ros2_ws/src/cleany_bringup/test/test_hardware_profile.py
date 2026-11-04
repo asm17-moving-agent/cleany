@@ -1,5 +1,6 @@
 from pathlib import Path
 import copy
+import json
 import math
 import pytest
 import yaml
@@ -45,3 +46,22 @@ def test_invalid_mount_cannot_enter_operational_profile(tmp_path):
 def test_mock_always_selects_synthetic_geometry(tmp_path):
     profile = load_profile(PROFILE, mock=True, state_root=tmp_path, package_share=share)
     assert Path(profile["base_config"]).name == "base_synthetic.yaml"
+
+
+def test_cad_lidar_front_profile_matches_description_coordinates(tmp_path):
+    profile = load_profile(
+        PROFILE.with_name("mapping_cad_lidar_front.yaml"),
+        state_root=tmp_path,
+        package_share=share,
+    )
+    manifest = json.loads(
+        (ROOT / "cleany_description/config/geometry/freecad_final.json").read_text()
+    )
+    lidar = next(p for p in manifest["parts"] if p["name"] == "RPLidarA1M8")
+    x, y, z = profile["mount"]["translation_m"]
+    lower, upper = lidar["bounds_base_link_m"]
+    assert 0 < lower[0] < x < upper[0]
+    assert (x, y, z) == pytest.approx((0.139275, 0.0, 0.0))
+    assert profile["mount"]["yaw_deg"] == 180.0
+    assert profile["scan_filter"]["front_center_rad"] == pytest.approx(-math.pi)
+    assert manifest["source"]["sha256"] in profile["mount"]["source"]

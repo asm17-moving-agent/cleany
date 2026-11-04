@@ -433,6 +433,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
    별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
 3. 현재 센서 장착과 일치하는 [프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
 
+   FreeCAD와 같은 조립체이고 LiDAR 쪽이 전방이면 `mapping_cad_lidar_front.yaml`을
+   선택한다. 센서 변환 변경 전 기존 지도를 저장하고 새 매핑 세션에서 실행한다.
+
    ```bash
    ros2 launch cleany_bringup hardware_mapping.launch.py \
      profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"

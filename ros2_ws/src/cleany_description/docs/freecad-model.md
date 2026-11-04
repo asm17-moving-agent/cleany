@@ -38,7 +38,7 @@ MoveIt chain이나 컨트롤러 설정을 붙여 사용하지 않는다. 기존 
 | 항목 | 반영 내용 |
 |---|---|
 | 원본과 출력 단위 | FreeCAD mm → 메시 m |
-| 전방과 좌측 | 화면이 있는 CAD -Y → ROS +X, CAD +X → ROS +Y |
+| 전방과 좌측 | LiDAR가 장착된 CAD -Y → ROS +X, CAD +X → ROS +Y |
 | 높이 원점 | CAD 지면 Z=-95.5 mm를 기준으로 기존 `base_link`의 지면 위 380 mm 좌표 관례 유지 |
 | 변환식 | `x=-CAD_y/1000`, `y=CAD_x/1000`, `z=CAD_z/1000-0.2845` |
 | 좌우 팔 | 원본 `RightArm` → 로봇 오른팔, `LeftArm` → 로봇 왼팔; 정면에서 보이는 좌우와 구분 |
