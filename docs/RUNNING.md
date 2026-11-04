@@ -23,6 +23,18 @@ source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py use_sim_time:=false
 ```
 
+실물 ROS graph와 함께 형상을 확인하려면 `namespace:=cad_reference`와
+`frame_prefix:=cad_reference/`를 지정합니다. 모델과 관절 상태, TF 토픽은
+`/cad_reference/` 아래에 생성됩니다. RViz도 `/tf`와 `/tf_static`을 각각
+`/cad_reference/tf`, `/cad_reference/tf_static`으로 remap하고 Fixed Frame을
+`cad_reference/base_link`로 설정합니다. 실물 base와의 위치 관계는 별도 보정이
+필요하며, `freecad_final`의 팔 자세는 CAD에 저장된 기준 자세입니다.
+
+```bash
+ros2 launch cleany_description description.launch.py use_sim_time:=false \
+  namespace:=cad_reference frame_prefix:=cad_reference/
+```
+
 기존 관절 모델을 표시하려면 `model_variant:=legacy_runtime`을 지정합니다.
 기존 카메라 보정 비교에는 이 선택과 `calibration_profile:=jetson_20261009`를
 함께 사용합니다. `freecad_final`에는 이전 조립체의 보정 프로파일을 적용할 수

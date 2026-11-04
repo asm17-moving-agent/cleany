@@ -19,6 +19,11 @@
 MoveIt chain이나 컨트롤러 설정을 붙여 사용하지 않는다. 기존 실행기의 홈 자세,
 충돌 구, 관절 보정과 접촉 판정도 새 CAD 기준으로 검증된 값이 아니다.
 
+`namespace`는 robot description, joint state와 TF 토픽에 적용하고,
+`frame_prefix`는 발행하는 TF frame ID에 적용한다. 둘의 기본값은 빈 문자열이다.
+실물 관절 피드백을 사용하려면 현재 encoder 값과 CAD 기준 자세의 대응을
+검증해야 한다. 실행 중인 주행 좌표와 CAD 전방 및 높이 원점도 먼저 맞춰야 한다.
+
 회전축과 링크 소유 관계의 후속 추출은 [FreeCAD 운동학](freecad-kinematics.md)에
 정리한다. 이 페이지의 null 값은 정적 기준 모델의 상태이며, 추출된 기하 축과
 아직 미확정인 영점·구동 값은 운동학 manifest에서 구분한다.

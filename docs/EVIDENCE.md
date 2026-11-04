@@ -729,3 +729,24 @@ macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0에서 네 팁의 원통 구멍
 `migration.json`, `verification.json`, `export_freecad_model.txt`,
 `extract_freecad_kinematics.txt`에 있다. ROS 빌드는 Humble setup 파일 부재로
 시작하지 못했으며 오류를 같은 경로의 `ros-build.txt`에 보존했다.
+
+## 2026-11-04 Jetson FreeCAD 배포와 ROS 확인
+
+`6f915e04`와 namespace/frame prefix 변경을 Jetson Orin의 Ubuntu/Humble에서
+검증했다. 소스는 `/home/cleany/cleany-freecad-model-update`에 두고 worktree별
+overlay로 `cleany_description`을 빌드했다. 자동 검사 50개를 통과했으며, 기존
+system Python의 SciPy가 NumPy 1.26.1에 대해 버전 경고를 냈다.
+ROS domain 174의 localhost 검사에서 정적 모델의 고정 TF 24개와 운동학 모델의
+고정 TF 4개, 회전 TF 34개를 수신했다. 표시용 head pan 0.05 rad의 quaternion,
+namespace 적용과 기본 namespace 실행도 확인했다.
+
+사용자 service `cleany-cad-reference`는 domain 0의 `/cad_reference/` 토픽과
+`cad_reference/` TF frame으로 정적 기준 형상을 제공한다. 실물 mapping service와
+함께 실행 중인 상태를 확인했다. 검증 원본은 Jetson의
+`~/cleany-data/runs/freecad-jetson-20261104/`에 있는 `ros-verification.json`,
+`service-verification.json`, 모델별 launch 로그와 `default-launch.txt`다.
+
+실물 mapping 프로파일 `mapping_cad_20261104.yaml`은 CAD +Y를 전방으로 기록하지만
+이 모델은 CAD -Y를 전방으로 사용한다. 실물 팔의 11월 2일 영점도 이전 URDF
+기준이다. 조립 상태, 전방과 높이 원점의 대응 및 새 CAD 자세의 encoder 대응이
+미확정이므로 실물 관절 피드백, MoveIt, 모터 제어로의 연결은 보류 상태다.

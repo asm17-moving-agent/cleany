@@ -49,10 +49,15 @@ def _launch_model(context: LaunchContext) -> list[Action]:
         Node(
             package="robot_state_publisher",
             executable="robot_state_publisher",
+            namespace=LaunchConfiguration("namespace"),
+            remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
             parameters=[
                 {
                     "robot_description": robot_description,
                     "use_sim_time": LaunchConfiguration("use_sim_time"),
+                    "frame_prefix": ParameterValue(
+                        LaunchConfiguration("frame_prefix"), value_type=str
+                    ),
                 }
             ],
             output="screen",
@@ -67,6 +72,16 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="true"),
+            DeclareLaunchArgument(
+                "namespace",
+                default_value="",
+                description="Namespace for description, joint state and TF topics.",
+            ),
+            DeclareLaunchArgument(
+                "frame_prefix",
+                default_value="",
+                description="Prefix for published TF frame IDs, such as cad_reference/.",
+            ),
             DeclareLaunchArgument(
                 "model_variant",
                 default_value="freecad_final",
