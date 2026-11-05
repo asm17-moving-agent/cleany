@@ -1,16 +1,50 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-apt-get update
-apt-get install -y --no-install-recommends \
+retry_dependency() {
+  python3 /opt/cleany-ci/retry-command.py --attempts 2 -- "$@"
+}
+
+source /opt/cleany-ci/repository-snapshots.env
+fingerprint=$(gpg --batch --show-keys --with-colons /opt/cleany-ci/ros-snapshots-key.asc | awk -F: '$1 == "fpr" {print $10; exit}')
+test "$fingerprint" = 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA
+gpg --batch --yes --dearmor -o /usr/share/keyrings/ros-snapshots.gpg /opt/cleany-ci/ros-snapshots-key.asc
+# Replace inherited live repositories; apt still verifies archive signatures.
+rm -f /etc/apt/sources.list.d/ros*.list /etc/apt/sources.list.d/ros*.sources \
+  /etc/apt/sources.list.d/ubuntu*.list /etc/apt/sources.list.d/ubuntu*.sources
+cat > /etc/apt/sources.list <<EOF
+deb [check-valid-until=no signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT}/ jammy main restricted universe multiverse
+deb [check-valid-until=no signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT}/ jammy-updates main restricted universe multiverse
+deb [check-valid-until=no signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] https://snapshot.ubuntu.com/ubuntu/${UBUNTU_SNAPSHOT}/ jammy-security main restricted universe multiverse
+EOF
+cat > /etc/apt/sources.list.d/ros-snapshot.list <<EOF
+deb [check-valid-until=no signed-by=/usr/share/keyrings/ros-snapshots.gpg] http://snapshots.ros.org/humble/${ROS_SNAPSHOT}/ubuntu jammy main
+EOF
+printf 'Acquire::Retries "1";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' > /etc/apt/apt.conf.d/80cleany-retries
+install -m 755 /opt/cleany-ci/apt-get /usr/local/bin/apt-get
+retry_dependency apt-get -o APT::Update::Error-Mode=any update
+# rosdep leaves installed packages untouched, including older ROS base packages.
+mapfile -t ros_packages < <(dpkg-query -W -f='${binary:Package}\n' 'ros-humble-*')
+if ((${#ros_packages[@]})); then
+  retry_dependency apt-get install -y --only-upgrade "${ros_packages[@]}"
+fi
+retry_dependency apt-get install -y --no-install-recommends \
   ccache git make python3-pip libgl1-mesa-dri xauth xvfb
 source /opt/ros/humble/setup.bash
 printf 'yaml file:///opt/cleany-ci/ros2_ws/rosdep/cleany.yaml\n' \
   > /etc/ros/rosdep/sources.list.d/10-cleany.list
-rosdep update --rosdistro humble
+retry_dependency rosdep update --rosdistro humble
+# Hardware drivers have pinned source builds and are not needed by device-free CI.
 PIP_CONSTRAINT=/opt/cleany-ci/pip-constraints.txt \
-  rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
-    --ignore-src --rosdistro humble -y
+  retry_dependency rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
+    --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent" -y
+# BT.CPP 4.9.1 exports lib/ but installs its library in lib/<multiarch>/.
+bt_cpp_library=/opt/ros/humble/lib/libbehaviortree_cpp.so
+bt_cpp_multiarch="$(gcc -print-multiarch)/libbehaviortree_cpp.so"
+if [[ ! -e "$bt_cpp_library" && -f "/opt/ros/humble/lib/$bt_cpp_multiarch" ]]; then
+  ln -s "$bt_cpp_multiarch" "$bt_cpp_library"
+fi
+python3 /opt/cleany-ci/verify-versions.py
 python3 -m pytest --version
 dpkg-query -W > /opt/cleany-ci/dpkg-packages.txt
 python3 -m pip freeze > /opt/cleany-ci/pip-packages.txt

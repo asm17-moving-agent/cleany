@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>cleany_benchmark</name>
+  <version>0.1.0</version>
+  <description>Controller compute duration instrumentation for isolated Cleany simulations.</description>
+  <maintainer email="benchmark@example.invalid">Cleany benchmark</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>nav2_util</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>tf2_ros</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

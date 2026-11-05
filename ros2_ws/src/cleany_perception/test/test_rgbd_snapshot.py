@@ -136,3 +136,11 @@ def test_snapshot_timeout_identifies_missing_stream_and_timestamp_mismatch():
     assert "'color_info': 0" in message
     assert "'color': 10" in message and "'depth': 20" in message
     assert 'completed=0, pending=2' in message
+
+
+def test_perception_readiness_requires_models_and_fresh_rgbd():
+    from cleany_perception.core.readiness import AVAILABLE, UNAVAILABLE, UNKNOWN, perception_readiness
+    assert perception_readiness(False, 10**9, 10**9, 1.)[0] == UNKNOWN
+    assert perception_readiness(True, None, 10**9, 1.)[0] == UNKNOWN
+    assert perception_readiness(True, 10**9, int(1.5e9), 1.)[0] == AVAILABLE
+    assert perception_readiness(True, 10**9, int(2.5e9), 1.)[0] == UNAVAILABLE

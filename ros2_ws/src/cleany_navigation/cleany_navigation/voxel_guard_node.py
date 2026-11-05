@@ -81,7 +81,7 @@ class VoxelGuardNode(Node):
                         command_topic='safety_2d/cmd_vel', output_topic='cmd_vel',
                         odom_topic='odom', voxel_topic='obstacle_memory/voxels',
                         status_topic='obstacle_memory/voxel_status',
-                        update_period_s=.05, command_timeout_s=.5, source_timeout_s=.8,
+                        update_period_s=.10, command_timeout_s=.5, source_timeout_s=.8,
                         wall_source_timeout_s=5., processing_budget_s=.15,
                         localization_jump_m=.25, localization_jump_rad=.3,
                         **vars(GuardConfig()))

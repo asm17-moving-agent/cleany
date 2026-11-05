@@ -13,6 +13,29 @@ from cleany_interfaces.msg import (
 from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, ObserveWristTarget, PlanGrasp, VerifyPlacement
 
 
+def test_supervision_wire_contracts_default_to_no_authority():
+    from cleany_interfaces.msg import ComponentHealth, SafetyStatus, SystemState
+    from cleany_interfaces.srv import CheckPermission, RequestFaultReset
+    from cleany_interfaces.action import StopMission, RecoverComponent, RequestRecovery
+    assert ComponentHealth().status == ComponentHealth.UNKNOWN
+    assert not SafetyStatus().protection_ready
+    assert not SafetyStatus().physical_release_confirmed
+    assert SystemState().permissions == []
+    assert not CheckPermission.Response().granted
+    assert CheckPermission.Response().valid_for_s == 0.
+    assert not RequestFaultReset.Response().reset
+    assert not StopMission.Result().stopped
+    assert not RecoverComponent.Result().success
+    assert not RequestRecovery.Result().restored
+    assert RequestFaultReset.Request().operator_id == ''
+
+
+def test_supervisor_event_is_structured():
+    from cleany_interfaces.msg import SystemEvent
+    event = SystemEvent()
+    assert event.sequence == 0 and event.kind == event.code == event.detail == ''
+
+
 def test_wrist_observation_distinguishes_missing_target_from_service_failure():
     response = ObserveWristTarget.Response()
     assert not response.success and response.status == response.ERROR
@@ -226,3 +249,13 @@ def test_perception_fields_and_explicit_grasp_header_roundtrip():
     request = PlanGrasp.Request(target_object_header=Header(
         frame_id='base_link', stamp=Time(sec=12)))
     assert deserialize_message(serialize_message(request), PlanGrasp.Request) == request
+
+
+def test_tof_and_approach_start_without_success_or_authority():
+    from cleany_interfaces.msg import TofFrame
+    from cleany_interfaces.action import DeskApproach
+    assert len(TofFrame().distance_m) == len(TofFrame().valid) == 64
+    assert not any(TofFrame().valid)
+    assert not TofFrame().sensor_ready
+    assert not DeskApproach.Result().success
+    assert DeskApproach.Goal().lease_id == ''

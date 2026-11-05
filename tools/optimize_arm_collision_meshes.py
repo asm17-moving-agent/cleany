@@ -3,8 +3,7 @@
 Enclosure components use supporting halfspaces and include every source triangle.
 Their expansion bound is relative to the original component CONVEX HULL: holes
 and concavities inside that hull are filled. It is not a CAD surface error bound.
-Selected concave components use surface decimation with a two-sided surface
-distance bound instead. Original STL assets, visuals and physics are preserved.
+Original STL assets, visuals and physics are preserved.
 Plane partitions retain large openings before enclosing the resulting patches.
 """
 from __future__ import annotations
@@ -15,9 +14,6 @@ import hashlib
 import json
 from pathlib import Path
 import struct
-import subprocess
-
-from collision_surface_geometry import directed_bound
 
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -306,34 +302,9 @@ def searched_enclosure(mesh: Mesh, settings: dict, variant: str, scale: float) -
             return best, report
 
 
-def surface_decimation(source: Mesh, settings: dict, image: str) -> tuple[Mesh, dict]:
-    worker = Path(__file__).with_name('decimate_collision_surface.py').resolve()
-    request = {'vertices': source.vertices.tolist(), 'faces': source.faces.tolist(),
-               'target_triangles': settings['target_triangles']}
-    process = subprocess.run(['docker', 'run', '--rm', '--interactive', '--network', 'none',
-        '--pull=never', '--env', 'OMP_NUM_THREADS=1', '--volume', f'{worker}:/worker.py:ro',
-        '--entrypoint', 'python3', image, '/worker.py'], input=json.dumps(request),
-        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-    result = json.loads(process.stdout)
-    output = Mesh(np.asarray(result['vertices'], dtype=float), np.asarray(result['faces'], dtype=np.int64))
-    def topology(mesh):
-        edges = np.sort(mesh.faces[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2), axis=1)
-        unique, counts = np.unique(edges, axis=0, return_counts=True)
-        if not np.all(counts == 2) or len(components(mesh)) != 1:
-            raise ValueError('Surface decimation changed closed component topology')
-        return len(mesh.vertices) - len(unique) + len(mesh.faces)
-    if topology(source) != topology(output):
-        raise ValueError('Surface decimation changed Euler characteristic')
-    limit = settings['max_surface_distance_m']
-    certificate = {'source_to_reduced': directed_bound(source, output, limit),
-                   'reduced_to_source': directed_bound(output, source, limit)}
-    return output, {'method': 'surface_quadric_decimation',
-        'source_vertices': len(source.vertices), 'source_triangles': len(source.faces),
-        'vertices': len(output.vertices), 'triangles': len(output.faces),
-        'open3d_version': result['open3d_version'], 'surface_certificate': certificate}
-
-
 def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, list[dict]]:
+    if settings.get('surface_components'):
+        raise ValueError('Surface decimation is no longer supported')
     vertices, faces, reports = [], [], []
     offset = 0
     pieces = source_pieces(source, settings, filename)
@@ -341,38 +312,34 @@ def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, li
     if len(variants) != len(pieces):
         raise ValueError('Enclosure variants do not match the source partitions')
     for piece_index, (index, part) in enumerate(pieces):
-        surface = settings.get('surface_components', {}).get(filename, {}).get(str(index))
-        if surface:
-            result, report = surface_decimation(part, surface, settings['surface_simplifier_image'])
-        elif variants[piece_index] != 'current':
+        if variants[piece_index] != 'current':
             result, report = searched_enclosure(part, settings, variants[piece_index],
                                                 settings.get('mesh_scales', {}).get(filename, 1.))
         else:
             result, report = enclosing_hull(part,
                 max_expansion=settings['max_hull_expansion_m'], margin=settings['enclosure_margin_m'],
                 max_iterations=settings['max_iterations'], planes_per_iteration=settings['planes_per_iteration'])
-        if not surface:
-            # Native-unit STL rounding can change nearly coplanar triangles,
-            # especially for millimetre CAD. Retriangulate the actual stored
-            # vertices so each exported component is a convex solid, not just
-            # a point cloud whose convex hull meets the enclosure certificate.
-            scale = settings.get('mesh_scales', {}).get(filename, 1.)
-            rounded = (result.vertices/scale).astype(np.float32).astype(float)*scale
-            hull = ConvexHull(rounded)
-            hull_faces = hull.simplices.copy()
-            triangles = rounded[hull_faces]
-            normals = np.cross(triangles[:, 1]-triangles[:, 0], triangles[:, 2]-triangles[:, 0])
-            reverse = np.einsum('ij,ij->i', normals, hull.equations[:, :3]) < 0
-            hull_faces[reverse] = hull_faces[reverse][:, [0, 2, 1]]
-            used, inverse = np.unique(hull_faces, return_inverse=True)
-            result = Mesh(rounded[used], inverse.reshape(-1, 3))
-            violation = maximum_plane_violation(part.vertices, hull.equations)
-            bound = float(radial_bounds(result.vertices, ConvexHull(part.vertices), part.vertices.mean(0))[0].max())
-            if violation > 0 or bound > settings['max_hull_expansion_m']:
-                raise ValueError('Native STL rounding violates enclosure bounds')
-            report.update(vertices=len(result.vertices), triangles=len(result.faces),
-                          maximum_source_plane_violation_m=violation,
-                          max_expansion_from_component_hull_m=bound, output_volume_m3=float(hull.volume))
+        # Native-unit STL rounding can change nearly coplanar triangles,
+        # especially for millimetre CAD. Retriangulate the actual stored
+        # vertices so each exported component is a convex solid, not just
+        # a point cloud whose convex hull meets the enclosure certificate.
+        scale = settings.get('mesh_scales', {}).get(filename, 1.)
+        rounded = (result.vertices/scale).astype(np.float32).astype(float)*scale
+        hull = ConvexHull(rounded)
+        hull_faces = hull.simplices.copy()
+        triangles = rounded[hull_faces]
+        normals = np.cross(triangles[:, 1]-triangles[:, 0], triangles[:, 2]-triangles[:, 0])
+        reverse = np.einsum('ij,ij->i', normals, hull.equations[:, :3]) < 0
+        hull_faces[reverse] = hull_faces[reverse][:, [0, 2, 1]]
+        used, inverse = np.unique(hull_faces, return_inverse=True)
+        result = Mesh(rounded[used], inverse.reshape(-1, 3))
+        violation = maximum_plane_violation(part.vertices, hull.equations)
+        bound = float(radial_bounds(result.vertices, ConvexHull(part.vertices), part.vertices.mean(0))[0].max())
+        if violation > 0 or bound > settings['max_hull_expansion_m']:
+            raise ValueError('Native STL rounding violates enclosure bounds')
+        report.update(vertices=len(result.vertices), triangles=len(result.faces),
+                      maximum_source_plane_violation_m=violation,
+                      max_expansion_from_component_hull_m=bound, output_volume_m3=float(hull.volume))
         vertices.append(result.vertices)
         faces.append(result.faces + offset)
         offset += len(result.vertices)
@@ -393,8 +360,8 @@ def main() -> None:
     destination = args.output or package / settings['output_directory']
     if destination.resolve() == (package / 'meshes').resolve():
         raise ValueError('Output directory must preserve the original CAD meshes')
-    report = {'schema_version': 3, 'method': 'partitioned_component_enclosure_or_surface_decimation',
-              'bound_reference': 'Enclosure: convex hull of each original component or clipped surface patch, in metres. Surface decimation: bidirectional original CAD surface distance.',
+    report = {'schema_version': 3, 'method': 'partitioned_component_enclosure',
+              'bound_reference': 'Enclosure: convex hull of each original component or clipped surface patch, in metres.',
               'settings': settings, 'meshes': {}}
     pending = []
     for filename in settings['source_meshes']:

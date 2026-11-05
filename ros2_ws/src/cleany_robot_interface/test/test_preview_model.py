@@ -30,8 +30,9 @@ def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
     defaults = _preview_defaults()
     model = package.parent / 'cleany_description/urdf/cleany.urdf.xacro'
     root = ET.fromstring(subprocess.check_output([
-        'xacro', str(model), 'head_fixed:=true',
-        'arm_base_spacing_m:=' + defaults['arm_base_spacing_m'],
+        'xacro', str(model),
+        'include_head_camera:=' + defaults['include_head_camera'],
+        'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ], text=True))
     motors = [visual for visual in root.find("link[@name='base_link']").findall('visual')
               if visual.find('geometry/mesh') is not None
@@ -59,7 +60,6 @@ def test_default_preview_keeps_head_on_repositioned_mast():
     nominal = ET.fromstring(subprocess.check_output(['xacro', str(model)]))
     preview = ET.fromstring(subprocess.check_output([
         'xacro', str(model),
-        'head_mount_x_offset_m:=' + defaults['head_mount_x_offset_m'],
         'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ]))
     for name in ('top_base_joint', 'head_pan_joint'):

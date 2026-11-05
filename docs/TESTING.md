@@ -61,6 +61,8 @@ flowchart TB
 | Mission과 Mock Action | `make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=186` | 공통 타입, Action, 조회, 취소와 재시작; 주행은 Mock |
 | Gazebo와 Mock Action | `make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | Nav2 도착과 정지, 두 수거, 추가 빈 관측과 보고 |
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
+| Supervisor core | `make test-supervision-core` | ROS 없는 Fault, 허가, 복구, 영속성, Runtime 감독 port, 안전 증거 |
+| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `$(CLEANY_DATA_ROOT)/runs/supervision/latency.json`에 기록 |
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
 | 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
@@ -120,19 +122,43 @@ python3 tools/validation/verify_installed_sources.py \
 
 ## CI 실행과 재사용
 
-CI는 모든 PR에서 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.
+CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.
 
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
-| GHCR 의존성 이미지 | 모든 `package.xml`, rosdep YAML, `containers/ci/`, 이미지 준비 도구, platform 또는 UTC ISO 주차 변경 | ROS, apt, pip 의존성만 포함하며 응용 소스와 빌드 결과는 포함하지 않음 |
+| GHCR 의존성 이미지 | 모든 `package.xml`, rosdep YAML, `containers/ci/`, 이미지 준비 도구, platform 변경 | ROS, apt, pip 의존성만 포함하며 응용 소스와 빌드 결과는 포함하지 않음 |
 | ccache | compiler 내용, 소스, header와 옵션에 따라 hit/miss 결정 | 빌드 명령은 매번 실행하며 CTest/pytest 결과는 캐시하지 않음 |
 | 같은 실행의 workspace | 전체 빌드 완료 후 runtime 검사에서 재사용 | 다른 실행의 `build/`, `install/`, test result는 복원하지 않음 |
 
-이미지가 없거나 pull할 수 없으면 동일한 Dockerfile로 의존성을 설치한 뒤 전체 검사를 실행합니다. 같은 저장소의 실행은 환경 확인 후 의존성 이미지를 게시합니다. 응용 테스트의 성공 여부와 별개로 의존성 이미지와 compiler cache를 보존해 실패 수정 시에도 재사용하며, 다음 실행의 전체 검사와 실패 판정은 그대로 유지합니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행은 새 주차 이미지를 준비하며, 같은 주에 수동 갱신하려면 Dockerfile의 `DEPENDENCY_REVISION`을 올립니다. Python 외부 의존성 버전은 `containers/ci/pip-constraints.txt`에서 갱신합니다.
+이미지가 없거나 pull할 수 없으면 고정한 저장소 snapshot과 Python 버전으로 이미지를 만든 뒤 전체 검사를 실행합니다. 같은 저장소의 실행은 환경 확인 후 의존성 이미지를 게시합니다. 응용 테스트의 성공 여부와 별개로 의존성 이미지와 compiler cache를 보존해 실패 수정 시에도 재사용하며, 다음 실행의 전체 검사와 실패 판정은 그대로 유지합니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행도 동일한 의존성 이미지를 재사용합니다.
+
+기준은 2026-11-02에 조회한 Jetson의 system Python과 설치된 ROS 패키지입니다.
+[repository-snapshots.env](../containers/ci/repository-snapshots.env)는 Ubuntu와 ROS 저장소의 시점을,
+[pip-constraints.txt](../containers/ci/pip-constraints.txt)는 MuJoCo와 google-genai 및 전이 의존성 버전을 고정합니다.
+베이스에 이미 설치된 ROS 패키지도 선택한 snapshot으로 갱신한 뒤 workspace 의존성을 설치합니다.
+CI는 설치 후와 검사 시작 전에 [버전 검사](../containers/ci/verify-versions.py)를 실행합니다.
+공통 ROS 패키지는 아키텍처별 빌드 시각을 제외한 upstream 버전을 비교하며,
+Jetson에만 설치된 패키지를 CI에 추가로 설치하지 않습니다. JetPack, GPU 라이브러리와 실물 동작은 이 검사 범위가 아닙니다.
+BT.CPP `4.9.1`의 amd64 패키지는 라이브러리 설치 위치와 CMake 검색 경로가 달라, CI 이미지에서 같은 바이너리를 가리키는 호환 링크를 추가합니다.
+
+외부 의존성 갱신은 snapshot, Python constraints와 Jetson ROS 버전 기준을 명시적으로 변경하고 전체 CI로 검증합니다.
+Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지를 다시 만들며 패키지 버전은 갱신하지 않습니다.
+저장소와 서명 키 갱신은 [ROS snapshot 안내](https://github.com/ros2/ros2_documentation/blob/rolling/source/Get-Started/Installation/Snapshot-Repository.rst)와 [Ubuntu snapshot 안내](https://snapshot.ubuntu.com/)를 따릅니다.
 
 패키지 빌드는 최대 2개, 패키지 내부 컴파일은 runner CPU 수의 절반으로 제한해 두 병렬화 계층의 경합을 줄입니다. 최적화 수준은 기존 `RelWithDebInfo`를 유지합니다. 모델 검사에서는 같은 인자의 xacro 출력 bytes만 재사용하고 각 검사는 독립 XML tree를 받습니다.
 
+`MAKEFLAGS`도 함께 지정해 colcon이 전체 CPU 수의 `-j` 옵션으로 CMake의 병렬 제한을 덮어쓰지 않도록 합니다.
+
 CI artifact에는 test XML, 실패 로그, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
+
+전체 job 제한은 40분이며 이미지 생성은 별도로 15분 안에 완료해야 합니다.
+APT는 서명을 검증한 snapshot index에서 버전, 파일 경로와 SHA256을 결정합니다.
+Ubuntu 패키지 파일은 동일한 pool 경로의 archive 미러에서 먼저 받고, 없거나 검증에 실패하면 원래 snapshot에서 받습니다.
+다운로드는 4개씩 수행하고 SHA256과 크기가 일치하는 파일만 APT cache에 보관하며 설치 시 APT가 다시 검증합니다.
+미러의 최신 index나 다른 버전으로 대체하지 않습니다.
+연결 timeout은 15초, 파일 다운로드는 60초, 한 설치 명령의 다운로드 준비는 5분으로 제한합니다.
+APT 자체 재시도는 1회, 의존성 준비 명령은 10초 대기 후 최대 2회 실행합니다.
+계속 실패하면 CI를 실패 처리합니다. 빌드와 테스트는 이 재시도 대상에 포함하지 않습니다.
 
 ## 선택 runtime과 UI
 
@@ -231,6 +257,90 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
 
+## 실물 매핑 패키지 경계
+
+`make test-hardware-mapping-core`는 입력 lease, ordered permission의 MCU 확인, 스캔 필터,
+설정 검증, map origin yaw와 원자적 저장, 초기화 직렬화와 저장 실패를 검사한다.
+매핑 heartbeat 만료와 재수신, RPC 실패 원인 보존, 시작 실패의 로그 경로와 traceback,
+이벤트 파일 회전과 재시작 보존, 큐 포화와 디스크 장애도 검사한다.
+`make test-base BASE_TEST_ROS_DOMAIN_ID=174`는 기존 base 회귀와 새 구동 허가 계약을 검사한다.
+ROS graph 검사는 같은 domain에서 동시에 실행하지 않는다.
+
+설치된 패키지의 모의 통합은 다음 명령으로 실행한다. 새 출력 디렉터리를 지정한다.
+
+```bash
+make build-hardware-mapping
+make test-hardware-mapping-runtime MAPPING_TEST_OUTPUT=/absolute/path/to/new-artifact-dir
+```
+
+이 검사는 domain 173에서 synthetic MCU와 합성 LiDAR를 사용한다. 저장소 밖 `/tmp`에서
+설치된 launch를 시작하고 단일 휠 publisher, 휴대폰 명령/해제, 지도 초기화와 중복 요청,
+두 세션의 map/pbstream 및 Logger bag, 최종 저장 후 종료를 확인한다. 관리자 종료 후 ROS
+상태 만료와 조종 이벤트 파일 저장도 확인한다. 실물 USB는 열지 않는다.
+물리 정지 거리, 현재 장착 TF의 정확도와 실제 바닥에서의 지도 품질은 별도 실물 검사다.
+
+`make test-hardware-mapping`은 관련 ROS 패키지를 domain 174에서 순서대로 검사한다.
+Base graph fixture는 BASE_TEST_ROS_DOMAIN_ID도 따르므로 두 domain 변수를 함께 설정한다.
+위 통합 결과의 bag은 domain 175에서 실제 ROS 재생으로 확인할 수 있다.
+
+```bash
+make test-hardware-mapping-replay \
+  MAPPING_BAG=/absolute/path/to/recordings/bags/session-id \
+  MAPPING_TEST_OUTPUT=/absolute/path/to/replay-verification.json
+```
+
+## ToF와 Supervisor 통합
+
+`make test-tof-core`는 거리 투영, 평면 fit, 제동 envelope, timeout과 navigation 경로의
+순수 검사를 실행한다. `make test-tof`는 interface, ToF, Mission, safety adapter와
+Supervisor를 빌드하고 패키지 검사를 실행한다. ToF ROS 검사는 독립 DDS domain의 합성
+frame/odom/lease와 pseudo-terminal을 사용하며 실제 센서나 모터를 열지 않는다.
+
+기존 navigation C++/Python 회귀 검사는 Humble 환경에서 `make test-navigation`으로
+실행한다. Mission의 선택 ROS 시나리오는 `CLEANY_RUN_ROS_TESTS=1`과 독립
+`ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
+실물 검증 항목은 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)을 따른다.
+
+ToF 분류 회귀에는 단독 보드 로그의 3개 frame과 합성 입력을 사용한다. 정상 미검출의
+주행 허용, 부분 품질 불량 제외, 전부 불량 정지, 인접/물리 cluster, 15Hz 지속 확인,
+flash/고립 noise, 비상 단일 검출, 해제 hysteresis와 필터 reset을 검사한다. ROS 검사는
+센서 fault와 stale 정지, 일부 불량 Zone의 책상 접근, 평면 소실과 기존 lease/cancel 경계를
+검사한다. Navigation은 ToF 활성 여부와 독립 head-pan observer 설정 조합을 검사한다.
+합성 graph는 기존 안전 chain을 identity로 대체하며 실제 Nav2/모터 주행이 아니다.
+
+원본 측정 로그를 ROS 개발환경에서 오프라인 감사하려면 다음을 사용한다. 장치를 열지 않는다.
+
+```bash
+PYTHONPATH="$PWD/ros2_ws/src/cleany_tof" python3 tools/validation/tof/replay.py \
+  /absolute/path/to/range-15hz-2min.jsonl --output /absolute/path/to/audit.json
+```
+
+
+## 얼굴 디스플레이
+
+상태 로직은 Jetson의 독립 설치 폴더에서 `make test`로 검사한다. 저장소의 `make test`가 실행하는 colcon 검사에도 같은 pytest가 등록된다.
+
+ROS→HTTP 전환, 결과 수량과 연결 복구는 구현 레포 루트에서 다음 명령으로 검사한다. `/cleany_display_validation/` 토픽과 domain 173을 사용하며 로봇 제어기는 실행하지 않는다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source /home/cleany/cleany-display/ros2_ws/install/local_setup.bash
+ROS_DOMAIN_ID=173 python3 tools/validation/verify_cleany_display_ros.py \
+  --config /home/cleany/cleany-display/config/display.json \
+  --output output/cleany-display-jetson/ros-verification.json
+```
+
+브라우저 검사는 [Dev Monitor 웹 의존성](DEVELOPMENT_SETUP.md#monitor-웹)과 로컬 Chrome을 설치한 구현 레포에서 `node tools/validation/verify_cleany_display_web.cjs`로 실행한다. 7개 표정의 60fps와 Zzz 주기, 화면 비율과 720p 상한, 설정 변경, 60.01Hz 입력에서 균등한 30fps 간격, 동일 상태의 DOM 변경 부재, 모션 감소 설정과 HTTP 복구를 검사한다. 결과는 Git에서 제외한 `output/cleany-display-jetson/`에 기록한다.
+
+전환 검사는 같은 환경에서 `node tools/validation/verify_cleany_display_transitions.cjs`로 실행한다. HTTP 상태를 바꾸면서 60Hz 프레임을 제어해 깜빡임의 연속성, 눈과 입의 중간 모양, 얼굴 위치, 땀방울과 Zzz의 사라짐을 확인한다. 안내 교체 중 추가 상태 수신, 도움 요청과 일반 안내의 겹침, 모션 감소 설정도 검사한다. 결과와 중간 프레임은 `output/cleany-display-jetson/transitions/`에 기록하며, 실제 장치의 프레임 성능 측정과 구분한다.
+
+실물 성능 측정은 Jetson에서 다음 순서로 실행한다.
+
+1. `systemctl --user set-environment CLEANY_DISPLAY_DEBUG_PORT=9223`과 `systemctl --user restart cleany-display-kiosk`로 전용 브라우저의 로컬 디버깅 포트를 연다.
+2. 설치 폴더의 `browser-tools/bin/python`으로 `tools/validation/measure_cleany_display.py --output <결과.json>`을 실행한다. `--modes idle moving checking collecting complete charging help`를 추가하면 브라우저 응답만 임시로 바꿔 표정별로 측정하고 실제 ROS 상태 화면으로 복구한다.
+3. 측정 종료 후 `systemctl --user unset-environment CLEANY_DISPLAY_DEBUG_PORT`와 키오스크 재시작으로 디버깅 포트를 닫는다.
+
+결과의 `frames.canvas.fps`는 실제 캔버스 렌더링 빈도이고 `frames.raf.fps`는 브라우저 콜백 빈도다. CPU 수치는 단일 코어 기준이며 GPU 사용률이 아니다. 실물 화면, 장시간 동시 운용과 재부팅 후 자동 시작은 별도 검증한다.
 ## MoveIt 충돌 형상과 MuJoCo 동등성 검사
 
 `make test-description-models`는 ROS 2와 MuJoCo, NumPy, SciPy 환경에서

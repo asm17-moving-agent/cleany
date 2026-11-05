@@ -95,14 +95,40 @@ ros2 launch cleany_mission_manager mission_runtime.launch.py \
   post_mission:=wait_for_next
 ```
 
+`mission_runtime.launch.py`의 기본 `supervision_mode:=required`는 아래 System Supervisor 감독 stack이 함께 실행 중이어야 미션을 받습니다. 감독 없이 실행하면 `SUPERVISOR_UNAVAILABLE` 사유로 거절합니다.
+
 | 실행 조건 | 설정과 동작 |
 |---|---|
+| 감독 없이 단독 실험 | `supervision_mode:=disabled`; snapshot의 `supervision`에 기록. 시스템 Fault와 E-stop 증거를 확인하지 않음 |
 | Nav2 없이 구조 확인 | `navigation_backend:=mock` 추가 |
 | 완료 후 동작 선택 | `post_mission:=return_home\|wait_for_next`; 제품 복귀 정책은 별도 결정 |
 | 독립 실험 | 별도 `journal_path`, `bridge_journal_path` 사용 |
 | 동일 미션 복구 | 기존 journal DB 유지 |
 
 재연결, 중복, 취소, 재시작 동작은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.
+
+### System Supervisor 감독 stack
+
+Supervisor, safety adapter, Nav2 lifecycle 복구 owner를 Runtime 옆에 실행합니다. 센서, Nav2와 Runtime은 각자의 launch가 소유합니다.
+
+```bash
+make build-supervision
+source "$(make -s print-navigation-install-base)/setup.bash"
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_system_supervisor supervision.launch.py \
+  estop_released_topic:=<하드웨어 해제 Bool> protection_ready_topic:=<보호 계층 Bool>
+ros2 run cleany_system_supervisor supervisor_operator            # 활성 Fault 확인
+ros2 run cleany_system_supervisor supervisor_operator ESTOP --operator <name>
+```
+
+| 실행 조건 | 설정과 동작 |
+|---|---|
+| 안전 증거 topic 미지정 | 의도된 `FAULT_LOCKED`; Runtime은 `SYSTEM_FAULT_LOCKED`로 거절 |
+| 팔 controller가 있는 구성 | `arm_health:=true`로 `arm_health_monitor` 추가 |
+| Gazebo 통합 실행 | `mission_sim.launch.py supervision:=true`; 시뮬레이션에는 안전 하드웨어가 없어 evidence topic을 주지 않으면 잠김 |
+| 상태 파일 | 기본 `~/.ros/cleany/system_supervisor_state.json`; latched Fault가 재시작 뒤에도 유지 |
+
+Fault, 복구와 운영자 절차는 [System Supervisor](../ros2_ws/src/cleany_system_supervisor/docs/supervision.md)를 따릅니다. 영구 기록이 필요하면 `cleany_logger` 기록 대상에 `/system/events`, `/system/state`, `/system/faults`, `/safety/status`를 추가합니다.
 
 ### Gazebo 주행과 Mock 조작
 
@@ -355,6 +381,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 `cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
 로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
 패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.
+관절 미리보기 `arm_preview.launch.py`는 모델 경로, 상태 설정, RViz, 헤드 포함 여부와
+마스트 간격을 받습니다. 기본 모델은 명목 형상이며, 저장된 보정을 적용한 실물
+모델은 아래 상태 프로파일 실행 절차를 따릅니다.
 
 1. [개발환경](DEVELOPMENT_SETUP.md#jetson-실물-제어-패키지)에 따라 빌드하고 같은 install을 적용합니다.
 
@@ -379,3 +408,78 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 
 상태 가드는 결측되거나 오래된 관절 상태를 차단합니다. 정지 요청은 `/real_control/stop`
 서비스를 사용합니다. 토픽, 상태와 카메라 제어는 [패키지 인터페이스](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 따릅니다.
+
+## 실물 휠 odometry와 2D LiDAR 매핑
+
+1. [개발환경](DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
+2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
+   별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
+3. 현재 센서 장착과 일치하는 [프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
+
+   ```bash
+   ros2 launch cleany_bringup hardware_mapping.launch.py \
+     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"
+   ```
+
+4. 로그의 조종 주소와 state_root/web-token 키로 접속한다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꾼다.
+   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종한다. 초기화 접수는 완료를 뜻하지 않는다.
+5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료한다.
+   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존한다.
+
+`state_root`, `host`, `phone_port`, `mock`은 launch 인자다. 모의 모드는 별도 ROS domain에서 사용하며
+실물 장치 대신 main의 mock MCU를 실행한다. 모의 LiDAR 입력은 런타임 검사 도구가 제공한다.
+새 SLAM은 IMU를 사용하지 않으며 raw scan 원본, 전방 180도와 0.30m 마스킹을 유지한다.
+기존 Dev Monitor는 별도로 실행해 지도와 센서를 관측할 수 있다.
+
+휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
+
+```bash
+ros2 launch cleany_teleop teleop.launch.py \
+  base_config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
+```
+
+문제가 발생하면 조종 상태 API의 `last_permission_error`, `event_log`와 매핑 상태 API의
+`status_age_ms`, `error_code`, `error_file`을 먼저 확인한다. 기본 실행의 조종 사건은
+`~/.local/state/cleany/hardware/teleop-events.jsonl`, 매핑 오류 JSON은
+`~/.local/state/cleany/hardware/maps/errors/`에 남는다. `state_root`를 바꿨다면 해당 경로를
+따른다. 오류 JSON을 쓰지 못한 경우 `state_root/mapping.log`에서 traceback을 확인한다.
+
+## ToF 근접 보호와 책상 접근
+
+[ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md)의 명령 경로와 보정 항목을 먼저
+확인한다. 기본 프로파일은 주행을 차단한다. 이 절차는 물리 시험 통과를 의미하지 않는다.
+
+1. `make build-tof`를 실행한다. 공통 navigation은 Ubuntu/Humble 환경에서
+   `make build-navigation`으로 빌드한다. 호스트에서는 `distrobox enter --name ros2-humble
+   --no-tty --clean-path -- make build-navigation`을 사용할 수 있다.
+2. navigation overlay와 `make print-install-base`의 overlay를 순서대로 source한다.
+   기존 로봇 센서, localization, base와 독립 safety evidence를 구성한다.
+3. 공통 `cleany_navigation navigation.launch.py`에 기존 map/robot profile 인자와 함께
+   `tof_enabled:=true tof_params_file:=/absolute/path/to/commissioned-tof.yaml`을 전달한다.
+4. `cleany_system_supervisor supervision.launch.py`는 `tof_required:=true`로 실행한다.
+   실제 estop/protection evidence 인자는 기존 절차를 따른다. ToF 가용성만으로 하드웨어
+   estop 해제나 arm 가용성을 만들어내지 않는다.
+5. Mission launch에 `desk_approach_enabled:=true desk_distance_m:=0.75`를 전달한다.
+   목표는 base 원점 기준 거리이며 현장 좌석과 guard envelope에 맞게 조정한다.
+   Mission, 두 ToF 제어 노드와 기존 안전 경로가 동일한 canonical odom을 보도록 remap한다.
+6. 좌석 pose는 책상 전면을 바라보는 staging pose로 설정한다. Mission이 Nav2 도착과
+   정지를 확인한 뒤 접근을 요청하며, home 복귀에는 접근을 수행하지 않는다.
+
+`tof_driver`의 serial port는 기본적으로 공급 펌웨어 보드의 by-id 경로다. 다른 보드는
+해당 노드의 `port`를 별도 설정한다. 재연결 시 64 zone, 15Hz로 재설정한다. 별도
+teleop도 `nav2/cmd_vel` 입력을 사용하며 ToF 활성 상태에서 `cmd_vel`에 직접 발행하지 않는다.
+
+정상 NO_RETURN은 장애물 미검출로 처리하며 RGB-D proof 없이 주행 입력을 허용한다.
+ToF 전용 coverage observer 설정과 no_return_max_*, min_valid/required_zones는 제거한다.
+기존 head-pan depth coverage는 기존 설정에 따른다. 감시 ROI, 인접 검출 수, 확인/해제
+시간과 비상 거리는 ToF YAML의 조정 가능한 후보다. sensor_ready=false나 오래된 frame은
+계속 정지하며, 정상 미검출을 센서 fault로 보고하지 않는다. 미검출이 빈 공간을 보장하지
+않으므로 기존 독립 안전 계층을 활성 상태로 유지한다.
+
+voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(10Hz)다.
+이 값은 voxel 지도 갱신 주기와 별개이며 명시적 robot profile override가 있으면 그 값을
+사용한다. 주기를 조정할 때 상류 출력과 ToF의 command_timeout_s를 함께 확인한다.
+
+## Jetson 얼굴 디스플레이
+
+전용 앱은 `/home/cleany/cleany-display`에 독립 설치한다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독한다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않는다.

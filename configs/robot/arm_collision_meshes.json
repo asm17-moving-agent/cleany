@@ -24,8 +24,6 @@
   "enclosure_margin_m": 1e-06,
   "max_iterations": 1024,
   "planes_per_iteration": 1,
-  "surface_components": {},
-  "surface_simplifier_image": "cleany-motion:jp6.2",
   "partition_components": {
     "Lower_Arm_5cm.stl": {
       "2": [

@@ -68,11 +68,20 @@ pluginlib_export_plugin_description_file(dwb_core plugins.xml)
 install(TARGETS axis_generator EXPORT axis_generatorTargets LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(PROGRAMS
+  scripts/mapping_scan_filter scripts/mapping_session
   scripts/pan_motion_gate scripts/depth_clearance scripts/depth_coverage
   scripts/obstacle_memory scripts/voxel_guard scripts/reactive_guard scripts/nav2_bt_trace
+  scripts/nav2_lifecycle_recovery
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
+
+# The tuned MPPI implementation is part of this ROS package.
+add_subdirectory(mppi)
+pluginlib_export_plugin_description_file(nav2_core mppi/controller_plugins.xml)
+pluginlib_export_plugin_description_file(cleany_navigation mppi/critics.xml)
+ament_export_libraries(cleany_mppi_controller cleany_mppi_critics)
+ament_export_dependencies(xtensor xsimd rclcpp_lifecycle nav2_common visualization_msgs tf2 tf2_eigen tf2_geometry_msgs tf2_ros)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

@@ -93,7 +93,7 @@ def adapt_nav2_parameters(document: dict, distro: str) -> dict:
             return {key: convert(item) for key, item in value.items()}
         if isinstance(value, list):
             return [convert(item) for item in value]
-        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_behaviors::')):
+        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_theta_star_planner::', 'nav2_behaviors::')):
             return value.replace('::', '/', 1)
         return value
     result = convert(result)
@@ -289,4 +289,36 @@ def longitudinal_lattice(source: dict) -> dict:
                 for p in candidates):
             raise ValueError(f'Missing longitudinal/rotation primitives for heading {heading}')
     result['lattice_metadata']['number_of_trajectories'] = len(result['primitives'])
+    return result
+
+
+def resolve_default_lattice(document: dict, primitive: Path) -> None:
+    """Resolve the packaged primitive for native Lattice, preserving explicit overrides."""
+    planner = document.get('planner_server', {}).get('ros__parameters', {}).get('GridBased', {})
+    if planner.get('plugin') not in (
+            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice'):
+        return
+    if planner.get('lattice_filepath'):
+        return
+    if not primitive.is_file():
+        raise ValueError(f'Packaged Lattice primitive not found: {primitive}')
+    planner['lattice_filepath'] = str(primitive.resolve())
+
+
+def configure_tof_route(document: dict) -> dict:
+    """Insert command selection before safety and the proximity guard after it."""
+    result = deepcopy(document)
+    for name in ('pan_motion_gate', 'depth_coverage', 'reactive_guard'):
+        params = result.get(name, {}).get('ros__parameters', {})
+        for key in ('command_topic', 'raw_command_topic'):
+            if params.get(key) == 'nav2/cmd_vel':
+                params[key] = 'motion/cmd_vel'
+    monitor = result['collision_monitor']['ros__parameters']
+    if monitor['cmd_vel_in_topic'] == 'nav2/cmd_vel':
+        monitor['cmd_vel_in_topic'] = 'motion/cmd_vel'
+    for name in ('collision_monitor', 'voxel_guard', 'reactive_guard'):
+        params = result.get(name, {}).get('ros__parameters', {})
+        key = 'cmd_vel_out_topic' if name == 'collision_monitor' else 'output_topic'
+        if params.get(key) == 'cmd_vel':
+            params[key] = 'proximity/input'
     return result
