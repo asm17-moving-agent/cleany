@@ -337,6 +337,16 @@ RGB-D, 가짜 모델, 저장된 설정이며 실제 Gemini API, TensorRT/AnyGras
 실패는 없었다. 소스 패치, 환경, 로그, JUnit과 설치 확인 원본은
 `/home/cleany/cleany-data/reports/pr-b-yoloe-cleanup-20261029T230830Z/`에 보관한다.
 
+### 최신 제어 기반 반영 검증 (2026-11-05)
+
+`c79ed45b`에서 #65 `4427480d`를 반영했다. TensorRT 엔진의 사전 로딩 결과를
+인식 상태 발행에 반영하고, RGB-D 진단 서비스와 양쪽 인터페이스 검사를 유지했다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 별도 경로에서 3개 패키지를 빌드했다.
+합성 RGB-D와 가짜 모델을 사용한 `make test-perception-candidates`는 496개 통과,
+실패 0개이며 카메라가 필요한 RealSense 검사 1개는 제외했다. 충돌과 직접 관련된
+71개는 이 수에 포함된다. 로그와 JUnit은 데이터 루트의
+`reports/pr66-merge-20261105.2aYSk4/`에 보관한다.
+
 ## Mission Mock 조작 통합
 
 | 코드와 환경 | 입력과 결과 범위 | 원본 (`cleany-data/runs/` 아래) |
