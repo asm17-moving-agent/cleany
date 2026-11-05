@@ -275,7 +275,7 @@ test-jetson-control-native:
 	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && \
 	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=224 \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
-		--return-code-on-test-failure --packages-select cleany_feetech_hardware cleany_moveit_collision cleany_description cleany_moveit_config
+		--return-code-on-test-failure --packages-select cleany_robot_interface cleany_moveit_collision cleany_description cleany_moveit_config
 
 test-jetson-controller:
 	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \

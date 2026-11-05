@@ -4,6 +4,25 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
+
+PR 65의 `4427480d`에 Feetech 라이브러리를 `cleany_robot_interface`로 옮긴
+패치를 적용했다. Ubuntu 22.04 ARM64 컨테이너에서 ROS 2 Humble,
+ros2_control 2.54.3, MoveIt 2.5.10과 Feetech SDK 1.0.0으로 검사했다.
+
+`make build-jetson-control`로 5개 패키지를 빌드했다. 새 설치에서 기존 플러그인
+ID 등록, Python 실행 파일 6개, 설정 2개와 launch 인자 조회 3개를 확인했다.
+패키지의 C++ 드라이버 검사 11개와 Python 검사 118개, 실물 프로파일과 호스트
+도구를 포함한 `make test-jetson-control` 검사 178개가 통과했다. 검사에는
+저장소의 합성 프로파일과 가짜 버스를 사용했다.
+`make test-jetson-controller`는 설치된 C++ 플러그인과 ROS 컨트롤러를
+가상 시리얼에 연결해 21개 검사를 통과했다. 실물 모터는 연결하지 않았다.
+
+초기 환경에서 MoveIt perception, `fuser`와 Pillow가 누락되어 설치했고,
+컨테이너의 메모리 한도로 중단된 병렬 빌드는 순차 실행으로 완료했다.
+패치, 환경, 로그와 JUnit 원본은
+`CLEANY_DATA_ROOT/reports/pr65-feetech-library/`에 보관한다.
+
 ## PR 65 main 충돌 해소 검증 (2026-11-02)
 
 기존 #65 `db4ebed`에 main `c50c440`을 병합했다. `.gitignore`와 보정, 개발환경,
