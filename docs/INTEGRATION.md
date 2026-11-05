@@ -75,6 +75,7 @@ flowchart TB
 | 공통 base Twist | [Mobile base](../ros2_ws/src/cleany_interfaces/docs/mobile_base.md) |
 | ROS driver, odometry, 구동 허가 | [Base driver](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md) |
 | ROS↔MCU wheel protocol | [Protocol v2](../ros2_ws/src/cleany_base_interfaces/docs/protocol.md) |
+| Navigation 경로 계획과 주행 제어 | [Planning](../ros2_ws/src/cleany_navigation/docs/planning.md) |
 | Navigation 직렬 안전, 관측, 정지 | [Safety](../ros2_ws/src/cleany_navigation/docs/safety.md) |
 | Robot model, 좌표, 형상 | [Model](../ros2_ws/src/cleany_description/docs/model.md) |
 | joint, TCP, MoveIt 그룹 | [Planning](../ros2_ws/src/cleany_moveit_config/docs/planning.md) |

@@ -485,3 +485,107 @@ TEST_F(AxisTest, SwitchingCostIsSoftAndStillDisappearsForGoalCorrection) {
   goal.x=.05;ASSERT_TRUE(critic.prepare(pose,selected,goal,path));
   EXPECT_DOUBLE_EQ(critic.scoreTrajectory(candidate),0.);
 }
+
+TEST_F(AxisTest, HolonomicFirstCommandStaysInBoxWhenMeasuredVelocityOvershoots) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.18;measured.y=-.17;measured.theta=.4;
+  target.x=.15;target.y=-.15;target.theta=.3;
+  geometry_msgs::msg::Pose2D pose;
+  time(10.);generator.startNewIteration(measured); // reset: zero acceleration budget
+  auto trajectory=generator.generateTrajectory(pose,measured,target);
+  EXPECT_LE(trajectory.velocity.x,.15);EXPECT_GE(trajectory.velocity.y,-.15);
+  EXPECT_LE(trajectory.velocity.theta,.3);
+  time(10.001);generator.startNewIteration(measured);
+  trajectory=generator.generateTrajectory(pose,measured,target);
+  EXPECT_LE(trajectory.velocity.x,.15);EXPECT_GE(trajectory.velocity.y,-.15);
+  EXPECT_LE(trajectory.velocity.theta,.3);
+  measured.x=-.18;measured.y=.17;measured.theta=-.4;target.x=-.15;target.y=.15;target.theta=-.3;
+  time(10.002);generator.startNewIteration(measured);
+  trajectory=generator.generateTrajectory(pose,measured,target);
+  EXPECT_GE(trajectory.velocity.x,-.15);EXPECT_LE(trajectory.velocity.y,.15);
+  EXPECT_GE(trajectory.velocity.theta,-.3);
+}
+
+TEST_F(AxisTest, HolonomicBoxClampAlsoAppliesWithoutDirectionPreservation) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  node->set_parameter(rclcpp::Parameter("FollowPath.preserve_translation_direction",false));
+  generator.initialize(node,"FollowPath");
+  nav_2d_msgs::msg::Twist2D measured,target;
+  measured.x=-.18;measured.y=.17;measured.theta=-.4;
+  target.x=-.15;target.y=.15;target.theta=-.3;
+  geometry_msgs::msg::Pose2D pose;
+  time(10.);generator.startNewIteration(measured);
+  auto trajectory=generator.generateTrajectory(pose,measured,target);
+  EXPECT_GE(trajectory.velocity.x,-.15);EXPECT_LE(trajectory.velocity.y,.15);
+  EXPECT_GE(trajectory.velocity.theta,-.3);
+}
+
+TEST_F(AxisTest, TargetRayCorrectsSmallCrossTrackVelocityWithinInheritedBudgets) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  node->set_parameter(rclcpp::Parameter("FollowPath.prefer_target_translation_direction",true));
+  generator.initialize(node,"FollowPath");
+  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.033;measured.y=.002;
+  target.x=.15;target.y=-.001;geometry_msgs::msg::Pose2D pose;
+  time(10.);generator.startNewIteration(measured);
+  time(10.05);generator.startNewIteration(measured);
+  auto trajectory=generator.generateTrajectory(pose,measured,target);
+  const auto &v=trajectory.velocity;
+  EXPECT_NEAR(v.x*target.y-v.y*target.x,0.,1e-12);
+  EXPECT_GT(v.x,measured.x);EXPECT_LT(v.y,0.);
+  EXPECT_LE(std::abs(v.x-measured.x),.4*.05+1e-12);
+  EXPECT_LE(std::abs(v.y-measured.y),.4*.05+1e-12);
+}
+TEST_F(AxisTest, InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  node->set_parameter(rclcpp::Parameter("FollowPath.prefer_target_translation_direction",true));
+  generator.initialize(node,"FollowPath");
+  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.033;measured.y=-.1;
+  target.x=.15;target.y=-.001;geometry_msgs::msg::Pose2D pose;
+  time(10.);generator.startNewIteration(measured);
+  time(10.05);generator.startNewIteration(measured);
+  const auto trajectory=generator.generateTrajectory(pose,measured,target);
+  EXPECT_LE(std::abs(trajectory.velocity.x-measured.x),.4*.05+1e-12);
+  EXPECT_LE(std::abs(trajectory.velocity.y-measured.y),.4*.05+1e-12);
+  EXPECT_LT(trajectory.velocity.y,-.07); // Do not snap to an unreachable ray.
+  const auto braking=generator.generateTrajectory(pose,measured,nav_2d_msgs::msg::Twist2D());
+  EXPECT_NEAR(braking.velocity.x*measured.y-braking.velocity.y*measured.x,0.,1e-12);
+  EXPECT_GT(braking.poses.back().x,0.); // A stop still models finite braking.
+}
+
+TEST_F(AxisTest, CoupledMecanumCapScalesFullTwistAndAllWheelSigns) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.min_vel_x",-.4));
+  node->set_parameter(rclcpp::Parameter("FollowPath.min_vel_y",-.4));
+  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_x",.4));
+  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_y",.4));
+  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_theta",1.));
+  node->set_parameter(rclcpp::Parameter("FollowPath.max_speed_xy",.6));
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  node->set_parameter(rclcpp::Parameter("FollowPath.max_wheel_speed_rad_s",5.));
+  generator.initialize(node,"FollowPath");
+  for(double sign:{1.,-1.}) {
+    nav_2d_msgs::msg::Twist2D measured;measured.x=sign*.30;measured.y=sign*.25;measured.theta=sign*.50;
+    geometry_msgs::msg::Pose2D pose;generator.reset();time(10.);generator.startNewIteration(measured);
+    const auto v=generator.generateTrajectory(pose,measured,measured).velocity;
+    const double k=(.35+.6038)/2.;
+    for(double rate:{(v.x-v.y-k*v.theta)/.0635,(v.x+v.y+k*v.theta)/.0635,
+        (v.x+v.y-k*v.theta)/.0635,(v.x-v.y+k*v.theta)/.0635})EXPECT_LE(std::abs(rate),5.+1e-12);
+    EXPECT_NEAR(v.x/measured.x,v.y/measured.y,1e-12);
+    EXPECT_NEAR(v.x/measured.x,v.theta/measured.theta,1e-12);
+    EXPECT_NEAR((std::abs(v.x)+std::abs(v.y)+k*std::abs(v.theta))/.0635,5.,1e-12);
+  }
+}
+TEST_F(AxisTest, DisabledWheelCapRetainsIndependentBoxAndRejectsBadGeometry) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  nav_2d_msgs::msg::Twist2D measured;measured.x=.15;measured.y=.15;measured.theta=.3;
+  geometry_msgs::msg::Pose2D pose;time(10.);generator.startNewIteration(measured);
+  const auto v=generator.generateTrajectory(pose,measured,measured).velocity;
+  EXPECT_DOUBLE_EQ(v.x,measured.x);EXPECT_DOUBLE_EQ(v.y,measured.y);EXPECT_DOUBLE_EQ(v.theta,measured.theta);
+  node->set_parameter(rclcpp::Parameter("FollowPath.mecanum_wheel_radius_m",0.));
+  EXPECT_THROW(generator.initialize(node,"FollowPath"),std::invalid_argument);
+}

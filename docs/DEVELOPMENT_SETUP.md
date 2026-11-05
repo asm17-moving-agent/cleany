@@ -17,6 +17,9 @@ ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원�
 
 [CI workflow](../.github/workflows/ci.yml)는 [전용 이미지](../containers/ci/Dockerfile)에 설치한 Humble package 의존성으로 자동 검사를 실행합니다. 이미지 갱신과 컴파일 캐시는 [테스트 가이드](TESTING.md#ci-실행과-재사용)를 따릅니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
 
+CI 의존성은 Jetson에서 확인한 ROS upstream 버전과 MuJoCo, google-genai의 Python 의존성을 기준으로 고정합니다.
+CI 이미지의 apt 저장소는 고정 snapshot을 사용합니다. 아래 native 설치 명령은 현재 apt 저장소를 사용하므로 CI와 동일한 세부 버전을 보장하지 않습니다.
+
 ```bash
 lsb_release -ds
 python3 --version
