@@ -72,6 +72,93 @@ GIF, 최대 변화량의 PNG와 입력·출처 JSON을 생성합니다.
 따라 별도로 연결합니다. MuJoCo의 운동학 미리보기는 `cleany_freecad_kinematic.xml`의
 mocap body를 같은 FK로 배치하며 물리 actuator를 사용하지 않습니다.
 
+## FreeCAD MoveIt와 OctoMap 검사
+
+Humble 환경에서 `cleany_description`과 `cleany_moveit_config`를 빌드한 overlay를
+사용합니다. Jetson 기본 MoveIt의 OctoMap 플러그인과 라이브러리 버전이 다르면
+Jetson에 설치된 `moveit-scene-runtime`과 `moveit-octomap-lock`의
+`local_setup.bash`를 overlay 뒤에 읽습니다.
+
+```bash
+export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=177
+ros2 launch cleany_moveit_config freecad_inspection.launch.py
+```
+
+같은 환경의 별도 터미널에서 [검사 명령](TESTING.md#freecad-moveit와-octomap-curobo-검사)을
+실행합니다. 실물 운영 전 필요한 값은
+[FreeCAD 형상 검사 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)에 둡니다.
+
+인덱싱한 충돌 메시를 쓰려면 NumPy, SciPy와 trimesh가 있는 Python으로
+저장소 밖의 새 디렉터리에 캐시를 생성합니다. Jetson의 cuRobo 환경도 사용할
+수 있습니다. 생성한 디렉터리를 검사 launch의 `collision_cache`에 지정합니다.
+
+```bash
+collision_cache="$HOME/cleany-data/freecad-collision-indexed"
+"$HOME/cleany/runtime/curobo-venv/bin/python" tools/prepare_freecad_collision_cache.py \
+  ros2_ws/src/cleany_description "$collision_cache"
+ros2 launch cleany_moveit_config freecad_inspection.launch.py collision_cache:="$collision_cache"
+```
+
+삼각형도 줄이려면 VTK가 있는 오프라인 도구 환경에서 허용할 표면 차이를
+명시합니다. 아래 값은 검사 캐시의 수치 오차 한도이며 실물 보정값이나
+충돌 여유가 아닙니다. 경계와 비다양체 edge, Euler characteristic을 보존하고,
+원본과 결과 표면의 양방향 거리 상한을 검사합니다. 실패한 후보는 더 엄격하게
+다시 만들며, 끝까지 확인되지 않으면 해당 원본 메시를 유지합니다.
+
+```bash
+python3 tools/prepare_freecad_collision_cache.py ros2_ws/src/cleany_description \
+  "$HOME/cleany-data/freecad-collision-reduced" --max-surface-error-m 0.0001 \
+  --preserve-link cad_snapshot_LeftCameraComponents --jobs 4
+```
+
+GPU 대조에서 내부와 외부 판정이 달라지는 링크는 `--preserve-link`로 원본을
+유지합니다. 위 예시는 왼팔 카메라 묶음을 보존하며 두 URDF에 함께 적용됩니다.
+
+MoveIt 검사에서 몸통, 마스트와 마운트를 단순 입체로 바꾸고 팔과 헤드 메시를
+추가 감면하려면 기존 캐시로부터 새 캐시를 만듭니다. 생성 Python에는 NumPy,
+SciPy, trimesh와 VTK가 필요합니다. 부품 선택과 표면 상한은
+`configs/robot/freecad_moveit_collision.json`으로 관리합니다. 몸통은 채우되
+뒤쪽 상판 투입구와 그 아래 공간을 남깁니다. 원본 시각 모델과 관절 좌표는
+입력과 같으며, MoveIt에서는 `freecad_kinematic`으로 읽습니다.
+팔은 기존 분할 외피 방식으로, 마스트는 높이별 8개 외피로 생성합니다.
+카메라 하우징, 집게 구동 로드와 외측 링크도 닫힌 외피로 줄이고, 팁의
+쉘과 삽입부는 같은 링크 안에서 묶습니다. 손목 본체, 서보, 집게 상하판과
+캠 조립부는 구멍과 틈을 유지하는 표면 감면 대상으로 지정합니다.
+`preserve_collision_parts`의 접촉 패드, 운반 링크, 내측 링크와 광학 부품은
+입력 캐시 메시를 유지합니다. 결합부의 구멍과 포크 틈을 채우지 않습니다.
+외피 상한과 입구 보존 조건은
+[형상 검사 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)을 따릅니다.
+검사 launch는 이 외피를 내부가 찬 형상으로 읽기 위해
+`cleany/CADInspectionFCL`과 detector 확인 capability를 자동 선택합니다.
+변경된 `cleany_moveit_collision`, `cleany_moveit_config`를 빌드한 overlay를
+읽은 뒤 실행합니다.
+
+```bash
+moveit_cache="$HOME/cleany-data/freecad-moveit-primitives"
+PYTHONPATH=ros2_ws/src/cleany_moveit_config python3 tools/prepare_freecad_moveit_cache.py \
+  ros2_ws/src/cleany_description "$HOME/cleany-data/freecad-collision-reduced" "$moveit_cache" --jobs 4
+ros2 launch cleany_moveit_config freecad_inspection.launch.py collision_cache:="$moveit_cache"
+```
+
+cuRobo의 정적 mesh world는 링크별 합치기를 미리 수행할 수 있습니다.
+같은 overlay를 읽고 cuRobo 환경에서 아래 명령으로 별도 캐시를 만듭니다.
+이 캐시에는 현재 CAD 저장 자세가 들어가며 관절 움직임을 표현하지 않습니다.
+단순 입체와 추가 감면을 함께 반영하려면 위에서 만든 `moveit_cache`를 입력합니다.
+박스는 기본 cuboid로 저장합니다. 박스를 삼각형으로 변환한 성능 대조 캐시가
+필요하면 `--write-world-cache`와 함께 `--mesh-boxes`를 지정합니다.
+
+```bash
+python3 tools/validation/check_freecad_curobo.py ros2_ws/src/cleany_description \
+  --collision-cache "$moveit_cache" \
+  --write-world-cache "$HOME/cleany-data/freecad-curobo-world"
+python3 tools/validation/check_freecad_curobo.py ros2_ws/src/cleany_description \
+  --world-cache "$HOME/cleany-data/freecad-curobo-world"
+```
+
+cuRobo 검사 도구는 캐시 형상에서 거리 검색 범위를 계산합니다. 외부 solver에
+연결할 때도 manifest의 `required_mesh_query_distance_m`을 적용하는
+[검사 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)을 따릅니다.
+
 ## 실행 선택과 준비 순서
 
 ```mermaid

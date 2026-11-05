@@ -359,6 +359,7 @@
       <geom name="HeadPanServoCase" type="mesh" mesh="HeadPanServoCase" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
       <geom name="HeadPanServoFront" type="mesh" mesh="HeadPanServoFront" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
       <geom name="HeadPanServoMiddle" type="mesh" mesh="HeadPanServoMiddle" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" />
+      <geom name="HeadPanIdlerHorn" type="mesh" mesh="HeadPanIdlerHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" />
       <geom name="LidarPlate" type="mesh" mesh="LidarPlate" rgba="0.239215686275 0.6 0.819607843137 1" contype="0" conaffinity="0" group="2" />
       <geom name="RPLidarA1M8__chunk_00" type="mesh" mesh="RPLidarA1M8__chunk_00" rgba="0.188235294118 0.211764705882 0.239215686275 1" contype="0" conaffinity="0" group="2" />
       <geom name="RPLidarA1M8__chunk_01" type="mesh" mesh="RPLidarA1M8__chunk_01" rgba="0.188235294118 0.211764705882 0.239215686275 1" contype="0" conaffinity="0" group="2" />
@@ -601,7 +602,6 @@
     <body name="cad_head_pan" mocap="true" pos="0.0874177404373 -7.4623620002e-06 1.05961152356">
       <geom name="HeadPanBracket" type="mesh" mesh="HeadPanBracket" rgba="0.349019607843 0.470588235294 0.619607843137 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />
       <geom name="HeadPanDriveHorn" type="mesh" mesh="HeadPanDriveHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />
-      <geom name="HeadPanIdlerHorn" type="mesh" mesh="HeadPanIdlerHorn" rgba="0.749019607843 0.780392156863 0.811764705882 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />
       <geom name="HeadTiltServoCase" type="mesh" mesh="HeadTiltServoCase" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />
       <geom name="HeadTiltServoFront" type="mesh" mesh="HeadTiltServoFront" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />
       <geom name="HeadTiltServoMiddle" type="mesh" mesh="HeadTiltServoMiddle" rgba="0.16862745098 0.188235294118 0.211764705882 1" contype="0" conaffinity="0" group="2" pos="-0.0874177404373 7.4623620002e-06 -0.679611523562" />

@@ -3191,7 +3191,7 @@
           "name": "RightCamera_FixedMount",
           "mesh": "meshes/freecad_final/RightCamera_FixedMount.stl",
           "triangles": 4568,
-          "sha256": "e8f0b5535843d5a47b2cbd2f9b0de2c0dfc4df2f9845f3a625bbbcd4c44d60c0"
+          "sha256": "5d0bac935052a990151ff668bd6fc0e1ca190d78d0a6f7b30ede6f18eca32176"
         }
       ],
       "bounds_base_link_m": [
@@ -3203,7 +3203,7 @@
         [
           0.14493720656655293,
           -0.3223424994480761,
-          0.5940357146428987
+          0.5949549679746416
         ]
       ]
     },
@@ -3263,19 +3263,19 @@
           "name": "RightCamera_Lens",
           "mesh": "meshes/freecad_final/RightCamera_Lens.stl",
           "triangles": 140,
-          "sha256": "361788c43e0bdc9dfe25412687c72506cc639658e73353ed530f91637d60ce38"
+          "sha256": "74b6b54dbfff8799831c214f80d10f2978c2b2e79cb73aac82aa43e4f335fce7"
         }
       ],
       "bounds_base_link_m": [
         [
           0.11252720656655293,
-          -0.37601460031296563,
-          0.5448297006815419
+          -0.3665013436896046,
+          0.5561671584397031
         ],
         [
           0.13052720656655295,
-          -0.34789163664081424,
-          0.5734826687374528
+          -0.34789163664081435,
+          0.5734826687374527
         ]
       ]
     },
@@ -3299,19 +3299,19 @@
           "name": "RightCamera_Glass",
           "mesh": "meshes/freecad_final/RightCamera_Glass.stl",
           "triangles": 140,
-          "sha256": "2285a84a01a5f58de2b19eee647bc47f8a99d04d61b73aa5d7dd82e00a096ce7"
+          "sha256": "1d7b1b403416455503b53460eaa0ee89757ab90d474e50e97ed0c2756a2ef041"
         }
       ],
       "bounds_base_link_m": [
         [
           0.11468720656655293,
-          -0.3746170593597033,
-          0.5459117041412171
+          -0.3651038027363423,
+          0.5572491618993782
         ],
         [
           0.1283672065665529,
-          -0.36388045633396104,
-          0.5550114564189766
+          -0.35436719971060004,
+          0.5663489141771377
         ]
       ]
     },
@@ -5891,7 +5891,7 @@
           "name": "LeftCamera_FixedMount",
           "mesh": "meshes/freecad_final/LeftCamera_FixedMount.stl",
           "triangles": 4568,
-          "sha256": "4471ebfd19df715b75b9dbce52e3ac94136baa24227c12d662e59106adef9c33"
+          "sha256": "2b0e5a8f9c4e0be419aec2e88549b7d8f716c261a4524b14cbe611bf9cf19766"
         }
       ],
       "bounds_base_link_m": [
@@ -5903,7 +5903,7 @@
         [
           0.1418827934334479,
           0.366971843097189,
-          0.5940357146428987
+          0.5949549679746416
         ]
       ]
     },
@@ -5963,19 +5963,19 @@
           "name": "LeftCamera_Lens",
           "mesh": "meshes/freecad_final/LeftCamera_Lens.stl",
           "triangles": 140,
-          "sha256": "f9a21f205527222dad73f965696f2f51f93d1bff76abf41456effe68b436f915"
+          "sha256": "30caefaa73ffd2eec21c6c9576ef9db42b1c67a9c3d0bf7d2969db1f4466e55b"
         }
       ],
       "bounds_base_link_m": [
         [
           0.10947279343344789,
-          0.34789163664081424,
-          0.5448297006815419
+          0.34789163664081435,
+          0.5561671584397031
         ],
         [
           0.1274727934334479,
-          0.37601460031296563,
-          0.5734826687374528
+          0.3665013436896045,
+          0.5734826687374527
         ]
       ]
     },
@@ -5999,19 +5999,19 @@
           "name": "LeftCamera_Glass",
           "mesh": "meshes/freecad_final/LeftCamera_Glass.stl",
           "triangles": 140,
-          "sha256": "856217bce4687688b702eff3c83f71866f54e55d1c1f74f235157cd4aa120306"
+          "sha256": "58f7840537580b96d1c3c249bea1208deaf2b02e54687d17576ffc9c3887ca05"
         }
       ],
       "bounds_base_link_m": [
         [
           0.11163279343344788,
-          0.36388045633396104,
-          0.5459117041412171
+          0.35436719971060004,
+          0.5572491618993782
         ],
         [
           0.1253127934334479,
-          0.3746170593597033,
-          0.5550114564189766
+          0.3651038027363423,
+          0.5663489141771377
         ]
       ]
     },
@@ -11035,5 +11035,23 @@
       ],
       "collision": false
     }
-  ]
+  ],
+  "wrist_camera_depth": {
+    "schema_version": 1,
+    "source": "User caliper measurements confirmed against the CAD A, B and C datums on 2026-11-05",
+    "lens_front_to_pcb_back_mm": 9.5,
+    "lens_front_to_mount_back_mm": 26.7,
+    "optical_forward_base_link": {
+      "Right": [
+        0.0,
+        -0.6427876096865399,
+        -0.7660444431189777
+      ],
+      "Left": [
+        0.0,
+        0.6427876096865399,
+        -0.7660444431189777
+      ]
+    }
+  }
 }

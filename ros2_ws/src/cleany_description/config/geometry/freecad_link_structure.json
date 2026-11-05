@@ -150,7 +150,6 @@
       "parts": [
         "HeadPanBracket",
         "HeadPanDriveHorn",
-        "HeadPanIdlerHorn",
         "HeadTiltServoCase",
         "HeadTiltServoFront",
         "HeadTiltServoMiddle"

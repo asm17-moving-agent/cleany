@@ -647,6 +647,21 @@
         <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoMiddle.stl" scale="1 1 1" />
       </geometry>
     </collision>
+    <visual name="HeadPanIdlerHorn_visual">
+      <origin xyz="-0 -0 -0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+      <material name="HeadPanIdlerHorn_color">
+        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
+      </material>
+    </visual>
+    <collision name="HeadPanIdlerHorn_collision">
+      <origin xyz="-0 -0 -0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
     <visual name="LidarPlate_visual">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
@@ -4017,21 +4032,6 @@
       <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanDriveHorn.stl" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="HeadPanIdlerHorn_visual">
-      <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
-      </geometry>
-      <material name="HeadPanIdlerHorn_color">
-        <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
-      </material>
-    </visual>
-    <collision name="HeadPanIdlerHorn_collision">
-      <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanIdlerHorn.stl" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="HeadTiltServoCase_visual">

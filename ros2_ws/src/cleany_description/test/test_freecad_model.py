@@ -111,6 +111,34 @@ def test_source_units_ground_alignment_and_shorter_frame() -> None:
     assert right[:, 1].max() < 0 < left[:, 1].min()
 
 
+def test_wrist_camera_depth_uses_confirmed_caliper_datums() -> None:
+    recipe = json.loads(
+        (PACKAGE / "config/geometry/freecad_wrist_camera_depth.json").read_text()
+    )
+    assert MANIFEST["wrist_camera_depth"] == recipe
+    parts = {part["name"]: part for part in MANIFEST["parts"]}
+    for side, direction in recipe["optical_forward_base_link"].items():
+        axis = np.array(direction)
+
+        def depths(role: str) -> np.ndarray:
+            part = parts[f"{side}Camera_{role}"]
+            return np.concatenate(
+                [triangles(PACKAGE / mesh["mesh"]).reshape(-1, 3) for mesh in part["meshes"]]
+            ) @ axis
+
+        front = depths("Glass").max()
+        board = depths("PCB")
+        lens = depths("Lens")
+        assert lens.min() == pytest.approx(board.max(), abs=1e-7)
+        assert lens.max() == pytest.approx(depths("Glass").min(), abs=1e-7)
+        assert (front - board.min()) * 1000 == pytest.approx(
+            recipe["lens_front_to_pcb_back_mm"], abs=0.001
+        )
+        assert (front - depths("FixedMount").min()) * 1000 == pytest.approx(
+            recipe["lens_front_to_mount_back_mm"], abs=0.001
+        )
+
+
 def test_screen_texture_is_packaged_without_a_fake_solid() -> None:
     (item,) = MANIFEST["image_planes"]
     image = PACKAGE / "meshes/freecad_final/idle.png"

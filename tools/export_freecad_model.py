@@ -13,7 +13,7 @@ import json
 import struct
 import warnings
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -443,6 +443,62 @@ def add_part_geometry(
                 )
 
 
+def apply_wrist_camera_depth(parts: list[Part], recipe: dict) -> list[Part]:
+    """Fit the lens and mount to measured optical depths with the PCB fixed."""
+    if recipe["schema_version"] != 1:
+        raise ValueError("Unknown wrist camera depth recipe")
+    lens_to_board, lens_to_mount = (
+        float(recipe[name]) * 0.001
+        for name in ("lens_front_to_pcb_back_mm", "lens_front_to_mount_back_mm")
+    )
+    if not 0 < lens_to_board < lens_to_mount < np.inf:
+        raise ValueError("Expected positive camera depths with the mount behind the PCB")
+    by_name = {part.name: part for part in parts}
+    changed = {}
+    axes = recipe["optical_forward_base_link"]
+    if set(axes) != {"Left", "Right"}:
+        raise ValueError("Expected both wrist camera axes")
+    for side, axis_values in axes.items():
+        axis = np.asarray(axis_values, dtype=float)
+        if axis.shape != (3,) or not np.isclose(np.linalg.norm(axis), 1, atol=1e-9, rtol=0):
+            raise ValueError(f"Expected a unit optical axis for {side}")
+        lens, glass, board, mount = (
+            by_name[f"{side}Camera_{name}"]
+            for name in ("Lens", "Glass", "PCB", "FixedMount")
+        )
+        board_back, board_front = np.sort(board.vertices @ axis)[[0, -1]]
+        lens_back, lens_front = np.sort(lens.vertices @ axis)[[0, -1]]
+        glass_back, glass_front = np.sort(glass.vertices @ axis)[[0, -1]]
+        if not np.allclose(
+            [lens_back, lens_front], [board_front, glass_back], atol=1e-6, rtol=0
+        ):
+            raise ValueError(f"{side} camera interfaces do not match the source assembly")
+        front = board_back + lens_to_board
+        glass_shift = front - glass_front
+        lens_length = glass_back + glass_shift - board_front
+        if lens_length <= 0 or lens_front <= lens_back:
+            raise ValueError(f"{side} measured depth cannot fit the PCB and glass")
+        lens_depths = lens.vertices @ axis
+        fitted = board_front + (
+            (lens_depths - lens_back) * lens_length / (lens_front - lens_back)
+        )
+        changed[lens.name] = replace(
+            lens, vertices=lens.vertices + (fitted - lens_depths)[:, None] * axis
+        )
+        changed[glass.name] = replace(glass, vertices=glass.vertices + glass_shift * axis)
+
+        mount_depths = mount.vertices @ axis
+        rear = mount_depths.min()
+        rear_face = np.isclose(mount_depths, rear, atol=1e-6, rtol=0)
+        target = front - lens_to_mount
+        if rear_face.all() or target >= mount_depths[~rear_face].min():
+            raise ValueError(f"{side} measured mount face would cross the remaining mount")
+        vertices = mount.vertices.copy()
+        vertices[rear_face] += (target - mount_depths[rear_face])[:, None] * axis
+        changed[mount.name] = replace(mount, vertices=vertices)
+    return [changed.get(part.name, part) for part in parts]
+
+
 def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str, Any]:
     """Write metre-scale assets and static model files under a package directory."""
     if not np.isfinite(deflection_mm) or deflection_mm <= 0:
@@ -461,6 +517,11 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
         )
     with ZipFile(source) as archive:
         parts, metadata = read_assembly(archive, deflection_mm)
+        camera_recipe = package / "config/geometry/freecad_wrist_camera_depth.json"
+        camera_depth = None
+        if camera_recipe.is_file():
+            camera_depth = json.loads(camera_recipe.read_text())
+            parts = apply_wrist_camera_depth(parts, camera_depth)
         mesh_dir = package / "meshes" / PROFILE
         mesh_dir.mkdir(parents=True, exist_ok=True)
         urdf = ET.Element("robot", name="cleany_freecad_final_static")
@@ -529,6 +590,9 @@ def export(source: Path, package: Path, deflection_mm: float = 0.35) -> dict[str
             "parts": [],
             "image_planes": [],
         }
+
+        if camera_depth is not None:
+            manifest["wrist_camera_depth"] = camera_depth
 
         def group_link(groups: tuple[str, ...]) -> ET.Element:
             group = groups[-1] if groups else "assembly"

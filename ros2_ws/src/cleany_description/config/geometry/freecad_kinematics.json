@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_sha256": "91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0",
-  "recipe_sha256": "a305fb4bc830a7c5c2a55a2473499956a65af5510e2dea062d51b07b6b415103",
+  "recipe_sha256": "aeb0096c46f0bf450f66190c2d7b8d480d921d1997cfe1a22905a71d0333da07",
   "coordinate": "delta_radians_from_saved_CAD_assembly",
   "axis_sign": "largest_base_link_component_positive; not encoder direction",
   "limits": {
@@ -6730,7 +6730,6 @@
       "parts": [
         "HeadPanBracket",
         "HeadPanDriveHorn",
-        "HeadPanIdlerHorn",
         "HeadTiltServoCase",
         "HeadTiltServoFront",
         "HeadTiltServoMiddle"
@@ -9450,7 +9449,7 @@
     "HeadPanServoFront": "base_link",
     "HeadPanServoMiddle": "base_link",
     "HeadPanDriveHorn": "cad_head_pan",
-    "HeadPanIdlerHorn": "cad_head_pan",
+    "HeadPanIdlerHorn": "base_link",
     "HeadTiltServoCase": "cad_head_pan",
     "HeadTiltServoFront": "cad_head_pan",
     "HeadTiltServoMiddle": "cad_head_pan",

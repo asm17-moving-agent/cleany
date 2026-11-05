@@ -64,6 +64,8 @@ def test_axes_have_independent_servo_and_horn_evidence() -> None:
 def test_every_part_has_one_owner_and_gripper_has_no_actuator() -> None:
     owners = KINEMATICS["part_owners"]
     assert set(owners) == {p["name"] for p in STATIC["parts"]}
+    assert owners["HeadPanIdlerHorn"] == "base_link"
+    assert owners["HeadPanDriveHorn"] == "cad_head_pan"
     for spec in KINEMATICS["links"]:
         if spec.get("source_kind") == "gripper_pin_loop":
             continue

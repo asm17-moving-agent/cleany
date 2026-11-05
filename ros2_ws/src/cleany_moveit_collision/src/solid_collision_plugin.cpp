@@ -13,5 +13,16 @@ public:
     return true;
   }
 };
+
+class CADInspectionCollisionPlugin : public collision_detection::CollisionPlugin
+{
+public:
+  bool initialize(const planning_scene::PlanningScenePtr& scene) const override
+  {
+    scene->allocateCollisionDetector(CADInspectionCollisionAllocator::create());
+    return true;
+  }
+};
 }  // namespace cleany
 PLUGINLIB_EXPORT_CLASS(cleany::SolidCollisionPlugin, collision_detection::CollisionPlugin)
+PLUGINLIB_EXPORT_CLASS(cleany::CADInspectionCollisionPlugin, collision_detection::CollisionPlugin)
