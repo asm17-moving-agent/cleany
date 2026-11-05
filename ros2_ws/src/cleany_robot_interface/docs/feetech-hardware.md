@@ -1,25 +1,14 @@
-# cleany_feetech_hardware
+# Feetech 하드웨어 플러그인
 
-Feetech STS3215 및 STS3250 서보 모터를 위한 네이티브 `ros2_control` 하드웨어 플러그인입니다.
+`cleany_feetech_hardware/FeetechSystem`은 `cleany_robot_interface`에 포함된
+Feetech STS3215 및 STS3250 서보 모터용 `ros2_control` 하드웨어 플러그인입니다.
 - **제어 범위**: 양팔 및 그리퍼 12개 관절의 위치(Position) 명령 제어 + 머리 2개 관절의 위치 상태 조회
 - **구동 모드**: 기본 기동은 **READ 전용(읽기 전용)** 모드이며, 모터 쓰기(제어) 모드는 로봇별 외부 프로파일을 명시할 때만 활성화됩니다.
 
 ## 1. 실행 및 검증
 
-설정과 기동은 `cleany_robot_interface/real_control.launch.py`가 담당합니다. 로봇별 `profile_file`과 `control_file`을 명시해야 합니다.
-
-```bash
-# 기본 READ 전용 모드 실행 (모터 쓰기 차단)
-ros2 launch cleany_robot_interface real_control.launch.py
-
-# 쓰기 허용 모드 실행 (로봇 프로파일 명시)
-ros2 launch cleany_robot_interface real_control.launch.py read_only:=false
-```
-
-- **테스트 및 검증**:
-  - C++ 통신 및 패킷 검증: `make test-jetson-native`
-  - 프로파일 및 상태 감시 검증: `make test-jetson-packages`
-  - 가상 시리얼(PTY) 기반 제어기 검사: `make test-jetson-controller`
+실물 제어 실행은 [실행 가이드](../../../../docs/RUNNING.md#jetson-실물-실행-경로),
+C++ 드라이버와 가상 시리얼 검사는 [테스트 가이드](../../../../docs/TESTING.md#jetson-실물-변경-검증)를 따릅니다.
 
 ## 2. 구현 계약 및 안전 정책
 

@@ -85,6 +85,9 @@ MoveIt의 실물 관절 한계 및 호스트 도구를 검사합니다.
 범위는 `JETSON_CONTROL_TEST_PATHS`, pytest 옵션은
 `JETSON_CONTROL_PYTEST_ARGS`로 지정합니다.
 
+`test-jetson-control-native`는 `cleany_robot_interface`의 C++ Feetech 드라이버와
+Python 검사, 모델과 MoveIt 패키지의 colcon 검사를 실행합니다.
+
 `test-jetson-controller`는 PTY 가상 시리얼과 실제 C++ 드라이버, ROS 컨트롤러를 연결합니다.
 실물 USB 포트를 열지 않으며 읽기 전용, 쓰기 제한, 정지와 통신 장애를 검증합니다.
 `JETSON_CONTROLLER_TEST_ARGS`로 검사 범위를 지정할 수 있습니다.

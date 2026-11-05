@@ -1,6 +1,7 @@
 # cleany_robot_interface
 
 Feetech 모터 상태 조회, 안전 가드(Controller Guard), 손목 RGB 카메라 제어 및 실물 제어 실행을 담당하는 패키지입니다.
+실물 제어에서 사용하는 Feetech 하드웨어 플러그인도 이 패키지에서 빌드하고 설치합니다.
 (Mission Manager의 범용 Mock/Sim/Real 어댑터 전체를 포괄하는 패키지는 아닙니다.)
 
 ## 1. 사전 준비 및 설정
@@ -12,6 +13,7 @@ Feetech 모터 상태 조회, 안전 가드(Controller Guard), 손목 RGB 카메
 ## 2. 관련 가이드 링크
 
 - **상세 인터페이스 및 토픽 규격**: [interfaces.md](docs/interfaces.md)
+- **Feetech 드라이버 계약**: [feetech-hardware.md](docs/feetech-hardware.md)
 - **실물 로봇 구동 절차**: [RUNNING 가이드](../../../docs/RUNNING.md#jetson-실물-실행-경로)
 - **하드웨어 없는 가상 검증**: [TESTING 가이드](../../../docs/TESTING.md#jetson-실물-변경-검증)
 - **가상 시리얼 제어기 검사**: `runtime_test/` 아래의 PTY 테스트는 실제 하드웨어 포트를 열지 않고 가상 시리얼로 안전하게 동작을 검증합니다.

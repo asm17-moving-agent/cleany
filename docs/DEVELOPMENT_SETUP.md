@@ -229,6 +229,9 @@ pnpm build
 
 실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
 ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
+`cleany_robot_interface` 빌드는 Python 노드와 Feetech C++ 플러그인을 함께 설치합니다.
+Feetech 드라이버를 별도 패키지로 빌드한 환경에서 전환할 때는 새 `CLEANY_BUILD_ROOT`를
+사용하고 이전 install을 source하지 않은 셸에서 빌드합니다.
 
 rosdep의 pip 규칙에는 패키지 이름을 사용하고, CI의 Feetech SDK 1.0.0 고정은
 [`pip-constraints.txt`](../containers/ci/pip-constraints.txt)에서 관리합니다. 같은 버전으로
