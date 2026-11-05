@@ -734,7 +734,7 @@ test-motion-native:
 	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && source "$(INSTALL_BASE)/setup.bash" && \
 	cd "$(ROS2_WS)" && ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(MOTION_TEST_DOMAIN_ID) \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
-		--return-code-on-test-failure --packages-select cleany_scene_mapping cleany_moveit_capabilities cleany_moveit_collision cleany_feetech_hardware
+		--return-code-on-test-failure --packages-select cleany_scene_mapping cleany_moveit_capabilities cleany_moveit_collision cleany_robot_interface
 
 test-motion-runtime:
 	CLEANY_TEST_BATCH_VALIDITY=1 CLEANY_TEST_OCTOMAP_RUNTIME=1 CLEANY_TEST_ARM_MESH_RUNTIME=1 $(MAKE) test-motion-foundation MOTION_TEST_PATHS="$(ROS2_WS)/src/cleany_moveit_config/runtime_test" MOTION_PYTEST_ARGS="$(MOTION_PYTEST_ARGS)"
