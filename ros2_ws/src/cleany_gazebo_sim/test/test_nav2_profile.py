@@ -49,9 +49,10 @@ def test_mppi_controller_preserves_mecanum_lateral_motion() -> None:
     controller = params['FollowPath']
 
     assert params['min_y_velocity_threshold'] == 0.001
-    assert controller['plugin'] == 'nav2_mppi_controller::MPPIController'
+    assert controller['plugin'] == 'cleany_navigation::MPPIController'
     assert controller['motion_model'] == 'Omni'
     assert controller['PathAngleCritic']['mode'] == 1
+    assert controller['CostCritic']['consider_footprint'] is True
     assert controller['vy_max'] > 0.0
     assert controller['vx_max'] <= 0.3
     assert controller['vy_max'] <= 0.3
@@ -116,7 +117,9 @@ def test_package_declares_nav2_runtime_dependencies() -> None:
         'nav2_controller',
         'nav2_lifecycle_manager',
         'nav2_map_server',
-        'nav2_mppi_controller',
+        'nav2_smac_planner',
+        'xtensor',
+        'xsimd',
         'nav2_navfn_planner',
         'nav2_planner',
     } <= dependencies

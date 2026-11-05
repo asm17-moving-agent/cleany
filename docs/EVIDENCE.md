@@ -4,6 +4,93 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## Nav2 복구 자료의 저장소 외부 보관
+
+PR #73의 복구 자료 `recovered/nav2/`는 구현 코드와 분리해 데이터 루트의
+`archives/pr73-recovery-cleanup-20261102-c978e838/recovered/nav2/`로 옮겼다.
+이동 전 Git 기준은 `c978e838e9f9cca8afb1bb386fa7c960c47bfdb4`이며, 원본 출처와
+검증 기록은 보관 디렉터리의 `README.md`, `INDEX.json`, `provenance/`에 있다.
+활성 MPPI 구현과 설정은 `ros2_ws/src/cleany_navigation/`에 유지한다.
+
+## PR #73 snapshot 다운로드 지연
+
+`25b8eca28ad7f493087d68464385414203715a32`의
+[CI 41379752233](https://github.com/asm17-moving-agent/cleany/actions/runs/41379752233)은
+Ubuntu snapshot의 반복된 HTTP 502와 503으로 이미지 생성에서 33분 이상 경과해 중단했다.
+코드 빌드와 테스트는 시작하지 않았다. 의존성 명령 재시도뿐 아니라 APT의 파일별 재시도가 누적됐다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41379752233.log`다.
+
+서명이 검증된 snapshot index의 SHA256과 크기를 유지하면서 동일 pool 파일을 archive 미러에서
+먼저 받는 다운로드 도구를 추가했다. SHA256 또는 크기가 다르면 cache에 넣지 않으며 snapshot으로
+돌아간다. 미러 index를 읽거나 버전을 변경하지 않는다. 설치 명령 다운로드 5분과 이미지 생성
+15분 상한을 추가하고 APT 자체 재시도 1회, 명령 실행 최대 2회로 줄였다.
+다운로드 도구와 기존 CI 도구의 자동 검사 24건이 통과했다. 고정 amd64 컨테이너에서
+이전 실패 패키지 `libxrandr-dev`, `mesa-vulkan-drivers`, `python3-pip-whl`,
+`python3-setuptools-whl`을 미러 다운로드와 SHA256 검증으로 재설치했다.
+이후 버전 검사에서 Python 36개와 공통 ROS 311개가 계속 일치했다.
+설치 로그는 같은 데이터 루트의 `pr73-combined/pr73-mirror-install.log`다.
+
+## PR #73 통합 빌드의 병렬 제한과 MPPI 계약 검사
+
+2026-11-02에 PR head `25b8eca28ad7f493087d68464385414203715a32`와 아래 수정 내용을
+고정 의존성 amd64 이미지 `61625b7ef43b330932899ca41fa455e0570962dbc1549dba6ae221a583b160d0`에서 검증했다.
+컨테이너는 CPU 3개 분량과 메모리 8 GiB로 제한했다. 첫 빌드에서는 colcon이
+`CMAKE_BUILD_PARALLEL_LEVEL=2`에도 `-j12 -l12`를 주입해 MPPI 컴파일러 5개가 OOM으로 종료됐다.
+`MAKEFLAGS=-j2 -l2`를 함께 전달한 뒤 28개 패키지가 빌드됐고 추가 OOM은 없었다.
+
+통합 검사에서 이전 GoalDirectedController와 배포판 MPPI를 기대하던 assertion 6건이 실패했다.
+기대 플러그인을 현재 Cleany MPPI로 갱신하고 Omni, 횡이동, footprint 비용과 Smac Lattice 조건을 확인했다.
+검사를 제거하거나 제어 설정을 완화하지 않았다. 관련 검사 22건과 전체 2820 reported tests가
+통과했다(errors/failures 0, 기존 skip 32). 별도 Nav2 synthetic ROS 실행 검사 3건,
+Gazebo 센서/TF 실행 검사 1건과 motor core 검사도 통과했다.
+실제 로봇 검증은 수행하지 않았다.
+
+원본 로그는 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-combined/`에 보관한다.
+
+## CI 의존성의 Jetson 버전 기준
+
+PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한
+[CI 41377740118](https://github.com/asm17-moving-agent/cleany/actions/runs/41377740118)은
+이미지 생성 중 Ubuntu snapshot 서버가 패키지 4개에 HTTP 502를 반환해 실패했다.
+`ros-humble-mujoco-ros2-control` 설치 단계에서 중단됐으며 코드 빌드와 테스트에는 도달하지 않았다.
+고정 snapshot과 Python constraints를 유지한 채 APT 다운로드 재시도 및 의존성 준비 명령의 제한된 재시도를 추가했다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41377740118-failed.log`다.
+
+2026-11-02에 `jetson-orin`의 Ubuntu 22.04 arm64 system Python과 `dpkg-query -W`를 읽었다.
+최종 검증 기준은 `c50c440540a7c5c4c0736635d9d122b4736b2a47`이며 변경은 `feat/ci-dependency-pinning` 작업 트리에서 검증했다.
+실물의 패키지 설치와 설정은 변경하지 않았다.
+
+ROS `2026-08-07` snapshot의 amd64와 arm64 package index 모두 Jetson의 ROS 패키지 388개와 upstream 버전이 일치했다.
+아키텍처별 Debian 빌드 시각은 비교에서 제외했다. MuJoCo `3.11.0`과 google-genai `2.18.0`의 Python 의존성 36개를 조회해 constraints로 보존했다.
+Ubuntu 저장소는 `20260807T000000Z` snapshot으로 고정했다. 이는 Jetson 전체 OS 패키지나 JetPack의 동일성을 뜻하지 않는다.
+
+로컬 arm64 이미지 생성은 해당 ROS snapshot에 `ros-humble-ros-gz-sim`이 없어 실패했다.
+같은 snapshot의 amd64에는 `0.244.25-1jammy.20260726.122251`이 있어 실제 CI와 같은 amd64에서 검증한다.
+첫 amd64 생성은 베이스에 남은 TF2 `0.25.20` 등과 Jetson의 `0.25.22` 차이를 버전 검사에서 감지해 실패했다.
+`rosdep install`이 이미 설치된 패키지를 갱신하지 않아, workspace 설치 전에 베이스 ROS 패키지를 snapshot으로 동기화하도록 수정했다.
+재생성은 저장소의 SHA256과 대조한 APT 파일 캐시를 사용하며 workspace 빌드와 테스트 결과는 재사용하지 않는다.
+첫 workspace 빌드는 BT.CPP `4.9.1`의 CMake export가 `lib/`에서 라이브러리를 찾지만 실제 파일은 `lib/x86_64-linux-gnu/`에 있어 실패했다.
+같은 바이너리에 대한 호환 링크를 추가한 뒤 `cleany_manipulation_bt` 단독 빌드를 통과했다.
+최종 검증은 amd64 Ubuntu 22.04, Python 3.10.12 컨테이너에서 새 workspace 빌드 디렉터리와 앞선 시도의 컴파일 캐시를 사용했다. 모든 테스트는 다시 실행했다.
+
+초기 `326c237c` 기준의 24개 패키지 빌드와 2,561개 검사도 통과했다.
+검증 도중 병합된 ToF와 Supervisor를 포함하도록 `c50c4405`에 동기화한 뒤 아래 전체 검사를 다시 실행했다.
+
+| 검사 | 결과 |
+|---|---|
+| 의존성 이미지 생성과 버전 검사 | Python 36개, 공통 ROS 311개 일치 |
+| `make test-ci-tools` | 13개 통과 |
+| `make test`: 전체 빌드 | 27개 패키지 통과 |
+| `make test`: workspace 검사 | 2,720개, 오류와 실패 0개, skip 32개 |
+| `make test-motor-core` | 통과 |
+| 합성 Navigation runtime | 3개 통과 |
+| Gazebo sensor/TF runtime | 1개 통과 |
+
+설치 버전, 이미지 ID와 dependency key는 원본의 `amd64-current/image.json`, `amd64-current/dpkg-packages.txt`, `amd64-current/pip-packages.txt`에 남겼다.
+
+원본 Jetson 환경, package index, 이미지 빌드와 검사 로그는 데이터 루트의
+`reports/ci-dependency-pinning-20261102/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
