@@ -2,7 +2,7 @@ feetech-servo-sdk:
   ubuntu:
     pip:
       packages:
-        - feetech-servo-sdk==1.0.0
+        - feetech-servo-sdk
 google-genai:
   ubuntu:
     pip:

@@ -11,6 +11,13 @@ FIELDS = {
     'slam': {'slam_submaps_topic': ('SLAM 서브맵', '/submap_list'), 'slam_trajectory_topic': ('SLAM 궤적', '/trajectory_node_list'), 'slam_constraints_topic': ('SLAM 제약선', '/constraint_list'), 'slam_matched_points_topic': ('SLAM 매칭 점군', '/scan_matched_points2')},
     'logs': {'rosout_topic': ('ROS 로그', '/rosout')},
 }
+FIELDS['motion'].update({
+    'wheel_state_topic': ('휠 원본 상태', '/base/wheel_state'),
+    'wheel_command_topic': ('휠 원본 명령', '/base/wheel_command'),
+    'joint_state_topic': ('휠 관절 상태', '/joint_states'),
+    'canonical_odometry_topic': ('Canonical odometry', '/odom'),
+})
+FIELDS['slam']['raw_scan_topic'] = ('가공 전 LiDAR', '/scan_raw')
 SCHEMA = {key: dict(group=group, label=label, multiple=isinstance(default, list)) for group, fields in FIELDS.items() for key,(label,default) in fields.items()}
 
 
@@ -64,6 +71,8 @@ def validate_source_enabled(value):
 # Recording bounds follow the monitor's observation cadence and payload cost.
 # None preserves received event records without an additional time-based filter.
 SOURCE_DEFAULT_HZ = {
+    'wheel_state_topic': None, 'wheel_command_topic': None, 'joint_state_topic': None,
+    'canonical_odometry_topic': 5., 'raw_scan_topic': 10.,
     'slam_submaps_topic': 2., 'slam_trajectory_topic': 2., 'slam_constraints_topic': 2., 'slam_matched_points_topic': 2.,
     'runtime_debug_topic': 1.0,
     'runtime_events_topic': None,
@@ -107,6 +116,11 @@ for key, spec in SCHEMA.items():
 # Publisher reference bounds, separate from recording and UI processing limits.
 # Event/input-driven topics have planning estimates, not physical hard limits.
 SOURCE_MAX_HZ = {
+    'wheel_state_topic': (50., 'estimate', 'MCU feedback rate depends on the active firmware'),
+    'wheel_command_topic': (50., 'code', 'Base driver steady timer: 0.02 s'),
+    'joint_state_topic': (50., 'estimate', 'Fresh MCU feedback rate'),
+    'canonical_odometry_topic': (50., 'estimate', 'Wheel odometry input rate'),
+    'raw_scan_topic': (10., 'estimate', 'LiDAR scan mode and motor rate dependent'),
     **{f'slam_{key}_topic': (5., 'estimate', 'Cartographer 발행 설정 의존; 관측 처리 최대 2 Hz') for key in ('submaps', 'trajectory', 'constraints', 'matched_points')},
     'runtime_debug_topic': (2., 'code', 'mission_manager/node.py: debug snapshot 최소 간격 0.5초'),
     'runtime_events_topic': (100., 'estimate', '이벤트 burst 기준 추정; 고정 발행 상한 없음'),

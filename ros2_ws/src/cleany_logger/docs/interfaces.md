@@ -75,3 +75,11 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 
 Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않는다. 처리 중인 요청이
 완료됐을 수 있으므로 `status`로 확인한다. CLI 종료는 별도 정지 요청을 보내지 않는다.
+
+## 실물 매핑 원본
+
+선택 가능한 motion 출처에 `wheel_state_topic`, `wheel_command_topic`, `joint_state_topic`,
+`canonical_odometry_topic`을, SLAM 출처에 `raw_scan_topic`을 추가한다. 기본 토픽은 각각
+`/base/wheel_state`, `/base/wheel_command`, `/joint_states`, `/odom`, `/scan_raw`다.
+허용 원본 타입은 WheelState, WheelCommand, JointState, Odometry, LaserScan으로 제한한다.
+매핑 프로필은 이 출처를 수신마다 기록하고 `/scan`, TF, 지도와 함께 한 Logger session에 보존한다.

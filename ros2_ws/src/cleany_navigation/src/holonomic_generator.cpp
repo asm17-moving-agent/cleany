@@ -73,6 +73,24 @@ void HolonomicGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &n
   const auto direction_key=name+".preserve_translation_direction";
   if(!node->has_parameter(direction_key))node->declare_parameter(direction_key,true);
   preserve_translation_direction_=node->get_parameter(direction_key).as_bool();
+  const auto target_direction_key=name+".prefer_target_translation_direction";
+  if(!node->has_parameter(target_direction_key))node->declare_parameter(target_direction_key,false);
+  prefer_target_translation_direction_=node->get_parameter(target_direction_key).as_bool();
+  double wheelbase=.35,separation=.6038;
+  for(auto entry:{std::make_pair("max_wheel_speed_rad_s",&max_wheel_speed_),
+      std::make_pair("mecanum_wheel_radius_m",&wheel_radius_),
+      std::make_pair("mecanum_wheelbase_m",&wheelbase),
+      std::make_pair("mecanum_wheel_separation_m",&separation)}) {
+    const auto key=name+"."+entry.first;
+    if(!node->has_parameter(key))node->declare_parameter(key,*entry.second);
+    *entry.second=node->get_parameter(key).as_double();
+  }
+  if(!std::isfinite(max_wheel_speed_) || max_wheel_speed_<0. ||
+     !std::isfinite(wheel_radius_) || wheel_radius_<=0. ||
+     !std::isfinite(wheelbase) || wheelbase<=0. ||
+     !std::isfinite(separation) || separation<=0.)
+    throw std::invalid_argument(name+" mecanum wheel limits/geometry");
+  wheel_lever_=(wheelbase+separation)/2.;
   const auto continuity_key=name+".continuity_samples";
   if(!node->has_parameter(continuity_key))node->declare_parameter(continuity_key,false);
   continuity_samples_=node->get_parameter(continuity_key).as_bool();
@@ -192,16 +210,57 @@ dwb_msgs::msg::Trajectory2D HolonomicGenerator::generateTrajectory(
 nav_2d_msgs::msg::Twist2D HolonomicGenerator::computeNewVelocity(
   const nav_2d_msgs::msg::Twist2D &target,const nav_2d_msgs::msg::Twist2D &current,double dt) {
   auto result=StandardTrajectoryGenerator::computeNewVelocity(target,current,dt);
-  if(!preserve_translation_direction_)return result;
-  // Share one progress fraction between X/Y while respecting BOTH inherited
-  // component budgets. From rest (and while braking to zero), bearing stays
-  // constant instead of turning toward 45 degrees as both components saturate.
-  double progress=1.;
-  const double delta[]={target.x-current.x,target.y-current.y};
-  const double allowed[]={result.x-current.x,result.y-current.y};
-  for(int i=0;i<2;++i)if(std::abs(delta[i])>1e-12)
-    progress=std::min(progress,std::clamp(std::abs(allowed[i]/delta[i]),0.,1.));
-  result.x=current.x+progress*delta[0];result.y=current.y+progress*delta[1];
+  if(preserve_translation_direction_) {
+    const auto projected=result;
+    // Share one progress fraction between X/Y while respecting BOTH inherited
+    // component budgets. Keep this segment ramp as the fallback when reaching
+    // the target bearing would require too much lateral acceleration/braking.
+    double progress=1.;
+    const double delta[]={target.x-current.x,target.y-current.y};
+    const double allowed[]={result.x-current.x,result.y-current.y};
+    for(int i=0;i<2;++i)if(std::abs(delta[i])>1e-12)
+      progress=std::min(progress,std::clamp(std::abs(allowed[i]/delta[i]),0.,1.));
+    result.x=current.x+progress*delta[0];result.y=current.y+progress*delta[1];
+    if(prefer_target_translation_direction_ && std::hypot(target.x,target.y)>1e-12) {
+      // Intersect the target ray with the inherited reachable component box.
+      // This can correct small measured cross-track velocity immediately,
+      // instead of amplifying it into bearing jitter at low commanded speed.
+      // The sampled target is unchanged; all normal rollouts/critics still run.
+      double lower=0.,upper=1.;bool feasible=true;
+      const double target_xy[]={target.x,target.y},current_xy[]={current.x,current.y},
+        projected_xy[]={projected.x,projected.y};
+      for(int i=0;i<2;++i) {
+        const double lo=std::min(current_xy[i],projected_xy[i]);
+        const double hi=std::max(current_xy[i],projected_xy[i]);
+        if(std::abs(target_xy[i])<=1e-12) {
+          if(lo>0. || hi<0.)feasible=false;
+        } else {
+          const double a=lo/target_xy[i],b=hi/target_xy[i];
+          lower=std::max(lower,std::min(a,b));upper=std::min(upper,std::max(a,b));
+        }
+      }
+      if(feasible && lower<=upper) {
+        result.x=upper*target.x;result.y=upper*target.y;
+      }
+    }
+  }
+  // Measured odometry can overshoot the commanded box. Acceleration limiting
+  // alone would then emit out-of-box commands while braking. Apply component
+  // caps inside the rollout so critics check the same first command we emit.
+  auto limits=kinematics_handler_->getKinematics();
+  result.x=std::clamp(result.x,limits.getMinX(),limits.getMaxX());
+  result.y=std::clamp(result.y,limits.getMinY(),limits.getMaxY());
+  result.theta=std::clamp(result.theta,-limits.getMaxTheta(),limits.getMaxTheta());
+  if(max_wheel_speed_>0.) {
+    const double rotation=wheel_lever_*result.theta;
+    const double wheel_max=std::max({std::abs(result.x-result.y-rotation),
+      std::abs(result.x+result.y+rotation),std::abs(result.x+result.y-rotation),
+      std::abs(result.x-result.y+rotation)})/wheel_radius_;
+    if(wheel_max>max_wheel_speed_) {
+      const double scale=max_wheel_speed_/wheel_max;
+      result.x*=scale;result.y*=scale;result.theta*=scale;
+    }
+  }
   return result;
 }
 }

@@ -90,6 +90,8 @@ yoloe-trt-build yoloe-trt-export yoloe-trt-validate:
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 
 help:
+	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
+	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
 	@echo "  make test-moveit-collision    Test solid collision plugin and installed MoveIt services"
@@ -120,6 +122,7 @@ help:
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
 	@echo "  make test-mission-runtime  Build and test mission ROS packages"
 	@echo "  make build-mission-mock / test-mission-mock  Build and test the integrated Mock Action"
+	@echo "  make test-supervision-core / test-supervision  Supervisor core, ROS graph and E2E with latency report"
 	@echo "  make test-gazebo-manipulation  Check study-cafe Nav2 + two Mock Action collections"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
@@ -201,7 +204,7 @@ micro-ros-agent-build:
 deps:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	rosdep install --from-paths src --ignore-src -r -y
+	rosdep install --from-paths src --ignore-src --skip-keys "sllidar_ros2 micro_ros_agent" -r -y
 
 deps-gazebo:
 	source "$(ROS_SETUP)" && \
@@ -392,6 +395,41 @@ test-mission-runtime: build-mission-runtime
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
+
+.PHONY: build-supervision test-supervision-core test-supervision
+SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
+SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
+SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/supervision/latency.json
+# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+build-supervision: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to $(SUPERVISION_PACKAGES)
+
+test-supervision-core:
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_system_supervisor:$(ROS2_WS)/src/cleany_safety_adapter:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_core.py" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_scenarios.py" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_runtime_supervision.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_arm_health.py"
+
+test-supervision: build-supervision
+	source "$(ROS_SETUP)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	mkdir -p "$$(dirname "$(SUPERVISION_LATENCY_REPORT)")" && rm -f "$(SUPERVISION_LATENCY_REPORT)" && \
+	ROS_DOMAIN_ID=$(SUPERVISION_TEST_ROS_DOMAIN_ID) SUPERVISOR_LATENCY_REPORT="$(SUPERVISION_LATENCY_REPORT)" \
+	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_interfaces/test" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_navigation/test/test_lifecycle_recovery.py" && \
+	echo "latency report: $(SUPERVISION_LATENCY_REPORT)"
 
 .PHONY: build-mission-mock test-mission-mock test-gazebo-manipulation
 build-mission-mock:
@@ -612,6 +650,48 @@ test-logger-cli:
 .PHONY: test-ci-tools
 test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
+
+.PHONY: build-teleop-ui build-hardware-mapping test-hardware-mapping-core
+build-teleop-ui:
+	npm ci --prefix ros2_ws/src/cleany_teleop/ui
+	npm run build --prefix ros2_ws/src/cleany_teleop/ui
+
+build-hardware-mapping: build-teleop-ui
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_bringup'
+
+test-hardware-mapping-core:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONPATH=ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
+	node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
+
+.PHONY: test-hardware-mapping-runtime
+test-hardware-mapping-runtime:
+	@test -n "$(MAPPING_TEST_OUTPUT)" || (echo 'Set MAPPING_TEST_OUTPUT to a new artifact directory'; exit 2)
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=173 && python3 "$(REPO_ROOT)ros2_ws/src/cleany_bringup/runtime_test/hardware_mapping_probe.py" --output "$(MAPPING_TEST_OUTPUT)"'
+
+.PHONY: test-hardware-mapping
+test-hardware-mapping:
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && export ROS_DOMAIN_ID=174 BASE_TEST_ROS_DOMAIN_ID=174 CLEANY_RUN_ROS_TESTS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && colcon --log-base "$(LOG_BASE)" test --executor sequential --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_interfaces cleany_base_driver cleany_base_odometry cleany_navigation cleany_teleop cleany_logger cleany_bringup && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
+
+.PHONY: test-hardware-mapping-replay
+test-hardware-mapping-replay:
+	@test -n "$(MAPPING_BAG)" -a -n "$(MAPPING_TEST_OUTPUT)" || (echo 'Set MAPPING_BAG and MAPPING_TEST_OUTPUT'; exit 2)
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=175 && python3 "$(REPO_ROOT)ros2_ws/src/cleany_bringup/runtime_test/mapping_replay_probe.py" --bag "$(MAPPING_BAG)" --output "$(MAPPING_TEST_OUTPUT)"'
+
+.PHONY: run-hardware-mapping
+HARDWARE_MAPPING_ARGS ?=
+run-hardware-mapping:
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && ros2 launch cleany_bringup hardware_mapping.launch.py $(HARDWARE_MAPPING_ARGS)'
+
+.PHONY: test-tof-core build-tof test-tof
+
+test-tof-core:
+	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_tof/test/test_observation_policy.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
+
+build-tof:
+	$(BASE_EXEC) bash -c 'source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_tof cleany_mission_manager cleany_system_supervisor cleany_base_driver'
+
+test-tof: build-tof
+	$(BASE_EXEC) bash -c 'source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_navigation:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_interfaces cleany_tof cleany_mission_manager cleany_system_supervisor cleany_safety_adapter --return-code-on-test-failure && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
 
 .PHONY: test-description-models
 test-description-models:

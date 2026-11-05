@@ -8,18 +8,25 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 import rclpy
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from rclpy.task import Future
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+
+from cleany_interfaces.action import StopMission
 
 from cleany_interfaces.msg import (MissionResult, MissionStatus, DebugBTNode,
                                     RuntimeDebugSnapshot, RuntimeEvent)
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
 from cleany_mission_manager.adapters.config import load_targets, validate_manipulation_fixture
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
+from cleany_mission_manager.adapters.desk_approach import DeskApproachPort
+from cleany_mission_manager.core.staged_navigation import StagedNavigator
 from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
+from cleany_mission_manager.adapters.supervision import RosSupervision
 from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
 from cleany_mission_manager.core.journal import MissionJournal
 from cleany_mission_manager.core.operations import DeferredPort
@@ -34,7 +41,8 @@ class MissionRuntimeNode(Node):
 
     Subscriptions:
         robot/safety_fault and robot/safety_released (std_msgs/msg/String):
-            E_STOP or HARDWARE_ERROR notifications from the safety owner.
+            E_STOP or HARDWARE_ERROR notifications from the safety owner; only
+            with supervision_mode=disabled. Supervised, the Supervisor owns them.
         odom (nav_msgs/msg/Odometry): Stop evidence with the Nav2 backend;
             odom_topic default.
         navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray):
@@ -57,6 +65,9 @@ class MissionRuntimeNode(Node):
             (cleany_interfaces/srv/GetManipulationExecution), configurable.
 
     Actions:
+        mission/stop (cleany_interfaces/action/StopMission): Server for Supervisor
+            stop requests when supervised; stopped=True only after this Runtime
+            confirmed its own operations stopped. stop_action default.
         navigate_to_pose (nav2_msgs/action/NavigateToPose): Client in Nav2 mode.
         mock/manipulation/execute_skill
             (cleany_interfaces/action/ExecuteManipulationSkill): Configurable
@@ -72,6 +83,10 @@ class MissionRuntimeNode(Node):
     Notes:
         State transitions run on a steady-clock tick. A safety notification
         assumes its producer has already stopped hardware; it is not a stop actuator.
+        supervision_mode=required (default) adds RosSupervision: admission needs
+        Supervisor availability, motion needs a lease and Nav2 lifecycle checks
+        move to the Supervisor. disabled keeps the standalone behavior for mock
+        and simulation runs and is recorded in each report's execution profile.
     """
     def __init__(self, **kwargs) -> None:
         super().__init__("mission_runtime", **kwargs)
@@ -84,6 +99,7 @@ class MissionRuntimeNode(Node):
             "odom_topic": "odom", "input_timeout": 1.5,
             "stopped_linear_speed": 0.03, "stopped_angular_speed": 0.05,
             "navigation_settle_timeout": 3.0,
+            "desk_approach_enabled": False, "desk_distance_m": 0.75,
             "arrival_position_tolerance": 0.08, "arrival_yaw_tolerance": 0.15,
             "arrival_pose_timeout": 0.5,
             "lifecycle_timeout": 3.0,
@@ -98,6 +114,9 @@ class MissionRuntimeNode(Node):
             "manipulation_mock_fixture": "",
             "manipulation_mock_snapshot_ids": ["mock-snapshot-001", "mock-snapshot-002",
                                                "mock-snapshot-003", "mock-snapshot-004"],
+            "supervision_mode": "required", "supervision_capabilities": ["NAVIGATION"],
+            "supervision_heartbeat_timeout": 1.0, "supervision_request_timeout": 1.0,
+            "permission_timeout": 3.0, "stop_action": "mission/stop",
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -131,8 +150,26 @@ class MissionRuntimeNode(Node):
         backend = value("navigation_backend")
         if backend not in ("nav2", "mock"):
             raise ValueError("navigation_backend must be nav2 or mock")
-        self.navigator = (Nav2Navigator(self, self.targets, self.journal) if backend == "nav2"
+        mode = value("supervision_mode")
+        if mode not in ("required", "disabled"):
+            raise ValueError("supervision_mode must be required or disabled")
+        self.supervision = RosSupervision(
+            self, list(value("supervision_capabilities")),
+            heartbeat_timeout=float(value("supervision_heartbeat_timeout")),
+            request_timeout=float(value("supervision_request_timeout")),
+        ) if mode == "required" else None
+        self.navigator = (Nav2Navigator(self, self.targets, self.journal,
+                                        check_lifecycle=self.supervision is None) if backend == "nav2"
                           else DeferredPort(lambda _: ModuleResult.success(), polls=10))
+        if value("desk_approach_enabled"):
+            if backend != "nav2":
+                raise ValueError("desk approach requires Nav2 staging")
+            distance = float(value("desk_distance_m"))
+            if not isfinite(distance) or distance <= 0:
+                raise ValueError("desk_distance_m must be finite and positive")
+            navigation = self.navigator
+            self.navigator = StagedNavigator(navigation, DeskApproachPort(
+                self, self.journal, navigation._base_stopped, distance, self.supervision))
         self.runtime = MissionRuntime(
             navigator=self.navigator, perception=self.desk.perception, planner=self.desk.planner,
             executor=self.manipulation, clock=time.monotonic,
@@ -141,8 +178,9 @@ class MissionRuntimeNode(Node):
             policy=RuntimePolicy(manipulation_destinations=(value("manipulation_destination"),),
                                  **{name: value(name) for name in (
                 "post_mission", "navigation_timeout", "cleaning_timeout", "operation_timeout",
-                "cancel_timeout", "max_actions", "max_skill_retries",
+                "cancel_timeout", "permission_timeout", "max_actions", "max_skill_retries",
             )}),
+            supervision=self.supervision,
         )
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.status_pub = self.create_publisher(MissionStatus, "mission/status", qos)
@@ -151,9 +189,17 @@ class MissionRuntimeNode(Node):
         self.create_service(CancelMission, "mission/cancel", self._cancel)
         self.create_service(GetRuntimeSnapshot, "mission/snapshot", self._snapshot)
         self.create_service(Trigger, "mission/reset_error", self._reset)
-        # Notification only: the backend producing this signal owns physical stop first.
-        self.create_subscription(String, "robot/safety_fault", self._fault, 10)
-        self.create_subscription(String, "robot/safety_released", self._released, 10)
+        self.stop_waiters: list[Future] = []
+        if self.supervision is None:
+            # Notification only: the backend producing this signal owns physical stop first.
+            self.create_subscription(String, "robot/safety_fault", self._fault, 10)
+            self.create_subscription(String, "robot/safety_released", self._released, 10)
+        else:
+            # Independent safety evidence reaches the Runtime only through Supervisor
+            # authority; a second, unsupervised fault path would compete with it.
+            self.stop_server = ActionServer(self, StopMission, value("stop_action"), self._stop_mission,
+                                            goal_callback=self._stop_goal,
+                                            cancel_callback=lambda _: CancelResponse.REJECT)
         self.debug_pub = self.create_publisher(RuntimeDebugSnapshot, "mission/debug_snapshot", qos)
         self.event_pub = self.create_publisher(RuntimeEvent, "mission/runtime_events",
             QoSProfile(depth=2048, durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -204,10 +250,33 @@ class MissionRuntimeNode(Node):
             result = self.runtime.safety_released(FailureCode(message.data))
             self.get_logger().info(f"Safety release: {result.accepted} {result.reason}")
 
+    def _stop_goal(self, request):
+        admission = self.runtime.supervisor_stop(request.mission_id, request.reason)
+        return GoalResponse.ACCEPT if admission.accepted else GoalResponse.REJECT
+
+    async def _stop_mission(self, goal):
+        """Report stopped only after this Runtime confirmed its own operations stopped."""
+        # The Runtime's own stop budget bounds the answer; a slower stop is a failure.
+        deadline = time.monotonic() + self.runtime.policy.cancel_timeout + 0.5
+        while rclpy.ok() and time.monotonic() < deadline:
+            if self.runtime.supervisor_stop_confirmed(goal.request.mission_id):
+                goal.succeed()
+                return StopMission.Result(stopped=True, detail="mission terminal and operations stopped")
+            goal.publish_feedback(StopMission.Feedback(state=self.runtime.state.value))
+            future = Future()
+            self.stop_waiters.append(future)
+            await future
+        goal.abort()
+        return StopMission.Result(stopped=False, detail="stop not confirmed before the Runtime stop deadline")
+
     def _tick(self):
-        if isinstance(self.navigator, Nav2Navigator):
+        if isinstance(self.navigator, (Nav2Navigator, StagedNavigator)):
             self.navigator.maintain()
         self.runtime.tick()
+        waiting, self.stop_waiters = self.stop_waiters, []
+        for future in waiting:
+            if not future.done():
+                future.set_result(None)
         try:
             self._publish_debug()
         except Exception as exc:
@@ -258,7 +327,7 @@ class MissionRuntimeNode(Node):
             data["manipulation_details"] = dict(self.manipulation.details)
         data["modules"]["navigation"].update({
             "topics": ["/" + self.get_parameter("odom_topic").value.lstrip("/"), "/tf", "/cmd_vel"],
-            "actions": ["navigate_to_pose"] if isinstance(self.navigator, Nav2Navigator) else [],
+            "actions": ["navigate_to_pose"] if isinstance(self.navigator, (Nav2Navigator, StagedNavigator)) else [],
         })
         data["modules"]["execution"].update({
             "topics": [], "actions": [self.get_parameter("manipulation_action").value]
@@ -268,7 +337,7 @@ class MissionRuntimeNode(Node):
         pose = self.targets.home if target == "home" else self.targets.seats.get(target)
         data["navigation"].update({"goal_pose": asdict(pose) if pose else None,
                                    "frame": self.targets.frame_id})
-        nav = self.navigator
+        nav = self.navigator.navigation if isinstance(self.navigator, StagedNavigator) else self.navigator
         if isinstance(nav, Nav2Navigator):
             now = time.monotonic()
             data["navigation"].update({"lifecycle": nav.active_nodes,
