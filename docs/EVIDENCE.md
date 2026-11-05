@@ -91,6 +91,16 @@ C++ 구현과 ROS 메시지 정의는 이번 정리에서 바뀌지 않았고 �
 정리 전후 소스 패치, 테스트 명령과 JUnit, 원본과 output 보존 비교는
 `/home/cleany/cleany-data/reports/pr-c-cleanup-20261031/`에 보관한다.
 
+### #66 반영 후 모션 기반 검증 (2026-11-05)
+
+`6e0029dc`에서 #66 `e9d15a5e`를 반영하고 중복된 `controller_manager_msgs`
+실행 의존성을 일반 의존성 선언 하나로 통합했다. Jetson Ubuntu 22.04 ARM64와
+ROS 2 Humble의 별도 빌드 경로에서 13개 패키지를 빌드했다. 합성 입력과 가짜
+서비스로 Python 검사 2,623개가 통과했고 RealSense 실물 검사 1개를 제외했다.
+충돌과 직접 관련된 검사 45개는 이 수에 포함된다. 네이티브 검사 4개 패키지의
+colcon 집계는 94개, 오류와 실패는 0개다. 실물 모터는 사용하지 않았다.
+로그와 JUnit은 데이터 루트의 `reports/pr67-68-sync-20261105.dhC9bX/`에 보관한다.
+
 ## Jetson 제어 기반 분리 검증
 
 `3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
