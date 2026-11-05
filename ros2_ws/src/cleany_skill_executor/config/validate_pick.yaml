@@ -1,0 +1,21 @@
+validate_pick_server:
+  ros__parameters:
+    action_name: grasp/validate_pick
+    inspection_action_name: perception/inspect_scene
+    grasp_service_name: grasp/plan
+    selection_action_name: grasp/select_reachable
+    required_arm: ''  # Empty keeps bilateral selection.
+    denylist: [keyboard, cloth, fabric, towel, cable, wire, cord]
+    maximum_smaller_extent_m: 0.095
+    # Full image; reachability is decided by IK and collision/path validation.
+    workspace_roi_pixels: [-1.0, -1.0, -1.0, -1.0]
+    server_wait_timeout_sec: 10.0
+    inspection_timeout_sec: 45.0
+    grasp_timeout_sec: 45.0
+    selection_timeout_sec: 120.0
+    action_timeout_sec: 240.0
+    reference_cleanup_timeout_sec: 5.0
+    perception_debug_topic: perception/debug_image_latched
+    grasp_debug_topic: grasp/debug_image
+    validation_debug_topic: grasp/validate_pick_debug
+    evidence_output_directory: ''

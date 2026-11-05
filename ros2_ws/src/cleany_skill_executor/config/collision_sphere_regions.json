@@ -1,0 +1,102 @@
+{
+  "schema": 2,
+  "sides": [
+    "left",
+    "right"
+  ],
+  "regions": [
+    {
+      "link": "{side}_shoulder_yaw_link",
+      "name": "complete_shoulder_yaw_link",
+      "selectors": []
+    },
+    {
+      "link": "{side}_upper_arm_link",
+      "name": "elbow_upper_housing",
+      "selectors": [
+        {
+          "mesh": "Upper_Arm_Motor.stl",
+          "expected_components": 1
+        },
+        {
+          "mesh": "Upper_Arm_5cm.stl",
+          "axis": 1,
+          "minimum_m": 0.1,
+          "expected_components": 1
+        }
+      ],
+      "sphere_count": 2,
+      "partition_axis": 1
+    },
+    {
+      "link": "{side}_lower_arm_link",
+      "name": "elbow_lower_housing",
+      "selectors": [
+        {
+          "mesh": "Lower_Arm_5cm.stl",
+          "axis": 2,
+          "maximum_m": 0.075,
+          "expected_components": 3
+        }
+      ],
+      "sphere_count": 2,
+      "partition_axis": 2
+    },
+    {
+      "link": "{side}_upper_arm_link",
+      "name": "shoulder_upper_housing",
+      "selectors": [
+        {
+          "mesh": "Upper_Arm_5cm.stl",
+          "axis": 1,
+          "maximum_m": 0.07,
+          "expected_components": 1
+        }
+      ],
+      "sphere_count": 2,
+      "partition_axis": 1
+    }
+  ],
+  "fixed_regions": [
+    {
+      "link": "head_pan_link",
+      "name": "head_pan",
+      "selectors": []
+    },
+    {
+      "link": "head_tilt_link",
+      "name": "head_tilt",
+      "selectors": [
+        {
+          "mesh": "tophead5.stl",
+          "expected_components": 3
+        }
+      ]
+    },
+    {
+      "link": "head_tilt_link",
+      "name": "head_camera",
+      "selectors": [
+        {
+          "mesh": "tophead6.stl",
+          "expected_components": 1
+        }
+      ]
+    }
+  ],
+  "primitive_regions": [
+    {
+      "link": "{side}_gripper_frame",
+      "name": "wrist_camera_mount",
+      "selector": {
+        "collision_name_contains": "wrist_mount_v8_",
+        "expected_components": 15
+      },
+      "sphere_count": 2,
+      "partition_axis": 1,
+      "refine_part_index": 1,
+      "refinement_slack_m": 1e-06,
+      "refinement_max_iterations": 64
+    }
+  ]
+}

@@ -101,3 +101,11 @@ without SIGTERM escalation. It also checks that ROS warnings remain on screen.
 URDF의 관절 위치 범위를 계획 설정에 적용하며 RViz도 같은 모델을 사용합니다.
 `allow_trajectory_execution` 기본값은 `false`입니다. 충돌 검사는 `cleany/SolidFCL`을
 사용하며 `cleany/RequireCollisionDetector`가 요청한 검사기의 로드 실패 시 실행을 종료합니다.
+
+
+## 실물 계획 기반
+
+실물, Mock, 일반 MoveGroup launch는 `cleany/RequireCollisionDetector`와
+`cleany/StateValidityBatch`를 함께 로드한다. 전자는 SolidFCL 초기화를 확인하고 후자는
+전체 장면의 배치 상태 검사를 제공한다. OMPL 시간 배정은
+`cleany/RobustTimeParameterization`을 사용한다. [패키지 계약](../../cleany_moveit_capabilities/README.md)을 따른다.

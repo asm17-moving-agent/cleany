@@ -1,1 +1,4 @@
 ros2_ws/src/cleany_mujoco_sim/assets/*.pdf binary
+
+# Unified patch context includes a single-space prefix on blank lines.
+tools/patches/*.patch whitespace=-blank-at-eol

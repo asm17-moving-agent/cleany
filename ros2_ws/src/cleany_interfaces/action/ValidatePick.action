@@ -1,0 +1,70 @@
+# Run the complete perception-to-MoveIt validation pipeline for one RGB-D
+# snapshot. Empty uses the perception server's configured detector prompt.
+string query
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_PERCEPTION=1
+uint8 ERROR_NO_ELIGIBLE_TARGET=2
+uint8 ERROR_GRASP_PLANNING=3
+uint8 ERROR_MOVEIT=4
+uint8 ERROR_CANCELED=5
+uint8 ERROR_INTERNAL=255
+
+bool success
+uint8 error_code
+string message
+
+# Every detector result is retained. Eligible objects are tried by depth, then
+# object ID. selected_detection is the first object with a validated grasp plan.
+DetectedObject2DArray detections
+DetectedObject2D selected_detection
+DetectedObject3D selected_object
+# Optional YOLOE instance reference pinned before planning. Caller clears it after use.
+string reference_id
+
+# AnyGrasp candidates for the selected object and the exact validated candidate.
+GraspCandidate[] candidates
+int32 selected_candidate_index
+string selected_arm
+GraspCandidate selected_candidate
+sensor_msgs/JointState pregrasp_joint_state
+sensor_msgs/JointState grasp_joint_state
+# Sample-validated, retimed cubic paths when validate_motion_paths is enabled.
+# Empty timing means this result is not an executable trajectory.
+sensor_msgs/JointState planning_start_state
+trajectory_msgs/JointTrajectory pregrasp_trajectory
+trajectory_msgs/JointTrajectory grasp_trajectory
+
+geometry_msgs/Pose fk_pregrasp_pose
+geometry_msgs/Pose fk_grasp_pose
+float32 pregrasp_position_error_m
+float32 grasp_position_error_m
+float32 pregrasp_approach_error_degrees
+float32 pregrasp_closing_error_degrees
+float32 grasp_approach_error_degrees
+float32 grasp_closing_error_degrees
+float32 trajectory_max_approach_error_degrees
+float32 trajectory_max_closing_error_degrees
+float32 gripper_joint_position
+string planner_id
+string[] latency_stages
+float32[] latency_seconds
+
+# Optional evidence artifacts written by the coordinator. Empty means evidence
+# output was disabled or could not be produced.
+string evidence_json_path
+string evidence_grid_path
+---
+uint8 STAGE_DETECTING=1
+uint8 STAGE_FILTERING=2
+uint8 STAGE_SEGMENTING=3
+uint8 STAGE_GRASP_PLANNING=4
+uint8 STAGE_MOVEIT=5
+uint8 STAGE_RECORDING=6
+
+uint8 stage
+string message
+uint32 detection_count
+uint32 candidate_count
+uint32 candidate_index
+string arm

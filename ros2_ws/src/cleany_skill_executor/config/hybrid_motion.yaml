@@ -1,0 +1,50 @@
+# Candidate IK only uses cuRobo; complete-scene checks and planning use MoveIt.
+grasp_selection_server:
+  ros__parameters:
+    motion_backend: curobo_ik_moveit
+    gpu_lock_path: /workspace/cleany/configs/robot/gpu-work.lock
+    maximum_candidates: 32
+    grasp_ik_first: true
+    position_tolerance_m: 0.010  # Operator-supervised pregrasp and grasp: 10 mm.
+    pregrasp_position_tolerance_m: 0.010
+    approach_tolerance_degrees: 30.0  # Shared pregrasp, grasp and approach-path limit.
+    curobo_ik_primary_seeds: 16
+    curobo_ik_fallback_seeds: 32
+    curobo_ik_batch_size: 8
+    # Reuse one captured batch shape for pregrasp and single-target grasp IK.
+    curobo_ik_adaptive_batch_size: false
+    curobo_ik_progressive_pregrasp: true
+    # Refine an existing grasp seed locally; failed checks retain GPU search.
+    curobo_ik_seeded_local_ik: true
+    approach_joint_shortcut_enabled: true
+    curobo_ik_defer_candidate_retries: true
+    # Finish both grasp TCP CUDA captures before collection readiness.
+    curobo_ik_warmup_enabled: true
+    curobo_ik_vlm_warmup_enabled: false
+    curobo_ik_vlm_warmup_arms: [right, left]
+    curobo_ik_vlm_warmup_window_sec: 30.0
+    curobo_ik_warmup_arms: [right, left]
+    curobo_ik_warmup_include_aim: false
+    curobo_ik_warmup_timeout_sec: 180.0
+    curobo_ik_group_gripper_openings: true
+    curobo_ik_iterations: 50
+    curobo_geometry_cache_directory: /opt/cleany-motion/cache/robot-geometry
+    curobo_ik_exclude_opposite_arm_cost: true
+    curobo_ik_pregrasp_retry_passes: 0
+    stop_after_first_feasible: true
+    fast_candidate_paths_first: true
+    deduplicate_candidates: true
+    # Approximate GPU proposal cost only; full MoveIt state/path checks remain.
+    curobo_spheres_per_link: 64
+    curobo_sphere_budget_per_link: 16
+    curobo_sphere_model: joint_simplified
+    curobo_sphere_surface_radius_m: 0.0005
+    curobo_collision_hull_max_expansion_m: 0.001
+    curobo_ik_cpu_fallback: false
+    curobo_planning_retries: 1
+    action_timeout_sec: 480.0
+    robot_description_startup_timeout_sec: 30.0
+    validate_motion_paths: true
+    use_verified_local_fk: true
+    pose_refinement_iterations: 10
+    align_wrist_roll: true

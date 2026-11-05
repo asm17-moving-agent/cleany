@@ -1,0 +1,12 @@
+# Check every state in one locked MoveIt scene; stop at the first invalid state.
+moveit_msgs/RobotState[<=64] robot_states
+string group_name
+moveit_msgs/Constraints constraints
+---
+# False means the request could not be evaluated; never a validity witness.
+bool success
+string message
+# Validity of the checked prefix, including the first invalid state if present.
+bool[<=64] valid
+int32 first_invalid_index
+moveit_msgs/ContactInformation[] contacts

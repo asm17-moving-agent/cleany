@@ -1,0 +1,52 @@
+--- a/planning_scene_monitor/src/planning_scene_monitor.cpp
++++ b/planning_scene_monitor/src/planning_scene_monitor.cpp
+@@ -35,6 +35,7 @@
+ /* Author: Ioan Sucan */
+ 
+ #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
++#include "cleany_mesh_merge.hpp"
+ #include <moveit/robot_model_loader/robot_model_loader.h>
+ #include <moveit/utils/message_checks.h>
+ #include <moveit/exceptions/exceptions.h>
+@@ -818,6 +819,9 @@
+   const std::vector<const moveit::core::LinkModel*>& links = getRobotModel()->getLinkModelsWithCollisionGeometry();
+   auto start = std::chrono::system_clock::now();
+   bool warned = false;
++  const auto preparation_start = std::chrono::steady_clock::now();
++  std::size_t shape_count = 0, mesh_count = 0, vertices = 0, merged_vertices = 0;
++  double merge_sec = 0.0, registration_sec = 0.0;
+   for (const moveit::core::LinkModel* link : links)
+   {
+     std::vector<shapes::ShapeConstPtr> shapes = link->getShapes();  // copy shared ptrs on purpuse
+@@ -827,11 +831,19 @@
+       if (shapes[j]->type == shapes::MESH)
+       {
+         shapes::Mesh* m = static_cast<shapes::Mesh*>(shapes[j]->clone());
+-        m->mergeVertices(1e-4);
++        ++mesh_count;
++        vertices += m->vertex_count;
++        const auto merge_start = std::chrono::steady_clock::now();
++        cleany_scene_mapping::mergeMeshVertices(*m, 1e-4);
++        merge_sec += std::chrono::duration<double>(std::chrono::steady_clock::now() - merge_start).count();
++        merged_vertices += m->vertex_count;
+         shapes[j].reset(m);
+       }
+ 
++      ++shape_count;
++      const auto registration_start = std::chrono::steady_clock::now();
+       occupancy_map_monitor::ShapeHandle h = octomap_monitor_->excludeShape(shapes[j]);
++      registration_sec += std::chrono::duration<double>(std::chrono::steady_clock::now() - registration_start).count();
+       if (h)
+         link_shape_handles_[link].push_back(std::make_pair(h, j));
+     }
+@@ -842,6 +854,10 @@
+       warned = true;
+     }
+   }
++  RCLCPP_INFO(LOGGER, "Robot self-filter geometry ready: shapes=%zu meshes=%zu vertices=%zu merged_vertices=%zu "
++              "merge_sec=%.6f registration_sec=%.6f total_sec=%.6f", shape_count, mesh_count, vertices,
++              merged_vertices, merge_sec, registration_sec,
++              std::chrono::duration<double>(std::chrono::steady_clock::now() - preparation_start).count());
+ }
+ 
+ void PlanningSceneMonitor::includeRobotLinksInOctree()
