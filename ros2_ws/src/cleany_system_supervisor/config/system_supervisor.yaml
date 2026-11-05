@@ -1,0 +1,93 @@
+# Conservative hardware profile: missing safety/arm adapters do NOT imply success.
+# Thresholds are initial integration policy, not certified physical safety limits.
+startup_grace_s: 5.0
+lease_s: 1.5
+heartbeat_timeout_s: 1.0
+# Must exceed the Mission Runtime cancel_timeout (5 s) plus its 0.5 s answer margin,
+# otherwise a stop that the Runtime still confirms in time escalates to a lock.
+stop_timeout_s: 6.0
+# Finished leases/recovery jobs and cleared faults are forgotten after this time.
+retention_s: 300.0
+persistence:
+  # Active latched faults and unconfirmed leases survive a Supervisor restart.
+  state_file: ~/.ros/cleany/system_supervisor_state.json
+essential_capabilities: [BASE_MOTION]
+safety_sources: [safety, estop, publisher_trust]
+recovery_safety_sources: [stopped]
+sources:
+  base:
+    # Grace covers micro-ROS agent/MCU connection at boot (unmeasured initial value).
+    # raise_s filters single feedback gaps; BASE_MOTION is still blocked immediately.
+    {stale_s: 0.3, raise_s: 0.3, clear_s: 0.5, startup_grace_s: 15.0, fault_code: BASE_UNAVAILABLE,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  lidar:
+    {stale_s: 0.5, raise_s: 0.1, clear_s: 0.5, fault_code: LIDAR_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: ''}
+  localization:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 1.0, fault_code: LOCALIZATION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: localization}
+  navigation:
+    {stale_s: 1.5, raise_s: 0.2, clear_s: 0.5, fault_code: NAVIGATION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: navigation}
+  camera:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 0.5, fault_code: CAMERA_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: ''}
+  perception:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 0.5, fault_code: PERCEPTION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: ''}
+  arm:
+    {stale_s: 0.5, raise_s: 0.1, clear_s: 0.5, fault_code: ARM_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: ''}
+  safety:
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: SAFETY_UNVERIFIED,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  estop:
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: ESTOP,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  publisher_trust:
+    # A publisher outside ros.trusted_publishers on a safety/health topic.
+    {stale_s: 3.0, raise_s: 0.0, clear_s: 0.5, fault_code: UNTRUSTED_PUBLISHER,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  stopped:
+    # Motion itself is not a fault. This evidence gates recovery dispatch only.
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: STOP_UNVERIFIED,
+     severity: WARNING, latched: false, locks_operation: false, recovery: '', monitor_only: true}
+capabilities:
+  # TODO(KB review): the KB's initial table puts "arm state that permits base motion" under
+  # BASE_MOTION. Whether the base may move with the current arm state is decided per drive
+  # by the Mission Runtime from the manipulation outcome (safe_to_drive), not here.
+  BASE_MOTION: {sources: [base], depends_on: []}
+  NAVIGATION: {sources: [lidar, localization, navigation], depends_on: [BASE_MOTION]}
+  MANIPULATION: {sources: [arm], depends_on: []}
+  VISUAL_PERCEPTION: {sources: [camera, perception], depends_on: []}
+  MOBILE_MANIPULATION:
+    {sources: [], depends_on: [NAVIGATION, MANIPULATION, VISUAL_PERCEPTION]}
+# Only Nav2 lifecycle-managed components have an owner recovery (nav2_lifecycle_recovery).
+# LiDAR, camera, perception and arm have none: requests return UNSUPPORTED.
+# Automatic dispatch stays off until the lifecycle reset is validated on the robot.
+recovery_policies:
+  localization: &recovery
+    {action: localization/recover, automatic: false, max_attempts: 2,
+     attempt_timeout_s: 15.0, total_timeout_s: 40.0, verify_timeout_s: 5.0, cancel_timeout_s: 2.0}
+  navigation: {<<: *recovery, action: navigation/recover}
+ros:
+  scan_topic: scan
+  pose_topic: amcl_pose
+  camera_topic: camera/head/color/image_raw
+  diagnostics_topic: diagnostics
+  component_health_topic: system/component_health
+  component_sources: [arm, perception]
+  safety_topic: safety/status
+  stop_action: mission/stop
+  # Same nodes the Mission Runtime required before supervision owned this check.
+  navigation_nodes: [planner_server, controller_server, bt_navigator, collision_monitor]
+  localization_nodes: [map_server, amcl]
+  lifecycle_poll_s: 0.5
+  localization_max_variance: 0.5
+  minimum_scan_valid_ratio: 0.1
+  max_sensor_age_s: 1.0
+  diagnostics_period_s: 1.0
+  # Graph-level allowlist (node names are not authenticated; see README / SROS2).
+  trusted_publishers:
+    safety/status: [/safety_adapter]
+    system/component_health: [/arm_health_monitor, /perception_inspector]

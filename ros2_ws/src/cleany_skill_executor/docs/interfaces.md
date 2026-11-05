@@ -38,6 +38,18 @@ Action 이름을 remap하면 서버와 내부 CancelGoal client가 같은 해결
 
 수락, 기록과 취소의 의미는 [공통 Action 계약](../../cleany_interfaces/docs/observation-contracts.md#단일-물체-manipulation-action)을 따른다.
 
+## arm_health_monitor
+
+실행 파일: `arm_health_monitor`. 원본: [arm_health_node.py](../cleany_skill_executor/arm_health_node.py).
+
+| 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
+|---|---|---|---|
+| 토픽 발행 | `system/component_health` | `cleany_interfaces/msg/ComponentHealth` | R10; 20 Hz; `health_topic`, `source=arm` |
+| 토픽 구독 | `joint_states` | `sensor_msgs/msg/JointState` | Sensor; `joint_states_topic` |
+| 서비스 호출 | `controller_manager/list_controllers` | `controller_manager_msgs/srv/ListControllers` | Service 기본값; `poll_s` 0.5초, `controller_manager` |
+
+설정한 arm controller(`controllers`)가 모두 `active`이고 설정한 관절(`joints`)의 위치가 fresh, finite일 때만 AVAILABLE이다. Controller 상태를 확인할 수 없거나 관절을 한 번도 받지 못했으면 UNKNOWN, 비활성 또는 끊긴 feedback은 UNAVAILABLE이다. 가용성만 보고하며, 현재 팔 상태로 base가 움직여도 되는지는 Mission Runtime이 조작 결과의 `safe_to_drive`로 판단한다. 실물 arm controller에서는 검증하지 않았다.
+
 ## manipulation_monitor
 
 실행 파일: `manipulation_monitor`. 원본: [manipulation_monitor_node.py](../cleany_skill_executor/manipulation_monitor_node.py).

@@ -36,6 +36,7 @@ def composition(tmp_path, monkeypatch):
         "journal_path": str(tmp_path / "missions.db"), "bridge_journal_path": str(tmp_path / "bridge.db"),
         "headless": "true", "gateway_url": "ws://localhost/gateway/ws",
         "post_mission": "wait_for_next", "enable_bridge": "false", "enable_telemetry": "false",
+        "supervision": "false", "estop_released_topic": "", "protection_ready_topic": "",
     })
     return module, context
 
@@ -70,7 +71,13 @@ def test_supported_compositions_start_exactly_one_simulator(
         parameters = yaml.safe_load(Path(arguments["params_file"]).read_text())
         controller = parameters["controller_server"]["ros__parameters"]
         assert controller["goal_checker"]["xy_goal_tolerance"] < .08
-        assert controller["FollowPath"]["plugin"] == "cleany_navigation::GoalDirectedController"
+        follow = controller["FollowPath"]
+        assert follow["plugin"] == "cleany_navigation::MPPIController"
+        assert follow["motion_model"] == "Omni"
+        assert follow["vy_max"] > 0
+        assert follow["CostCritic"]["consider_footprint"] is True
+        assert parameters["planner_server"]["ros__parameters"]["GridBased"]["plugin"] in (
+            "nav2_smac_planner::SmacPlannerLattice", "nav2_smac_planner/SmacPlannerLattice")
         safety = yaml.safe_load((Path(__file__).parents[2] / "cleany_gazebo_sim/config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):
             assert parameters[name][name]["ros__parameters"]["footprint"] == safety[name][name]["ros__parameters"]["footprint"]
@@ -114,3 +121,18 @@ def test_configuration_errors_return_no_launch_actions(composition, tmp_path, er
         context.launch_configurations["manipulation_mock_fixture"] = str(path)
     with pytest.raises(ValueError):
         module._start(context)
+
+
+@pytest.mark.parametrize("supervision,mode", [("false", "disabled"), ("true", "required")])
+def test_supervision_flag_selects_runtime_mode_and_supervision_stack(composition, supervision, mode):
+    module, context = composition
+    context.launch_configurations.update(supervision=supervision)
+    actions = module._start(context)
+    includes = [dict(action.launch_arguments) for action in actions if isinstance(action, IncludeLaunchDescription)]
+    runtime = next(arguments for arguments in includes if "supervision_mode" in arguments)
+    assert runtime["supervision_mode"] == mode
+    stacks = [arguments for arguments in includes if "estop_released_topic" in arguments]
+    assert len(stacks) == (1 if supervision == "true" else 0)
+    if stacks:
+        # Simulation has no safety hardware: no evidence topic is invented by default.
+        assert stacks[0]["estop_released_topic"] == stacks[0]["protection_ready_topic"] == ""

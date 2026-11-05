@@ -1,0 +1,7 @@
+# reset starts a new serialized session; stop finalizes it without restarting.
+string request_id
+string operation
+---
+bool accepted
+string operation_id
+string reason

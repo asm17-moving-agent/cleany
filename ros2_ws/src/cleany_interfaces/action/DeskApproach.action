@@ -1,0 +1,17 @@
+# Approach an already staged, front-facing desk. No lateral centering is claimed.
+# Distance is from base_link origin to fitted front plane at y=0, in metres.
+float32 distance_m
+# Identity of the existing Mission lease; the server never acquires authority.
+string mission_id
+string lease_id
+string lease_epoch
+uint64 lease_version
+---
+bool success
+string reason
+float32 distance_m
+float32 yaw_error_rad
+---
+float32 distance_m
+float32 yaw_error_rad
+string state

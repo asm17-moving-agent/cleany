@@ -274,6 +274,12 @@ def test_real_profile_head_and_wrists_share_one_loaded_model(monkeypatch, tmp_pa
                                                           for name, value in profile.items()])
         assert len(instances) == 1
         assert instances[0].prepared == 1  # Engine always validates before advertising services.
+        health = []
+        node._health_publisher = SimpleNamespace(publish=health.append)
+        node._snapshot_buffer = SimpleNamespace(
+            latest_stamp_ns=node.get_clock().now().nanoseconds)
+        node._publish_health()
+        assert health[0].status == health[0].AVAILABLE
         assert instances[0].kwargs['classes'] == tuple(profile['yoloe_classes'])
         for wrapped in (node._wrist_service.detector, node._wrist_service.check_detector,
                         node._wrist_service.right_detector, node._wrist_service.right_check_detector):

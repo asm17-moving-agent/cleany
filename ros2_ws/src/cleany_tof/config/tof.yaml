@@ -1,0 +1,54 @@
+# Commissioning candidates only. Movement stays inhibited until measured values
+# are validated on the mounted robot. Existing independent safety stays enabled.
+/**:
+  ros__parameters:
+    calibrated: false
+    require_supervision: true
+    horizontal_fov: 1.0471975512
+    vertical_fov: 1.0471975512
+    flip_rows: false
+    flip_columns: false
+    sensor_x: 0.0
+    sensor_y: 0.0
+    sensor_z: 0.0
+    sensor_yaw: 0.0
+    sensor_pitch: 0.0
+    sensor_roll: 0.0
+    half_length: 0.48
+    half_width: 0.40
+    margin: 0.08
+    deceleration: 0.3
+    reaction_s: 0.35
+    source_timeout_s: 0.20
+    command_timeout_s: 0.20
+    max_speed: 0.25
+    max_yaw_rate: 0.3
+    # Native zone indices; start broad and exclude floor/self returns after mounting.
+    guard_rows: [0, 1, 2, 3, 4, 5, 6, 7]
+    guard_columns: [0, 1, 2, 3, 4, 5, 6, 7]
+    # Clearance from the footprint after margin + 3 * max_sigma_m, not raw range.
+    obstacle_clearance_m: 0.75
+    emergency_clearance_m: 0.03
+    cluster_distance_m: 0.20
+    min_cluster_zones: 2
+    confirm_s: 0.12
+    release_s: 0.20
+    hysteresis_m: 0.05
+    approach_rows: [2, 3, 4, 5]
+    approach_columns: [0, 1, 2, 3, 4, 5, 6, 7]
+    min_plane_columns: 4
+    min_plane_rows: 2
+    max_sigma_m: 0.03
+    max_range_m: 4.0
+    fit_residual_m: 0.025
+    min_plane_span_m: 0.15
+    max_plane_yaw_rad: 0.35
+    approach_speed: 0.04
+    approach_yaw_rate: 0.08
+    distance_tolerance_m: 0.015
+    yaw_tolerance_rad: 0.025
+    settle_s: 0.6
+    approach_timeout_s: 30.0
+    progress_timeout_s: 5.0
+    stopped_speed: 0.01
+    stopped_yaw_rate: 0.02

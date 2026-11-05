@@ -1,0 +1,11 @@
+string epoch
+string fault_code
+---
+bool restored
+string job_id
+string state
+string detail
+---
+string job_id
+string state
+uint32 attempt

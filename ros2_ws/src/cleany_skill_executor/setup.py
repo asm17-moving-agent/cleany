@@ -40,6 +40,7 @@ setup(
             'validate_pick_server = cleany_skill_executor.validate_pick_node:main',
 
             'manipulation_server = cleany_skill_executor.manipulation_node:main',
+            'arm_health_monitor = cleany_skill_executor.arm_health_node:main',
             'manipulation_monitor = cleany_skill_executor.manipulation_monitor_node:main',
             'manipulation_test_client = cleany_skill_executor.manipulation_client:main',
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',

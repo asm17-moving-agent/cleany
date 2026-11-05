@@ -31,6 +31,8 @@ class RuntimePolicy:
     cleaning_timeout: float = 180.0
     operation_timeout: float = 30.0
     cancel_timeout: float = 5.0
+    # Wait for a Supervisor lease before the first motion; ignored when unsupervised.
+    permission_timeout: float = 3.0
     max_actions: int = 30
     max_skill_retries: int = 2
     manipulation_destinations: tuple[str, ...] = ("mock_trash_bin",)
@@ -42,7 +44,7 @@ class RuntimePolicy:
             raise ValueError("post_mission must be return_home or wait_for_next")
         if any(not isfinite(value) or value <= 0 for value in (
             self.navigation_timeout, self.cleaning_timeout,
-            self.operation_timeout, self.cancel_timeout,
+            self.operation_timeout, self.cancel_timeout, self.permission_timeout,
         )) or self.max_actions < 1 or self.max_skill_retries < 0:
             raise ValueError("timeouts and action budget must be positive; retries nonnegative")
 

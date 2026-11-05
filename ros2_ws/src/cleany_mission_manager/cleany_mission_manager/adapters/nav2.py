@@ -42,8 +42,11 @@ class Nav2Navigator:
     Call maintain() to refresh lifecycle state and cancel journaled goals after
     a restart. Goal results, fresh stopped odometry and localized arrival are
     separate checks; a successful action result alone does not certify arrival.
+    With check_lifecycle=False the System Supervisor owns Nav2 lifecycle
+    availability (NAVIGATION capability) and this adapter does not poll it.
     """
-    def __init__(self, node, targets: TargetMap, journal: MissionJournal) -> None:
+    def __init__(self, node, targets: TargetMap, journal: MissionJournal, *,
+                 check_lifecycle: bool = True) -> None:
         self.node, self.targets, self.journal = node, targets, journal
         self.client = ActionClient(node, NavigateToPose, "navigate_to_pose")
         self.cancel_client = node.create_client(CancelGoal, "navigate_to_pose/_action/cancel_goal")
@@ -57,9 +60,11 @@ class Nav2Navigator:
         self.query_started = {}
         self.state_queries = {}
         required_nodes = node.get_parameter("required_navigation_lifecycle_nodes").value
-        if (not required_nodes or any(not isinstance(name, str) or not name.strip() for name in required_nodes)
+        if check_lifecycle and (
+                not required_nodes or any(not isinstance(name, str) or not name.strip() for name in required_nodes)
                 or len(set(required_nodes)) != len(required_nodes)):
             raise ValueError("required_navigation_lifecycle_nodes must be non-empty unique node names")
+        required_nodes = required_nodes if check_lifecycle else []
         self.state_clients = {
             name: node.create_client(GetState, name + "/get_state") for name in
             required_nodes
