@@ -1,0 +1,2 @@
+# Match the USB device, not video nodes recreated by the helper's driver rebind.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0bda", ATTR{idProduct}=="5844", TAG+="systemd", ENV{SYSTEMD_WANTS}+="cleany-camera-orientation@%k.service"

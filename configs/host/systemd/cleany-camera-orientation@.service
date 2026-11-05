@@ -1,0 +1,24 @@
+[Unit]
+Description=Set DECXIN USB camera %i to 180-degree orientation
+After=systemd-udevd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I /usr/local/libexec/cleany/camera-orientation.py --usb-device %i --roll 3
+RemainAfterExit=no
+TimeoutStartSec=35
+TimeoutStopSec=5
+Restart=no
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ReadWritePaths=/run/lock
+DevicePolicy=closed
+DeviceAllow=char-usb_device rw
