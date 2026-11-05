@@ -66,6 +66,7 @@ flowchart TB
 
 | 경계 | 문서와 원본 |
 |---|---|
+| 실물 수거, 팔 복귀와 복구 | [실행 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md), [BT 인터페이스](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../ros2_ws/src/cleany_interfaces/docs/mission.md) |
 | 시스템 가용성, 실행 허가, 복구 조정, 운영자 reset | [System Supervisor](../ros2_ws/src/cleany_system_supervisor/docs/supervision.md) |
 | 독립 안전 증거 보고 | [Safety adapter](../ros2_ws/src/cleany_safety_adapter/docs/interfaces.md) |

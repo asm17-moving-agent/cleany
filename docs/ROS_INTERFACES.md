@@ -433,3 +433,12 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 ## 로컬 얼굴 디스플레이
 
 `cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독한다. 로봇 명령을 발행하지 않는다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)를 따른다.
+
+## 실물 수거 실행과 복구
+
+| 실행 파일 | 패키지 | 참조 |
+|---|---|---|
+| `manipulation_jetson_server` | `cleany_manipulation_bt` | [BT Action, 복귀와 복구](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
+| `arm_return`, `manipulation_recovery` | `cleany_manipulation_bt` | [명시 요청 client](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
+| `collection_pipeline` | `cleany_skill_executor` | [설정 검사와 명시 실행](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#collection_pipeline) |
+| `manipulation_evidence` | `cleany_skill_executor` | [읽기 전용 실행 근거](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_evidence) |

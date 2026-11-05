@@ -1,7 +1,7 @@
 """One-shot validation, optional MuJoCo pregrasp arrival, and YOLOE-seg observation.
 
 The default mode only calls read-only perception/planning services. Physical
-execution is exposed by the explicit hardware_pregrasp entrypoint.
+execution requires the explicit hardware_pregrasp or collection_pipeline entrypoint.
 This CLI continues to expose only plan_only and mujoco.
 """
 from __future__ import annotations
@@ -171,6 +171,10 @@ class PregraspPipeline(Node):
         if self.wrist_cameras is not None:
             self.wrist_cameras.close()
 
+
+    def request_wrist_camera_stop(self) -> None:
+        if self.wrist_cameras is not None:
+            self.wrist_cameras.request_close()
 
     def destroy_node(self):
         cameras = getattr(self, 'wrist_cameras', None)
@@ -478,7 +482,8 @@ class PregraspPipeline(Node):
 
     def before_execution(self, selected):
         if getattr(self, 'real', None) is not None:
-            raise RuntimeError('Physical execution requires the explicit hardware_pregrasp entrypoint')
+            raise RuntimeError(
+                'Physical execution requires an explicit hardware_pregrasp or collection_pipeline entrypoint')
 
     def release_grasp_scene_freeze(self):
         """Resume OctoMap updates after the full collection cycle or failure."""

@@ -513,3 +513,9 @@ voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(
 ## Jetson 얼굴 디스플레이
 
 전용 앱은 `/home/cleany/cleany-display`에 독립 설치한다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독한다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않는다.
+
+## 실물 수거와 팔 복귀
+
+실물 준비 자세 실행 이후 수거, 복귀와 복구 명령은
+[실물 수거 안내](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md)를 따른다.
+실물 프로필을 명시적으로 입력하며 `make collection-plan`과 실제 실행 명령을 구분한다.
