@@ -143,6 +143,9 @@ jobs:
         run: |
           docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
 
+      - name: Test host camera initialization
+        run: tools/ci/run make test-camera-orientation
+
       - name: Build and test workspace
         run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
 

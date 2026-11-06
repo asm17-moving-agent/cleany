@@ -28,6 +28,70 @@ flowchart TB
 
 `mission_sim.launch.py`는 주행과 Mission 구성을 함께 띄웁니다. Sensor와 Nav2가 이미 준비돼 있다면 `mission_runtime.launch.py`만 붙입니다. 아래에서 실행 목적에 맞는 절차를 선택합니다.
 
+## Jetson USB 카메라 회전
+
+[호스트 설정](DEVELOPMENT_SETUP.md#jetson-orin-usb-카메라-회전)을 설치하면
+DECXIN `0bda:5844` 연결마다 카메라의 UVC Roll을 `3`으로 설정합니다. 이 모듈에서 `3`은
+180도 회전이며 각도가 아닙니다. 영상 변환 프로세스를 상시 실행하지 않습니다.
+
+초기화는 USB 부모 장치의 연결 이벤트로 실행합니다. helper가 `uvcvideo`를 잠시
+분리하고 복구하면서 생기는 video node 이벤트는 다시 초기화를 요청하지 않습니다.
+`/dev/video0` 같은 번호 대신 해당 연결의 USB 장치를 지정하므로 다른 카메라로
+대체하지 않습니다.
+
+1. 캡처 프로그램을 닫고 카메라를 연결합니다.
+2. 초기화 결과를 확인한 뒤 ROS 카메라 노드나 캡처 프로그램을 시작합니다.
+
+```bash
+journalctl -b -u 'cleany-camera-orientation@*.service' --no-pager
+```
+
+정상 완료된 oneshot unit은 `inactive (dead)`로 돌아갑니다. 상시 `active` 상태인지를
+성공 조건으로 사용하지 않습니다. 장치 준비는 최대 10초 기다리고 USB 요청에도
+timeout을 적용합니다. 실패한 unit은 자동 반복하지 않습니다. 원인을 해결한 뒤 수동으로
+다시 시작하거나 USB를 재연결합니다. 잦은 재연결이 start-rate 제한에 걸리지 않도록
+unit의 시작 횟수 제한은 사용하지 않습니다.
+
+연결된 모듈의 USB 이름을 조회할 수 있습니다.
+
+```bash
+for device in /sys/bus/usb/devices/*; do
+  if grep -qx 0bda "$device/idVendor" 2>/dev/null &&
+     grep -qx 5844 "$device/idProduct" 2>/dev/null; then
+    printf '%s\n' "${device##*/}"
+  fi
+done
+```
+
+캡처를 닫은 상태에서 위 출력 중 대상 이름을 지정해 조회하거나 다시 적용합니다.
+예시의 `1-2.3`은 실제 출력으로 바꿉니다.
+
+```bash
+USB_DEVICE=1-2.3
+sudo /usr/bin/python3 -I /usr/local/libexec/cleany/camera-orientation.py \
+  --usb-device "$USB_DEVICE"
+sudo systemctl reset-failed "cleany-camera-orientation@${USB_DEVICE}.service"
+sudo systemctl start "cleany-camera-orientation@${USB_DEVICE}.service"
+```
+
+helper는 이미 사용 중인 video node를 발견하면 드라이버를 분리하지 않고 일시 실패로
+종료합니다. 수동 조회도 USB 인터페이스 확보가 필요하므로 캡처를 먼저 닫습니다.
+초기화 중 카메라를 여는 경쟁을 피하도록 캡처 시작을 초기화 완료 뒤로 배치합니다.
+자동 시작하는 캡처 서비스에는 실제 USB 이름에 대한 다음 의존성을 함께 둡니다.
+
+```ini
+[Unit]
+Requires=cleany-camera-orientation@1-2.3.service
+After=cleany-camera-orientation@1-2.3.service
+```
+
+| 실패 | 확인과 조치 |
+|---|---|
+| 장치 준비 timeout | USB 연결과 `uvcvideo` probe 로그 확인 후 재시도 |
+| 사용 중인 video node 또는 접근 확인 실패 | 캡처 종료와 native host 실행 여부 확인 후 재시도 |
+| 지원하지 않는 Roll 범위 또는 장치 ID | 다른 기종에 적용하지 말고 해당 카메라의 제어 규약 확인 |
+| USB 분리 또는 readback 실패 | 연결을 확인하고 journal의 드라이버 복구 결과 확인 |
+
 ## Gazebo
 
 1. 의존성과 실행 환경을 확인합니다.
