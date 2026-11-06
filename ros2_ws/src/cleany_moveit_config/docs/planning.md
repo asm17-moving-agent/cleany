@@ -93,3 +93,11 @@ it prevents the observed crash without suppressing that warning.
 The runtime regression exercises `/check_state_validity` in the default MuJoCo
 logging mode (`backend_log_level:=warn`) and requires clean SIGINT termination
 without SIGTERM escalation. It also checks that ROS warnings remain on screen.
+
+## 실물 제어 프로파일 연결
+
+`physical_move_group.launch.py`는 `robot_description_file`, `controllers_file`,
+`joint_limits_file`로 생성된 실물 프로파일을 읽습니다. 별도 한계 파일이 없으면
+URDF의 관절 위치 범위를 계획 설정에 적용하며 RViz도 같은 모델을 사용합니다.
+`allow_trajectory_execution` 기본값은 `false`입니다. 충돌 검사는 `cleany/SolidFCL`을
+사용하며 `cleany/RequireCollisionDetector`가 요청한 검사기의 로드 실패 시 실행을 종료합니다.

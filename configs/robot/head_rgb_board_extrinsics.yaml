@@ -1,0 +1,40 @@
+status: provisional_20plus5_manual_stationary
+parent_frame: head_camera_rgb_frame
+child_frame: head_camera_rgb_optical_frame
+xyz:
+- 0.009734882420625549
+- 0.0319052452257904
+- -2.4412867651285586e-05
+rpy:
+- -1.587628972920896
+- -0.0018804419665105357
+- -1.5700259864589952
+reference_ticks:
+- 2009
+- 2067
+encoder_directions:
+- -1
+- 1
+camera_serial: '261822075013'
+method: PARK
+training_views: 20
+held_out_views: 5
+held_out_evaluated: true
+absolute_calibration_verified: false
+stationarity_verified: false
+hardware_synchronized: false
+motor_configuration_written: false
+source: /home/cleany/.local/share/cleany/headcam/20261009_022645_217690/external_candidate_park.json
+validation_source: /home/cleany/.local/share/cleany/headcam/20261009_024038_896936/external_held_out_evaluation.json
+intrinsics_file: /home/cleany/.local/share/cleany/headcam/external_preparation_20261009_022321/intrinsics/rgb_intrinsics.json
+validation_metrics:
+  board_reference_translation_rms_mm: 1.246305771393026
+  board_reference_translation_max_mm: 1.9555101536871282
+  board_reference_rotation_rms_deg: 0.2465425245465272
+  board_reference_rotation_max_deg: 0.3504780688910695
+  image_prediction_rms_px: 1.9580221684965282
+  image_prediction_max_view_rmse_px: 3.190633884683582
+note: RGB only. Fit uses 20 views; the frozen PARK result was evaluated on 5 separate
+  views. Fixed board/base and manually stationary capture are assumed. No absolute
+  ground truth, exposure-time joint history, depth calibration, or acceptance threshold
+  is available.

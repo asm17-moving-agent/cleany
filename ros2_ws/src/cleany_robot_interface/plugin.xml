@@ -1,0 +1,7 @@
+<library path="cleany_feetech_hardware">
+  <class name="cleany_feetech_hardware/FeetechSystem"
+         type="cleany_feetech_hardware::FeetechSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>Single-owner STS3215/STS3250 position system; writes disabled by default.</description>
+  </class>
+</library>
