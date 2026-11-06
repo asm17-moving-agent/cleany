@@ -7,6 +7,7 @@
 | 시설 생성 | [Gazebo scripts](../ros2_ws/src/cleany_gazebo_sim/scripts/) |
 | micro-ROS 준비, 검사 | [ESP32 scripts](../esp32/scripts/), `esp32/host_tests/` |
 | Git wrapper 링크 갱신 | `make firmware-setup` |
+| Jetson USB 카메라 초기화 설치, 제거 | `tools/camera/install.py`, `make camera-host-install`, `make camera-host-uninstall` |
 | 실제 MuJoCo/Gazebo 카메라 영상 수집 | [capture_cameras.py](validation/capture_cameras.py), [실행 방법](../docs/TESTING.md#카메라-영상-수집) |
 
 실행과 검사 절차는 [테스트](../docs/TESTING.md), [ESP32](../esp32/README.md) 가이드를 따릅니다.

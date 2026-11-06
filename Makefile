@@ -59,6 +59,8 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 .PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 
+.PHONY: camera-host-install camera-host-uninstall test-camera-orientation
+
 help:
 	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
 	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
@@ -117,6 +119,17 @@ help:
 	@echo "  make test-imu-runtime  Test MCU calibration config and ROS gyro relay"
 	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
+	@echo "  make camera-host-install / camera-host-uninstall  Install or remove Jetson USB camera orientation"
+	@echo "  make test-camera-orientation  Test camera initialization without USB hardware"
+
+camera-host-install:
+	sudo /usr/bin/python3 "$(REPO_ROOT)tools/camera/install.py" install
+
+camera-host-uninstall:
+	sudo /usr/bin/python3 "$(REPO_ROOT)tools/camera/install.py" uninstall
+
+test-camera-orientation:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools/test_camera_orientation.py tests/tools/test_camera_install.py'
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py'

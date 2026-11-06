@@ -62,6 +62,7 @@ flowchart TB
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
 | Telemetry | `make test-telemetry` | odom relay |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
+| Jetson USB 카메라 초기화 | `make test-camera-orientation` | 장치 식별, USB 제어와 복구, 설치 경로, unit과 udev 규칙; 실제 장치는 열지 않음 |
 
 Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
 
@@ -106,6 +107,30 @@ python3 tools/validation/verify_installed_sources.py \
 검사하지 않은 항목은 `skipped`로 표시하며, 요청한 패키지 기록이 없거나 파일이
 누락되거나 hash가 다르면 실패합니다. 복사 설치는 `--resolved-root`로 설치 루트를
 제한할 수 있습니다. Native symlink 설치에서는 생략합니다. ROS 노드나 모터를 시작하지 않습니다.
+
+## Jetson USB 카메라 인수검사
+
+`make test-camera-orientation`은 가짜 sysfs, 프로세스 정보와 USB ioctl을 사용합니다.
+Python 3.10에서 helper의 요청 형식, 대상 장치 제한, 사용 중인 장치 보호, readback과
+오류 시 드라이버 복구를 검사합니다. 설치 검사는 임시 디렉터리만 사용하며
+`systemd-analyze`가 있으면 unit 문법도 확인합니다. CI는 Ubuntu 22.04 환경에서 같은
+target을 실행합니다.
+
+실제 Jetson Orin에서는 [설치](DEVELOPMENT_SETUP.md#jetson-orin-usb-카메라-회전) 후
+다음을 별도로 확인합니다.
+
+1. 캡처를 닫고 DECXIN 모듈을 연결해 journal의 설정값과 readback이 `3`인지 확인합니다.
+2. 영상을 열어 180도 방향을 확인하고 캡처를 종료합니다.
+3. USB를 분리하고 다시 연결한 뒤 같은 확인을 반복합니다.
+4. 카메라가 연결된 상태로 재부팅하고 초기화 완료 후 캡처 방향을 확인합니다.
+5. 다른 VID/PID 카메라에 unit이 요청되지 않는지 확인합니다. 같은 모델 여러 대는 각 USB
+   이름의 unit과 영상 방향을 따로 확인합니다.
+6. 캡처 중 수동 초기화를 요청하면 드라이버 분리 없이 실패하는지 확인합니다. 캡처를 닫고
+   `reset-failed`와 수동 시작으로 복구합니다.
+
+각 실행의 JetPack, kernel, Python 버전, USB 이름과 VID/PID, journal, 영상 방향 확인
+결과를 남깁니다. 장치 없는 자동 검사 통과는 Orin의 USB 재연결과 재부팅 검증을 대신하지
+않습니다.
 
 ## CI 실행과 재사용
 

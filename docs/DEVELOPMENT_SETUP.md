@@ -189,6 +189,45 @@ Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용�
 
 ## 7. 선택 환경
 
+### Jetson Orin USB 카메라 회전
+
+DECXIN `1M-2012V1` USB 카메라(`0bda:5844`)의 180도 회전은 native host에서
+초기화합니다. 설치 대상은 JetPack 6 계열의 Ubuntu 22.04 aarch64 Jetson Orin이며,
+system Python 3.10, systemd와 udev를 사용합니다. 별도 pip 패키지는 필요하지 않습니다.
+ROS workspace나 vision container 안에 설치하지 않습니다.
+
+저장소 루트에서 다음 명령을 실행합니다.
+
+```bash
+make test-camera-orientation
+make camera-host-install
+```
+
+설치기는 다음 파일을 root 소유로 복사하고 systemd와 udev 설정을 다시 읽습니다.
+작업 checkout은 실행 시 참조하지 않습니다.
+
+| 설치 경로 | 역할 |
+|---|---|
+| `/usr/local/libexec/cleany/camera-orientation.py` | USB 장치 확인, Roll 설정과 readback, 드라이버 복구 |
+| `/etc/systemd/system/cleany-camera-orientation@.service` | USB 장치별 일회성 초기화 |
+| `/etc/udev/rules.d/70-cleany-camera-orientation.rules` | 해당 VID/PID의 USB 연결 시 초기화 요청 |
+
+설치 명령은 실행 중인 카메라를 건드리지 않습니다. 설치 후 캡처 프로그램을 닫고 USB를
+재연결합니다. 이후 재연결과 부팅 시 udev가 초기화를 요청하므로 별도의
+`systemctl enable`은 사용하지 않습니다. 규칙은 동일 VID/PID를 가진 모든 카메라에
+적용됩니다. 이 모듈의 공통 serial 문자열로 여러 카메라를 구분하지 않습니다.
+
+호스트 설정을 바꾸지 않고 설치 결과만 확인하려면 별도 경로에 배치합니다.
+
+```bash
+python3 tools/camera/install.py install --root /tmp/cleany-camera-stage
+python3 tools/camera/install.py uninstall --root /tmp/cleany-camera-stage
+```
+
+제거는 Jetson 호스트에서 `make camera-host-uninstall`로 수행합니다.
+운영 중 조회, 수동 적용과 캡처 시작 순서는 [실행 가이드](RUNNING.md#jetson-usb-카메라-회전)를
+따릅니다.
+
 ### Fedora
 
 Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. 호스트 Python과 Ubuntu ROS Python은 혼용하지 않습니다. GUI 실행에는 display와 OpenGL 전달도 필요합니다.
