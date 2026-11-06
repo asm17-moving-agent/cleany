@@ -15,7 +15,7 @@ from cleany_tof.driver import TofDriver
 def test_serial_session_handshake_fragmentation_and_replay(failure):
     master, slave = os.openpty()
     os.set_blocking(master, False)
-    rclpy.init(domain_id=194)
+    rclpy.init(domain_id=230)
     driver = TofDriver(parameter_overrides=[Parameter('port', value=os.ttyname(slave))])
     observer = Node('pseudo_terminal_observer')
     messages = []

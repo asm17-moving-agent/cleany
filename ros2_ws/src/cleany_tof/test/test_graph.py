@@ -1,7 +1,7 @@
 """Synthetic ROS graph only: no serial device, Nav2 controller or motors."""
 import time
 import json
-from itertools import count
+from itertools import chain
 import numpy as np
 import pytest
 import rclpy
@@ -21,7 +21,8 @@ from cleany_tof.guard import ProximityGuard
 from cleany_tof.core import Settings, project
 
 
-_DOMAINS = count(190)
+# Keep ToF graphs separate from Supervisor graphs (190–199) and E2E (200–224).
+_DOMAINS = iter(chain(range(180, 190), range(226, 230)))
 
 
 class World(Node):

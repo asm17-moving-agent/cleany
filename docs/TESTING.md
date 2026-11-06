@@ -68,6 +68,8 @@ Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `te
 
 CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외부 pytest plugin의 자동 로드를 끕니다. 프로젝트의 `conftest.py`와 pytest 기본 plugin은 유지하며, 로컬에서는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 make test`로 같은 설정을 적용합니다.
 
+병렬 실행 시 ToF 합성 graph는 ROS domain 180–189와 226–229, ToF serial 검사는 230을 사용합니다. Supervisor graph의 기본 domain 190–199와 E2E의 기본 domain 200–224는 이 범위와 겹치지 않습니다. Supervisor의 domain 환경변수를 변경할 때도 다른 테스트와 겹치지 않게 지정합니다.
+
 `make test`는 package test가 실패해도 `colcon test-result --verbose`로 실패 상세를 출력하고 실패 상태를 반환합니다.
 
 ## Jetson USB 카메라 인수검사
