@@ -13,6 +13,7 @@ from uuid import uuid4
 import numpy as np
 from PIL import Image as PilImage
 from sensor_msgs.msg import Image, CameraInfo
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import qos_profile_sensor_data
 from cleany_interfaces.srv import ObserveWristTarget
 from cleany_perception.adapters.tf2_transform import rotation_matrix_from_quaternion
@@ -20,6 +21,7 @@ from cleany_perception.core.wrist_observation import (
     WristObservationConfig, project_box, bbox_iou, verify_mask,
 )
 from cleany_perception.core.ports import DetectorPort
+from cleany_perception.byte_buffer import numpy_byte_array
 
 
 class WristTargetNotDetected(ValueError):
@@ -51,7 +53,7 @@ class WristService:
                 self.subscriptions.append(node.create_subscription(
                     message, f'/{arm}_wrist_camera/{suffix}',
                     lambda msg, a=arm, c=cache: self.receive(c[a], msg), qos_profile_sensor_data,
-                    callback_group=node._sensor_callback_group))
+                    callback_group=MutuallyExclusiveCallbackGroup()))
         self.service = node.create_service(ObserveWristTarget, '/perception/observe_wrist_target',
             self.execute, callback_group=node._action_callback_group)
 
@@ -98,6 +100,14 @@ class WristService:
         rgb = rgb.reshape(msg.height,msg.width,3)
         return np.array(rgb if msg.encoding=='rgb8' else rgb[...,::-1],copy=True)
 
+    @staticmethod
+    def _debug_image(msg: Image, rgb: np.ndarray) -> Image:
+        """Preserve Image metadata without copying the overwritten source pixels."""
+        debug = Image(header=deepcopy(msg.header), height=msg.height, width=msg.width,
+                      encoding='rgb8', is_bigendian=msg.is_bigendian, step=msg.width*3)
+        debug.data = numpy_byte_array(rgb)
+        return debug
+
     def _reference_expired(self, ref):
         return time.monotonic()-ref.get('last_valid_at',ref['created']) > self.config.reference_ttl_seconds
 
@@ -125,7 +135,7 @@ class WristService:
         if not candidates:
             if self.failure_image_directory is not None:
                 self.failure_image_directory.mkdir(parents=True, exist_ok=True)
-                PilImage.fromarray(rgb, mode='RGB').save(
+                PilImage.fromarray(rgb).save(
                     self.failure_image_directory / f'wrist_missing_{time.time_ns()}.png')
             matching_labels = [d for d in detections
                                if f' {d.label.casefold().strip()} ' in f' {expected_label} ']
@@ -178,6 +188,7 @@ class WristService:
         return response
 
     def process(self, req, out):
+        detector_label = req.detector_label or req.label
         if req.arm not in self.images or req.operation not in (req.HANDOFF, req.CHECK, req.CLEAR):
             raise ValueError('Invalid wrist operation or arm')
         if req.operation != req.HANDOFF:
@@ -186,10 +197,17 @@ class WristService:
                     or ref['source'] != req.source_snapshot_id or ref['object'] != req.source_object_id):
                 raise ValueError('Wrist reference identity mismatch')
             if req.operation == req.CLEAR:
+                out.header.stamp = self.node.get_clock().now().to_msg()
+                out.reference_id = ref['id']
+                out.source_snapshot_id = ref['source']
+                out.source_object_id = ref['object']
+                out.message = 'Wrist reference cleared'
                 self.close()
                 return
             if self._reference_expired(ref):
                 raise ValueError('Wrist reference expired')
+            if req.label != ref['label'] or detector_label != ref['detector_label']:
+                raise ValueError('Wrist reference semantic type or detector class changed')
         else:
             # Failed replacement must not leave a usable old reference.
             self.close()
@@ -210,8 +228,7 @@ class WristService:
         # Show the active sensor even if association/inference subsequently fails.
         if (getattr(self.node, '_debug_republish_count', 1) > 0
                 and hasattr(self.node, '_publish_debug_image')):
-            debug=deepcopy(msg); debug.encoding='rgb8'; debug.step=msg.width*3
-            debug.data=rgb.tobytes(); self.node._publish_debug_image(debug)
+            self.node._publish_debug_image(self._debug_image(msg, rgb))
         pose = req.expected_pose.pose
         q = pose.orientation
         rotation = rotation_matrix_from_quaternion(q.x,q.y,q.z,q.w)
@@ -225,7 +242,7 @@ class WristService:
         out.source_object_id = req.source_object_id
         out.header = deepcopy(msg.header)
         if req.operation == req.HANDOFF:
-            mask = self._yoloe_mask(rgb, box, req.label,
+            mask = self._yoloe_mask(rgb, box, detector_label,
                 detector=self.right_detector if req.arm == 'right' else self.detector,
                 fallback_detector=self.detector if req.arm == 'right' else None)
         else:
@@ -235,10 +252,10 @@ class WristService:
             out.reference_id = ref['id']
             ref['stamp'] = stamp  # Consume failed checks too; retries need a new frame.
             mask = self._yoloe_mask(
-                rgb, box, req.label,
+                rgb, box, detector_label,
                 detector=(self.right_check_detector if req.arm == 'right'
                           else self.mouse_check_detector
-                          if 'computer mouse' in req.label.casefold()
+                          if 'computer mouse' in detector_label.casefold()
                           else self.check_detector),
                 fallback_detector=self.check_detector if req.arm == 'right' else None)
         if np.shape(mask) != (msg.height, msg.width):
@@ -247,6 +264,7 @@ class WristService:
         if req.operation == req.HANDOFF:
             with self.lock:
                 self.reference = dict(id=uuid4().hex,arm=req.arm,source=req.source_snapshot_id,
+                    label=req.label, detector_label=detector_label,
                     object=req.source_object_id,created=time.monotonic(),stamp=stamp,
                     shape=rgb.shape,
                     k=tuple(info.k))
@@ -258,12 +276,11 @@ class WristService:
         out.header=deepcopy(msg.header)
         out.mask.header=deepcopy(msg.header); out.mask.width=msg.width; out.mask.height=msg.height
         out.mask.encoding='mono8'; out.mask.step=msg.width
-        out.mask.data=(np.asarray(mask,dtype=np.uint8)*255).tobytes()
+        out.mask.data=numpy_byte_array(np.asarray(mask,dtype=np.uint8)*255)
         out.message = 'Wrist YOLOE-seg target consistency passed; no fresh depth or measured 3D pose'
         if getattr(self.node, '_debug_republish_count', 1) > 0:
-            debug=deepcopy(msg); debug.encoding='rgb8'
             overlay=rgb.copy(); overlay[mask]=(overlay[mask]*0.5+np.array((0,255,0))*0.5).astype(np.uint8)
-            debug.step=msg.width*3; debug.data=overlay.tobytes()
+            debug=self._debug_image(msg, overlay)
             if hasattr(self.node, '_publish_debug_image'):
                 self.node._publish_debug_image(debug)
             else:

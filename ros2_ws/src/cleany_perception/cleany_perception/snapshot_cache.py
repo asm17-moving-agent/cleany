@@ -14,6 +14,7 @@ from cleany_perception.core.models import (
     RgbdSnapshot,
     RigidTransform,
 )
+from cleany_perception.core.reconstruction_cache import ReconstructionCache
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class CachedDetectionSnapshot:
     color_frame: str
     tracking: TrackingOutput | None = None
     representative_frame: str = 'base_link'
+    geometry_cache: ReconstructionCache | None = None
 
     def __post_init__(self) -> None:
         if len(self.detections) != len(self.detection_distances_m):
@@ -90,7 +92,12 @@ class DetectionSnapshotCache:
             self._remove_expired(self._clock())
             return len(self._entries)
 
-    def _remove_expired(self, now: float) -> None:
+    def expire(self) -> int:
+        """Drop expired entries without a lookup or extending any lifetime."""
+        with self._lock:
+            return self._remove_expired(self._clock())
+
+    def _remove_expired(self, now: float) -> int:
         expired = [
             snapshot_id
             for snapshot_id, (created_at, _snapshot) in self._entries.items()
@@ -98,3 +105,4 @@ class DetectionSnapshotCache:
         ]
         for snapshot_id in expired:
             del self._entries[snapshot_id]
+        return len(expired)

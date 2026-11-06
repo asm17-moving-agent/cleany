@@ -304,6 +304,54 @@ def test_configured_approach_tilt_preserves_a_proper_grasp_rotation() -> None:
     )
 
 
+def sloped_tabletop_scene(slope_degrees, obstacle=False):
+    target, context = tabletop_scene(obstacle=obstacle)
+    angle = math.radians(slope_degrees)
+    rotation = np.array(((math.cos(angle), 0., math.sin(angle)),
+                         (0., 1., 0.),
+                         (-math.sin(angle), 0., math.cos(angle))))
+    return cloud(target.points @ rotation.T), cloud(context.points @ rotation.T), rotation
+
+
+@pytest.mark.parametrize('slope_degrees', [.57, 1.13])
+@pytest.mark.parametrize('multiple_approaches', [False, True])
+def test_normal_approach_on_sloped_support_survives_opposite_direction_filter(
+        slope_degrees, multiple_approaches):
+    target, context, rotation = sloped_tabletop_scene(slope_degrees)
+    config = GeometricGraspConfig(
+        approach_tilt_degrees=0.,
+        approach_tilt_options=(0.,) if multiple_approaches else (),
+        approach_reference_positions=((-0.3, .15, .4), (-0.3, -.15, .4))
+        if multiple_approaches else (),
+        reject_robot_opposite_approach=True,
+        robot_reference_position=(-.4, 0., 0.),
+        include_reverse_closing_axis=True,
+        yaw_offsets_degrees=(0.,),
+    )
+    candidates = GeometricGraspPredictor(config).predict(target, context, np.zeros(6))
+    assert candidates
+    for candidate in candidates:
+        np.testing.assert_allclose(candidate.rotation[:, 0], -rotation[:, 2], atol=1e-6)
+        assert candidate.width_m <= config.maximum_gripper_width_m
+
+
+@pytest.mark.parametrize('slope_degrees', [.57, 1.13])
+@pytest.mark.parametrize('multiple_approaches', [False, True])
+def test_normal_approach_on_sloped_support_still_rejects_palm_collision(
+        slope_degrees, multiple_approaches):
+    target, context, _ = sloped_tabletop_scene(slope_degrees, obstacle=True)
+    config = GeometricGraspConfig(
+        approach_tilt_degrees=0.,
+        approach_tilt_options=(0.,) if multiple_approaches else (),
+        approach_reference_positions=((-0.3, .15, .4), (-0.3, -.15, .4))
+        if multiple_approaches else (),
+        reject_robot_opposite_approach=True,
+        robot_reference_position=(-.4, 0., 0.),
+        palm_depth_m=.05,
+    )
+    assert GeometricGraspPredictor(config).predict(target, context, np.zeros(6)) == ()
+
+
 def test_rejects_approach_tilt_pointing_away_from_robot() -> None:
     target, context = tabletop_scene()
     predictor = GeometricGraspPredictor(

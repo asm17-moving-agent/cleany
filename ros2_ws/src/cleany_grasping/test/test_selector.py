@@ -110,3 +110,36 @@ def test_tcp_configuration_is_isolated_from_mutating_input_arrays():
         config.canonical_to_tcp_rotation[0, 0] = -1.
     with pytest.raises(ValueError):
         config.tcp_approach_axis[0] = 0.
+
+
+def test_nms_retains_rotation_distinct_candidates_and_stable_score_ties():
+    target = cloud(((-.1, -.1, -.1), (.1, .1, .1)))
+    half_turn = np.diag((-1., -1., 1.))
+    candidates = (
+        grasp((0., 0., 0.), .9),
+        grasp((.001, 0., 0.), .9),
+        grasp((0., 0., 0.), .9, rotation=half_turn),
+        grasp((.02, 0., 0.), .8),
+        grasp((.02, .02, .02), .7),
+    )
+    ranked = rank_grasps(candidates, target)
+    assert [item.score for item in ranked] == [.9, .9, .8, .7]
+    np.testing.assert_array_equal(ranked[0].translation, candidates[0].translation)
+    np.testing.assert_array_equal(ranked[1].rotation, half_turn @ GraspConfig().canonical_to_tcp_rotation)
+
+
+@pytest.mark.parametrize('distance', (
+    np.nextafter(.02, 0.), .02, np.nextafter(.02, np.inf),
+))
+def test_nms_translation_boundary_stays_strict(distance):
+    target = cloud(((-.1, -.1, -.1), (.1, .1, .1)))
+    ranked = rank_grasps(
+        (grasp((0., 0., 0.), .9), grasp((distance, 0., 0.), .8)), target)
+    assert len(ranked) == (1 if distance < .02 else 2)
+
+
+def test_nms_broad_phase_cube_does_not_replace_euclidean_distance():
+    target = cloud(((-.1, -.1, -.1), (.1, .1, .1)))
+    ranked = rank_grasps(
+        (grasp((0., 0., 0.), .9), grasp((.019, .019, .019), .8)), target)
+    assert len(ranked) == 2

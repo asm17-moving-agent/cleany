@@ -45,8 +45,9 @@ def receive_frame(service: WristService, arm: str, stamp: int) -> None:
     image.header.frame_id = f'{arm}_wrist_rgb_optical_frame'
     image.header.stamp.sec = stamp
     info.header = deepcopy(image.header)
+    from rclpy.time import Time
     service.node.get_clock = lambda: SimpleNamespace(
-        now=lambda: SimpleNamespace(nanoseconds=stamp * 10**9 + 100_000_000))
+        now=lambda: Time(nanoseconds=stamp * 10**9 + 100_000_000))
     service.receive(service.images[arm], image)
     service.receive(service.infos[arm], info)
 
@@ -60,11 +61,12 @@ def prepare_check(service: WristService, request: Service.Request, handoff: Serv
 
 @pytest.fixture
 def service():
+    from rclpy.time import Time
     node=SimpleNamespace(_busy_lock=threading.Lock(),_busy=False,
-        _sensor_callback_group=None,_action_callback_group=None,
+        _action_callback_group=None,
         create_subscription=lambda *a,**k: None, create_service=lambda *a,**k: None,
         create_publisher=lambda *a,**k: SimpleNamespace(publish=lambda message: None),
-        get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=2_100_000_000)),
+        get_clock=lambda: SimpleNamespace(now=lambda: Time(nanoseconds=2_100_000_000)),
         _transformer=SimpleNamespace(lookup=lambda *a: identity()),
         _debug_publisher=SimpleNamespace(publish=lambda x: None))
     mask=np.zeros((100,100),bool); mask[40:60,40:60]=True
@@ -110,6 +112,30 @@ def test_yoloe_wrist_handoff_and_check_use_instance_masks(service):
     checked = s.execute(req, Service.Response())
     assert checked.success and checked.header.stamp.sec == 3
     assert checked.reference_id == handoff.reference_id
+
+
+def test_semantic_correction_uses_original_detector_class_through_handoff_and_check(service):
+    s, req = service
+    req.label, req.detector_label = 'remote control', 'power bank'
+    detection = instance('power bank')
+    s.detector.detect = lambda *_: (detection,)
+    handoff = s.execute(req, Service.Response())
+    assert handoff.success, handoff.message
+    s.check_detector = SimpleNamespace(detect=lambda *_: (detection,))
+    prepare_check(s, req, handoff)
+    assert s.execute(req, Service.Response()).success
+
+
+@pytest.mark.parametrize('field', ['label', 'detector_label'])
+def test_check_rejects_changed_semantics_or_detector_class_with_same_reference(service, field):
+    s, req = service
+    req.detector_label = 'cup'
+    handoff = s.execute(req, Service.Response())
+    prepare_check(s, req, handoff)
+    setattr(req, field, 'bottle')
+    result = s.execute(req, Service.Response())
+    assert not result.success and result.status == result.ERROR
+    assert 'type or detector class changed' in result.message
 
 
 def test_yoloe_wrist_fails_closed_on_wrong_or_ambiguous_instance(service):

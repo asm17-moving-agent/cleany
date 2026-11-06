@@ -228,3 +228,11 @@ track/session/epoch를 전달한다. RGB header frame·snapshot-local 번호와 
 `VerifyPlacement.verification_id`가 있으면 그 개체만 확인한다. 미등록·만료 ID는 실패하고
 label로 fallback하지 않는다. 빈 ID의 label-only 경로는 종류당 물체 하나인 기존 장면에
 유지한다. 종류 중복 장면은 등록 경로가 필요하다. 인터페이스 변경 후 consumer를 모두 재빌드한다.
+
+## 종류명과 원본 검출 클래스
+
+`DetectedObject2D/3D.label`은 최종 종류명, `detector_label`은 원본 검출 클래스입니다.
+추적은 최종 종류와 원본 검출 클래스의 일치를 함께 확인합니다. `confidence`는
+검출 신뢰도이며 Gemini 분류 확률이 아닙니다. 기존 `sorting_reason`은 유지합니다.
+깊이와 지지면 크기의 단위 및 미측정 값은 [인식 계약](../../cleany_perception/docs/interfaces.md)을 따릅니다.
+필드 추가로 CDR 형식이 바뀌므로 생산자와 소비자를 함께 재빌드해야 합니다.
