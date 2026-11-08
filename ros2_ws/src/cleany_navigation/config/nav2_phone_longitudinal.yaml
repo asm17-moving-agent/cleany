@@ -1,0 +1,54 @@
+# Dedicated phone demo overlay; default Omni navigation stays unchanged.
+controller_server:
+  ros__parameters:
+    goal_checker:
+      xy_goal_tolerance: 0.03
+      yaw_goal_tolerance: 0.10
+    FollowPath:
+      # Keep the legacy wheel envelope when merged as the separate retry controller.
+      translation_max: 0.0
+      proximity_translation_max: 0.0
+      proximity_yaw_max: 0.0
+      goal_translation_max: 0.0
+      goal_yaw_max: 0.0
+      wheel_max_rad_s: 4.0
+      plugin: cleany_navigation::MPPIController
+      motion_model: DiffDrive
+      time_steps: 80
+      vx_max: 0.254
+      vx_min: -0.254
+      vy_max: 0.0
+      wz_max: 0.5404255319148936
+      vx_std: 0.05
+      vy_std: 0.0
+      wz_std: 0.13
+      temperature: 0.15
+      validate_output: true
+      goal_rotate_enter_radius: 0.025
+      goal_rotate_exit_radius: 0.03
+      path_rotate_enabled: true
+      path_rotate_position_tolerance: 0.075
+      path_rotate_heading_tolerance: 0.1
+      GoalCritic:
+        cost_weight: 20.0
+      GoalAngleCritic:
+        cost_weight: 12.0
+        threshold_to_consider: 0.03
+      PathFollowCritic:
+        cost_weight: 20.0
+      PathAngleCritic:
+        respect_in_place_rotations: true
+        rotation_position_tolerance: 0.075
+        cost_weight: 12.0
+      TwirlingCritic:
+        enabled: true
+        cost_weight: 10.0
+planner_server:
+  ros__parameters:
+    GridBased:
+      plugin: cleany_navigation::StraightFirstPlanner
+      allow_unknown: false
+      lattice_filepath: ''
+      holonomic_direct_path: false
+      lattice_collision_padding: 0.0
+      prefix_shortcut_distance: 1.0

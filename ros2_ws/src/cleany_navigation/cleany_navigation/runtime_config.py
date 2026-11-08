@@ -293,10 +293,11 @@ def longitudinal_lattice(source: dict) -> dict:
 
 
 def resolve_default_lattice(document: dict, primitive: Path) -> None:
-    """Resolve the packaged primitive for native Lattice, preserving explicit overrides."""
+    """Resolve native or wrapped Lattice primitives, preserving explicit overrides."""
     planner = document.get('planner_server', {}).get('ros__parameters', {}).get('GridBased', {})
     if planner.get('plugin') not in (
-            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice'):
+            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice',
+            'cleany_navigation::StraightFirstPlanner'):
         return
     if planner.get('lattice_filepath'):
         return

@@ -293,6 +293,19 @@ def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
     assert adapted['controller_server']['ros__parameters']['FollowPath']['motion_model'] == 'Omni'
 
 
+def test_phone_omni_wrapper_resolves_bundled_lattice_and_preserves_explicit_file():
+    from cleany_navigation.runtime_config import resolve_default_lattice
+    doc=parameters()
+    merge_parameters(doc,load_parameters(PACKAGE/'config/nav2_phone_omni.yaml'))
+    primitive=PACKAGE/'config/lattice/omni-r10cm.json'
+    resolve_default_lattice(doc,primitive)
+    planner=doc['planner_server']['ros__parameters']['GridBased']
+    assert planner['lattice_filepath']==str(primitive.resolve())
+    planner['lattice_filepath']='/explicit/lattice.json'
+    resolve_default_lattice(doc,primitive)
+    assert planner['lattice_filepath']=='/explicit/lattice.json'
+
+
 def test_lattice_resolution_preserves_custom_file_and_other_planners(tmp_path):
     from cleany_navigation.runtime_config import resolve_default_lattice
     doc = parameters()

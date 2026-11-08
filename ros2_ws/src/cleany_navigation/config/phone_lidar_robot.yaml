@@ -1,0 +1,23 @@
+# CAD wheel envelope 0.477 x 0.6548 m, with 0.05 m footprint padding.
+# Cleany-final.FCStd; no depth/upper-body clearance is represented.
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      footprint: '[[-0.2385,-0.3274],[-0.2385,0.3274],[0.2385,0.3274],[0.2385,-0.3274]]'
+      footprint_padding: 0.05
+      plugins:
+      - obstacle_layer
+      - inflation_layer
+      inflation_layer:
+        inflation_radius: 0.8
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      footprint: '[[-0.2385,-0.3274],[-0.2385,0.3274],[0.2385,0.3274],[0.2385,-0.3274]]'
+      footprint_padding: 0.05
+      plugins:
+      - static_layer
+      - obstacle_layer
+      - inflation_layer
+      inflation_layer:
+        inflation_radius: 0.8

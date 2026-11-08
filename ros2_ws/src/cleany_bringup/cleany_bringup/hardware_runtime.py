@@ -16,7 +16,7 @@ from .hardware_profile import load_profile
 
 def main():
     import rclpy
-    from ament_index_python.packages import get_package_prefix
+    from ament_index_python.packages import get_package_prefix, get_package_share_directory
     from rclpy.utilities import remove_ros_args
     from rclpy.signals import SignalHandlerOptions
     from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
@@ -29,14 +29,29 @@ def main():
     parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument("--state-root", default="~/.local/state/cleany/hardware")
     parser.add_argument("--mock", choices=["true", "false"], default="false")
+    parser.add_argument("--navigation-map", default="")
+    parser.add_argument("--robot-params", default="")
+    parser.add_argument("--depth-params", default="")
+    parser.add_argument("--phone-motion-profile", choices=["longitudinal", "omni"], default="longitudinal")
+    parser.add_argument("--slip-recovery", choices=["true", "false"], default="true")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--phone-port", type=int, default=8766)
     args = parser.parse_args(remove_ros_args()[1:])
+    args.navigation_map = Path(args.navigation_map) if args.navigation_map else None
+    args.robot_params = Path(args.robot_params) if args.robot_params else None
     if not 1 <= args.phone_port <= 65535:
         parser.error("Invalid phone port")
     profile = load_profile(
         args.profile, mock=args.mock == "true", state_root=args.state_root
     )
+    if args.navigation_map:
+        if not args.robot_params:
+            args.robot_params = Path(get_package_share_directory('cleany_navigation'))/'config/phone_lidar_robot.yaml'
+        if not args.navigation_map.is_file() or not args.robot_params.is_file():
+            parser.error('Navigation requires existing map and verified robot parameters')
+        if args.depth_params and not Path(args.depth_params).is_file():
+            parser.error('Depth overlay does not exist')
+        profile['navigation_enabled'] = True
     state = Path(profile["state_root"])
     state.mkdir(parents=True, exist_ok=True)
     # A domain/state pair has one lifecycle owner, including across terminal restarts.
@@ -75,6 +90,8 @@ def main():
     profile.update(
         host=args.host, phone_port=args.phone_port, token_file=str(state / "web-token")
     )
+    if args.navigation_map:
+        atomic_json(state/'teleop-motion.json', {'forward_only': args.phone_motion_profile == 'longitudinal'})
     resolved = state / "resolved-profile.yaml"
     atomic_bytes(resolved, yaml.safe_dump(profile, sort_keys=False).encode())
     logger = {
@@ -82,8 +99,8 @@ def main():
             "ros__parameters": {
                 "record_on_start": False,
                 "state_directory": profile["recordings_directory"],
-                "session_limit_bytes": 2 * 1024**3,
-                "total_limit_bytes": 10 * 1024**3,
+                "session_limit_bytes": profile.get("recording_limit_mib", 2048) * 1024**2,
+                "total_limit_bytes": profile.get("recording_total_limit_mib", 10240) * 1024**2,
             }
         }
     }
@@ -122,7 +139,7 @@ def main():
             raise RuntimeError(
                 "An existing controller owns this ROS domain; start one hardware runtime"
             )
-        for name, command in (
+        commands = (
             (
                 "devices",
                 [
@@ -147,7 +164,19 @@ def main():
                     "output_root:=" + str(state / "maps"),
                 ],
             ),
-        ):
+        )
+        if args.navigation_map:
+            commands = (commands[0], ('navigation', [
+                'ros2', 'launch', 'cleany_navigation', 'phone_navigation.launch.py',
+                'map:=' + str(args.navigation_map.resolve()),
+                'robot_params_file:=' + str(args.robot_params.resolve()),
+                'phone_motion_profile:=' + args.phone_motion_profile,
+                'slip_recovery:=' + args.slip_recovery,
+                'depth_params_file:=' + args.depth_params,
+                'localization_evidence_directory:=' + str(state/'localization'),
+            ]), ('supervisor', ['ros2','run','cleany_system_supervisor','system_supervisor','--ros-args','-p',
+                'config_file:=' + str(Path(get_package_share_directory('cleany_navigation'))/'config/phone_lidar_supervisor.yaml')]), ('logger', ['ros2','launch','cleany_logger','logger.launch.py', 'record_on_start:=true','config:='+profile['logger_config']]))
+        for name, command in commands:
             stream = (state / (name + ".log")).open("ab")
             streams.append(stream)
             children.append(
@@ -181,6 +210,12 @@ def main():
                     "Owned hardware/session launch exited; see runtime logs"
                 )
     finally:
+        if args.navigation_map:
+            from std_srvs.srv import SetBool
+            pause_client = node.create_client(SetBool, 'teleop/pause')
+            if pause_client.wait_for_service(timeout_sec=1.):
+                stopped = pause_client.call_async(SetBool.Request(data=True))
+                rclpy.spin_until_future_complete(node, stopped, timeout_sec=1.)
         shutdown = {"stop_confirmed": False, "mapping_saved": False}
         if any(name == "mapping" for name, _ in children) and client.wait_for_service(
             timeout_sec=2
@@ -207,7 +242,7 @@ def main():
         # Mapping cleanup still has live device/teleop services here.
         for name, process in reversed(children):
             if process.poll() is None:
-                process.send_signal(signal.SIGINT)
+                os.killpg(process.pid, signal.SIGINT)
             try:
                 process.wait(timeout=35 if name == "mapping" else 12)
             except subprocess.TimeoutExpired:

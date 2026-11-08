@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Start the phone navigation runtime with explicit data and cache locations."""
+import argparse
+import os
+from pathlib import Path
+import shlex
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run-root', type=Path, required=True)
+    parser.add_argument('--profile', type=Path, required=True)
+    parser.add_argument('--map', type=Path, required=True)
+    parser.add_argument('--dds-profile', type=Path, required=True)
+    parser.add_argument('--motion-profile', choices=('omni', 'longitudinal'), default='omni')
+    parser.add_argument('--slip-recovery', choices=('true', 'false'), default='true')
+    parser.add_argument('--depth-params', type=Path, help='Physical depth local-costmap/monitor overlay')
+    parser.add_argument('--container', default='ros2-humble')
+    parser.add_argument('--exec', dest='command', nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    if not Path('/opt/ros/humble/setup.bash').is_file():
+        os.execvp('distrobox', ['distrobox', 'enter', '--name', args.container,
+                              '--no-tty', '--clean-path', '--', 'python3',
+                              str(Path(__file__).resolve()), *sys.argv[1:]])
+    repo = Path(__file__).resolve().parents[2]
+    cache = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home()/'.cache')))/'cleany/builds'
+    build = Path(os.environ.get('CLEANY_BUILD_ROOT', str(cache/repo.name)))
+    dependencies = Path(os.environ.get('CLEANY_HARDWARE_DEPS_ROOT', str(cache/'hardware-deps')))
+    setup = [Path('/opt/ros/humble/setup.bash'), dependencies/'install/local_setup.bash',
+             build/'install/local_setup.bash']
+    for path in [*setup, args.profile, args.map, args.dds_profile]:
+        if not path.is_file():
+            parser.error(f'Missing runtime input: {path}')
+    args.run_root.mkdir(parents=True, exist_ok=True)
+    log = args.run_root.resolve()/'ros-log'
+    log.mkdir(exist_ok=True)
+    command = args.command or [
+        'ros2', 'launch', 'cleany_bringup', 'hardware_mapping.launch.py',
+        'profile:='+str(args.profile.resolve()), 'navigation_map:='+str(args.map.resolve()),
+        'state_root:='+str(args.run_root.resolve()/'runtime'), 'host:=0.0.0.0',
+        'phone_port:=8766', 'phone_motion_profile:='+args.motion_profile,
+        'slip_recovery:='+args.slip_recovery,
+        'depth_params_file:='+str(args.depth_params.resolve()) if args.depth_params else 'depth_params_file:=']
+    environment = dict(os.environ, ROS_DOMAIN_ID='0', ROS_LOCALHOST_ONLY='0',
+                       RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
+                       FASTRTPS_DEFAULT_PROFILES_FILE=str(args.dds_profile.resolve()),
+                       ROS_LOG_DIR=str(log))
+    script = 'set -e; '+''.join('source '+shlex.quote(str(p))+'; ' for p in setup)
+    script += 'exec '+shlex.join(command)
+    os.execve('/bin/bash', ['bash', '-c', script], environment)
+
+
+if __name__ == '__main__':
+    main()

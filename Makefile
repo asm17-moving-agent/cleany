@@ -8,8 +8,8 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
-CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
-CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
+CLEANY_DATA_ROOT ?= $(if $(wildcard $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../cleany-data))
+CLEANY_BUILD_ROOT ?= $(if $(XDG_CACHE_HOME),$(XDG_CACHE_HOME),$(HOME)/.cache)/cleany/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
 export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
@@ -23,11 +23,12 @@ MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
-HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
+HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/datasets/reference/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
-HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/handeye
-HANDEYE_RUN_ID ?= mujoco_seed_20260810
+CLEANY_RUN_DATE ?= $(shell TZ=Asia/Seoul date +%F)
+HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/manipulation
+HANDEYE_RUN_ID ?= $(CLEANY_RUN_DATE)_handeye-mujoco-seed-20260810
 HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
 HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
 HANDEYE_MAX_TRANSLATION_NORM_M ?= 1.0
@@ -163,6 +164,14 @@ test-base: build-base
 
 test-imu-runtime: build-base
 	$(BASE_EXEC) bash -lc 'set -e; source /opt/ros/humble/setup.bash; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q ros2_ws/src/cleany_base_interfaces/test/test_contract.py ros2_ws/src/cleany_base_driver/test/test_imu_core.py ros2_ws/src/cleany_base_driver/test/test_imu_graph.py tools/test_imu_runtime_config.py'
+
+.PHONY: test-slip-detection
+test-slip-detection:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 OPENBLAS_NUM_THREADS=1 /usr/bin/python3 -m pytest -q tests/tools/test_slip_detection.py tools/odometry_evaluation/test_icp_convergence.py tools/odometry_evaluation/test_planar_extrinsic.py'
+
+.PHONY: test-slip-recovery
+test-slip-recovery:
+	$(BASE_EXEC) bash -lc 'set -e; source "$(ROS_SETUP)"; source "$(INSTALL_BASE)/setup.bash"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); OPENBLAS_NUM_THREADS=1 ctest --test-dir "$(BUILD_BASE)/cleany_navigation" --output-on-failure'
 
 test-odometry-evaluation:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'
@@ -343,7 +352,7 @@ test-mission: test-mission-core
 .PHONY: build-supervision test-supervision-core test-supervision
 SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
 SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
-SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/supervision/latency.json
+SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/platform/$(CLEANY_RUN_DATE)_supervision/latency.json
 # The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
 build-supervision: build-navigation
 	source "$(ROS_SETUP)" && \
@@ -358,6 +367,7 @@ test-supervision-core:
 	python3 -m pytest -p no:cacheprovider \
 		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_core.py" \
 		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_scenarios.py" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_startup_reconnect.py" \
 		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
 		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_runtime_supervision.py" \
 		"$(ROS2_WS)/src/cleany_skill_executor/test/test_arm_health.py"
@@ -604,7 +614,7 @@ build-hardware-mapping: build-teleop-ui
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_bringup'
 
 test-hardware-mapping-core:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONPATH=ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
+	$(BASE_EXEC) bash -lc 'set -e; source "$(ROS_SETUP)"; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTHONPATH="ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
 	node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
 
 .PHONY: test-hardware-mapping-runtime
@@ -655,3 +665,9 @@ test-moveit-collision: test-description-models
 		--packages-select cleany_moveit_collision cleany_moveit_config \
 		--return-code-on-test-failure --ctest-args \
 		-R 'test_solid_collision|moveit_config_contract|simulation_collision_contract|study_cafe_collision_scene_contract|solid_collision_runtime'
+
+.PHONY: print-data-root print-build-root
+print-data-root:
+	@printf '%s\n' "$(CLEANY_DATA_ROOT)"
+print-build-root:
+	@printf '%s\n' "$(CLEANY_BUILD_ROOT)"
