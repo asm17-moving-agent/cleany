@@ -1,6 +1,9 @@
 """Semantic sensor checks; receipt alone cannot prove component availability."""
 from math import isfinite
 
+# Covariance subtraction in AMCL can leave tiny negative floating-point residues.
+COVARIANCE_ROUNDOFF_TOLERANCE = 1e-9
+
 
 def valid_scan(msg, minimum_ratio: float) -> bool:
     if not msg.header.frame_id or not msg.ranges or not (
@@ -21,7 +24,8 @@ def valid_pose(msg, maximum_variance: float) -> bool:
     norm = sum(value * value for value in values[3:])
     return (bool(msg.header.frame_id) and all(isfinite(value) for value in values) and
             abs(norm - 1.) < .05 and all(isfinite(value) for value in covariance) and
-            all(0 <= covariance[index] <= maximum_variance for index in (0, 7, 35)))
+            all(-COVARIANCE_ROUNDOFF_TOLERANCE <= covariance[index] <= maximum_variance
+                for index in (0, 7, 35)))
 
 
 def valid_image(msg) -> bool:

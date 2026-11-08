@@ -185,3 +185,15 @@ def test_sensor_validation_rejects_publish_only_health():
     assert guard.accept('scan', scan.header.stamp, 10 * 10**9)
     assert not guard.accept('scan', scan.header.stamp, 10 * 10**9)
     assert not guard.accept('scan', scan.header.stamp, 12 * 10**9)
+
+
+@pytest.mark.parametrize('index', [0, 7, 35])
+def test_pose_covariance_allows_roundoff_but_rejects_invalid_variance(index):
+    pose = PoseWithCovarianceStamped()
+    pose.header.frame_id, pose.pose.pose.orientation.w = 'map', 1.
+    for value in (-5.712387661765637e-16, -1.4016105994451956e-11, -1e-9):
+        pose.pose.covariance[index] = value
+        assert valid_pose(pose, .5)
+    for value in (-1e-8, .50001, float('nan'), float('inf')):
+        pose.pose.covariance[index] = value
+        assert not valid_pose(pose, .5)

@@ -31,7 +31,14 @@ Mecanum 변환 후 wheel limit을 넘으면 네 바퀴를 같은 비율로 축�
 | 여섯 축 중 nonfinite 포함 | STOP |
 | 지원하지 않는 축 | 경고 후 무시 |
 | ENABLE 전달 손실 | 같은 sequence, deadline으로 재시도 |
+| STOP 전달 손실 | 같은 sequence로 재전송. 신선한 MCU ACK를 보기 전까지 STOP 전송 유지 |
 | STOP, 단절, 만료, reboot | 새 ENABLE과 새 cmd_vel 필요; 재연결만으로 재개 금지 |
+
+STOP 재전송은 50Hz driver tick에서 수행하고 새 구동 허가를 만들지 않는다.
+새 명시적 STOP 요청은 별도 sequence를 발급하므로 이전 ACK를 재사용하지 않는다.
+명령 watchdog timeout bit만 설정된 disabled MCU가 출력 0과 STOP ACK를 보고하면
+안전한 비활성 상태로 분류한다. 이 기록을 지우려고 ENABLE하지 않으며 다른 MCU fault,
+잘못된 프로토콜과 비정상 구동 상태는 기존 Fault를 유지한다.
 
 ## 설정과 시간
 

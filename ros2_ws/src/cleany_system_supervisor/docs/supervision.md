@@ -57,9 +57,20 @@ Grace 값과 hysteresis는 미측정 초기값이다.
 |---|---|---|
 | BASE_MOTION | base diagnostics | 없음 |
 | NAVIGATION | 유효 scan, covariance 제한 내 pose와 localization lifecycle, Nav2 lifecycle(`planner_server`, `controller_server`, `bt_navigator`, `collision_monitor`) | BASE_MOTION |
+
 | MANIPULATION | `arm_health_monitor` | 없음 |
 | VISUAL_PERCEPTION | 유효 image, `perception_inspector` readiness | 없음 |
 | MOBILE_MANIPULATION | 없음 | NAVIGATION, MANIPULATION, VISUAL_PERCEPTION |
+
+Pose 공분산의 대각 성분은 상한을 유지하며, AMCL 부동소수점 연산의 음수 잔차는 `-1e-9`까지 0으로 취급한다. 그보다 작은 음수, non-finite 값과 상한 초과는 여전히 거부한다.
+
+휴대폰 LiDAR 시연은 NAVIGATION에 `localization_alignment`도 요구한다.
+`localization_guard`의 unknown/unavailable은 공분산이 작아도 허가하지 않는다.
+검증된 위치에서 제한된 시간 동안 AMCL의 재정합을 기다리는 degraded는 AVAILABLE
+health와 별도 속도 제한을 함께 발행해 기존 허가를 유지한다. 이 프로필만 정지 후
+위치 복구를 자동 요청하며, 정지 증거는
+base_driver의 fresh `base_disarmed`와 미확인 lease의 StopMission 완료를 사용한다.
+이는 물리 E-stop이나 팔을 포함한 전신 정지를 검증했다는 뜻이 아니다.
 
 KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함한다. 현재 구현은 이 판단을 Runtime의 `safe_to_drive`에 두고 Capability에서는 팔 가용성만 다룬다. 이 배치는 KB 검토가 필요하다.
 
@@ -74,7 +85,7 @@ KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함한
 | MISSION_STOP_FAILED:<lease_id> | 정지 실패 또는 기한 초과. 확인된 stop 결과 전까지 잠금 |
 | SUPERVISOR_STATE_UNVERIFIED | 영속 상태 파일 읽기 또는 쓰기 실패. operator 확인 전까지 잠금 |
 
-Latched Fault reset에는 원인 source의 fresh, stable 정상 보고와 `operator_id`가 모두 필요하다. E-stop reset은 하드웨어를 해제하지 않는다.
+일반 Latched Fault reset에는 원인 source의 fresh, stable 정상 보고와 `operator_id`가 모두 필요하다. E-stop reset은 하드웨어를 해제하지 않는다.
 
 ## 허가와 정지
 
@@ -101,6 +112,16 @@ Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_i
 | 파일 손상, format 불일치 | SUPERVISOR_STATE_UNVERIFIED |
 | 빈 `state_file` | 영속화 해제. 테스트 전용 |
 
+휴대폰 LiDAR 시연은 `startup_base_reconnect.enabled=true`, `stable_s=1.0`을 사용한다.
+기본 Supervisor 프로필에서는 꺼져 있다. 이 정책은 복원된 base Fault에 기록된
+`cause=base_feedback_lost`만 대상으로 한다. 현재 base와 모든 `safety_sources`,
+`base_disarmed`가 기동 이후 fresh, stable 상태를 유지해야 한다. 다른 운영 잠금,
+정지 미확인 lease와 진행 또는 격리 중인 복구가 있으면 해제하지 않는다.
+`base_disarmed`는 base driver의 검증된 휠 피드백으로 판단하며 독립적인 전신 안전이나
+STOP ACK를 의미하지 않는다. 원인이 없는 이전 형식의 Fault, 모터/프로토콜 고장과
+현재 프로세스에서 생긴 Fault는 일반 operator reset을 유지한다. 복구는 기존 목표를
+재개하거나 새 구동 허가를 발행하지 않는다.
+
 ## 정리와 이벤트
 
 `retention_s`(300초)가 지난 정지 확인 lease, terminal recovery job, 해제 Fault를 정리한다. Job은 해당 Fault episode가 끝난 뒤에만 정리하므로 재시도 예산은 사라지지 않는다.
@@ -112,6 +133,7 @@ Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_i
 | STATE_CHANGED | 운영 상태 전이 |
 | FAULT_RAISED, FAULT_CLEARED, FAULT_RESTORED | Fault 발생, 해제, 재시작 후 복원 |
 | FAULT_RESET_ACCEPTED, FAULT_RESET_REJECTED | reset 요청. `source`는 operator_id |
+| BASE_STARTUP_RECONCILED | 시연 프로필의 기동 후 통신 복구 및 base 정지 확인으로 이전 연결 Fault 해제 |
 | LEASE_GRANTED, LEASE_REVOKED, LEASE_RELEASED, LEASE_RESTORED | 허가 수명 |
 | MISSION_STOP_ACCEPTED, MISSION_STOPPED | 정지 요청 수락과 정지 확인 |
 | RECOVERY_REQUESTED, RECOVERY_<state>, RECOVERY_UNSUPPORTED | 복구 시도와 결과 |
@@ -135,9 +157,17 @@ Humble rclpy는 메시지별 발신자를 알려 주지 않는다. Supervisor는
 |---|---|---|
 | navigation | `navigation/recover` → `lifecycle_manager_navigation` | 구현, 자동 off |
 | localization | `localization/recover` → `lifecycle_manager_localization` | 구현, 자동 off |
+
 | lidar, camera, perception, arm, base | 없음 | `UNSUPPORTED`, 예산 소모 없음 |
 
-자동 복구는 실제 Nav2 stack에서 lifecycle reset이 검증되지 않아 꺼져 있다. 기본 max_attempts 2, attempt 15초, total 40초, verify 5초, cancel 2초다. 복구는 겹쳐 실행하지 않고, 같은 Fault episode의 중복 요청은 같은 job을 반환한다. 시작에는 safety adapter의 whole-robot `stopped`와 미확인 Mission 정지가 없을 것이 필요하다. Owner 성공 뒤에도 fresh health와 안정화 시간이 지나야 성공이다.
+휴대폰 시연의 `localization/recover` owner는 `localization_guard`이며 위 일반
+lifecycle 복구 owner와 동시에 실행하지 않는다. 정지 상태에서 제한된 scan/map
+후보를 검증해 initialpose를 갱신하며, 자동 목표 재개나 이동 명령은 발행하지 않는다.
+이 프로필은 `localization_alignment` Fault 하나에 복구 예산을 연결한다. 기본
+`localization` 감시도 계속 주행을 차단하지만 별도 복구 작업을 만들지 않는다.
+따라서 공분산과 정합 이상이 동시에 발생해도 중복 예산으로 재시도하지 않는다.
+
+일반 프로필의 lifecycle 자동 복구는 실제 Nav2 stack에서 reset이 검증되지 않아 꺼져 있다. 기본 max_attempts 2, attempt 15초, total 40초, verify 5초, cancel 2초다. 복구는 겹쳐 실행하지 않고, 같은 Fault episode의 중복 요청은 같은 job을 반환한다. 시작에는 safety adapter의 whole-robot `stopped`와 미확인 Mission 정지가 없을 것이 필요하다. Owner 성공 뒤에도 fresh health와 안정화 시간이 지나야 성공이다.
 
 ## 검증 범위
 

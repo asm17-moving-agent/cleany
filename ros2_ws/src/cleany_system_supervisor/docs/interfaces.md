@@ -30,6 +30,11 @@
 
 Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사한다. 상태 snapshot의 retained 값은 허가가 아니며, client는 heartbeat freshness, epoch와 lease 만료를 별도로 검사한다.
 
+기동 복구를 사용하는 프로필은 `base_driver` diagnostics의 `disarmed`도 확인한다.
+키 누락, stale timestamp와 stale 피드백은 `base_disarmed` 정상 증거가 아니다.
+연결 단절 원인은 영속 Fault의 `cause`에 보존하고 복구 결과는 기존 `system/events`의
+`BASE_STARTUP_RECONCILED`로 발행한다. 기존 ROS 메시지와 서비스 형식은 유지한다.
+
 ## supervisor_operator
 
 실행 파일: `supervisor_operator`. 원본: [operator_cli.py](../cleany_system_supervisor/operator_cli.py).

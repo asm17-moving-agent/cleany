@@ -168,7 +168,8 @@ def supervisor_config(tmp_path):
 
 
 class Graph:
-    def __init__(self, tmp_path, *, mcu=True, safety_evidence=True, runtime_parameters=()):
+    def __init__(self, tmp_path, *, mcu=True, safety_evidence=True, runtime_parameters=(),
+                 startup_reconnect=False):
         self.tmp_path, self.nodes = tmp_path, []
         self.executor = MultiThreadedExecutor(num_threads=12)
         self.plant = self.add(SyntheticPlant())
@@ -183,6 +184,10 @@ class Graph:
         if LifecycleRecovery is not None:
             self.add(LifecycleRecovery())
         self.config = supervisor_config(tmp_path)
+        if startup_reconnect:
+            self.config['startup_base_reconnect'] = {'enabled': True, 'stable_s': 1.0}
+            self.config['sources']['base_disarmed'] = dict(
+                self.config['sources']['stopped'], fault_code='BASE_DISARM_UNVERIFIED', monitor_only=True)
         self.supervisor = self.add(SupervisorNode(config=deepcopy(self.config)))
         self.events, self.diagnostics = [], []
         self.observer = self.add(rclpy.create_node('e2e_observer'))
@@ -332,6 +337,24 @@ def test_mcu_link_gaps_transient_blocks_motion_persistent_latches(graph):
     response = g.reset('BASE_UNAVAILABLE')
     assert response.reset, response.reason
     admissible(g)
+
+
+def test_restarted_supervisor_reconciles_link_latch_after_disarmed_feedback(graph):
+    g = graph(startup_reconnect=True)
+    admissible(g)
+    transport = g.observer.create_client(SetBool, 'mock/transport')
+    assert g.call(transport, SetBool.Request(data=False)).success
+    wait(lambda: 'BASE_UNAVAILABLE' in g.core.faults.faults, 3.)
+    assert g.call(transport, SetBool.Request(data=True)).success
+    wait(lambda: g.core.health.healthy('base_disarmed', monotonic()))
+    assert g.core.faults.faults['BASE_UNAVAILABLE'].active  # No live-fault auto-reset.
+    assert not g.runtime.readiness()[0]
+    g.restart_supervisor()
+    admissible(g)
+    assert not g.core.faults.faults['BASE_UNAVAILABLE'].active
+    wait(lambda: any(e.kind == 'BASE_STARTUP_RECONCILED' for e in g.events))
+    assert not g.plant.goals and not g.core.permissions.leases
+    assert not g.driver.enabled and not g.mcu.enabled
 
 
 def test_cmd_vel_timeout_is_a_safe_disable_not_a_base_fault(graph):

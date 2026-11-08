@@ -17,6 +17,14 @@
 
 이름은 ROS remap으로 변경한다. 구동 허가와 정지 규칙은 [Base 계약](command-and-odometry.md)을 따른다.
 
+`base_driver` diagnostics의 `disarmed`는 host와 MCU가 모두 disabled이고,
+0.25초 이내의 검증된 피드백에서 목표, 명령, PWM이 0이며 측정 휠 속도가
+`disarmed_velocity_rad_s`(기본 0.02rad/s) 이하일 때만 true다. 이 값은 base 정지
+관측이며 STOP 명령 응답이나 팔을 포함한 전신 안전 증거를 대신하지 않는다.
+명령 watchdog의 timeout bit만 남은 disabled 상태는 정지 관측에 사용할 수 있지만,
+다른 fault bit나 enabled 상태는 허용하지 않는다. Timeout bit는 다음 명시적 ENABLE
+때 MCU가 해제하며 정지 확인을 위해 자동 ENABLE하지 않는다.
+
 ## mock_base_mcu
 
 실행 파일: `mock_mcu_node`. 원본: [mock_node.py](../cleany_base_driver/mock_node.py).

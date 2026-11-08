@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from .capabilities import CapabilityManager, operating_state
 from .config import validate
-from .faults import STATE_FAULT, FaultManager
+from .faults import BASE_FEEDBACK_LOST, STATE_FAULT, FaultManager
 from .health import HealthMonitoring
 from .models import (Availability, HealthReport, OperatingState, PermissionDecision, RecoveryState,
                      SupervisorEvent)
@@ -55,8 +55,14 @@ class SystemSupervisor:
         self._seen_faults = {code: f.active for code, f in self.faults.faults.items()}
         self._seen_leases, self._seen_jobs = {}, {}
 
-    def observe(self, source: str, status: Availability, detail: str = '') -> None:
-        self.health.observe(HealthReport(source, status, self.clock(), detail))
+    def observe(self, source: str, status: Availability, detail: str = '', *, cause: str = '') -> None:
+        self.health.observe(HealthReport(source, status, self.clock(), detail, cause))
+        # A later hardware/protocol failure must disqualify a restored link-only fault,
+        # even if its own debounce has not elapsed yet.
+        if source == 'base' and status != Availability.AVAILABLE and cause and cause != BASE_FEEDBACK_LOST:
+            fault = self.faults.faults.get(self.config['sources']['base']['fault_code'])
+            if fault and fault.active:
+                fault.cause = cause
 
     def _emit(self, kind: str, *, code='', source='', severity='', detail='') -> None:
         self._event_sequence += 1
@@ -97,6 +103,7 @@ class SystemSupervisor:
         self._availability(now)
         self.permissions.update(self.capabilities.states, self.state, now,
                                 self.stop_port, self.faults)
+        self._reconcile_base_startup(now)
         self._availability(now)  # Stop failure may have introduced an operation lock.
         # Recovery cannot race an unconfirmed mission stop or unready independent safety.
         safe = (all(self.health.healthy(source, now) for source in self.config['safety_sources']) and
@@ -110,6 +117,30 @@ class SystemSupervisor:
         self._record()
         self._persist(now)
         self.revision += 1
+
+    def _reconcile_base_startup(self, now: float) -> None:
+        """Clear only a restored link-loss latch after fresh, disarmed startup evidence."""
+        policy = self.config.get('startup_base_reconnect', {})
+        if not policy.get('enabled', False):
+            return
+        fault = self.faults.faults.get(self.config['sources']['base']['fault_code'])
+        if not (fault and fault.active and fault.restored and fault.cause == BASE_FEEDBACK_LOST):
+            return
+        if any(f.active and f.code != fault.code and f.locks_operation for f in self.faults.faults.values()):
+            return
+        if any(not lease.stopped for lease in self.permissions.leases.values()):
+            return
+        if any(job.resource_held or job.state in (RecoveryState.IDLE, RecoveryState.RUNNING)
+               for job in self.recoveries.jobs.values()):
+            return
+        sources = {*self.config['safety_sources'], 'base', 'base_disarmed'}
+        if not all(self.health.healthy(source, now, after=self.started_at) and
+                   now - self.health.good_since[source] >= policy['stable_s'] for source in sources):
+            return
+        accepted, detail = self.faults.reset(fault.code, self.health, now)
+        if accepted:
+            self._emit('BASE_STARTUP_RECONCILED', code=fault.code, source='base',
+                       detail='restored feedback loss; fresh stable disarmed base and safety health; ' + detail)
 
     def _prune(self, now) -> None:
         retention = self.config['retention_s']
