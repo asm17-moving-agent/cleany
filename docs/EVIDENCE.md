@@ -1,8 +1,386 @@
 # 실행 원본 색인
 
+## 2026-11-08 D435 헤드 pan/tilt 실물 벽 비교
+
+기준 commit `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경 환경의
+Humble Distrobox에서 D435 261822075013, LiDAR, 새 WCH 5B14033435 포트를 사용했다.
+ID 13/14 모델 777, 위치 모드와 토크 OFF를 실제 조회했다. 과거 영점 2009/2067과
+방향 -1/+1을 적용하고 Cleany-final.FCStd의 horn 축을 이용한 동적 TF를 발행했다.
+초기 고정 TF는 pan/tilt 장착 확인 후 중단했다. 카메라 공칭 지면 높이 약 1.117m는
+CAD 바닥 추정값이며 실제 높이 검증은 아니다. LiDAR Z=0 평면 관례는 유지했다.
+
+차체 이동 없이 현재 헤드 자세 부근 ±5°를 축별 시험했다. 첫 실행은 tilt 아래에서
+복귀할 때 목표 차이 4틱으로 3틱 조건을 만족하지 못해 중단되고 토크 OFF를 확인했다.
+실패 기준을 유지하고 아직 측정하지 않은 tilt 위쪽과 복귀를 별도 실행했다.
+최종 엔코더 1997/2134와 두 모터 토크 OFF를 확인했다. RAM 속도 80tick/s,
+가속도 5와 토크 한도 300은 남고 EEPROM은 변경하지 않았다.
+
+7개 자세 창의 유효 비교 60개에서 자세별 전방 벽 차이 중앙값은 -0.80~-0.92cm,
+수평 법선 차이 -1.17~-1.48°, 수직 법선 잔차 -1.34~-1.60°였다. 한 벽의 동일성과
+수직성을 전제하며 높이, 벽에 평행한 위치, 장착 영점의 완전한 보정 근거가 아니다.
+관련 합성 기하, 시간 유효성, 직렬 패킷과 쓰기 제한 검사 12개 통과.
+`cleany-d435-head-tf.service`는 읽기 전용 실제 관절 TF 관측으로 실행했다.
+costmap과 Collision Monitor의 깊이 입력은 추가하지 않았다.
+원본, 실패 자료와 HTML은 `runs/navigation/integration/2026-11-08_100401_d435-low-obstacle/`
+아래에 있으며 `manifest.json`에 분석 입력과 소스 해시를 남긴다.
+
+## 2026-11-08 D435 연결 및 깊이 스트림 확인
+
+기준 commit `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경 환경에서
+Fedora USB와 ROS Humble Distrobox의 실제 D435(261822075013)를 확인했다.
+USB 2.1, 640×480 Z16, 요청 15fps로 깊이 스트림만 실행했다. 읽기 전용
+`tools/validation/probe_depth_camera.py`의 60프레임 표본은 수신 14.07Hz,
+유효 깊이 픽셀 중앙값 85.79%였다. 광학 깊이 영상과 CameraInfo 수신 근거이며
+8cm 높이 장애물 검출, 차체 좌표 보정 또는 충돌 회피 검증이 아니다.
+phone 주행의 LiDAR 전용 obstacle layer와 Collision Monitor는 변경하지 않았다.
+카메라는 별도 관측 프로세스로 실행했으며 자동 시작 설정은 추가하지 않았다.
+원본은 `runs/navigation/integration/2026-11-08_100401_d435-low-obstacle/`의
+`depth-probe.json`, `depth_m.npy`, `depth-preview.png`에 있다.
+
+## 2026-11-08 복구 후보 하한 50% 실행 적용
+
+사용자 요청으로 phone_localization.yaml의 recovery_inlier_ratio를 0.65에서
+0.50으로 변경했다. 정상 기준 0.30/0.18m, 개선량 0.04m와 모호성 차이 0.025는
+유지했다. 관련 프로필 및 core 검사 21개 통과. 설정은 초기화 시 읽으므로 로봇
+정지 확인 후 주행 service를 재기동했다. 컨테이너 내부 runtime 종료가 지연되어
+식별한 기존 runtime owner에 SIGINT로 정상 종료를 요청했다. 이전 위치를 복원했고
+새 노드 1개 및 GetParameters 응답 0.5를 확인했다. API는 ready, available,
+출력 disabled와 STOP 확인 상태다. 이동 목표는 보내지 않았다. 앞서 검증한
+짧은 정상 관측의 개선 시간 갱신 수정도 새 프로세스에 반영됐다.
+원본은 physical-validation 실행의 recovery-floor-50/에 보존했다.
+
+이 적용 중 기존 recover 함수의 already_aligned 분기를 확인했다. 아래 실험의
+기존/A 모델에는 이 분기가 빠져 있으므로 정상 참조의 재지정 수치로 실제
+실행 코드 대비 B의 우위를 주장한 결론을 철회한다. 결과는 명시된 검색 분기
+모델의 수치로만 해석하며, 전체 실행 정책 비교는 기존 분기를 포함해 다시 해야 한다.
+해당 HTML에도 정정 안내를 추가했다.
+
+## 2026-11-08 복구 하한 완화와 정상 재검증 흐름의 다중 bag 비교
+
+`phone-nav2-demo`의 기준 commit `4eaf919145e03ffe248732c950dab1267ded17d2`와
+미커밋 변경에서 ROS Humble Distrobox의 오프라인 비교를 수행했다. 완료된 bag 5개와
+실행 중 bag의 SQLite 스냅샷 1개를 사용하고 최신 입력은 09:27:30까지 제한했다.
+총 2701.68초에서 정지 관측 창 28개를 선택하고 원래 위치와 X/Y ±0.4m,
+yaw ±0.35rad를 주입한 196개 조건을 비교했다. 앞 3개와 별도 3개 bag의 결과를
+분리했고 결과를 보고 조건을 수정하지 않았다.
+
+기존 65%, 하한만 50%로 완화한 A, 정상 점수 1.5초 유지 시 위치 재지정 없이
+복귀하고 그 외에는 개선·모호성·후속 관측으로 후보를 검사하는 B를 비교했다.
+정상 기준은 30%/18cm로 동일하다. B의 새 후보 하한도 30%이며 후속 안정성은
+1.5초다. 정합 산식 자체는 바꾸지 않았다.
+
+정상 점수가 안정된 참조 창 18개 중 기존/A/B의 복귀 허용은 1/17/18개,
+위치 재지정은 1/17/0개였다. 해당 참조의 주입 오차 시험 108개에서는 허용 결과가
+참조에서 20cm 또는 0.15rad를 넘게 떨어진 경우가 1/7/9개였다. B의 9개 중
+4개는 주입된 위치를 그대로 유지한 판정이다. 별도 3개 bag의 54개 시험에서는
+A/B의 허용·참조 잔차 이내 결과가 44/53개, 큰 잔차 허용은 모두 0개였다.
+따라서 B의 불필요한 재지정 감소는 확인했으나 모든 bag에서 A보다 낫다고
+판단할 수 없다. 어떤 후보도 실물 실행 설정에 적용하지 않았다.
+
+2057개 관측의 기록 점수 대조에서 최대 차이는 일치율 약 0.42%p, 평균 잔차
+약 3.3mm였다. 증거 시간 단절과 중복 관측, 모호한 후보와 개선 부족을 확인하는
+도구 검사 2개가 통과했다. 기록 AMCL은 실측 정답이 아니며 주입 오차 시험은
+참조 상대 결과다. 후보 적용 뒤 AMCL 재수렴, 실제 정지와 물리 성공률은 미검증이다.
+원래 불안정한 참조 10개와 파생 시험은 정답 평가에서 제외하고 원본에 남겼다.
+
+입력 스냅샷, 사전 조건, 창별 점군, 전체 후보·판정, HTML과 그래프는
+`CLEANY_DATA_ROOT/runs/navigation/traction/2026-11-08_094147_recovery-policy-comparison/`
+에 있다. `protocol.json`, `inputs.json`, `results.json`, `comparison.csv`,
+`summary.json`, `index.html`로 재현 조건과 결과를 확인한다.
+
+## 2026-11-08 기존 bag의 위치 정합 감속 정책 비교
+
+`phone-nav2-demo`의 기준 commit `4eaf919145e03ffe248732c950dab1267ded17d2`와
+미커밋 변경을 Fedora aarch64의 Ubuntu 22.04 ROS Humble 컨테이너에서 검증했다.
+완료된 bag `1d3af8ee-85f8-4db3-8b46-d7969de3db62`와
+`b826aa59-0d7f-426b-94db-4283b6cff214`의 합계 999초를 5Hz로 평가했다.
+원시 스캔, 수신 시각까지의 TF, AMCL pose와 각 진단 bag의 map을 사용했다.
+8회의 AMCL 초기 위치 수신 로그에서는 세 정책 모두 신뢰를 재검증하도록 초기화했다.
+직접 기록되지 않은 initialpose의 수동/복구 소유자는 확정하지 않았다.
+
+정상 기준을 모두 30%/18cm로 맞춘 정책 비교에서 차단 판정 누적은 기존 202.0초,
+수정 전 감속 정책 202.4초, 수정 후 179.2초였다. 기존 차단이 감속으로 바뀐 구간은
+25.2초이고 반대로 기존 허용이 새 차단으로 바뀐 구간은 2.4초였다. 짧은 정상 관측이
+개선 시간을 갱신하지 않던 문제를 수정하되 연속 정상 1초와 총 대기 8초 제한은 유지했다.
+원본 점수와 대조 가능한 819개 스캔에서 최대 차이는 일치율 약 0.42%p와 평균 잔차
+약 3.3mm 이하였다. 입력 DB 4개의 전후 SHA-256은 동일했다.
+
+실제 LocalizationGuard에 선정한 기록 구간을 DDS domain 196으로 재생하여
+available → degraded → available 전이와 SpeedLimit의 100/30/0% 발행을 확인했다.
+Core 12개, 실제 Guard/Supervisor에 합성 입력을 연결한 ROS 9개 검사가 통과했다.
+초기 분석에서 reset 이력을 빠뜨린 결과는 initial/에 보존하고 최종 판단에는
+corrected/ 결과를 사용했다. 입력은 고정된 과거 AMCL 결과이므로 변경된 속도에서의
+폐루프 위치 정확도, 감속 비율의 최적성, 실제 주행 성공률을 입증하지 않는다.
+실물 이동 명령이나 서버 재시작은 수행하지 않았으며 수정 코드는 다음 프로세스부터 적용된다.
+
+원본 비교, 설정, 재현 인자, 테스트 로그와 소스 스냅샷은
+`CLEANY_DATA_ROOT/runs/navigation/traction/2026-11-08_091549_recorded-reconvergence-validation/`
+에 있다. 최종 HTML은 `corrected/index.html`, 입력과 소스 해시는
+`corrected/manifest.json`, 최초 분석은 `initial/`에 보존했다.
+
+## 2026-11-08 위치 정합 회복 대기와 단계별 감속
+
+`phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경에서
+검증된 위치의 경미한 지도 불일치를 degraded로 구분했다. 기존 NAVIGATION lease를
+유지하면서 `navigation/localization_speed_limit`으로 정상 상한의 30%를 요청한다.
+MPPI와 기존 Collision Monitor가 같은 제한을 적용하며, Monitor는 초당 30%p로
+상한을 낮춘다. 0% 또는 0.6초의 제한 메시지 단절은 즉시 0 출력이다.
+
+2cm의 평균 오차 감소 또는 5%p의 일치율 증가를 개선으로 관측한다. 4초간 개선이
+없거나 불일치 시간이 총 8초가 되면 정지한다. 일치율 10% 미만과 평균 오차 35cm
+초과가 동시에 0.8초 지속돼도 정지한다. 첫 위치 미검증, 센서/TF 단절, 잘못된
+공분산은 유예하지 않는다. 정상 정합 1초 후 감속을 해제하며, 이미 취소한 목표는
+자동 재개하지 않는다. 정지 후 후보 검증 기준 65%와 슬립 BT 비활성은 유지했다.
+
+Core 검사 10개, 실제 Guard/Supervisor와 합성 LiDAR/pose를 연결한 ROS 검사 및
+Collision Monitor 검사 11개, 감속·메시지 단절의 최종 Monitor 검사 2개가 통과했다.
+Navigation CTest 25개 그룹도 통과했고 navigation/teleop 및 UI 빌드가 완료됐다.
+ROS lease 검사는 정규 갱신을 지속해 만료로 인한 정지와 구분했다. 각 묶음은
+중복을 포함하므로 합산하지 않는다. 심한 오류/단절 정지와 초기 미검증 차단은
+그대로 확인했다.
+
+실물은 STOP ACK와 출력 0을 확인한 뒤 재기동했다. 기존 추정 pose를 시드로 전달했고
+AMCL을 바꾸거나 새 이동 목표를 보내지 않았다. 실제 graph에서 단일 Guard 발행자와
+MPPI/Monitor 두 소비자를 확인했다. 초기 available 이후 degraded 30%와
+reconvergence_stalled 0% 전이를 관측했다. 마지막 평균 오차는 약 19.8cm로 정상
+기준 18cm를 초과해 자동주행이 제한됐다. 이는 상태 전이/전달 검증이며 실물 감속
+거리나 AMCL의 위치 정확도, 모든 지도 누락에 대한 강인성 검증은 아니다.
+
+원본은 데이터 루트 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `reconvergence-*.json`, `reconvergence-*.log`,
+`reconvergence-source-snapshot.tar.gz`에 있다. 실행 연결은
+`reconvergence-live-wiring.json`, 실제 전이는 `reconvergence-live-observation.json`,
+마지막 차단 사유는 `reconvergence-current-state.json`에 보존했다.
+
+## 2026-11-08 지도 정합 차단 기준 30% 실험
+
+사용자 요청으로 휴대폰 `min_inlier_ratio`를 0.55에서 0.30으로 낮췄다.
+복구 후보 0.65, 절사 평균 거리 0.18m, 불일치 0.8초와 정상 복귀 1초는 유지했다.
+STOP을 확인한 뒤 런타임을 재기동하고 이전 추정 pose를 복원했다. 실행 파라미터를
+재조회해 변경을 확인했으며, 51~56% 관측에서 정합 available과 navigation ready를
+확인했다. 위치 정확도를 실측하거나 새 이동 목표를 보내지는 않았다.
+원본은 데이터 루트의 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `alignment-30-before.json`, `alignment-30-after.json`,
+`alignment-30-parameters.json`, `alignment-30-build.log`에 있다.
+
+## 2026-11-08 병진 합성 속도와 회전 속도 구간별 제한
+
+`phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경에서
+사용자가 요청한 Omni 속도를 적용했다. 빈 공간은 병진 0.5m/s와 회전 0.7rad/s,
+주황 영역은 0.16m/s와 0.3rad/s, 목표점 20cm 안의 목표 상한은 0.06m/s와 0.15rad/s다.
+병진은 `hypot(vx, vy)`로 제한한다. 기존 운용 휠 상한 4/1.5rad/s를 제거하고 MPPI,
+명령 bridge와 Collision Monitor에는 드라이버와 같은 최종 상한 10rad/s를 유지했다.
+혼합 동작은 최종 휠 상한에 따라 요청보다 느려질 수 있다.
+
+MPPI는 목표 속도 제한을 후보 평가와 필터 후 출력에 적용한다. 축/휠 가감속 제한과
+0.3초 반응 시간을 포함한 사전 감속 곡선을 사용한다. 설정상 0.5m/s에서 주황 영역
+속도로 줄이는 시작 거리는 주황 경계 약 0.98m 전이며 실측 제동 거리 보장은 아니다.
+새 장애물, 입력 단절과 정지 영역은 기존 즉시 정지 경로를 유지한다. 별도 종방향
+재시도 프로필은 기존 속도 범위를 보존했고 슬립 BT 복구는 계속 꺼져 있다.
+
+관련 설정/실제 Collision Monitor ROS 검사 52개, 조종 경로 검사 50개와 navigation
+CTest 25개 그룹이 통과했다. C++ 검사는 합성 병진과 회전, 최종 휠 한도, 장애물
+사전 감속, 도착 접근, 외부 속도 제한과 가감속 연속성을 확인했다. Navigation과
+teleop을 빌드했다. 최초 회귀의 기존 설정값 예상 실패는 새 사용자 설정과
+분리한 종방향 프로필 유지 조건으로 갱신했다. 각 검사 묶음은 중복이 있어 합산하지 않는다.
+
+실물은 STOP ACK, MCU 비활성과 출력 0을 확인하고 재기동했다. 이전 추정 pose를
+시드로 복원한 후 정합 available, 자동/수동 ready, 모든 관련 lifecycle active를
+확인했다. MPPI, bridge와 Collision Monitor의 실제 파라미터를 재조회했고 편집
+지도를 유지했다. 새 이동 목표를 보내지 않았으며 0.5m/s 실측 주행, 제동 거리와
+해당 속도의 바닥 슬립은 검증하지 않았다.
+
+원본은 데이터 루트 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `body-speed-*.log`, `body-speed-*.json`, `body-speed-source-snapshot.tar.gz`에 있다.
+실행값은 `body-speed-live-parameters.json`, 정지와 준비 상태는
+`body-speed-live-observation.json`에 보존했다.
+
+## 2026-11-08 편집 지도 적용과 슬립 감지만 사용하는 검증 구성
+
+`phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경에서
+사용자의 `map_adj_1.pgm`을 편집 작업 폴더의 `map.pgm`으로 반영했다. 기존 지도와
+해상도, 원점 및 573×782 크기는 같으며 296개 픽셀이 다르다. 원본 기록의 지도는
+유지했다. map_server LoadMap 응답과 실제 `/map` 데이터가 새 이미지의 점유 변환과
+일치함을 확인하고, 현재 서비스의 다음 시작 경로도 편집 지도의 YAML로 변경했다.
+
+사용자 선택에 따라 `--slip-recovery false`를 추가하고 launch까지 전달했다.
+Omni의 `slip_monitor`와 로거 기록은 유지하며 `SlipRecovery` BT, 별도 종방향
+planner와 `traction_brake`는 실행하지 않는다. 충돌 감시와 위치 정합 복구는 유지한다.
+양쪽 launch 구성을 포함한 관련 검사 48개와 navigation/bringup 빌드가 통과했다.
+
+STOP ACK와 출력 0을 확인하고 재기동했다. 실제 런타임에서 편집 지도 셀 hash,
+방향 critic 활성 및 가중치 1/20, 휠 상한 4/1.5rad/s, `slip_monitor` 메시지 수신과
+Logger 구독을 확인했다. BT는 기본 Nav2 트리이며 `SlipRecovery`가 없고 모든 관련
+lifecycle은 active였다. 자동 명령은 `motion/cmd_vel → collision_monitor →
+navigation/safe_cmd_vel`을 지나 기존 단일 base 명령 소유자로 전달된다. 이전 추정
+pose를 시드로 전달한 뒤 정합 available과 navigation ready를 확인했다. 새 이동
+목표는 보내지 않았으므로 변경 후의 실물 주행과 슬립 복구 성능 검증은 아니다.
+
+원본은 데이터 루트 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `edited-map-*.json`, `edited-map-slip-*.log`,
+`edited-map-monitor-only-source.tar.gz`에 있다. 현재 서비스 설정은 사용자 systemd
+drop-in `cleany-phone-nav2.service.d/20-edited-map.conf`에 남겼다.
+
+## 2026-11-08 지도 정합 감지와 정지 상태 위치 복구
+
+기준은 `phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋
+변경이며 Fedora aarch64의 `ros2-humble`에서 검증했다. `localization_guard`가
+scan 시각의 TF와 기존 지도를 대조하고, phone Supervisor의 NAVIGATION 조건에
+정합 health를 추가했다. 복구 owner는 정지 피드백을 확인한 뒤 제한된 pose 후보를
+검색하고 독립 검증 빔, 새 scan과 AMCL 결과를 확인한다. 속도 명령과 지도 수정은
+하지 않으며 이전 목표도 자동 재개하지 않는다. 일반 안전 프로필은 변경하지 않았다.
+
+최종 Guard/core와 Supervisor 검사 84개가 통과했다. 합성 ROS 입력은 별도 domain에서
+작은 공분산의 잘못된 pose, 높은 공분산, 수치 오차 수준의 음수 분산, 불충분한 scan,
+모호한 통로, 미확인 정지, 동시 요청과 수동 initialpose 선점을 확인했다. 실제
+Guard와 Supervisor를 사용했으나 LiDAR 장면과 AMCL 응답, STOP port는 합성이다.
+앞선 profile/runtime/teleop/logger-policy 회귀 162개, base/Supervisor/logger 회귀
+238개와 opt-in logger ROS 검사 3개도 통과했다. 해당 묶음은 중복을 포함하므로
+합산하지 않는다. navigation CTest 25개 그룹, 5개 관련 패키지 최종 빌드와 UI 빌드가
+통과했다. 초기 logger preset 누락은 회귀 검사에서 검출해 수정했다.
+
+실물에서 최초 후보는 독립 빔 일치율 63.3%로 복구 기준 65%에 못 미쳐 적용을
+거부했다. 이후 실제 AMCL에서 `-1.4016e-11`의 분산이 관측되어 기존 `1e-12`
+roundoff 허용치가 정상 데이터를 거부하는 원인도 확인했다. 두 검사에 `1e-9`
+수치 오차 허용을 맞추고, `-1e-8`, NaN, 과도한 분산은 여전히 거부하는 검사를
+추가했다. 높은 분산은 주행을 막으면서 유효한 scan/TF를 복구 탐색에는 제공한다.
+
+STOP ACK, MCU disabled와 출력 0을 확인한 뒤 런타임을 재기동하고 이전 추정 pose를
+시드로 한 번 전달했다. 마지막 20초 관측에서 초기 안정화 뒤 정합 available과
+navigation ready가 유지됐다. 대표 일치율은 63.3%, 절사 평균 잔차는 7.5cm였으며
+Supervisor는 OPERATIONAL, 활성 lease와 복구 job은 없었다. 새 이동 목표나 실제
+슬립은 유발하지 않았다. 이 결과는 물리 절대 위치 정확도나 실물 슬립 후 복구 성공을
+입증하지 않는다. `/localization/status`의 bag 저장, 단일 명령 소유자, 허가된
+health publisher 및 지도 YAML/PGM 체크섬 불변을 확인했다.
+
+원본은 데이터 루트의 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `localization-*.json`, `localization-*.log`, `localization-source-snapshot.tar.gz`,
+`runtime/localization/`에 있다. 변경 소스 hash는 `localization-source-manifest.json`,
+마지막 관측은 `localization-final-live-observation.json`과
+`localization-final-live-probe.json`, 실패 후보는 `runtime/localization/d03a8cd2e245e81b.json`
+에 보존했다. 실제 지도 편집과 별도 슬립 경로 복구 알고리즘 변경은 수행하지 않았다.
+
+## 2026-11-08 방향 비용 1/20 적용과 실물 슬립 방향 비교
+
+`phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경에서
+sin 기반 `DirectionalMotionCritic`을 횡 1, 대각 20 cost/m로 변경했다. 정지와 MCU
+STOP ACK를 확인한 뒤 controller를 deactivate/cleanup/configure/activate했고,
+실행 중 `enabled=true`, 가중치 1/20, lifecycle active를 재조회했다. 새 주행 목표는
+보내지 않았다. 관련 프로필/runtime/slip 문맥 검사 48개, 보고서 좌표/누락 처리 검사
+3개와 navigation 빌드가 통과했다.
+
+실제 bag `9d2c867c-73e4-489a-9e07-c2ee12c64aaf`의 08:20:35.35–08:20:49 KST를
+분석했다. 이는 이전 0.1/0.45 비용으로 주행한 기록이며 새 비용의 효과 검증은 아니다.
+첫 확정 창의 적분 명령 방향은 28.49도, wheel 방향 29.45도, LiDAR 추정 8.76도였다.
+측방 이동은 wheel 5.62cm와 LiDAR 0.80cm, 전체 이동 불일치는 6.75cm/59.1%였다.
+약 1초 창이 겹치며, LiDAR 정합 실패와 1.5cm 미만 이동의 방향은 표시하지 않았다.
+
+원본, 적용 증거, PNG/SVG 그래프와 HTML은 데이터 루트의
+`runs/navigation/traction/2026-11-08_080053_physical-validation/analysis/directional20-slip/`
+및 같은 실행의 `directional20-activation.json`에 있다. 복구 중단 원인은 종방향
+플래너의 `no_valid_lattice_path`였으며, 실패 입력 보존과 짧은 안전 복구 자세를 먼저
+탐색하는 개선안은 HTML의 계획으로 남겼다. 해당 복구 알고리즘은 이번에 변경하지 않았다.
+
+## 2026-11-08 재기동 잠금과 STOP 응답 복구
+
+기준은 `phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2` 및 미커밋
+변경이다. Fedora aarch64의 `ros2-humble`에서 검증했다. 이전 USB 단절의 base latch가
+정상 기동 후 남은 사례와 STOP 단발 유실, 최초 MCU 관측 전 boot_id 0 응답을
+구분했다. 시연 프로필에만 기동 시 통신 Fault 재검증을 켜고, STOP 재전송 및 이전
+lease의 정지 확인을 보완했다. 실제 고장, 원인 미상 latch와 미확인 정지는 유지한다.
+
+Supervisor, base 및 관련 teleop 회귀 검사 224개가 통과했다. 이후 최초 STOP의
+boot 식별 및 새 STOP sequence 보완을 포함한 base/teleop 검사 157개도 통과했다.
+별도 이전 lease ROS Action 검사가 통과했으며, 결과 수는 중복을 포함하므로 합산하지
+않는다. 최초 회귀에서 watchdog Fault가 ACK 전에 해제되는 문제를 검출해 수정했다.
+4개 관련 패키지를 캐시에 빌드했으며, STOP 유실은 합성 MCU로 검증했다.
+
+실물에서는 PWM과 목표 0을 확인하고 런타임을 재기동했다. 이전 latch는 정상 health를
+확인한 뒤 operator reset으로 정리하고, 이전 lease는 실제 STOP ACK로 종료했다.
+재기동 전 측정 위치를 AMCL에 복원한 뒤 조종과 navigation의 ready, MCU disabled,
+STOP ACK 및 단일 명령 publisher를 확인했다. 이 검증에서 새 이동 목표는 보내지 않았다.
+
+원본은 데이터 루트의 `runs/navigation/traction/2026-11-08_080053_physical-validation/`
+아래 `reconnect-*.json`, `reconnect-*.log`에 있으며 실패/수정 이력은
+`reconnect-validation-history.json`에 구분했다. 물리 USB 단절을 다시 일으키거나
+자동 주행 정지 거리를 측정한 결과는 아니다.
+
+## 2026-11-08 폴더 정리 후 실물 주행 서버 기동
+
+`phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경을
+사용했다. 외부 자료의 현재 위치는 `data-storage-cleanup` worktree의 데이터 목록으로
+조회하고, 이전 실행의 절대경로가 든 스크립트는 실행하지 않았다. 빌드 출력은
+`~/.cache/cleany/builds/phone-nav2-demo`와 `hardware-deps`에 새로 생성했다.
+외부 Agent와 LiDAR revision은 기존 고정 버전과 일치함을 확인했다.
+
+24개 ROS 패키지 빌드, navigation CTest 25개 그룹과 하드웨어 프로필/슬립 문맥
+pytest 19개가 통과했다. 외부 드라이버의 최초 빌드는 Micro-XRCE-DDS 의존 prefix가
+없어 실패했으며, 캐시에 의존 라이브러리를 빌드한 뒤 Agent를 다시 빌드했다.
+관련 원본 로그는 해당 캐시의 build/log에 보존했다.
+
+ESP32와 CP2102 LiDAR 재연결 후 실제 메시지 수신, 단일 명령 소유자, LiDAR
+장치 정보와 STOP ACK를 확인했다. MCU는 disabled, fault 0, PWM 0이었다.
+기존 확장 지도를 읽어 조종 화면에 제공했으며, AMCL 초기 위치는 자동 추정하지
+않았다. 자동주행 전 사용자가 현재 위치와 방향을 지정해야 한다. 이동 명령을
+보내거나 실제 복구 주행을 시험하지 않았다.
+
+입력 ID, 설정, 명령, 체크섬, 센서 수신과 정지 증거는 데이터 루트의
+`runs/navigation/traction/2026-11-08_080053_physical-validation/`에 있다.
+실행 진입점은 `tools/ros2/run-phone-navigation`이며 과거 `analysis/run.sh`와 구분한다.
+
 현행 사용법은 [실행](RUNNING.md), [테스트](TESTING.md), [연동](INTEGRATION.md) 가이드를 따릅니다. 실행 원본의 기본 데이터 루트는 `../cleany-data`이며 `CLEANY_DATA_ROOT`로 변경합니다. Clone에 포함되지 않은 외부 fixture, asset은 별도로 전달받고 hash를 확인합니다.
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
+
+## 2026-11-06 실시간 슬립 감지와 BT 복구
+
+기준은 `4eaf919145e03ffe248732c950dab1267ded17d2`와 `phone-nav2-demo`의 미커밋
+변경이다. 코드 해시는 데이터 루트 `reports/slip-bt-integration-20261106/source-manifest.json`에
+보존했다. Fedora aarch64의 `ros2-humble` Distrobox에서 navigation과 teleop을 빌드했다.
+
+navigation CTest 25개 그룹과 teleop pytest 94개가 통과했다. 기존 bag의 928개 창을
+공유 감지 core로 다시 계산해 의심 39개, 증거 없음 840개, 판정 불가 49개와 사건
+시각이 이전 결과와 같음을 확인했다. 전체 Nav2를 별도 도메인 191에서 띄우고
+합성 휠 이동/정지 LiDAR를 입력해 `normal → braking → longitudinal_retry →
+braking → failed`와 최종 0 명령을 확인했다. 같은 트리의 다음 목표가 정상 추종으로
+시작하고 취소되는 검사도 통과했다. 이 입력은 물리적 슬립이나 주행 검증이 아니다.
+
+초기 smoke는 기록 지도에서 같은 위치 목표의 경로 생성에 실패했고, 이후
+명시적인 빈 시험 지도와 시작/취소 시나리오로 수정했다. 액션 서버 discovery만으로
+시작하면 활성화 전 목표가 거부되어, lifecycle active 확인을 추가했다.
+목표를 재사용할 때 상태를 초기화하는 문제는 목표 header와 halt cycle을 기준으로
+수정하고 연속 목표 검사로 확인했다. 실제 파라미터 snapshot 재사용 시 내부
+`/bond_disable_heartbeat_timeout` 중복 선언이 발생해 그 내부 키를 제거했다.
+
+실제 로봇에는 이동 목표를 전송하지 않았다. 정지와 입력 잠금을 확인하고 Nav2
+server를 재구성했으며 드라이버, AMCL과 로거는 유지했다. Omni 기본 planner와
+별도 프로세스의 종방향 retry planner, MPPI 두 plugin, 충돌 감시 입력과 단일
+최종 명령 소유자를 확인했다. 실물에서 슬립 후 복구 주행은 별도 확인이 필요하다.
+
+원본은 데이터 루트 `reports/slip-bt-integration-20261106/`의
+`navigation-ctest.log`, `bag-regression/`, `isolated-slip-final.json`,
+`isolated-next-goal.json`, `live-final.json`, `report.html`이다. 실행 시 사용한
+파라미터와 원복 자료는 `before/`, `activation/`, 절차는
+`experiments/slip-bt-integration-20261106/`에 보존했다.
+
+## 2026-11-06 기록 기반 슬립 의심 구간 분석
+
+- 기준: `4eaf919145e03ffe248732c950dab1267ded17d2`와 `phone-nav2-demo` worktree의
+  미커밋 진단 도구. 실행 코드와 입력 cache의 SHA256은 아래 manifest에 보존했다.
+- 환경: Fedora aarch64, `ros2-humble` Distrobox Python. ROS 노드 생성이나 주행 명령 없이
+  SQLite 읽기 전용 추출과 기존 LiDAR matcher를 사용했다.
+- 입력: bag `ef507ee6-e9b6-49db-ad86-65dba4d20a9d`,
+  2026-11-06 07:22:40–07:30:25 KST. scan 3,597개, odom 21,670개.
+- 결과: 비교 창 928개 중 의심 39개, 증거 없음 840개, 판정 불가 49개.
+  연속 감지 3구간은 모두 07:26:26–54에 집중됐다. 사람이 길을 막고 비킨 것으로
+  설명한 두 경로 변화 주변 비교 구간에서는 의심 창이 없었다. 정확한 물리 행동
+  시각과 전체 구간의 정답은 없으므로 정확도와 오탐률을 확정하지 않았다.
+- 실패: odom gap 6개, 정합 품질 또는 교차 검사 탈락 43개는 판정 불가로 남겼다.
+  단위 검사 47개 통과. 런타임 자동 감속이나 물리 동작 변경은 검증하지 않았다.
+- 원본: 데이터 루트 `reports/slip-detection-20261106/report.html`,
+  `full/manifest.json`, `full/inputs.npz`, `validated/{manifest,summary}.json`,
+  `validated/windows.jsonl`. HTML 재생성은
+  `experiments/slip-detection-20261106/report.py`를 사용한다.
 
 ## Nav2 복구 자료의 저장소 외부 보관
 
@@ -678,3 +1056,671 @@ Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 col
 다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
 반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
 repeat_ready.py와 readiness-repeat.log다.
+
+## 2026-11-04 오프라인 매핑 입력 녹화 분리
+
+코드 기준은 `15287287d4b236c71b519db989c958b233283503` 위의 미커밋 변경이다.
+Jetson Orin의 Ubuntu 22.04, ROS 2 Humble, Python 3.10.12에서 실행했다.
+변경 파일 hash와 원본 결과는 Fedora의
+`~/.local/state/cleany/logger-fix-20261104/`와 Jetson의 같은 경로에 보존한다.
+
+기존 Logger bag `106269c5-66b7-4e98-bafe-74359f443c76`의 스냅샷에는 raw scan
+825개와 1초 초과 시각 간격 98회, 최장 약 14.11초가 있었다. Logger 상태에는
+원본 크기 또는 저장 대기 한도 초과와 dropped 카운터가 남았다. Python 관측 처리의
+구조 변경 실험은 충분한 연속 수신을 입증하지 못해 최종 변경에서 제외했다.
+
+`tools/validation/record_mapping_bag.py`는 네이티브 rosbag2로 매핑 입력 6개만
+별도 수집한다. SQLite 파일 조회 중 발생한 lock 종료도 확인해 `resilient` preset을
+적용했다. Logger writer에도 같은 preset을 적용하고 읽기 트랜잭션을 유지한 채
+쓰기 가능한지 ROS 테스트로 확인했다. 용량 조회는 같은 파일 범위를 유지하면서
+순회 비용을 줄였고, writer는 가공 snapshot보다 원본 큐를 먼저 처리한다.
+
+Jetson에서 `make build-logger`의 두 패키지 빌드와 Logger 57개, Monitor 80개,
+원본 bag 도구 4개 테스트가 통과했다. Logger의 ROS opt-in과 Monitor 검사는
+격리 domain 75에서 실행했다. Fedora의 ROS 없는 검사는 Logger 53개 통과,
+ROS와 생성 메시지가 필요한 3개 skip이다. 도구의 시간 만료에 따른 SIGINT 종료와
+metadata 마감도 별도 domain 76에서 실행했다.
+
+실물 입력의 60초 native 검증 bag은
+`~/.local/state/cleany/mapping-bags/native-validation-wal-20261104T191257`이다.
+정상 종료 후 검사한 DB는 `journal_mode=wal`, `quick_check=ok`이며,
+`native-wal-validation.json`에 토픽별 수와 시각 간격을 보존한다.
+raw scan은 458개, 7.81 Hz, 최장 간격 0.149초였다. odom은 2,554개이며
+1.379초 간격이 1회 남았다. 휠 입력에도 2.936초 간격과 sequence 115 증가가 있어
+완전 무손실이나 전송 경로의 정상 동작까지 입증한 결과는 아니다.
+`upstream-gap-observation.json`은 관측값이며 원인 확정이나 MCU 재부팅 증거가 아니다.
+
+기존 SLAM, 조종 서버와 네트워크는 재시작하지 않았다. 실물 매핑은 같은
+`generation=2`의 LiDAR+odom 실행을 유지했다. 기존 Logger 프로세스에는 변경을
+hot reload하지 않았으며, 별도 native 수집 경로를 실행했다. 새 주행에 대한 지도
+정확도와 파라미터 개선 검증은 아직 수행하지 않았다.
+
+## 2026-11-04 주행 bag 재구성과 지도 정렬 점검
+
+코드 기준은 로컬 `15287287d4b236c71b519db989c958b233283503`과 Jetson
+`32d2d9e96e7c263ffa8ac6bc56b2b6a2ec6a5d84` 위의 미커밋 작업이다.
+원본은 Jetson Ubuntu 22.04 / ROS 2 Humble에서 수집했고, 후반 재생은 Fedora의
+기존 `ros2-humble` 컨테이너에서 격리 ROS domain을 사용했다. 이 비교를 위해
+실물 ROS, SLAM, 조종 서버 또는 네트워크를 재시작하지 않았다.
+
+입력 `native-user-drive-2045-20261104T204357`은 약 946.6초이며 raw scan 7,400개,
+joint state 43,105개, odom 43,143개, wheel state 43,383개를 포함한다. DB SHA-256은
+`c41eed98540521d06bf8adb208a41ce12c40f483726443f023d14d586814006d`다.
+스캔 header 기준 최장 간격은 0.15265초이고 odom에는 1.329초 간격이 한 번 남았다.
+사용자는 같은 출발 위치로 돌아왔다고 보고했으나 위치는 측량하지 않았고,
+종료 방향은 같은 방향 또는 약 180도 반대로 불확실하다.
+
+현재 실물은 63.5 mm 휠 반경, 350 mm 앞뒤 간격, 590 mm 좌우 유효 간격과
+X 배치를 유지한다. 별도 원격 커밋 `be4b8e70`의 135 mm 유효 간격과 측방 부호
+−1은 적용하지 않았다. 이번 입력의 독립 스캔 정합은 약 591–592 mm를 지지한다.
+LiDAR 평면 TF는 CAD −Y를 전진으로 해석한 x +0.139275 m, y 0, yaw 180도다.
+z=0은 평면 모델 관례이며 실제 광학 높이 측정값이 아니다.
+
+| 오프라인 보정 | Wheel odom 복귀 차이 | LiDAR 참조 대비 전체 위치 RMSE |
+|---|---:|---:|
+| 원래 설정 | 2.121 m | 1.684 m |
+| 이동 방향에 따른 yaw 보정 | 1.244 m | 1.065 m |
+| 거리 배율과 방향 간섭 추가 | 0.948 m | 0.716 m |
+| 속도와 방향 비대칭을 포함한 14계수 후보 | 0.088 m | 0.135 m |
+
+마지막 행의 8.8 cm는 **동일 bag 안에서의 복귀 차이**다. 마지막 약 96초를
+계수 피팅에서는 제외했지만 후보 선택에는 사용했고, LiDAR 참조도 전체 bag의
+loop closure로 최적화했다. 해당 구간의 위치 RMSE는 약 0.127 m다. 720초까지만
+학습한 같은 모델은 복귀 차이 1.189 m로 일반화에 실패했다. 따라서 이 수치를
+독립 주행의 실물 정확도 또는 지도 정확도 10 cm 검증으로 사용하지 않는다.
+14계수 후보와 후속 실험은 실물 설정에 반영하지 않았다.
+
+사용자가 지적한 왼쪽 방의 가로 칸막이는 최종 지도에도 휘어짐과 겹침이 남았다.
+정지에 가까운 원본 스캔의 부분 직선 피팅 잔차는 중앙값 약 0.8–0.9 cm였지만,
+빔 시간 순서, 시야 범위, 지역 정합, 루프 제약, 서브맵 크기 및 SLAM Toolbox를
+비교해도 모든 구역의 정렬을 해결하지 못했다. 시간 순서 반전은 일부 칸막이를
+개선했으나 드라이버 오류나 단일 원인으로 확정하지 않았다.
+
+Fedora의 데이터 루트는 `/home/ehdrms/workspace/cleany-data`다. 원본 bag과 수치 결과는
+`runs/hardware-mapping-20261104/`, CAD와 설정은 `fixtures/`, 분석 스크립트는
+`experiments/hardware-mapping-20261104/`, 요약과 비교 그림, Git 상태는
+`reports/hardware-mapping-20261104/`에 분류했다. `summary.html`과 `summary.json`이
+요약이다. 기존 압축본은 각 파일의 보존을 검증한 뒤 해체했고, 고유한 과거 버전은
+`recovery/hardware-mapping-20261104/checkpoint-versions/`에 보존했다. 이동 전후 경로와
+SHA-256 검증은 `migrations/storage-consolidation-20261104/`에 기록했다.
+기존 실행 경로는 필요한 호환 링크로 유지하며 실제 데이터 사본은 추가하지 않는다.
+후속으로 제안한 벽 앞 정지, 좌우 회전, 실측 1 m 직진·후진 및 0.5 m 횡이동 시험은
+아직 수행하지 않았다. 단순 복귀 차이보다 실측 거리와 벽 정렬을 함께 확인한다.
+
+## 2026-11-05 Logger 저장량 조정
+
+- 기준 commit: `15287287d4b236c71b519db989c958b233283503`에 미커밋 Logger 변경 적용.
+- 환경: Fedora ARM64 노트북의 `ros2-humble` Ubuntu 22.04 컨테이너.
+- 입력: 세션 `d6073408-d4ba-4231-b5b0-dd1aee3fc132`의 원본 bag snapshot과 가공 DB,
+  수신 시각 기준 667.869초. ROS 발행 없이 운영 RecordingControls와 Recorder로 재기록.
+- 결과: 두 bag과 가공 DB 합계 179,780,667 bytes, 시간당 환산 969,067,417 bytes.
+  `/scan_raw`, `/odom`, `/base/wheel_state`, `/tf`, `/tf_static`의 저장된 timestamp와
+  CDR 해시, 메시지 수가 입력과 일치했다. 1시간 실물 주행 검증은 아니며 그래프 크기에
+  따라 증가율이 달라질 수 있다. 기존 누락 구간은 복구하지 않았다.
+- 검증: `CLEANY_RUN_ROS_TESTS=1 make test-logger` 59 passed,
+  같은 옵션의 `make test-dev-monitor` 80 passed, `make build-logger` 2 packages 성공.
+  Monitor의 기존 단일 bag 가정 검사 1건이 처음 실패해 두 bag의 토픽 배치와 CDR을
+  검증하도록 갱신한 뒤 전체를 재실행했다. 호스트에는 pytest가 없어 컨테이너에서 실행했다.
+- 원본 및 결과: `/home/ehdrms/workspace/cleany-data/reports/logger-budget-20261105/`
+  (`result.json`, `cdr-integrity.json`, `previous-settings.json`, `applied.json`).
+  재현 스크립트와 정책은 `/home/ehdrms/workspace/cleany-data/experiments/logger-budget-20261105/`.
+  초기 메시지별 commit 실험은 중단했고 그 부분 결과는 보존했다. 최종 결과는
+  `46d74ef2-d53a-48a0-a0aa-f9e5a509f6f4` 세션이다.
+- 배포 경계: 실행 중이던 Logger의 configure 응답과 저장 파일에서 정책 적용을 확인했다.
+  기존 용량 초과 ERROR를 정리하려고 짧은 새 세션
+  `7491dd76-71b0-4f74-8589-6f7c7bbafc10`을 열었으나 제어 응답이 timeout했다.
+  해당 Logger launch에 SIGINT를 보냈고 launch가 5초 후 SIGTERM으로 종료했다.
+  이 복구용 세션은 완전한 기록으로 취급하지 않는다. 모터 STOP 확인은 유지했고
+  하드웨어 및 네트워크를 재시작하지 않았다. 다음 주행 전 매핑 세션의 Logger
+  소유 상태 복구가 필요하며 새 Logger 실행부터 분리 writer 코드가 적용된다.
+- 후속 사용자 지시에 따라 분석용 정책을 별도로 저장했다. `trajectory_node_list`는
+  1 Hz, `constraint_list`는 0.5 Hz이며 map, submap 목록, matched points와 가공
+  관측 주기는 조정 전 정책으로 복원했다. 중복 3개 기록 제외는 유지한다.
+  Logger가 실행되지 않는 상태에서 설정 검증 후 원자적으로 저장하고 다시 읽어
+  일치를 확인했다. 다음 Logger 기동부터 사용하며 새 주행은 시작하지 않았다.
+  이 정책은 위 0.97 GB/h 측정 정책과 다르며 용량 재측정은 수행하지 않았다.
+  근거는 같은 보고서 폴더의 `analysis-rates-applied.json`과 실험 폴더의
+  `analysis-recording-settings.json`이다.
+- 사용자 승인으로 매핑 런타임을 재시작했다. 첫 재기동에서 `MappingBackend.start`가
+  저장된 Hz와 토픽 제외 설정을 무조건 덮어쓰는 것을 실제 Logger 응답으로 확인했다.
+  저장 정책이 있을 때 유지하고 첫 실행만 기본값을 설정하도록 수정했다.
+  `test_mapping_core.py` 12 passed, `make build-navigation` 8 packages 성공.
+- 최종 세션 `hardware-slam-20261105T180408-b17c5063`, Logger 세션
+  `a41738d8-5ca8-424b-ae73-ec83a1533679`에서 running/RECORDING 확인.
+  궤적 1 Hz, 제약 0.5 Hz 및 중복 3개 제외를 서비스 응답과 실제 두 bag에서 확인했다.
+  약 12초 관찰에서 scan 7.68 Hz, odom과 wheel state 44.74 Hz, map 0.50 Hz.
+  phone ready=true, paused=false, 모터 disabled/PWM 0/fault 0 확인. 주행 명령은 보내지 않았다.
+  이전 지도와 기록은 보존했다. 근거는 logger-budget-20261105 보고서 폴더의
+  `restart-live-policy.json`, `restart-status.json`, `restart-bag-topics.json`과
+  laptop-hardware-20261105의 `live-inputs.json`이다.
+
+## 2026-11-05 동일 바닥의 짧은 슬립 재현 시험
+
+- 사용자 명시 승인으로 기존 phone controller HTTP 경로를 사용했다. 별도 모터 명령
+  publisher를 만들지 않았다. 원본 bag 수집을 먼저 시작하고 fresh scan, odom,
+  wheel feedback, 단일 명령 소유자와 모터 정지를 확인했다. 지도 저장 오류로 남아 있던
+  maintenance pause는 시험 중 서비스로 해제하고 종료 후 원래 paused 상태로 복원했다.
+- 차체 범위 밖 관측 장애물의 최소 거리는 약 0.90m였고 시험 중 0.65m 미만,
+  센서 stale, MCU fault/reboot, odom 이동 0.18m 초과 시 중단하도록 제한했다.
+  기존 lease, permission 및 MCU watchdog 경로를 유지했다.
+- 왼쪽 2 rad/s, moving 상태 약 0.8초: odom 왼쪽 6.47cm, 독립 LiDAR 매칭
+  왼쪽 5.78~5.89cm, 후방 0.48~0.97cm. 좌전방 대각 2.5 rad/s 약 0.8초:
+  odom 전진 3.94cm/왼쪽 3.95cm, LiDAR 전진 3.30~3.65cm/왼쪽 3.61~3.86cm.
+  각 시험의 초기/종료 정지 스캔 3쌍과 전방-only 매칭 모두 valid.
+- 두 번 모두 STOP acknowledgement, disabled, PWM 전부 0 확인. 두 짧은 시험에서는
+  이전 bag의 큰 후방 슬립이 재현되지 않았다. 장시간 횡이동이나 다른 바닥 위치의
+  재현을 검증한 것은 아니다. 기구 및 보정 설정은 변경하지 않았다.
+- 원본과 결과: `/home/ehdrms/workspace/cleany-data/reports/slip-repro-20261105/`
+  아래 `184617-left`, `184707-diagonal`의 bag, result.json, analysis.json.
+  실행/분석 스크립트는 cleany-data/experiments/slip-repro-20261105에 보존했다.
+
+## 2026-11-05 2.5 rad/s 방향별 3초 반복 실물 시험
+
+- 사용자 명시 지시: 좌/우 횡이동과 좌전/우후/우전/좌후 대각 4방향을 각각 3회.
+  기존 phone controller로 반대 방향을 번갈아 총 18회 완료했다. 최대 활성 휠
+  명령 2.5 rad/s 유지 구간은 피드백 수신 시각 기준 3.008~3.090초였다.
+  대각선에서는 기존 mecanum 변환대로 두 바퀴가 2.5 rad/s, 다른 두 바퀴는 0이다.
+- 17번째 시도의 사전 검사에서 scan stale로 이동 전에 중단했다. 5초 fresh scan
+  재검사(38 samples, 최대 간격 0.138초) 후 미완료 방향만 재시도했다.
+  따라서 저장 시도는 19개, 완료된 이동은 방향별 정확히 3회씩 18개다.
+- 매회 센서 기록을 먼저 시작하고 기존 lease/permission/watchdog 경로를 유지했다.
+  센서 stale, MCU fault/reboot, 차체 밖 거리 0.65m 미만, trial odom 이동 0.65m
+  초과 시 중단했다. 모든 완료 시험에서 STOP 확인, disabled 및 PWM 전부 0.
+  시험 종료 후 기존 maintenance pause 상태를 복원했다.
+- 독립 LiDAR 국소 ICP를 합성해 odom과 비교했다. 긴 간격 endpoint ICP 중 일부는
+  overlap 부족으로 실패하여 최종 수치에 사용하지 않았다. 수렴 실패 국소 구간은
+  더 짧은 스캔 간격으로 나눠 같은 검증 기준으로 통과한 경우만 사용했다.
+  18회 모두 최종 full-scan 국소 매칭 유효. front-only 독립 비교 차이는 0.2~4.5cm라
+  cm 수준 수치를 절대 ground truth로 취급하지 않는다.
+- 왼쪽 횡이동 세 번에서 LiDAR 후방 편향 3.3~5.0cm, 왼쪽 이동 47.4~48.4cm.
+  오른쪽에서는 전방 1.8~2.7cm, 오른쪽 47.8~49.1cm. 이전 주행 bag의 큰 후진 슬립은
+  이번 반복에서 재현되지 않았다. 접지 손실과 좌표계/휠 모델 편향의 원인은 미확정.
+- 원본 bag, HTTP 상태/명령, trial analysis 및 summary.json:
+  `/home/ehdrms/workspace/cleany-data/reports/slip-repro-repeat-20261105/`.
+  실행/분석 스크립트: cleany-data/experiments/slip-repro-20261105의
+  repeat_pulse.py, analyze_repeat.py. 기구나 보정값은 변경하지 않았다.
+
+## 2026-11-05 사용자 수동 슬립 재현 기록
+
+- 사용자 재현 완료 지시에 따라 기존 phone HTTP STOP을 보내고 MCU STOP 확인,
+  disabled 및 PWM 전부 0을 확인했다. 별도 native rosbag recorder만 SIGINT 종료했다.
+- `runs/manual-slip-20261105-live`에 56,660,097 bytes 기록, metadata 존재,
+  SQLite quick_check=ok. 사용자 이벤트 수신 표시는 19:09:49 KST이며 정확한
+  물리적 시작 시각으로 간주하지 않고 이전 45초부터 분석했다.
+- 61개 짧은 명령 구간 모두 zero-seed LiDAR ICP 및 reverse-cycle 검사 통과,
+  60개는 front-only 비교도 일치. 19:09:27에는 odom 전진 9.1/왼쪽 11.2cm/s,
+  LiDAR 후진 1.4/왼쪽 0.6cm/s. 19:10:04에는 odom 후진 10.1/오른쪽 10.3cm/s이나
+  LiDAR 이동은 약 0.1cm/s였다. 여러 초 연속으로 큰 차체/휠 이동 불일치가 관측됐다.
+  해당 구간 휠 피드백은 명령을 대체로 추종하며 PWM 최대 31%였다.
+- 순수 2.5 rad/s 자동 시험과 달리 수동 재현은 활성 휠 약 3.2 rad/s와 작은 반대쪽
+  휠 명령이 포함되어 조건이 다르다. 마찰, 하중, 롤러 또는 접촉 장애물 원인을
+  이 자료만으로 확정하지 않는다. 보정이나 기구 설정은 바꾸지 않았다.
+- 분석 및 marker: `reports/manual-slip-20261105-live/summary.json`, `matches.json`,
+  `events.jsonl`. 스크립트는 experiments/slip-repro-20261105의 extract_manual.py,
+  compare_manual.py다. 이 재현 구간은 bag에 보존됐으며 이전 1GB 한도와 별개다.
+
+## 2026-11-05 중단된 주행 bag의 odom 보정 및 SLAM 비교
+
+- 기준 commit `15287287d4b236c71b519db989c958b233283503`, 기존 미커밋 변경 유지.
+  Fedora ARM64의 ros2-humble 컨테이너, 별도 ROS domain 174~179에서 offline node 사용.
+- 입력: Logger `a41738d8-5ca8-424b-ae73-ec83a1533679`의 18:04:10~18:24:51 기록.
+  scan_raw 9,449건에서 기존 전방 180도/0.30 m 필터로 scan 재생성, odom 55,980건.
+  온라인 map->odom TF는 제외하고 base->lidar 장착 TF와 odom->base_link를 사용했다.
+  원래 주행의 마지막 복귀 구간이 없으므로 종점 일치 조건으로 보정하지 않았다.
+- 독립 초기값 두 개가 일치하는 ICP 상대 이동 674쌍 중 348쌍으로 보정하고
+  분리된 30초 블록의 326쌍에서 평가했다. 원본 odom의 상대 이동 RMSE는
+  2.098 cm/0.191도, 반경·yaw 보정은 2.091 cm/0.190도,
+  방향 편향 모델은 2.028 cm/0.184도였다. 동일 LiDAR에 대한 일관성 지표이며
+  실측 ground truth나 전체 주행 위치 정확도가 아니다.
+- 기존 odom+LiDAR, LiDAR-only, yaw 보정, 반경+yaw 보정, 방향 편향 보정의
+  5개 지도와 궤적을 생성했다. SLAM 결과의 검증 상대 이동 RMSE는 각각
+  1.498/3.085/1.479/1.485/1.478 cm, yaw는 0.238/0.526/0.227/0.218/0.216도.
+  기존 조건 재실행도 1.498 cm/0.238도로 재현됐다. 방향 편향 후보와 기존의
+  차이는 블록 bootstrap 95% 구간에 0을 포함해 뚜렷한 개선으로 판정하지 않았다.
+- 칸막이 확대 비교에서 보정의 효과는 혼재하며 5 cm 지도 격자 이하의 차이가
+  대부분이다. 통로의 겹침은 남았다. 실물 odom 설정은 변경하지 않았다.
+- 후보 bag은 scan CDR와 timestamp 해시 동일, SQLite integrity 확인.
+  원본 odom 복원 항등성 확인. 대응 odom이 기록되지 않은 TF 3건은 보간 보정량에
+  원래 TF 잔차를 유지했다(최대 49.24 micrometres). 초기 검증에서 이 보간 잔차를
+  발견했고 해당 입력 생성 시도도 별도 폴더에 보존했다.
+- 원본·스크립트·pbstream: `/home/ehdrms/workspace/cleany-data/experiments/offline-slam-20261105-180408/`.
+  비교 그림·지도·지표·SHA-256: `/home/ehdrms/workspace/cleany-data/reports/offline-slam-20261105-180408/`.
+
+## 2026-11-05 리모컨 임시 전후진 전용 모드
+
+- 사용자 요청으로 token 디렉터리의 `teleop-motion.json`에 forward_only=true 저장.
+  조종 서버만 graceful 재시작하여 적용했고 센서, 네트워크와 SLAM은 재시작하지 않았다.
+- UI는 횡이동과 회전 조작을 숨기고 포인터 및 키보드 입력을 전후 축으로 제한한다.
+  서버는 별도로 횡/대각/회전 명령을 거부한다. 기본 모드는 종전과 같고 로컬 정책을
+  false로 바꾸고 서버 재시작하면 복원한다. 기존 권한과 watchdog은 유지했다.
+- Python teleop 검사 49 passed, Node 입력 검사 17 passed, UI 타입 검사/빌드 및
+  `make build-hardware-mapping` 24 packages 성공. 실제 서버 상태 forward_only=true,
+  ready=true, paused=false 확인. 금지된 세 입력은 HTTP 409로 거부됐고 모터는 계속
+  disabled/PWM 0이었다. 새 JS/CSS HTTP 200 확인. 실물 이동 명령은 보내지 않았다.
+- 실제 상태 근거: cleany-data/reports/laptop-hardware-20261105/forward-only-status.json.
+
+## 2026-11-05 노트북 360도 매핑 주행 분석
+
+입력은 22:15:26–22:44:26 KST의 Logger 세션
+`ea32b1f9-80b0-477e-ac12-717f8c4f6d23`이며, Fedora ARM64 노트북의
+Ubuntu 22.04 / ROS 2 Humble 컨테이너에서 읽기 전용 분석을 수행했다.
+코드는 `15287287d4b236c71b519db989c958b233283503`과 보고서에 보존한 작업 트리 변경이다.
+보고서는 `/home/ehdrms/workspace/cleany-data/reports/slam-360-20261105/report.html`,
+분석 스크립트는 같은 데이터 루트의 `experiments/slam-360-20261105/`에 있다.
+원본 bag 경로와 SHA-256은 보고서의 `storage.json`에 기록했다.
+
+257개 이동 창 중 237개가 양방향 스캔 정합 검증을 통과했고, 해당 창의 위치 차이
+중앙값은 4.61mm였다. 전체 복귀 스캔 정합은 일치점 비율 부족으로 기각했으며
+절대 정확도 0.1m 또는 기존 180도 대비 개선을 입증한 결과가 아니다.
+DB 무결성과 녹화 종료는 확인했지만 `raw_gap`에 저장 대기 또는 메시지 크기 한도
+초과에 따른 누락이 있어 무손실 기록으로 해석하지 않는다.
+
+## 2026-11-06 휴대폰 경로 요청과 자동주행 모니터 복구
+
+Fedora ARM64의 Humble 컨테이너, `4eaf919145e03ffe248732c950dab1267ded17d2`
+기반 `feat/phone-nav2-demo` 미커밋 변경에서 확인했다. HTTP LAN 주소에서는
+`crypto.randomUUID`가 없어 목적지 선택 후 요청이 전송되지 않았다. 요청 ID를
+`getRandomValues`로 생성한 뒤 같은 비보안 컨텍스트에서 preview 전송, 파란 경로 표시,
+이동 goal 미전송을 검증했다. 원본은 `cleany-data/reports/phone-path-preview-lan-20261106/`에 있다.
+
+AMCL 공분산의 `-5.7e-16` 수준 잔차로 발생한 위치 추정 거부도 재현했다.
+`-1e-12` 이하 허용 범위와 실제 음수·상한 초과·non-finite 거부를 검사했다.
+Supervisor 51개와 Teleop 69개 검사가 각각 통과했고 두 패키지 빌드도 완료했다.
+합동 실행은 동명 `test_core` 및 상대 test helper의 수집 충돌로 실행하지 못해
+패키지별 별도 프로세스로 검사했다.
+
+정지 확인 후 로거를 종료하고 실행 묶음을 재시작했다. 이전 위치 추정값을 초기값으로
+사용한 뒤 실물 피드백, 활성 fault 0개, navigation ready와 PWM 0을 확인했다.
+근접 목표에 대한 읽기 전용 계획은 약 1.34초 후 경로 없음으로 끝났으며,
+실물 자율 이동 성공을 검증한 결과는 아니다. RViz 모니터 설정은
+`cleany-data/fixtures/phone-nav2-demo/navigation.rviz`에 저장했다.
+
+같은 실행에서 사용자 요청에 따라 자동주행 휠 상한을 2rad/s, 장애물 감속비율을
+0.25로 변경했다. 직진·회전 혼합 명령의 휠 상한과 작은 명령 비증폭을 포함한
+Teleop/phone profile 검사 83개와 관련 3패키지 빌드가 통과했다. 실행 중 MPPI
+속도 제한, Collision Monitor 감속비율과 phone_remote의 휠 제한 파라미터를
+다시 조회했다. 근거는 `cleany-data/reports/phone-nav2-implementation-20261105/wheel-limits-20261106.json`이다.
+적용 후 정지 확인과 navigation ready를 확인했으며 속도 측정을 위한 추가 실물 주행은 하지 않았다.
+
+## 2026-11-06 제자리 회전 구간의 MPPI 정체 수정
+
+같은 미커밋 작업 트리에서 세션 `14d7fbbe-8b60-4e3b-936a-91ae3d618e52`의
+ROS 시각 1793892475 부근을 분석했다. Lattice 경로의 선두 8개 점은 동일 XY에서
+yaw만 바뀌었다. 기존 critic trace에서는 PathAngle 비용이 0이고 Twirling 비용이
+회전을 억제했다. 제자리 회전의 종료 yaw를 PathAngleCritic 평가에 사용하도록
+선택 기능을 추가하고 longitudinal phone 프로필에 적용했다.
+
+원본 bag에서 추출한 정지 pose·경로·local costmap으로 240회 optimizer 호출을
+비교했다. 기존 body yaw 명령 평균은 0.00180rad/s, 수정 후 0.27021rad/s였다.
+Y축을 반사한 합성 반대 회전에서도 -0.27021rad/s였고 검사한 최적화 궤적에서
+lethal footprint 충돌은 없었다. OccupancyGrid의 중간 비용은 역변환한 근삿값이며,
+고정 pose 재생은 실물 주행 또는 폐루프 완주 증거가 아니다.
+
+원본과 비교 설정, critic trace, snapshot은
+`cleany-data/reports/nav2-turn-recovery-20261106/`에 보존했다. Navigation CTest
+22개 그룹이 통과했고 새 회전 목표, 각도 wrap, 일반 이동 경로 회귀를 포함한다.
+정지 확인 후 실행 묶음을 재시작하고 마지막 위치 추정값을 복원했다. 실행 파라미터에서
+회전 추종 기능, 출력 궤적 충돌 검증, 휠 2/0.5rad/s 제한의 설정을 확인했다.
+추가 실물 이동 명령은 보내지 않았다.
+
+후속 실물 요청에서는 과도한 회전이 관찰되어 정지했다. 사용자는 RViz 방향과 실제
+정면이 일치한다고 확인했다. 두 번째 목표의 기록된 global costmap에서는 동일 footprint로
+검사한 직선 연결이 가능했지만 기본 Lattice 경로에는 반복 회전이 있었다.
+longitudinal 프로필을 기존 StraightFirstPlanner로 전환하고, 제자리 회전의 후보·출력
+XY를 함께 0으로 제한했다. 위치 도달 전 최종 yaw 강제를 피하도록 GoalAngleCritic의
+범위를 3cm로 한정했다. 일반 이동의 Twirling 벌점은 다시 유지했다.
+
+`closed_loop.cpp`로 기록한 지도와 이상적인 속도 응답, 고정 25% 감속을 사용한
+폐루프 모사를 추가했다. 50cm 직진은 약 19.2초, 약 36도 회전 후 50cm 이동은
+약 30.45초에 3cm/0.1rad 조건을 만족했고 검사한 경로에서 충돌은 없었다.
+이는 실제 모터·마찰·통신 지연 검증이 아니다. 원본 설정과 실패한 중간 실험도
+`cleany-data/reports/nav2-turn-recovery-20261106/`에 함께 보존했다.
+최종 소스로 Navigation CTest 22개 그룹이 통과했다. 재시작 후 실시간 전방 50cm
+계획은 25개 경로점, 최대 방향 변화 약 0.0075rad로 생성됐고 모터는 disabled/PWM 0이었다.
+
+## 2026-11-06 주황 영역 16cm와 절대 휠 속도 제한
+
+사용자 요청으로 주황 영역을 바퀴 외곽 +16cm, 장애물 구간 휠 상한을 0.7rad/s로
+변경했다. 기존 Nav2 CollisionMonitor를 상속하는 `phone_collision_monitor`가
+같은 lifecycle, polygon, 센서와 STOP 처리를 사용하며, 선택한 polygon의 감속
+비율만 입력별 절대 휠 상한으로 계산한다. 작은 명령은 다시 축소하지 않는다.
+
+격리 ROS domain 191의 실제 노드 검사에서 빈 공간, 0.4rad/s 유지, 큰 명령 제한,
+직진/횡이동/회전 혼합의 0.7rad/s 제한, STOP 우선, 비활성 상태 무출력을 확인했다.
+Navigation CTest 23개 그룹과 관련 package build가 통과했다. 잘못 선택한 domain
+234는 DDS 포트 범위를 초과해 최초 검사를 시작하지 못했고 유효한 격리 domain에서 다시 실행했다.
+
+정지 확인과 위치 보존 후 실행 묶음을 재시작했다. 실제 노드의 휠 상한 0.7,
+주황 영역 반경 XY 0.3985/0.4874, 빨간 영역 0.2885/0.3774를 조회했다.
+원본은 `cleany-data/reports/nav2-turn-recovery-20261106/absolute-limit-applied.json`이다.
+추가 실물 주행은 수행하지 않았다.
+
+## 2026-11-06 자동 목표의 화면 의존과 격자 연결 회전 수정
+
+환경은 Fedora aarch64 노트북과 Humble Distrobox이며, 소스는
+`feat/phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2` 위 미커밋 변경이다.
+입력은 `cleany-data/runs/phone-nav2-demo/runtime/recordings/bags/8d31dbaa-b40b-4d89-957a-5d770263f733/`의
+실물 기록이다. 마지막 취소 시 사용자가 휴대폰 화면 잠금 또는 앱 전환을 확인했다.
+수락된 자동 목표에서 browser heartbeat 만료를 제거하고 로봇 쪽 Supervisor,
+odom 0.3초, scan과 pose 0.5초 감시는 유지했다. 센서 취소는 입력별 나이를 기록한다.
+
+주행 구간 388개 scan 중 73개에서 정지 기준 이상의 반사점이 검출됐고,
+모두 차체 내부 x=-0.172..-0.166m, y=0.186..0.196m에 모였다.
+사용자가 케이블 또는 부품을 확인한 뒤 선을 고정했다. 고정 후 정지 상태의
+47개 scan에서 정지 영역 안 점은 0개였다. 제안했던 케이블용 마스크는 적용하지 않았다.
+이 관찰은 주행 중 케이블 안정성까지 검증한 것은 아니다.
+
+격자 경로 시작에 약 2cm 연결과 반대 회전이 있었다. longitudinal 프로필에만
+앞쪽 1m의 직선 연결을 전체 footprint와 최신 costmap으로 검사하도록 했다.
+기록한 local costmap의 시작 경로에서 전체 yaw 변화량은 1.154rad에서 0.701rad로
+줄었고 원본과 수정 경로 모두 연속 sweep 검사를 통과했다. 장애물 관통 방지,
+후방 연결 보존, 남은 경로 보존과 취소 검사를 추가했다.
+
+고정 pose MPPI 재생에서 연한 장애물 비용을 제거해도 회전 구간의 평균 명령은
+약 0.2235rad/s로 같았다. 이동 구간에서는 평균 전진이 0.1117에서 0.1141m/s,
+yaw가 -0.1673에서 -0.1326rad/s로 달라졌다. 중간 비용은 OccupancyGrid 역변환 근사이며
+이 두 snapshot만으로 전체 와리가리 원인이나 실물 개선을 확정할 수 없다.
+비용 가중치와 inflation 설정은 유지했다.
+
+Teleop pytest 83개, Navigation CTest 23개 그룹과 관련 package build가 통과했다.
+자동 목표의 실제 ROS action 검사는 합성 제어/허가 포트에서 browser heartbeat 없이
+수행했다. 정지 ACK, disabled와 PWM 0 확인 후 로그를 저장하고 실행 묶음을 재시작했으며
+마지막 pose를 초기 추정값으로 복원했다. 실제 파라미터의 shortcut 1m와 휠 상한
+0.7rad/s를 조회했다. 이전 목표까지 경로 미리보기는 259개 점으로 생성됐고,
+Supervisor readiness와 정지 상태를 확인했다. 새 실물 이동 명령은 보내지 않았다.
+원본 분석과 적용 상태는 `cleany-data/reports/nav2-turn-recovery-20261106/`,
+경로 및 비용 재생 비교는 `cleany-data/reports/nav2-wiggle-{seed,translate}-20261106/`에 있다.
+
+## 2026-11-06 휴대폰 holonomic 주행 전환
+
+환경은 Fedora aarch64와 Humble Distrobox이며 소스는 `feat/phone-nav2-demo`의
+`4eaf919145e03ffe248732c950dab1267ded17d2` 위 미커밋 변경이다.
+기존 Omni MPPI에 실물 geometry와 휠당 2rad/s 후보 투영, 출력 충돌 검증을 적용했다.
+`PathAngleCritic.rotation_only`는 명시된 제자리 회전만 평가하며 일반 횡이동을
+바라보도록 강제하지 않는다. 경로의 몸체 방향과 최종 목표 자세는 별도로 평가한다.
+
+실행 중 기본 Omni Lattice의 옆 35cm 목표 계획에 요청 방향 대비 최대 2.291rad의
+회전이 포함됐다. 기존 `StraightFirstPlanner`의 holonomic 직선 연결과 고정 방향
+탐색을 사용하고, 막힌 경우 몸체 방향 탐색과 Omni Lattice로 전환하도록 구성했다.
+연속 footprint 검사, 최신 costmap 재검사와 최종 목표 연결은 유지한다.
+longitudinal 프로필과 기본 launch 선택은 보존했다.
+
+Navigation CTest 23개 그룹, Teleop pytest 91개, 최종 프로필과 lattice 경로 해석
+pytest 40개와 관련 package build가 통과했다. 이상적인 운동 응답과 빈 costmap의
+폐루프 모사에서 전후, 좌우, 네 대각선과 최종 방향 정렬, 0.7rad/s 절대 상한의
+좌측/대각선 이동까지 11개 사례가 도착 조건 3cm/0.1rad를 만족했다.
+동일 방향의 옆 50cm 이동에서 최대 방향 편차는 0.00801rad였다.
+최초 감속 모사는 모든 속도를 35%로 줄여 두 사례가 40초 안에 도착하지 못했다.
+실제 monitor와 같은 절대 상한으로 모사를 수정했으며 시간 제한은 유지했다.
+이는 물리 슬립이나 실물 완주 검증이 아니다.
+
+전환 중 wrapper의 비어 있는 Lattice 경로를 발견해 기본 파일 해석을 수정하고
+명시적 파일 override 보존 검사를 추가했다. 실패한 configure 이후 부분 lifecycle
+재시작은 global costmap executor 중복으로 실패해 소유된 실행 묶음을 정상 종료 후
+다시 시작했다. 기존 MCU 재부팅 latch는 fresh stable health 검증을 거치는 정식
+operator reset으로 해제했다. 정지 ACK, disabled와 PWM 0을 확인하고 위치를 복원했다.
+
+AMCL 초기화 직후 동일 측면 목표의 탐색은 한 번 실패했다. 위치 추정 안정화 후
+경로 미리보기는 17개 점으로 생성됐고, 실제 bag의 `/plan`에서 목표 위치 오차 0,
+목표 방향 대비 최대 차이 0.00734rad를 확인했다. 초기 native 계획과 시작 위치
+추정값이 달라 planner만 바꾼 정량 A/B 비교로 해석하지 않는다.
+실행 파라미터에서 Omni MPPI, Omni AMCL과 active lifecycle을 확인했으며,
+상태는 `forward_only=false`, 주행 준비와 MCU 정지였다. 새 실물 이동 명령은 보내지 않았다.
+
+입력 지도와 목표, 설정 hash, 실패 사례와 모사 결과는
+`cleany-data/reports/phone-holonomic-20261106/`에 보존했다. 실제 `/plan`은
+`cleany-data/runs/phone-nav2-demo/runtime/recordings/bags/0ca11a12-1916-4852-aa5d-3b4b5fff0b8b/`에 있다.
+
+## 2026-11-06 휴대폰 자동주행 휠 상한 4/1.5rad/s
+
+사용자 요청으로 두 시연 프로필의 빈 공간 상한과 자동 intent 상한을 4rad/s,
+주황 영역의 절대 상한을 1.5rad/s로 변경했다. 정지 5cm, 감속 16cm와 횡이동
+선택은 유지했다. 관련 프로필과 실제 Collision Monitor의 격리 검사 8개 및
+Navigation/Teleop package build가 통과했다. 정지 ACK 확인 후 로그와 위치를
+보존해 Omni 실행 묶음을 재시작했다. 실제 `ros2 param get`에서 MPPI와
+phone_remote 상한 4.0, collision_monitor 상한 1.5를 조회했다. API는 주행 준비,
+disabled와 PWM 0이었다. 새 속도의 실물 이동 시험은 수행하지 않았다.
+환경과 commit 기준은 앞선 holonomic 전환과 같으며, 적용 상태는
+`cleany-data/reports/phone-holonomic-20261106/speed-caps-status.json`에 보존했다.
+
+
+## 2026-11-06 Phone Omni 방향 선택과 주행 연속성
+
+기준 commit은 `4eaf919145e03ffe248732c950dab1267ded17d2`이며 `feat/phone-nav2-demo` 작업 트리의 기존 변경 위에서 검증했다. 환경은 Fedora aarch64 노트북의 `ros2-humble` Distrobox다. 실물 주행 입력은 기존 bag `526a70a7-e9fd-4681-91c2-8d9d59efda7a`를 읽었으며 새 이동 목표는 보내지 않았다.
+
+`holonomic_forward_distance=0.8`, 이동 구간의 몸체 방향 평가, MPPI 후보와 출력의 가속도 제한, 경로 수직 속도 비용과 장애물 사전 감속을 적용했다. 휠 상한 4/1.5rad/s, wheel+5cm 정지 영역, wheel+16cm 감속 영역과 기존 Supervisor 정지를 유지했다. 빌드는 `make build CLEANY_BUILD_ROOT=/home/ehdrms/workspace/cleany-data/builds/phone-nav2-demo COLCON_BUILD_ARGS='--packages-select cleany_navigation cleany_teleop'`로 실행했다. Navigation CTest 23개 그룹과 teleop navigation/ROS/web control 검사 48개가 통과했다. 추가 proximity 검사와 최종 프로필 검사를 별도로 통과했다. 실제 Collision Monitor의 격리 합성 scan 검사도 Navigation 검사에 포함됐다.
+
+같은 지도와 목표를 사용하는 이상적 50ms 폐루프 네 과제는 모두 위치 3cm와 방향 0.1rad에 도달했고 충돌 위치는 0이었다. 좌우 0.5m 이동의 평균 불필요한 전후 명령은 각각 약 71%, 58% 감소했으며 시간은 5.60/5.65초에서 6.95/6.80초로 늘었다. 회전 전환을 포함하는 두 과제의 최대 휠 명령 가속도는 약 23rad/s²에서 3rad/s² 수준으로 줄었다. CSV 반올림에는 약 0.0001rad/s² 차이가 있다. 실제 마찰, 슬립, AMCL, USB 지연을 재현한 결과가 아니다.
+
+첫 조정은 횡이동을 약 14초로 느리게 만들어 채택하지 않았다. 가속도 한계를 유지하고 temperature 0.05, 경로 수직 속도 비용 20, 명령 변화 비용 1, 도착 접근 시간 0.5초로 재조정했다. 비교 도구의 CMake 의존 타깃과 라이브러리 경로 누락도 수정했다. 기존 bag의 재탐색 실패와 짧은 정지 전체를 해결했다는 증거는 없으며 실제 바닥 검증이 남아 있다.
+
+정지 응답과 구동 해제를 확인하고 소유된 시연 런타임을 재시작했다. 초기 위치 복원 후 준비 상태, 새 live parameter, fault=0과 정지 대기를 확인했다. HTML은 headless Chrome으로 desktop/mobile overflow와 내부 링크를 검사했고 그래프를 HTML에 포함했다. 원본, 첫 조정 실패, 최종 비교 CSV, 설정과 소스 SHA-256은 `/home/ehdrms/workspace/cleany-data/reports/phone-motion-review-20261106/`에, 실행 도구는 `/home/ehdrms/workspace/cleany-data/experiments/phone-motion-review-20261106/`에 보존했다. 보고서 진입점은 `report.html`이다.
+
+### 2026-11-06 병행 지도 확장 준비
+
+- 환경: Fedora aarch64 노트북, Distrobox ROS 2 Humble, `phone-nav2-demo` 작업 트리 HEAD `4eaf919145e03ffe248732c950dab1267ded17d2`의 미커밋 변경 포함.
+- 입력: `cleany-data/runs/laptop-hardware-20261105/runtime/maps/hardware-slam-20261105T221524-ff9af942/latest.pbstream`, SHA-256 `a501ebe89e60d7930f19ea3d3fb875376bec366728287e78e2be7ddaca5e8b59`.
+- 실물 센서로 고정 궤적 로드, 새 궤적 생성, 지도와 추정 자세 수신, 주기 상태 저장 및 종료 시 `final.pbstream` 저장 확인. 원점 변환/PGM 저장 검사 2개 통과. 기존 Nav2와 조종 서버 프로세스 유지.
+- 최초 준비 시 gflags boolean 인수를 분리해 전달해 자동 궤적이 시작된 실패는 `=false` 형식으로 수정. 실패 실행은 `cleany-data/runs/map-extension/20261106T075439`에 보존.
+- 정상 준비 및 종료 결과: `cleany-data/runs/map-extension/20261106T075503`. 개발공간 실주행 및 확장 지도 품질 검증은 아직 수행하지 않음.
+- 종료/재개 검증 후 전역 `/tf` 절대 remap도 추가해 Cartographer를 `/map_extension/tf`로 완전히 분리했다. 현재 실행은 `cleany-data/runs/map-extension/20261106T075650`이며 이전 검증 실행의 `final.pbstream`을 이어받는다.
+
+## 2026-11-06 — Phone Omni 순정 Lattice와 MPPI 튜닝
+
+- 기준: `phone-nav2-demo`, `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 작업 트리. Fedora aarch64 / ros2-humble Distrobox / Nav2 1.1.20. commit, push 또는 실물 주행 성공을 뜻하지 않는다.
+- 입력: 기존 144개 primitive, 이전 지도 fixture와 현재 `/global_costmap/get_costmap`의 538×546, 5cm costmap snapshot. `tools/validation/native_lattice_mppi`에서 domain 188, 20Hz 이상적 적분과 1Hz native 재계획을 사용했다.
+- 변경: Phone Omni 전역 plugin을 순정 Smac Lattice로 전환하고 오른쪽 횡이동 16개의 길이 metadata를 교정했다. MPPI 강제 회전 단계를 끄고 비용 및 3초 예측을 조정했다. 웹 목표는 미리보기 반환 자세를 표시·전송하며 3cm/0.1rad 도착 검사와 4/1.5rad/s 안전 상한은 유지했다.
+- 결과: 프로필/런타임 pytest 41개, Navigation CTest 23그룹, 조종 관련 pytest 54개, TypeScript/Vite 빌드 통과. 최종 8개 적분 사례에서 표시 목표 3cm/0.1rad 이내 도착, 적분 footprint 충돌 0회. 이 중 전방 0.7m 사례는 클릭 자세와 양자화된 목표의 충돌 여부가 달랐던 경계 사례로 별도 표기했다. 막힌 목표 2개는 경로를 반환하지 않았다.
+- 실패 보존: 초기 낮은 목표 비용 후보는 도착 지연이 있었고, rotation_penalty=1 후보는 불필요한 회전과 끝점 계획 실패가 있었다. 원본 길이/이전 MPPI 조합의 실패와 120초 미완료도 보존했다. 최초 live 파라미터 요청은 시작 중 timeout 후 재조회에 성공했다.
+- 적용: 정지 ACK 확인 후 소유 서비스 재시작, 초기 위치 복원, 실제 planner/MPPI/Collision Monitor 파라미터 확인 및 7점 미리보기 생성. base ENABLE=false, 준비 완료. 이동 명령은 보내지 않았다.
+- 원본: `/home/ehdrms/workspace/cleany-data/reports/native-lattice-mppi-20261106/`의 `report.html`, `selected-preview-results.json`, YAML, CSV, map bytes, 테스트 로그와 runtime JSON. 실물 슬립과 도착 성능은 미검증이다.
+
+- 08:00:10 이전 bag에서 정지 odom은 x=-0.490m, y=-0.949m, yaw 약 0.57rad였으나,
+  장치 재실행 후 08:01:54부터 새 bag에서는 0,0,0으로 재시작했다. 확장 SLAM을
+  유지한 상태에서 이 불연속이 입력되어 지도 중첩이 발생했다. 해당 확장 결과를 보존하고
+  원래 라운지 상태로 복구했다. odom 연속성 검사와 전용 전달 토픽을 추가했고 도구 검사 5개가 통과했다.
+
+마무리 확인 중 08:03:40 KST에 phone_remote만 정상 종료 후 respawn한 기록을 확인했다. 종료를 유발한 주체는 확인하지 못했다. Nav2 PID는 유지됐으며 새 프로세스에서 정지 ACK와 경로 미리보기를 다시 확인했다. 상세는 같은 원본 폴더의 `delivery-checks.json`이다.
+
+- 초기 위치 재점검에서 확장 SLAM이 AMCL 초기값보다 약 0.20m 어긋난 별도 결함을 확인했다.
+  StartTrajectory의 시간 0 기준 상대 pose는 참조 궤적의 첫 global node를 기준으로 하는데,
+  초기 도구가 마지막 submap의 local-to-global 변환을 기준으로 역변환했다.
+  `read_origin.cpp`를 첫 global node 기준으로 수정했다. 원본 map 상태의 참조 값은
+  (-0.00145637m, 0.01075711m, 0.00362742rad)다. 수정 후 원본 상태에서 다시 시작한
+  실행은 `cleany-data/runs/map-extension/20261106T080737`에 보존한다.
+- 수정된 초기 좌표 변환과 odom 센서 시각 검사로 재시작한 실행은
+  `cleany-data/runs/map-extension/20261106T080832`이다. 초기 요청 pose와 실제
+  Cartographer pose의 차이는 수신 표본에서 약 0.0048m, -0.083도였다.
+  이는 초기값 일치 검사이며 실세계 절대 위치 정확도 측정은 아니다.
+  초기화 중 콜백 대기 시간을 센서 데이터 공백으로 오인하던 검사도 센서 stamp
+  차이로 수정했다. 도구 단위 검사 6개가 통과했다.
+
+- 08:11 정지 재위치추정: 원본 라운지 `map.yaml`의 occupied 셀과 현재 `/scan`을
+  비교했다. 후보 (0.22287m, -4.31555m, -1.73045rad)를 AMCL 초기값으로 적용한 후
+  원본 `latest.pbstream`에서 재시작했다. 근거 데이터와 후보 비교는
+  `cleany-data/runs/map-extension/relocalize-20261106T0810/{result.json,global.json,alignment.npz}`,
+  새 확장 출력은 `cleany-data/runs/map-extension/20261106T081157`이다.
+  후보에서 스캔 점의 약 52%가 기존 occupied 셀 10cm 안에 있어 부분 불일치가 남는다.
+  이는 실세계 정답 위치 검증이 아니며 신규 공간 또는 변한 물체를 구분하지 않는다.
+
+- 조종 화면 검은 화면 재현: 실행 중 서버가 이전 `index-Bv-ef30H.js`를 참조한
+  HTML을 보존하고 있었으나 빌드가 새 `index-WOLJN-l5.js`로 교체되어 이전 JS는 404였다.
+  `/`가 현재 entrypoint를 읽도록 변경하고 조종 서버만 재기동했다. UI asset 검사 4개 통과.
+
+- 확장 주행 GIF/MP4: `cleany-data/reports/map-extension-20261106/`.
+  최종 `final.pbstream`의 trajectory 1 노드 3,152개와 원래 궤적을 읽어 최종 지도 위에
+  시간순 경로를 표시했다. 확장 전용 지도/pose 토픽은 bag에 없어 실시간 지도 생성
+  재생이 아니며, bag의 `/scan_raw`를 최종 보정 경로로 변환한 사후 재구성이다.
+  원본 궤적 시각 08:16:43~08:43:53, 6초 간격 프레임, 10fps 및 양끝 홀드 포함
+  31.3초. GIF 전체 디코딩, MP4 313프레임, 1280×960, 스캔 시각이 해당 프레임
+  이후가 아님을 확인했다. 파일 해시와 자세한 출처는 `provenance.json`에 있다.
+
+- 지도 생성 GIF 수정: 최종 지도 위 주행 재구성 대신 원본 센서를 Cartographer에
+  재입력했다. `cleany-data/experiments/map-growth-20261106/full4`는 ROS_DOMAIN_ID=188에서
+  기존 seed 상태와 동일 설정으로 12,501개 scan을 처리하고 시간 진행 전 지도 273개를
+  캡처했다. 최종 지도 또는 최종 궤적은 렌더링 입력에 사용하지 않았으며 이전 최종
+  궤적 파일은 재생 구간의 시작/종료 시각에만 사용했다. 최종 노드와 비교한 재계산
+  궤적 위치 차이는 중앙값 0.0139m, p95 0.0248m였다. 센서 static TF quaternion의
+  기본 w=1을 덮어쓰지 않았던 첫 재실행 결과는 폐기 대상으로 분리했고 w=0으로
+  수정했다. 새 결과는 `cleany-data/reports/map-growth-20261106/`에 저장했다.
+  이 결과는 당시 화면 녹화가 아니라 원본 bag 재실행 중 생성된 지도의 영상이다.
+
+
+## Phone Omni 고정 방향 비용과 슬립 문맥 기록 (2026-11-06)
+
+`phone-nav2-demo`, base `4eaf919145e03ffe248732c950dab1267ded17d2`의 미커밋 작업 상태에서
+횡/대각 비용 0.25/0.125 cost/m, 기존 SlipRecovery 유지와 분석 문맥 기록을 구현했다.
+Fedora aarch64의 Ubuntu 22.04 Distrobox, ROS 2 Humble에서 navigation CTest 25개 그룹,
+logger/teleop pytest 156개와 별도 ROS opt-in 검사를 실행했다. source 해시, 검사 출력과
+[HTML 보고서](/home/ehdrms/workspace/cleany-data/reports/fixed-direction-cost-20261106/report.html)는
+같은 결과 디렉터리에 보존했다.
+
+입력은 이전 native Lattice 비교의 recorded costmap과 명시적 목표 8개다. 실제 planner/MPPI와
+이상 운동학을 이용한 8개 사례 및 두 사례의 추가 반복 4회가 통과했다. 강한 비용의 최종 정렬
+실패, 기존 NoiseGeneratorMain 비동기 시험의 중간 실패, 어댑터 초기 생성 오류와 수정도 원본
+로그에 남겼다. 합성 전체 Nav2에서 반복 슬립 실패와 안전 출력 0을 확인하고, 별도 실제 bag
+역직렬화에서 슬립 55개/복구 110개 payload가 일치했다.
+
+기존 기록을 마감한 후 정식 runtime으로 재기동하고 같은 지도와 수동 방향 정책을 보존했다.
+현재 active 설정과 실제 bag의 위치/명령 문맥을 확인했다. AMCL은 저장한 초기 추정을
+관측으로 수정했으며 정지 중 TF 안정화는 확인했지만 실제 위치 정확도는 검증하지 않았다.
+실제 로봇에 이동 목표를 보내지 않았으므로 실물 슬립 감소나 복구 성공 증거는 아니다.
+
+
+## 2026-11-06 bag 기록 기반 MPPI 초기화 검증
+
+기준은 `phone-nav2-demo`의 `4eaf919145e03ffe248732c950dab1267ded17d2`와 기존 dirty 변경이다.
+Fedora aarch64의 Ubuntu 22.04 ROS 2 Humble 컨테이너에서 domain 188/189와
+`cleany-data/builds/bag-navigation-review` 격리 설치본을 사용했다.
+원본과 리포트는 `/home/ehdrms/workspace/cleany-data/reports/bag-navigation-improvements-20261106/`에 있다.
+
+입력 bag `526a70a7-e9fd-4681-91c2-8d9d59efda7a`,
+`ef507ee6-e9b6-49db-ad86-65dba4d20a9d`, `59fc31f1-1e8e-4823-87ec-dd340f3f643c`의
+명령, 계획, BT 및 ROS 로그를 조사했다. 07:22:40–07:30:25 KST의 기존 원본 캐시에서
+슬립 정합을 다시 계산한 928개 창은 suspect 39, no_evidence 840, unknown 49,
+지속 불일치 3구간이었다. 최대 1초 이동 차이는 0.132725m다. LiDAR 참값 검증이 아니며
+바닥 슬립과 장애물에 걸린 휠 회전을 분리하지 못한다. 다른 세션의 점유 목표 (0.5, 0.5)
+경로 생성 실패 로그 14개는 별도로 분류했다.
+
+기존 `NoiseGenerator`의 reset 직후 후보 복사 100회에서 잡음 없는 첫 묶음이 100회
+관측됐다. reset 안에서 첫 묶음을 완성하고 상태 변경과 종료의 잠금을 맞추며 controller별
+난수 엔진을 분리한 뒤에는 0회였다. 수정안 reset+복사 p50/p99는 1.454/2.246ms였다.
+Navigation CTest 25개 그룹, NoiseGenerator 30회 연속 반복, 도구 및 슬립 분석 pytest
+23개가 통과했다. 기존 이상 운동 8개 과제는 모두 통과했고 하네스의 사후 footprint
+충돌 횟수는 0이었다. 실제 마찰이나 실시간 최악 실행 시간 검증은 아니다.
+
+bag에서 추출한 6개 고정 global costmap 과제는 기존 1/6, 수정 0/6 성공이었다.
+원본 위치/TF/계획의 수신 및 header cutoff를 적용하고 비용 구간의 상한으로 역변환했다.
+정지 출발 이상 운동이며 시간에 따라 변하는 local map, AMCL, BT와 슬립은 모사하지 않았다.
+시작 footprint의 lethal 판정과 도착 직전 빈 경로를 실패로 보존했다.
+recorded-middle의 4회 비교는 기존 1/4, 수정 0/4 성공으로, 이 표본에서 전체 개선을
+주장하거나 퇴행을 배제할 수 없다. 실패 끝점만 별도 초기값으로 넣으면 목표와
+0.000655m/0.109675rad 차이에서 기존 native Lattice가 MPPI 실행 전부터 빈 경로를
+반환했다. 3cm/0.1rad 도착 조건을 완화하지 않았다.
+
+비용 가중치, BT, 휠/가속도 및 충돌 제한은 유지했다. 수정은 소스와 격리 빌드에 저장했으며
+운영 설치본 교체는 보류했다. 실물 이동 명령은 보내지 않았다. 빌드 중 09:42:45 KST
+메모리 부족으로 커널이 niri를 종료해 데스크톱과 ROS 서비스가 중단됐다.
+CMake 병렬 환경 변수를 -D 인수로 전달한 오류와 패키지 수준 제한의 한계를 확인했고,
+후속 컴파일은 -j 2로 제한했다. 로봇은 재기동하지 않았다. 원본 실패 로그, OOM 로그,
+후보 patch, 입력 provenance 및 소스/바이너리 SHA-256을 보고서와 함께 보존했다.
+
+
+## 2026-11-06 각도별 대각 비용 곡선 실물 시험 준비
+
+`phone-nav2-demo`의 기준 commit `4eaf919145e03ffe248732c950dab1267ded17d2`와 기존 dirty 변경에서
+사용자 합의대로 방향 비용을 `0.1 sin²θ + 0.45 sin²(2θ)` cost/m로 교체했다.
+전후진 0, 횡이동 0.1, 45도 대각이동 0.5이며 최대는 약 46.6도에서 0.5014다.
+목표 도착과 DiffDrive 예외, 충돌 및 휠 제한은 유지했다. 외곽 여유 비용은 추가하지 않았다.
+
+Ubuntu 22.04 ROS 2 Humble 컨테이너에서 C++ 병렬 작업 수 2, 패키지 작업 수 1로
+`make build`의 cleany_navigation을 빌드했다. 최소 critic 검사 후 프로필 pytest 9개와
+Navigation CTest 25개 그룹이 통과했다. 사용자의 요청으로 bag 및 모사 주행은 실행하지 않았다.
+이 설치본은 앞서 단위 검증한 NoiseGenerator 초기화 수정도 포함한다.
+
+`cleany-phone-nav2.service`를 Omni로 시작해 controller_server가 active이며 실행 가중치가
+0.1/0.45인 것을 확인했다. 휠 상한 4/1.5rad/s, goal angle weight 12를 확인했다.
+새 로그 세션은 `d06dac11-5dc5-4ccd-be84-6a29a96870c2`이고 휠 피드백 457개 및
+API에서 정지, PWM 0과 모터 disabled를 확인했다. 자동 이동 목표는 보내지 않았다.
+Omni 시작 기본값으로 수동 횡이동도 허용된다. 사용자는 위치나 방향을 옮겼다고 답했으므로
+기존 AMCL 위치를 복원하지 않았다. 자동주행 준비 완료는 주장하지 않으며 초기 위치 지정이 남았다.
+
+소스 해시, HTML 리포트, 단위 검사와 실행 확인 원본은
+`/home/ehdrms/workspace/cleany-data/reports/directional-peak-live-20261106/`에 보존했다.
+
+## 2026-11-06 MPPI 경로 방향 추종 완화와 6번 비교
+
+`phone-nav2-demo`의 기존 dirty 작업 상태에서 `nav2_phone_omni.yaml`의
+`PathAlignCritic.use_path_orientations`를 false, `TwirlingCritic.cost_weight`를 1로
+변경했다. Lattice primitive와 방향 비용 곡선, 안전 및 가속도 제한은 유지했다.
+`test_phone_profile.py` 9개 검사가 통과했다. 원본 입력, 기준 commit, 파일 해시,
+설정과 로그는 `/home/ehdrms/workspace/cleany-data/reports/mppi-settings-case6-20261106/`
+의 `manifest.json`과 `report.html`에 있다.
+
+과거 6번의 고정 costmap을 사용한 격리 이상 운동학 시험 2회에서 평균 통로 점유 폭은
+기존 90.6cm에서 70.2/68.8cm, 목표 위치 3cm 이내 첫 진입은 95.15초에서
+76.75/76.70초가 됐다. 두 실행 모두 최종 방향 정렬 전 재계획 실패가 남았으며
+충돌 카운터는 0이었다. 실물 성공 또는 현재 확장 지도 시험을 의미하지 않는다.
+실물 서버는 정지 상태에서 두 파라미터를 변경했고, 요청 응답 시간 초과 후 독립
+조회로 저장값을 확인했다. 서버 재시작과 실물 이동 명령은 보내지 않았다.
+
+## 2026-11-06 대칭 고정 자세 primitive 후보
+
+기존 `phone-nav2-demo` dirty 상태에서 16개 heading 및 5cm 격자를 유지한 8방향
+고정 자세 이동 후보를 생성했다. 총 224개 중 이동 128개만 재구성했고 회전 96개의
+기하와 길이는 보존했다. 기존 회전 대칭 검사는 45도 배수 heading에서 반사 쌍이
+존재하고 나머지 8개 heading에서 비대칭임을 확인했다.
+`tests/tools/test_symmetric_primitives.py` 4개 검사가 통과했고 설치된 Smac 1.1.20의
+파일 reader가 224개/16개 그룹을 정상 파싱했다. 주행 기본값, 실행 서버와 MPPI는
+변경하지 않았다. 경로 검색 및 실물 시험은 수행하지 않았다.
+보고서와 원본 검증은 `/home/ehdrms/workspace/cleany-data/reports/symmetric-primitives-20261106/`
+의 `report.html`, `manifest.json`, `turn-audit.json`, `native-probe.log`에 있다.
+
+2026-11-06 후속 사용자 적용 요청으로 phone Omni 기본값과 실행 중 planner의
+`GridBased.lattice_filepath`를 224개 파일로 전환했다. 정지 상태에서 순정 동적
+재초기화 응답 성공과 파라미터 재조회를 확인했으며 재시작·이동 명령은 없었다.
+관련 설정 및 구조 검사 13개 통과. 적용 기록은 동일 보고서 폴더의
+`application/result.json`에 있다. 기존 `allow_reverse_expansion=true`는 유지했다.
+
+2026-11-06 후속 요청으로 phone Omni 기본값과 실행 중 planner를 기존
+`omni-r10cm-balanced.json` 144개 구성으로 복구했다. 224개 후보는 보존했다.
+MPPI와 지도는 변경하지 않았다. 정지 확인 후 동적 교체했으며 적용 원본은
+위 보고서의 `revert/result.json`에 남긴다. 이 시점 주행 준비는 슬립 측정
+불가에 따른 복구 실패 상태이며, 이 복구 작업에서 해당 상태를 해제하지 않았다.
+
+## 2026-11-08 D435 LiDAR 높이 하한 미리보기
+
+Base commit `4eaf919145e03ffe248732c950dab1267ded17d2`의 dirty `phone-nav2-demo`, Fedora / ROS 2 Humble Distrobox에서 실물 D435와 head TF를 사용했다. `min_base_z=0.192` 적용 후 8초 구간 유효 점군 107프레임의 최소 z는 0.192168m, 하한 미만 점은 0개였다. 관련 core/transport 테스트 30개 통과, RViz 표시 확인. 원본 근거는 `CLEANY_DATA_ROOT/runs/navigation/integration/2026-11-08_100401_d435-low-obstacle/lidar-height-cutoff/`의 manifest와 live-check다. 서비스 정지 후 컨테이너 자식 프로세스가 남아 식별된 미리보기 PID에 SIGINT를 전달한 뒤 교체했다. Nav2 및 Collision Monitor 미연결, 물체 검출률 및 주행 검증은 미수행이다.
+
+## 2026-11-08 실물 depth local costmap 및 Monitor
+
+`phone-nav2-demo`의 base commit `4eaf919145e03ffe248732c950dab1267ded17d2`와 미커밋 변경을 사용했다. Fedora aarch64 / ROS 2 Humble Distrobox에서 기존 depth 투영기를 확장하고 local VoxelLayer 및 기존 phone Collision Monitor에 연결했다. global costmap, MPPI와 slip-recovery 선택은 유지했다.
+
+원본은 `CLEANY_DATA_ROOT/runs/navigation/integration/2026-11-08_110835_depth-local-costmap/`이다. `index.html`은 실물 의자 전후 비교, `manifest.json`은 소스 해시와 스냅샷 범위, `tests.xml`은 95개 통과 결과를 담는다. 실물 의자 중심 구역의 점유 셀은 66에서 0으로 줄었다. 넓은 구역은 책상 가장자리를 포함해 84에서 18로 줄었고, 필터 점은 1322에서 75로 줄었다. 좌표별 원본 JSON/NPZ와 적용 전후 설정을 보존했다. ROI는 관측 점군을 보고 지정했으며 의미 분할 정답이 아니다.
+
+격리 domain 191/192에서 실제 Monitor와 VoxelLayer를 구동했다. 초기 회귀에서 Humble Monitor가 stale depth를 무시해 속도를 통과시키는 실패가 있었으며, 같은 Monitor의 required-depth 신선도 제한으로 수정 후 통과했다. live 적용 시 runtime을 정상 종료해 logger를 마무리하고 저장 pose를 복원했다. 첫 단발 초기 pose는 AMCL 수신 확인이 없어 TF가 생기지 않았고, AMCL subscriber 확인과 재전송 후 복원됐다. transient 서비스가 종료 후 수거되어 systemd-run으로 재생성했다. 마지막 TeleopStatus는 ready=true, paused=false, connected=true, stop_confirmed=true였다. 실물 이동 명령은 발행하지 않았으며 실제 회피 주행, 제동거리와 head 이동 중 costmap 동작은 미검증이다.
+
+
+## 2026-11-08 depth 처리 지연과 분홍 점 관측
+
+`runs/navigation/integration/2026-11-08_110835_depth-local-costmap/latency-and-ghosts.json`의 약 20초 관측에서 depth 입력은 14.25Hz, 장애물 출력은 14.31Hz였다. 원본 촬영 시각부터 장애물 수신까지 중앙값 107ms, p95 121ms였으며 같은 stamp의 영상 수신부터 장애물 수신까지는 중앙값 36ms였다. Local costmap의 update 직후 footprint 발행은 10.00Hz, 화면용 costmap 발행은 1.76Hz였다. 실제 제동거리나 전체 센서→제어 지연 측정은 아니다.
+
+`diagnose_depth_costmap.py`는 수신 주기, 원본 시각, CPU와 관측 점을 수집한다. `compare_live_costmap_layers.py`는 이동 명령 없이 별도 단일 레이어 costmap을 구성한다. 진단 중 로봇 위치가 달라졌으므로 depth와 LiDAR 단독 결과를 동일 위치의 오검출 비교로 해석할 수 없다. 단일 프로세스에서 연속 lifecycle을 시작한 진단은 두 번째 단계의 서비스 발견 실패를 보존하고 단일 레이어별 독립 실행으로 확인했다. 사용자가 분홍 점이 사라졌다고 알렸으나 원인은 확정하지 않았고, 이를 수정 완료로 기록하지 않는다. 이 진단에서는 운영 필터나 갱신 주기를 바꾸지 않았다.
+
+
+## 2026-11-08 누적 phone navigation 변경의 커밋 전 회귀
+
+기반 `4eaf919145e03ffe248732c950dab1267ded17d2`에서 기능별로 분리한 코드의 마지막 커밋은 `9105eb7320d459be25818edfab0966354cd3565d`이다. Fedora aarch64의 Humble Distrobox와 호스트 Node.js에서 확인했다. 실행 근거는 `CLEANY_DATA_ROOT/runs/project/2026-11-08_114517_phone-navigation-commit-review/`의 변경 전 소스 스냅샷, manifest, 커밋 목록과 검사 로그다. 실물 서비스 재시작이나 이동 명령은 하지 않았다.
+
+| 검증 | 결과 |
+|---|---|
+| `make test-navigation`, 별도 build-navigation/install-navigation 및 DDS 194 | 의존 패키지 12개 빌드, colcon 집계 405개, 오류·실패·생략 0. Python 217개와 C++ 플러그인 포함 |
+| 호스트 `make test-hardware-mapping-core BASE_TEST_ROS_DOMAIN_ID=195` | Python 130개, Node 버튼 입력 17개 통과 |
+| Base disarmed/stop retry 및 Supervisor 전체 pytest, DDS 196 | 84개 통과 |
+| `CLEANY_RUN_ROS_TESTS=1 make test-dev-monitor`, DDS 195 | Logger 65개, Monitor 80개 통과 |
+| 새 bag, 지도, slip, depth/head 분석 도구 pytest | 57개 통과 |
+| `make build-teleop-ui` | TypeScript 검사와 Vite 빌드 통과 |
+
+첫 조종기 검사는 Make recipe가 PYTHONPATH를 덮어써 ROS import에 실패했다. recipe에서 ROS 및 설치 환경을 불러오고 상속 경로와 격리 domain을 유지하도록 수정했다. 컨테이너에는 Node.js가 없어 전체 recipe는 호스트에서 다시 실행했다. 첫 Navigation 검사는 Python 묶음이 기본 60초 제한에 걸렸다. 개별 검사 조건은 유지하고 CTest 묶음 한도를 300초로 변경한 뒤 Python 묶음은 약 75초, 전체 CTest 25개 묶음은 약 82초에 완료했다. 초기 실패 로그도 보존했다.
+
+이 결과는 관련 패키지와 합성 ROS 경계의 회귀다. 전체 workspace CI, 새로운 실물 회피 주행, 제동거리 및 재부팅 지속성 검증은 수행하지 않았다. 이전 실물 결과와 실패·미확정 사항은 각각의 실행 근거를 따른다.

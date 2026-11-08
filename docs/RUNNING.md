@@ -1,5 +1,36 @@
 # 실행 가이드
 
+## 휴대폰 Omni 주행의 슬립 복구
+
+LiDAR 전용 `phone_navigation.launch.py`의 Omni 프로필은 `slip_recovery:=true`가
+기본이다. `config/phone_slip_recovery.yaml`에서 감지와 복구 시간을 조정한다.
+`slip_recovery:=false`는 기존 기본 BT와 명령 경로를 사용한다. 기본 종방향
+프로필과 다른 launch에는 이 복구가 자동 적용되지 않는다.
+
+약 1초의 LiDAR/휠 이동 비교가 2개 연속 의심이면 BT가 현재 추종을 취소하고
+감속 정지한다. fresh odom과 감속 게이트의 0 출력으로 0.5초 연속 정지를 확인한 뒤 `Longitudinal`
+플래너와 컨트롤러로 같은 목표를 한 번 재시도한다. 해당 목표가 종료될 때까지
+종방향 모드를 유지하며, 정지 중 신호가 사라져도 Omni로 복귀하지 않는다.
+재시도 이후 새 비교 창에서 슬립이 다시 확인되거나 재시도가 실패하면 정지 후
+목표를 실패 처리한다. 슬립 분기에는 costmap 초기화나 무조건적인 회전, 후진
+복구가 없다. 일반 탐색 실패에는 기존 기본 BT 복구를 유지한다.
+
+재시도 플래너는 `/traction_retry/compute_path_to_pose`를 제공하는 별도
+프로세스로 실행한다. 두 Lattice 모델이 내부 static motion table을 공유하는
+간섭을 피하고, 동일한 지도와 안전 footprint를 쓰는 별도 global costmap을 갖는다.
+종방향 MPPI 컨트롤러는 기존 controller server의 `Longitudinal` plugin이다.
+
+감지의 `unknown`은 정상 판정이 아니다. 유효한 측정이 3초 이상 없으면 정지 후
+실패한다. 첫 측정 전에는 명령을 허용하지 않는다. 정지 확인은 5초 제한이며,
+확인 실패도 목표 실패로 끝난다. 센서 비교와 BT tick 주기로 인해 즉시 감지나
+물리 정지 거리를 보장하지 않는다.
+
+명령 흐름은 `motion/cmd_vel → traction_brake → motion/traction_cmd_vel →
+collision_monitor → navigation/safe_cmd_vel → 기존 최종 구동 소유자`다.
+BT 요청에 따른 감속은 충돌 검사 전에 수행한다. 충돌 STOP과 기존 Supervisor,
+MCU 허가 및 정지 확인은 계속 우선한다. BT heartbeat가 0.5초 또는 명령이
+0.3초 이상 끊기면 게이트는 0을 출력한다. 수동 조종 경로에는 게이트를 삽입하지 않는다.
+
 명령은 저장소 루트의 Ubuntu 22.04 / Humble 터미널에서 실행합니다. [환경과 출력 경로](DEVELOPMENT_SETUP.md), [연동 계약](INTEGRATION.md)을 확인한 뒤, 각 터미널에 같은 DDS domain과 같은 worktree overlay를 적용합니다.
 
 ```bash
@@ -313,6 +344,22 @@ rviz2 --ros-args -p use_sim_time:=true
 
 Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해당 plugin을 설치합니다.
 
+진단 토픽은 `<bag-directory>/diagnostics`의 별도 bag에 있습니다. 센서와 함께
+보려면 동일한 시작 시각 기준으로 두 bag을 재생합니다. 센서 bag은 `/clock`을
+발행하고 진단 bag은 `--clock` 없이 재생합니다. 정밀 비교에는 각 bag의 첫 메시지
+시각 차이도 맞춰야 합니다.
+
+LiDAR 매핑의 보정 분석용 기록에서는 `/scan_raw`,
+`/odom`, `/base/wheel_state`, TF를 full-rate로 남기고, 중복 `/scan`, `/wheel/odom`,
+`/joint_states`는 기록에서 제외할 수 있습니다. 재생성에는 당시 필터와 휠 변환
+설정도 보존해야 합니다. 궤적은 1 Hz, 제약선은 0.5 Hz로 기록하고 submap 목록,
+matched points, map과 가공 관측의 주기는 기존 설정을 유지합니다.
+카메라와 depth 점군은 별도로 선택합니다. 설정은 녹화가 정지된
+상태에서 적용하며 실시간 RViz 표시나 센서 발행 주기는 바꾸지 않습니다.
+시간당 용량은 지도와 그래프 크기에 따라 달라지므로 실제 입력으로 확인합니다.
+이 분석용 주기에 이전의 0.1 Hz 절약 설정에서 측정한 0.97 GB/h를 적용하면 안 됩니다.
+`limit_mib`는 시간당 속도가 아닌 세션 총량 제한입니다.
+
 ## Base와 plot
 
 ### 장치 없는 mock
@@ -382,7 +429,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 
 `state_root`, `host`, `phone_port`, `mock`은 launch 인자다. 모의 모드는 별도 ROS domain에서 사용하며
 실물 장치 대신 main의 mock MCU를 실행한다. 모의 LiDAR 입력은 런타임 검사 도구가 제공한다.
-새 SLAM은 IMU를 사용하지 않으며 raw scan 원본, 전방 180도와 0.30m 마스킹을 유지한다.
+새 SLAM은 IMU를 사용하지 않으며 raw scan 원본과 0.30m 마스킹을 유지한다.
+프로필의 `scan_filter.half_angle_deg: 90`은 전방 180도, `180`은 실험용 전방위 360도다.
+각도 변경은 해당 프로필로 하드웨어 런타임을 시작할 때 적용되며, 지도 초기화만으로는 바뀌지 않는다.
 기존 Dev Monitor는 별도로 실행해 지도와 센서를 관측할 수 있다.
 
 휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
@@ -397,6 +446,25 @@ ros2 launch cleany_teleop teleop.launch.py \
 `~/.local/state/cleany/hardware/teleop-events.jsonl`, 매핑 오류 JSON은
 `~/.local/state/cleany/hardware/maps/errors/`에 남는다. `state_root`를 바꿨다면 해당 경로를
 따른다. 오류 JSON을 쓰지 못한 경우 `state_root/mapping.log`에서 traceback을 확인한다.
+
+### 오프라인 SLAM 비교용 원본 bag
+
+Logger의 가공 기록과 별도로 연속적인 센서 입력을 확보하려면 Jetson에서 빌드한
+ROS overlay를 source한 뒤 다음 도구를 실행한다. Python 관측기의 큐를 거치지 않고
+네이티브 rosbag2가 `/scan_raw`, `/odom`, `/tf`, `/tf_static`, `/base/wheel_state`,
+`/joint_states`를 저장한다. 조종 명령과 기존 지도 출력은 입력에 포함하지 않는다.
+SQLite에는 `resilient` preset을 적용하며 기본 native cache는 64 MiB다.
+
+```bash
+python3 tools/validation/record_mapping_bag.py \
+  --output "$HOME/.local/state/cleany/mapping-bags/trial-$(date +%Y%m%dT%H%M%S)" \
+  --duration-s 180
+```
+
+180초가 지나거나 Ctrl+C를 누르면 해당 recorder만 SIGINT로 종료해 cache와 metadata를
+마감한다. 기존 bag 경로는 덮어쓰지 않는다. 같은 비교 주행 중에는 지도 초기화로
+odom 원점을 바꾸지 않는다. 사용한 하드웨어 프로필과 Cartographer 설정도 함께 보존한다.
+원본 bag에서도 시각 공백과 메시지 수를 확인한 뒤 재처리에 사용한다.
 
 ## ToF 근접 보호와 책상 접근
 
@@ -437,3 +505,149 @@ voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(
 ## Jetson 얼굴 디스플레이
 
 전용 앱은 `/home/cleany/cleany-display`에 독립 설치한다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독한다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않는다.
+
+## 휴대폰 지도 클릭 주행 (LiDAR 전용 시연)
+
+폴더 정리 후에는 `tools/ros2/run-phone-navigation`에 현재 데이터 경로를 명시한다.
+이 도구는 `ros2-humble` 컨테이너에 들어가 사용자 캐시의 새 빌드와 외부 드라이버를
+읽는다. 빌드는 `make build-hardware-mapping`으로 준비하며 이전 실행의 `analysis/run.sh`는
+당시 절대경로를 보존한 근거이므로 현재 실행 진입점으로 사용하지 않는다.
+
+```bash
+python3 tools/ros2/run-phone-navigation \
+  --run-root /absolute/cleany-data/runs/navigation/traction/YYYY-MM-DD_HHMMSS_physical-validation \
+  --profile /absolute/current-hardware-profile.yaml \
+  --map /absolute/current-map.yaml \
+  --dds-profile /absolute/current-fastdds-profile.xml
+```
+
+기본 motion profile은 `omni`다. `--motion-profile longitudinal`은 횡이동을 차단한다.
+`--slip-recovery false`는 Omni의 슬립 관측과 기록을 유지하면서 슬립 BT 재시도만
+끈다. 이때 속도는 기존 충돌 감시기로 직접 전달하며, 위치 정합 검사와 정지 보호는
+유지한다. 다시 켜려면 `--slip-recovery true`를 사용한다. 하위
+`hardware_mapping.launch.py`와 `phone_navigation.launch.py`에서는 같은 값을
+`slip_recovery:=false` 또는 `true`로 전달한다.
+실행 데이터는 지정한 run 아래 `runtime/`과 `ros-log/`에 모인다. 기존 데이터는
+읽기만 하며 빌드·다운로드는 `~/.cache/cleany/`를 사용한다. 이 도구는 초기 위치나
+이동 목표를 자동 발행하지 않는다.
+
+`hardware_mapping.launch.py`에 `navigation_map:=<저장 map.yaml>`을 주면 매핑 대신 저장 지도와 AMCL, Nav2를 실행한다. `phone_motion_profile:=longitudinal`이 기본이며 횡이동을 차단한다. `omni`는 횡이동을 허용한다. 두 프로필은 Smac Lattice와 통합 MPPI를 사용하며 일반 매핑 프로필은 변경하지 않는다.
+
+```bash
+ros2 launch cleany_bringup hardware_mapping.launch.py \
+  profile:=<하드웨어 profile.yaml> navigation_map:=<저장 map.yaml> \
+  phone_motion_profile:=longitudinal
+```
+
+조종 화면에서 먼저 STOP을 누르고 초기 위치 설정을 선택해 지도에 현재 위치와 방향을 지정한다. 위치 추정과 구동 준비가 완료되면 목표를 선택하고 이동을 누른다. 지도 클릭만으로 이동하지 않는다. 취소 또는 기존 STOP은 자동 목표를 취소하며 정지 완료 후 수동 조종을 재개한다.
+
+수락된 자동 목표는 휴대폰 화면이 꺼지거나 앱을 전환해도 계속 실행된다. 수동 조종은 입력이 만료되거나 화면을 이탈하면 정지한다. 자동 목표의 센서 갱신 지연은 상태의 `last_input_failure`에서 입력별 수신 나이와 사유를 확인한다.
+
+이 시연 프로필은 LiDAR 평면 장애물만 감시한다. depth, pan, 3D 검사와 물리 E-stop 증거를 제공하지 않으며, 일반 안전 프로필과 구분한다. MCU 피드백, LiDAR, 위치 추정, Nav2 lifecycle과 Supervisor 허가가 만료되면 자동 주행은 중단된다.
+
+`localization_guard`가 지도와 scan 정합도 검사한다. 검증된 위치에서 가벼운 불일치가
+생기면 화면에 `위치 정합 회복 중 · 감속 주행`을 표시하며 정상 상한의 30%로 낮추고
+기존 목표를 유지한다. 4초간 개선이 없거나 총 8초가 지나면 정지하며, 심한 불일치와
+입력 단절은 더 빨리 정지한다. 정상 정합을 1초 유지하면 기존 가속도 제한으로
+속도를 회복한다. 정지가 필요한 경우 Supervisor가 목표를 취소하고 MCU 비활성과
+기존 목표의 정지를 확인한 뒤 위치 복구를 요청한다. 기본 탐색 범위는 현재 추정 주변
+0.8m와 yaw ±0.7rad다. 후보가 모호하거나
+새 관측과 일치하지 않으면 적용하지 않는다. 복구 후에도 이전 목표를 자동 재개하지
+않으므로 정합 상태를 확인하고 새로 이동을 요청한다. 수동 initialpose는 자동 복구를
+중단시킨다. 지도·scan이 충분하지 않으면 수동으로 정확한 초기 위치를 지정해야 한다.
+설정은 `phone_localization.yaml`, 원본 근거는 실행의 `runtime/localization/`에 둔다.
+
+재기동 시 이전 통신 단절의 `BASE_UNAVAILABLE`만 남아 있으면 시연 프로필의
+`startup_base_reconnect`가 복구를 확인한다. MCU와 host의 구동 비활성, 휠 정지와
+출력 0, 정상 통신, LiDAR 및 Nav2 상태가 1초 이상 유지되고 이전 목표의 정지도
+확인돼야 잠금이 해제된다. 목표는 자동 재개하지 않는다. 실행 중 새로 발생한 오류,
+모터/프로토콜 고장, 다른 잠금과 원인이 기록되지 않은 기존 상태 파일은 자동 해제하지
+않는다. 남은 잠금은 `supervisor_operator`로 원인을 확인한 뒤 처리한다.
+
+휴대폰 지도에서 목적지 위치와 방향을 선택하면 이동 전에 Nav2 전역 경로를 미리 계산한다. 파란 경로가 표시되고 주행 준비 조건을 만족하면 이동 버튼이 활성화된다. 경로 미리보기 자체로 로봇이 움직이지 않는다. 경로를 찾지 못하면 목표를 다시 지정한다.
+
+Omni 자동주행의 병진 합성 속도 상한은 0.5m/s, 회전은 0.7rad/s다. 주황 영역은
+바퀴 외곽 +16cm이며 병진 0.16m/s와 회전 0.3rad/s를 적용한다. 도착점 20cm 안의
+목표 상한은 0.06m/s와 0.15rad/s다. 가감속 한도를 지키도록 그 이전부터 감속하며,
+최종 휠 구동 상한 10rad/s는 유지한다. 빨간 정지 영역은 바퀴 외곽 +5cm다.
+이 시연의 `collision_monitor`는 `cleany_navigation/phone_collision_monitor`로 실행하며
+일반 안전 launch는 기존 Nav2 실행 파일을 사용한다.
+
+Omni 프로필은 순정 Smac Lattice 단독 전역 계획과 MPPI 비용 기반 추종을 사용한다.
+거리별 방향 선택과 강제 회전 단계를 사용하지 않는다. 균형 primitive의 검색 비용,
+3초 MPPI 예측, 목표 비용과 휠 명령 가속도 3rad/s²를 유지한다. Lattice의 반환 목표는
+5cm 격자와 16개 방향으로 양자화된다. 바닥 슬립과 실물 제동 성능은 별도 확인이
+필요하다. 세부 설정은 [경로 계획](../ros2_ws/src/cleany_navigation/docs/planning.md#휴대폰-시연-프로필)을 따른다.
+
+횡이동 시험은 로봇의 정지 응답을 확인하고 위치를 기록한 뒤 같은 launch를 `phone_motion_profile:=omni`로 재실행한다. 초기 위치를 복원하고 준비 상태를 확인하면 수동 조이스틱의 좌우 입력과 자동주행의 횡이동이 함께 허용된다. 횡이동 차단으로 돌아갈 때는 같은 절차로 `longitudinal`을 선택한다. 두 프로필 모두 LiDAR 감시, 전체 정지와 자동 목표 취소를 공유한다.
+
+### 기존 지도 병행 확장
+
+`tools/validation/map_extension/extend.py`는 실행 중인 센서의 `/scan`과
+`/odom`, TF를 읽어 저장된 Cartographer 상태에 새 궤적을 추가한다.
+기존 궤적은 고정하고 `/map_extension` namespace에 지도와 추정 자세를
+발행한다. 기존 `/tf`를 전용 `/map_extension/tf`로 단방향 전달하며 Cartographer도
+그 전용 토픽에만 연결한다. 전역 TF와 주행 명령은 발행하지 않으므로 AMCL/Nav2와 함께 실행할 수 있다.
+입력은 지도 이미지가 아닌 `.pbstream`이다. 시작 시 현재 `map -> base_link`
+자세와 저장 상태의 원점을 이용하므로 기존 AMCL 위치가 맞아 있어야 한다.
+확장 영역에서 기존 AMCL 지도가 부족해져도 확장 Cartographer는 자체 추정을
+계속한다. 자동주행 지도 교체는 별도 작업이며 수동조종으로 확장 영역을 주행한다.
+
+노트북 실험 실행과 저장 종료:
+
+```bash
+bash /home/ehdrms/workspace/cleany-data/experiments/map-extension/start.sh
+bash /home/ehdrms/workspace/cleany-data/experiments/map-extension/stop.sh
+```
+
+실험 wrapper는 고유한 `cleany-data/runs/map-extension/<timestamp>`에
+입력 사본 `seed.pbstream`, 원점과 시작 자세 `session.json`, 60초 주기의
+`latest.pbstream`, `map.yaml`, `map.pgm`을 저장한다. 종료 wrapper는 해당
+Python 소유 프로세스에 SIGINT를 보내 궤적 종료 후 `final.pbstream`을 저장한다.
+완료는 `journalctl --user -u cleany-map-extension`에서 확인한다.
+별도 RViz 설정은 실험 폴더의 `extension.rviz`이며 `/map_extension/map`과
+`/map_extension/tracked_pose`를 표시한다. 원본 지도와 기존 로거는 변경하지 않는다.
+
+확장 RViz는 `/tf`를 `/map_extension/view_tf`로 remap해 실행한다.
+`tools/validation/map_extension/view_tf.py`를 함께 실행하면 LiDAR와 odometry를
+확장 SLAM의 자세 기준으로 표시한다. 궤적과 지도는 `/map_extension` 토픽을
+선택한다. 제약선, raw scan, scan-matched point cloud는 표시 항목에서 켤 수 있다.
+
+확장 중 센서/장치 재시작이나 odom 원점 초기화를 하면 기존 궤적을 계속 사용할 수 없다.
+확장 입력은 `/map_extension/odom`으로 전달되며, 원본 `/odom`에 2초 이상 공백,
+샘플 간 0.25m 초과 이동, 0.35rad 초과 회전 또는 역행 시각이 있으면 전달을 차단하고
+현재 확장 세션을 종료 저장한다. 임계값은 `extend.py --odom-max-*` 인자로 지정한다.
+문제를 해결한 후 깨끗한 원본 상태 또는 마지막 정상 저장 상태로 새 확장을 시작한다.
+
+
+Phone Omni의 횡/대각 선호는 `nav2_phone_omni.yaml`의 `FollowPath.DirectionalMotionCritic`
+두 가중치로 조정한다. 현재 시험값은 lateral=1, diagonal=20 cost/m이며 controller 재구성 시 적용된다.
+이동 1m당 전후진 0, 횡이동 1, 45도 대각이동 20.5가 된다.
+슬립 복구 BT와 자동 학습을 연결하는 설정은 없다. 로거의 motion 항목을 켜면
+`/navigation/slip`의 위치/명령 문맥과 `/navigation/traction_recovery`가 기존 bag에 저장된다.
+
+
+## D435 장애물 미리보기
+
+실제 head TF와 카메라가 실행된 ROS 환경에서 다음 명령을 사용한다.
+`FILTER_JSON`은 실행 폴더의 `obstacle-filter.json`, `BODY_JSON`은
+`ros2_ws/src/cleany_navigation/config/d435_fixed_body_boxes.json` 경로다.
+
+```bash
+ros2 run cleany_navigation depth_obstacles_preview --ros-args -p filter_file:="$FILTER_JSON" -p body_boxes_file:="$BODY_JSON"
+ros2 run rviz2 rviz2 -d tools/validation/config/d435_obstacles.rviz
+```
+
+LiDAR 아래를 제외하려면 filter JSON에 `min_base_z: 0.192`를 지정하고 미리보기 노드만 재시작한다.
+초록 점이 장애물 후보, 주황 점이 CAD 높이의 LiDAR다. 원본 점군은 별도 토픽에 보존한다.
+현재 미리보기는 Nav2 costmap과 Collision Monitor에 연결하지 않는다.
+
+## 실물 depth local costmap 연결
+
+`tools/ros2/run-phone-navigation`에 `--depth-params ros2_ws/src/cleany_navigation/config/phone_depth_local.yaml`을 추가한다. 기존 map, profile, DDS와 slip-recovery 선택은 유지한다. 하위 launch의 `depth_params_file`과 hardware runtime의 `--depth-params`로 전달된다. 생략하면 LiDAR 전용이다. D435 카메라와 실제 head encoder TF는 별도로 실행돼 있어야 한다.
+
+이 overlay는 local VoxelLayer, depth 투영 노드와 기존 Collision Monitor의 depth 입력만 추가한다. global costmap과 3D 누적 장애물 지도, voxel guard는 추가하지 않는다. 원본 유효 광선은 제거용, LiDAR 높이 이상의 필터 점은 표시용이다.
+
+적용 전 조종을 pause하고 MCU 정지 확인, 현재 지도와 pose를 보존한다. 실행 관리자를 정상 종료해 logger를 마무리한 뒤 같은 설정에 overlay를 추가하여 재시작한다. 저장한 pose는 로봇이 움직이지 않은 경우에만 초기 추정으로 복원하고 지도 정합을 확인한다. `tools/validation/check_depth_navigation.py --output /path/to/run/state.json`으로 점군 및 costmap 상태를 기록할 수 있다. 실물 적용 후 위치 복원은 이 도구의 `--restore-pose /path/to/before/state.json`을 명시적으로 사용한다.
+
+롤백은 `--depth-params`를 제거한 뒤 같은 절차로 재시작한다. systemd 실행에서는 해당 인자를 추가한 drop-in만 제거 또는 비활성 이름으로 바꾸고 daemon-reload한다. 카메라가 꺼진 채 depth 프로파일을 유지하면 자동주행 속도 출력은 0으로 제한된다.

@@ -18,6 +18,20 @@
 
 ## 검사 선택
 
+bag 기반 휠/LiDAR 이동 불일치 도구는 `make test-slip-detection`으로 검사한다.
+시간 보간과 좌표 변환, 합성 스캔 정합, 퇴화된 단일 벽, 정합 품질 실패,
+odom 단절과 연속 감지 조건을 검증한다. ROS 노드나 모터 명령을 만들지 않는다.
+실제 기록의 분석 절차와 판정 한계는 [캘리브레이션 가이드](CALIBRATION.md#bag-기반-슬립-의심-구간-분석)를 따른다.
+
+실시간 노드와 BT를 빌드한 뒤 `make test-slip-recovery`로 navigation CTest를
+격리된 `BASE_TEST_ROS_DOMAIN_ID`에서 실행한다. 실제 BT 플러그인의 child halt,
+정지 확인, 목표별 재시도 유지, 지연된 이전 비교 무시와 반복 실패를 검사한다.
+게이트 단위 검사는 병진 방향 유지와 휠별 감속 상한, heartbeat 단절을 확인한다.
+전체 Nav2 smoke에는 `tools/validation/slip_recovery_smoke.py`를 사용한다.
+별도 도메인에 빈 시험 지도와 `phone_navigation.launch.py phone_motion_profile:=omni`를
+먼저 실행한 뒤 같은 도메인에서 도구를 실행한다. 합성 센서와 명령 전달만으로
+경로 추종 시작과 취소 후 0 출력을 검사하며, 도구는 하드웨어 도메인 0에서 실행을 거부한다.
+
 ```mermaid
 flowchart TB
     Change{"바뀐 경계"}
@@ -47,6 +61,50 @@ flowchart TB
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
 | Supervisor core | `make test-supervision-core` | ROS 없는 Fault, 허가, 복구, 영속성, Runtime 감독 port, 안전 증거 |
 | Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `$(CLEANY_DATA_ROOT)/runs/supervision/latency.json`에 기록 |
+
+Supervisor 검사는 시연 프로필의 재기동 통신 복구도 포함한다. 원인이 기록된 통신
+Fault만 base 정지와 fresh health 이후 해제하고, 오래된 피드백, 실제 고장, 원인 미상
+상태, 미확인 목표 정지 및 기본 수동 정책은 계속 차단하는지 검사한다. ROS E2E는
+실제 base driver와 합성 MCU를 사용해 단절, 재연결, Supervisor 재기동 순서를 검증하며
+물리 USB 차단이나 실제 정지 성능 검증과 구분한다.
+Base driver의 `test_stop_retry.py`는 STOP 3회 유실 후 동일 sequence의 ACK를 확인하고,
+watchdog 정지와 알 수 없는 MCU Fault를 구분한다. 어느 경우에도 복구를 위한
+ENABLE 명령이 나가지 않아야 한다.
+
+위치 정합 검사는 `cleany_navigation/test/test_localization_alignment.py`와
+`test_localization_guard_ros.py`에 있다. 작은 공분산의 잘못된 pose, 지도 회전,
+정합 미확인, 가벼운 불일치 중 lease 유지와 감속, 회복/개선 중단/최대 대기 시간,
+높은 공분산에서의 탐색과 재검증, 제한된 후보 탐색, 모호한 통로, 정지 미확인,
+동시 복구와 수동 초기 위치 선점을 확인한다. ROS 검사는 별도 domain의 실제 Guard와 Supervisor에 합성
+LiDAR·AMCL 응답을 연결하며 물리 위치 정확도 검증과 구분한다.
+
+기존 주행 기록의 위치 정합 정책 비교는 ROS 환경에서
+`tools/validation/validate_recorded_localization.py --help`로 실행 인자를 확인한다.
+`--bag`에는 원본과 진단 DB가 포함된 완료된 bag 폴더를 반복 지정한다.
+`--settings`는 비교할 localization 설정, `--old-source-tar`는 이전 정지 정책의
+소스 스냅샷, `--draft-source`는 비교할 수정 전 감속 정책 Python 파일이다.
+`--output`은 데이터 루트의 해당 실행 폴더로 지정한다. 도구는 원본 DB를 읽기 전용으로
+열고 해시를 전후 비교하며, DDS domain 196에서 실제 Guard를 재생한다.
+기록된 AMCL·TF를 고정한 비교이므로 변경한 속도로 이동했을 때의 위치 정확도와
+최적 감속 비율을 입증하지 않는다. 기록에 없는 initialpose는 AMCL 수신 로그로
+보수적으로 신뢰를 초기화하며, 센서 저장 주기와 입력 누락을 그대로 반영한다.
+
+기록된 정합 점수 자체의 시간 그래프는
+`tools/validation/plot_localization_history.py --bag BAG --end ISO_TIME --minutes 10 --output RUN_DIR`
+로 생성한다. 종료 시각에는 시간대를 포함한다. 읽기 전용 DB 트랜잭션으로
+위치 정합, 출력 속도 명령과 목표 취소 기록을 추출하고 PNG, PDF, CSV와 HTML을 저장한다.
+점수를 재계산하지 않으며 수신 공백과 오래된 점수는 그래프에서 연결하지 않는다.
+
+복구 하한과 판정 흐름 비교는 `tools/validation/localization_policy_experiment.py`에
+`--bag`을 반복 지정하고 `--output RUN_DIR`로 실행한다. 기록 중인 DB는 먼저
+SQLite backup으로 고정하며 필요하면 `--end UNIX_SECONDS`로 범위를 제한한다.
+원본 지도와 인과적 TF로 정지 관측 창을 구성하고, 위치·방향 오차를 전체 참조
+스트림에 유지한 채 기존 하한과 구조 변경 후보를 비교한다.
+`tools/validation/report_localization_policy_experiment.py RUN_DIR`는 HTML, CSV와
+그래프를 만든다. 도구 검사는 `tests/tools/test_localization_policy_experiment.py`에 있다.
+기록된 AMCL은 실측 정답이 아니며, 재초기화 후의 AMCL이나 물리 복구 성공률은
+이 실험으로 입증하지 않는다. 실행 프로필은 자동으로 변경하지 않는다.
+
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
 | 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
@@ -59,9 +117,12 @@ flowchart TB
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
+| 매핑 원본 bag 도구 | `python3 -m pytest tests/tools/test_mapping_bag_recorder.py` | 센서 토픽 선택, 기존 bag 보존, native recorder 종료와 flush |
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
 | Telemetry | `make test-telemetry` | odom relay |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
+
+Fedora에서는 `make test-hardware-mapping-core`를 호스트에서 실행합니다. Python 검사는 Humble Distrobox에서 ROS 설치 환경과 `BASE_TEST_ROS_DOMAIN_ID`를 사용하고, 버튼 입력 검사는 호스트 Node.js에서 실행합니다. Navigation의 Python 묶음은 격리 ROS lifecycle과 센서 신선도 검사를 포함하므로 CTest 실행 한도를 300초로 둡니다. 개별 검사 내부의 판정 시간과 임계값은 별도로 유지합니다.
 
 Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
 
@@ -139,6 +200,11 @@ Gazebo의 `--gazebo-model legacy`로 레거시 모델도 선택할 수 있습니
 ### 선택 실행 조건
 
 Gazebo package의 `--run-sim-runtime`, `--run-evaluation-tests`와 Mission core의 `CLEANY_RUN_ROS_TESTS=1`은 별도로 활성화하는 검사입니다. 실행 결과에서 통과와 skip을 구분합니다.
+
+Logger의 `CLEANY_RUN_ROS_TESTS=1 make test-logger`는 native rosbag2의 활성 읽기,
+센서와 진단 bag 분리, CDR 조회, 합산 용량과 ZIP 내보내기도 검사합니다.
+실물 ROS domain과 분리해서 실행하며, 이 검사는 실물 주행의 누락률이나
+시간당 저장 용량을 보장하지 않습니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -316,3 +382,83 @@ MoveIt 서비스 검사를 실행합니다. 서비스 검사는 기본 detector�
 36개를 검출하는지, 같은 입력을 표면 FCL이 놓치는지와 존재하지 않는 detector를
 선택했을 때 프로세스가 종료하는지 확인합니다. 가상 장애물만 사용하고
 trajectory execution은 끄며 모터 드라이버를 실행하지 않습니다.
+
+병행 지도 확장 도구의 원점 변환과 지도 저장 형식은 ROS Python 환경에서
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/tools/test_map_extension.py`로 검사한다.
+실행 시 `/map`과 `/tf` 발행자에 확장 Cartographer가 없는지, `/map_extension/map`
+및 `/map_extension/tracked_pose`가 수신되는지 확인한다. 실물 확장 품질은
+연결 통로 왕복 관측과 복귀 시 벽 정합으로 별도 평가한다.
+
+### 순정 Lattice와 Phone Omni MPPI 비교
+
+`tools/validation/native_lattice_mppi`는 설치된 Smac Lattice와 통합 MPPI를 격리 실행한다. 실제 로봇에 속도를 발행하지 않는다. 입력 폴더에는 `map.txt`(크기, 해상도, 원점), `map.bin`(Nav2 cost byte 배열), `poses.txt`(시작/목표 x y yaw)가 필요하다. 설정은 controller_server, planner_server와 local_costmap의 합성 YAML이다.
+
+```bash
+cmake -S tools/validation/native_lattice_mppi -B /tmp/cleany-lattice-validation
+cmake --build /tmp/cleany-lattice-validation -j2
+python3 tools/validation/native_lattice_mppi/compare.py \
+  /tmp/cleany-lattice-validation/closed_loop <artifact-root> <config-stem> <case> [<case> ...]
+```
+
+각 `<case>`는 입력 폴더이고 `<config-stem>.yaml`을 읽어 결과와 초기 경로 및 20Hz 명령을 저장한다. `--preview-goal`은 웹 UI처럼 최초 미리보기 끝점을 실제 이동 목표로 선택한다. 격리 domain은 188이며 운영 domain과 같으면 실행하지 않는다. 시험은 1Hz 재계획, 1.5m 지역 경로와 이상적 평면 운동 적분을 사용한다. 실제 PathHandler의 TF/지역 지도 갱신, AMCL 오차, 통신 지연, 모터 응답과 슬립은 재현하지 않는다. 120초 시뮬레이션 시간 안에 반환 경로 끝점의 3cm/0.1rad 이내 도착과 footprint 충돌 여부를 검사하며, 클릭 목표와의 오차도 별도로 출력한다. 이것은 실물 주행 성공 근거가 아니다.
+
+`balance_primitives.py SOURCE DESTINATION`은 직선 primitive의 좌표를 변경하지 않고 길이 metadata를 재계산한다. `test_phone_profile.py`는 번들 원본과의 차이가 오른쪽 횡이동 16개의 길이 필드뿐인지, 모든 직선 길이가 기하와 일치하는지 검사한다.
+
+
+고정 방향 비용은 `mppi_critics_tests`의 `Directional*` 및 `mppi_critic_manager_test`로
+부호 대칭, 동일 거리의 각도별 비용과 봉우리, 시간 적분, DiffDrive 무효화, 플러그인 로딩을 확인한다. `test_slip_context.py`는
+과거 TF/명령 선택, stale/null, bounded history와 지도 식별을 검사한다.
+`cleany_logger/tests/test_logger_policy.py`는 문맥 토픽의 기록/제외/재매핑을 검사한다.
+`tools/validation/native_lattice_mppi/compare.py`의 격리 실행은 실제 planner/controller와
+이상적 운동학의 도착 및 명령 한계를 검사하며 실제 슬립 개선 증거로 사용하지 않는다.
+
+
+`tools/validation/slip_context_recording.py --output <새 결과 폴더>`는 설치된 logger에
+합성 String 메시지를 보내고 저장된 CDR을 다시 읽어 문맥을 비교한다. hardware domain 0에서는
+실행을 거부한다. runner 환경 설정 뒤 별도 `ROS_DOMAIN_ID`를 지정해 실행한다.
+
+
+### 기록된 Nav2 조건과 MPPI reset 검사
+
+`tools/validation/native_lattice_mppi/extract_bag_fixture.py`는 bag의 지정 시각 이전에
+수신된 global costmap, odom, plan과 map→odom TF를 읽어 정적 과제를 만든다.
+수신 시각과 header의 미래 값, 오래된 입력, 좌표계 불일치를 거부한다. OccupancyGrid의
+손실 압축을 역변환할 때 각 비용 구간의 상한을 사용하고 lethal과 unknown을 보존한다.
+`tests/tools/test_bag_navigation_fixture.py`는 이 비용 변환과 SE(2) 합성을 검사한다.
+
+`compare.py`의 폐루프는 정적 비용 지도에서 정지 출발하는 이상적 운동 모사다.
+실제 scan의 시간 변화, SLAM/AMCL 오차, BT 복구, 마찰과 슬립을 재현하지 않는다.
+`--preview-goal` 사용 시 반환된 Lattice 끝점을 도착 기준으로 사용하고 요청 좌표와의
+오차를 별도로 기록한다. 실패한 과제도 결과에 보존해야 한다.
+
+`noise_reset_probe`는 1000×60 후보의 reset 직후 잡음과 실행 시간을 100회 측정한다.
+`mppi_noise_generator_test`는 비동기 생성 요청과 reset이 겹칠 때의 완전한 첫 묶음,
+운동 모델 전환, 독립 controller 난수열과 종료를 검사한다. ROS domain은 실제 로봇과
+분리한다. 헤더의 객체 배치가 바뀌면 비교용 바이너리도 해당 라이브러리와 함께 재빌드한다.
+
+메모리 사용을 제한하는 격리 빌드는 패키지 수와 C++ 컴파일 작업 수를 모두 제한한다.
+`CMAKE_BUILD_PARALLEL_LEVEL`은 CMake `-D` 인수가 아니라 환경 변수다.
+
+```bash
+CMAKE_BUILD_PARALLEL_LEVEL=2 MAKEFLAGS=-j2 make build \
+  CLEANY_BUILD_ROOT=/path/to/isolated-build \
+  COLCON_BUILD_ARGS='--packages-select cleany_navigation --parallel-workers 1'
+```
+
+
+## D435 높이 필터 검증
+
+ROS 환경에서 `python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_depth_obstacles.py ros2_ws/src/cleany_navigation/test/test_depth_obstacle_preview_transport.py`로
+높이 경계, 기울어진 관측 바닥과 독립적인 고정 하한, TF 소실 시 오래된 점군 제거를 확인한다.
+실물 미리보기가 실행 중이면 `python3 tools/validation/probe_depth_obstacle_cutoff.py --min-z .192 --output /path/to/run/live-check.json`으로
+신선한 비어 있지 않은 출력의 좌표계와 최소 높이를 확인한다. 이 검사는 물체 검출률이나 주행 안전성을 입증하지 않는다.
+
+## 실물 depth costmap과 Monitor 격리 회귀
+
+`test_depth_local_costmap.py`는 ROS domain 192에서 설치된 VoxelLayer의 표시, 관측 밖 유지, 빈 공간 재관측 후 제거를 검사한다. `test_phone_collision_monitor.py`는 domain 191에서 LiDAR와 depth 각각의 정지 우선순위, 절대 속도 상한, 필수 depth 중단 시 정지와 복구를 검사한다. 로봇 domain 0에 속도 명령을 보내지 않는다. `test_depth_transport.py`는 실제 형식의 깊이 메시지, 촬영 시각 TF, 무효 영상 차단과 floor clearing 보존을 검사한다. `test_phone_slip_launch.py`는 depth 옵션이 global costmap이나 slip 설정을 바꾸지 않는지 검사한다.
+
+```bash
+python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_depth_local_costmap.py ros2_ws/src/cleany_navigation/test/test_phone_collision_monitor.py ros2_ws/src/cleany_navigation/test/test_depth_transport.py ros2_ws/src/cleany_navigation/test/test_phone_slip_launch.py
+```
+
+격리 합성 입력 검사는 실물 의자 이동이나 실제 제동 거리의 검증과 구분한다. 실물에서는 조종 pause 상태에서 의자를 놓고 치운 관측과 costmap을 기록한 후 별도 주행 시험으로 진행한다.

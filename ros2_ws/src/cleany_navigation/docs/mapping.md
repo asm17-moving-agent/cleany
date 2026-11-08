@@ -7,6 +7,10 @@
 `mapping_session`은 지도 세션과 Cartographer, Logger 자식 프로세스를 소유한다.
 Agent, base, 조종 웹과 센서 프로세스는 bringup 수명이므로 지도 초기화로 재시작하지 않는다.
 
+기록 디렉터리에 `recording-settings.json`이 있으면 Logger가 복원한 기록 정책을
+지도 초기화 후에도 유지한다. 저장된 정책이 없는 첫 실행에서만 매핑용 기본 토픽과
+주기를 설정한다. 따라서 초기화가 사용자의 기록 제외나 Hz 설정을 덮어쓰지 않는다.
+
 | ROS endpoint | 타입 | 계약 |
 |---|---|---|
 | `mapping/control` | `MappingControl` 서비스 | reset 또는 stop 접수. request_id와 operation 조합으로 수명 내 중복 제거 |
@@ -48,3 +52,7 @@ traceback을 출력하므로 진단 파일 저장 실패는 runtime의 `mapping.
 새 요청을 접수하면 현재 오류 필드는 초기화되며 기존 진단 파일은 유지된다.
 실행 중 자식이 종료되면 상태 메시지에서 Cartographer와 Logger를 구분하고 종료 코드와
 로그 경로를 제공한다.
+
+하드웨어 프로필의 `recording_limit_mib`는 최초 세션 정책과 Logger 시작 한도를, `recording_total_limit_mib`는 보존된 전체 기록의 총량 한도를 설정한다. 저장된 `recording-settings.json`이 있으면 세션 한도는 저장된 정책을 우선한다. 총량 한도는 세션 한도 이상이어야 하며, 프로필 변경은 런타임을 다음에 시작할 때 적용한다.
+
+LiDAR 전용 phone navigation은 `lidar_self_mask_cad.yaml`의 고정 기둥 직사각형을 base_link 좌표로 제외한다. CAD -Y를 base +X, CAD +X를 base +Y로 변환하고 기둥 외곽에 15mm 여유를 둔다. 360도 매핑 원본 `/scan_raw`는 변경하지 않으며, 일반 매핑 실행에는 이 마스크를 자동 적용하지 않는다.
