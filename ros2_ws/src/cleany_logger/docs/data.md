@@ -6,6 +6,11 @@ Monitor와 aiohttp, 카메라 preview 디코더, Mission Runtime을 import하지
 rosbag2 의존성은 첫 원본 쓰기에 불러오며 저장 API와 과거 조회는 ROS 없이 사용할 수 있다.
 독립 실행과 상태 전이는 [런타임](runtime.md), 서비스 계약은 [인터페이스](interfaces.md)를 따른다.
 
+motion 그룹의 `localization_status_topic`은 `/localization/status`의 정합 점수,
+판정 이유, 재정합 진행과 속도 제한 비율, 위치 복구 단계를 원본 String으로 저장한다. 기본 2Hz이며 저사양/정밀
+설정은 각각 1/5Hz다. 복구용 지도와 후보 근거 파일은 해당 실행의
+`runtime/localization/`에 별도로 보존한다.
+
 ## 생산자와 저장 소유권
 
 | API | 입력과 계약 |
@@ -54,6 +59,10 @@ ROS stamp와 수신 wall/monotonic 시각을 함께 저장하며 재생 축은 �
 
 ROS callback은 최대 8 MiB 메시지를 32 MiB/128건의 큐로 넘기고 logger 전용 writer thread가 bag 쓰기와 종료를 소유한다. 초과, 쓰기 실패와 용량 중단은 유실 건수와 `raw_gap` metadata로 남긴다. rosbag2 runtime이 없거나 쓰기에 실패하면 원본 기록을 중단하며 SQLite payload로 대체하지 않는다. 세션 제한과 `total_limit_bytes`는 SQLite와 bag을 합산한다.
 
+SQLite bag은 rosbag2의 `resilient` preset을 사용한다. WAL 파일도 저장 용량에 포함하며
+원본 조회의 읽기 트랜잭션 때문에 writer가 잠기지 않도록 한다. 연속 센서 bag을 별도로
+확보하는 절차는 [실물 매핑 실행](../../../../docs/RUNNING.md#오프라인-slam-비교용-원본-bag)을 따른다.
+
 정지 후 녹화를 시작할 때 새 UUID를 만들고, 녹화 중 시작 요청은 같은 세션을 반환한다. 정지하면 SQLite와 bag writer를 닫는다. `bag_state`는 `not_started`, `recording`, `finalized`, `incomplete`를 구분하며 완료된 bag만 ZIP으로 내보낸다. 원본 timestamp는 수신 ROS clock의 nanosecond, SQLite 시간축은 수신 wall 초다. 동일 ROS timestamp의 원본도 수신 순서로 구분한다. 이전 schema 1/2/3 SQLite는 수정하거나 자동 변환하지 않고 계속 읽는다.
 
 원본 구독은 화면과 카메라 preview lease에 독립적이다. CameraInfo는 이미지 토픽의 형제 `camera_info`에서 요청한다. TF와 시계, CameraInfo는 Hz로 누락시키지 않는다. 설정 변경과 새 세션은 transient-local 원본 구독을 다시 생성해 retained 자료를 요청한다.
@@ -69,8 +78,29 @@ ROS callback은 최대 8 MiB 메시지를 32 MiB/128건의 큐로 넘기고 logg
 
 ## 기록 정책
 
+Marker 계열과 Cartographer 메시지, OccupancyGrid, SLAM의 matched-point 점군은
+`bags/<session>/diagnostics/`의 별도 rosbag2에 기록한다. 센서와 TF는 상위 bag에
+남는다. 두 bag은 원래 수신 timestamp와 CDR을 유지하며, 용량 제한과 ZIP 내보내기는
+두 bag을 모두 포함한다. 과거 단일 bag도 같은 원본 조회 API로 읽는다.
+상위 bag만 재생하면 진단 토픽은 나오지 않으므로 진단 비교에는 하위 bag도 사용한다.
+
+SLAM 진단 원본에도 `slam_trajectory_topic`, `slam_constraints_topic`,
+`slam_submaps_topic`, `slam_matched_points_topic`의 `source_hz`와
+`source_enabled`를 적용한다. 0.1 Hz는 10초마다 최대 한 건이며, 중간 진단 상태는
+보존하지 않는다. 원본 센서의 full-rate 기록과 진단의 표본화는 서로 독립적이다.
+`joint_state_topic`을 비활성화하면 기본 `/joint_states`도 우회 기록하지 않는다.
+
 출처 schema와 기본 주기는 `cleany_logger.sources`, 기록 선택과 프로필은
 `cleany_logger.recording`이 소유한다. 생산자는 이 schema로 ROS 구독을 설정할 수
 있으며 logger_node가 직접 DDS discovery와 구독을 생성한다. 큰 원본의 선택은
 기본 OFF이며 카메라, 점군과 voxel은 대용량이므로 필요한 토픽과 Hz를 선택한다.
 기록 정책은 세션에, 큐 폐기 수는 metadata에 남기고 기존 파일을 자동 삭제하지 않는다.
+
+세션 정책 `limit_mib`는 10~10240 MiB를 허용한다. `total_limit_bytes`는 이전 세션까지 포함하는 별도 총량 제한이며, 기존 기록은 자동 삭제하지 않는다.
+
+
+슬립 분석에는 motion 그룹의 `slip_topic` (`/navigation/slip`, String, 5Hz)과
+`traction_recovery_topic` (`/navigation/traction_recovery`, String, 수신 이벤트)를 사용한다.
+기본 source schema에 포함되어 토픽 변경과 개별 제외가 가능하다. 기존 bag에 raw CDR로 저장하며
+동일한 용량/보존 정책을 따른다. 관측의 위치 및 명령 문맥은
+[슬립 인터페이스](../../cleany_navigation/docs/interfaces.md#슬립-관측의-분석-문맥)를 따른다.

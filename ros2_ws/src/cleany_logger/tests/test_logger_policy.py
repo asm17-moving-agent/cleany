@@ -12,6 +12,28 @@ def enabled(key="point_cloud"):
     return value
 
 
+def test_diagnostic_rate_and_opt_out_apply_to_raw_context(monkeypatch):
+    settings = defaults()
+    settings['active'] = True
+    settings['enabled']['slam'] = True
+    settings['enabled']['motion'] = True
+    settings['source_hz']['slam_trajectory_topic'] = .1
+    settings['source_enabled']['joint_state_topic'] = False
+    settings['sources']['slam_trajectory_topic'] = '/custom/trajectory'
+    controls = RecordingControls()
+    controls.configure(settings)
+    monkeypatch.setattr('cleany_logger.recording.time.monotonic', lambda: 100.)
+    assert controls.reserve('/custom/trajectory') is not None
+    assert controls.reserve('/custom/trajectory') is None
+    assert '/joint_states' not in controls.topics()
+    assert '/trajectory_node_list' not in controls.topics()
+    monkeypatch.setattr('cleany_logger.recording.time.monotonic', lambda: 110.)
+    assert controls.reserve('/custom/trajectory') is not None
+    settings['source_enabled']['slam_trajectory_topic'] = False
+    controls.configure(settings)
+    assert '/custom/trajectory' not in controls.topics()
+
+
 def test_queue_loss_and_size_limit_are_explicit(tmp_path):
     controls = RecordingControls(queue_limit=4)
     controls.configure(enabled())
@@ -146,3 +168,35 @@ def test_v3_precise_migration_keeps_custom_rates_and_separates_semantic_maxima()
     assert updated['hz']['point_cloud'] == 5.
     assert updated['source_hz']['stop_polygon_topic'] == 1.
     assert updated['rate_defaults_version'] == 4
+
+
+@pytest.mark.parametrize('limit', [9536, 10240])
+def test_large_session_limit_is_supported(limit):
+    assert validate(dict(defaults(), limit_mib=limit))['limit_mib'] == limit
+
+
+@pytest.mark.parametrize('limit', [10241, True, 9536.5])
+def test_invalid_large_session_limit_is_rejected(limit):
+    with pytest.raises(ValueError):
+        validate(dict(defaults(), limit_mib=limit))
+
+
+def test_slip_context_and_recovery_are_recorded_and_can_be_remapped_or_disabled():
+    settings = defaults()
+    settings['active'] = True
+    settings['enabled']['motion'] = True
+    controls = RecordingControls()
+    controls.configure(settings)
+    topics = controls.context_topics()
+    assert topics['/navigation/slip'] == ('motion', 'std_msgs/msg/String', 'slip_topic')
+    assert topics['/navigation/traction_recovery'][2] == 'traction_recovery_topic'
+    assert settings['source_hz']['slip_topic'] == 5.
+    assert topics['/localization/status'] == ('motion', 'std_msgs/msg/String', 'localization_status_topic')
+    assert settings['source_hz']['localization_status_topic'] == 2.
+    assert settings['source_hz']['traction_recovery_topic'] is None
+    settings['sources']['slip_topic'] = '/custom/slip'
+    settings['source_enabled']['traction_recovery_topic'] = False
+    controls.configure(settings)
+    assert '/custom/slip' in controls.context_topics()
+    assert '/navigation/slip' not in controls.context_topics()
+    assert '/navigation/traction_recovery' not in controls.context_topics()

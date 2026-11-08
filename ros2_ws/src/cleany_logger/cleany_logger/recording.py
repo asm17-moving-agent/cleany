@@ -33,6 +33,9 @@ TYPES.update(camera_info={'sensor_msgs/msg/CameraInfo'}, clock={'rosgraph_msgs/m
 # Native visualization inputs accompany the corresponding processed records.
 # Keep this allowlist separate from heavy, independently selected sensor streams.
 CONTEXT = {
+    'slip_topic': ('motion', 'std_msgs/msg/String'),
+    'traction_recovery_topic': ('motion', 'std_msgs/msg/String'),
+    'localization_status_topic': ('motion', 'std_msgs/msg/String'),
     'wheel_state_topic': ('motion', 'cleany_base_interfaces/msg/WheelState'),
     'wheel_command_topic': ('motion', 'cleany_base_interfaces/msg/WheelCommand'),
     'joint_state_topic': ('motion', 'sensor_msgs/msg/JointState'),
@@ -204,6 +207,8 @@ def _version_three_rate_profiles(resource_interval_s=1.):
 # At 0.2 m/s, 2 Hz poses resolve roughly 10 cm; 10 Hz resolves 2 cm.
 # Slow geometry and maps do not gain useful detail from control-loop frequencies.
 SEMANTIC_RATES = {
+    'slip_topic': (5., 5., 5.),
+    'localization_status_topic': (1., 2., 5.),
     'canonical_odometry_topic': (2., 5., 10.), 'raw_scan_topic': (2.,5.,10.),
     **{f'slam_{key}_topic': (1., 2., 2.) for key in ('submaps', 'trajectory', 'constraints', 'matched_points')},
     'runtime_debug_topic': (.5, 1., 2.),
@@ -321,8 +326,8 @@ def validate(value):
             raise ValueError('원본 토픽은 절대 ROS 토픽 이름이어야 합니다.')
     if len(set(value['topics'].values())) != len(RAW):
         raise ValueError('원본 녹화 토픽은 서로 달라야 합니다.')
-    if type(value['limit_mib']) is not int or not 10 <= value['limit_mib'] <= 1024:
-        raise ValueError('세션 용량은 10~1024 MiB 범위입니다.')
+    if type(value['limit_mib']) is not int or not 10 <= value['limit_mib'] <= 10240:
+        raise ValueError('세션 용량은 10~10240 MiB 범위입니다.')
     return deepcopy(value)
 
 
@@ -425,8 +430,7 @@ class RecordingControls:
                 identity = f'velocity_topics:{index}'
                 if s['source_enabled'].get(identity, True):
                     topics[topic] = ('motion', 'geometry_msgs/msg/Twist', identity)
-            topics.update({'/joint_states': ('motion', 'sensor_msgs/msg/JointState', None),
-                           '/robot_description': ('motion', 'std_msgs/msg/String', None)})
+            topics['/robot_description'] = ('motion', 'std_msgs/msg/String', None)
         if s['enabled']['slam']:
             for name, default, typ in (
                 ('submaps', '/submap_list', 'cartographer_ros_msgs/msg/SubmapList'),
@@ -434,8 +438,10 @@ class RecordingControls:
                 ('constraints', '/constraint_list', 'visualization_msgs/msg/MarkerArray'),
                 ('matched_points', '/scan_matched_points2', 'sensor_msgs/msg/PointCloud2'),
             ):
-                topic = self.source_config.get(f'slam_{name}_topic', default)
-                topics[topic] = ('slam', typ, None)
+                identity = f'slam_{name}_topic'
+                if s['source_enabled'].get(identity, True):
+                    topic = sources.get(identity, default)
+                    topics[topic] = ('slam', typ, identity)
         return topics
 
     def has_ros_context(self):

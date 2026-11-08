@@ -5,6 +5,26 @@ import zlib
 from cleany_logger import Recorder
 
 
+def test_quota_counts_nested_bags_and_sqlite_sidecars(tmp_path):
+    unopened = Recorder(tmp_path / 'absent', open_session=False)
+    assert unopened.disk_bytes() == unopened.session_bytes() == 0
+    assert not unopened.directory.exists()
+    recorder = Recorder(tmp_path)
+    try:
+        nested = recorder.bag_path / 'nested'
+        nested.mkdir(parents=True)
+        (nested / 'chunk.db3').write_bytes(b'x' * 100_000)
+        (tmp_path / 'other.sqlite3-wal').write_bytes(b'x' * 50_000)
+        (tmp_path / 'unrelated.log').write_bytes(b'x' * 20_000)
+        assert recorder.session_bytes() == recorder.path.stat().st_size + 100_000
+        expected = sum(p.stat().st_size for p in tmp_path.glob('*.sqlite3*'))
+        assert recorder.disk_bytes() == expected + 100_000
+        recorder.total_limit = expected + 100_000
+        assert recorder.limit_reached(1)
+    finally:
+        recorder.close()
+
+
 def test_active_sqlite_export_is_a_consistent_independent_backup(tmp_path):
     recorder = Recorder(tmp_path)
     row = dict(seq=1, kind="event", key="mission", received_at=12.0,

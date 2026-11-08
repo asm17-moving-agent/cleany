@@ -247,7 +247,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                 aria-label="세션 용량 MiB"
                 type="number"
                 min={10}
-                max={1024}
+                max={10240}
                 value={draft.limit_mib}
                 onChange={(e) =>
                   setDraft({ ...draft, limit_mib: Number(e.target.value) })
