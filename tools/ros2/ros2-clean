@@ -3,8 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-DATA_ROOT="${CLEANY_DATA_ROOT:-$(dirname "${REPO_ROOT}")/cleany-data}"
-BUILD_ROOT="${CLEANY_BUILD_ROOT:-${DATA_ROOT}/builds/$(basename "${REPO_ROOT}")}"
+DEFAULT_DATA_ROOT="$(dirname "${REPO_ROOT}")/cleany-data"
+if [[ -d "$(dirname "$(dirname "${REPO_ROOT}")")/cleany-data" ]]; then
+  DEFAULT_DATA_ROOT="$(dirname "$(dirname "${REPO_ROOT}")")/cleany-data"
+fi
+DATA_ROOT="${CLEANY_DATA_ROOT:-${DEFAULT_DATA_ROOT}}"
+BUILD_ROOT="${CLEANY_BUILD_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/cleany/builds/$(basename "${REPO_ROOT}")}"
 BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
 # Reject a build root that contains any protected directory.
 for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
