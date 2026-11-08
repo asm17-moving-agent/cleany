@@ -264,3 +264,46 @@ def test_failed_start_preserves_original_and_cleanup_exceptions(tmp_path, monkey
     assert "existing Logger" in formatted and "logger flush failed" in formatted
     assert "startup failed" in str(captured.value)
     assert json.loads((output / "session.json").read_text())["profile"] == {}
+
+
+def test_mapping_reset_preserves_saved_logger_rates_and_exclusions(tmp_path):
+    from copy import deepcopy
+    from cleany_navigation.mapping_backend import mapping_recording_settings
+
+    settings = {'enabled': {'lidar': False}, 'topics': {}, 'hz': {},
+                'source_enabled': {'joint_state_topic': False},
+                'source_hz': {'slam_trajectory_topic': 1.0, 'slam_constraints_topic': .5},
+                'limit_mib': 953}
+    original = deepcopy(settings)
+    profile = {'recordings_directory': str(tmp_path)}
+    first = mapping_recording_settings(settings, profile)
+    assert first['enabled']['lidar'] is True
+    assert first['source_hz']['raw_scan_topic'] is None
+    assert settings == original
+    (tmp_path / 'recording-settings.json').write_text('{}')
+    for _ in range(2):
+        settings = mapping_recording_settings(settings, profile)
+        assert settings == original
+
+
+@pytest.mark.parametrize('center', [0., math.pi, -math.pi])
+def test_full_scan_keeps_rear_returns_and_close_mask(center):
+    source = [2., .3, 2., 2., 2.]
+    result = mask_front_scan(source, -math.pi, math.pi / 2,
+                             center=center, half_angle=math.pi)
+    assert result[0] == result[2] == result[3] == result[4] == 2.
+    assert math.isnan(result[1])
+    assert source == [2., .3, 2., 2., 2.]
+
+
+def test_self_mask_only_removes_fixed_body_posts():
+    from cleany_navigation.scan_filter import mask_self_returns
+    points = [(-.19,.24),(-.45,.35),(.6,0)]
+    for point, masked in zip(points,[True,False,False]):
+        dx,dy=point[0]-.139275,point[1]
+        distance=math.hypot(dx,dy)
+        angle=math.atan2(dy,dx)-math.pi
+        result=mask_self_returns([distance],angle,0,translation=(.139275,0),yaw=math.pi,
+            boxes=[[-.215,.215,-.165,.265]])
+        assert math.isnan(result[0]) == masked
+        if not masked: assert result[0] == distance

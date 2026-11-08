@@ -1,0 +1,10 @@
+# Cleany-final.FCStd SHA256 91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0
+# Six 20 mm vertical posts intersect the LiDAR plane. CAD -Y -> base +X,
+# CAD +X -> base +Y. Each rectangle includes 15 mm mounting tolerance.
+boxes:
+  - [-0.215, 0.215, -0.165, 0.265]
+  - [-0.215, -0.265, -0.165, -0.215]
+  - [0.165, 0.215, 0.215, 0.265]
+  - [0.165, -0.265, 0.215, -0.215]
+  - [-0.025, 0.215, 0.025, 0.265]
+  - [-0.025, -0.265, 0.025, -0.215]
