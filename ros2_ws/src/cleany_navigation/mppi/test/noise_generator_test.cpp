@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include <chrono>
+#include <cmath>
 #include <thread>
+#include <xtensor/xmath.hpp>
 
 #include "gtest/gtest.h"
 #include "rclcpp/rclcpp.hpp"
@@ -53,79 +55,62 @@ TEST(NoiseGeneratorTest, NoiseGeneratorLifecycle)
   generator.shutdown();
 }
 
-TEST(NoiseGeneratorTest, NoiseGeneratorMain)
+
+TEST(NoiseGeneratorTest, ResetHasACompleteBatchWithoutWaiting)
 {
-  // Tests shuts down internal thread cleanly
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("node");
-  node->declare_parameter("test_name.regenerate_noises", rclcpp::ParameterValue(true));
+  node->declare_parameter("test.regenerate_noises", true);
   ParametersHandler handler(node);
   NoiseGenerator generator;
-  cleany_navigation::mppi::models::OptimizerSettings settings;
-  settings.batch_size = 100;
-  settings.time_steps = 25;
-  settings.sampling_std.vx = 0.1;
-  settings.sampling_std.vy = 0.1;
-  settings.sampling_std.wz = 0.1;
-
-  // Populate a potential control sequence
-  cleany_navigation::mppi::models::ControlSequence control_sequence;
-  control_sequence.reset(25);
-  for (unsigned int i = 0; i != control_sequence.vx.shape(0); i++) {
-    control_sequence.vx(i) = i;
-    control_sequence.vy(i) = i;
-    control_sequence.wz(i) = i;
+  models::OptimizerSettings settings;
+  settings.batch_size = 100; settings.time_steps = 25;
+  settings.sampling_std.vx = settings.sampling_std.vy = settings.sampling_std.wz = .1;
+  models::ControlSequence control;
+  control.reset(25);
+  models::State state;
+  state.reset(100, 25);
+  generator.initialize(settings, true, "test", &handler);
+  for (int i = 0; i < 40; ++i) {
+    const bool omni = i % 2 == 0;
+    generator.generateNextNoises();
+    generator.reset(settings, omni);
+    generator.setNoisedControls(state, control);
+    const float x_rms = std::sqrt(xt::mean(xt::square(state.cvx))());
+    EXPECT_GT(x_rms, .07f); EXPECT_LT(x_rms, .13f);
+    EXPECT_GT(xt::sum(xt::abs(state.cwz))(), 1.f);
+    if (omni) {EXPECT_GT(xt::sum(xt::abs(state.cvy))(), 1.f);}
+    else {EXPECT_EQ(xt::sum(xt::abs(state.cvy))(), 0.f);}
   }
-
-  cleany_navigation::mppi::models::State state;
-  state.reset(settings.batch_size, settings.time_steps);
-
-  // Request an update with no noise yet generated, should result in identical outputs
-  generator.initialize(settings, false, "test_name", &handler);
-  generator.reset(settings, false);  // sets initial sizing and zeros out noises
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_EQ(state.cvx(0), 0);
-  EXPECT_EQ(state.cvy(0), 0);
-  EXPECT_EQ(state.cwz(0), 0);
-  EXPECT_EQ(state.cvx(9), 9);
-  EXPECT_EQ(state.cvy(9), 9);
-  EXPECT_EQ(state.cwz(9), 9);
-
-  // Request an update with noise requested
+  auto previous = state.cvx;
   generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_NE(state.cvx(0), 0);
-  EXPECT_EQ(state.cvy(0), 0);  // Not populated in non-holonomic
-  EXPECT_NE(state.cwz(0), 0);
-  EXPECT_NE(state.cvx(9), 9);
-  EXPECT_EQ(state.cvy(9), 9);  // Not populated in non-holonomic
-  EXPECT_NE(state.cwz(9), 9);
-
-  EXPECT_NEAR(state.cvx(0), 0, 0.3);
-  EXPECT_NEAR(state.cvy(0), 0, 0.3);
-  EXPECT_NEAR(state.cwz(0), 0, 0.3);
-  EXPECT_NEAR(state.cvx(9), 9, 0.3);
-  EXPECT_NEAR(state.cvy(9), 9, 0.3);
-  EXPECT_NEAR(state.cwz(9), 9, 0.3);
-
-  // Test holonomic setting
-  generator.reset(settings, true);  // Now holonomically
-  generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_NE(state.cvx(0), 0);
-  EXPECT_NE(state.cvy(0), 0);  // Now populated in non-holonomic
-  EXPECT_NE(state.cwz(0), 0);
-  EXPECT_NE(state.cvx(9), 9);
-  EXPECT_NE(state.cvy(9), 9);  // Now populated in non-holonomic
-  EXPECT_NE(state.cwz(9), 9);
-
-  EXPECT_NEAR(state.cvx(0), 0, 0.3);
-  EXPECT_NEAR(state.cvy(0), 0, 0.3);
-  EXPECT_NEAR(state.cwz(0), 0, 0.3);
-  EXPECT_NEAR(state.cvx(9), 9, 0.3);
-  EXPECT_NEAR(state.cvy(9), 9, 0.3);
-  EXPECT_NEAR(state.cwz(9), 9, 0.3);
-
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  bool changed = false;
+  while (std::chrono::steady_clock::now() < deadline && !changed) {
+    generator.setNoisedControls(state, control);
+    changed = xt::sum(xt::abs(state.cvx-previous))() > 1.f;
+    std::this_thread::yield();
+  }
+  EXPECT_TRUE(changed);
   generator.shutdown();
+}
+
+TEST(NoiseGeneratorTest, SeparateControllersDoNotConsumeEachOthersRandomStream)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("independent_noise");
+  ParametersHandler handler(node);
+  models::OptimizerSettings settings;
+  settings.batch_size = 100; settings.time_steps = 25;
+  settings.sampling_std.vx = settings.sampling_std.vy = settings.sampling_std.wz = .1;
+  models::ControlSequence control; control.reset(25);
+  models::State a, b; a.reset(100,25); b.reset(100,25);
+  NoiseGenerator first, second;
+  first.initialize(settings,true,"first",&handler);
+  second.initialize(settings,true,"second",&handler);
+  first.setNoisedControls(a,control); second.setNoisedControls(b,control);
+  EXPECT_EQ(xt::sum(xt::abs(a.cvx-b.cvx))(),0.f);
+  first.reset(settings,true);
+  second.setNoisedControls(b,control);
+  first.setNoisedControls(a,control);
+  EXPECT_GT(xt::sum(xt::abs(a.cvx-b.cvx))(),1.f);
+  first.shutdown(); second.shutdown();
 }

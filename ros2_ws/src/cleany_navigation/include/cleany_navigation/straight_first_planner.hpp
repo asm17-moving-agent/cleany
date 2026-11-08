@@ -38,11 +38,21 @@ nav_msgs::msg::Path checkedStraightPath(
   const geometry_msgs::msg::PoseStamped &goal,
   nav2_costmap_2d::Costmap2D &map, const std::vector<geometry_msgs::msg::Point> &footprint,
   const std::function<bool()> &cancel = [] {return false;});
+/// Replace lattice seed turns with a checked direct prefix; retain blocked routes.
+nav_msgs::msg::Path checkedShortcutPathPrefix(
+  const nav_msgs::msg::Path &, nav2_costmap_2d::Costmap2D &,
+  const std::vector<geometry_msgs::msg::Point> &, double maximum_distance,
+  const std::function<bool()> &cancel = [] {return false;});
+/// Preferred travel headings; final yaw is an endpoint constraint.
+std::vector<double> holonomicTravelHeadings(
+  const geometry_msgs::msg::PoseStamped &, const geometry_msgs::msg::PoseStamped &,
+  double forward_distance);
 nav_msgs::msg::Path checkedHolonomicPath(
   const geometry_msgs::msg::PoseStamped &start,
   const geometry_msgs::msg::PoseStamped &goal,
   nav2_costmap_2d::Costmap2D &map, const std::vector<geometry_msgs::msg::Point> &footprint,
-  const std::function<bool()> &cancel = [] {return false;});
+  const std::function<bool()> &cancel = [] {return false;},
+  double forward_distance = 0.0);
 /**
  * @brief Try footprint-checked direct paths before invoking the fallback planner.
  * Operates inside Nav2's lifecycle and costmap ownership; this plugin does not
@@ -64,6 +74,7 @@ public:
 #endif
 private:
   bool holonomic_{false};
+  double forward_distance_{0.0};
   nav2_core::GlobalPlanner::Ptr fallback_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_;
 };

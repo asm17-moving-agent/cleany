@@ -16,6 +16,8 @@
 #define CLEANY_NAVIGATION_MPPI__OPTIMIZER_HPP_
 
 #include <string>
+#include <chrono>
+#include "cleany_navigation/mppi/motion_continuity.hpp"
 #include <memory>
 
 #include <xtensor/xtensor.hpp>
@@ -244,9 +246,30 @@ protected:
   NoiseGenerator noise_generator_;
 
   models::OptimizerSettings settings_;
+  bool acceleration_limits_{false};
+  float ax_max_{.2f}, ay_max_{.15f}, az_max_{.4f}, wheel_acceleration_{3.f};
+  float path_velocity_weight_{0.f}, control_variation_weight_{0.f};
+  float goal_approach_time_{1.f};
+  float proximity_wheel_limit_{0.f}, proximity_clearance_{.11f};
+  float effective_wheel_limit_{0.f};
+  float translation_max_{0.f}, proximity_translation_max_{0.f}, proximity_yaw_max_{0.f};
+  float goal_translation_max_{0.f}, goal_yaw_max_{0.f}, goal_slow_radius_{.2f};
+  float speed_limit_reaction_time_{.3f};
+  float effective_translation_limit_{0.f}, effective_yaw_limit_{0.f};
+  PlanarVelocity acceleration_origin_, last_output_;
+  std::chrono::steady_clock::time_point last_output_at_{};
+  void constrainMotion(float &x, float &y, float &z, PlanarVelocity &previous) const;
+  void scoreMotionContinuity();
+  float proximityWheelLimit() const;
+  double obstacleClearance(double search_distance) const;
+  void updateBodyLimits();
   float goal_rotate_enter_radius_{0.0f};
   float goal_rotate_exit_radius_{0.0f};
   bool goal_rotation_active_{false};
+  bool path_rotate_enabled_{false};
+  bool path_rotation_active_{false};
+  float path_rotate_position_tolerance_{0.075f};
+  float path_rotate_heading_tolerance_{0.1f};
   bool validate_output_{false};
   bool sequenceCollisionFree(const models::ControlSequence & sequence) const;
   void validateOutput();

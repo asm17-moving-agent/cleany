@@ -14,8 +14,10 @@
 // limitations under the License.
 
 #include "cleany_navigation/mppi/critics/path_angle_critic.hpp"
+#include "cleany_navigation/mppi/path_rotation.hpp"
 
 #include <math.h>
+#include <stdexcept>
 
 namespace cleany_navigation::mppi::critics
 {
@@ -44,6 +46,13 @@ void PathAngleCritic::initialize()
   getParam(
     forward_preference_,
     "forward_preference", true);
+  getParam(respect_in_place_rotations_, "respect_in_place_rotations", false);
+  getParam(rotation_only_, "rotation_only", false);
+  getParam(follow_segment_heading_, "follow_segment_heading", false);
+  getParam(rotation_position_tolerance_, "rotation_position_tolerance", 0.075f);
+  if (!std::isfinite(rotation_position_tolerance_) || rotation_position_tolerance_ <= 0.0f) {
+    throw std::runtime_error("rotation_position_tolerance must be finite and positive");
+  }
 
   if (!reversing_allowed_) {
     forward_preference_ = true;
@@ -59,6 +68,40 @@ void PathAngleCritic::score(CriticData & data)
 {
   using xt::evaluation_strategy::immediate;
   if (!enabled_) {
+    return;
+  }
+
+  // Lattice turns have equal XY and changing yaw. A bearing to those points
+  // cannot express the turn, so score the end heading of the leading turn.
+  // Once position is reached, the final-goal angle critic owns orientation.
+  if (respect_in_place_rotations_ && data.path.x.size() > 0 &&
+    utils::withinPositionGoalTolerance(data.goal_checker, data.state.pose.pose, data.path))
+  {
+    return;
+  }
+  if (respect_in_place_rotations_) {
+    const auto target = leadingRotationYaw(data.path, data.state.pose.pose,
+      rotation_position_tolerance_);
+    if (target) {
+      auto errors = xt::abs(utils::shortest_angular_distance(
+          data.trajectories.yaws, *target));
+      data.costs += xt::pow(xt::mean(errors, {1}, immediate) * weight_, power_);
+      return;
+    }
+  }
+
+  // Follow the current translation segment's body yaw, not a future arrival
+  // rotation or the travel bearing. This also permits true lateral travel.
+  if (rotation_only_) {
+    if(!follow_segment_heading_)return;
+    for(size_t i=1;i<data.path.x.size();++i) {
+      if(std::hypot(data.path.x(i)-data.path.x(i-1),data.path.y(i)-data.path.y(i-1))<1e-4f)continue;
+      const auto horizon=std::min(size_t(data.trajectories.yaws.shape(1)),size_t(10));
+      auto errors=xt::abs(utils::shortest_angular_distance(
+        xt::view(data.trajectories.yaws,xt::all(),xt::range(size_t(0),horizon)),data.path.yaws(i)));
+      data.costs+=xt::pow(xt::mean(errors,{1},immediate)*weight_,power_);
+      break;
+    }
     return;
   }
 

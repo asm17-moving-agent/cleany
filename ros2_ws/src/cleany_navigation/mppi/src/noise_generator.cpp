@@ -27,24 +27,24 @@ void NoiseGenerator::initialize(
   cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic,
   const std::string & name, ParametersHandler * param_handler)
 {
-  settings_ = settings;
-  is_holonomic_ = is_holonomic;
   active_ = true;
 
   auto getParam = param_handler->getParamGetter(name);
   getParam(regenerate_noises_, "regenerate_noises", false);
 
+  // The first optimization must see a complete batch, even under CPU load.
+  reset(settings, is_holonomic);
   if (regenerate_noises_) {
     noise_thread_ = std::thread(std::bind(&NoiseGenerator::noiseThread, this));
-  } else {
-    generateNoisedControls();
   }
 }
 
 void NoiseGenerator::shutdown()
 {
-  active_ = false;
-  ready_ = true;
+  {
+    std::lock_guard<std::mutex> guard(noise_lock_);
+    active_ = false;
+  }
   noise_cond_.notify_all();
   if (noise_thread_.joinable()) {
     noise_thread_.join();
@@ -57,7 +57,7 @@ void NoiseGenerator::generateNextNoises()
   // to generate the next iteration's noises (if applicable).
   {
     std::unique_lock<std::mutex> guard(noise_lock_);
-    ready_ = true;
+    ready_ = active_ && regenerate_noises_;
   }
   noise_cond_.notify_all();
 }
@@ -75,33 +75,23 @@ void NoiseGenerator::setNoisedControls(
 
 void NoiseGenerator::reset(cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic)
 {
+  // Settings, model selection and buffers form one atomic generation.
+  std::lock_guard<std::mutex> guard(noise_lock_);
   settings_ = settings;
   is_holonomic_ = is_holonomic;
-
-  // Recompute the noises on reset, initialization, and fallback
-  {
-    std::unique_lock<std::mutex> guard(noise_lock_);
-    xt::noalias(noises_vx_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
-    xt::noalias(noises_vy_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
-    xt::noalias(noises_wz_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
-    ready_ = true;
-  }
-
-  if (regenerate_noises_) {
-    noise_cond_.notify_all();
-  } else {
-    generateNoisedControls();
-  }
+  ready_ = false;
+  generateNoisedControls();
 }
 
 void NoiseGenerator::noiseThread()
 {
-  do {
-    std::unique_lock<std::mutex> guard(noise_lock_);
-    noise_cond_.wait(guard, [this]() {return ready_;});
+  std::unique_lock<std::mutex> guard(noise_lock_);
+  while (true) {
+    noise_cond_.wait(guard, [this]() {return !active_ || ready_;});
+    if (!active_) {return;}
     ready_ = false;
     generateNoisedControls();
-  } while (active_);
+  }
 }
 
 void NoiseGenerator::generateNoisedControls()
@@ -110,14 +100,16 @@ void NoiseGenerator::generateNoisedControls()
 
   xt::noalias(noises_vx_) = xt::random::randn<float>(
     {s.batch_size, s.time_steps}, 0.0f,
-    s.sampling_std.vx);
+    s.sampling_std.vx, random_engine_);
   xt::noalias(noises_wz_) = xt::random::randn<float>(
     {s.batch_size, s.time_steps}, 0.0f,
-    s.sampling_std.wz);
+    s.sampling_std.wz, random_engine_);
   if (is_holonomic_) {
     xt::noalias(noises_vy_) = xt::random::randn<float>(
       {s.batch_size, s.time_steps}, 0.0f,
-      s.sampling_std.vy);
+      s.sampling_std.vy, random_engine_);
+  } else {
+    xt::noalias(noises_vy_) = xt::zeros<float>({s.batch_size, s.time_steps});
   }
 }
 

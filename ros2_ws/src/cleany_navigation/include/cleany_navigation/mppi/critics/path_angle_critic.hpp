@@ -23,9 +23,7 @@ namespace cleany_navigation::mppi::critics
 {
 
 /**
- * @class cleany_navigation::mppi::critics::ConstraintCritic
- * @brief Critic objective function for aligning to path in cases of extreme misalignment
- * or turning
+ * @brief Score path alignment and optionally preserve in-place lattice turns.
  */
 class PathAngleCritic : public CriticFunction
 {
@@ -36,10 +34,7 @@ public:
   void initialize() override;
 
   /**
-   * @brief Evaluate cost related to robot orientation at goal pose
-   * (considered only if robot near last goal in current plan)
-   *
-   * @param costs [out] add goal angle cost values to this tensor
+   * @brief Add orientation costs to the candidate trajectories.
    */
   void score(CriticData & data) override;
 
@@ -50,6 +45,10 @@ protected:
   size_t offset_from_furthest_{0};
   bool reversing_allowed_{true};
   bool forward_preference_{true};
+  bool respect_in_place_rotations_{false};
+  bool rotation_only_{false};
+  bool follow_segment_heading_{false};
+  float rotation_position_tolerance_{0.075f};
 
   unsigned int power_{0};
   float weight_{0};

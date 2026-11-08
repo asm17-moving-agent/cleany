@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 3.16)
+project(native_lattice_mppi_validation)
+find_package(ament_cmake REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(cleany_navigation REQUIRED)
+find_package(nav2_costmap_2d REQUIRED)
+find_package(nav2_core REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+add_executable(closed_loop closed_loop.cpp)
+target_compile_features(closed_loop PRIVATE cxx_std_17)
+target_compile_options(closed_loop PRIVATE -O2 -fconcepts)
+target_compile_definitions(closed_loop PRIVATE XTENSOR_ENABLE_XSIMD XTENSOR_USE_XSIMD)
+find_package(nav2_smac_planner REQUIRED)
+find_library(NATIVE_LATTICE NAMES nav2_smac_planner_lattice
+  HINTS "${nav2_smac_planner_DIR}/../../../lib" REQUIRED)
+target_include_directories(closed_loop SYSTEM PRIVATE ${nav2_smac_planner_INCLUDE_DIRS})
+target_link_libraries(closed_loop ${NATIVE_LATTICE})
+ament_target_dependencies(closed_loop cleany_navigation nav2_costmap_2d nav2_core tf2_geometry_msgs)
+
+find_library(CLEANY_MPPI NAMES cleany_mppi_controller
+  HINTS "${cleany_navigation_DIR}/../../../lib" REQUIRED)
+find_library(CLEANY_PATH_CHECK NAMES straight_first_planner
+  HINTS "${cleany_navigation_DIR}/../../../lib" REQUIRED)
+target_link_libraries(closed_loop ${CLEANY_MPPI} ${CLEANY_PATH_CHECK})
+
+add_executable(noise_reset_probe noise_reset_probe.cpp)
+target_compile_features(noise_reset_probe PRIVATE cxx_std_17)
+target_compile_options(noise_reset_probe PRIVATE -O2 -fconcepts)
+target_compile_definitions(noise_reset_probe PRIVATE XTENSOR_ENABLE_XSIMD XTENSOR_USE_XSIMD)
+ament_target_dependencies(noise_reset_probe cleany_navigation nav2_costmap_2d nav2_core)
+target_link_libraries(noise_reset_probe ${CLEANY_MPPI})
+
+add_executable(primitive_probe primitive_probe.cpp)
+target_compile_features(primitive_probe PRIVATE cxx_std_17)
+target_include_directories(primitive_probe SYSTEM PRIVATE ${nav2_smac_planner_INCLUDE_DIRS})
+ament_target_dependencies(primitive_probe nav2_core nav2_costmap_2d)
+target_link_libraries(primitive_probe ${NATIVE_LATTICE})

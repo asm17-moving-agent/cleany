@@ -41,6 +41,109 @@ public:
   OptimizerTester()
   : Optimizer() {}
 
+  void verifyProximityLimit()
+  {
+    costmap_ros_=std::make_shared<nav2_costmap_2d::Costmap2DROS>("continuity_costmap");
+    costmap_ros_->on_configure(rclcpp_lifecycle::State());
+    costmap_ros_->getLayeredCostmap()->resizeMap(400,400,.01,-2.,-2.,true);
+    costmap_=costmap_ros_->getCostmap();costmap_->resetMap(0,0,400,400);
+    state_.pose.pose.orientation.w=1.;wheel_max_rad_s_=4.;wheel_acceleration_=3.;
+    wheel_radius_m_=.0635;proximity_wheel_limit_=1.5;proximity_clearance_=.11;
+    EXPECT_NEAR(proximityWheelLimit(),4.,1e-5);
+    double edge=0.;for(const auto&p:costmap_ros_->getRobotFootprint())edge=std::max(edge,p.x);
+    const auto limit=[&](double distance,unsigned char value) {
+      costmap_->resetMap(0,0,400,400);unsigned int x,y;
+      EXPECT_TRUE(costmap_->worldToMap(edge+distance,0.,x,y));costmap_->setCost(x,y,value);
+      return proximityWheelLimit();
+    };
+    const auto ahead=limit(.20,254);EXPECT_GT(ahead,1.5);EXPECT_LT(ahead,4.);
+    EXPECT_NEAR(limit(.10,254),1.5,1e-5);
+    EXPECT_NEAR(limit(.10,255),1.5,1e-5);
+    EXPECT_NEAR(limit(.4,254),4.,1e-5);
+    costmap_ros_->on_cleanup(rclcpp_lifecycle::State());costmap_=nullptr;
+  }
+
+  void verifyMotionContinuity()
+  {
+    acceleration_limits_=true; ax_max_=.2;ay_max_=.15;az_max_=.4;wheel_acceleration_=3.;
+    wheel_radius_m_=.0635;wheelbase_m_=.35;wheel_separation_m_=.59;effective_wheel_limit_=4.;
+    settings_.model_dt=.05;settings_.time_steps=80;settings_.constraints={.254,-.254,.254,.5404255};
+    setMotionModel("Omni");acceleration_origin_={0,0,0};
+    control_sequence_.vx=xt::ones<float>({80})*.254;
+    control_sequence_.vy=xt::ones<float>({80})*.254;
+    control_sequence_.wz=xt::ones<float>({80})*.54;
+    applyControlSequenceConstraints();
+    PlanarVelocity previous{};
+    for(size_t i=0;i<80;++i) {
+      const float dx=control_sequence_.vx(i)-previous.x,dy=control_sequence_.vy(i)-previous.y,dz=control_sequence_.wz(i)-previous.yaw;
+      EXPECT_LE(std::abs(dx),.010001);EXPECT_LE(std::abs(dy),.007501);EXPECT_LE(std::abs(dz),.020001);
+      EXPECT_LE((std::abs(dx)+std::abs(dy)+.47*std::abs(dz))/.0635,.15001);
+      EXPECT_LE((std::abs(control_sequence_.vx(i))+std::abs(control_sequence_.vy(i))+.47*std::abs(control_sequence_.wz(i)))/.0635,4.00001);
+      previous={control_sequence_.vx(i),control_sequence_.vy(i),control_sequence_.wz(i)};
+    }
+    // Switching to a turn brakes translation in the scored and emitted sequence.
+    acceleration_origin_={.15,0,0};path_rotation_active_=true;
+    applyControlSequenceConstraints();
+    EXPECT_GT(control_sequence_.vx(0),.13);EXPECT_NEAR(control_sequence_.vx(79),0.,1e-6);
+
+  }
+
+  void verifyBodyEnvelope()
+  {
+    costmap_ros_=std::make_shared<nav2_costmap_2d::Costmap2DROS>("body_limit_costmap");
+    costmap_ros_->on_configure(rclcpp_lifecycle::State());
+    costmap_ros_->getLayeredCostmap()->resizeMap(600,600,.01,-3.,-3.,true);
+    costmap_=costmap_ros_->getCostmap();costmap_->resetMap(0,0,600,600);
+    state_.pose.pose.orientation.w=1.;translation_max_=.5;proximity_translation_max_=.16;
+    proximity_yaw_max_=.3;goal_translation_max_=.06;goal_yaw_max_=.15;goal_slow_radius_=.2;
+    acceleration_limits_=true;wheel_max_rad_s_=effective_wheel_limit_=10.;
+    wheel_radius_m_=.0635;wheelbase_m_=.35;wheel_separation_m_=.59;
+    settings_.constraints={.5,-.5,.5,.7};settings_.model_dt=.05;settings_.time_steps=120;
+    setMotionModel("Omni");
+    updateBodyLimits();EXPECT_NEAR(effective_translation_limit_,.5,1e-6);
+    EXPECT_NEAR(effective_yaw_limit_,.7,1e-6);
+    control_sequence_.vx=xt::ones<float>({120})*.5;
+    control_sequence_.vy=xt::zeros<float>({120});control_sequence_.wz=xt::zeros<float>({120});
+    acceleration_origin_={0,0,0};applyControlSequenceConstraints();
+    EXPECT_NEAR(control_sequence_.vx(119),.5,1e-5);  // Not the previous 4 rad/s cap.
+    control_sequence_.vx.fill(.5);control_sequence_.vy.fill(.5);control_sequence_.wz.fill(.7);
+    applyControlSequenceConstraints();
+    for(size_t t=0;t<120;++t) {
+      const float x=control_sequence_.vx(t),y=control_sequence_.vy(t),w=control_sequence_.wz(t);
+      EXPECT_LE(std::hypot(x,y),.50001);EXPECT_LE(std::abs(w),.70001);
+      EXPECT_LE((std::abs(x)+std::abs(y)+.47*std::abs(w))/.0635,10.0001);
+    }
+    double edge=0;for(const auto&p:costmap_ros_->getRobotFootprint())edge=std::max(edge,p.x);
+    unsigned int mx,my;ASSERT_TRUE(costmap_->worldToMap(edge+.10,0.,mx,my));
+    costmap_->setCost(mx,my,254);updateBodyLimits();
+    EXPECT_NEAR(effective_translation_limit_,.16,1e-6);EXPECT_NEAR(effective_yaw_limit_,.3,1e-6);
+    costmap_->resetMap(0,0,600,600);
+    ASSERT_TRUE(costmap_->worldToMap(edge+.50,0.,mx,my));costmap_->setCost(mx,my,254);
+    updateBodyLimits();EXPECT_GT(effective_translation_limit_,.16);EXPECT_LT(effective_translation_limit_,.5);
+    costmap_->resetMap(0,0,600,600);
+    path_.x=xt::xtensor<float,1>{.1f};path_.y=xt::xtensor<float,1>{0.f};
+    updateBodyLimits();EXPECT_NEAR(effective_translation_limit_,.06,1e-6);EXPECT_NEAR(effective_yaw_limit_,.15,1e-6);
+    PlanarVelocity prior{.4,0,0};float x=.5,y=0,w=0;constrainMotion(x,y,w,prior);
+    EXPECT_GT(x,.38);EXPECT_LT(x,.4);  // A newly smaller target produces deceleration, not a jump.
+    settings_.constraints.vx_max=settings_.constraints.vy=.03;
+    settings_.constraints.wz=.08;updateBodyLimits();
+    EXPECT_LE(effective_translation_limit_,.030001);EXPECT_LE(effective_yaw_limit_,.080001);
+    costmap_ros_->on_cleanup(rclcpp_lifecycle::State());costmap_=nullptr;
+  }
+  void verifyCrossTrackCost()
+  {
+    settings_.batch_size=3;settings_.time_steps=10;settings_.model_dt=.05;
+    state_.reset(3,10);generated_trajectories_.reset(3,10);costs_=xt::zeros<float>({3});
+    path_.x=xt::zeros<float>({3});path_.y=xt::xtensor<float,1>{0.f,.25f,.5f};path_.yaws=xt::zeros<float>({3});
+    path_velocity_weight_=30;control_variation_weight_=0;
+    state_.cvy.fill(.1f);state_.cvx.fill(0.f);state_.cwz.fill(0.f);generated_trajectories_.yaws.fill(0.f);
+    for(size_t t=0;t<10;++t){state_.cvx(1,t)=.03f;state_.cvx(2,t)=-.03f;}
+    scoreMotionContinuity();EXPECT_LT(costs_(0),costs_(1));EXPECT_LT(costs_(0),costs_(2));
+    // Off-path motion back toward the line remains preferred over rigid vx=0.
+    state_.pose.pose.position.x=.03;costs_.fill(0);scoreMotionContinuity();
+    EXPECT_LT(costs_(2),costs_(0));
+  }
+
   void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13)
   {
     goal_rotate_enter_radius_ = 0.10f;
@@ -61,6 +164,30 @@ public:
     prepare(pose, geometry_msgs::msg::Twist(), path, checker);
   }
   bool rotating() const {return goal_rotation_active_;}
+  void preparePathTurn(double heading)
+  {
+    path_rotate_enabled_ = true;
+    settings_.batch_size = 8;
+    settings_.time_steps = 12;
+    costs_ = xt::ones<float>({8});
+    if (!motion_model_) {setMotionModel("DiffDrive");}
+    control_sequence_.vx = xt::ones<float>({12});
+    control_sequence_.vy = xt::ones<float>({12});
+    control_sequence_.wz = xt::zeros<float>({12});
+    nav_msgs::msg::Path path;
+    path.poses.resize(3);
+    path.poses[0].pose.orientation.w = 1.0;
+    for (size_t i = 1; i < 3; ++i) {
+      path.poses[i].pose.orientation.z = std::sin(.5);
+      path.poses[i].pose.orientation.w = std::cos(.5);
+    }
+    path.poses.back().pose.position.y = 2.0;
+    geometry_msgs::msg::PoseStamped pose;
+    pose.pose.orientation.z = std::sin(heading / 2);
+    pose.pose.orientation.w = std::cos(heading / 2);
+    prepare(pose, geometry_msgs::msg::Twist(), path, nullptr);
+  }
+  bool pathRotating() const {return path_rotation_active_;}
   void verifyArrivalRetry()
   {
     reset();
@@ -759,6 +886,16 @@ TEST(OptimizerTests, ArrivalHysteresisAndToleranceBoundary)
   EXPECT_FALSE(optimizer.rotating());
 }
 
+TEST(OptimizerTests, PlannedTurnClearsTranslationUntilHeadingIsReached)
+{
+  OptimizerTester optimizer;
+  optimizer.preparePathTurn(0.0);
+  EXPECT_TRUE(optimizer.pathRotating());
+  optimizer.verifyArrivalHistoryZero();
+  optimizer.preparePathTurn(.95);
+  EXPECT_FALSE(optimizer.pathRotating());
+}
+
 TEST(OptimizerTests, FilterOvershootIsBounded)
 {
   OptimizerTester optimizer;
@@ -801,3 +938,9 @@ TEST(OptimizerTests, CoupledWheelProjectionPreservesRatiosInAllOctants)
   cleany_navigation::mppi::projectWheelTwist(x, y, w, radius, lever, 5.0f);
   EXPECT_EQ(x, 0.02f); EXPECT_EQ(y, -0.01f); EXPECT_EQ(w, 0.04f);
 }
+
+TEST(OptimizerTests, MotionBoundsAndTurnBraking) {OptimizerTester tester;tester.verifyMotionContinuity();}
+TEST(OptimizerTests, BodyEnvelopeAnticipatesObstaclesAndArrival) {OptimizerTester tester;tester.verifyBodyEnvelope();}
+TEST(OptimizerTests, CrossTrackVelocityAllowsNecessaryCorrection) {OptimizerTester tester;tester.verifyCrossTrackCost();}
+
+TEST(OptimizerTests, ProximityBrakingStartsBeforeHardSlowZone) {OptimizerTester tester;tester.verifyProximityLimit();}

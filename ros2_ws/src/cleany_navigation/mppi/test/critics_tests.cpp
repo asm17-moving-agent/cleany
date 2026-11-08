@@ -31,6 +31,7 @@
 #include "cleany_navigation/mppi/critics/path_follow_critic.hpp"
 #include "cleany_navigation/mppi/critics/prefer_forward_critic.hpp"
 #include "cleany_navigation/mppi/critics/twirling_critic.hpp"
+#include "cleany_navigation/mppi/critics/directional_motion_critic.hpp"
 #include "cleany_navigation/mppi/critics/velocity_deadband_critic.hpp"
 #include "nav2_core/exceptions.hpp"
 #include "utils_test.cpp"  // NOLINT
@@ -347,6 +348,145 @@ TEST(CriticTests, PathAngleCritic)
   critic.score(data);
   EXPECT_GT(xt::sum(costs, immediate)(), 0.0);
   EXPECT_NEAR(costs(0), 3.6315, 1e-2);  // atan2(4,-1) [1.81] * 2.0 weight
+}
+
+TEST(CriticTests, LeadingLatticeRotationUsesItsEndHeading)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("rotation_test");
+  node->declare_parameter("critic.respect_in_place_rotations", true);
+  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "rotation_costmap", "", "rotation_costmap");
+  costmap_ros->on_configure(rclcpp_lifecycle::State());
+  ParametersHandler parameters(node);
+  PathAngleCritic critic;
+  critic.on_configure(node, "mppi", "critic", costmap_ros, &parameters);
+  models::State state;
+  state.reset(3, 10);
+  state.pose.pose.orientation.w = 1.0;
+  models::Trajectories trajectories;
+  trajectories.reset(3, 10);
+  models::Path path;
+  path.reset(5);
+  path.yaws(1) = M_PI_4;
+  path.yaws(2) = M_PI_2;
+  path.x(3) = 1.0;
+  path.x(4) = 2.0;
+  xt::view(trajectories.yaws, 0, xt::all()) = M_PI_2;
+  xt::view(trajectories.yaws, 2, xt::all()) = -M_PI_2;
+  xt::xtensor<float, 1> costs = xt::zeros<float>({3});
+  float dt = .1;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    nullptr, std::nullopt, std::nullopt};
+  critic.score(data);
+  EXPECT_NEAR(costs(0), 0.0, 1e-5);
+  EXPECT_GT(costs(1), costs(0));
+  EXPECT_GT(costs(2), costs(1));
+
+  // The heading wraps at pi; crossing that seam is a small positive turn.
+  path.yaws(0) = 3.1;
+  path.yaws(1) = -3.1;
+  path.yaws(2) = -3.0;
+  xt::view(trajectories.yaws, 0, xt::all()) = -3.0;
+  xt::view(trajectories.yaws, 1, xt::all()) = 3.1;
+  costs.fill(0.0);
+  critic.score(data);
+  EXPECT_NEAR(costs(0), 0.0, 1e-5);
+  EXPECT_LT(costs(1), 0.5);
+
+  // A nearby final goal can point elsewhere; its angle critic owns arrival.
+  TestGoalChecker goal_checker;
+  data.goal_checker = &goal_checker;
+  path.x(4) = .01;
+  costs.fill(0.0);
+  critic.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0, 1e-5);
+  path.x(4) = 2.0;
+  data.goal_checker = nullptr;
+
+  // An ordinary translated path does not create an in-place rotation target.
+  path.yaws.fill(0.0);
+  path.x(1) = .5;
+  path.x(2) = 1.0;
+  costs.fill(0.0);
+  critic.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0, 1e-5);
+}
+
+TEST(CriticTests, HolonomicPathAngleOnlyScoresExplicitRotations)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("holonomic_angle_test");
+  node->declare_parameter("critic.respect_in_place_rotations", true);
+  node->declare_parameter("critic.rotation_only", true);
+  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "holonomic_angle_costmap", "", "holonomic_angle_costmap");
+  costmap_ros->on_configure(rclcpp_lifecycle::State());
+  ParametersHandler parameters(node);
+  PathAngleCritic critic;
+  critic.on_configure(node, "mppi", "critic", costmap_ros, &parameters);
+  models::State state;state.reset(2, 10);state.pose.pose.orientation.w = 1.;
+  models::Trajectories trajectories;trajectories.reset(2, 10);
+  xt::view(trajectories.yaws, 1, xt::all()) = M_PI_2;
+  models::Path path;path.reset(5);
+  xt::xtensor<float, 1> costs = xt::zeros<float>({2});
+  float dt = .1;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    nullptr, std::nullopt, std::nullopt};
+  for(const auto &direction : std::vector<std::pair<float,float>>{
+    {0,1},{0,-1},{-1,0},{1,1},{1,-1},{-1,1},{-1,-1}})
+  {
+    for(size_t i=0;i<5;++i) {
+      path.x(i)=.5f*i*direction.first;path.y(i)=.5f*i*direction.second;
+    }
+    costs.fill(0.);critic.score(data);
+    EXPECT_NEAR(xt::sum(costs)(), 0., 1e-5);
+  }
+  path.x.fill(0.);path.y.fill(0.);
+  path.yaws(1)=M_PI_4;path.yaws(2)=M_PI_2;
+  path.x(3)=1.;path.x(4)=2.;
+  costs.fill(0.);critic.score(data);
+  EXPECT_GT(costs(0),0.);
+  EXPECT_NEAR(costs(1),0.,1e-5);
+}
+
+TEST(CriticTests, HolonomicSegmentHeadingDoesNotAnticipateArrivalYaw)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("holonomic_angle_test");
+  node->declare_parameter("critic.respect_in_place_rotations", true);
+  node->declare_parameter("critic.rotation_only", true);
+  node->declare_parameter("critic.follow_segment_heading", true);
+  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "holonomic_angle_costmap", "", "holonomic_angle_costmap");
+  costmap_ros->on_configure(rclcpp_lifecycle::State());
+  ParametersHandler parameters(node);
+  PathAngleCritic critic;
+  critic.on_configure(node, "mppi", "critic", costmap_ros, &parameters);
+  models::State state;state.reset(2, 10);state.pose.pose.orientation.w = 1.;
+  models::Trajectories trajectories;trajectories.reset(2, 10);
+  xt::view(trajectories.yaws, 1, xt::all()) = M_PI_2;
+  models::Path path;path.reset(5);
+  xt::xtensor<float, 1> costs = xt::zeros<float>({2});
+  float dt = .1;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    nullptr, std::nullopt, std::nullopt};
+  for(const auto &direction : std::vector<std::pair<float,float>>{
+    {0,1},{0,-1},{-1,0},{1,1},{1,-1},{-1,1},{-1,-1}})
+  {
+    for(size_t i=0;i<5;++i) {
+      path.x(i)=.5f*i*direction.first;path.y(i)=.5f*i*direction.second;
+    }
+    costs.fill(0.);critic.score(data);
+    EXPECT_NEAR(costs(0),0.,1e-5);EXPECT_GT(costs(1),0.);
+  }
+  // A future goal rotation must not turn a translating robot early.
+  path.x=xt::xtensor<float,1>{0.f,0.f,0.f,0.f,0.f};
+  path.y=xt::xtensor<float,1>{0.f,.2f,.4f,.5f,.5f};path.yaws(4)=M_PI_2;
+  costs.fill(0.);critic.score(data);EXPECT_NEAR(costs(0),0.,1e-5);EXPECT_GT(costs(1),0.);
+  path.x.fill(0.);path.y.fill(0.);
+  path.yaws(1)=M_PI_4;path.yaws(2)=M_PI_2;
+  path.x(3)=1.;path.x(4)=2.;
+  costs.fill(0.);critic.score(data);
+  EXPECT_GT(costs(0),0.);
+  EXPECT_NEAR(costs(1),0.,1e-5);
 }
 
 TEST(CriticTests, PreferForwardCritic)
@@ -767,4 +907,155 @@ TEST(CriticTests, VelocityDeadbandCritic)
   critic.score(data);
   // 35.0 weight * 0.1 model_dt * (0.07 + 0.06 + 0.059) * 30 timesteps = 56.7
   EXPECT_NEAR(costs(1), 19.845, 0.01);
+}
+
+TEST(CriticTests, DirectionalTravelCost)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("directional_test");
+  node->declare_parameter("critic.lateral_weight", 2.0);
+  node->declare_parameter("critic.diagonal_weight", 1.0);
+  auto costmap = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "dummy_costmap", "", "dummy_costmap");
+  ParametersHandler params(node);
+  models::State state;
+  state.reset(7, 10);
+  models::Trajectories trajectories;
+  models::Path path;
+  xt::xtensor<float, 1> costs = xt::zeros<float>({7});
+  float dt = 0.1f;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    std::make_shared<OmniMotionModel>(), std::nullopt, std::nullopt};
+  DirectionalMotionCritic critic;
+  critic.on_configure(node, "mppi", "critic", costmap, &params);
+  // Forward, lateral, both diagonal signs, reverse, rotation, standstill.
+  xt::view(state.vx, 0, xt::all()) = 0.2f;
+  xt::view(state.vy, 1, xt::all()) = 0.2f;
+  xt::view(state.vx, 2, xt::all()) = 0.2f;
+  xt::view(state.vy, 2, xt::all()) = 0.2f;
+  xt::view(state.vx, 3, xt::all()) = -0.2f;
+  xt::view(state.vy, 3, xt::all()) = -0.2f;
+  xt::view(state.vx, 4, xt::all()) = -0.2f;
+  xt::view(state.wz, 5, xt::all()) = 0.3f;
+  critic.score(data);
+  EXPECT_NEAR(costs(0), 0.0f, 1e-6);
+  EXPECT_NEAR(costs(1), 0.4f, 1e-6);
+  EXPECT_NEAR(costs(2), 0.5656854f, 1e-6);
+  EXPECT_NEAR(costs(3), costs(2), 1e-6);
+  EXPECT_NEAR(costs(4), 0.0f, 1e-6);
+  EXPECT_NEAR(costs(5), 0.0f, 1e-6);
+  EXPECT_NEAR(costs(6), 0.0f, 1e-6);
+  costs.fill(0.0f);
+  dt = 0.05f;
+  critic.score(data);
+  EXPECT_NEAR(costs(2), 0.2828427f, 1e-6);
+  state.reset(7, 20);
+  state.vx.fill(0.2f);
+  state.vy.fill(-0.2f);
+  costs.fill(0.0f);
+  critic.score(data);
+  EXPECT_NEAR(costs(2), 0.5656854f, 1e-6);  // Same duration at twice the sample count.
+  costs.fill(0.0f);
+  data.motion_model = std::make_shared<DiffDriveMotionModel>();
+  critic.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0f, 1e-6);
+}
+
+TEST(CriticTests, DirectionalPeakFavorsBothAxesAtEqualTravelDistance)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("angular_directional_test");
+  node->declare_parameter("critic.lateral_weight", 0.1);
+  node->declare_parameter("critic.diagonal_weight", 0.45);
+  auto costmap = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "dummy_costmap", "", "dummy_costmap");
+  ParametersHandler params(node);
+  models::State state;
+  state.reset(361, 50);
+  models::Trajectories trajectories;
+  models::Path path;
+  xt::xtensor<float, 1> costs = xt::zeros<float>({361});
+  float dt = 0.1f;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    std::make_shared<OmniMotionModel>(), std::nullopt, std::nullopt};
+  DirectionalMotionCritic critic;
+  critic.on_configure(node, "mppi", "critic", costmap, &params);
+  // Every rollout travels one metre; compare direction without a speed bias.
+  for (size_t angle = 0; angle <= 360; ++angle) {
+    const float radians = angle * 0.017453292519943295f;
+    xt::view(state.vx, angle, xt::all()) = 0.2f * std::cos(radians);
+    xt::view(state.vy, angle, xt::all()) = 0.2f * std::sin(radians);
+  }
+  critic.score(data);
+  EXPECT_NEAR(costs(0), 0.f, 1e-6);
+  EXPECT_NEAR(costs(180), 0.f, 1e-6);
+  EXPECT_NEAR(costs(90), 0.1f, 1e-6);
+  EXPECT_NEAR(costs(270), 0.1f, 1e-6);
+  for (const size_t angle : {45, 135, 225, 315}) {
+    EXPECT_NEAR(costs(angle), 0.5f, 1e-6);
+  }
+  EXPECT_LT(costs(30), costs(45));
+  EXPECT_LT(costs(60), costs(45));
+  EXPECT_GT(costs(47), costs(45));  // The lateral baseline shifts the peak slightly.
+  EXPECT_LT(costs(47), 0.502f);
+  for (size_t angle = 0; angle < 360; ++angle) {
+    EXPECT_LT(std::abs(costs(angle + 1) - costs(angle)), 0.02f);
+    EXPECT_NEAR(costs(angle), costs(360 - angle), 1e-6);
+  }
+  state.vx *= 0.5f;
+  state.vy *= 0.5f;
+  costs.fill(0.f);
+  critic.score(data);
+  EXPECT_NEAR(costs(45), 0.25f, 1e-6);  // Half the distance, half the cost.
+}
+
+TEST(CriticTests, DirectionalWeightsRejectInvalid)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("invalid_directional_test");
+  node->declare_parameter("critic.lateral_weight", 0.0);
+  auto costmap = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "dummy_costmap", "", "dummy_costmap");
+  for (const double value : {-1.0, std::numeric_limits<double>::infinity(),
+    std::numeric_limits<double>::quiet_NaN()})
+  {
+    node->set_parameter(rclcpp::Parameter("critic.lateral_weight", value));
+    ParametersHandler params(node);
+    DirectionalMotionCritic critic;
+    EXPECT_THROW(critic.on_configure(node, "mppi", "critic", costmap, &params), std::invalid_argument);
+  }
+}
+
+TEST(CriticTests, DirectionalDisabledZeroAndGoalTolerance)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("optional_directional_test");
+  auto costmap = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "dummy_costmap", "", "dummy_costmap");
+  ParametersHandler params(node);
+  models::State state;
+  state.reset(2, 10); state.vx.fill(0.2f); state.vy.fill(0.2f);
+  models::Trajectories trajectories;
+  models::Path path;
+  xt::xtensor<float, 1> costs = xt::zeros<float>({2});
+  float dt = 0.1f;
+  CriticData data{state, trajectories, path, costs, dt, false, nullptr,
+    std::make_shared<OmniMotionModel>(), std::nullopt, std::nullopt};
+  DirectionalMotionCritic zero;
+  zero.on_configure(node, "mppi", "zero", costmap, &params);
+  zero.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0f, 1e-6);
+  node->declare_parameter("disabled.enabled", false);
+  node->declare_parameter("disabled.lateral_weight", 2.0);
+  DirectionalMotionCritic disabled;
+  disabled.on_configure(node, "mppi", "disabled", costmap, &params);
+  disabled.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0f, 1e-6);
+  node->declare_parameter("goal.lateral_weight", 2.0);
+  DirectionalMotionCritic goal;
+  goal.on_configure(node, "mppi", "goal", costmap, &params);
+  TestGoalChecker checker;
+  data.goal_checker = &checker;
+  path.reset(2); path.x(1) = 0.1f;
+  goal.score(data);
+  EXPECT_NEAR(xt::sum(costs)(), 0.0f, 1e-6);
+  path.x(1) = 1.0f;
+  goal.score(data);
+  EXPECT_GT(costs(0), 0.0f);
 }

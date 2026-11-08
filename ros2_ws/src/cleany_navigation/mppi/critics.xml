@@ -49,5 +49,8 @@
       <description>mppi critic for restricting command velocities in deadband range</description>
     </class>
 
+    <class type="cleany_navigation::mppi::critics::DirectionalMotionCritic" base_class_type="cleany_navigation::mppi::critics::CriticFunction">
+      <description>Fixed lateral and diagonal travel costs for holonomic motion</description>
+    </class>
   </library>
 </class_libraries>
