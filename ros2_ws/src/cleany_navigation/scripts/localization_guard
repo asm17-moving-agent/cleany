@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from cleany_navigation.localization_guard_node import main
+main()

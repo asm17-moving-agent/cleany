@@ -1,0 +1,37 @@
+# Initial attended-demo thresholds; an unverified or ambiguous match blocks NAVIGATION.
+localization_guard:
+  ros__parameters:
+    min_points: 60
+    max_points: 240
+    inlier_distance: 0.15
+    min_inlier_ratio: 0.30
+    max_mean_distance: 0.18
+    distance_cap: 0.6
+    bad_duration: 0.8
+    good_duration: 1.0
+    degraded_timeout_s: 4.0
+    maximum_degraded_s: 8.0
+    severe_inlier_ratio: 0.10
+    severe_mean_distance: 0.35
+    progress_distance_m: 0.02
+    progress_inlier_ratio: 0.05
+    degraded_speed_percentage: 30.0
+    search_radius: 0.8
+    search_yaw: 0.7
+    coarse_xy: 0.1
+    coarse_yaw: 0.0872664626
+    recovery_inlier_ratio: 0.50
+    improvement: 0.04
+    ambiguity_distance: 0.3
+    ambiguity_yaw: 0.2
+    ambiguity_gap: 0.025
+    maximum_input_age_s: 0.5
+    pose_timeout_s: 1.0
+    maximum_pose_variance: 0.5
+    covariance_roundoff_tolerance: 0.000000001
+    verification_duration_s: 1.5
+    operation_timeout_s: 12.0
+    minimum_range_m: 0.5
+    maximum_range_m: 8.0
+    initial_position_std_m: 0.1
+    initial_yaw_std_rad: 0.0872664626
