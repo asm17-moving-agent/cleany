@@ -1,0 +1,17 @@
+{
+  "floor_normal": [
+    0.008869040178359343,
+    -4.507287463376539e-05,
+    0.999960668273883
+  ],
+  "floor_offset": -0.08866010697305562,
+  "min_height": 0.05,
+  "max_height": 1.4,
+  "min_range": 0.25,
+  "max_range": 3.0,
+  "neighbor_radius": 0.04,
+  "min_neighbors": 3,
+  "voxel_size": 0.02,
+  "self_margin": 0.005,
+  "min_base_z": 0.192
+}

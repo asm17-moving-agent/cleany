@@ -1,0 +1,12 @@
+{
+  "parent": "base_link",
+  "child": "d435_link",
+  "translation_m": [0.11867774043964463, 0.016892537637999085, 1.0217826016167113],
+  "rpy_rad": [0.0, 0.0, 0.0],
+  "cad_object": "HeadCamera",
+  "cad_placement_mm": [-0.6074623620009154, -122.97774043964463, 1021.7826016167113],
+  "cad_axes": "robot X=-CAD Y, robot Y=CAD X, robot Z=CAD Z",
+  "depth_origin": "CAD front plate minus 4.3 mm along forward; plus 17.5 mm robot-left to depth imager. Nominal RealSense D435 mechanical offsets.",
+  "reference": "https://github.com/realsenseai/realsense-ros/blob/ros2-master/realsense2_description/urdf/_d435.urdf.xacro",
+  "boundary": "Nominal rigid forward-facing CAD mount, not calibrated. Base Z uses CAD assembly origin. Existing LiDAR Z=0 is a legacy planar convention, not physical scan height. Do not use for floor-height filtering until vertical frame convention is reconciled."
+}

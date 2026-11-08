@@ -1,0 +1,74 @@
+# Physical D435 overlay: local planning and the existing 2-D stop monitor only.
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      plugins: [obstacle_layer, depth_layer, inflation_layer]
+      depth_layer:
+        plugin: nav2_costmap_2d::VoxelLayer
+        enabled: true
+        origin_z: -0.1
+        z_resolution: 0.1
+        z_voxels: 16
+        mark_threshold: 0
+        unknown_threshold: 15
+        min_obstacle_height: 0.192
+        max_obstacle_height: 1.4
+        publish_voxel_map: false
+        observation_sources: depth depth_clear
+        depth:
+          topic: /perception/depth/nav_obstacle_points
+          sensor_frame: d435_depth_frame
+          data_type: PointCloud2
+          marking: true
+          clearing: false
+          min_obstacle_height: 0.192
+          max_obstacle_height: 1.4
+          obstacle_min_range: 0.25
+          obstacle_max_range: 3.0
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+        depth_clear:
+          topic: /perception/depth/nav_points
+          sensor_frame: d435_depth_frame
+          data_type: PointCloud2
+          marking: false
+          clearing: true
+          min_obstacle_height: -10.0
+          max_obstacle_height: 10.0
+          raytrace_min_range: 0.25
+          raytrace_max_range: 3.5
+          observation_persistence: 0.0
+          expected_update_rate: 0.5
+depth_clearance:
+  ros__parameters:
+    input_topic: /camera/d435/depth/image_rect_raw
+    camera_info_topic: /camera/d435/depth/camera_info
+    output_topic: /perception/depth/nav_points
+    obstacle_topic: /perception/depth/nav_obstacle_points
+    camera_frame: d435_depth_frame
+    optical_frame: d435_depth_optical_frame
+    base_frame: base_link
+    pixel_stride: 3
+    positive_infinity_is_free: false
+    clearing_distance: 3.5
+    marking_max_range: 3.0
+    sensor_far_clip: 10.0
+    marking_min_z: 0.192
+    marking_max_z: 1.4
+    max_image_age_s: 0.5
+    min_valid_fraction: 0.05
+    tf_wait_timeout_s: 0.15
+    self_filter_margin_m: 0.005
+    spatial_filter_file: d435_obstacles_lidar_height.json
+    self_filter_boxes_file: d435_fixed_body_boxes.json
+collision_monitor:
+  ros__parameters:
+    required_depth_topic: /perception/depth/nav_obstacle_points
+    required_depth_frame: base_link
+    required_depth_timeout_s: 0.5
+    observation_sources: [scan, depth]
+    depth:
+      type: pointcloud
+      topic: /perception/depth/nav_obstacle_points
+      min_height: 0.192
+      max_height: 1.4

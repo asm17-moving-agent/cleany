@@ -1,0 +1,61 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Background Color: 35; 38; 44
+    Fixed Frame: d435_link
+    Frame Rate: 20
+  Displays:
+    - Class: rviz_default_plugins/Image
+      Name: D435 RGB
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /camera/d435/color/image_raw
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 2
+      Transport Hint: raw
+      Normalize Range: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: D435 color point cloud
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /camera/d435/depth/color/points
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 2
+      Position Transformer: XYZ
+      Color Transformer: RGB8
+      Style: Points
+      Size (Pixels): 2
+      Size (m): 0.01
+      Alpha: 1
+      Decay Time: 0
+      Selectable: true
+      Use Fixed Frame: true
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Camera view
+      Target Frame: d435_link
+      Distance: 3
+      Pitch: 0.15
+      Yaw: 3.14159
+      Focal Point:
+        X: 1.5
+        Y: 0
+        Z: 0
+    Saved: []
+Window Geometry:
+  Width: 1400
+  Height: 900
+  Hide Right Dock: true

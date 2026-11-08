@@ -95,3 +95,62 @@ def test_self_filter_includes_fixed_frame_and_pole_but_excludes_moving_head(monk
         if node is not None:
             node.destroy_node()
         rclpy.shutdown()
+
+
+def test_physical_filter_retains_floor_clearing_and_rejects_invalid_or_old_images(monkeypatch, tmp_path):
+    import json
+    config = tmp_path/'filter.json'
+    config.write_text(json.dumps({'floor_normal': [0, 0, 1], 'floor_offset': 0,
+                                 'min_base_z': .192, 'max_height': 2., 'min_neighbors': 1}))
+    boxes = tmp_path/'boxes.json'
+    boxes.write_text(json.dumps({'frame': 'base_link', 'boxes': []}))
+    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    rclpy.init(args=['--ros-args', '-p', 'pixel_stride:=1', '-p', 'max_image_age_s:=0.5',
+                    '-p', 'min_valid_fraction:=0.05', '-p', f'spatial_filter_file:={config}',
+                    '-p', f'self_filter_boxes_file:={boxes}'])
+    node = None
+    try:
+        node = DepthClearanceNode()
+        rays, hits = [], []
+        node.publisher = SimpleNamespace(publish=rays.append)
+        node.obstacles = SimpleNamespace(publish=hits.append)
+        info = CameraInfo()
+        info.header.frame_id = 'head_camera_depth_optical_frame'
+        info.width = info.height = 2
+        info.k = [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+        node.on_info(info)
+        optical = TransformStamped()
+        optical.header.frame_id, optical.child_frame_id = 'head_camera_depth_frame', info.header.frame_id
+        optical.transform.rotation.x, optical.transform.rotation.y = -.5, .5
+        optical.transform.rotation.z, optical.transform.rotation.w = -.5, .5
+        body = TransformStamped()
+        body.header.frame_id, body.child_frame_id = 'base_link', 'head_camera_depth_frame'
+        body.transform.rotation.w = 1.
+        body.transform.translation.z = 1.
+        node.buffer.set_transform_static(optical, 'test')
+        node.buffer.set_transform_static(body, 'test')
+        image = Image()
+        image.header.frame_id = info.header.frame_id
+        image.header.stamp = node.get_clock().now().to_msg()
+        image.width, image.height, image.step, image.encoding = 2, 2, 4, '16UC1'
+        image.data = np.full((2, 2), 1000, dtype='<u2').tobytes()
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
+        assert len(cloud_xyz(rays[0])) == 4
+        assert len(cloud_xyz(hits[0])) == 2
+        assert rays[0].header.frame_id == 'head_camera_depth_frame'
+        assert hits[0].header.frame_id == 'base_link'
+        np.testing.assert_allclose(cloud_xyz(hits[0])[:, 2], 1.)
+        assert np.any(cloud_xyz(rays[0])[:, 2] == -1.)
+        assert rays[0].header.stamp == hits[0].header.stamp == image.header.stamp
+        image.data = bytes(8)
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
+        image.data = np.full((2, 2), 1000, dtype='<u2').tobytes()
+        image.header.stamp.sec -= 2
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
