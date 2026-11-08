@@ -1,6 +1,6 @@
 import "../hold_input.cjs";
 
-export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
+export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed, onForwardOnly }) {
   const { HoldInput, HeldUpdates, stickAxes } = window.CleanyInput;
   const listeners = new AbortController();
   const listen = (target, event, handler, options = {}) =>
@@ -9,6 +9,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       signal: listeners.signal,
     });
   let disposed = false;
+  let forwardOnly = false;
   const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
   const client = Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) =>
     x.toString(16).padStart(2, "0"),
@@ -116,7 +117,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
     const move = axes.get(sticks[0]),
       turn = axes.get(sticks[1]);
     return {
-      vector: [move?.forward || 0, move?.left || 0, turn?.ccw || 0],
+      vector: [move?.forward || 0, forwardOnly ? 0 : move?.left || 0, turn?.ccw || 0],
       speed: getSpeed(),
     };
   }
@@ -223,6 +224,11 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       radius,
       rotation,
     );
+    if (forwardOnly && !rotation) {
+      a.x = 0;
+      a.left = 0;
+      a.ccw = 0;
+    }
     axes.set(stick, a);
     stick.dataset.active = "true";
     stick.querySelector(".knob").style.transform =
@@ -310,7 +316,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
     const vector = [0, 0, 0];
     for (const key of heldKeys) keys[key].forEach((v, i) => (vector[i] += v));
     return {
-      vector: vector.map((v) => Math.max(-1, Math.min(1, v))),
+      vector: vector.map((v, i) => forwardOnly && i === 1 ? 0 : Math.max(-1, Math.min(1, v))),
       speed: getSpeed(),
     };
   }
@@ -320,6 +326,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       input.cancel(true);
     } else if (
       keys[event.key] &&
+      (!forwardOnly || event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "a" || event.key === "d") &&
       !event.target.closest?.('[data-slot="slider"]') &&
       !pointers.size
     ) {
@@ -350,6 +357,8 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       if (!response.ok) throw new Error(status.error);
       if (current !== generation) return;
       ready = status.ready;
+      forwardOnly = status.forward_only === true;
+      onForwardOnly?.(forwardOnly);
       if (
         input.active &&
         !input.suspended &&

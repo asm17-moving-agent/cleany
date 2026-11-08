@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { NavigationPanel } from "./NavigationPanel";
 import { MappingPanel } from "./MappingPanel";
 import { mountRemote } from "./controller.js";
 
@@ -19,7 +20,7 @@ function Readout({ label, id }: { label: string; id: string }) {
   );
 }
 
-function MotionInput({ rotation = false }: { rotation?: boolean }) {
+function MotionInput({ rotation = false, forwardOnly = false }: { rotation?: boolean; forwardOnly?: boolean }) {
   return (
     <div className="stick-wrap">
       <div
@@ -36,11 +37,11 @@ function MotionInput({ rotation = false }: { rotation?: boolean }) {
             <span className="stick-label south">↓</span>
           </>
         )}
-        <span className="stick-label west">{rotation ? "↶" : "←"}</span>
-        <span className="stick-label east">{rotation ? "↷" : "→"}</span>
+        <span className="stick-label west" hidden={forwardOnly && !rotation}>{rotation ? "↶" : "←"}</span>
+        <span className="stick-label east" hidden={forwardOnly && !rotation}>{rotation ? "↷" : "→"}</span>
         <div className="knob" />
       </div>
-      <span>{rotation ? "회전 · 좌우" : "이동 · 앞뒤 / 좌우"}</span>
+      <span>{rotation ? "회전 · 좌우" : forwardOnly ? "임시 전진 / 후진" : "이동 · 앞뒤 / 좌우"}</span>
     </div>
   );
 }
@@ -50,12 +51,14 @@ export default function App() {
   const speedRef = useRef(speed);
   const [maxSpeed, setMaxSpeed] = useState(10);
   const [speedDisabled, setSpeedDisabled] = useState(false);
+  const [forwardOnly, setForwardOnly] = useState(false);
   useEffect(
     () =>
       mountRemote({
         getSpeed: () => speedRef.current,
         onSpeedDisabled: setSpeedDisabled,
         onMaxSpeed: setMaxSpeed,
+        onForwardOnly: setForwardOnly,
       }),
     [],
   );
@@ -74,6 +77,7 @@ export default function App() {
       >
         미리보기 · 실제 로봇에 연결하지 않습니다
       </div>
+      <NavigationPanel />
       <section
         aria-label="휠 속도"
         className="grid grid-cols-2 gap-4 border-t border-border pt-4"
@@ -110,8 +114,8 @@ export default function App() {
         </div>
       </section>
       <section className="joystick-area" aria-label="조이스틱 조종">
-        <MotionInput />
-        <MotionInput rotation />
+        <MotionInput forwardOnly={forwardOnly} />
+        <MotionInput rotation forwardOnly={forwardOnly} />
       </section>
       <Button
         id="stop"

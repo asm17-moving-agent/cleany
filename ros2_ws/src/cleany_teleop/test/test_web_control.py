@@ -434,5 +434,43 @@ class WebControlTests(unittest.TestCase):
         self.assertEqual(self.control.targets, (-0.5, 0.5, 0.5, -0.5))
 
 
+    def test_disallowed_inputs_cannot_enable_motors(self):
+        self.control.forward_only = True
+        variants = [dict(direction=d) for d in ('left', 'right')]
+        variants += [dict(vector=v) for v in ([1, 1, 0], [0, 1, 1], [-1, .01, 0])]
+        for sequence, variant in enumerate(variants, 1):
+            with self.assertRaisesRegex(ValueError, '전후진'):
+                self.control.request(dict(client='restricted', sequence=sequence,
+                                          action='press', speed=1., **variant))
+        self.assertEqual(self.sent, [])
+        self.assertEqual(self.control.phase, 'idle')
+        self.assertTrue(self.control.status()['forward_only'])
+
+    def test_forward_and_backward_remain_available(self):
+        for variant, expected in ((dict(direction='forward'), 1.),
+                                  (dict(direction='backward'), -1.),
+                                  (dict(vector=[-.5, 0, 0]), -.5)):
+            self.setUp()
+            self.control.forward_only = True
+            self.control.request(dict(client='restricted', sequence=1,
+                                      action='press', speed=1., **variant))
+            self.assertEqual(self.control.targets, (expected,) * 4)
+            self.assertEqual(self.sent[-1].mode, Control.STOP)
+
+
+    def test_rotation_remains_available_with_lateral_lock(self):
+        for variant, expected in (
+            (dict(direction='ccw'), (-1., 1., -1., 1.)),
+            (dict(direction='cw'), (1., -1., 1., -1.)),
+            (dict(vector=[0, 0, 1]), (-1., 1., -1., 1.)),
+        ):
+            self.setUp()
+            self.control.forward_only = True
+            self.control.request(dict(client='restricted', sequence=1,
+                                      action='press', speed=1., **variant))
+            self.assertEqual(self.control.targets, expected)
+            self.assertEqual(self.sent[-1].mode, Control.STOP)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from cleany_teleop.web import ui_asset
+from cleany_teleop.web import ui_asset, ui_index
 
 
 class AssetTests(unittest.TestCase):
@@ -49,3 +49,16 @@ def test_colcon_symlink_assets_use_the_trusted_entrypoint_tree(tmp_path):
     (installed / "assets/secret.js").symlink_to(tmp_path / "secret")
     assert ui_asset(installed, "/assets/app.js")[0] == b"export {};"
     assert ui_asset(installed, "/assets/secret.js") is None
+
+
+def test_entrypoint_follows_rebuilt_asset_hash(tmp_path):
+    (tmp_path / "assets").mkdir()
+    index = tmp_path / "index.html"
+    index.write_bytes(b'<script src="/assets/old.js"></script>')
+    (tmp_path / "assets/old.js").write_bytes(b"old")
+    assert b"old.js" in ui_index(tmp_path)
+    (tmp_path / "assets/new.js").write_bytes(b"new")
+    index.write_bytes(b'<script src="/assets/new.js"></script>')
+    (tmp_path / "assets/old.js").unlink()
+    assert b"new.js" in ui_index(tmp_path)
+    assert ui_asset(tmp_path, "/assets/new.js")[0] == b"new"

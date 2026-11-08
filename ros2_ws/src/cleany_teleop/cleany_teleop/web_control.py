@@ -27,6 +27,7 @@ class Control:
         self.state = None
         self.phase = "idle"
         self.paused = False
+        self.forward_only = False
         self.message = "ESP32 상태를 기다리는 중"
         self.owner = None
         self.requests = {}
@@ -161,6 +162,8 @@ class Control:
             if "vector" in payload
             else wheel_targets(direction, speed)
         )
+        if self.forward_only and (targets[0] != targets[2] or targets[1] != targets[3]):
+            raise ValueError("임시 전후진·회전 모드: 횡이동·대각이동은 사용할 수 없습니다")
         if speed > min(self.MAX_WEB_VELOCITY, self.state.max_velocity_rad_s):
             raise ValueError(
                 f"웹 조종 속도는 MCU 한도 및 {self.MAX_WEB_VELOCITY:g} rad/s 이하입니다"
@@ -296,6 +299,7 @@ class Control:
             and self.phase == "idle"
             and not self.paused,
             "paused": self.paused,
+            "forward_only": self.forward_only,
             "stop_confirmed": self.stop_confirmed,
             "stop_ack_ms": self.stop_ack_ms,
             "enabled": bool(state.enabled) if state else False,
