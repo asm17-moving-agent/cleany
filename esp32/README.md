@@ -128,38 +128,25 @@ ROS topics and status are documented under
 The standalone [diagnostic](imu_calibration/README.md) provides bench reports;
 normal startup calibration is part of the motor image.
 
-## 휠별 초기 PI와 FF
+## 휠 속도 제어 설정
 
-`src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`에서 FF scale / Kp / Ki / PWM limit 순서로 설정합니다. 변경 후 rebuild와 upload가 필요합니다. FF 출력은 `target / FF scale × PWM limit`입니다.
-
-아래 값은 2026-10-02 네 바퀴를 공중에 띄운 무부하 시험에서 얻었습니다. PI를 끄고 네 휠을 동시에 정, 역방향으로 PWM 0→100%, 5% 간격, 1.5초씩 측정했습니다.
+`src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`는 FF scale, Kp, Ki와 PWM limit을
+설정한다. 변경 후 rebuild와 upload가 필요하다. FF 출력은
+`target / FF scale × PWM limit`이다. 진단 기준값은
+[`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
+보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인한다.
 
 | 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) |
 |---|---:|---:|---:|---:|
-| FL | 12.4261 | 4.655 | 9.309 | 100 |
-| FR | 12.1178 | 4.711 | 9.421 | 100 |
-| RL | 11.6403 | 4.864 | 9.728 | 100 |
-| RR | 11.8128 | 4.783 | 9.566 | 100 |
+| FL | 11.9352 | 6.058 | 12.118 | 100 |
+| FR | 12.2596 | 6.030 | 12.058 | 100 |
+| RL | 11.7678 | 6.246 | 12.492 | 100 |
+| RR | 11.3872 | 6.154 | 12.309 | 100 |
 
-FF는 `PWM≈k×속도`, `FF scale=100/k`로 추정하고 마찰 잔차는 PI로 보정했습니다. PI 추정에는 gain K, 시정수 τ, delay L과 기존 50 ms 속도 필터를 포함했습니다. 계산식은 `Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`입니다.
-
-보정값을 업로드한 뒤 네 바퀴 동시 정·역방향 **0.5, 2, 5, 10 rad/s** 명령을
-각각 5초 동안 검증했다. 마지막 0.5초 평균 속도 오차는 모든 휠에서 4.5% 이내였다.
-최종 상태는 구동 비허가, PWM 0, fault 0이다.
-
-### 2026-10-13 지면 하중 실측 캘리브레이션 및 필터 고도화
-
-현재 `src/main.cpp`는 전후이동과 횡이동의 지면 하중 시험에서 도출한 다음
-휠별 설정을 사용한다. 진단 기준값은
-[`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
-같은 값으로 보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인한다.
-
-| 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) | 주요 지면 보정 특성 |
-|---|---:|---:|---:|---:|---|
-| FL | 11.9352 | 6.058 | 12.118 | 100 | 전후/횡이동 균형 최적화 |
-| FR | 12.2596 | 6.030 | 12.058 | 100 | 고효율 FR 휠 출력 과다 방지 |
-| RL | 11.7678 | 6.246 | 12.492 | 100 | 후륜 지지 강성 보강 |
-| RR | 11.3872 | 6.154 | 12.309 | 100 | 기어박스 마찰 하중 보상 (Yaw 편주 억제) |
+FF 초기 추정은 `PWM≈k×속도`, `FF scale=100/k`를 사용한다. PI 초기 추정에는
+측정한 gain K, 시정수 τ와 delay L을 사용하며,
+`Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`로 계산한다.
+추정값은 실제 하중과 속도 필터 설정에 맞춰 재검증한다.
 
 명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정한다.
 속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초다.

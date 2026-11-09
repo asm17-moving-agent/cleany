@@ -60,7 +60,7 @@ flowchart TB
 | Gazebo와 Mock Action | `make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | Nav2 도착과 정지, 두 수거, 추가 빈 관측과 보고 |
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
 | Supervisor core | `make test-supervision-core` | ROS 없는 Fault, 허가, 복구, 영속성, Runtime 감독 port, 안전 증거 |
-| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `$(CLEANY_DATA_ROOT)/runs/supervision/latency.json`에 기록 |
+| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `SUPERVISION_LATENCY_REPORT` 경로에 기록 |
 
 Supervisor 검사는 시연 프로필의 재기동 통신 복구도 포함한다. 원인이 기록된 통신
 Fault만 base 정지와 fresh health 이후 해제하고, 오래된 피드백, 실제 고장, 원인 미상
@@ -264,7 +264,7 @@ Mission Gateway smoke는 `tests/integration/mission_runtime/`, Monitor smoke는 
 - 요청 범위와 실제 완료 범위, 실패, skip, 중단
 - 로그와 출력 위치
 
-CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. 실행 원본은 `CLEANY_DATA_ROOT/runs/`, 과거 보고서는 [근거 색인](EVIDENCE.md)에서 찾습니다.
+CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. 변경별 검증 결과는 PR과 CI 결과에 남깁니다. 별도 보고서나 대용량 원본을 공유할 때는 팀이 합의한 위치와 접근 방법을 함께 안내합니다. 개인 로컬 출력 경로만으로 팀이 결과를 재현할 수 있다고 가정하지 않습니다.
 
 ## 문서 변경 검사
 

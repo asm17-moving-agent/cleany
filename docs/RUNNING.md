@@ -402,7 +402,7 @@ Plot은 목표, slew/reversal 이후 목표, encoder 속도(rad/s), PWM(%), diag
 | `generate_felt_texture.py` | 명시한 PNG 경로에 펠트 질감 |
 | `generate_roly_textures.py` | 명시한 폴더에 seat/back PNG |
 
-시설 reference 이미지와 입력 fixture는 clone에 포함되지 않을 수 있으므로 [근거 색인](EVIDENCE.md)에서 위치를 확인합니다. 목표 생성은 정적 footprint 여유를 검사하며, 전체 경로와 팔 도달성은 별도 검증이 필요합니다.
+시설 reference 이미지와 입력 fixture는 실행 전에 준비하고 각 도구의 입력 경로로 지정합니다. Clone에 포함되지 않은 자료를 팀에서 사용할 경우 공유 위치와 파일 식별자를 함께 안내합니다. 목표 생성은 정적 footprint 여유를 검사하며, 전체 경로와 팔 도달성은 별도 검증이 필요합니다.
 
 Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 실행의 자식 종료를 확인합니다. 시나리오 runner의 실패, cleanup 판정은 [테스트 가이드](TESTING.md)를 따릅니다.
 
@@ -508,17 +508,17 @@ voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(
 
 ## 휴대폰 지도 클릭 주행 (LiDAR 전용 시연)
 
-폴더 정리 후에는 `tools/ros2/run-phone-navigation`에 현재 데이터 경로를 명시한다.
-이 도구는 `ros2-humble` 컨테이너에 들어가 사용자 캐시의 새 빌드와 외부 드라이버를
-읽는다. 빌드는 `make build-hardware-mapping`으로 준비하며 이전 실행의 `analysis/run.sh`는
-당시 절대경로를 보존한 근거이므로 현재 실행 진입점으로 사용하지 않는다.
+`tools/ros2/run-phone-navigation`에 실행 출력과 입력 데이터 경로를 명시한다.
+이 도구는 `ros2-humble` 컨테이너에 들어가 사용자 캐시의 빌드와 외부 드라이버를
+읽는다. 빌드는 `make build-hardware-mapping`으로 준비한다. 아래 `/path/to/` 경로는
+실제 사용할 로컬 경로로 바꾼다.
 
 ```bash
 python3 tools/ros2/run-phone-navigation \
-  --run-root /absolute/cleany-data/runs/navigation/traction/YYYY-MM-DD_HHMMSS_physical-validation \
-  --profile /absolute/current-hardware-profile.yaml \
-  --map /absolute/current-map.yaml \
-  --dds-profile /absolute/current-fastdds-profile.xml
+  --run-root /path/to/local-data/runs/navigation/traction/YYYY-MM-DD_HHMMSS_physical-validation \
+  --profile /path/to/current-hardware-profile.yaml \
+  --map /path/to/current-map.yaml \
+  --dds-profile /path/to/current-fastdds-profile.xml
 ```
 
 기본 motion profile은 `omni`다. `--motion-profile longitudinal`은 횡이동을 차단한다.
@@ -593,20 +593,24 @@ Omni 프로필은 순정 Smac Lattice 단독 전역 계획과 MPPI 비용 기반
 확장 영역에서 기존 AMCL 지도가 부족해져도 확장 Cartographer는 자체 추정을
 계속한다. 자동주행 지도 교체는 별도 작업이며 수동조종으로 확장 영역을 주행한다.
 
-노트북 실험 실행과 저장 종료:
+ROS 환경과 현재 workspace overlay를 적용한 터미널에서 실행한다.
+`--origin-reader`에는 `tools/validation/map_extension/read_origin.cpp`를
+해당 Cartographer 개발 라이브러리로 빌드한 실행 파일을 지정해야 한다.
+출력 폴더는 아직 존재하지 않는 경로를 사용한다.
 
 ```bash
-bash /home/ehdrms/workspace/cleany-data/experiments/map-extension/start.sh
-bash /home/ehdrms/workspace/cleany-data/experiments/map-extension/stop.sh
+python3 tools/validation/map_extension/extend.py \
+  --source /path/to/seed.pbstream \
+  --output /path/to/local-data/runs/mapping/YYYY-MM-DD_HHMMSS_map-extension \
+  --origin-reader /path/to/read_origin
 ```
 
-실험 wrapper는 고유한 `cleany-data/runs/map-extension/<timestamp>`에
-입력 사본 `seed.pbstream`, 원점과 시작 자세 `session.json`, 60초 주기의
-`latest.pbstream`, `map.yaml`, `map.pgm`을 저장한다. 종료 wrapper는 해당
-Python 소유 프로세스에 SIGINT를 보내 궤적 종료 후 `final.pbstream`을 저장한다.
-완료는 `journalctl --user -u cleany-map-extension`에서 확인한다.
-별도 RViz 설정은 실험 폴더의 `extension.rviz`이며 `/map_extension/map`과
-`/map_extension/tracked_pose`를 표시한다. 원본 지도와 기존 로거는 변경하지 않는다.
+출력 폴더에는 입력 사본 `seed.pbstream`, 원점과 시작 자세 `session.json`,
+60초 주기의 `latest.pbstream`, `map.yaml`, `map.pgm`을 저장한다.
+종료할 때는 실행 터미널에서 `Ctrl-C`를 누른다. 궤적 종료와
+`final.pbstream` 저장은 종료 로그와 출력 파일로 확인한다.
+RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택한다.
+원본 지도와 기존 로거는 변경하지 않는다.
 
 확장 RViz는 `/tf`를 `/map_extension/view_tf`로 remap해 실행한다.
 `tools/validation/map_extension/view_tf.py`를 함께 실행하면 LiDAR와 odometry를

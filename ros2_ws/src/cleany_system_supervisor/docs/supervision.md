@@ -171,7 +171,7 @@ lifecycle 복구 owner와 동시에 실행하지 않는다. 정지 상태에서 
 
 ## 검증 범위
 
-소프트웨어 검증 결과와 지연시간은 [EVIDENCE](../../../../docs/EVIDENCE.md#system-supervisor와-mission-runtime-통합)에 있다. 다음은 하드웨어나 실제 stack이 필요해 검증하지 않았다.
+소프트웨어 검증 명령과 범위는 [테스트 가이드](../../../../docs/TESTING.md)를 따른다. 다음 항목은 하드웨어나 실제 stack에서 별도 검증이 필요하다.
 
 - E-stop 회로와 독립 보호 계층 상태를 내보내는 하드웨어. 현재 신호가 없어 기본 실행은 잠긴다.
 - ESP32 통신 차단 시 MCU watchdog의 모터 정지 시간과 실제 감속 거리.

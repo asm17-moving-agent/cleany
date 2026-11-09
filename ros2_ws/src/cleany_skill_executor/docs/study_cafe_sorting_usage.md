@@ -118,7 +118,7 @@ sorting 모드에서는 다각도 grasp 후보와 전체 팔 IK seed를 추가�
 Sorting은 초기 양손 개방을 따로 명령하지 않는다. 선택된 팔의 pregrasp와
 그리퍼 개방을 6관절 경로로 함께 계획하고, 목표 도착 시 모든 관절 피드백을 검사한다.
 별도 닫기·놓기의 `gripper_motion_sec` 기본값은 2초이며 반환 시에도 팔 복귀와
-턱 닫기를 같은 경로로 계획한다. 속도는 [Sorting 속도 설정 표](study_cafe_sorting_configuration.md#sorting-속도-설정-2026-09-08-변경)를 따른다.
+턱 닫기를 같은 경로로 계획한다. 속도는 [Sorting 속도 설정 표](study_cafe_sorting_configuration.md#sorting-속도와-실행-설정)를 따른다.
 재검출 후보를 selector에 전달하기 전 이전 snapshot의 target OBB를 제거해 중복
 충돌체를 방지한다. 닫기 후 잔여 각도·속도의 안정 구간이 확인돼야 attachment/lift로 진행한다.
 동작 실패 뒤 depth boost 복원까지 실패하면 두 오류를 기록하고 최초 동작 오류를 유지한다.
@@ -166,7 +166,7 @@ sorting joint-corridor의 grasp 접근에만 `sorting_approach_acceleration_scal
 적용한다(기존 0.4). 계획과 FK sample 시간 배율 검사에 같은 값을 사용한다.
 관절 자체 한계는 제거하지 않는다. sorting Cartesian fallback 가속도는 4 rad/s²,
 별도 gripper motion은 2초, LIN 가속 배율은 0.8이다. MoveIt TOTG의 URDF 미정
-관절 fallback과 Cartesian fallback은 서로 다른 경로다. 현재값 전체는 [Sorting 속도 설정 표](study_cafe_sorting_configuration.md#sorting-속도-설정-2026-09-08-변경)를 따른다. 실기 검증값은 아니다.
+관절 fallback과 Cartesian fallback은 서로 다른 경로다. 현재값 전체는 [Sorting 속도 설정 표](study_cafe_sorting_configuration.md#sorting-속도와-실행-설정)를 따른다. 실기 검증값은 아니다.
 
 sensor-scene 모드에서는 OBB attach 성공 뒤 **그 시점보다 새로운 촬영 시각**의
 처리 완료 depth receipt를 기다린다. `attachment_scene_timeout_sec=5.0` 안에

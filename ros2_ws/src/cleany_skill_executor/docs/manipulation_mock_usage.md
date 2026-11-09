@@ -24,7 +24,6 @@
 **1. 터미널 A: 빌드하고 서버 실행**
 
 ```bash
-cd /home/ubuntu/Documents/cleany
 make build-manipulation
 source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
@@ -40,7 +39,6 @@ ros2 launch cleany_skill_executor manipulation_mock.launch.py \
 **2. 터미널 B: 정상 수거 요청**
 
 ```bash
-cd /home/ubuntu/Documents/cleany
 source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
 

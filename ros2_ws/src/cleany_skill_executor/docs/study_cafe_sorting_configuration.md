@@ -1,4 +1,4 @@
-# 스터디카페 수거 설정과 실험 기록
+# 스터디카페 수거 설정
 
 [패키지 안내로 돌아가기](manipulation.md)
 
@@ -93,32 +93,30 @@ MuJoCo 장애물 점군은 `scene_cloud_pixel_stride=4`로 샘플링하여 기�
 스터디카페 grasp 후보 생성의 어깨 기준점은 migrated CAD URDF의 좌우
 shoulder origin을 사용한다. 기존 모델의 기준점을 혼용하지 않는다.
 
-## Sorting 속도 설정 (2026-09-08 변경)
+## Sorting 속도와 실행 설정
 
-Simulation sorting launch의 감속 기본값을 상향했다. 일반 demo와 실제 로봇의
-하드웨어 한계는 변경하지 않는다. 각 이름은 launch argument 및 ROS parameter다.
+다음 값은 simulation sorting launch의 기본값이다. 일반 demo와 실물 로봇의
+하드웨어 한계와 구분하며, 각 이름은 launch argument 및 ROS parameter다.
 
-| 설정 | 이전 | 현재 |
-|---|---:|---:|
-| `velocity_scaling` / `acceleration_scaling` | 0.08 / 0.08 | 0.30 / 0.50 |
-| `sorting_payload_velocity_scaling` / `sorting_payload_acceleration_scaling` | 0.04 / 0.02 | 0.24 / 0.20 |
-| `cartesian_translation_speed_m_s` | 0.10 | 0.30 |
-| `approach_velocity_scaling` / `retreat_velocity_scaling` | 0.7 / 0.6 | 1.0 / 0.8 |
-| `cartesian_translation_acceleration_m_s2` | 0.20 | 0.80 |
-| `cartesian_joint_acceleration_rad_s2` | 1.0 | 4.0 |
-| `cartesian_rotation_speed_rad_s` | 0.50 | 1.50 |
-| `lin_acceleration_scaling` | 0.4 | 0.8 |
-| `corridor_time_margin` | 1.25 | 1.05 |
-| `gripper_motion_sec` (별도 닫기/놓기 명령) | 8.0 | 2.0 |
+| 설정 | 기본값 |
+| --- | ---: |
+| `velocity_scaling` / `acceleration_scaling` | 0.30 / 0.50 |
+| `sorting_payload_velocity_scaling` / `sorting_payload_acceleration_scaling` | 0.24 / 0.20 |
+| `cartesian_translation_speed_m_s` | 0.30 |
+| `approach_velocity_scaling` / `retreat_velocity_scaling` | 1.0 / 0.8 |
+| `cartesian_translation_acceleration_m_s2` | 0.80 |
+| `cartesian_joint_acceleration_rad_s2` | 4.0 |
+| `cartesian_rotation_speed_rad_s` | 1.50 |
+| `lin_acceleration_scaling` | 0.8 |
+| `corridor_time_margin` | 1.05 |
+| `gripper_motion_sec` (별도 닫기/놓기 명령) | 2.0 |
 
 접근 가속도 배율 `sorting_approach_acceleration_scaling=1.0`은 유지한다.
 pregrasp와 그리퍼 열기는 기존 6관절 동시 계획을 유지하며, 별도 2초 대기를
 추가하지 않는다. 운반은 기본 이동 배율과 payload 배율의 최솟값을 적용한다.
 위 Cartesian 속도는 retiming 상한이지 실제 일정 속도를 보장하는 값이 아니다.
 충돌/FK/관절 위치·속도 한계, 추적·접촉 감시, timeout 취소는 유지한다.
-시험 runner의 강제 0.5배속도 제거해 launch 기본과 동일한 1.0배속을 사용한다.
-CPU 시뮬레이션의 실측 RTF는 여전히 1 미만일 수 있다. 새 설정의 실제 3배
-단축과 파지 유지 성공은 별도 실행으로 검증해야 하며 하드웨어 검증값이 아니다.
+시뮬레이션 속도는 실제 경과 시간과 다를 수 있으며, 이 설정은 실물 성능 검증값이 아니다.
 
 sorting launch의 `use_observed_collision_geometry=true`는 grasp 서버가 발행한
 `/grasp/collision_geometry`를 target collision/attachment에 사용한다. 일반
@@ -155,8 +153,7 @@ Cartesian 실행 wall deadline은 `max(minimum_sec, trajectory_duration * factor
 margin_sec)`이다. `cartesian_execution_wall_timeout_` 접두사의 `minimum_sec`는
 60초, `margin_sec`는 10초, `factor`는 일반 2/sorting CPU simulation 10이다.
 이는 고정 대기나 동작 감속이 아니며 완료 결과가 도착하면 즉시 진행한다.
-기존 접촉/추적 감시와 timeout 시 취소·종료 확인은 유지한다. 느린 시뮬레이션의
-13.9초 궤적이 wall time 60초를 넘는 경우에도 고정 60초로 잘리지 않게 한다.
+접촉/추적 감시와 timeout 시 취소·종료 확인은 유지한다.
 
 Sorting은 초기 양손 그리퍼 열기 단계를 실행하지 않는다. 선택된 팔만
 `*_pregrasp_open` 6관절 MoveIt group으로 pregrasp 이동과 열기를 함께 계획·실행한다.
@@ -169,18 +166,9 @@ MoveIt이 기존 팔/그리퍼 controller에 궤적을 분배하며, 양쪽 acti
 선택 그리퍼를 `sorting_return_gripper_position_rad=-0.30` rad로 함께 닫는다.
 의도한 release가 완료되고 attachment가 해제된 빈 팔에서만 허용하며,
 이 경로도 jaw를 포함해 충돌 검사하고 두 controller의 완료를 확인한다.
-`gripper_open_position_rad`는 동시 이동의 최종 열림 위치다. 기존
-`gripper_motion_sec=8`은 별도 파지/놓기 명령에만 적용하며 동시 이동 시간은
+`gripper_open_position_rad`는 동시 이동의 최종 열림 위치다.
+`gripper_motion_sec`는 별도 파지/놓기 명령에만 적용하며 동시 이동 시간은
 MoveIt의 속도·가속도 제한 및 경로가 결정한다. 시작 상태 표시는 `search`다.
-
-2026-09-07 headless attempt56에서는 왼팔/왼쪽 그리퍼 controller의 첫 goal 수신
-간격이 2.06 ms였고 두 controller가 같은 시점에 성공했다(동시 이동 약 9.65초).
-오른쪽 그리퍼 goal과 초기 `prepare_grippers` 단계는 없었다. 컵 투입·복귀 확인은
-coordinator `starting` 기준 145.53초, `pick` 기준 114.71초였다. 가속도 설정은
-변경하지 않았다. 이전 headless attempt54의 152.44초보다 총 6.91초 짧았으나
-인식/계획 시간 변동이 포함된 단회 비교이며 제거된 초기 열기 대기 시간과 같지는 않다.
-컵 안착은 검증됐지만 전체 미션은 기존처럼 `lost_item` 미검증으로 종료했다.
-실행 로그는 `artifacts/sorting_20260907/launch_attempt56_parallel.log`에 있다.
 
 head RGB-D로 물체/3D grasp를 선택하고 pregrasp에 도착하면 해당 손목 RGB로
 인계한다. 이때 head renderer는 10→2 Hz, 선택 손목은 10 Hz가 된다.
@@ -197,11 +185,6 @@ calibration이 필요하다. `sorting_wrist_cameras_config`로 simulation nomina
 외부 로봇 실행은 아직 지원하지 않는다. 손목 영상 기반 연속 위치 보정(visual servo)은
 구현하지 않았으며 접근/운반 경로는 기존 head 3D 추정 및 관절 feedback에 의존한다.
 기존 head-only 비교 시험은 `sorting_use_wrist_camera:=false`로 실행한다.
-
-연속 추적 적용 전인 2026-09-07 headless attempt54에서는 batch 손목 확인으로 컵을 `trash_left`에 투입하고
-복귀했다(pick 시작부터 안착 확인까지 110.60초, CPU 손목 확인 RPC 19.16초 포함).
-현재 전체 미션은 `lost_item` 미검증으로 종료한다. 성공 1회는 연속 수거/반복 성공률
-검증이 아니며 손목 영상 기반 실시간 위치 보정이 완성됐다는 의미도 아니다.
 
 이전 캔·박스·무작위 pregrasp 데모는 제거했다. 스터디카페가 재사용하던
 MoveIt 실행·joint feedback helper는 `grasp_execution.py`의 `GraspExecutionNode`,
