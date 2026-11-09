@@ -1,5 +1,23 @@
 # cleany_perception
 
+```mermaid
+flowchart LR
+  RGBD["동기화된 RGB-D"] --> TF["촬영 시각 TF"]
+  TF --> Detect["검출 · 번호 · 거리 정렬"]
+  Detect --> Cache["snapshot cache"]
+  Cache --> Select["대상 선택"]
+  Select --> Mask["instance mask · support plane"]
+  Mask --> OBB["base_link의 3D OBB"]
+```
+
+[센서 입력 확인](../../../../docs/how-to/sensors.md) · [조작과 연결](../../../../docs/how-to/manipulation.md)
+
+## 처리 경계
+
+위 흐름은 head RGB-D의 물체 선택 경로입니다. 손목 RGB는 전달받은 대상의 일관성을 따로 검사합니다.
+
+## 입력과 손목 관측
+
 `depth_scene_node`의 Depth/CameraInfo 구독은 best-effort KEEP_LAST(1)이다.
 부하가 높을 때 과거 입력을 순차 처리하지 않고 최신 수신 프레임을 사용한다.
 촬영 timestamp와 `maximum_depth_age_sec` 검사는 유지하며 오래된 Depth를
@@ -68,15 +86,6 @@ TTL과 촬영 시각을 갱신하거나 새 모델 추론을 시작하지 않는
 점군이 그대로 입력된다. receipt만으로 지도 갱신/안전을 보장하지 않으며
 coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하다.
 이 경로는 센서 전용 파이프라인 launch에서 함께 시작된다.
-
-## 처리 경계
-
-```text
-aligned RGB-D → capture-time TF → detector bbox + 번호
-→ bbox 중앙 depth로 base_link 거리 산정 및 가까운 순 정렬
-→ bounded snapshot cache → 사용자 선택
-→ 선택된 instance mask → support plane → base_link 3D OBB
-```
 
 ## 모델 준비
 

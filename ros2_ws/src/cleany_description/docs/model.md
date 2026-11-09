@@ -1,6 +1,19 @@
 # Robot model 계약
 
+```mermaid
+flowchart LR
+  CAD["CAD 형상"] --> URDF["URDF / joint chain"]
+  URDF --> TF["robot_state_publisher / TF"]
+  URDF --> MoveIt["MoveIt / 충돌 형상"]
+  URDF --> MJCF["MuJoCo / 동역학 모델"]
+  Cal["선택적 보정 프로필"] --> TF
+```
+
+[모델 실행](model-runtime.md) · [좌표와 보정](../../../../docs/CALIBRATION.md)
+
 CAD 모델은 ROS 좌표, 팔 chain, 시뮬레이션 형상을 공유한다. Geometry, 질량, 센서 TF에는 명목값과 추정값이 포함되므로 실물 검증값으로 취급하지 않는다.
+
+<figure><img src="../../../../docs/assets/physical-calibration/mount.png" alt="헤드와 양팔 카메라 장착 모델" width="760"><figcaption>장착 모델 시각화. 실물 사진이나 최신 장착 치수의 검증 자료가 아닙니다.</figcaption></figure>
 
 ## 좌표와 형상
 

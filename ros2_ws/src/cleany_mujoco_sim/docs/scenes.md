@@ -1,5 +1,17 @@
 # cleany_mujoco_sim
 
+```mermaid
+flowchart TD
+  Env["Humble 환경과 같은 DDS domain"] --> Mode{"실행할 대상"}
+  Mode -->|"주행과 센서"| Gazebo["Gazebo"]
+  Mode -->|"팔과 물체 조작"| Mujoco["MuJoCo + MoveIt"]
+  Gazebo --> Observe["센서 · odom · TF 확인"]
+  Mujoco --> Observe
+  Observe --> Run["시나리오 실행과 종료 확인"]
+```
+
+[Gazebo 실행](../../../../docs/how-to/simulation.md) · [MuJoCo 조작](../../../../docs/how-to/manipulation.md) · [backend 책임](backends.md)
+
 스터디카페 관찰 장면과 고정 베이스 수거용 MuJoCo backend를 제공한다.
 
 | 하려는 일 | 안내 |

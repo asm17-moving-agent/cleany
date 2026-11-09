@@ -1,5 +1,26 @@
 # ROS 인터페이스 색인
 
+## 어떤 통신인가요?
+
+```mermaid
+flowchart LR
+  Publisher["Publisher"] -->|"Topic: 연속 데이터"| Subscriber["Subscriber"]
+  Client["Client"] -->|"Service: 요청"| Server["Server"]
+  Server -->|"응답"| Client
+  Goal["Action client"] -->|"목표 / 취소"| Executor["Action server"]
+  Executor -->|"피드백 / 최종 결과"| Goal
+```
+
+| 찾을 기능 | 패키지 표 |
+|---|---|
+| 구동과 피드백 | [Base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md) |
+| 주행·SLAM·안전 노드 | [Navigation](../ros2_ws/src/cleany_navigation/docs/interfaces.md) |
+| 인식과 조작 | [Perception](../ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md) |
+| 미션과 허가 | [Mission](../ros2_ws/src/cleany_mission_manager/docs/interfaces.md), [Supervisor](../ros2_ws/src/cleany_system_supervisor/docs/interfaces.md) |
+| 기록과 관측 | [Logger](../ros2_ws/src/cleany_logger/docs/interfaces.md), [Monitor](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md) |
+
+아래 표는 전체 이름 색인입니다. HTML 문서에서는 긴 표의 검색칸으로 이름·타입·노드를 좁혀 볼 수 있습니다.
+
 실물 진단 도구 `tools/validation/head_pan_tilt_probe.py`의 `d435_head_encoder_tf`는
 헤드 직렬 피드백으로 `/head/joint_states` (`sensor_msgs/msg/JointState`, R10)와
 `/tf`의 D435 pan/tilt 체인을 발행한다. 제품 bringup에 자동 포함되지 않으며,

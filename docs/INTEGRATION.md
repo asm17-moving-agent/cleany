@@ -1,5 +1,16 @@
 # 연동과 계약
 
+
+아래 연결 흐름은 실제 실행 경로와 미구현 경계를 구분합니다.
+
+| 살펴볼 경계 | 상세 안내 |
+|---|---|
+| Mission·Supervisor·Backend | [Mission 연결](how-to/mission.md) |
+| 센서·SLAM·주행 | [매핑](how-to/mapping.md), [Navigation 구성](../ros2_ws/src/cleany_navigation/README.md) |
+| 관측·계획·조작 | [조작 경로 선택](how-to/manipulation.md) |
+| MCU·휠·오도메트리 | [베이스](how-to/base.md) |
+| 저장·화면·진단 | [관측과 기록](how-to/monitoring.md) |
+
 이 문서는 연결 흐름과 각 계약의 소유 위치를 안내합니다. 제품 책임과 안전 원칙은 [KB Technical](cleany-docs/README.md), 정확한 wire type과 실행 옵션은 현재 코드를 기준으로 확인합니다.
 
 ## 연결 흐름

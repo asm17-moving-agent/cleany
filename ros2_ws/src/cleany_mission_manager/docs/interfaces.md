@@ -1,5 +1,16 @@
 # cleany_mission_manager 노드 인터페이스
 
+```mermaid
+flowchart LR
+  Gateway["Backend Gateway"] --> Runtime["Mission Runtime"]
+  Supervisor["Supervisor"] <-->|"허가 / 정지 요청"| Runtime
+  Runtime --> Tasks["Navigator / 작업 adapter"]
+  Tasks -->|"진행 / 결과"| Runtime
+  Runtime -->|"최종 결과"| Gateway
+```
+
+[Mission 실행](../../../../docs/how-to/mission.md) · [미션 계약](../../cleany_interfaces/docs/mission.md)
+
 응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
 
 ## mission_runtime

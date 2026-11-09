@@ -1,5 +1,16 @@
 # 실물 매핑 구성
 
+```mermaid
+flowchart LR
+  Sensors["LiDAR + 휠 피드백"] --> Ready["scan · odom · TF 준비"]
+  Ready --> Session["매핑 세션 / Cartographer"]
+  Session --> View["지도 · 스캔 · 궤적 관측"]
+  Session --> Stop["입력 차단 · STOP 확인"]
+  Stop --> Save["지도 저장 · Logger flush · 종료"]
+```
+
+[지도 만들기](../../../../docs/how-to/mapping.md) · [센서 확인](../../../../docs/how-to/sensors.md) · [매핑 상태 계약](../../cleany_navigation/docs/mapping.md)
+
 `hardware_mapping.launch.py`는 설치된 패키지로 hardware runtime을 시작한다.
 Runtime은 영속 센서/base/조종 launch와 매핑 관리자를 별도 프로세스 그룹으로 소유한다.
 종료 시 매핑 관리자의 저장을 먼저 기다리고 장치 launch를 종료한다.

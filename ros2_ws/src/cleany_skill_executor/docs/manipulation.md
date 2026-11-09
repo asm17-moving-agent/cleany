@@ -1,5 +1,21 @@
 # cleany_skill_executor
 
+```mermaid
+flowchart TD
+  Observe["관찰과 대상 선택"] --> Plan["MoveIt 도달성 · 충돌 검사"]
+  Plan --> Execute["접근 · 파지 · 운반"]
+  Execute --> Verify["재관측 · 놓기 · 팔 복귀"]
+  Verify --> Stop["정지 확인과 결과"]
+  Execute -->|"실패 / 취소"| Stop
+```
+
+| 읽으려는 내용 | 안내 |
+|---|---|
+| 실행 모드 선택 | [조작 가이드](../../../../docs/how-to/manipulation.md) |
+| Mock Action 요청과 취소 | [Mock 사용법](manipulation_mock_usage.md) |
+| MuJoCo BT 실행 | [BT 서버](../../cleany_manipulation_bt/README.md) |
+| 수거 설정과 동작 계약 | [설정](study_cafe_sorting_configuration.md), [계약](study_cafe_sorting_contract.md) |
+
 ## 단일 물체 Action 실행
 
 승인된 물체 하나의 실행은 Mock 서버와 native MuJoCo BT 서버가 같은

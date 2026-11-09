@@ -1,5 +1,8 @@
 # 경로 계획과 주행 제어
 
+
+[주행 화면과 조작](../../../../docs/how-to/phone-navigation.md) · [구성 선택](../README.md#실행-프로필-고르기) · [안전 경로](safety.md)
+
 기본 AMCL 및 Omni 프로필은 `nav2_smac_planner::SmacPlannerLattice`와
 `cleany_navigation::MPPIController`를 사용한다. MPPI는 `Omni` 모델로 전후와 횡이동을 허용한다.
 명시적인 `axis_motion:=true`는 기존 축 전용 DWB 프로필을 선택한다.

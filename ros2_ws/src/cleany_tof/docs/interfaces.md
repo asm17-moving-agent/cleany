@@ -7,13 +7,17 @@ ToF는 유효한 거리 return으로 근거리 장애물을 보완 감지하고 
 
 ## 명령 경로와 책임
 
-```text
-Nav2 / 공식 teleop → nav2/cmd_vel → desk_approach 명령 선택 → motion/cmd_vel
-  → 기존 pan gate → Collision Monitor → 기존 voxel/reactive guard
-  → proximity/input → proximity_guard → cmd_vel → base driver → MCU watchdog
-
-USB JSONL → tof_driver → tof/frame → 공통 Observation → guard와 approach
-Mission → Nav2 staging와 정지 확인 → desk/approach → 후속 작업
+```mermaid
+flowchart TD
+  Input["Nav2 / 공식 teleop"] --> Select["desk_approach / 명령 선택"]
+  Select --> Existing["기존 pan / Collision Monitor / voxel · reactive guard"]
+  Existing --> Guard["proximity_guard"]
+  Guard --> Base["cmd_vel → Base driver → MCU"]
+  USB["USB JSONL"] --> Driver["tof_driver / tof/frame"]
+  Driver --> Obs["공통 Observation"]
+  Obs --> Guard
+  Obs --> Select
+  Mission["Mission / staging · 정지 확인"] -->|"desk/approach"| Select
 ```
 
 기존 LiDAR, RGB-D와 Nav2 Collision Monitor의 보호, 최종 속도 경계와 모터 watchdog을

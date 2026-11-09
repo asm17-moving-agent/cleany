@@ -1,5 +1,17 @@
 # MuJoCo Manipulation 실행 계약
 
+```mermaid
+flowchart TD
+  Goal["승인된 대상"] --> Check["입력 · 분류 · 목적지 검증"]
+  Check --> Execute["계획과 동작 / 비동기 BT"]
+  Execute --> Success["놓기 · 복귀 · 정지 평가"]
+  Success --> Result["최종 Result"]
+  Execute -->|"실패 / timeout / 취소"| Stop["StopAndAssess"]
+  Stop --> Result
+```
+
+그림의 결과는 하단 조건을 충족해야 확정됩니다. 취소·timeout은 단순히 실행 함수를 종료하는 것으로 완료되지 않습니다.
+
 승인된 물체 하나를 실행하는 `execution_profile=mujoco` 서버의 상세 계약이다.
 실행 명령과 ROS 경로는 [패키지 README](../README.md)를 따른다.
 Goal·Feedback·Result 필드는 [공통 Action 명세](../../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)에 있다.

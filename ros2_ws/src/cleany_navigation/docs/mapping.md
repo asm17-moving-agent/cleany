@@ -1,5 +1,16 @@
 # 실물 매핑 세션
 
+```mermaid
+flowchart LR
+  Sensors["LiDAR + 휠 피드백"] --> Ready["scan · odom · TF 준비"]
+  Ready --> Session["매핑 세션 / Cartographer"]
+  Session --> View["지도 · 스캔 · 궤적 관측"]
+  Session --> Stop["입력 차단 · STOP 확인"]
+  Stop --> Save["지도 저장 · Logger flush · 종료"]
+```
+
+[실행 가이드](../../../../docs/how-to/mapping.md) · [하드웨어 프로필](../../cleany_bringup/docs/hardware-mapping.md)
+
 `mapping_scan_filter`는 `scan_raw` 원본을 보존하고 base 전방 180도 중 0.30m 초과 값을
 `scan`으로 발행한다. 후방과 가까운 finite 값은 NaN이며 clearing ray로 바꾸지 않는다.
 센서 yaw를 이용해 전방을 센서 좌표로 변환한다.

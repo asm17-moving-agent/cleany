@@ -1,5 +1,20 @@
 # 모의 Manipulation Action 사용법
 
+```mermaid
+sequenceDiagram
+  participant C as 요청자
+  participant S as Mock Action 서버
+  participant D as 실행 기록
+  C->>S: Goal (대상과 작업)
+  S-->>C: 단계별 Feedback
+  S->>D: 상태와 결과 저장 시도
+  S-->>C: 최종 Result
+  C->>S: execution_id로 조회
+  S-->>C: 최신 실행 기록
+```
+
+이 서버는 진행을 모의 생성합니다. [MuJoCo 실행 경로](../../cleany_manipulation_bt/README.md)와 구분하세요.
+
 [패키지 안내로 돌아가기](manipulation.md)
 
 **물체 하나의 `collect_trash` 또는 `collect_lost_item`을 요청하고, 진행·결과·실행 기록을 터미널에서 확인한다.**
@@ -146,7 +161,7 @@ Result를 화면에 투영한 것으로, XML의 각 노드를 실제로 tick했�
 서버 재시작으로 `INTERRUPTED`가 된 기록은 성공한 정지·종료 처리로 표시하지 않는다.
 연결 직후 최근 보존 이벤트를 읽으며 전체 과거 기록을 재생하지는 않는다.
 
-브리지는 `python3-zmq`가 필요하다([개발환경 안내](../../../../docs/DEVELOPMENT_SETUP.md#로컬-action-트리-모니터-의존성)).
+브리지는 `python3-zmq`가 필요하다([개발환경 안내](../../../../docs/DEVELOPMENT_SETUP.md#5-rosdep과-workspace-의존성-준비)).
 확장에 **native zeromq binary unavailable**이 나오면 모니터링용 네이티브 의존성이
 설치되지 않은 것이다. 정적 미리보기와 별개이며 해당 플랫폼의 zeromq 바이너리를 준비한 뒤
 VS Code의 `Developer: Reload Window`를 실행한다. Remote SSH에서는 확장도 원격 VM에 설치한다.

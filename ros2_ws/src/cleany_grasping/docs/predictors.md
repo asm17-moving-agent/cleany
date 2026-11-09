@@ -1,5 +1,16 @@
 # cleany_grasping
 
+```mermaid
+flowchart LR
+  Cloud["선택된 물체 점군"] --> Workspace["workspace 계산"]
+  Workspace --> Predictor["predictor 후보 생성"]
+  Predictor --> Filter["폭 · 접촉 · 중복 필터"]
+  Filter --> Rank["후보 순위"]
+  Rank --> MoveIt["후속 도달성 / 충돌 검사"]
+```
+
+후보 생성과 실제 팔 실행은 별도 단계입니다. [조작 경로](../../../../docs/how-to/manipulation.md)에서 실행 모드를 선택하세요.
+
 `GraspNode`가 target cloud의 workspace를 계산해 predictor를 호출하고,
 `core.selector.rank_grasps()`로 폭·접촉 위치·중복 후보를 걸러 순서대로 반환한다.
 이전 단일 후보용 `select_grasp()` wrapper는 제거했다.

@@ -1,5 +1,8 @@
 # IMU 실시간 수신
 
+
+[센서 확인 절차](../../../../docs/how-to/sensors.md#실물-imu) · [펌웨어](../../../../esp32/README.md)
+
 MCU가 부팅할 때 정지 보정을 한 번 수행하며 실패하면 기존 bench bias·covariance를
 적용한다. PC는 `base/imu_state`의 시각을 ROS로 변환하고 받은 결과를 그대로 발행한다.
 Agent나 PC 재시작으로 보정을 반복하지 않는다.

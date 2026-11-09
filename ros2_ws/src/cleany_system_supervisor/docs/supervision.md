@@ -1,5 +1,8 @@
 # System Supervisor 계약
 
+
+[감독 stack 실행](../../../../docs/how-to/mission.md#system-supervisor-감독-stack) · [인터페이스](interfaces.md)
+
 System Supervisor는 시스템 가용성, Fault, Capability, 운영 상태, Mission 실행 허가와 복구 조정을 소유한다. 실제 안전 정지 장치가 아니며 Mission 실행, 정지 확인, 재개, journal과 Nav2 BT Recovery를 대신하지 않는다. 책임 원칙은 KB의 [System Supervisor](<../../../../docs/cleany-docs/20_TECHNICAL/14 - System Supervisor.md>)를 따른다. Endpoint 표는 [인터페이스](interfaces.md), 설정 원본은 [system_supervisor.yaml](../config/system_supervisor.yaml)이다.
 
 ## 책임 경계

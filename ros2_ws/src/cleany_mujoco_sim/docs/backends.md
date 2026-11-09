@@ -1,5 +1,8 @@
 # MuJoCo backend 계약
 
+
+[장면과 실행 설정](scenes.md) · [조작 가이드](../../../../docs/how-to/manipulation.md)
+
 한 실행에서는 backend 하나만 사용한다. Joint state, sensor, TF, controller의 소유자를 중복시키지 않는다.
 
 ## Backend 종류

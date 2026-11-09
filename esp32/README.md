@@ -1,5 +1,15 @@
 # ESP32-S3 micro-ROS motor controller
 
+```mermaid
+flowchart LR
+  Cmd["차체 Twist + 구동 허가"] --> Driver["Base driver / 휠 변환"]
+  Driver -->|"wheel_command"| MCU["ESP32 / PI · FF · watchdog"]
+  MCU -->|"wheel_state"| Driver
+  Driver --> Odom["joint_states → wheel odometry"]
+```
+
+[베이스 연결부터 확인](../docs/how-to/base.md) · [빌드와 장치 없는 검사](#1-빌드와-장치-없는-검사) · [업로드와 통신](#2-upload와-통신) · [실물 인수](#3-실물-인수)
+
 Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](PINMAP.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
 
 | 경로 | 역할 |
