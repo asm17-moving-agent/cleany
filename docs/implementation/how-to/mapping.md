@@ -24,19 +24,19 @@ LiDAR, 휠 피드백과 TF를 확인한 뒤 매핑 세션을 시작합니다. �
 
 ## 실물 휠 odometry와 2D LiDAR 매핑
 
-1. [개발환경](../development_setup.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
-2. `make run-hardware-mapping` 또는 다음 직접 launch 중 하나로 시작한다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다. 직접 launch는 빌드 overlay를 먼저 source한다.
-3. 직접 실행하는 경우 현재 센서 장착과 일치하는 [프로필](../../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
+1. [개발환경](../development-setup.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행합니다.
+2. `make run-hardware-mapping` 또는 다음 직접 launch 중 하나로 시작합니다. 기존 base, Nav2, 조종기와 중복 실행하지 않습니다. 직접 launch는 빌드 overlay를 먼저 source합니다.
+3. 직접 실행하는 경우 현재 센서 장착과 일치하는 [프로필](../../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택합니다.
 
    ```bash
    ros2 launch cleany_bringup hardware_mapping.launch.py \
      profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"
    ```
 
-4. 로그의 조종 주소와 state_root/web-token 키로 접속한다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꾼다.
-   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종한다. 초기화 접수는 완료를 뜻하지 않는다.
-5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료한다.
-   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존한다.
+4. 로그의 조종 주소와 state_root/web-token 키로 접속합니다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꿉니다.
+   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종합니다. 초기화 접수는 완료를 뜻하지 않습니다.
+5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료합니다.
+   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존합니다.
 
 | 설정 / 동작 | 적용 범위 |
 |---|---|
@@ -46,9 +46,9 @@ LiDAR, 휠 피드백과 TF를 확인한 뒤 매핑 세션을 시작합니다. �
 | `scan_filter.half_angle_deg` | 90: 전방 180°, 180: 실험용 360°; 런타임 재시작 시 적용 |
 | 관측 | Dev Monitor를 같은 domain에서 별도 실행 가능 |
 
-지도 초기화만으로 scan 각도가 바뀌지 않는다.
+지도 초기화만으로 scan 각도가 바뀌지 않습니다.
 
-휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
+휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 합니다.
 
 ```bash
 ros2 launch cleany_teleop teleop.launch.py \
@@ -57,7 +57,7 @@ ros2 launch cleany_teleop teleop.launch.py \
 
 ### 종료 결과와 실패 위치
 
-기본 출력 루트는 `~/.local/state/cleany/hardware/`다. `state_root`를 바꿨다면 그 경로를 따른다.
+기본 출력 루트는 `~/.local/state/cleany/hardware/`입니다. `state_root`를 바꿨다면 그 경로를 따릅니다.
 
 | 확인 대상 | 출력 / 진단 |
 |---|---|
@@ -67,15 +67,15 @@ ros2 launch cleany_teleop teleop.launch.py \
 | 매핑 실패 | `status_age_ms`, `error_code`, `error_file`; `maps/errors/` |
 | 오류 JSON 저장 실패 | `mapping.log`의 traceback |
 
-Ctrl+C가 전달됐다는 사실만으로 STOP 확인이나 지도 저장을 완료로 간주하지 않는다.
+Ctrl+C가 전달됐다는 사실만으로 STOP 확인이나 지도 저장을 완료로 간주하지 않습니다.
 
 ## 오프라인 SLAM 비교용 원본 bag
 
 Logger의 가공 기록과 별도로 연속적인 센서 입력을 확보하려면 Jetson에서 빌드한
-ROS overlay를 source한 뒤 다음 도구를 실행한다. Python 관측기의 큐를 거치지 않고
+ROS overlay를 source한 뒤 다음 도구를 실행합니다. Python 관측기의 큐를 거치지 않고
 네이티브 rosbag2가 `/scan_raw`, `/odom`, `/tf`, `/tf_static`, `/base/wheel_state`,
-`/joint_states`를 저장한다. 조종 명령과 기존 지도 출력은 입력에 포함하지 않는다.
-SQLite에는 `resilient` preset을 적용하며 기본 native cache는 64 MiB다.
+`/joint_states`를 저장합니다. 조종 명령과 기존 지도 출력은 입력에 포함하지 않습니다.
+SQLite에는 `resilient` preset을 적용하며 기본 native cache는 64 MiB입니다.
 
 ```bash
 python3 tools/validation/record_mapping_bag.py \
@@ -84,9 +84,9 @@ python3 tools/validation/record_mapping_bag.py \
 ```
 
 180초가 지나거나 Ctrl+C를 누르면 해당 recorder만 SIGINT로 종료해 cache와 metadata를
-마감한다. 기존 bag 경로는 덮어쓰지 않는다. 같은 비교 주행 중에는 지도 초기화로
-odom 원점을 바꾸지 않는다. 사용한 하드웨어 프로필과 Cartographer 설정도 함께 보존한다.
-원본 bag에서도 시각 공백과 메시지 수를 확인한 뒤 재처리에 사용한다.
+마감합니다. 기존 bag 경로는 덮어쓰지 않습니다. 같은 비교 주행 중에는 지도 초기화로
+odom 원점을 바꾸지 않습니다. 사용한 하드웨어 프로필과 Cartographer 설정도 함께 보존합니다.
+원본 bag에서도 시각 공백과 메시지 수를 확인한 뒤 재처리에 사용합니다.
 
 ## 저장 지도 Navigation
 
@@ -102,7 +102,7 @@ ros2 launch cleany_navigation navigation.launch.py --show-args
 
 ## 기존 지도 병행 확장
 
-`.pbstream`의 기존 궤적을 고정하고 새 궤적을 추가한다. 시작 시 현재 `map → base_link`와 저장 원점을 쓰므로 AMCL 위치가 먼저 맞아 있어야 한다.
+`.pbstream`의 기존 궤적을 고정하고 새 궤적을 추가합니다. 시작 시 현재 `map → base_link`와 저장 원점을 쓰므로 AMCL 위치가 먼저 맞아 있어야 합니다.
 
 ```mermaid
 flowchart LR
@@ -113,12 +113,12 @@ flowchart LR
   Existing["AMCL / Nav2"] --> Global["기존 /map과 전역 TF"]
 ```
 
-확장은 전역 TF와 속도 명령을 발행하지 않아 AMCL/Nav2와 병행할 수 있다. 확장 영역은 수동조종하며 자동주행 지도 교체는 별도 작업이다. 지도 이미지로 확장을 시작할 수는 없다.
+확장은 전역 TF와 속도 명령을 발행하지 않아 AMCL/Nav2와 병행할 수 있습니다. 확장 영역은 수동조종하며 자동주행 지도 교체는 별도 작업입니다. 지도 이미지로 확장을 시작할 수는 없습니다.
 
-ROS 환경과 현재 workspace overlay를 적용한 터미널에서 실행한다.
+ROS 환경과 현재 workspace overlay를 적용한 터미널에서 실행합니다.
 `--origin-reader`에는 `tools/validation/map_extension/read_origin.cpp`를
-해당 Cartographer 개발 라이브러리로 빌드한 실행 파일을 지정해야 한다.
-출력 폴더는 아직 존재하지 않는 경로를 사용한다.
+해당 Cartographer 개발 라이브러리로 빌드한 실행 파일을 지정해야 합니다.
+출력 폴더는 아직 존재하지 않는 경로를 사용합니다.
 
 ```bash
 python3 tools/validation/map_extension/extend.py \
@@ -128,16 +128,16 @@ python3 tools/validation/map_extension/extend.py \
 ```
 
 출력 폴더에는 입력 사본 `seed.pbstream`, 원점과 시작 자세 `session.json`,
-60초 주기의 `latest.pbstream`, `map.yaml`, `map.pgm`을 저장한다.
-종료할 때는 실행 터미널에서 `Ctrl-C`를 누른다. 궤적 종료와
-`final.pbstream` 저장은 종료 로그와 출력 파일로 확인한다.
-RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택한다.
-원본 지도와 기존 로거는 변경하지 않는다.
+60초 주기의 `latest.pbstream`, `map.yaml`, `map.pgm`을 저장합니다.
+종료할 때는 실행 터미널에서 `Ctrl-C`를 누릅니다. 궤적 종료와
+`final.pbstream` 저장은 종료 로그와 출력 파일로 확인합니다.
+RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택합니다.
+원본 지도와 기존 로거는 변경하지 않습니다.
 
-확장 RViz는 `/tf`를 `/map_extension/view_tf`로 remap해 실행한다.
+확장 RViz는 `/tf`를 `/map_extension/view_tf`로 remap해 실행합니다.
 `tools/validation/map_extension/view_tf.py`를 함께 실행하면 LiDAR와 odometry를
-확장 SLAM의 자세 기준으로 표시한다. 궤적과 지도는 `/map_extension` 토픽을
-선택한다. 제약선, raw scan, scan-matched point cloud는 표시 항목에서 켤 수 있다.
+확장 SLAM의 자세 기준으로 표시합니다. 궤적과 지도는 `/map_extension` 토픽을
+선택합니다. 제약선, raw scan, scan-matched point cloud는 표시 항목에서 켤 수 있습니다.
 
 <figure class="contract-figure" data-visual-id="map-growth">
 <img src="../../assets/examples/map-growth.gif" alt="고정한 기존 지도에 새 관측이 더해지면 무엇이 변하나?" loading="lazy">
@@ -146,7 +146,7 @@ RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택한
 
 ### 확장 중단 조건
 
-아래 조건이면 odom 전달을 차단하고 현재 세션을 종료 저장한다. 장치 재시작이나 odom 원점 초기화 후 기존 궤적을 이어 쓰지 않는다.
+아래 조건이면 odom 전달을 차단하고 현재 세션을 종료 저장합니다. 장치 재시작이나 odom 원점 초기화 후 기존 궤적을 이어 쓰지 않습니다.
 
 | 원본 `/odom` 조건 | 기본 중단값 |
 |---|---:|
@@ -155,4 +155,4 @@ RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택한
 | 샘플 간 회전 | 0.35 rad 초과 |
 | 촬영 시각 | 역행 |
 
-`extend.py --odom-max-*`로 지정한다. 문제 해결 후 원본 또는 마지막 정상 저장 상태로 새 확장을 시작한다.
+`extend.py --odom-max-*`로 지정합니다. 문제 해결 후 원본 또는 마지막 정상 저장 상태로 새 확장을 시작합니다.

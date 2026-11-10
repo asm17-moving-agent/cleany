@@ -1,6 +1,6 @@
 # 07. RGB-D와 점군
 
-> 목표: RGB-D 입력부터 base frame 점군과 파지 요청까지 실제 데이터가 바뀌는 과정을 추적합니다.
+> 목표: RGB-D 입력부터 base 좌표계 점군과 파지 요청까지 실제 데이터가 바뀌는 과정을 추적합니다.
 
 ## 07.1 RGB-D 입력
 
@@ -57,14 +57,14 @@ Target 점군은 잡을 물체, context 점군은 주변 충돌 판단에 필요
 
 ## 07.4 카메라 투영과 좌표 변환
 
-카메라 내부 파라미터는 픽셀을 optical frame 점으로 바꿉니다. `geometry.py`의 식은 다음과 같습니다.
+카메라 내부 파라미터는 픽셀을 optical 좌표계 점으로 바꿉니다. `geometry.py`의 식은 다음과 같습니다.
 
 | 값 | 계산 |
 |---|---|
 | optical Z | depth 영상의 m 값 |
 | optical X | `(u − cx) × Z / fx` |
 | optical Y | `(v − cy) × Z / fy` |
-| target frame의 점 | 촬영 시각 TF의 회전과 평행이동 적용 |
+| target 좌표계의 점 | 촬영 시각 TF의 회전과 평행이동 적용 |
 
 Depth는 optical 전방축 거리입니다. 바닥 높이나 로봇 중심까지의 거리와 같지 않습니다.
 
@@ -95,9 +95,9 @@ PYTHON
 | optical → target | 촬영 시각 TF; 요청 완료 시각으로 대체하지 않음 |
 | 첫 관측 → 선택 복원 | 같은 snapshot ID와 object ID; 만료된 cache 거부 |
 | 물체 배열 | header frame/stamp와 snapshot ID |
-| OBB | 해당 frame의 방향 있는 경계 상자; 크기 단위 m |
+| OBB | 해당 좌표계의 방향 있는 경계 상자; 크기 단위 m |
 
-[DetectedObject3DArray](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3DArray.msg)의 header와 [DetectedObject3D](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3D.msg)의 OBB를 함께 읽습니다. 같은 숫자라도 frame이나 시각이 다르면 같은 위치가 아닙니다.
+[DetectedObject3DArray](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3DArray.msg)의 header와 [DetectedObject3D](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3D.msg)의 OBB를 함께 읽습니다. 같은 숫자라도 좌표계이나 시각이 다르면 같은 위치가 아닙니다.
 
 ## 07.6 점군에서 파지 요청까지 추적
 

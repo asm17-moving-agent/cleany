@@ -24,7 +24,7 @@ python3 tools/models/cad_inventory.py /path/to/Cleany-final.FCStd \
 
 ## 문서 그림 재생성
 
-[render_contract_figures.py](docs/render_contract_figures.py)는 현재 설정, 메시와 기존 테스트 fixture에서 문서용 PNG를 만듭니다. 로봇이나 simulator를 실행하지 않습니다. `matplotlib`, `numpy`, `scipy`, `PyYAML`, `pytest`, `opencv-python-headless`가 있는 별도 Python 환경에서 실행합니다. 사용한 버전과 입력 SHA-256은 [그림 출처](../docs/assets/visuals/generated.json)에 기록합니다.
+[render_contract_figures.py](docs/render_contract_figures.py)는 현재 설정, 메시와 기존 테스트 fixture에서 문서용 PNG를 만듭니다. 로봇이나 시뮬레이터를 실행하지 않습니다. `matplotlib`, `numpy`, `scipy`, `PyYAML`, `pytest`, `opencv-python-headless`가 있는 별도 Python 환경에서 실행합니다. 사용한 버전과 입력 SHA-256은 [그림 출처](../docs/assets/visuals/generated.json)에 기록합니다.
 
 ```bash
 python3 tools/docs/render_contract_figures.py

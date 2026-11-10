@@ -6,7 +6,7 @@
 <p class="hero-title">구조를 보고.<br>로봇을 실행하고.<br>상태를 확인하세요.</p>
 <p>주행과 매핑, 인식과 조작, MCU 제어, 시뮬레이션과 관측을 연결하는 프로젝트 문서입니다.</p>
 <a class="button" href="running.md">실행할 작업 선택 →</a>
-<a class="secondary" href="development_setup.md">처음 환경 준비하기</a>
+<a class="secondary" href="development-setup.md">처음 환경 준비하기</a>
 </div>
 </div>
 
@@ -25,7 +25,7 @@
 
 | 필요한 작업 | 안내 |
 |---|---|
-| 처음 설치·빌드 | [개발환경](development_setup.md) |
+| 처음 설치·빌드 | [개발환경](development-setup.md) |
 | 휴대폰으로 목표 주행 | [화면으로 따라 하기](how-to/phone-navigation.md) |
 | 외부 요청과 Mission 연결 | [Mission Runtime](how-to/mission.md) |
 | 카메라·헤드·ToF 보정 | [캘리브레이션](calibration.md) |
@@ -37,7 +37,7 @@
 |---|---|
 | 명령과 데이터가 어떻게 연결되는가? | [시스템 연결](integration.md) |
 | 각 패키지가 무엇을 맡는가? | [기능별 패키지 지도](packages.md) |
-| 토픽·서비스·액션의 타입과 방향은? | [ROS 인터페이스](ros_interfaces.md) |
+| 토픽·서비스·액션의 타입과 방향은? | [ROS 인터페이스](ros-interfaces.md) |
 | 로봇 소프트웨어 개념부터 배우려면? | [학습 가이드](../guide/index.html) |
 | 제품 범위와 설계 결정은? | [팀 KB](../cleany-docs/README.md) |
 

@@ -20,6 +20,8 @@ flowchart TD
 <figcaption><strong>필요한 자료:</strong> 본문 MuJoCo 실행의 관찰 → 접근 → 놓기와 Action 결과를 연결한 화면 또는 GIF.<br><strong>빈 이유:</strong> 기존 실물 파지 사진과 Isaac 저장 자세는 이 실행 경로를 보여주지 않습니다.</figcaption>
 </figure>
 
+최신 기본 모델 `cad_final`의 그리퍼는 조립 자세로 고정되어 있어 집기 명령을 허용하지 않습니다. 아래 경로를 선택하기 전에 [모델별 구동 범위](../../../ros2_ws/src/cleany_description/docs/model.md#좌표와-동작-범위)를 확인합니다. 이전 모델에서 얻은 집기 결과를 최신 CAD의 결과로 해석하지 않습니다.
+
 | 실행 범위 | 진입점 |
 |---|---|
 | 장면만 관찰 | `ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py` |
@@ -27,12 +29,12 @@ flowchart TD
 | 연속 수거 | `ros2 launch cleany_skill_executor study_cafe_sorting.launch.py` |
 | 단일 물체 Action | 아래 Mock / BT 실행 |
 
-직접 launch는 `make build` 후 [공통 overlay](../running.md#공통-준비)를 적용한다. 한 domain에서 backend는 하나만 실행한다. [모델 준비와 실제 결과 판독](../../../ros2_ws/src/cleany_skill_executor/docs/study_cafe_sorting_usage.md)을 따른다.
+직접 launch는 `make build` 후 [공통 overlay](../running.md#공통-준비)를 적용합니다. 한 domain에서 backend는 하나만 실행합니다. [모델 준비와 실제 결과 판독](../../../ros2_ws/src/cleany_skill_executor/docs/study-cafe-sorting-usage.md)을 따릅니다.
 
 ### 단일 물체 Manipulation Action
 
 Mock 서버의 요청, 취소, 조회와 모니터 사용은
-[Mock 실행 안내](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md)를 따릅니다.
+[Mock 실행 안내](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation-mock-usage.md)를 따릅니다.
 실제 인식과 MoveIt을 사용하는 MuJoCo BT 스택은 다음 명령으로 실행합니다.
 
 ```bash
@@ -54,4 +56,4 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 
 ### MuJoCo 접근 데모
 
-가까운 물체 하나의 pre-grasp와 선택적 lift는 `nearest_pregrasp_coordinator` 경로다. RGB-D, Perception, Grasp, MoveIt과 controller를 먼저 준비하고 [실행 절차](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp)를 따른다. 기본 pre-grasp 완료와 집기·lift 성공은 서로 다른 결과다.
+가까운 물체 하나의 pre-grasp와 선택적 lift는 `nearest_pregrasp_coordinator` 경로입니다. RGB-D, Perception, Grasp, MoveIt과 controller를 먼저 준비하고 [실행 절차](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp)를 따릅니다. 기본 pre-grasp 완료와 집기·lift 성공은 서로 다른 결과입니다.

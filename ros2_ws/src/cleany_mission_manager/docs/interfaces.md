@@ -11,11 +11,11 @@ flowchart LR
 
 [Mission 실행](../../../../docs/implementation/how-to/mission.md) · [미션 계약](../../cleany_interfaces/docs/mission.md)
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
 ## mission_runtime
 
-실행 파일: `mission_runtime`. 원본: [node.py](../cleany_mission_manager/node.py), [nav2.py](../cleany_mission_manager/adapters/nav2.py), [manipulation.py](../cleany_mission_manager/adapters/manipulation.py), [supervision.py](../cleany_mission_manager/adapters/supervision.py).
+실행 파일: `mission_runtime`. 원본: [노드.py](../cleany_mission_manager/node.py), [nav2.py](../cleany_mission_manager/adapters/nav2.py), [manipulation.py](../cleany_mission_manager/adapters/manipulation.py), [supervision.py](../cleany_mission_manager/adapters/supervision.py).
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
@@ -53,7 +53,7 @@ flowchart LR
 | supervision_mode=required 기본 | 미션마다 supervision_capabilities 기본 [NAVIGATION]의 lease 하나 |
 | supervision_mode=disabled | Mock / simulation 단독 실행; snapshot의 supervision에 기록 |
 
-[Mission 계약](../../cleany_interfaces/docs/mission.md)을 따른다.
+[Mission 계약](../../cleany_interfaces/docs/mission.md)을 따릅니다.
 
 ## 책상 정밀 접근을 사용하는 navigation port
 

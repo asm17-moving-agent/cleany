@@ -1,20 +1,20 @@
-# 02. Manipulation Action 인터페이스 명세
+# Manipulation Action 인터페이스 명세
 
-> **Mock·MuJoCo 공통 Action 계약.** 실제 필드는 [ExecuteManipulationSkill.action](../../cleany_interfaces/action/ExecuteManipulationSkill.action)을 따른다.
-> 실물 backend와 Mission Manager의 외부 승인·연동 계약은 후속 구현 대상이다.
+> **Mock·MuJoCo 공통 Action 계약.** 실제 필드는 [ExecuteManipulationSkill.action](../../cleany_interfaces/action/ExecuteManipulationSkill.action)을 따릅니다.
+> 실물 backend와 Mission Manager의 외부 승인·연동 계약은 후속 구현 대상입니다.
 
 | 서버 | namespace / `execution_profile` | 실행·설정 안내 |
 |---|---|---|
-| Python 모의 서버 | `/mock` / `mock` | [Mock 사용법](manipulation_mock_usage.md) |
+| Python 모의 서버 | `/mock` / `mock` | [Mock 사용법](manipulation-mock-usage.md) |
 | native BT MuJoCo 서버 | `/sim` / `mujoco` | [BT 서버 README](../../cleany_manipulation_bt/README.md) |
 
-이 문서는 공통 필드와 결과 의미를 관리한다. backend별 물리 확인 방식은 각 실행 안내를 따른다.
+이 문서는 공통 필드와 결과 의미를 관리합니다. backend별 물리 확인 방식은 각 실행 안내를 따릅니다.
 
-## 1. Goal 하나가 하는 일
+## Goal 하나가 하는 일
 
-**지원 행동은 `collect_trash`와 `collect_lost_item`이다.** 호출자가 승인한 물체
-하나를 지정 수거함에 옮기고 결과를 확인한다. 접근, 집기와 운반은 서버 내부 단계다.
-다음 물체를 제안하려면 이번 행동 결과와 새 Scene이 필요하다.
+**지원 행동은 `collect_trash`와 `collect_lost_item`입니다.** 호출자가 승인한 물체
+하나를 지정 수거함에 옮기고 결과를 확인합니다. 접근, 집기와 운반은 서버 내부 단계입니다.
+다음 물체를 제안하려면 이번 행동 결과와 새 Scene이 필요합니다.
 
 | 범위 | 처리 |
 |---|---|
@@ -23,10 +23,10 @@
 | 책상 전체 반복 | Mission Manager와 Planner의 책임 |
 | 인식만 수행 | 독립 Perception interface 사용 |
 
-모델 분류–skill–목적지는 각각 검사한다. 두 분류의 수거 동작은 공통 BT를 사용하고
-책상 반복과 재관찰은 호출자가 담당한다. staging과 handoff는 이 계약에 추가하지 않는다.
+모델 분류–skill–목적지는 각각 검사합니다. 두 분류의 수거 동작은 공통 BT를 사용하고
+책상 반복과 재관찰은 호출자가 담당합니다. staging과 handoff는 이 계약에 추가하지 않습니다.
 
-## 2. Goal: 무엇을 실행할지
+## Goal: 무엇을 실행할지
 
 | 필드 | 타입 | 쉽게 설명하면 | 예시 |
 |---|---|---|---|
@@ -38,21 +38,21 @@
 | `object_id` | `uint32` | 그 관찰 안의 물체 번호 | `3` |
 | `destination_id` | `string` | 설정에 등록된 수거 목적지 | Mock: `mock_trash_bin`, MuJoCo: `trash_right` |
 
-`object_id`는 snapshot마다 다시 붙을 수 있다. `(snapshot_id, object_id)`로 조회하며
-다음 관찰의 3번이 같은 물체라고 가정하지 않는다. 목적지 ID는 해당 서버의 설정과 일치해야 한다.
-`work_area_id`는 이번 Goal에 넣지 않는다. 좌석과 접근 위치는 미션 및 Navigator 계약,
-물리 workspace는 서버 설정과 backend가 검사한다.
+`object_id`는 snapshot마다 다시 붙을 수 있습니다. `(snapshot_id, object_id)`로 조회하며
+다음 관찰의 3번이 같은 물체라고 가정하지 않습니다. 목적지 ID는 해당 서버의 설정과 일치해야 합니다.
+`work_area_id`는 이번 Goal에 넣지 않습니다. 좌석과 접근 위치는 미션 및 Navigator 계약,
+물리 workspace는 서버 설정과 backend가 검사합니다.
 
 ### 식별자와 승인
 
-- 미션 식별자는 기존 값을 전달하고 task는 승인된 proposal에 연결한다.
-- task ID의 재관찰 간 유지 및 발급 규칙은 Planner adapter에서 정해야 한다.
-- 호출 adapter가 `execution_id`를 생성하고 실제 움직임 전에 기록한다.
-- 새 실행 ID로 재시도할 때도 이전 시도의 물체 상태를 먼저 확인한다.
-- Goal 필드만으로 권한이나 의미 분류를 증명하지 않는다. Mission Manager가 상태,
-  allowlist와 인자를 승인하고, 허용 client의 ROS 접근 경계는 구현 시 정의한다.
+- 미션 식별자는 기존 값을 전달하고 task는 승인된 proposal에 연결합니다.
+- task ID의 재관찰 간 유지 및 발급 규칙은 Planner adapter에서 정해야 합니다.
+- 호출 adapter가 `execution_id`를 생성하고 실제 움직임 전에 기록합니다.
+- 새 실행 ID로 재시도할 때도 이전 시도의 물체 상태를 먼저 확인합니다.
+- Goal 필드만으로 권한이나 의미 분류를 증명하지 않습니다. Mission Manager가 상태,
+  allowlist와 인자를 승인하고, 허용 client의 ROS 접근 경계는 구현 시 정의합니다.
 
-## 3. Goal 수락과 중복 요청
+## Goal 수락과 중복 요청
 
 | 상황 | 처리 |
 |---|---|
@@ -64,24 +64,24 @@
 | 구조상 유효한 새 Goal | 수락 후 준비 및 물리 검증 |
 | snapshot 조회 실패, 대상 이동 또는 verifier 준비 실패 | 수락 후 `BLOCKED`, 움직임 시작하지 않음 |
 
-ROS Goal 거절에는 일반 Result payload가 없다. 호출 adapter는 거절을 수거 실패나
-취소 완료로 만들지 않고 준비 상태와 실행 기록을 확인한다. 기록 조회는 `manipulation/get_execution`이다.
+ROS Goal 거절에는 일반 Result payload가 없습니다. 호출 adapter는 거절을 수거 실패나
+취소 완료로 만들지 않고 준비 상태와 실행 기록을 확인합니다. 기록 조회는 `manipulation/get_execution`입니다.
 
-완료 Result를 새 Goal에 자동 재생하는 계약은 사용하지 않는다. 응답을 잃으면 실행 ID로
-기록을 조회한다. 이번 구현은 SQLite와 `GetManipulationExecution.srv`를 사용하며 기록을 자동 만료하지 않는다.
-조회할 수 없다면 새 ID로 무조건 재실행하지 않는다. 프로세스 재시작 후 이전 활성
-실행은 중단으로 기록하고 자동 재개하지 않는다.
+완료 Result를 새 Goal에 자동 재생하는 계약은 사용하지 않습니다. 응답을 잃으면 실행 ID로
+기록을 조회합니다. 이번 구현은 SQLite와 `GetManipulationExecution.srv`를 사용하며 기록을 자동 만료하지 않습니다.
+조회할 수 없다면 새 ID로 무조건 재실행하지 않습니다. 프로세스 재시작 후 이전 활성
+실행은 중단으로 기록하고 자동 재개하지 않습니다.
 
 ### 작업 중 프로그램이나 장치가 다시 켜진 경우
 
 예를 들어 물체를 집던 중 프로그램이 종료되고 다시 켜졌다면, 기존 기록만으로
-물체가 그리퍼에 있는지 또는 팔이 멈췄는지 확정할 수 없다.
+물체가 그리퍼에 있는지 또는 팔이 멈췄는지 확정할 수 없습니다.
 
-1. 이전 활성 실행을 중단으로 표시하고 마지막 물리 진행 기록을 보존한다.
-2. 중단 사실과 확인 가능한 상태를 Mission Manager의 복구 처리에 전달한다.
-3. Mission Manager와 외부 상태 adapter는 **미션 중단과 사람 확인 필요**를 Backend에 알린다.
-4. 실제 팔, 그리퍼와 물체 상태 및 안전 조건을 확인하기 전 새 물리 Goal을 허용하지 않는다.
-5. 이전 Goal을 자동 재개하지 않는다. 후속 미션이나 행동은 별도 검증과 승인 절차를 따른다.
+1. 이전 활성 실행을 중단으로 표시하고 마지막 물리 진행 기록을 보존합니다.
+2. 중단 사실과 확인 가능한 상태를 Mission Manager의 복구 처리에 전달합니다.
+3. Mission Manager와 외부 상태 adapter는 **미션 중단과 사람 확인 필요**를 Backend에 알립니다.
+4. 실제 팔, 그리퍼와 물체 상태 및 안전 조건을 확인하기 전 새 물리 Goal을 허용하지 않습니다.
+5. 이전 Goal을 자동 재개하지 않습니다. 후속 미션이나 행동은 별도 검증과 승인 절차를 따릅니다.
 
 | 재시작 보고 | 계약 |
 |---|---|
@@ -90,9 +90,9 @@ ROS Goal 거절에는 일반 Result payload가 없다. 호출 adapter는 거절�
 | 구현 이벤트 | manipulation/execution_events, ManipulationExecutionRecord, Reliable / Transient Local depth 100 |
 | 외부 전달 | SQLite 기록 제공; Backend 전달은 후속 Mission adapter |
 
-[Mission 연결](../../cleany_mission_manager/docs/manipulation_mock_integration.md)과 [KB 재시작 규칙](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md)을 따른다.
+[Mission 연결](../../cleany_mission_manager/docs/manipulation-mock-integration.md)과 [KB 재시작 규칙](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md)을 따릅니다.
 
-## 4. Feedback: 지금 어디까지 했는지
+## Feedback: 지금 어디까지 했는지
 
 | 필드 | 타입 | 의미 |
 |---|---|---|
@@ -118,15 +118,15 @@ ROS Goal 거절에는 일반 Result payload가 없다. 호출 adapter는 거절�
 | `STOPPING` | 취소 또는 실패 후 동작 종료와 정지 확인 |
 | `FINALIZING` | 실제 진행과 종료 결과 기록 |
 
-Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것은 아니다.
-첫 이미지 전달, 책상 재관찰과 베이스 복귀는 이 Action의 단계가 아니다.
+Feedback은 진행 안내입니다. `PLACING`을 받았다고 물체가 수거된 것은 아닙니다.
+첫 이미지 전달, 책상 재관찰과 베이스 복귀는 이 Action의 단계가 아닙니다.
 
-두 구현의 Feedback은 `substage`도 제공한다. 예를 들어 `GRASPING/GraspObject`는
-그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인이다. Result의 `failed_substage`는
+두 구현의 Feedback은 `substage`도 제공합니다. 예를 들어 `GRASPING/GraspObject`는
+그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인입니다. Result의 `failed_substage`는
 실패 세부 동작을 식별하고, 조회 기록의 `completed_substages`는 완료한 세부 동작만
-보존한다. 큰 단계의 취소 및 timeout 계약은 유지한다.
+보존합니다. 큰 단계의 취소 및 timeout 계약은 유지합니다.
 
-## 5. Result: 이번 행동이 어떻게 끝났는지
+## Result: 이번 행동이 어떻게 끝났는지
 
 ### 구현 필드
 
@@ -148,11 +148,11 @@ Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것�
 | `retryable` | `bool` | 같은 행동을 다시 검토할 여지가 있는가 |
 | `message` | `string` | 사람이 읽는 설명 |
 
-MuJoCo의 복귀 목표는 실행 시작 때 저장한 팔 자세다. `arm_recovered=true`만으로
-모바일 베이스의 주행 자세나 이동 허가를 보장하지 않는다. 상위 연동에서 별도 readiness를 확인해야 한다.
+MuJoCo의 복귀 목표는 실행 시작 때 저장한 팔 자세입니다. `arm_recovered=true`만으로
+모바일 베이스의 주행 자세나 이동 허가를 보장하지 않습니다. 상위 연동에서 별도 readiness를 확인해야 합니다.
 
-`retryable=true`는 재실행 명령이나 책상 전체 재시작 허가가 아니다. Mission Manager가
-재관찰, 승인과 retry budget을 확인한다. false인 Goal을 그대로 자동 반복하지 않는다.
+`retryable=true`는 재실행 명령이나 책상 전체 재시작 허가가 아닙니다. Mission Manager가
+재관찰, 승인과 retry budget을 확인합니다. false인 Goal을 그대로 자동 반복하지 않습니다.
 
 ### 상태와 ROS 종료
 
@@ -174,7 +174,7 @@ flowchart TD
     Fault -->|아니오| Result["최종 취소 결과"]
 ```
 
-전송 연결 유실과 client timeout은 Result 수신의 근거가 아니다. 취소 수락도 정지 완료와 구분한다.
+전송 연결 유실과 client timeout은 Result 수신의 근거가 아닙니다. 취소 수락도 정지 완료와 구분합니다.
 
 ### 취소 방식과 서비스
 
@@ -213,7 +213,7 @@ flowchart TD
 | Mock 확인 실패 시나리오 | NOT_CONFIRMED |
 | MuJoCo false | 확인 대기; 기한 초과 시 UNKNOWN / VERIFICATION_TIMEOUT |
 
-[MuJoCo 센서 / 정지 계약](../../cleany_manipulation_bt/docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
+[MuJoCo 센서 / 정지 계약](../../cleany_manipulation_bt/docs/execution-contract.md#정상-수거의-놓기정지-확인)을 따릅니다.
 
 ### 예시로 읽기
 
@@ -246,10 +246,10 @@ flowchart TD
 | 준비 중 일시 오류 | 정지 / 미접촉 근거가 있을 때만 true 후보 |
 | 미확인 물리 상태 | false 또는 UNKNOWN; 성공값 추정 금지 |
 
-## 6. ROS 정의
+## ROS 정의
 
-값 목록은 위 표를 따르며 Python core는 문자열 Enum을 사용한다.
-아래 필드는 [실제 Action 정의](../../cleany_interfaces/action/ExecuteManipulationSkill.action)와 같다.
+값 목록은 위 표를 따르며 Python core는 문자열 Enum을 사용합니다.
+아래 필드는 [실제 Action 정의](../../cleany_interfaces/action/ExecuteManipulationSkill.action)와 같습니다.
 
 ```text
 # Goal
@@ -286,7 +286,7 @@ string selected_arm
 string message
 ```
 
-## 7. 오류와 후속 결정
+## 오류와 후속 결정
 
 구현 오류 목록: `NONE`, `INVALID_ARGUMENT`, `TARGET_UNAVAILABLE`, `STALE_TARGET`,
 `DESTINATION_UNAVAILABLE`, `BACKEND_NOT_READY`, `VERIFICATION_UNAVAILABLE`,
@@ -304,4 +304,4 @@ string message
 | has_result=false | 가짜 status/error_code 생성 안 함 |
 | 미결정 | 제품 snapshot 보존, 실물 정지 / verifier, 허용 client |
 
-Adapter 대응은 [서버 명세](03_manipulation_server_behavior_spec.md)와 [Mission 연결](../../cleany_mission_manager/docs/manipulation_mock_integration.md)을 따른다.
+Adapter 대응은 [서버 명세](manipulation-server-behavior-spec.md)와 [Mission 연결](../../cleany_mission_manager/docs/manipulation-mock-integration.md)을 따릅니다.

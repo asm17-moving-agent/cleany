@@ -18,7 +18,7 @@ def build() -> str:
         "esp32/README.md",
         "esp32/*/README.md", "containers/*/README.md",
         "ros2_ws/src/*/README.md", "ros2_ws/src/*/docs/*.md",
-        "tools/*/README.md", "tools/*/validation_protocol.md",
+        "tools/*/README.md", "tools/*/validation-protocol.md",
     )
     paths = sorted({p for pattern in patterns for p in ROOT.glob(pattern)})
     pages = {}

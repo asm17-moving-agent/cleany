@@ -1,9 +1,9 @@
 # cleany_manipulation_bt
 
-승인된 `snapshot_id/object_id`의 쓰레기 또는 분실물 하나를 MuJoCo에서 수거하는 ROS Action 서버다.
+승인된 `snapshot_id/object_id`의 쓰레기 또는 분실물 하나를 MuJoCo에서 수거하는 ROS Action 서버입니다.
 실제 BehaviorTree.CPP 4 실행기가 동작 순서를 소유하고, Python은 기존 인식, MoveIt,
-그리퍼 동작과 SQLite 기록을 연결한다. Planner와 Mission Manager는 포함하지 않는다.
-기존 mock 실행에는 이 패키지의 C++ 모듈을 import하지 않는다.
+그리퍼 동작과 SQLite 기록을 연결합니다. Planner와 Mission Manager는 포함하지 않습니다.
+기존 mock 실행에는 이 패키지의 C++ 모듈을 import하지 않습니다.
 
 | 하려는 일 | 안내 |
 |---|---|
@@ -15,10 +15,10 @@
 
 ## 빌드와 검증
 
-아래 Make 명령은 레포 루트에서 실행한다.
+아래 Make 명령은 레포 루트에서 실행합니다.
 
 Ubuntu 22.04 / ROS 2 Humble의 `behaviortree_cpp` 4.x, `pybind11_vendor`, Python 개발
-header가 필요하다. 설치는 [개발환경 안내](../../../docs/implementation/development_setup.md)를 따른다.
+header가 필요합니다. 설치는 [개발환경 안내](../../../docs/implementation/development-setup.md)를 따릅니다.
 
 ```bash
 make build-manipulation-bt
@@ -27,15 +27,15 @@ make test-manipulation
 ```
 
 첫 검사는 실제 C++ 트리와 가짜 backend, DDS Action/취소/조회, snapshot TTL,
-수거 코드 추출 회귀를 검증한다. 두 번째 mock 검사는 기존 성공/실패/취소/재시작을
-보존하는지 확인한다. 가짜 backend의 성공은 물리 수거 성공 근거가 아니다.
+수거 코드 추출 회귀를 검증합니다. 두 번째 mock 검사는 기존 성공/실패/취소/재시작을
+보존하는지 확인합니다. 가짜 backend의 성공은 물리 수거 성공 근거가 아닙니다.
 
 ## 실행
 
 기존 스터디카페의 YOLOE head/손목 모델, text encoder, PyTorch/Ultralytics와
-`GEMINI_API_KEY`가 필요하다. 모델 경로와 인식 준비 조건은
-[기존 수거 실행 안내](../cleany_skill_executor/docs/study_cafe_sorting_usage.md)를 따른다.
-키는 코드/ROS parameter에 넣지 않고 실행 환경에서 제공한다.
+`GEMINI_API_KEY`가 필요합니다. 모델 경로와 인식 준비 조건은
+[기존 수거 실행 안내](../cleany_skill_executor/docs/study-cafe-sorting-usage.md)를 따릅니다.
+키는 코드/ROS parameter에 넣지 않고 실행 환경에서 제공합니다.
 
 ```bash
 # 키를 로컬 파일에 설정한 경우에만 사용. 키 자체를 로그에 출력하지 않는다.
@@ -44,9 +44,9 @@ make sim-mujoco-manipulation
 # GUI가 필요한 환경: SORTING_ARGS='headless:=false use_rviz:=true'
 ```
 
-headless에서도 기존 GLFW 카메라 renderer에는 유효한 `DISPLAY`가 필요하다.
+headless에서도 기존 GLFW 카메라 renderer에는 유효한 `DISPLAY`가 필요합니다.
 GUI 로그인 터미널에서 실행하거나 Xvfb가 설치된 CI에서
-`xvfb-run --auto-servernum make sim-mujoco-manipulation`을 사용한다.
+`xvfb-run --auto-servernum make sim-mujoco-manipulation`을 사용합니다.
 
 | BT 수거함 / 접근 | 계약 |
 |---|---|
@@ -69,14 +69,14 @@ flowchart LR
 | 실행 경계 | 동작 |
 |---|---|
 | 시작 구성 | Grasp/selection, 지도, 결과 평가기도 시작; 자동 SortingCoordinator.run 미실행 |
-| 대기 중 | 카메라 / depth 지도 갱신, 정상 frame 진단 기본 숨김 |
+| 대기 중 | 카메라 / depth 지도 갱신, 정상 좌표계 진단 기본 숨김 |
 | 재사용 | 알려진 형상 updater, jaw clearance, 좌표 보정 |
 | PTP 상한 | 속도 / 가속도 scaling 각각 0.08, launch 인자로 조정 |
 | 실패 / GT | Controller 실패 뒤 자동 재실행 없음; 평가 정답을 grasp / 연관 / 계획에 사용하지 않음 |
 
-시뮬레이션 편의 설정이며 실물 안전 검증이 아니다.
+시뮬레이션 편의 설정이며 실물 안전 검증이 아닙니다.
 
-다른 터미널에서 detector-only 관찰을 요청한다.
+다른 터미널에서 detector-only 관찰을 요청합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -85,13 +85,13 @@ ros2 action send_goal /perception/inspect_scene cleany_interfaces/action/Inspect
   "{query: 'Detect objects on the table.', tracking_session_id: 'desk-validation-1', snapshot_id: '', selected_object_id: 0}"
 ```
 
-반환된 실제 snapshot과 쓰레기 object ID를 지정한다. snapshot cache의 기본 TTL은
-120초이고 최근 두 장만 남는다. 만료됐으면 새 관찰을 요청해야 한다.
+반환된 실제 snapshot과 쓰레기 object ID를 지정합니다. snapshot cache의 기본 TTL은
+120초이고 최근 두 장만 남습니다. 만료됐으면 새 관찰을 요청해야 합니다.
 
-같은 고정 베이스 책상 작업에는 같은 `tracking_session_id`를 사용한다. BT는 승인된
-snapshot의 session/epoch/track ID를 재관측에서도 확인한다. 베이스 이동 후에는 새 세션을
-시작한다. 자세한 조건은 [인식 패키지의 물체 추적](../cleany_perception/docs/runtime.md#고정-베이스-책상-물체-추적)을 따른다.
-빈 세션은 추적을 끄는 호환 경로이며, 재관측에서 같은 종류가 여러 개면 수거를 중단한다.
+같은 고정 베이스 책상 작업에는 같은 `tracking_session_id`를 사용합니다. BT는 승인된
+snapshot의 session/epoch/track ID를 재관측에서도 확인합니다. 베이스 이동 후에는 새 세션을
+시작합니다. 자세한 조건은 [인식 패키지의 물체 추적](../cleany_perception/docs/runtime.md#고정-베이스-책상-물체-추적)을 따릅니다.
+빈 세션은 추적을 끄는 호환 경로이며, 재관측에서 같은 종류가 여러 개면 수거를 중단합니다.
 
 ```bash
 ros2 run cleany_skill_executor manipulation_test_client \
@@ -111,7 +111,7 @@ ros2 run cleany_skill_executor manipulation_test_client \
 | `backend_log_level` | `warn` | `info`: MuJoCo·MoveIt·TF 초기화와 계획 상세 |
 
 기본 출력에는 준비 완료, 주요 작업 진행, 경고·오류와 컨트롤러 spawner의
-준비 완료가 남는다.
+준비 완료가 남습니다.
 
 ```bash
 make sim-mujoco-manipulation SORTING_ARGS="headless:=false log_level:=debug"
@@ -119,13 +119,13 @@ make sim-mujoco-manipulation SORTING_ARGS="headless:=false log_level:=debug"
 make sim-mujoco-manipulation SORTING_ARGS="headless:=false log_level:=debug backend_log_level:=info"
 ```
 
-`log_level`은 끌리니 로거와 `move_group.scene_mapping`에 적용한다.
-`debug`에서도 ROS 내부 대기 루프의 로그는 함께 켜지지 않는다. 두 옵션은
-`debug`, `info`, `warn`, `error`, `fatal` 중에서 선택한다.
+`log_level`은 끌리니 로거와 `move_group.scene_mapping`에 적용합니다.
+`debug`에서도 ROS 내부 대기 루프의 로그는 함께 켜지지 않습니다. 두 옵션은
+`debug`, `info`, `warn`, `error`, `fatal` 중에서 선택합니다.
 
 MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
-`keep_controller_plugin_loaded:=true`를 기본으로 전달한다. 적용 범위와 종료
-회귀 검사는 [MoveIt README](../cleany_moveit_config/docs/planning.md#humble-controller-plugin-teardown)를 따른다.
+`keep_controller_plugin_loaded:=true`를 기본으로 전달합니다. 적용 범위와 종료
+회귀 검사는 [MoveIt README](../cleany_moveit_config/docs/planning.md#humble-controller-plugin-teardown)를 따릅니다.
 
 ## 계약과 증거
 
@@ -139,8 +139,8 @@ MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
 | `/perception/get_scene_snapshot` | 읽기 전용 `GetSceneSnapshot`; TTL/촬영 시각 유지 |
 
 Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/cancel_goal`을
-사용한다. 서버 종료는 진행 중인 tick의 기록 쓰기를 기다린 뒤 DB를 닫으며,
-종료 자체를 정지 확인이나 수거 완료 근거로 기록하지 않는다.
+사용합니다. 서버 종료는 진행 중인 tick의 기록 쓰기를 기다린 뒤 DB를 닫으며,
+종료 자체를 정지 확인이나 수거 완료 근거로 기록하지 않습니다.
 
 | 실행 결과 | 근거 |
 |---|---|
@@ -152,27 +152,27 @@ Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/
 | 실패 / 취소 | 이미 확인한 물체 / 놓기 상태 보존 |
 | FATAL | 정지 미확인, 장치 / 비상정지 / 내부 오류; 후속 Goal 차단 |
 
-[상세 실행 계약](docs/execution_contract.md)이 검사 기준, timeout과 늦은 응답 처리를 관리한다.
+[상세 실행 계약](docs/execution-contract.md)이 검사 기준, timeout과 늦은 응답 처리를 관리합니다.
 
 ### 취소
 
-일반 Action cancel은 `CHECKPOINT`다. `manipulation/cancel` 서비스는
-`IMMEDIATE`, `CHECKPOINT`, `RETURN_ARM`을 제공한다.
-취소 수락 후에도 이전 동작의 종료와 정지 확인을 기다린다.
-`RETURN_ARM`은 정지 확인 뒤 필요하면 현재 위치에서 그리퍼를 열고, 실행 시작 때 저장한 팔 자세로 복귀한다.
-모드별 절차와 제한은 [상세 취소 계약](docs/execution_contract.md#취소)을 따른다.
+일반 Action cancel은 `CHECKPOINT`입니다. `manipulation/cancel` 서비스는
+`IMMEDIATE`, `CHECKPOINT`, `RETURN_ARM`을 제공합니다.
+취소 수락 후에도 이전 동작의 종료와 정지 확인을 기다립니다.
+`RETURN_ARM`은 정지 확인 뒤 필요하면 현재 위치에서 그리퍼를 열고, 실행 시작 때 저장한 팔 자세로 복귀합니다.
+모드별 절차와 제한은 [상세 취소 계약](docs/execution-contract.md#취소)을 따릅니다.
 
 ### 정상 수거의 놓기·정지 확인
 
-독립 안착 평가와 새 관절 샘플로 확인하며, 명령 성공이나 취소 응답만으로 정지를 인정하지 않는다.
-평가기의 `false`는 제한 시간 안의 확인 대기이며, 확인 기한을 넘기면 `UNKNOWN / VERIFICATION_TIMEOUT`이다.
-`arm_recovered=true`는 실행 시작 자세로의 복귀 근거다. 모바일 베이스의 주행 허가는 별도 readiness 계약이 필요하다.
-판정 조건과 설정은 [놓기·정지 확인](docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
+독립 안착 평가와 새 관절 샘플로 확인하며, 명령 성공이나 취소 응답만으로 정지를 인정하지 않습니다.
+평가기의 `false`는 제한 시간 안의 확인 대기이며, 확인 기한을 넘기면 `UNKNOWN / VERIFICATION_TIMEOUT`입니다.
+`arm_recovered=true`는 실행 시작 자세로의 복귀 근거입니다. 모바일 베이스의 주행 허가는 별도 readiness 계약이 필요합니다.
+판정 조건과 설정은 [놓기·정지 확인](docs/execution-contract.md#정상-수거의-놓기정지-확인)을 따릅니다.
 
 ### 예상하지 못한 실행 예외
 
-프로그램 오류는 `INTERNAL_ERROR`로 기록하고 별도 종료 경로에서 정지를 확인한다.
-정지 처리와 최종 결과는 [실행 예외 계약](docs/execution_contract.md#예상하지-못한-실행-예외)을 따른다.
+프로그램 오류는 `INTERNAL_ERROR`로 기록하고 별도 종료 경로에서 정지를 확인합니다.
+정지 처리와 최종 결과는 [실행 예외 계약](docs/execution-contract.md#예상하지-못한-실행-예외)을 따릅니다.
 
 ## 기록과 모니터
 
@@ -201,7 +201,7 @@ flowchart LR
 
 ### Live 모니터
 
-VS Code BehaviorTree Viewer 0.1.2의 **Monitor**를 사용한다.
+VS Code BehaviorTree Viewer 0.1.2의 **Monitor**를 사용합니다.
 
 | 서버 | 기본 주소 | 표시 근거 |
 |---|---|---|
@@ -209,21 +209,21 @@ VS Code BehaviorTree Viewer 0.1.2의 **Monitor**를 사용한다.
 | Mock | `127.0.0.1:1666` | 모의 실행 이벤트를 설계 XML에 투영 |
 
 1. VS Code workspace 설정에 `behaviortreeViewer.monitorHost=127.0.0.1`,
-   `behaviortreeViewer.monitorPort=1667`을 지정한다.
-2. 기존 Monitor 연결을 끈 뒤 다시 켠다. 파일명에 `(live)`와 `Monitoring active`가 표시되면 연결된 상태다.
-3. [실행](#실행)의 관찰 요청과 Goal 전송을 수행한다. Goal 전송 전에는 모든 노드가 IDLE이다.
+   `behaviortreeViewer.monitorPort=1667`을 지정합니다.
+2. 기존 Monitor 연결을 끈 뒤 다시 켭니다. 파일명에 `(live)`와 `Monitoring active`가 표시되면 연결된 상태입니다.
+3. [실행](#실행)의 관찰 요청과 Goal 전송을 수행합니다. Goal 전송 전에는 모든 노드가 IDLE입니다.
 
-MuJoCo 포트는 `bt_monitor_port`로 변경한다. 뷰어의 기본 포트는 1666이므로 MuJoCo 주소를 지정해야 한다.
-모니터는 FULLTREE/STATUS를 제공한다. 트리 구조 XML은 실행기 생성 시 한 번 보관하고,
-모니터 조회마다 실제 노드 상태를 읽는다. 로봇 명령이나 blackboard 변경 기능은 제공하지 않는다.
+MuJoCo 포트는 `bt_monitor_port`로 변경합니다. 뷰어의 기본 포트는 1666이므로 MuJoCo 주소를 지정해야 합니다.
+모니터는 FULLTREE/STATUS를 제공합니다. 트리 구조 XML은 실행기 생성 시 한 번 보관하고,
+모니터 조회마다 실제 노드 상태를 읽습니다. 로봇 명령이나 blackboard 변경 기능은 제공하지 않습니다.
 
-실행 종료 후 native BT가 노드를 IDLE로 reset하면 진행 색도 정리된다.
-뷰어 0.1.2는 전체 IDLE 상태가 1.5초 이어지면 표시를 흐리게 한다.
-종료 결과는 조회 서비스에, 상태 전환 이력은 ROS/SQLite에 남는다.
+실행 종료 후 native BT가 노드를 IDLE로 reset하면 진행 색도 정리됩니다.
+뷰어 0.1.2는 전체 IDLE 상태가 1.5초 이어지면 표시를 흐리게 합니다.
+종료 결과는 조회 서비스에, 상태 전환 이력은 ROS/SQLite에 남습니다.
 
 ### 실행 설정
 
 [config/manipulation_mujoco.yaml](config/manipulation_mujoco.yaml)의 ROS parameter로
 동작 상한(180초), 단계별 안착 확인(10초), 정지 평가(10초), 피드백/시계 신선도(2초)와
-지원 label을 조정한다. 이 수치는 첫 시뮬레이션 구현의 조정 가능한 기본값이다.
-전체 물체 수거 성공률이나 실제 하드웨어에 대한 보장을 뜻하지 않는다.
+지원 label을 조정합니다. 이 수치는 첫 시뮬레이션 구현의 조정 가능한 기본값입니다.
+전체 물체 수거 성공률이나 실제 하드웨어에 대한 보장을 뜻하지 않습니다.

@@ -1,6 +1,6 @@
 # Logger 기록 데이터 계약
 
-Logger가 ROS 구독, 가공과 저장을 소유한다. Monitor는 실시간 표시 / 제어 client와 과거 자료를 읽는 HTTP adapter다. 실행은 [런타임](runtime.md), endpoint는 [인터페이스](interfaces.md)를 따른다.
+Logger가 ROS 구독, 가공과 저장을 소유합니다. Monitor는 실시간 표시 / 제어 client와 과거 자료를 읽는 HTTP adapter입니다. 실행은 [런타임](runtime.md), endpoint는 [인터페이스](interfaces.md)를 따릅니다.
 
 ```mermaid
 flowchart LR
@@ -13,24 +13,24 @@ flowchart LR
     Reader --> Monitor["Monitor HTTP / 재생"]
 ```
 
-Logger는 Monitor, aiohttp, preview 디코더와 Mission Runtime을 import하지 않는다. Rosbag2는 첫 원본 쓰기에 로드하며 저장 API와 과거 조회는 ROS 없이 사용 가능하다. 작업 성공 판정과 MissionJournal 복구 소유권은 생산자 / Mission Runtime에 남는다.
+Logger는 Monitor, aiohttp, preview 디코더와 Mission Runtime을 import하지 않습니다. Rosbag2는 첫 원본 쓰기에 로드하며 저장 API와 과거 조회는 ROS 없이 사용 가능합니다. 작업 성공 판정과 MissionJournal 복구 소유권은 생산자 / Mission Runtime에 남습니다.
 
 ## 생산자와 저장 소유권
 
 | API | 입력과 계약 |
 |---|---|
-| `ObservationBuffer.put` | 가공 관측의 수신 wall 시각을 초 단위 `received_at`으로 전달할 수 있다. 생략하면 현재 wall 시각을 사용한다. |
-| `RecordingControls` | 항목, 주기, 출처와 원본 큐를 관리한다. `reserve`로 얻은 ticket을 `offer`에 전달한다. |
-| `RawMessage` | 토픽, 메시지 타입, 변경하지 않은 CDR bytes, 수신 wall 초, 선택적 ROS stamp 초와 정수 수신 ROS timestamp ns를 전달한다. |
-| `Recorder.append(snapshot)` | `sequence`, `rows`, 선택적 `gap`이 있는 snapshot을 기록한다. 각 row는 `seq`, `kind`, `key`, `data`, `received_at`을 포함한다. |
-| `Recorder.append_raw()` | 제어 큐를 비우고 rosbag2에 쓰며 SQLite에는 원본 위치만 남긴다. |
-| `Recorder.restore_settings(config)` | 저장된 정책을 현재 출처와 함께 검증해 복원한다. 없거나 읽을 수 없는 설정은 기본값을 유지한다. |
-| `Recorder.persist_settings(settings)` | 검증한 정책을 임시 파일, fsync와 rename으로 원자적으로 저장한다. |
-| `Recorder.start_session()` | 이전 writer를 종료하고 현재 한도와 같은 controls, bag factory로 새 UUID 세션을 연다. |
-| `Recorder.close()` | bag을 종료하고 SQLite를 commit한 뒤 닫는다. |
-| `export_sqlite`, `export_bag` | 가공 DB의 일관된 backup과 종료된 native bag ZIP을 만든다. HTTP 응답과 임시 파일 수명은 adapter가 소유한다. |
-| `ArchiveReader(directory)` | 경로만 보관하며 디렉터리, 설정 파일과 세션을 생성하지 않는다. |
-| `ArchiveReader.sessions`, `replay`, `raw_message`, `navigation_runs` | 세션 metadata, 시각별 가공 관측, CDR 한 건과 제한된 주행 요약을 읽는다. |
+| `ObservationBuffer.put` | 가공 관측의 수신 wall 시각을 초 단위 `received_at`으로 전달할 수 있습니다. 생략하면 현재 wall 시각을 사용합니다. |
+| `RecordingControls` | 항목, 주기, 출처와 원본 큐를 관리합니다. `reserve`로 얻은 ticket을 `offer`에 전달합니다. |
+| `RawMessage` | 토픽, 메시지 타입, 변경하지 않은 CDR bytes, 수신 wall 초, 선택적 ROS stamp 초와 정수 수신 ROS 측정 시각 ns를 전달합니다. |
+| `Recorder.append(snapshot)` | `sequence`, `rows`, 선택적 `gap`이 있는 snapshot을 기록합니다. 각 row는 `seq`, `kind`, `key`, `data`, `received_at`을 포함합니다. |
+| `Recorder.append_raw()` | 제어 큐를 비우고 rosbag2에 쓰며 SQLite에는 원본 위치만 남깁니다. |
+| `Recorder.restore_settings(config)` | 저장된 정책을 현재 출처와 함께 검증해 복원합니다. 없거나 읽을 수 없는 설정은 기본값을 유지합니다. |
+| `Recorder.persist_settings(settings)` | 검증한 정책을 임시 파일, fsync와 rename으로 원자적으로 저장합니다. |
+| `Recorder.start_session()` | 이전 writer를 종료하고 현재 한도와 같은 controls, bag factory로 새 UUID 세션을 엽니다. |
+| `Recorder.close()` | bag을 종료하고 SQLite를 commit한 뒤 닫습니다. |
+| `export_sqlite`, `export_bag` | 가공 DB의 일관된 backup과 종료된 native bag ZIP을 만듭니다. HTTP 응답과 임시 파일 수명은 adapter가 소유합니다. |
+| `ArchiveReader(directory)` | 경로만 보관하며 디렉터리, 설정 파일과 세션을 생성하지 않습니다. |
+| `ArchiveReader.sessions`, `replay`, `raw_message`, `navigation_runs` | 세션 metadata, 시각별 가공 관측, CDR 한 건과 제한된 주행 요약을 읽습니다. |
 
 | 생산자 row 필드 | 계약 |
 |---|---|
@@ -51,7 +51,7 @@ sequenceDiagram
     P->>W: 새 초기 snapshot
 ```
 
-Recorder와 SQLite 연결의 쓰기·종료는 같은 worker thread에서 수행한다. ROS callback은 RecordingControls만 사용한다. [Monitor 계약](../../cleany_dev_monitor/docs/data.md)은 별도다.
+Recorder와 SQLite 연결의 쓰기·종료는 같은 worker thread에서 수행합니다. ROS 콜백은 RecordingControls만 사용합니다. [Monitor 계약](../../cleany_dev_monitor/docs/data.md)은 별도입니다.
 
 ## 저장 형식과 시간
 
@@ -60,15 +60,15 @@ Recorder와 SQLite 연결의 쓰기·종료는 같은 worker thread에서 수행
 | 선택한 센서 / TF / 시계 / CameraInfo / 로봇 모델 문맥 | `bags/<session>/` 표준 sqlite3 storage |
 | Marker / Cartographer / OccupancyGrid / SLAM matched-point | `bags/<session>/diagnostics/` 별도 bag |
 | 화면 레이어 / Mission / BT / 안전 상태 / 로그 / 리소스 | `<session>.sqlite3` |
-| 원본 토픽 / 타입 / 수신 시각 / bag timestamp | SQLite raw_index; payload 없음 |
+| 원본 토픽 / 타입 / 수신 시각 / bag 측정 시각 | SQLite raw_index; payload 없음 |
 | 기록 정책 | recording-settings.json |
 
-기본 state_directory는 `~/.local/state/cleany/recordings`다. `-p state_directory:=/absolute/path`로 바꾼다. 기존 기록은 자동 삭제하지 않는다.
+기본 state_directory는 `~/.local/state/cleany/recordings`입니다. `-p state_directory:=/absolute/path`로 바꿉니다. 기존 기록은 자동 삭제하지 않습니다.
 
 | 시간 / 호환성 | 계약 |
 |---|---|
 | 재생 축 | 수신 wall 초; 원본 ROS stamp와 monotonic도 보존 |
-| Bag timestamp | 수신 ROS clock ns; 같은 시각 메시지도 수신 순서로 구분 |
+| Bag 측정 시각 | 수신 ROS clock ns; 같은 시각 메시지도 수신 순서로 구분 |
 | ROS clock 역행 / 정체 | 이벤트와 수신 지연으로 표시 |
 | Host wall 역행 | 정밀 재생 미지원 |
 | 과거 SQLite schema 1/2/3 | 수정 / 자동 변환 없이 읽기 유지 |
@@ -95,7 +95,7 @@ stateDiagram-v2
     recording --> incomplete: 원본 쓰기 미완료
 ```
 
-완료된 bag만 ZIP으로 내보내며 상위 bag과 diagnostics를 함께 포함한다. 상위 bag만 재생하면 진단 토픽은 없다. 과거 단일 bag도 같은 원본 조회 API로 읽는다.
+완료된 bag만 ZIP으로 내보내며 상위 bag과 diagnostics를 함께 포함합니다. 상위 bag만 재생하면 진단 토픽은 없습니다. 과거 단일 bag도 같은 원본 조회 API로 읽습니다.
 
 ### 구독 독립성
 
@@ -106,13 +106,13 @@ stateDiagram-v2
 | TF / 시계 / CameraInfo | Hz 표본화로 누락시키지 않고 수신마다 기록 |
 | 설정 변경 / 새 세션 | Transient-local 구독 재생성으로 retained 자료 요청 |
 
-선택·표본화한 기록이며 전체 ROS 그래프의 무손실 녹화는 아니다. 연속 센서 bag은 [매핑 원본 수집](../../../../docs/implementation/how-to/mapping.md#오프라인-slam-비교용-원본-bag)을 따른다.
+선택·표본화한 기록이며 전체 ROS 그래프의 무손실 녹화는 아닙니다. 연속 센서 bag은 [매핑 원본 수집](../../../../docs/implementation/how-to/mapping.md#오프라인-slam-비교용-원본-bag)을 따릅니다.
 
 ## 조작 이력
 
 | 항목 | 계약 |
 |---|---|
-| 집계 키 / 시간 | Execution record revision과 서버 wall timestamp |
+| 집계 키 / 시간 | Execution record revision과 서버 wall 측정 시각 |
 | 소유 | Logger / Monitor 각각 독립 집계 |
 | 기본 보존 | 최근 20개 실행, 실행당 64구간 |
 | 누락 표현 | 늦은 구독, revision 누락, 시각 역행 구분 |
@@ -142,4 +142,4 @@ stateDiagram-v2
 | slip_topic | /navigation/slip String, 5 Hz |
 | traction_recovery_topic | /navigation/traction_recovery String, 수신 이벤트 |
 
-정합 점수·이유·속도 제한·복구 진행은 원본으로 저장하며 복구 지도 / 후보 파일은 실행의 runtime/localization/에 둔다. Slip 출처도 개별 변경·제외와 동일 용량 정책을 적용한다. [슬립 분석 문맥](../../cleany_navigation/docs/interfaces.md#슬립-관측의-분석-문맥)을 참고한다.
+정합 점수·이유·속도 제한·복구 진행은 원본으로 저장하며 복구 지도 / 후보 파일은 실행의 runtime/localization/에 둡니다. Slip 출처도 개별 변경·제외와 동일 용량 정책을 적용합니다. [슬립 분석 문맥](../../cleany_navigation/docs/interfaces.md#슬립-관측의-분석-문맥)을 참고합니다.

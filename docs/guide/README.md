@@ -12,7 +12,7 @@ flowchart TD
 
 ## 처음 시작한다면
 
-변수, 함수, `if`를 본 적이 있으면 시작할 수 있습니다. Python의 클래스나 ROS는 본문에서 필요한 만큼 설명합니다. 첫 실습은 Python 3.10 이상과 Mission 의존성 `py_trees`가 필요합니다. 준비한 Humble 환경에서 실행하며 ROS node나 실제 로봇을 시작하지 않습니다.
+변수, 함수, `if`를 본 적이 있으면 시작할 수 있습니다. Python의 클래스나 ROS는 본문에서 필요한 만큼 설명합니다. 첫 실습은 Python 3.10 이상과 Mission 의존성 `py_trees`가 필요합니다. 준비한 Humble 환경에서 실행하며 ROS 노드나 실제 로봇을 시작하지 않습니다.
 
 1. [시스템 아키텍처](chapters/01-code-map.md)를 읽습니다.
 2. [Mission Core와 Mock](chapters/02-first-mission.md)을 실행합니다.
@@ -57,8 +57,8 @@ python3 docs/guide/build_standalone.py
 | 자료 | 확인할 내용 |
 | --- | --- |
 | [기획 KB](../cleany-docs/README.md) | 목표, 설계, 결정 이유 |
-| [개발환경 설치](../implementation/development_setup.md) | Ubuntu와 ROS 설치 |
-| [ROS workspace 안내](../implementation/development_setup.md), 패키지 README | 현재 설정, 실행 조건, 검증 명령 |
+| [개발환경 설치](../implementation/development-setup.md) | Ubuntu와 ROS 설치 |
+| [ROS workspace 안내](../implementation/development-setup.md), 패키지 README | 현재 설정, 실행 조건, 검증 명령 |
 | 이 가이드 | 개념의 의미와 구현을 따라 읽는 순서 |
 
 본문의 **구현**은 소스가 있다는 뜻입니다. **모의 실습**은 정해진 응답으로 순수 코드를 실행한다는 뜻입니다. **시뮬레이션 데모**는 가상 로봇 실행 경로가 있다는 뜻입니다. 어느 것도 그 자체로 실물 수거 성공을 뜻하지 않습니다. 실제 로봇 실행은 이 입문서의 실습 범위에 포함하지 않습니다.
@@ -66,6 +66,8 @@ python3 docs/guide/build_standalone.py
 ## 문서를 이어서 쓰는 팀원에게
 
 각 장은 주제에 맞는 순서로 설명합니다. 기초 개념, 실제 코드와 데이터 흐름, 작은 실습을 필요한 위치에서 연결하되 모든 장을 같은 흐름에 맞추지는 않습니다. 전체 파일을 복사하는 대신 핵심 함수와 원본 파일을 연결합니다. 실행 실습에는 준비 조건과 관찰할 결과를 적고, 미구현 부분에는 현재 경계를 표시합니다.
+
+본문은 `~합니다`로 작성하고 개념의 첫 등장에서는 한국어와 원어를 연결합니다. 실행 설정과 인터페이스 수치는 담당 구현 문서로 연결합니다. 학습용 축약 예제는 현재 설정과 구분하고, 실제 코드 발췌는 원본과 대조합니다.
 
 장이나 번호가 붙은 H2 절을 추가·수정하면 `guide.json`의 제목과 `sections`도 함께 갱신합니다. 절의 `id`는 뷰어가 생성하는 제목 앵커와 맞춰야 합니다. 새 장은 이 목차에도 추가합니다. 변경 후 `build_standalone.py`를 실행하고 생성된 `index.html`도 함께 커밋합니다. 담당자가 구현 사실을 확인하고, 다른 영역 팀원이 실습과 설명을 읽어보면 좋습니다. SVG·이미지 자산은 `assets/`, 외부 자료의 원본과 이용 조건은 [그림과 영상 출처](assets/README.md), 브라우저 라이브러리와 라이선스는 [vendor](vendor/README.md)에 있습니다.
 

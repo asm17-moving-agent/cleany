@@ -1,6 +1,6 @@
 # Navigation 안전 계약
 
-기본 full runtime은 Nav2 속도를 pan gate, Collision Monitor, voxel guard 순서로 검사한다. 모든 단계가 기본 활성화이며, 최종 cmd_vel publisher는 voxel guard 하나다. 속도는 Twist x/y/yaw를 사용한다.
+기본 full runtime은 Nav2 속도를 pan gate, Collision Monitor, voxel guard 순서로 검사합니다. 모든 단계가 기본 활성화이며, 최종 cmd_vel publisher는 voxel guard 하나입니다. 속도는 Twist x/y/yaw를 사용합니다.
 
 ```mermaid
 flowchart TB
@@ -18,23 +18,23 @@ flowchart TB
 
 | 입력 | 계약 |
 |---|---|
-| scan | LaserScan, LiDAR frame, ROS stamp |
+| scan | LaserScan, LiDAR 좌표계, ROS stamp |
 | odom | child=base_link, 측정 x/y/yaw 속도 |
 | joint_states | head_pan_joint position/velocity, 유효 stamp |
 | Depth image | Rectified 32FC1(m)/16UC1(mm); 0/NaN/-Inf는 관측 없음 |
-| CameraInfo | Image와 동일 크기, optical frame, 유효 K/monocular P, D=0 |
+| CameraInfo | Image와 동일 크기, optical 좌표계, 유효 K/monocular P, D=0 |
 | Backend TF | odom→base_link, base→LiDAR/head/optical |
 | AMCL TF | map→odom |
 
 ## Depth 처리
 
-Depth는 capture stamp의 TF로 변환한다. TF/calibration이 없으면 cloud를 발행하지 않는다. 자기 필터는 park 팔, 고정 몸체, 기둥을 통과하는 ray와 레일 뒤 경계 픽셀을 제거한다. 평행 ray, 표면 접촉, 센서가 몸체 내부인 경우도 보수적으로 판정한다.
+Depth는 capture stamp의 TF로 변환합니다. TF/calibration이 없으면 cloud를 발행하지 않습니다. 자기 필터는 park 팔, 고정 몸체, 기둥을 통과하는 ray와 레일 뒤 경계 픽셀을 제거합니다. 평행 ray, 표면 접촉, 센서가 몸체 내부인 경우도 보수적으로 판정합니다.
 
-회전 head는 정적 자기 필터 대상이 아니며 가려진 ray를 free-space로 처리하지 않는다. 기본 margin은 1 mm이며, 실물 보정 오차에 맞춘 별도 검증이 필요하다.
+회전 head는 정적 자기 필터 대상이 아니며 가려진 ray를 free-space로 처리하지 않습니다. 기본 margin은 1 mm이며, 실물 보정 오차에 맞춘 별도 검증이 필요합니다.
 
 ## Pan과 이동
 
-Pan gate는 head_pan/command Float64를 발행하고 TF를 소유하지 않는다. Backend의 actuator adapter와 실측 feedback이 필요하다. 같은 방위각의 범위 내 위치 중 현재 pan에 가장 가까운 값을 선택하며 목표를 clipping하지 않는다.
+Pan gate는 head_pan/command Float64를 발행하고 TF를 소유하지 않습니다. Backend의 actuator adapter와 실측 feedback이 필요합니다. 같은 방위각의 범위 내 위치 중 현재 pan에 가장 가까운 값을 선택하며 목표를 clipping하지 않습니다.
 
 | 설정 / 모드 | 동작 |
 |---|---|
@@ -48,7 +48,7 @@ Pan gate는 head_pan/command Float64를 발행하고 TF를 소유하지 않는�
 
 ## 차단과 적용 한계
 
-Voxel guard는 몸체 OBB와 예측 제동 sweep를 검사한다. 요청 속도가 0이어도 측정된 관성 이동은 검사한다. Pan/voxel은 steady timer를 사용해 `/clock` 중단 중에도 정지 출력을 유지한다.
+Voxel guard는 몸체 OBB와 예측 제동 sweep를 검사합니다. 요청 속도가 0이어도 측정된 관성 이동은 검사합니다. Pan/voxel은 steady timer를 사용해 `/clock` 중단 중에도 정지 출력을 유지합니다.
 
 | 조건 | 처리 |
 |---|---|
@@ -56,11 +56,11 @@ Voxel guard는 몸체 OBB와 예측 제동 sweep를 검사한다. 요청 속도�
 | 필수 입력 단절, stale/future stamp, TF 누락 | 최종 속도 0 |
 | Localization jump, voxel freeze, 계산 초과 | 최종 속도 0 |
 
-몸체 검사는 설정된 park posture를 가정한다. 실시간 팔 FK 감시, 자세 유지는 미구현이며, 관측하지 않은 공간의 안전을 보장하지 않는다. 물리 E-stop, driver watchdog, 실측 제동은 로봇 통합에서 별도 검증한다.
+몸체 검사는 설정된 park posture를 가정합니다. 실시간 팔 FK 감시, 자세 유지는 미구현이며, 관측하지 않은 공간의 안전을 보장하지 않습니다. 물리 E-stop, driver watchdog, 실측 제동은 로봇 통합에서 별도 검증합니다.
 
 ## Memory와 진단
 
-Global/local costmap은 obstacle_memory/grid를 max 병합한다. Voxel을 사용하려면 memory가 필요하다. Pan/memory/voxel을 비활성화하면 그에 맞춰 속도 경로가 바뀐다.
+Global/local costmap은 obstacle_memory/grid를 max 병합합니다. Voxel을 사용하려면 memory가 필요합니다. Pan/memory/voxel을 비활성화하면 그에 맞춰 속도 경로가 바뀝니다.
 
 | 항목 | 위치 / 동작 |
 |---|---|

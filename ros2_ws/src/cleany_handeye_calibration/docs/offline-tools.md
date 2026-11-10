@@ -1,6 +1,6 @@
 # Hand-eye 수집과 오프라인 평가
 
-왼손목 eye-in-hand 보정의 수집 adapter, 데이터 검증과 solver를 제공한다. 결과는 검토용 후보이며 TF를 발행하거나 보정 프로필에 자동 적용하지 않는다. 이 패키지는 simulator launch를 제공하지 않으므로 카메라와 motion backend는 별도로 구성한다.
+왼손목 eye-in-hand 보정의 수집 adapter, 데이터 검증과 solver를 제공합니다. 결과는 검토용 후보이며 TF를 발행하거나 보정 프로필에 자동 적용하지 않습니다. 이 패키지는 시뮬레이터 launch를 제공하지 않으므로 카메라와 motion backend는 별도로 구성합니다.
 
 | 하려는 일 | 먼저 읽을 곳 |
 |---|---|
@@ -25,7 +25,7 @@ flowchart LR
 
 ## Transform convention
 
-`RigidTransform(parent_frame, child_frame, ...)`는 child 좌표를 parent 좌표로 옮기는 `parent_T_child`다. 합성 전에 frame 이름을 검사한다.
+`RigidTransform(parent_frame, child_frame, ...)`는 child 좌표를 parent 좌표로 옮기는 `parent_T_child`입니다. 합성 전에 좌표계 이름을 검사합니다.
 
 `base_T_gripper @ gripper_T_camera @ camera_T_target = base_T_target`
 
@@ -36,11 +36,11 @@ flowchart LR
 | `gripper_T_camera` | 미지 보정값 ← `R_cam2gripper`, `t_cam2gripper` |
 | `base_T_target` | 고정 표적 관계, held-out 비교 |
 
-단위는 m, rad, 정수 ns이고 quaternion은 ROS xyzw 순서다. 회전 행렬은 모든 값이 유한하고 `||R^T R − I||_F ≤ 1e-6`, `|det(R) − 1| ≤ 1e-6`이어야 한다.
+단위는 m, rad, 정수 ns이고 quaternion은 ROS xyzw 순서입니다. 회전 행렬은 모든 값이 유한하고 `||R^T R − I||_F ≤ 1e-6`, `|det(R) − 1| ≤ 1e-6`이어야 합니다.
 
 ## Single-pose orchestration
 
-`SinglePoseOrchestrator`는 다음 9단계를 재시도 없이 수행한다.
+`SinglePoseOrchestrator`는 다음 9단계를 재시도 없이 수행합니다.
 
 ```mermaid
 flowchart TD
@@ -51,10 +51,10 @@ flowchart TD
   FK --> Record["9. RECORD_SAMPLE"]
 ```
 
-1. `config/single_pose_request.template.json`을 복사하고 실행 입력을 채운다. `null`인 미결정 값은 실행 가능한 기본값이 아니다.
-2. 절대 artifact 경로, pose, hash/version, soft limit, clearance 근거, right-park 허용치와 각 단계 timeout을 지정한다.
-3. 별도로 준비한 카메라와 motion backend에서 수집한다. 성공한 PLAN/EXECUTE만으로 촬영을 허가하지 않는다.
-4. `orchestration.jsonl`에서 시작·성공·실패 단계와 이유를 확인한다. 실패 이후 단계의 부작용은 실행하지 않는다.
+1. `config/single_pose_request.template.json`을 복사하고 실행 입력을 채웁니다. `null`인 미결정 값은 실행 가능한 기본값이 아닙니다.
+2. 절대 artifact 경로, pose, hash/version, soft limit, clearance 근거, right-park 허용치와 각 단계 timeout을 지정합니다.
+3. 별도로 준비한 카메라와 motion backend에서 수집합니다. 성공한 PLAN/EXECUTE만으로 촬영을 허가하지 않습니다.
+4. `orchestration.jsonl`에서 시작·성공·실패 단계와 이유를 확인합니다. 실패 이후 단계의 부작용은 실행하지 않습니다.
 
 | 사전 조건 | 의미 |
 |---|---|
@@ -63,11 +63,11 @@ flowchart TD
 | 안전 수치 | 승인되지 않은 production 기본값을 제공하지 않음 |
 | simulation fixture | clearance 0.146088 m, 요구 margin 0.10 m, pose 일치 1e-4 rad; 현재 모델과 회귀 검사 |
 
-위 fixture 수치는 실물 허용값이 아니다. 수집 root는 소스 트리 밖의 실행별 디렉터리를 사용한다.
+위 fixture 수치는 실물 허용값이 아닙니다. 수집 root는 소스 트리 밖의 실행별 디렉터리를 사용합니다.
 
 ## Camera acquisition and dataset artifacts
 
-`RosExactCameraPairAdapter`는 ROS 메시지를 독립된 bounded buffer로 복사하고 **settle 완료보다 늦은** 가장 이른 호환 영상을 선택한다.
+`RosExactCameraPairAdapter`는 ROS 메시지를 독립된 bounded buffer로 복사하고 **settle 완료보다 늦은** 가장 이른 호환 영상을 선택합니다.
 
 | fixture 입력 | 조건 |
 |---|---|
@@ -78,7 +78,7 @@ flowchart TD
 | P | K와 같은 focal/principal point, translation 0 |
 | 촬영 대기 | 명시 buffer 크기, monotonic wall deadline; ROS clock 정지에도 만료 |
 
-Focal length는 vertical FOV 93°의 `fy = height / (2 tan(FOV/2))`다. 다른 카메라 입력을 이 fixture 값으로 덮어쓰지 않는다.
+Focal length는 vertical FOV 93°의 `fy = height / (2 tan(FOV/2))`입니다. 다른 카메라 입력을 이 fixture 값으로 덮어쓰지 않습니다.
 
 ```text
 <run_id>/
@@ -95,17 +95,17 @@ Focal length는 vertical FOV 93°의 `fy = height / (2 tan(FOV/2))`다. 다른 �
 | 표본 | canonical 12관절, 왼팔 seed/해 5관절, 정확한 image/info stamp, 보간 전후 stamp와 비율 |
 | 추정 입력 | FK/PnP 변환, 순서 있는 ChArUco 대응점, K/D/R/P 원본과 SHA256 |
 
-`DatasetWriter`는 PNG fsync/rename → journal fsync → 전체 JSONL fsync/rename 순서로 쓴다. 재개 시 유효 journal을 replay하고 journal 이전의 미참조 이미지를 정리하며 row/image/camera/manifest hash를 검사한다. 이미지 없는 row를 완료 표본으로 만들지 않는다. ID의 경로 이탈과 dataset/image symlink는 거부하고 URDF/Xacro나 보정 프로필을 수정하지 않는다.
+`DatasetWriter`는 PNG fsync/rename → journal fsync → 전체 JSONL fsync/rename 순서로 씁니다. 재개 시 유효 journal을 replay하고 journal 이전의 미참조 이미지를 정리하며 row/image/camera/manifest hash를 검사합니다. 이미지 없는 row를 완료 표본으로 만들지 않습니다. ID의 경로 이탈과 dataset/image symlink는 거부하고 URDF/Xacro나 보정 프로필을 수정하지 않습니다.
 
 ## Pose sets and dataset validation
 
-`pose_generation.py`는 호출자가 제공한 후보 근거로 결정적으로 선택한다. `pose_manifest.py`와 `pose_run.py`는 새 실행의 20 calibration + 5 held-out 구성을 관리한다. Single/multi-pose ROS node는 별도 backend에 연결하며 multi-pose 취소는 `std_srvs/Trigger`를 사용한다.
+`pose_generation.py`는 호출자가 제공한 후보 근거로 결정적으로 선택합니다. `pose_manifest.py`와 `pose_run.py`는 새 실행의 20 calibration + 5 held-out 구성을 관리합니다. Single/multi-pose ROS 노드는 별도 backend에 연결하며 multi-pose 취소는 `std_srvs/Trigger`를 사용합니다.
 
 ```bash
 ros2 run cleany_handeye_calibration validate_handeye_dataset --help
 ```
 
-검증에는 sample, pose manifest, runtime config, URDF, 평가 전용 ground truth, translation bound와 출력 인자가 필요하다. 검증 통과가 보정 적용을 뜻하지 않는다.
+검증에는 sample, pose manifest, runtime config, URDF, 평가 전용 ground truth, translation bound와 출력 인자가 필요합니다. 검증 통과가 보정 적용을 뜻하지 않습니다.
 
 ## Offline solver and timestamp evaluation
 
@@ -119,7 +119,7 @@ ros2 run cleany_handeye_calibration validate_handeye_dataset --help
 | continuous observation JSONL | 실제 연속 joint/image 관측. 정지 표본 전후 stamp로 합성하지 않음 |
 | `evaluation.yaml` | 검토한 translation validity bound와 timing 설정 |
 
-`config/evaluation.template.yaml`의 미결정 값을 검토하여 채운 뒤 실행한다.
+`config/evaluation.template.yaml`의 미결정 값을 검토하여 채운 뒤 실행합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -141,7 +141,7 @@ ros2 run cleany_handeye_calibration evaluate_handeye \
 | nominal | 0.5 px | 0.05° |
 | stress | 1.0 px | 0.10° |
 
-5 solver × 3 조건 × 기록된 seed 10개 = 150회다. 같은 조건/seed의 solver들은 동일한 hash의 PCG64 noise를 받는다. Pixel noise는 원본 ChArUco 점에 적용한 뒤 PnP를, joint noise는 왼팔 5관절에 적용한 뒤 FK를 다시 계산한다. 최종 변환이나 GT를 직접 흔들지 않는다.
+5 solver × 3 조건 × 기록된 seed 10개 = 150회입니다. 같은 조건/seed의 solver들은 동일한 hash의 PCG64 noise를 받습니다. Pixel noise는 원본 ChArUco 점에 적용한 뒤 PnP를, joint noise는 왼팔 5관절에 적용한 뒤 FK를 다시 계산합니다. 최종 변환이나 GT를 직접 흔들지 않습니다.
 
 | 출력 | 읽는 방법 |
 |---|---|
@@ -149,11 +149,11 @@ ros2 run cleany_handeye_calibration evaluate_handeye \
 | `solver_results.csv` | 150개 결과 전체; 실패를 빼고 성공률을 계산하지 않음 |
 | `metrics.yaml` | 유효율, 위치/회전 median·linear P95, held-out 일관성, runtime |
 | `candidate_transform.yaml` | `candidate_not_applied`; 자동 적용하지 않음 |
-| `timestamp_sensitivity.csv` | 선택한 한 solver의 연속 관측 timestamp offset 민감도 |
+| `timestamp_sensitivity.csv` | 선택한 한 solver의 연속 관측 측정 시각 offset 민감도 |
 
-유효율 0.95 미만 method는 제외한다. 네 정확도 지표의 Pareto 비교 후 held-out 일관성을 사용하고 우열이 교차하면 `review_required`다. 선택 변환은 첫 기록 seed의 clean ideal 결과다. 후보 적용은 사람이 검토한다.
+유효율 0.95 미만 method는 제외합니다. 네 정확도 지표의 Pareto 비교 후 held-out 일관성을 사용하고 우열이 교차하면 `review_required`입니다. 선택 변환은 첫 기록 seed의 clean ideal 결과입니다. 후보 적용은 사람이 검토합니다.
 
-Continuous JSONL의 `joint_state`에는 stamp, canonical 12개 이름/위치와 선택적 속도를, `image_observation`에는 별도 sample/pose ID, image stamp와 PnP 변환을 기록한다. `image_stamp_ns + offset_ns`에서 보간하고 URDF FK를 다시 계산한다.
+Continuous JSONL의 `joint_state`에는 stamp, canonical 12개 이름/위치와 선택적 속도를, `image_observation`에는 별도 sample/pose ID, image stamp와 PnP 변환을 기록합니다. `image_stamp_ns + offset_ns`에서 보간하고 URDF FK를 다시 계산합니다.
 
 ## Planar ChArUco and PnP contract
 
@@ -167,17 +167,17 @@ Continuous JSONL의 `joint_state`에는 stamp, canonical 12개 이름/위치와 
 | 후보 검사 | finite, 모든 표적의 camera Z 양수 → 후보별 VVS refine → cheirality와 전체점 RMSE 재검사 |
 | 모호성 | 두 RMSE 모두 ≤1e-12 px 또는 best가 그보다 크고 second/best <1.05이면 `ambiguous_pnp` |
 
-확대 검출은 corner gate를 완화하지 않는다. Raw/refined 변환, 최소 depth와 실패 이유를 보존한다. 정답 정보는 검출과 후보 선택에 사용하지 않는다.
+확대 검출은 corner gate를 완화하지 않습니다. Raw/refined 변환, 최소 depth와 실패 이유를 보존합니다. 정답 정보는 검출과 후보 선택에 사용하지 않습니다.
 
 ## Hand-eye solver and metrics
 
-Tsai, Park, Horaud, Andreff, Daniilidis는 동일한 검증 표본의 복사본을 받는다. 한 method의 예외/무효 변환은 다른 method를 중단시키지 않는다.
+Tsai, Park, Horaud, Andreff, Daniilidis는 동일한 검증 표본의 복사본을 받습니다. 한 method의 예외/무효 변환은 다른 method를 중단시키지 않습니다.
 
 | 검증 | 조건 |
 |---|---|
 | registry | 예상 OpenCV constant 누락 또는 미등록 `CALIB_HAND_EYE_*` 추가 시 preflight 실패 |
 | translation envelope | `HandEyeTransformValidityPolicy.max_translation_norm_m`는 양의 유한한 명시 입력; 범위 밖 해 무효 |
-| 입력 split / frame | calibration만 solver로 전달; base/gripper/camera/target 이름 검사 |
+| 입력 split / 좌표계 | calibration만 solver로 전달; base/gripper/camera/target 이름 검사 |
 | held-out | 표본별 `base_T_target` 복원 후 모든 쌍의 병진·회전 차이 median/P95 |
 | 오차 단위 | 병진 m, 회전 rad |
 
@@ -191,9 +191,9 @@ Tsai, Park, Horaud, Andreff, Daniilidis는 동일한 검증 표본의 복사본�
 | 속도 | 양쪽 sample에 있으면 보간·기록; FK 필수 입력은 아님 |
 | `timed_joint_sample_from_message` | 수신 시간이 아닌 `JointState.header.stamp` |
 | `MoveItForwardKinematicsAdapter` | canonical 12관절, `is_diff=false`, `/compute_fk`의 `base_link → left_gripper_frame` |
-| FK 결과 | MoveIt code, link, frame, pose 수와 rigid transform 검사; monotonic 준비/응답 timeout |
+| FK 결과 | MoveIt code, link, 좌표계, pose 수와 rigid transform 검사; monotonic 준비/응답 timeout |
 
-누락, stale, 불완전, 순서 오류와 clock reset은 각각 명시 상태다. 테스트는 client/executor poll hook을 주입해 ROS graph 없이 실행할 수 있다.
+누락, stale, 불완전, 순서 오류와 clock reset은 각각 명시 상태입니다. 테스트는 client/executor poll hook을 주입해 ROS graph 없이 실행할 수 있습니다.
 
 ## Position IK, state validity, motion, and settle
 
@@ -207,7 +207,7 @@ Tsai, Park, Horaud, Andreff, Daniilidis는 동일한 검증 표본의 복사본�
 | plan / execute | `/move_action`의 plan_only, scaling 0.10/0.10 → 반환 trajectory만 `/execute_trajectory`로 실행 |
 | 취소 | 별도 monotonic timeout; `ERROR_NONE`과 정확한 goal UUID가 `goals_canceling`에 있어야 확인 |
 
-Freshness, park 허용치와 모든 IK/validity/plan/execute/cancel/settle timeout은 `MujocoMotionConfig`의 필수 입력이다. Raw JointPose, stale/partial state, 오른팔 park 이탈은 실행하지 않는다. Action status와 정확한 MoveIt error code를 보존한다.
+Freshness, park 허용치와 모든 IK/validity/plan/execute/cancel/settle timeout은 `MujocoMotionConfig`의 필수 입력입니다. Raw JointPose, stale/partial state, 오른팔 park 이탈은 실행하지 않습니다. Action status와 정확한 MoveIt error code를 보존합니다.
 
 | simulation settle 기준 | 값 |
 |---|---:|
@@ -215,25 +215,25 @@ Freshness, park 허용치와 모든 IK/validity/plan/execute/cancel/settle timeo
 | settle position / velocity | 0.015 rad / 0.01 rad/s |
 | 연속 유지 | ROS stamp 기준 1.0초 |
 
-왼팔 모든 joint가 동시에 만족해야 한다. 조건 위반이나 시간 역행은 구간을 초기화한다. 별도 monotonic settle deadline은 clock 정지에도 만료하며 timeout 뒤 촬영을 허가하지 않는다. 이 수치는 실물 승인 허용치가 아니다.
+왼팔 모든 joint가 동시에 만족해야 합니다. 조건 위반이나 시간 역행은 구간을 초기화합니다. 별도 monotonic settle deadline은 clock 정지에도 만료하며 timeout 뒤 촬영을 허가하지 않습니다. 이 수치는 실물 승인 허용치가 아닙니다.
 
 ## Core models
 
 | 모델 | 역할 |
 |---|---|
-| `PositionTarget`, `JointPose`, `IkResult` | frame을 가진 위치 목표, 완전한 joint vector, 배타적인 성공/실패 |
+| `PositionTarget`, `JointPose`, `IkResult` | 좌표계을 가진 위치 목표, 완전한 joint vector, 배타적인 성공/실패 |
 | `TimedJointSample` | 촬영 시각과 대응할 feedback |
 | `CalibrationSample`, `CalibrationSampleRecord` | 변환 쌍/split과 version-1 동기 데이터 row |
 
-Mutable 입력은 immutable tuple로 복사한다. 중복 joint 이름, 길이 불일치, 무효 timestamp와 비유한 값을 거부한다.
+Mutable 입력은 immutable tuple로 복사합니다. 중복 joint 이름, 길이 불일치, 무효 측정 시각와 비유한 값을 거부합니다.
 
 ## Dependencies
 
-System NumPy/OpenCV/PyYAML은 rosdep의 `python3-numpy`, `python3-opencv`, `python3-yaml`을 사용한다. 수학·동기화·설정·settle core는 rclpy를 import하지 않는다. ROS adapter는 manifest의 rclpy/action_msgs/moveit_msgs/sensor_msgs에 의존한다.
+System NumPy/OpenCV/PyYAML은 rosdep의 `python3-numpy`, `python3-opencv`, `python3-yaml`을 사용합니다. 수학·동기화·설정·settle core는 rclpy를 import하지 않습니다. ROS adapter는 manifest의 rclpy/action_msgs/moveit_msgs/sensor_msgs에 의존합니다.
 
 ## Verification
 
-저장소 루트의 Humble 환경에서 실행한다. 개별 수정은 해당 pytest부터, 연결 변경은 `make test-handeye`로 확인한다.
+저장소 루트의 Humble 환경에서 실행합니다. 개별 수정은 해당 pytest부터, 연결 변경은 `make test-handeye`로 확인합니다.
 
 ```bash
 python3 -m pytest -q ros2_ws/src/cleany_handeye_calibration/test

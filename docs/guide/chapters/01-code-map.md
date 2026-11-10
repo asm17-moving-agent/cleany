@@ -38,7 +38,7 @@ flowchart TD
 ros2_ws/src/
 ├── cleany_interfaces/       # 공통 ROS 데이터 계약
 ├── cleany_mission_manager/  # 미션 core와 응답 대역
-├── cleany_navigation/       # SLAM 설정과 launch
+├── cleany_navigation/       # SLAM, Nav2와 안전 경로
 ├── cleany_description/      # 공통 로봇 모델
 ├── cleany_gazebo_sim/       # 주행·센서 시뮬레이션
 ├── cleany_mujoco_sim/       # 조작·센서 시뮬레이션
@@ -64,9 +64,9 @@ ROS는 `package.xml`로 패키지 이름·의존성·빌드 방식을 확인합�
 
 Python 패키지의 [setup.py](../../../ros2_ws/src/cleany_mission_manager/setup.py)는 어떤 모듈과 데이터를 설치할지 정합니다. ROS 패키지로 설치할 수 있다는 사실과 실행 가능한 ROS 노드가 있다는 사실은 다릅니다. 현재 Mission Manager는 `mission_runtime = cleany_mission_manager.node:main`을 등록합니다.
 
-반면 [grasping setup.py](../../../ros2_ws/src/cleany_grasping/setup.py)는 `grasp_server`라는 실행 이름을 `grasp_node:main`에 연결합니다. 따라서 코드를 읽을 때는 **패키지 이름 → 실행 이름 → main 함수 → node의 callback → core** 순으로 좁히면 됩니다. 3장에서 이 경로를 실제 서비스와 연결합니다.
+반면 [grasping setup.py](../../../ros2_ws/src/cleany_grasping/setup.py)는 `grasp_server`라는 실행 이름을 `grasp_node:main`에 연결합니다. 따라서 코드를 읽을 때는 **패키지 이름 → 실행 이름 → main 함수 → 노드의 콜백 → core** 순으로 좁히면 됩니다. 3장에서 이 경로를 실제 서비스와 연결합니다.
 
-공통 개발 명령은 [Makefile](../../../Makefile)과 [workspace README](../../implementation/development_setup.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
+공통 개발 명령은 [Makefile](../../../Makefile)과 [개발환경 안내](../../implementation/development-setup.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
 
 ## 01.4 Core와 Port 경계
 
@@ -98,7 +98,7 @@ Mission core는 ROS Action 객체 대신 [OperationPort](../../../ros2_ws/src/cl
 
 “캔 후보가 만들어졌지만 팔이 움직이지 않는다”는 질문의 시작점은 Mission 상태만은 아닙니다. 조작에는 여러 실행 경로가 있으므로 다음 순서로 확인합니다.
 
-1. [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 사용한 실행 경로를 찾습니다.
+1. [조작 실행 계약](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 사용한 실행 경로를 찾습니다.
 2. 후보 **선택** action과 **실행** demo coordinator의 파일을 구분합니다.
 3. 후보 생성·팔 평가·실행 각각의 출력이 무엇인지 적습니다.
 

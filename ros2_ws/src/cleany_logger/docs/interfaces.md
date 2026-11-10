@@ -2,8 +2,8 @@
 
 ## cleany_logger
 
-실행 파일은 `logger_node`이며 원본은 [node.py](../cleany_logger/node.py)다.
-기본 노드 이름은 `/cleany_logger`다. 녹화 제어는 로봇 구동 명령을 생성하지 않는다.
+실행 파일은 `logger_node`이며 원본은 [노드.py](../cleany_logger/node.py)입니다.
+기본 노드 이름은 `/cleany_logger`입니다. 녹화 제어는 로봇 구동 명령을 생성하지 않습니다.
 
 | 종류 | 기본 이름 | 타입 | 계약 |
 |---|---|---|---|
@@ -23,30 +23,30 @@
 | 문맥 | TF / clock / CameraInfo / 로봇 모델 함께 요청 |
 
 `RecordingConfig`는 preset, MiB 한도, category별 선택과 주기, source별 토픽과
-선택과 주기를 담는다. `RecordingSource`의 topics, enabled와 rate_hz 배열은 같은
-원소 순서를 쓰며, 내부 계산 출처는 빈 topics와 한 개의 enabled/rate_hz를 쓴다.
-`rate_hz=-1`은 수신마다 기록한다는 뜻이다. 그 밖의 유한한 양수만 허용한다.
+선택과 주기를 담습니다. `RecordingSource`의 topics, enabled와 rate_hz 배열은 같은
+원소 순서를 쓰며, 내부 계산 출처는 빈 topics와 한 개의 enabled/rate_hz를 씁니다.
+`rate_hz=-1`은 수신마다 기록한다는 뜻입니다. 그 밖의 유한한 양수만 허용합니다.
 
-`RecordingControl` 요청의 `expected_revision=0`은 비교를 생략한다. 실패 응답에는
-`success=false`, 사유와 현재 설정과 상태를 담는다. `request_id`는 호출 식별용이며
-영속 중복 제거 키가 아니다. 시작과 정지는 상태와 session ID로 멱등 처리한다.
+`RecordingControl` 요청의 `expected_revision=0`은 비교를 생략합니다. 실패 응답에는
+`success=false`, 사유와 현재 설정과 상태를 담습니다. `request_id`는 호출 식별용이며
+영속 중복 제거 키가 아닙니다. 시작과 정지는 상태와 session ID로 멱등 처리합니다.
 
-상태는 `IDLE`, `RECORDING`, `STOPPING`, `ERROR`를 구분한다. `boot_id`는 프로세스
-수명, `session_id`는 기록 수명이며 `revision`은 정책과 큐 ticket 세대다. `updated_at`과
-counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합계다.
-관측 간격은 logger 설정값이며 Monitor의 호스트 측정 간격과 구분한다.
-카운터는 새 설정과 새 녹화 시 초기화하고 정지 응답에는 마지막 누적값을 유지한다.
+상태는 `IDLE`, `RECORDING`, `STOPPING`, `ERROR`를 구분합니다. `boot_id`는 프로세스
+수명, `session_id`는 기록 수명이며 `revision`은 정책과 큐 ticket 세대입니다. `updated_at`과
+counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합계입니다.
+관측 간격은 logger 설정값이며 Monitor의 호스트 측정 간격과 구분합니다.
+카운터는 새 설정과 새 녹화 시 초기화하고 정지 응답에는 마지막 누적값을 유지합니다.
 
-`record_on_start`, 저장 경로와 한도, 입력 토픽과 frame은 ROS parameter다. 기본값은
+`record_on_start`, 저장 경로와 한도, 입력 토픽과 좌표계은 ROS parameter입니다. 기본값은
 [logger.yaml](../config/logger.yaml)과 공유 관측기 [observer.py](../cleany_logger/observer.py)를
-따른다. HTTP endpoint는 logger에 없다.
+따릅니다. HTTP endpoint는 logger에 없습니다.
 
 ## CLI
 
-실행 파일 `logger`는 `/cleany_logger_cli_<임의 suffix>` 임시 ROS 노드를 사용한다.
+실행 파일 `logger`는 `/cleany_logger_cli_<임의 suffix>` 임시 ROS 노드를 사용합니다.
 [cli.py](../cleany_logger/cli.py)의 명령 처리는 저장 파일을 열지 않으며
-[cli_client.py](../cleany_logger/cli_client.py)가 위 네 서비스를 호출한다. 별도 logger
-노드가 같은 ROS domain에서 실행 중이어야 한다. 실행 예시는 [RUNNING](../../../../docs/implementation/how-to/monitoring.md#독립-logger)을 따른다.
+[cli_client.py](../cleany_logger/cli_client.py)가 위 네 서비스를 호출합니다. 별도 logger
+노드가 같은 ROS domain에서 실행 중이어야 합니다. 실행 예시는 [RUNNING](../../../../docs/implementation/how-to/monitoring.md#독립-logger)을 따릅니다.
 
 | 명령 | 계약 |
 |---|---|
@@ -57,14 +57,14 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 | `topics set <ID>` | 정지 상태에서 `--topic`, `--hz`, `--enable`, `--disable` 중 지정한 값만 변경 |
 
 `--node`는 절대 logger 노드 경로이며 기본 `/cleany_logger`, `--timeout`은 RPC별
-발견과 응답을 합한 제한이며 기본 3초다. `--json`은 성공 결과를 stdout JSON으로
-출력한다. CLI 오류와 대용량 원본 안내는 stderr로 출력한다. 조회 결과의 `settings`는
-전체 정책이며 `topics`의 `enabled`는 상위 그룹과 개별 선택을 함께 반영한다.
+발견과 응답을 합한 제한이며 기본 3초입니다. `--json`은 성공 결과를 stdout JSON으로
+출력합니다. CLI 오류와 대용량 원본 안내는 stderr로 출력합니다. 조회 결과의 `settings`는
+전체 정책이며 `topics`의 `enabled`는 상위 그룹과 개별 선택을 함께 반영합니다.
 
-설정은 조회한 revision과 비교해 적용하므로 동시에 바뀐 정책을 덮어쓰지 않는다.
-상위 그룹이 꺼져 있을 때 하나의 출처를 활성화하면 다른 출처는 꺼진 상태를 유지한다.
-토픽 변경만으로 기록 선택을 켜지는 않는다. 설정은 logger가 저장하며 다음 실행에도
-복원한다. 지원하는 ID는 logger의 출처 schema와 센서 원본 역할에서 제공한다.
+설정은 조회한 revision과 비교해 적용하므로 동시에 바뀐 정책을 덮어쓰지 않습니다.
+상위 그룹이 꺼져 있을 때 하나의 출처를 활성화하면 다른 출처는 꺼진 상태를 유지합니다.
+토픽 변경만으로 기록 선택을 켜지는 않습니다. 설정은 logger가 저장하며 다음 실행에도
+복원합니다. 지원하는 ID는 logger의 출처 schema와 센서 원본 역할에서 제공합니다.
 
 | 종료 코드 | 의미 |
 |---|---|
@@ -74,8 +74,8 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 | `4` | 상태, session, revision 충돌 또는 logger의 요청 거부와 종료 실패 |
 | `130` | 사용자 인터럽트 |
 
-Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않는다. 처리 중인 요청이
-완료됐을 수 있으므로 `status`로 확인한다. CLI 종료는 별도 정지 요청을 보내지 않는다.
+Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않습니다. 처리 중인 요청이
+완료됐을 수 있으므로 `status`로 확인합니다. CLI 종료는 별도 정지 요청을 보내지 않습니다.
 
 ## 실물 매핑 원본
 
@@ -87,4 +87,4 @@ Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않는다
 | canonical_odometry_topic | /odom | Odometry |
 | raw_scan_topic | /scan_raw | LaserScan |
 
-매핑 프로필은 위 입력을 수신마다 /scan, TF, 지도와 같은 Logger 세션에 기록한다.
+매핑 프로필은 위 입력을 수신마다 /scan, TF, 지도와 같은 Logger 세션에 기록합니다.

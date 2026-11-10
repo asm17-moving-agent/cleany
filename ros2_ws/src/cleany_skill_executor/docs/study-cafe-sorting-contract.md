@@ -1,8 +1,8 @@
 # 스터디카페 분류·운반 실행 계약
 
-[실행](study_cafe_sorting_usage.md) / [설정](study_cafe_sorting_configuration.md)
+[실행](study-cafe-sorting-usage.md) / [설정](study-cafe-sorting-configuration.md)
 
-센서로 선택한 물체를 집어 로봇 내부 후면 수거함의 고정 위치에 놓는다. 아래는 MuJoCo 실행 계약이며 전체 물리 정리 성공이나 실로봇 안전을 보증하지 않는다.
+센서로 선택한 물체를 집어 로봇 내부 후면 수거함의 고정 위치에 놓습니다. 아래는 MuJoCo 실행 계약이며 전체 물리 정리 성공이나 실로봇 안전을 보증하지 않습니다.
 
 ```mermaid
 flowchart TD
@@ -49,7 +49,7 @@ flowchart LR
 
 | 검사 | 설정 / 거부 조건 |
 |---|---|
-| Support patch | `support_patch_margin_m=0.02`; OBB XY 사방 2 cm 확장, 바닥 아래 두께 1 cm; node 기본 0 |
+| Support patch | `support_patch_margin_m=0.02`; OBB XY 사방 2 cm 확장, 바닥 아래 두께 1 cm; 노드 기본 0 |
 | 관측 전제 | OBB Z축이 지지면 법선; 수평에서 20° 초과 또는 잘못된 pose 거부 |
 | 범위 | target mask padding 1.5 cm를 포함하는 로컬 가정; 책상 정답을 읽지 않음 |
 | 접촉 허용 | 물체/support만 허용, robot/support 거부 |
@@ -58,7 +58,7 @@ flowchart LR
 | 복원 | 성공 / 실패 / 예외 모두 ACM 복원; attachment 뒤에도 patch 유지 |
 | 충돌 진단 | 거부된 seeded cubic의 최대 8개 contact: body pair, 위치/frame, penetration depth |
 
-이 검사는 기하학적 표본 검사다. 접촉 동역학과 파지 유지를 보장하지 않으며 보수적인 OBB 때문에 유효한 후보도 거부할 수 있다. Grasping의 간이 지지면 검사 위임은 이 patch와 open/closure 검사를 함께 사용할 때만 허용한다.
+이 검사는 기하학적 표본 검사입니다. 접촉 동역학과 파지 유지를 보장하지 않으며 보수적인 OBB 때문에 유효한 후보도 거부할 수 있습니다. Grasping의 간이 지지면 검사 위임은 이 patch와 open/closure 검사를 함께 사용할 때만 허용합니다.
 
 ### 선택 물체의 복원과 IK
 
@@ -73,7 +73,7 @@ flowchart TD
     IK -->|성공| Chosen["선택 종료 / 실행 전 경로 검증"]
 ```
 
-선택하지 않은 물체도 전체 depth OctoMap의 충돌 검사에는 남는다. 만료된 snapshot의 시각을 갱신하지 않으며, 미해결 물체와 이전 관측 물체의 누락을 계속 검사한다.
+선택하지 않은 물체도 전체 depth OctoMap의 충돌 검사에는 남습니다. 만료된 snapshot의 시각을 갱신하지 않으며, 미해결 물체와 이전 관측 물체의 누락을 계속 검사합니다.
 
 | 항목 | Sorting 값 / 계약 |
 |---|---|
@@ -87,7 +87,7 @@ flowchart TD
 | 위치 잔차 가중치 | `pose_refinement_position_weight=10`; 각도, 관절 한계, 충돌 기준 유지 |
 | Head reference 갱신 | `sorting_head_reference_refresh_age_sec=0.0`이면 시간 경과만으로 재인식하지 않음; `(0,30] s`는 만료 / 연관 / 동일 팔 재계획 활성 |
 
-수치 보정은 후보 계산이며 로봇 명령을 보내지 않는다. Head reference 자동 갱신을 꺼도 손목 관측 유효성 검사와 원본 timestamp는 유지한다.
+수치 보정은 후보 계산이며 로봇 명령을 보내지 않습니다. Head reference 자동 갱신을 꺼도 손목 관측 유효성 검사와 원본 측정 시각는 유지합니다.
 
 ### TCP 보정과 닫기
 
@@ -96,7 +96,7 @@ flowchart TD
 | `grasp_use_aperture_centering=true` | 검출 폭에서 opening margin 8 mm 제외 → 물체 폭/2 − `fixed_jaw_inner_x` 8 mm로 TCP 옆방향 보정 |
 | 계획과 실행 | 같은 보정 함수 사용 |
 | 시뮬레이션 jaw | aperture 기울기 0.065 m/rad, command opening reduction 18 mm |
-| 추가 닫기 | `gripper_contact_retry_steps`: node 0, sorting 5, 허용 0–5회 |
+| 추가 닫기 | `gripper_contact_retry_steps`: 노드 0, sorting 5, 허용 0–5회 |
 | 회당 명령 | `gripper_contact_retry_step_rad=0.10`, `gripper_contact_retry_motion_sec=1.2` |
 | 구동 한계 | 닫힘 하한과 기존 토크 제한 유지; 최초 열린 위치 기준으로 접촉 판정 |
 | 확인 실패 | 허용 횟수 안에서 확인되지 않으면 lift 전에 실패 |
@@ -118,7 +118,7 @@ flowchart TD
 |---|---|
 | CHECK 횟수 | `sorting_wrist_check_attempts=1`, 허용 1–5; 기본은 미검출이어도 추가 요청 없이 모터 검사로 판단 |
 | 영상 신선도 | 첫 요청은 lift 완료 뒤, 재요청은 직전 실제 촬영 시각 뒤의 프레임 |
-| 응답 동일성 | 미검출 응답도 source/reference ID, 선택 팔 frame, 촬영 시각 확인 |
+| 응답 동일성 | 미검출 응답도 source/reference ID, 선택 팔 좌표계, 촬영 시각 확인 |
 | 보완 제외 | HANDOFF 실패, 센서 / 통신 / TF / 추론 / 참조 오류, 모호한 검출 |
 | 접촉 표본 | 각 CHECK 전후 요청 이후의 서로 다른 표본 최소 3개 |
 | 지속 시간 | `sorting_wrist_contact_confirmation_sec=0.3 s` ROS 시간 |
@@ -127,7 +127,7 @@ flowchart TD
 | 거부 | 오래된 값, 중복 stamp, 단절, 빈손 완전 닫힘, 접촉 상실 |
 | 미래 stamp | `/clock`이 따라올 때까지 세지 않음; 지속되는 미래 값 / 시계 정지는 상한에서 실패 |
 
-모든 영상이 미검출이어도 접촉 조건을 만족하면 운반한다. 이는 그리퍼 위치·속도에 근거한 진행이며 물체 식별이나 전류·토크 확인이 아니다. Lift 높이도 FK와 파지 offset의 추정값이다.
+모든 영상이 미검출이어도 접촉 조건을 만족하면 운반합니다. 이는 그리퍼 위치·속도에 근거한 진행이며 물체 식별이나 전류·토크 확인이 아닙니다. Lift 높이도 FK와 파지 offset의 추정값입니다.
 
 ### 접촉 재시도와 운반 감시
 
@@ -137,15 +137,15 @@ flowchart TD
 | 연속 sorting | `gripper_force_full_close=true`로 기존 닫힘 하한을 목표로 유지; 실제 접촉은 그 전에 멈출 수 있음 |
 | 비동기 운반 | 추가 조임은 허용; 최소 잔차, 열리는 속도 상한, feedback 신선도, 손목 추적, 접촉 상실 debounce 유지 |
 | 감시 기준 명령 | 추가 닫기를 포함한 실제 마지막 명령 |
-| Attachment 대기 | [경로별 timeout](study_cafe_sorting_configuration.md#파지-후-depth-최신성); 새 데이터가 준비되면 즉시 진행 |
+| Attachment 대기 | [경로별 timeout](study-cafe-sorting-configuration.md#파지-후-depth-최신성); 새 데이터가 준비되면 즉시 진행 |
 | 지도 신선도 | 2 s, attachment 뒤 새 capture 필요; tree 쓰기 뒤 processed-cloud receipt로 활동 확인 |
 | 지도 거부 | 빈 지도, 원본 cloud 수신만 있음, 중복 receipt; populated-map과 capture/receipt 신선도 모두 요구 |
 
-힘 센서 판정이 아니므로 잔차가 사라지기 전의 미끄러짐을 모두 검출하지 못한다. 물리 파지 성공과 실물 보정값은 별도 검증 대상이다.
+힘 센서 판정이 아니므로 잔차가 사라지기 전의 미끄러짐을 모두 검출하지 못합니다. 물리 파지 성공과 실물 보정값은 별도 검증 대상입니다.
 
 ### 열린 jaw와 수직 lift 진단
 
-열린 jaw 검사는 [지지면과 jaw 충돌](#지지면과-jaw-충돌)을 따른다. 아래 진단은 기본 역방향 retreat를 바꾸어 시험할 때 사용한다.
+열린 jaw 검사는 [지지면과 jaw 충돌](#지지면과-jaw-충돌)을 따릅니다. 아래 진단은 기본 역방향 retreat를 바꾸어 시험할 때 사용합니다.
 
 | 설정 / 검사 | 조건 |
 |---|---|
@@ -157,7 +157,7 @@ flowchart TD
 
 ## 수거함 운반
 
-고정 투하점과 운반 설정 원본은 [nearest_pregrasp.yaml](../config/nearest_pregrasp.yaml)이다.
+고정 투하점과 운반 설정 원본은 [nearest_pregrasp.yaml](../config/nearest_pregrasp.yaml)입니다.
 
 ### 분류된 수거함으로 직접 이동 / 손목 유지 (기본 모드)
 
@@ -181,9 +181,9 @@ flowchart LR
 | 최종 자세 캐시 | 동일 팔 / roll / offset / 투하점만 재사용; hit도 현재 부착 물체 충돌과 FK 재검사 |
 | 빈손 복귀 상한 | `sorting_return_velocity_scaling=0.12`, `sorting_return_acceleration_scaling=0.15`; 더 낮은 전역값 우선 |
 
-현재 `robot_top_bins.yaml`의 `simulation_ignore_mast_collision=true`는 MuJoCo 기둥 접촉과 MoveIt 기둥–로봇 충돌을 제외한다. 외형과 self-filter 형상은 남지만 이 구성의 성공은 실제 기둥 회피 검증이 아니다.
+현재 `robot_top_bins.yaml`의 `simulation_ignore_mast_collision=true`는 MuJoCo 기둥 접촉과 MoveIt 기둥–로봇 충돌을 제외합니다. 외형과 self-filter 형상은 남지만 이 구성의 성공은 실제 기둥 회피 검증이 아닙니다.
 
-복귀 상한은 MJCF STS3215 모델(2.648 Nm, 감쇠 합 3.342 Nm·s/rad)의 추종 제약에 맞춘 값이다. 무부하 정상 속도 약 0.78 rad/s 이하에 대해 복귀 yaw 상한은 약 0.509 rad/s다. 토크와 0.12 rad 추종 허용치는 유지하며 실제 모터 인증값으로 쓰지 않는다.
+복귀 상한은 MJCF STS3215 모델(2.648 Nm, 감쇠 합 3.342 Nm·s/rad)의 추종 제약에 맞춘 값입니다. 무부하 정상 속도 약 0.78 rad/s 이하에 대해 복귀 yaw 상한은 약 0.509 rad/s입니다. 토크와 0.12 rad 추종 허용치는 유지하며 실제 모터 인증값으로 쓰지 않습니다.
 
 ### 파지 후 후퇴/들어 올리기의 손목 제약
 
@@ -198,7 +198,7 @@ flowchart LR
 | 일반 운반 | IK 뒤 경로 계획 실패 시 중단 |
 | 해제 | 열기와 attachment 해제 후 복귀 |
 
-FK corridor의 자세·속도·가속도·충돌 검사는 유지한다. Roll 유지가 세계좌표 방향 고정, 물체 수평 유지 또는 전역 최적해를 뜻하지 않는다.
+FK corridor의 자세·속도·가속도·충돌 검사는 유지합니다. Roll 유지가 세계좌표 방향 고정, 물체 수평 유지 또는 전역 최적해를 뜻하지 않습니다.
 
 | BT Action의 추가 입구 검사 | 기준 |
 |---|---|
@@ -235,9 +235,9 @@ flowchart TD
 | 관절 한계 | `cartesian_joint_limits_file` 기본 MoveIt `joint_limits.yaml`; 미정 가속도는 `cartesian_joint_acceleration_rad_s2=1.0` rad/s²에 실행 scaling |
 | Cartesian retiming | 0.10 m/s, 0.50 rad/s, 0.20 m/s²에 scaling; `corridor_time_margin=2.0` |
 
-Retiming은 위치를 바꾸지 않고 시간을 균일하게 늘리며 속도·가속도를 함께 낮춘다. 표본 검사는 연속 시간 충돌이나 하드웨어 안전 인증을 대신하지 않는다. Seeded 모드를 끄고 joint corridor만 켜면 OMPL+FK 검사를 쓰며, 일반 데모는 opt-in이고 수직 lift는 endpoint 검사 후 Pilz LIN이다.
+Retiming은 위치를 바꾸지 않고 시간을 균일하게 늘리며 속도·가속도를 함께 낮춥니다. 표본 검사는 연속 시간 충돌이나 하드웨어 안전 인증을 대신하지 않습니다. Seeded 모드를 끄고 joint corridor만 켜면 OMPL+FK 검사를 쓰며, 일반 데모는 opt-in이고 수직 lift는 endpoint 검사 후 Pilz LIN입니다.
 
-`align_grasp_wrist_roll=true`는 URDF의 roll 축과 TCP offset이 local −Y라는 가정 아래 후보의 closing 방향을 맞춘다. 관절 범위 안 동치각만 검사하며 비대칭 jaw의 180° 반전은 허용하지 않는다. 후보만 회전시킨 뒤 전체 충돌과 FK 허용값을 다시 검사한다. 일반 selector 기본은 false이며 모델-parity 검사가 이 기구학 가정을 확인한다.
+`align_grasp_wrist_roll=true`는 URDF의 roll 축과 TCP offset이 local −Y라는 가정 아래 후보의 closing 방향을 맞춥니다. 관절 범위 안 동치각만 검사하며 비대칭 jaw의 180° 반전은 허용하지 않습니다. 후보만 회전시킨 뒤 전체 충돌과 FK 허용값을 다시 검사합니다. 일반 selector 기본은 false이며 모델-parity 검사가 이 기구학 가정을 확인합니다.
 
 ## Head 재관측 fallback
 
@@ -263,4 +263,4 @@ flowchart LR
 | 파지 중 joint-goal | `sorting_payload_velocity_scaling=0.24`, `sorting_payload_acceleration_scaling=0.20`; 더 낮은 기존 상한 우선 |
 | Node 단독 기본 | 위 scaling 둘 다 0.01; 열린 그리퍼 복귀는 원래 값, Cartesian retiming은 별도 |
 
-MuJoCo GT나 자동 물체 부착을 사용하지 않는 센서 기반 동작이다. 재관측과 지속 파지 성공은 별도 실행 검증이 필요하다.
+MuJoCo GT나 자동 물체 부착을 사용하지 않는 센서 기반 동작입니다. 재관측과 지속 파지 성공은 별도 실행 검증이 필요합니다.

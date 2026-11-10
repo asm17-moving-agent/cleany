@@ -30,7 +30,7 @@ source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_base_driver base_driver.launch.py mock:=true
 ```
 
-Mock domain에는 실물 MCU/Agent를 연결하지 않습니다. 고장 주입 service는 mock node와 테스트가 관리합니다.
+Mock domain에는 실물 MCU/Agent를 연결하지 않습니다. 고장 주입 service는 mock 노드와 테스트가 관리합니다.
 
 ### 실물 base와 관측 GUI
 

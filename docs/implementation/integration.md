@@ -71,7 +71,7 @@ flowchart TB
 
 ## 노드별 통신 목록
 
-발행, 구독, 서비스와 액션의 방향, 타입, QoS와 조건은 [ROS 인터페이스 색인](ros_interfaces.md)에서 찾습니다. 각 패키지의 `docs/interfaces.md`가 노드별 표를 관리합니다. 아래 계약 원본은 통신의 의미와 안전 규칙을 설명합니다.
+발행, 구독, 서비스와 액션의 방향, 타입, QoS와 조건은 [ROS 인터페이스 색인](ros-interfaces.md)에서 찾습니다. 각 패키지의 `docs/interfaces.md`가 노드별 표를 관리합니다. 아래 계약 원본은 통신의 의미와 안전 규칙을 설명합니다.
 
 ## 계약 원본
 
@@ -80,10 +80,10 @@ flowchart TB
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../../ros2_ws/src/cleany_interfaces/docs/mission.md) |
 | 시스템 가용성, 실행 허가, 복구 조정, 운영자 reset | [System Supervisor](../../ros2_ws/src/cleany_system_supervisor/docs/supervision.md) |
 | 독립 안전 증거 보고 | [Safety adapter](../../ros2_ws/src/cleany_safety_adapter/docs/interfaces.md) |
-| Gazebo와 Mock 조작 profile, fixture | [Mock 연결](../../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md) |
+| Gazebo와 Mock 조작 프로필, fixture | [Mock 연결](../../ros2_ws/src/cleany_mission_manager/docs/manipulation-mock-integration.md) |
 | Scene, Grasp snapshot/frame/후보 | [Scene와 Grasp](../../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md) |
 | Manipulation ID, timeout, 중복, 결과 | [Manipulation](../../ros2_ws/src/cleany_interfaces/docs/manipulation.md) |
-| 공통 base Twist | [Mobile base](../../ros2_ws/src/cleany_interfaces/docs/mobile_base.md) |
+| 공통 base Twist | [Mobile base](../../ros2_ws/src/cleany_interfaces/docs/mobile-base.md) |
 | ROS driver, odometry, 구동 허가 | [Base driver](../../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md) |
 | ROS↔MCU wheel protocol | [Protocol v2](../../ros2_ws/src/cleany_base_interfaces/docs/protocol.md) |
 | Navigation 경로 계획과 주행 제어 | [Planning](../../ros2_ws/src/cleany_navigation/docs/planning.md) |
@@ -95,7 +95,7 @@ flowchart TB
 | Logger ROS 제어와 상태 | [인터페이스](../../ros2_ws/src/cleany_logger/docs/interfaces.md) |
 | Logger 저장, 세션, 시간과 원본 | [기록 데이터](../../ros2_ws/src/cleany_logger/docs/data.md) |
 | Monitor 수집, HTTP, 화면과 stale | [관측 데이터](../../ros2_ws/src/cleany_dev_monitor/docs/data.md) |
-| Calibration frame, 동기화, dataset | [Frames and data](../../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md) |
+| Calibration 좌표계, 동기화, dataset | [Frames and data](../../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md) |
 
 메시지 필드는 [cleany_interfaces](../../ros2_ws/src/cleany_interfaces)와 [cleany_base_interfaces](../../ros2_ws/src/cleany_base_interfaces)의 `.msg/.srv/.action`을 기준으로 확인합니다. 위 reference는 필드 목록을 복제하지 않고 단위, 소유권, 오류, 멱등성을 설명합니다.
 
@@ -131,4 +131,4 @@ flowchart TB
 
 ## 로컬 얼굴 디스플레이
 
-로봇의 미션과 수거 실행 상태를 표시하는 전용 앱은 제어 경로와 독립적으로 구독한다. [디스플레이 인터페이스](../../ros2_ws/src/cleany_display/docs/interfaces.md)에 상태 매핑, QoS, 연결 단절과 배터리 데이터 만료 규칙이 있다.
+로봇의 미션과 수거 실행 상태를 표시하는 전용 앱은 제어 경로와 독립적으로 구독합니다. [디스플레이 인터페이스](../../ros2_ws/src/cleany_display/docs/interfaces.md)에 상태 매핑, QoS, 연결 단절과 배터리 데이터 만료 규칙이 있습니다.

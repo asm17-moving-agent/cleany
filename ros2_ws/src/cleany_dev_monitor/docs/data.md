@@ -1,6 +1,6 @@
 # Monitor 관측 데이터 계약
 
-Monitor는 ROS 상태를 웹에 표시하고 독립 logger의 기록을 조회한다. 관측 전용이며 Runtime의 안전과 완료 판정을 대체하지 않는다.
+Monitor는 ROS 상태를 웹에 표시하고 독립 logger의 기록을 조회합니다. 관측 전용이며 Runtime의 안전과 완료 판정을 대체하지 않습니다.
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
 
 ## 수집과 한도
 
-Metadata는 전체 discovery를 수행하되 메시지는 기본, action, 사용자 선택 토픽만 구독한다. 마지막 선택자가 해제하면 해당 구독을 정리한다. 수신 주기는 발행 주기를 보장하지 않는다.
+Metadata는 전체 discovery를 수행하되 메시지는 기본, action, 사용자 선택 토픽만 구독합니다. 마지막 선택자가 해제하면 해당 구독을 정리합니다. 수신 주기는 발행 주기를 보장하지 않습니다.
 
 | 항목 | 한도 |
 |---|---|
@@ -28,13 +28,13 @@ Metadata는 전체 discovery를 수행하되 메시지는 기본, action, 사용
 | 경로 / 이벤트 ring / 브라우저 로그 | 4096점 / 2048건 / 500건 |
 | 느린 브라우저 전송 timeout | 2초 |
 
-QoS는 publisher endpoint 기준으로 선택하며, 혼합 publisher는 호환 가능한 약한 설정을 사용한다. Type import, QoS 오류, publisher 없음, 수신 없음, stale을 구분한다.
+QoS는 publisher endpoint 기준으로 선택하며, 혼합 publisher는 호환 가능한 약한 설정을 사용합니다. Type import, QoS 오류, publisher 없음, 수신 없음, stale을 구분합니다.
 
 ## 공간 데이터와 재접속
 
-2D 레이어는 메시지 시각의 TF로 map_frame에 변환하고 회전 origin을 반영한다. Robot pose는 최신 TF를 사용하며 ±2초 밖 stamp는 stale로 처리한다. 정적 지도와 마지막 경로는 유지한다.
+2D 레이어는 메시지 시각의 TF로 map_frame에 변환하고 회전 origin을 반영합니다. Robot pose는 최신 TF를 사용하며 ±2초 밖 stamp는 stale로 처리합니다. 정적 지도와 마지막 경로는 유지합니다.
 
-Telemetry는 종류/토픽별 최신값으로 합친다. Runtime/Monitor boot ID는 별개이며 재접속 시 초기 snapshot을 제공한다.
+Telemetry는 종류/토픽별 최신값으로 합칩니다. Runtime/Monitor boot ID는 별개이며 재접속 시 초기 snapshot을 제공합니다.
 
 | 조건 | 표시 / 처리 |
 |---|---|
@@ -47,18 +47,18 @@ Telemetry는 종류/토픽별 최신값으로 합친다. Runtime/Monitor boot ID
 
 ## 기록과 시간
 
-Logger가 ROS 수집, 가공, 정책, 설정 파일, 세션과 단일 writer를 소유한다.
+Logger가 ROS 수집, 가공, 정책, 설정 파일, 세션과 단일 writer를 소유합니다.
 Monitor는 ROS 상태와 카메라의 실시간 표시, HTTP와 녹화 제어 client를 소유하며
-`ArchiveReader`로 공유 디렉터리의 과거 자료만 읽는다. 생성자는 저장 경로나 파일을
-만들지 않는다. Monitor 종료는 logger에 정지 요청을 보내지 않는다. 두 프로세스의
-메모리 Hub와 구독 수명은 독립적이며 `MissionJournal`은 Mission Runtime에 남는다.
+`ArchiveReader`로 공유 디렉터리의 과거 자료만 읽습니다. 생성자는 저장 경로나 파일을
+만들지 않습니다. Monitor 종료는 logger에 정지 요청을 보내지 않습니다. 두 프로세스의
+메모리 Hub와 구독 수명은 독립적이며 `MissionJournal`은 Mission Runtime에 남습니다.
 
-Logger 상태가 기본 3초 동안 갱신되지 않으면 `UNAVAILABLE`로 표시한다. 제어 서비스
-불가와 응답 timeout은 HTTP 503, 상태나 revision 충돌은 409다. 실패 시 로컬 writer를
-만들거나 정지 완료로 추정하지 않는다. 과거 기록은 logger가 없어도 조회할 수 있다.
+Logger 상태가 기본 3초 동안 갱신되지 않으면 `UNAVAILABLE`로 표시합니다. 제어 서비스
+불가와 응답 timeout은 HTTP 503, 상태나 revision 충돌은 409입니다. 실패 시 로컬 writer를
+만들거나 정지 완료로 추정하지 않습니다. 과거 기록은 logger가 없어도 조회할 수 있습니다.
 
 저장 형식, 시간 단위, 큐와 종료 계약은 [Logger 데이터 계약](../../cleany_logger/docs/data.md)을
-따른다. 기존 `state_directory`와 schema 1/2/3/4 읽기를 유지하며 HTTP 경로도 같다.
+따릅니다. 기존 `state_directory`와 schema 1/2/3/4 읽기를 유지하며 HTTP 경로도 같습니다.
 
 | HTTP 경로 | 의미 |
 |---|---|
@@ -79,7 +79,7 @@ Logger 상태가 기본 3초 동안 갱신되지 않으면 `UNAVAILABLE`로 표�
 | 설정 변경 | 정지 상태에서만 허용 |
 | 녹화 중 시작 요청 | 기존 세션 반환 |
 
-정확한 항목과 주기는 `cleany_logger.recording.SEMANTIC_RATES`와 `cleany_logger.sources`의 출처 정의를 따른다.
+정확한 항목과 주기는 `cleany_logger.recording.SEMANTIC_RATES`와 `cleany_logger.sources`의 출처 정의를 따릅니다.
 
 ```mermaid
 flowchart TD
@@ -92,7 +92,7 @@ flowchart TD
     Gap --> Timeline
 ```
 
-재생에는 라이브 표본을 섞지 않는다.
+재생에는 라이브 표본을 섞지 않습니다.
 
 | 호스트 리소스 | 출처 / 해석 |
 |---|---|
@@ -105,7 +105,7 @@ flowchart TD
 
 ## Cartographer와 RViz
 
-Cartographer 수집과 SQLite 재생은 기존 기록과의 호환을 위해 유지한다.
+Cartographer 수집과 SQLite 재생은 기존 기록과의 호환을 위해 유지합니다.
 
 | 관측 | 입력 / 한도 |
 |---|---|
@@ -114,19 +114,19 @@ Cartographer 수집과 SQLite 재생은 기존 기록과의 호환을 위해 유
 | 기본 한도 | 서브맵 64개, 텍스처 262144 pixel, 이미지 캐시 16 MiB |
 | 최신성 | Epoch와 버전 구분; 불일치하거나 오래된 텍스처를 새 관측으로 표시하지 않음 |
 
-전용 웹 SLAM renderer는 제거됐다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용한다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/implementation/how-to/monitoring.md#개발-monitor)를 따른다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않는다.
+전용 웹 SLAM renderer는 제거됐습니다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용합니다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/implementation/how-to/monitoring.md#개발-monitor)를 따릅니다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않습니다.
 
-관련 안내: [실행](../../../../docs/implementation/running.md), [환경](../../../../docs/implementation/development_setup.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [환경](../../../../docs/implementation/development-setup.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).
 
 ## 청소 BT와 조작 관측
 
-실행 → BT는 Mission의 실제 노드와 상태를 보여준다. 관측은 Perception port, 다음 행동 제안은 Planner port가 수행하고 Mission은 제안 검증과 실행 허가를 소유한다. 노드는 이 책임을 호출하는 작업 흐름이며 별도 인식 알고리즘을 뜻하지 않는다.
+실행 → BT는 Mission의 실제 노드와 상태를 보여줍니다. 관측은 Perception port, 다음 행동 제안은 Planner port가 수행하고 Mission은 제안 검증과 실행 허가를 소유합니다. 노드는 이 책임을 호출하는 작업 흐름이며 별도 인식 알고리즘을 뜻하지 않습니다.
 
-ExecuteOne을 선택하면 Action 준비, 접근, 집기, 운반, 놓기와 팔 복귀를 펼쳐 볼 수 있다. 이 상세는 서버 단계의 관측이며 청소 BT topology나 실행 순서를 변경하지 않는다. 별도 매니퓰레이션 화면에는 전체 단계, 실행 시간, 취소 상태와 실행 비교가 있다.
+ExecuteOne을 선택하면 Action 준비, 접근, 집기, 운반, 놓기와 팔 복귀를 펼쳐 볼 수 있습니다. 이 상세는 서버 단계의 관측이며 청소 BT topology나 실행 순서를 변경하지 않습니다. 별도 매니퓰레이션 화면에는 전체 단계, 실행 시간, 취소 상태와 실행 비교가 있습니다.
 
-실행 기록은 현재 mission ID와 정확한 execution ID로 연결한다. 다음 Goal의 기록이 아직 없으면 이전 물체의 진행률을 대신 표시하지 않는다. 과거 실행을 선택해도 현재 Runtime의 주행 판단은 별도로 표시한다. 관측 토픽을 바꾸면 이전 조작 이력과 revision도 초기화한다.
+실행 기록은 현재 mission ID와 정확한 execution ID로 연결합니다. 다음 Goal의 기록이 아직 없으면 이전 물체의 진행률을 대신 표시하지 않습니다. 과거 실행을 선택해도 현재 Runtime의 주행 판단은 별도로 표시합니다. 관측 토픽을 바꾸면 이전 조작 이력과 revision도 초기화합니다.
 
 | 표시 | 의미 |
 |---|---|
@@ -137,7 +137,7 @@ ExecuteOne을 선택하면 Action 준비, 접근, 집기, 운반, 놓기와 팔 
 
 | 실행 시간 막대 | 판정 / 한도 |
 |---|---|
-| 단계 구간 | `execution_events` revision과 서버 wall timestamp로 구성 |
+| 단계 구간 | `execution_events` revision과 서버 wall 측정 시각로 구성 |
 | 부분 기록 | 중간 구독, 누락, 시각 역행을 구분 |
 | 시각 역행 | 해당 기록의 경과 시간은 표시하지 않음 |
 | Timeout / 취소 | 서버 steady clock 기준 |

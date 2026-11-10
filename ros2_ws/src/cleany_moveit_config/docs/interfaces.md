@@ -1,6 +1,6 @@
 # cleany_moveit_config 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
 ## handeye_collision_scene_applier
 
@@ -10,4 +10,4 @@
 |---|---|---|---|
 | 서비스 호출 | `/apply_planning_scene` | `moveit_msgs/srv/ApplyPlanningScene` | Service 기본값; `scene_config` YAML의 `apply_service` |
 
-Scene 수락 후 종료하는 노드다. [Planning 계약](planning.md)을 따른다.
+Scene 수락 후 종료하는 노드입니다. [Planning 계약](planning.md)을 따릅니다.

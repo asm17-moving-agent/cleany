@@ -18,7 +18,7 @@ flowchart TD
 | 순수 Python 로직 | 해당 패키지 pytest | 입력 오류, 상태 전이와 실패 경로 |
 | ROS 타입·launch·설치 데이터 | 관련 package build/test | 실제 topic·service 연결 |
 | 여러 패키지 연결 | 합성 ROS runtime | lifecycle, 취소, 재연결 |
-| 주행·인식·조작 | 관련 simulator runtime | 실제 장치와 주행·정지는 별도 시험 |
+| 주행·인식·조작 | 관련 시뮬레이터 runtime | 실제 장치와 주행·정지는 별도 시험 |
 | UI | 실제 제공 페이지의 브라우저 검사 | 갱신, 재접속, 모바일 레이아웃 |
 | 문서 | 링크·명령 구문·생성 파일 검사 | 아래 문서 검증 명령 |
 

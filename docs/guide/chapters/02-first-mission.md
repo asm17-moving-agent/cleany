@@ -4,7 +4,7 @@
 
 ## 02.1 Mock 기반 실행
 
-Mock은 실제 장치 대신 정해진 응답을 돌려줍니다. 이 실습은 현재 `MissionRuntime`과 `MockDesk`를 사용하고 ROS node, simulator, 모터는 시작하지 않습니다. Python 3.10 이상과 package 의존성 `py_trees`가 필요하므로 [개발환경](../../implementation/development_setup.md)의 `make deps`를 마친 Humble 터미널에서 실행합니다.
+Mock은 실제 장치 대신 정해진 응답을 돌려줍니다. 이 실습은 현재 `MissionRuntime`과 `MockDesk`를 사용하고 ROS 노드, 시뮬레이터, 모터는 시작하지 않습니다. Python 3.10 이상과 package 의존성 `py_trees`가 필요하므로 [개발환경](../../implementation/development-setup.md)의 `make deps`를 마친 Humble 터미널에서 실행합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash

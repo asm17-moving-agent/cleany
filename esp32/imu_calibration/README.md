@@ -1,6 +1,6 @@
 # MPU6050 gyro calibration diagnostic
 
-Standalone ESP32-S3 firmware estimates three sensor-frame gyro biases and
+Standalone ESP32-S3 firmware estimates three sensor-좌표계 gyro biases and
 checks them against a separate stationary validation window. Results are
 JSON lines over native USB. The diagnostic holds motor PWM/DIR outputs LOW
 and runs without motor-control tasks or micro-ROS.

@@ -1,10 +1,10 @@
 # cleany_safety_adapter 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
 ## safety_adapter
 
-실행 파일: `safety_adapter`. 원본: [node.py](../cleany_safety_adapter/node.py), [evidence.py](../cleany_safety_adapter/evidence.py).
+실행 파일: `safety_adapter`. 원본: [노드.py](../cleany_safety_adapter/node.py), [evidence.py](../cleany_safety_adapter/evidence.py).
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
@@ -14,7 +14,7 @@
 | 토픽 구독 | `odom` | `nav_msgs/msg/Odometry` | Sensor; `odom_topic` |
 | 토픽 구독 | `joint_states` | `sensor_msgs/msg/JointState` | Sensor; `joint_states_topic` |
 
-독립 안전 계층의 증거를 System Supervisor에 전달할 뿐이며 구동을 차단하거나 E-stop을 해제하지 않는다. 확인할 수 없는 항목은 항상 안전하지 않은 값으로 보고한다.
+독립 안전 계층의 증거를 System Supervisor에 전달할 뿐이며 구동을 차단하거나 E-stop을 해제하지 않습니다. 확인할 수 없는 항목은 항상 안전하지 않은 값으로 보고합니다.
 
 | 출력 | 증거 | 증거가 없거나 오래됐을 때 |
 |---|---|---|
@@ -31,4 +31,4 @@
 | stopped | Encoder 측정, 독립 정지 센서 / STO 대체 아님 |
 | 초기 정지 문턱 | stopped_linear_mps=0.01, stopped_angular_radps=0.02, stopped_joint_radps=0.02; 실물 미검증 |
 
-현재 Cleany에는 이 Bool을 발행하는 하드웨어가 없다. E-stop 회로 설계와 adapter 또는 MCU 펌웨어는 KB에서 미정이다.
+현재 Cleany에는 이 Bool을 발행하는 하드웨어가 없습니다. E-stop 회로 설계와 adapter 또는 MCU 펌웨어는 KB에서 미정입니다.

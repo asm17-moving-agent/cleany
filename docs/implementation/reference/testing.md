@@ -19,7 +19,7 @@ flowchart LR
 |---|---|
 | core / 도구 | 해당 단위 검사 → 필요할 때 연결 검사 |
 | 타입 / manifest / launch | 관련 build → package test → 연결 runtime |
-| 여러 package | 관련 검사 → 격리 ROS graph → 필요한 simulator |
+| 여러 package | 관련 검사 → 격리 ROS graph → 필요한 시뮬레이터 |
 | UI | frontend 검사 → served app 새로고침 / 재연결 / replay |
 | 문서 | 링크 / 명령 구문 / 생성 HTML → 브라우저 |
 
@@ -40,8 +40,8 @@ flowchart LR
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
 | 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
-| Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 simulator의 sensor, odom, TF |
-| 시설 목표 생성 | `make test-gazebo-facility-tools` | simulator 없는 ID, 여유, 제거 의자 처리 |
+| Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 시뮬레이터의 sensor, odom, TF |
+| 시설 목표 생성 | `make test-gazebo-facility-tools` | 시뮬레이터 없는 ID, 여유, 제거 의자 처리 |
 | MuJoCo | `make test-mujoco` | scene loader; 모든 조작 runtime을 뜻하지 않음 |
 | Mock Manipulation Action | `make test-manipulation` | ROS Action, 취소, 조회와 재시작 복구 |
 | MuJoCo BT 경계 | `make test-manipulation-bt` | native BT, Action, 관련 인식과 수거 회귀; 실제 물리 수거 성공은 별도 |
@@ -74,7 +74,7 @@ CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외�
 | optional ROS 검사 `skipped` | 해당 경로 미검증; 통과 수에 합산하지 않음 |
 | build 성공, runtime timeout | 설치는 확인, runtime은 실패 |
 | CTest wrapper와 내부 pytest에 같은 검사 표시 | 중복 합산하지 않음 |
-| simulator 센서 수신 성공 | 그 backend 입력만 확인; 실물 장치 성능은 별도 |
+| 시뮬레이터 센서 수신 성공 | 그 backend 입력만 확인; 실물 장치 성능은 별도 |
 
 ### Supervisor와 위치 정합 회귀
 
@@ -97,12 +97,12 @@ flowchart LR
 
 | 검사 / 도구 | 입력과 확인 범위 |
 |---|---|
-| `make test-slip-detection` | 시간 보간 / 좌표 변환 / 합성 scan / 단일 벽 퇴화 / 품질 실패 / odom 단절 / 연속 조건; ROS node나 모터 명령 없음 |
+| `make test-slip-detection` | 시간 보간 / 좌표 변환 / 합성 scan / 단일 벽 퇴화 / 품질 실패 / odom 단절 / 연속 조건; ROS 노드나 모터 명령 없음 |
 | `make test-slip-recovery` | 빌드한 실제 BT의 child halt / 정지 / 목표별 latch / 이전 비교 무시 / 반복 실패; BASE_TEST_ROS_DOMAIN_ID 격리 |
 | Gate 단위 검사 | 병진 방향 유지, 휠별 감속 상한, heartbeat 단절 |
 | tools/validation/slip_recovery_smoke.py | 별도 domain에 빈 지도와 phone_navigation.launch.py phone_motion_profile:=omni를 먼저 실행; 합성 입력으로 추종 시작 / 취소 뒤 0 출력 |
 
-Smoke 도구는 하드웨어 domain 0을 거부한다. 기록 분석과 한계는 [슬립 분석](../calibration.md#bag-기반-슬립-의심-구간-분석)을 따른다.
+Smoke 도구는 하드웨어 domain 0을 거부합니다. 기록 분석과 한계는 [슬립 분석](../calibration.md#bag-기반-슬립-의심-구간-분석)을 따릅니다.
 
 ## CI 실행과 재사용
 
@@ -126,7 +126,7 @@ CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor
 | BT.CPP | amd64 4.9.1의 CMake 경로 호환 링크는 같은 설치 바이너리를 가리킴 |
 | 결과 | XML, 실패 로그, apt/pip 버전, ccache 통계. 이미지 pull/cache 복원을 포함한 job 시간 비교 |
 
-다운로드 실패와 테스트 실패의 재시도 정책은 다르다.
+다운로드 실패와 테스트 실패의 재시도 정책은 다릅니다.
 
 | 의존성 다운로드 | 제한 |
 |---|---|
@@ -137,7 +137,7 @@ CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor
 | retry | APT 1회; 준비 명령은 10초 후 최대 2회. 계속 실패하면 CI 실패 |
 | 전체 제한 | 이미지 생성 15분, job 40분 |
 
-빌드와 테스트는 위 retry에 포함하지 않는다. 의존성 변경은 [ROS snapshot](https://github.com/ros2/ros2_documentation/blob/rolling/source/Get-Started/Installation/Snapshot-Repository.rst)과 [Ubuntu snapshot](https://snapshot.ubuntu.com/)의 서명·배포 규칙을 따른다.
+빌드와 테스트는 위 retry에 포함하지 않습니다. 의존성 변경은 [ROS snapshot](https://github.com/ros2/ros2_documentation/blob/rolling/source/Get-Started/Installation/Snapshot-Repository.rst)과 [Ubuntu snapshot](https://snapshot.ubuntu.com/)의 서명·배포 규칙을 따릅니다.
 
 ## 선택 runtime과 UI
 
@@ -162,7 +162,7 @@ Gazebo의 `--gazebo-model legacy`로 레거시 모델도 선택할 수 있습니
 
 | 카메라 수집 결과 | 해석 |
 |---|---|
-| 검사 | Head / 양손목 크기, encoding, frame, buffer, simulation clock와 상태 |
+| 검사 | Head / 양손목 크기, encoding, 좌표계, buffer, simulation clock와 상태 |
 | 출력 | PNG, report.json, launch.log |
 | 누락 / timeout / 조기 종료 | 실패 코드, 도구가 시작한 process group 종료 |
 | 모델 | CAD 주행 기본은 팔 제외; cad-with-arms는 촬영 검사에만 팔 포함 |
@@ -228,7 +228,7 @@ ROS_DOMAIN_ID=187 python3 ros2_ws/src/cleany_dev_monitor/runtime_test/smoke.py -
 cat ros2_ws/src/cleany_dev_monitor/web/package.json
 ```
 
-Frontend 검사는 `ros2_ws/src/cleany_dev_monitor/web`에서 `pnpm exec tsc --noEmit`과 `pnpm exec playwright test`를 실행한다. 실제 Monitor가 필요한 검사는 `MONITOR_URL`을 지정하고 해당 ROS 입력도 준비한다. 기본 fixture 검사는 로컬 Vite를 시작한다.
+Frontend 검사는 `ros2_ws/src/cleany_dev_monitor/web`에서 `pnpm exec tsc --noEmit`과 `pnpm exec playwright test`를 실행합니다. 실제 Monitor가 필요한 검사는 `MONITOR_URL`을 지정하고 해당 ROS 입력도 준비합니다. 기본 fixture 검사는 로컬 Vite를 시작합니다.
 
 UI 변경은 실제 served app에서 새로고침, 재연결, 기록 재생까지 확인합니다. Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행합니다.
 
@@ -240,7 +240,7 @@ Mission Gateway smoke는 `tests/integration/mission_runtime/`, Monitor smoke는 
 |---|---|
 | 소스, manifest, 단위 검사 | 구현과 검사된 입력의 계약 |
 | mock / 합성 ROS | 합성 backend의 lifecycle과 메시지 경계 |
-| Gazebo, MuJoCo runtime | 해당 simulator, 입력, 버전의 동작 |
+| Gazebo, MuJoCo runtime | 해당 시뮬레이터, 입력, 버전의 동작 |
 | 장치 통신 | 실제 USB, UART, DDS 등 확인한 계층 |
 | 물리 시험 | 실제 sensor, actuator, 정지, 시나리오 결과 |
 
@@ -267,9 +267,9 @@ KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검�
 | 같은 core 묶음 | 초기화 직렬화, 저장 실패, heartbeat 만료·복귀, RPC 원인, 실패 로그·traceback, 이벤트 회전·재시작, 큐 포화·디스크 장애 |
 | make test-base BASE_TEST_ROS_DOMAIN_ID=174 | Base 회귀와 구동 허가 계약 |
 
-같은 domain에서 ROS graph 검사를 동시에 실행하지 않는다.
+같은 domain에서 ROS graph 검사를 동시에 실행하지 않습니다.
 
-설치된 패키지의 모의 통합은 다음 명령으로 실행한다. 새 출력 디렉터리를 지정한다.
+설치된 패키지의 모의 통합은 다음 명령으로 실행합니다. 새 출력 디렉터리를 지정합니다.
 
 ```bash
 make build-hardware-mapping
@@ -284,9 +284,9 @@ make test-hardware-mapping-runtime MAPPING_TEST_OUTPUT=/absolute/path/to/new-art
 | 종료 뒤 | 관리자 heartbeat 만료, 조종 이벤트 저장 |
 | 실물 제외 | USB를 열지 않음; 정지 거리 / 장착 TF / 지도 품질은 별도 |
 
-`make test-hardware-mapping`은 관련 ROS 패키지를 domain 174에서 순서대로 검사한다.
-Base graph fixture는 BASE_TEST_ROS_DOMAIN_ID도 따르므로 두 domain 변수를 함께 설정한다.
-위 통합 결과의 bag은 domain 175에서 실제 ROS 재생으로 확인할 수 있다.
+`make test-hardware-mapping`은 관련 ROS 패키지를 domain 174에서 순서대로 검사합니다.
+Base graph fixture는 BASE_TEST_ROS_DOMAIN_ID도 따르므로 두 domain 변수를 함께 설정합니다.
+위 통합 결과의 bag은 domain 175에서 실제 ROS 재생으로 확인할 수 있습니다.
 
 ```bash
 make test-hardware-mapping-replay \
@@ -300,22 +300,22 @@ make test-hardware-mapping-replay \
 |---|---|
 | make test-tof-core | 거리 투영, 평면 fit, 제동 envelope, timeout, navigation 경로 |
 | make test-tof | Interface / ToF / Mission / safety adapter / Supervisor build와 package 검사 |
-| ToF ROS | 격리 DDS domain의 합성 frame / odom / lease와 pseudo-terminal; 실제 센서 / 모터 미사용 |
+| ToF ROS | 격리 DDS domain의 합성 좌표계 / odom / lease와 pseudo-terminal; 실제 센서 / 모터 미사용 |
 
 기존 navigation C++/Python 회귀 검사는 Humble 환경에서 `make test-navigation`으로
-실행한다. Mission의 선택 ROS 시나리오는 `CLEANY_RUN_ROS_TESTS=1`과 독립
-`ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
-실물 검증 항목은 [CALIBRATION](../calibration.md#tof-근접-보호-commissioning)을 따른다.
+실행합니다. Mission의 선택 ROS 시나리오는 `CLEANY_RUN_ROS_TESTS=1`과 독립
+`ROS_DOMAIN_ID`에서 별도 실행합니다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않습니다.
+실물 검증 항목은 [CALIBRATION](../calibration.md#tof-근접-보호-commissioning)을 따릅니다.
 
 | 회귀 입력 / 단계 | 확인 항목 |
 |---|---|
-| 단독 보드 로그 3 frame + 합성 입력 | 정상 미검출 허용, 부분 불량 제외, 전부 불량 정지 |
+| 단독 보드 로그 3 좌표계 + 합성 입력 | 정상 미검출 허용, 부분 불량 제외, 전부 불량 정지 |
 | 필터 | 인접 / 물리 cluster, 15 Hz 지속, flash / 고립 noise, 비상 단일 검출, 해제 hysteresis, reset |
 | ROS | 센서 fault / stale 정지, 일부 불량 Zone 접근, 평면 소실, lease / cancel |
 | Navigation | ToF on/off와 독립 head-pan observer 조합 |
 | 검증 한계 | 합성 graph는 기존 안전 chain을 identity로 대체; 실제 Nav2 / 모터 주행 아님 |
 
-원본 측정 로그를 ROS 개발환경에서 오프라인 감사하려면 다음을 사용한다. 장치를 열지 않는다.
+원본 측정 로그를 ROS 개발환경에서 오프라인 감사하려면 다음을 사용합니다. 장치를 열지 않습니다.
 
 ```bash
 PYTHONPATH="$PWD/ros2_ws/src/cleany_tof" python3 tools/validation/tof/replay.py \
@@ -325,9 +325,9 @@ PYTHONPATH="$PWD/ros2_ws/src/cleany_tof" python3 tools/validation/tof/replay.py 
 
 ## 얼굴 디스플레이
 
-상태 로직은 Jetson의 독립 설치 폴더에서 `make test`로 검사한다. 저장소의 `make test`가 실행하는 colcon 검사에도 같은 pytest가 등록된다.
+상태 로직은 Jetson의 독립 설치 폴더에서 `make test`로 검사합니다. 저장소의 `make test`가 실행하는 colcon 검사에도 같은 pytest가 등록됩니다.
 
-ROS→HTTP 전환, 결과 수량과 연결 복구는 구현 레포 루트에서 다음 명령으로 검사한다. `/cleany_display_validation/` 토픽과 domain 173을 사용하며 로봇 제어기는 실행하지 않는다.
+ROS→HTTP 전환, 결과 수량과 연결 복구는 구현 레포 루트에서 다음 명령으로 검사합니다. `/cleany_display_validation/` 토픽과 domain 173을 사용하며 로봇 제어기는 실행하지 않습니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -339,8 +339,8 @@ ROS_DOMAIN_ID=173 python3 tools/validation/verify_cleany_display_ros.py \
 
 | 얼굴 UI 검사 | 명령 / 항목 |
 |---|---|
-| 환경 | [웹 의존성](../development_setup.md#monitor-웹)과 로컬 Chrome |
-| 명령 | node tools/validation/verify_cleany_display_web.cjs |
+| 환경 | [웹 의존성](../development-setup.md#monitor-웹)과 로컬 Chrome |
+| 명령 | 노드 tools/validation/verify_cleany_display_web.cjs |
 | 렌더링 | 7개 표정 60 fps, Zzz 주기, 화면 비율 / 720p 상한 |
 | 갱신 | 설정 변경, 60.01 Hz 입력의 균등 30 fps, 같은 상태 DOM 변경 없음 |
 | 접근성 / 복구 | 모션 감소, HTTP 복구 |
@@ -348,19 +348,19 @@ ROS_DOMAIN_ID=173 python3 tools/validation/verify_cleany_display_ros.py \
 
 | 얼굴 전환 검사 | 내용 |
 |---|---|
-| 명령 | node tools/validation/verify_cleany_display_transitions.cjs |
+| 명령 | 노드 tools/validation/verify_cleany_display_transitions.cjs |
 | 입력 | HTTP 상태 변경 + 제어된 60 Hz 프레임 |
 | 확인 | 깜빡임 연속성, 눈 / 입 중간 모양, 얼굴 위치, 땀방울 / Zzz 소멸 |
 | 경합 | 안내 교체 중 새 상태, 도움과 일반 안내 겹침, 모션 감소 |
 | 출력 / 한계 | output/cleany-display-jetson/transitions/; 실제 장치 fps 측정 아님 |
 
-실물 성능 측정은 Jetson에서 다음 순서로 실행한다.
+실물 성능 측정은 Jetson에서 다음 순서로 실행합니다.
 
-1. `systemctl --user set-environment CLEANY_DISPLAY_DEBUG_PORT=9223`과 `systemctl --user restart cleany-display-kiosk`로 전용 브라우저의 로컬 디버깅 포트를 연다.
-2. 설치 폴더의 `browser-tools/bin/python`으로 `tools/validation/measure_cleany_display.py --output <결과.json>`을 실행한다. `--modes idle moving checking collecting complete charging help`를 추가하면 브라우저 응답만 임시로 바꿔 표정별로 측정하고 실제 ROS 상태 화면으로 복구한다.
-3. 측정 종료 후 `systemctl --user unset-environment CLEANY_DISPLAY_DEBUG_PORT`와 키오스크 재시작으로 디버깅 포트를 닫는다.
+1. `systemctl --user set-environment CLEANY_DISPLAY_DEBUG_PORT=9223`과 `systemctl --user restart cleany-display-kiosk`로 전용 브라우저의 로컬 디버깅 포트를 엽니다.
+2. 설치 폴더의 `browser-tools/bin/python`으로 `tools/validation/measure_cleany_display.py --output <결과.json>`을 실행합니다. `--modes idle moving checking collecting complete charging help`를 추가하면 브라우저 응답만 임시로 바꿔 표정별로 측정하고 실제 ROS 상태 화면으로 복구합니다.
+3. 측정 종료 후 `systemctl --user unset-environment CLEANY_DISPLAY_DEBUG_PORT`와 키오스크 재시작으로 디버깅 포트를 닫습니다.
 
-결과의 `frames.canvas.fps`는 실제 캔버스 렌더링 빈도이고 `frames.raf.fps`는 브라우저 콜백 빈도다. CPU 수치는 단일 코어 기준이며 GPU 사용률이 아니다. 실물 화면, 장시간 동시 운용과 재부팅 후 자동 시작은 별도 검증한다.
+결과의 `frames.canvas.fps`는 실제 캔버스 렌더링 빈도이고 `frames.raf.fps`는 브라우저 콜백 빈도입니다. CPU 수치는 단일 코어 기준이며 GPU 사용률이 아닙니다. 실물 화면, 장시간 동시 운용과 재부팅 후 자동 시작은 별도 검증합니다.
 ## MoveIt 충돌 형상과 MuJoCo 동등성 검사
 
 | 모델 검사 | 조건 |
@@ -393,14 +393,14 @@ make test-moveit-collision
 ## 지도 확장 검증
 
 병행 지도 확장 도구의 원점 변환과 지도 저장 형식은 ROS Python 환경에서
-`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/tools/test_map_extension.py`로 검사한다.
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/tools/test_map_extension.py`로 검사합니다.
 실행 시 `/map`과 `/tf` 발행자에 확장 Cartographer가 없는지, `/map_extension/map`
-및 `/map_extension/tracked_pose`가 수신되는지 확인한다. 실물 확장 품질은
-연결 통로 왕복 관측과 복귀 시 벽 정합으로 별도 평가한다.
+및 `/map_extension/tracked_pose`가 수신되는지 확인합니다. 실물 확장 품질은
+연결 통로 왕복 관측과 복귀 시 벽 정합으로 별도 평가합니다.
 
 ### 순정 Lattice와 Phone Omni MPPI 비교
 
-`tools/validation/native_lattice_mppi`는 설치된 Smac Lattice와 통합 MPPI를 격리 실행한다. 실제 로봇에 속도를 발행하지 않는다. 입력 폴더에는 `map.txt`(크기, 해상도, 원점), `map.bin`(Nav2 cost byte 배열), `poses.txt`(시작/목표 x y yaw)가 필요하다. 설정은 controller_server, planner_server와 local_costmap의 합성 YAML이다.
+`tools/validation/native_lattice_mppi`는 설치된 Smac Lattice와 통합 MPPI를 격리 실행합니다. 실제 로봇에 속도를 발행하지 않습니다. 입력 폴더에는 `map.txt`(크기, 해상도, 원점), `map.bin`(Nav2 cost byte 배열), `poses.txt`(시작/목표 x y yaw)가 필요합니다. 설정은 controller_server, planner_server와 local_costmap의 합성 YAML입니다.
 
 ```bash
 cmake -S tools/validation/native_lattice_mppi -B /tmp/cleany-lattice-validation
@@ -419,9 +419,9 @@ python3 tools/validation/native_lattice_mppi/compare.py \
 | 별도 출력 | 클릭한 목표와 오차 |
 | 미재현 | 실제 PathHandler TF / 지역 지도 갱신, AMCL 오차, 통신, 모터 응답, 슬립 |
 
-실물 주행 성공 근거로 사용하지 않는다.
+실물 주행 성공 근거로 사용하지 않습니다.
 
-`balance_primitives.py SOURCE DESTINATION`은 직선 primitive의 좌표를 변경하지 않고 길이 metadata를 재계산한다. `test_phone_profile.py`는 번들 원본과의 차이가 오른쪽 횡이동 16개의 길이 필드뿐인지, 모든 직선 길이가 기하와 일치하는지 검사한다.
+`balance_primitives.py SOURCE DESTINATION`은 직선 primitive의 좌표를 변경하지 않고 길이 metadata를 재계산합니다. `test_phone_profile.py`는 번들 원본과의 차이가 오른쪽 횡이동 16개의 길이 필드뿐인지, 모든 직선 길이가 기하와 일치하는지 검사합니다.
 
 
 | 자동 검사 | 범위 |
@@ -433,8 +433,8 @@ python3 tools/validation/native_lattice_mppi/compare.py \
 
 
 `tools/validation/slip_context_recording.py --output <새 결과 폴더>`는 설치된 logger에
-합성 String 메시지를 보내고 저장된 CDR을 다시 읽어 문맥을 비교한다. hardware domain 0에서는
-실행을 거부한다. runner 환경 설정 뒤 별도 `ROS_DOMAIN_ID`를 지정해 실행한다.
+합성 String 메시지를 보내고 저장된 CDR을 다시 읽어 문맥을 비교합니다. hardware domain 0에서는
+실행을 거부합니다. runner 환경 설정 뒤 별도 `ROS_DOMAIN_ID`를 지정해 실행합니다.
 
 
 ### 기록된 Nav2 조건과 MPPI reset 검사
@@ -443,22 +443,22 @@ python3 tools/validation/native_lattice_mppi/compare.py \
 |---|---|
 | 도구 | tools/validation/native_lattice_mppi/extract_bag_fixture.py |
 | 시각 선택 | 지정 시각 이전 수신 global costmap / odom / plan / map→odom TF |
-| 거부 | 수신 / header 미래 값, stale, frame 불일치 |
+| 거부 | 수신 / header 미래 값, stale, 좌표계 불일치 |
 | 비용 역변환 | OccupancyGrid 비용 구간 상한, lethal / unknown 보존 |
 | 검사 | tests/tools/test_bag_navigation_fixture.py의 비용 변환 / SE(2) 합성 |
 
-`compare.py`의 폐루프는 정적 비용 지도에서 정지 출발하는 이상적 운동 모사다.
-실제 scan의 시간 변화, SLAM/AMCL 오차, BT 복구, 마찰과 슬립을 재현하지 않는다.
+`compare.py`의 폐루프는 정적 비용 지도에서 정지 출발하는 이상적 운동 모사입니다.
+실제 scan의 시간 변화, SLAM/AMCL 오차, BT 복구, 마찰과 슬립을 재현하지 않습니다.
 `--preview-goal` 사용 시 반환된 Lattice 끝점을 도착 기준으로 사용하고 요청 좌표와의
-오차를 별도로 기록한다. 실패한 과제도 결과에 보존해야 한다.
+오차를 별도로 기록합니다. 실패한 과제도 결과에 보존해야 합니다.
 
-`noise_reset_probe`는 1000×60 후보의 reset 직후 잡음과 실행 시간을 100회 측정한다.
+`noise_reset_probe`는 1000×60 후보의 reset 직후 잡음과 실행 시간을 100회 측정합니다.
 `mppi_noise_generator_test`는 비동기 생성 요청과 reset이 겹칠 때의 완전한 첫 묶음,
-운동 모델 전환, 독립 controller 난수열과 종료를 검사한다. ROS domain은 실제 로봇과
-분리한다. 헤더의 객체 배치가 바뀌면 비교용 바이너리도 해당 라이브러리와 함께 재빌드한다.
+운동 모델 전환, 독립 controller 난수열과 종료를 검사합니다. ROS domain은 실제 로봇과
+분리합니다. 헤더의 객체 배치가 바뀌면 비교용 바이너리도 해당 라이브러리와 함께 재빌드합니다.
 
-메모리 사용을 제한하는 격리 빌드는 패키지 수와 C++ 컴파일 작업 수를 모두 제한한다.
-`CMAKE_BUILD_PARALLEL_LEVEL`은 CMake `-D` 인수가 아니라 환경 변수다.
+메모리 사용을 제한하는 격리 빌드는 패키지 수와 C++ 컴파일 작업 수를 모두 제한합니다.
+`CMAKE_BUILD_PARALLEL_LEVEL`은 CMake `-D` 인수가 아니라 환경 변수입니다.
 
 ```bash
 CMAKE_BUILD_PARALLEL_LEVEL=2 MAKEFLAGS=-j2 make build \
@@ -478,7 +478,7 @@ python3 tools/validation/probe_depth_obstacle_cutoff.py   --min-z .192 --output 
 | 검사 | 근거 |
 |---|---|
 | 자동 | 높이 경계, 기울어진 바닥과 독립 고정 하한, TF 소실 시 오래된 점군 제거 |
-| 실행 중 probe | Fresh 비어 있지 않은 출력의 frame / 최소 높이 |
+| 실행 중 probe | Fresh 비어 있지 않은 출력의 좌표계 / 최소 높이 |
 | 한계 | 물체 검출률이나 주행 안전 입증 아님 |
 
 ## 실물 depth costmap과 Monitor 격리 회귀
@@ -490,13 +490,13 @@ python3 tools/validation/probe_depth_obstacle_cutoff.py   --min-z .192 --output 
 | test_depth_transport.py | 실제 형식의 depth, capture TF, 무효 영상 차단, floor clearing |
 | test_phone_slip_launch.py | Depth 옵션이 global costmap / slip 설정을 바꾸지 않음 |
 
-로봇 domain 0에 속도를 보내지 않는다.
+로봇 domain 0에 속도를 보내지 않습니다.
 
 ```bash
 python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_depth_local_costmap.py ros2_ws/src/cleany_navigation/test/test_phone_collision_monitor.py ros2_ws/src/cleany_navigation/test/test_depth_transport.py ros2_ws/src/cleany_navigation/test/test_phone_slip_launch.py
 ```
 
-격리 합성 입력 검사는 실물 의자 이동이나 실제 제동 거리의 검증과 구분한다. 실물에서는 조종 pause 상태에서 의자를 놓고 치운 관측과 costmap을 기록한 후 별도 주행 시험으로 진행한다.
+격리 합성 입력 검사는 실물 의자 이동이나 실제 제동 거리의 검증과 구분합니다. 실물에서는 조종 pause 상태에서 의자를 놓고 치운 관측과 costmap을 기록한 후 별도 주행 시험으로 진행합니다.
 
 
 ## 기록 분석 도구
@@ -532,7 +532,7 @@ python3 tools/validation/validate_recorded_localization.py --help
 | 재생 | DDS domain 196의 실제 Guard; 기록 AMCL / TF 고정 |
 | 누락 | 없는 initialpose는 AMCL 수신 로그로 보수적 신뢰 초기화; 저장 주기 / 입력 누락 유지 |
 
-변경 속도로 실제 이동했을 때의 위치 정확도나 최적 감속 비율은 입증하지 않는다.
+변경 속도로 실제 이동했을 때의 위치 정확도나 최적 감속 비율은 입증하지 않습니다.
 
 ### 기록된 점수 시각화
 

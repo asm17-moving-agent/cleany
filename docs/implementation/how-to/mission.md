@@ -7,9 +7,9 @@
 | 새 Gazebo 환경과 Backend | [통합 실행](#주행-구성을-함께-실행) | Gazebo/Nav2 / 기본 mock |
 | 이미 실행 중인 AMCL/Nav2 | [Runtime만 연결](#기존-주행-구성에-runtime-연결) | 기존 Nav2 / 설정한 adapter |
 | Backend 없이 연동 시험 | [Gazebo + Mock Action](#gazebo-주행과-mock-조작) | Gazebo/Nav2 / Action mock |
-| 장치와 simulator 없는 시험 | [모두 Mock](#주행도-mock으로-action-연결-확인) | mock / Action mock |
+| 장치와 시뮬레이터 없는 시험 | [모두 Mock](#주행도-mock으로-action-연결-확인) | mock / Action mock |
 
-[공통 환경](../running.md#공통-준비)을 모든 터미널에 적용한다. 같은 robot의 Runtime, bridge, canonical odometry producer는 하나씩만 실행한다.
+[공통 환경](../running.md#공통-준비)을 모든 터미널에 적용합니다. 같은 robot의 Runtime, bridge, canonical odometry producer는 하나씩만 실행합니다.
 
 ```mermaid
 sequenceDiagram
@@ -94,9 +94,9 @@ Fault, 복구와 운영자 절차는 [System Supervisor](../../../ros2_ws/src/cl
 
 ### Gazebo 주행과 Mock 조작
 
-베이스 주행은 Gazebo/Nav2, 인식과 계획 및 팔 조작은 Mock이다. 모든 터미널에 같은 overlay와 DDS domain을 적용한다. 기본 로컬 Mock 실행과 별도로 사용한다.
+베이스 주행은 Gazebo/Nav2, 인식과 계획 및 팔 조작은 Mock입니다. 모든 터미널에 같은 overlay와 DDS domain을 적용합니다. 기본 로컬 Mock 실행과 별도로 사용합니다.
 
-1. 통합 package를 빌드하고 환경을 적용한다.
+1. 통합 package를 빌드하고 환경을 적용합니다.
 
 ```bash
 make build-mission-sim
@@ -104,7 +104,7 @@ source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=186
 ```
 
-2. 터미널 1에서 Gateway 없이 시작한다. 세 DB 경로는 분리하고 재시작 시험에서는 보존한다.
+2. 터미널 1에서 Gateway 없이 시작합니다. 세 DB 경로는 분리하고 재시작 시험에서는 보존합니다.
 
 ```bash
 ros2 launch cleany_bringup mission_sim.launch.py \
@@ -117,7 +117,7 @@ ros2 launch cleany_bringup mission_sim.launch.py \
   manipulation_database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
 ```
 
-3. 터미널 2에서 `ros2 topic echo /mission/status`로 `ready: true`를 확인한 뒤 요청한다. 새 미션에는 새 ID를 사용한다. `NAV2_NOT_READY`이면 Nav2 lifecycle, odom과 TF를 먼저 확인한다.
+3. 터미널 2에서 `ros2 topic echo /mission/status`로 `ready: true`를 확인한 뒤 요청합니다. 새 미션에는 새 ID를 사용합니다. `NAV2_NOT_READY`이면 Nav2 lifecycle, odom과 TF를 먼저 확인합니다.
 
 ```bash
 ros2 service call /mission/offer cleany_interfaces/srv/OfferMission \
@@ -125,13 +125,13 @@ ros2 service call /mission/offer cleany_interfaces/srv/OfferMission \
 ros2 topic echo /mission/result
 ```
 
-수락 응답은 완료 결과가 아니다. 정상 실행은 두 물체를 서로 다른 execution ID로 처리한 뒤 추가 빈 관측을 확인한다. 물체당 정상 조작 시간은 약 40초다. [개발 Monitor](monitoring.md#개발-monitor)의 실행 → BT에서 ExecuteOne을 선택하거나 매니퓰레이션 화면을 연다. 같은 domain과 overlay를 사용한다.
+수락 응답은 완료 결과가 아닙니다. 정상 실행은 두 물체를 서로 다른 execution ID로 처리한 뒤 추가 빈 관측을 확인합니다. 물체당 정상 조작 시간은 약 40초입니다. [개발 Monitor](monitoring.md#개발-monitor)의 실행 → BT에서 ExecuteOne을 선택하거나 매니퓰레이션 화면을 엽니다. 같은 domain과 overlay를 사용합니다.
 
-Backend 조합과 주행 설정은 [Mock 연결 reference](../../../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md)를 따른다. 기본 종료 정책은 `return_home`이며 위 명령의 첫 시험은 `wait_for_next`를 명시한다.
+Backend 조합과 주행 설정은 [Mock 연결 reference](../../../ros2_ws/src/cleany_mission_manager/docs/manipulation-mock-integration.md)를 따릅니다. 기본 종료 정책은 `return_home`이며 위 명령의 첫 시험은 `wait_for_next`를 명시합니다.
 
 ### 주행도 Mock으로 Action 연결 확인
 
-두 터미널에서 같은 overlay와 `ROS_DOMAIN_ID=186`을 사용한다. 첫 터미널에서 서버를 시작한다.
+두 터미널에서 같은 overlay와 `ROS_DOMAIN_ID=186`을 사용합니다. 첫 터미널에서 서버를 시작합니다.
 
 ```bash
 make build-mission-mock
@@ -142,7 +142,7 @@ ros2 launch cleany_skill_executor manipulation_mock.launch.py \
   database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
 ```
 
-두 번째 터미널에서 Runtime을 시작한 뒤 위의 준비 확인과 미션 요청을 수행한다. 이 구성의 주행 성공은 Gazebo 주행 증거가 아니다.
+두 번째 터미널에서 Runtime을 시작한 뒤 위의 준비 확인과 미션 요청을 수행합니다. 이 구성의 주행 성공은 Gazebo 주행 증거가 아닙니다.
 
 ```bash
 ros2 run cleany_mission_manager mission_runtime --ros-args \
@@ -163,4 +163,4 @@ ros2 run cleany_mission_manager mission_runtime --ros-args \
 | OfferMission 수락 | 실행 접수. `/mission/result`를 기다림 |
 | Mock 조작 완료 | fixture의 진행·결과; 실제 사진이나 물리 수거 근거는 아님 |
 
-재시작 시험은 journal을 보존하고 독립 실험은 DB 경로를 분리한다. 종료·재전송·취소의 상세 의미는 [Mission 계약](../../../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따른다.
+재시작 시험은 journal을 보존하고 독립 실험은 DB 경로를 분리합니다. 종료·재전송·취소의 상세 의미는 [Mission 계약](../../../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.

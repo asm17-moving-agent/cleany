@@ -2,7 +2,7 @@
 
 ## 기능 사이의 연결
 
-아래는 기능 경계 요약이다. 실행별 안전 체인의 정확한 토픽과 QoS는 아래 색인 및 패키지 reference에서 확인한다.
+아래는 기능 경계 요약입니다. 실행별 안전 체인의 정확한 토픽과 QoS는 아래 색인 및 패키지 reference에서 확인합니다.
 
 ```mermaid
 flowchart TB
@@ -44,9 +44,9 @@ flowchart TB
 | `slip_monitor`, `traction_brake`, `SlipRecovery` | [슬립 복구](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
 | `localization_guard` | [상세 계약][ros-localization-guard]. `/initialpose` 발행과 `/request_nomotion_update` 호출은 검증된 정지 복구에서만 수행 |
 
-각 노드의 발행, 구독, 서비스 제공/호출, 액션 제공/호출을 찾는 색인이다. 상세 표는 코드 옆 `docs/interfaces.md`가 관리하고, 동작과 안전 규칙은 [INTEGRATION](integration.md)의 계약 reference를 따른다.
+각 노드의 발행, 구독, 서비스 제공/호출, 액션 제공/호출을 찾는 색인입니다. 상세 표는 코드 옆 `docs/interfaces.md`가 관리하고, 동작과 안전 규칙은 [INTEGRATION](integration.md)의 계약 reference를 따릅니다.
 
-표는 현재 소스와 launch의 기본 이름을 기록한다. 실행별 namespace, node name, parameter와 remap에 따라 실제 graph는 달라진다. 조건부 endpoint, 외부 server, 미구현 타입을 구분하며 모든 노드가 동시에 실행되는 것으로 해석하지 않는다.
+표는 현재 소스와 launch의 기본 이름을 기록합니다. 실행별 namespace, 노드 name, parameter와 remap에 따라 실제 graph는 달라집니다. 조건부 endpoint, 외부 server, 미구현 타입을 구분하며 모든 노드가 동시에 실행되는 것으로 해석하지 않습니다.
 
 ## 표 읽기
 
@@ -62,25 +62,25 @@ flowchart TB
 | Service 기본값 | Humble service QoS: reliable, volatile, keep-last depth 10 |
 | Action 기본값 | rclpy 기본 request/result/cancel service와 feedback/status QoS. Status는 reliable, transient-local, depth 1 |
 | TF 기본 QoS | tf2_ros broadcaster/listener 기본값. 응용 코드가 별도 QoS를 지정하지 않음 |
-| 상대 이름 / `/절대 이름` / `~/private` | Node namespace 적용 / root 이름 / node namespace와 node name 적용 |
-| 주기 | 소스의 기본 timer 또는 callback 조건. 실제 수신 빈도와 동일하지 않을 수 있음 |
+| 상대 이름 / `/절대 이름` / `~/private` | Node namespace 적용 / root 이름 / 노드 namespace와 노드 name 적용 |
+| 주기 | 소스의 기본 timer 또는 콜백 조건. 실제 수신 빈도와 동일하지 않을 수 있음 |
 
 ## 종류별 통합 목록
 
-[Topic](#topic-목록), [Action](#action-목록), [Service](#service-목록)에서 이름으로 찾는다. 노드 링크는 패키지의 상세 표로 연결하며, 아직 표에 없는 runtime endpoint는 구현 소스로 연결한다. QoS와 호출 조건은 연결된 문서와 소스를 따른다.
+[Topic](#topic-목록), [Action](#action-목록), [Service](#service-목록)에서 이름으로 찾습니다. 노드 링크는 패키지의 상세 표로 연결하며, 아직 표에 없는 runtime endpoint는 구현 소스로 연결합니다. QoS와 호출 조건은 연결된 문서와 소스를 따릅니다.
 
-아래 이름은 **root namespace에서 기본 이름을 해석한 값**이다. 상대 이름을 절대 이름으로 고정하는 설정이 아니며, namespace, remap과 parameter override가 있으면 달라진다. `cleany_dev_monitor`의 `runtime_namespace`는 기본 빈 값으로 표시했다. `<...>`는 실행 시 결정되는 이름 패턴이다.
+아래 이름은 **root namespace에서 기본 이름을 해석한 값**입니다. 상대 이름을 절대 이름으로 고정하는 설정이 아니며, namespace, remap과 parameter override가 있으면 달라집니다. `cleany_dev_monitor`의 `runtime_namespace`는 기본 빈 값으로 표시했습니다. `<...>`는 실행 시 결정되는 이름 패턴입니다.
 
 | 색인 읽기 | 의미 |
 |---|---|
 | 여러 발행자 | 실행 대안 또는 같은 토픽의 다른 데이터 생산자; 동시 실행 지시 아님 |
 | mock_*, Gazebo, MuJoCo, sorting_cameras | Mock / simulation 경로 |
 | 외부 Nav2 / MoveIt / controller | 별도 실행 필요 |
-| — | 이 색인에서 상대 node를 지정하지 않음; endpoint 부재 / 미구현 의미 아님 |
-| sorting_observer | ObservedMujocoSystem이 사용하는 publisher node; 독립 구동 controller 아님 |
+| — | 이 색인에서 상대 노드를 지정하지 않음; endpoint 부재 / 미구현 의미 아님 |
+| sorting_observer | ObservedMujocoSystem이 사용하는 publisher 노드; 독립 구동 controller 아님 |
 | Monitor 동적 구독 | Discovery와 사용자 선택으로 생성 |
 
-ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페이스)에 둔다. 응용 코드가 직접 호출하거나 관찰하는 action cancel/status와 카메라 parameter 서비스는 통합 목록에도 표시한다. 외부 패키지 전체 API와 실행 중 동적으로 발견되는 모든 이름을 열거하지는 않는다.
+ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페이스)에 둡니다. 응용 코드가 직접 호출하거나 관찰하는 action cancel/status와 카메라 parameter 서비스는 통합 목록에도 표시합니다. 외부 패키지 전체 API와 실행 중 동적으로 발견되는 모든 이름을 열거하지는 않습니다.
 
 ### Topic 목록
 
@@ -97,9 +97,9 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/camera/aligned_depth_to_color/image_raw` | `sensor_msgs/msg/Image` | [`sorting_cameras`][ros-sorting-cameras] | — | 발행자는 MuJoCo 전용; 실물 camera 제공자는 별도 |
 | `/camera/color/camera_info` | `sensor_msgs/msg/CameraInfo` | [`sorting_cameras`][ros-sorting-cameras] | [`perception_inspector`][ros-perception-inspector] | 발행자는 MuJoCo 전용; 실물 camera 제공자는 별도 |
 | `/camera/color/image_raw` | `sensor_msgs/msg/Image` | [`sorting_cameras`][ros-sorting-cameras] | [`perception_inspector`][ros-perception-inspector] | 발행자는 MuJoCo 전용; 실물 camera 제공자는 별도 |
-| `/camera/depth/camera_info` | `sensor_msgs/msg/CameraInfo` | — | [`perception_inspector`][ros-perception-inspector], [`depth_scene_node`][ros-depth-scene-node] | — |
+| `/camera/depth/camera_info` | `sensor_msgs/msg/CameraInfo` | — | [`perception_inspector`][ros-perception-inspector], [`depth_scene_node`][ros-depth-scene-노드] | — |
 | `/camera/depth/image_raw` | `sensor_msgs/msg/Image` | — | [`perception_inspector`][ros-perception-inspector] | — |
-| `/camera/depth/image_rect_raw` | `sensor_msgs/msg/Image` | — | [`depth_scene_node`][ros-depth-scene-node] | — |
+| `/camera/depth/image_rect_raw` | `sensor_msgs/msg/Image` | — | [`depth_scene_node`][ros-depth-scene-노드] | — |
 | `/camera/head/color/image_raw` | `sensor_msgs/msg/Image` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`system_supervisor`][ros-system-supervisor] | — |
 | `/camera/head/depth/camera_info` | `sensor_msgs/msg/CameraInfo` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`depth_clearance`][ros-depth-clearance], [`depth_coverage`][ros-depth-coverage] | — |
 | `/camera/head/depth/image_raw` | `sensor_msgs/msg/Image` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`depth_clearance`][ros-depth-clearance], [`depth_coverage`][ros-depth-coverage] | — |
@@ -109,14 +109,14 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/camera/right_wrist/color/image_raw` | `sensor_msgs/msg/Image` | [`ros_gz_bridge`][ros-ros-gz-bridge] | — | — |
 | `/cleany/internal/mujoco/left_wrist_camera/camera_info` | `sensor_msgs/msg/CameraInfo` | — | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/cleany/internal/mujoco/left_wrist_camera/image_raw` | `sensor_msgs/msg/Image` | — | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter] | — |
-| `/clock` | `rosgraph_msgs/msg/Clock` | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | Bridge 직접 발행은 override 구성; profile은 sampler 경유 |
+| `/clock` | `rosgraph_msgs/msg/Clock` | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | Bridge 직접 발행은 override 구성; 프로필은 sampler 경유 |
 | `/cmd_vel` | `geometry_msgs/msg/Twist` | [`proximity_guard`][ros-tof], [`ground_truth_route_follower`][ros-ground-truth-route-follower], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard] | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`gazebo_command_guard`][ros-gazebo-command-guard], [`mujoco_sim`][ros-mujoco-sim] | — |
 | `/collision_monitor_state` | `discovery 타입` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | 실행 graph에서 타입 확인 |
 | `/constraint_list` | `visualization_msgs/msg/MarkerArray` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_imu`][ros-cleany-imu], [`system_supervisor`][ros-system-supervisor] | [`system_supervisor`][ros-system-supervisor] | — |
 | `/evaluation` | `discovery 타입` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | 실행 graph에서 타입 확인; 발행자 존재는 실행 구성에서 확인 |
-| `/gazebo/raw_clock` | `rosgraph_msgs/msg/Clock` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo profile에서 raw 이름으로 remap |
-| `/gazebo/raw_joint_states` | `sensor_msgs/msg/JointState` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo profile에서 raw 이름으로 remap |
+| `/gazebo/raw_clock` | `rosgraph_msgs/msg/Clock` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo 프로필에서 raw 이름으로 remap |
+| `/gazebo/raw_joint_states` | `sensor_msgs/msg/JointState` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo 프로필에서 raw 이름으로 remap |
 | `/gazebo_cmd_vel` | `geometry_msgs/msg/Twist` | [`gazebo_command_guard`][ros-gazebo-command-guard] | [`ros_gz_bridge`][ros-ros-gz-bridge] | — |
 | `/gazebo_odom` | `nav_msgs/msg/Odometry` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_odom_tf_publisher`][ros-gazebo-odom-tf-publisher] | — |
 | `/global_costmap/costmap` | `nav_msgs/msg/OccupancyGrid` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
@@ -130,7 +130,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/imu/data_raw` | `sensor_msgs/msg/Imu` | [`cleany_imu`][ros-cleany-imu] | — | — |
 | `/imu/data` | `sensor_msgs/msg/Imu` | [`ros_gz_bridge`][ros-ros-gz-bridge], [`cleany_imu`][ros-cleany-imu] | — | 실행 구성별 대안 |
 | `/imu/status` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_imu`][ros-cleany-imu] | — | — |
-| `/joint_states` | `sensor_msgs/msg/JointState` | [`cleany_base_driver`][ros-cleany-base-driver], [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge], [`mujoco_sim`][ros-mujoco-sim] | [`wheel_odometry`][ros-wheel-odometry], [`gazebo_pan_tf_publisher`][ros-gazebo-pan-tf-publisher], [`simulated_encoder`][ros-simulated-encoder], [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator], [`robot_state_publisher`][ros-robot-state-publisher], [`safety_adapter`][ros-safety-adapter], [`arm_health_monitor`][ros-arm-health-monitor] | Bridge 직접 발행은 override 구성; profile은 sampler 경유 |
+| `/joint_states` | `sensor_msgs/msg/JointState` | [`cleany_base_driver`][ros-cleany-base-driver], [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge], [`mujoco_sim`][ros-mujoco-sim] | [`wheel_odometry`][ros-wheel-odometry], [`gazebo_pan_tf_publisher`][ros-gazebo-pan-tf-publisher], [`simulated_encoder`][ros-simulated-encoder], [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator], [`robot_state_publisher`][ros-robot-state-publisher], [`safety_adapter`][ros-safety-adapter], [`arm_health_monitor`][ros-arm-health-monitor] | Bridge 직접 발행은 override 구성; 프로필은 sampler 경유 |
 | `/left_arm_controller/controller_state` | `control_msgs/msg/JointTrajectoryControllerState` | [`left_arm_controller`][ros-left-arm-controller] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/left_wrist_camera/camera_info` | `sensor_msgs/msg/CameraInfo` | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter], [`sorting_cameras`][ros-sorting-cameras] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`perception_inspector`][ros-perception-inspector] | 손목 구독은 enable_wrist_observation=true; MuJoCo camera 또는 adapter 경로 선택; 실물 camera 제공자는 별도 |
 | `/left_wrist_camera/image_raw` | `sensor_msgs/msg/Image` | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter], [`sorting_cameras`][ros-sorting-cameras] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`perception_inspector`][ros-perception-inspector] | 손목 구독은 enable_wrist_observation=true; MuJoCo camera 또는 adapter 경로 선택; 실물 camera 제공자는 별도 |
@@ -164,7 +164,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/perception/objects` | `cleany_interfaces/msg/DetectedObject3DArray` | [`perception_inspector`][ros-perception-inspector] | — | — |
 | `/perception/scene_cloud_filtered` | `sensor_msgs/msg/PointCloud2` | [`move_group`][ros-move-group] | [`scene_cloud_receipt`][ros-scene-cloud-receipt], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | occupancy updater 설정 시 |
 | `/perception/scene_cloud_receipt` | `std_msgs/msg/Header` | [`scene_cloud_receipt`][ros-scene-cloud-receipt] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | sensor_scene_receipt_topic 지정 시 cloud 구독 대체 |
-| `/perception/scene_cloud` | `sensor_msgs/msg/PointCloud2` | [`depth_scene_node`][ros-depth-scene-node] | [`move_group`][ros-move-group] | occupancy updater 설정 시 |
+| `/perception/scene_cloud` | `sensor_msgs/msg/PointCloud2` | [`depth_scene_node`][ros-depth-scene-노드] | [`move_group`][ros-move-group] | occupancy updater 설정 시 |
 | `/plan` | `nav_msgs/msg/Path` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/reactive_guard/state` | `std_msgs/msg/String` | [`reactive_guard`][ros-reactive-guard] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/right_arm_controller/controller_state` | `control_msgs/msg/JointTrajectoryControllerState` | [`right_arm_controller`][ros-right-arm-controller] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
@@ -252,7 +252,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/submap_query` | `cartographer_ros_msgs/srv/SubmapQuery` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/system/check_permission` | `cleany_interfaces/srv/CheckPermission` | [`system_supervisor`][ros-system-supervisor] | [`mission_runtime`][ros-mission-runtime] | Runtime: supervision_mode=required |
 | `/system/request_fault_reset` | `cleany_interfaces/srv/RequestFaultReset` | [`system_supervisor`][ros-system-supervisor] | [`supervisor_operator`][ros-supervisor-operator] | `operator_id` 필수 |
-| `<lifecycle_node>/get_state` | `lifecycle_msgs/srv/GetState` | [`<lifecycle_node>`][ros-lifecycle-node] | [`mission_runtime`][ros-mission-runtime], [`system_supervisor`][ros-system-supervisor] | Runtime: navigation_backend=nav2, supervision_mode=disabled; Supervisor: navigation_nodes, localization_nodes |
+| `<lifecycle_node>/get_state` | `lifecycle_msgs/srv/GetState` | [`<lifecycle_node>`][ros-lifecycle-노드] | [`mission_runtime`][ros-mission-runtime], [`system_supervisor`][ros-system-supervisor] | Runtime: navigation_backend=nav2, supervision_mode=disabled; Supervisor: navigation_nodes, localization_nodes |
 
 [ros-arm-health-monitor]: ../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#arm_health_monitor
 [ros-base-odom-relay]: ../../ros2_ws/src/cleany_base_driver/docs/interfaces.md#base_odom_relay
@@ -266,7 +266,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 [ros-control-bridge]: ../../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#control_bridge
 [ros-depth-clearance]: ../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance
 [ros-depth-coverage]: ../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_coverage
-[ros-depth-scene-node]: ../../ros2_ws/src/cleany_perception/cleany_perception/depth_scene_node.py
+[ros-depth-scene-노드]: ../../ros2_ws/src/cleany_perception/cleany_perception/depth_scene_node.py
 [ros-gazebo-command-guard]: ../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#gazebo_command_guard
 [ros-gazebo-feedback-sampler]: ../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#gazebo_feedback_sampler
 [ros-gazebo-odom-tf-publisher]: ../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#gazebo_odom_tf_publisher
@@ -279,7 +279,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 [ros-left-arm-controller]: ../../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py
 [ros-left-gripper-controller]: ../../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py
 [ros-left-wrist-camera-contract-adapter]: ../../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#left_wrist_camera_contract_adapter
-[ros-lifecycle-node]: ../../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/nav2.py
+[ros-lifecycle-노드]: ../../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/nav2.py
 [ros-mission-runtime]: ../../ros2_ws/src/cleany_mission_manager/docs/interfaces.md#mission_runtime
 [ros-mock-base-mcu]: ../../ros2_ws/src/cleany_base_driver/docs/interfaces.md#mock_base_mcu
 [ros-move-group]: ../../ros2_ws/src/cleany_moveit_config/docs/planning.md
@@ -360,13 +360,13 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 
 | 패키지 / bootstrap | 역할 |
 |---|---|
-| single_pose_handeye_config / multi_pose_handeye_config | 실행 전 설정만 읽는 임시 node; 응용 endpoint 없음 |
+| single_pose_handeye_config / multi_pose_handeye_config | 실행 전 설정만 읽는 임시 노드; 응용 endpoint 없음 |
 | cleany_description / cleany_bringup | Model / launch |
 | cleany_interfaces / cleany_base_interfaces | ROS 타입 |
-| cleany_planner | 등록된 자체 ROS node 없음 |
-| cleany_logger | [독립 기록 node](../../ros2_ws/src/cleany_logger/docs/data.md) |
+| cleany_planner | 등록된 자체 ROS 노드 없음 |
+| cleany_logger | [독립 기록 노드](../../ros2_ws/src/cleany_logger/docs/data.md) |
 
-Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따른다.
+Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따릅니다.
 
 ## Runtime integration에서 추가된 실행
 
@@ -376,7 +376,7 @@ Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따른�
 | `depth_scene_node` | `depth_scene_node` | [Depth 점군](../../ros2_ws/src/cleany_perception/docs/runtime.md#전체-depth-환경-포인트클라우드) |
 | `scene_cloud_receipt` | `scene_cloud_receipt_node` | [점군 수신 확인](../../ros2_ws/src/cleany_perception/docs/runtime.md#필터링-점군-수신-확인) |
 | `nearest_pregrasp_coordinator` | `nearest_pregrasp_coordinator` | [조작 경로](../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp) |
-| `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../../ros2_ws/src/cleany_skill_executor/docs/study_cafe_sorting_usage.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
+| `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../../ros2_ws/src/cleany_skill_executor/docs/study-cafe-sorting-usage.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
 | `simulation_placement_verifier` | `placement_verifier` | [MuJoCo 표](../../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#simulation_placement_verifier) |
 | `manipulation_server` | `manipulation_server` | [Mock Action 서버](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
 | `manipulation_monitor` | `manipulation_monitor` | [읽기 전용 트리 모니터](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_monitor) |
@@ -397,15 +397,15 @@ Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따른�
 | Nav2 / AMCL / Collision Monitor | [Navigation launch](../../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)와 [설정](../../ros2_ws/src/cleany_navigation/config)이 조합을 선택. Mission이 호출하는 action/lifecycle 서비스는 Mission 노드 표에 포함 |
 | MoveIt `move_group` | `/compute_ik`, `/compute_fk`, `/check_state_validity`, `/get_planning_scene`, `/apply_planning_scene`, `/move_action`, `/execute_trajectory`를 이용. 자체 호출 노드 표와 [Planning 계약](../../ros2_ws/src/cleany_moveit_config/docs/planning.md)에서 연결 확인 |
 | ros2_control | Arm/gripper의 FollowJointTrajectory와 joint_state_broadcaster. [Controller 설정](../../ros2_ws/src/cleany_moveit_config/config/mock_ros2_controllers.yaml)과 [MuJoCo backend launch](../../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py)이 선택 |
-| `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. URDF와 [모델 계약](../../ros2_ws/src/cleany_description/docs/model.md)이 frame 의미를 관리 |
+| `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. URDF와 [모델 계약](../../ros2_ws/src/cleany_description/docs/model.md)이 좌표계 의미를 관리 |
 | `InspectScene` | `perception_inspector`가 `perception/inspect_scene`을 제공. [Perception API](../../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
 | `ExecuteManipulationSkill` | Runtime의 action client와 [타입](../../ros2_ws/src/cleany_interfaces/action/ExecuteManipulationSkill.action)은 존재. 기본 mock는 process 내부 구현이며 `action_mock`은 선택형 Python Mock 서버에 연결 |
 
-위 표는 외부 패키지의 연결 경계다. 외부 패키지의 전체 API 목록은 해당 패키지 문서와 실행 graph를 기준으로 확인한다. RViz, rqt, controller spawner와 검증용 probe 노드는 실행 보조 도구이며 자체 제품 endpoint 목록에 포함하지 않는다.
+위 표는 외부 패키지의 연결 경계입니다. 외부 패키지의 전체 API 목록은 해당 패키지 문서와 실행 graph를 기준으로 확인합니다. RViz, rqt, controller spawner와 검증용 probe 노드는 실행 보조 도구이며 자체 제품 endpoint 목록에 포함하지 않습니다.
 
 ## ROS가 자동 생성하는 인터페이스
 
-Parameter 서비스와 이벤트, rosout, sim clock 구독, action 내부 전송은 응용 표에서 반복하지 않는다. 아래 패턴이 노드 옵션과 실행 상태에 따라 추가된다.
+Parameter 서비스와 이벤트, rosout, sim clock 구독, action 내부 전송은 응용 표에서 반복하지 않습니다. 아래 패턴이 노드 옵션과 실행 상태에 따라 추가됩니다.
 
 | 항목 | 기본 패턴 / 타입 |
 |---|---|
@@ -416,11 +416,11 @@ Parameter 서비스와 이벤트, rosout, sim clock 구독, action 내부 전송
 | Action 요청 / 결과 / 취소 | `<action>/_action/{send_goal,get_result,cancel_goal}` 서비스 |
 | Action feedback / status | `<action>/_action/{feedback,status}` 토픽 |
 
-명시적으로 만든 cancel client와 status subscription은 호출 노드의 표에도 표시한다. ESP32 rclc 노드는 표에 적힌 wheel interface만 초기화하며 rclpy의 자동 parameter 서비스가 동일하게 생긴다고 가정하지 않는다.
+명시적으로 만든 cancel client와 status subscription은 호출 노드의 표에도 표시합니다. ESP32 rclc 노드는 표에 적힌 wheel interface만 초기화하며 rclpy의 자동 parameter 서비스가 동일하게 생긴다고 가정하지 않습니다.
 
 ## 실행 중 확인
 
-실행한 구성과 같은 DDS domain, 같은 overlay의 터미널에서 확인한다.
+실행한 구성과 같은 DDS domain, 같은 overlay의 터미널에서 확인합니다.
 
 ```bash
 ros2 node list
@@ -432,7 +432,7 @@ ros2 action list -t
 ros2 action info /grasp/select_reachable
 ```
 
-실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+실행 graph는 해당 실행의 증거입니다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않습니다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신합니다.
 
 ## 실물 매핑과 휴대폰 조종
 
@@ -443,12 +443,12 @@ ros2 action info /grasp/select_reachable
 | cleany_navigation | mapping_scan_filter, mapping_session | [매핑 계약](../../ros2_ws/src/cleany_navigation/docs/mapping.md) |
 | cleany_bringup | hardware_runtime | [프로세스 수명](../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
 
-Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패키지 reference에 설명한다.
+Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패키지 reference에 설명합니다.
 
 ## ToF 활성 구성
 
 [ToF reference][ros-tof]는 `tof_driver`, `proximity_guard`, `desk_approach` 실행 파일과
-조건부 Mission Action client를 관리한다. `tof_enabled=false`인 구성에는 생성하지 않는다.
+조건부 Mission Action client를 관리합니다. `tof_enabled=false`인 구성에는 생성하지 않습니다.
 
 | Endpoint | 타입 | 발행 또는 제공 | 구독 또는 호출 |
 |---|---|---|---|
@@ -463,24 +463,24 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 
 ## 로컬 얼굴 디스플레이
 
-`cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독한다. 로봇 명령을 발행하지 않는다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../../ros2_ws/src/cleany_display/docs/interfaces.md)를 따른다.
+`cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독합니다. 로봇 명령을 발행하지 않습니다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../../ros2_ws/src/cleany_display/docs/interfaces.md)를 따릅니다.
 
-휴대폰 지도 주행 옵션(`phone_remote --navigation`): `/map`, `/plan`, `/scan`, `/odom`, `/nav2/cmd_vel` 구독, `/initialpose` 발행, `navigate_to_pose` Action client, `navigation/stop` Action server. 상세 계약은 [teleop interfaces](../../ros2_ws/src/cleany_teleop/docs/interfaces.md)를 따른다.
+휴대폰 지도 주행 옵션(`phone_remote --navigation`): `/map`, `/plan`, `/scan`, `/odom`, `/nav2/cmd_vel` 구독, `/initialpose` 발행, `navigate_to_pose` Action client, `navigation/stop` Action server. 상세 계약은 [teleop interfaces](../../ros2_ws/src/cleany_teleop/docs/interfaces.md)를 따릅니다.
 
 - `tools/validation/map_extension/extend.py`: 독립 실험 실행 도구. 외부 Cartographer와
-  occupancy grid 노드를 `/map_extension`에서 실행하며 `/scan`, `/odom`, TF를 읽는다.
+  occupancy grid 노드를 `/map_extension`에서 실행하며 `/scan`, `/odom`, TF를 읽습니다.
   `/map_extension/map` (`nav_msgs/OccupancyGrid`)과 `/map_extension/tracked_pose`
-  (`geometry_msgs/PoseStamped`), Cartographer 표준 서비스를 사용한다. TF와 모터 명령은 발행하지 않는다.
+  (`geometry_msgs/PoseStamped`), Cartographer 표준 서비스를 사용합니다. TF와 모터 명령은 발행하지 않습니다.
 - `tools/validation/map_extension/view_tf.py`: RViz 전용 `/map_extension/view_tf`
-  (`tf2_msgs/TFMessage`)를 발행한다. 기존 odometry TF와 Cartographer
-  `/map_extension/tracked_pose`를 같은 시각에 결합하며 전역 `/tf`는 변경하지 않는다.
+  (`tf2_msgs/TFMessage`)를 발행합니다. 기존 odometry TF와 Cartographer
+  `/map_extension/tracked_pose`를 같은 시각에 결합하며 전역 `/tf`는 변경하지 않습니다.
   같은 표시 도구의 `/map_extension/view_trajectory` (`visualization_msgs/MarkerArray`)는
-  원본 궤적 메시지를 복사해 기존 궤적은 파랑, 추가 궤적은 불투명 노랑으로 표시한다.
-  원본 Cartographer marker의 투명도와 연결 상태 정보는 수정하지 않는다.
+  원본 궤적 메시지를 복사해 기존 궤적은 파랑, 추가 궤적은 불투명 노랑으로 표시합니다.
+  원본 Cartographer marker의 투명도와 연결 상태 정보는 수정하지 않습니다.
 
 
 - `cleany_navigation/depth_obstacles_preview`: 촬영 시각 head TF 기반 D435 장애물 미리보기.
   센서 구독, 점군 및 상태 발행, 별도 preview TF는
-  [미리보기 인터페이스](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_obstacles_preview)를 따른다.
+  [미리보기 인터페이스](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_obstacles_preview)를 따릅니다.
 
-- 실물 phone depth overlay: 기존 `depth_clearance`가 `/perception/depth/nav_points`, `/perception/depth/nav_obstacle_points`를 발행하고 local costmap 및 `collision_monitor`가 소비한다. 별도 실행 파일이나 3D 정지 가드는 추가하지 않는다. [실물 depth 계약](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance)을 따른다.
+- 실물 phone depth overlay: 기존 `depth_clearance`가 `/perception/depth/nav_points`, `/perception/depth/nav_obstacle_points`를 발행하고 local costmap 및 `collision_monitor`가 소비합니다. 별도 실행 파일이나 3D 정지 가드는 추가하지 않습니다. [실물 depth 계약](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance)을 따릅니다.

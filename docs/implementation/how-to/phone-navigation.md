@@ -102,30 +102,30 @@ python3 tools/ros2/run-phone-navigation \
 ## 휴대폰 Omni 주행의 슬립 복구
 
 LiDAR 전용 `phone_navigation.launch.py`의 Omni 프로필은 `slip_recovery:=true`가
-기본이다. `config/phone_slip_recovery.yaml`에서 감지와 복구 시간을 조정한다.
-`slip_recovery:=false`는 기존 기본 BT와 명령 경로를 사용한다. 기본 종방향
-프로필과 다른 launch에는 이 복구가 자동 적용되지 않는다.
+기본입니다. `config/phone_slip_recovery.yaml`에서 감지와 복구 시간을 조정합니다.
+`slip_recovery:=false`는 기존 기본 BT와 명령 경로를 사용합니다. 기본 종방향
+프로필과 다른 launch에는 이 복구가 자동 적용되지 않습니다.
 
 약 1초의 LiDAR/휠 이동 비교가 2개 연속 의심이면 BT가 현재 추종을 취소하고
-감속 정지한다. fresh odom과 감속 게이트의 0 출력으로 0.5초 연속 정지를 확인한 뒤 `Longitudinal`
-플래너와 컨트롤러로 같은 목표를 한 번 재시도한다. 해당 목표가 종료될 때까지
-종방향 모드를 유지하며, 정지 중 신호가 사라져도 Omni로 복귀하지 않는다.
+감속 정지합니다. fresh odom과 감속 게이트의 0 출력으로 0.5초 연속 정지를 확인한 뒤 `Longitudinal`
+플래너와 컨트롤러로 같은 목표를 한 번 재시도합니다. 해당 목표가 종료될 때까지
+종방향 모드를 유지하며, 정지 중 신호가 사라져도 Omni로 복귀하지 않습니다.
 재시도 이후 새 비교 창에서 슬립이 다시 확인되거나 재시도가 실패하면 정지 후
-목표를 실패 처리한다. 슬립 분기에는 costmap 초기화나 무조건적인 회전, 후진
-복구가 없다. 일반 탐색 실패에는 기존 기본 BT 복구를 유지한다.
+목표를 실패 처리합니다. 슬립 분기에는 costmap 초기화나 무조건적인 회전, 후진
+복구가 없습니다. 일반 탐색 실패에는 기존 기본 BT 복구를 유지합니다.
 
 재시도 플래너는 `/traction_retry/compute_path_to_pose`를 제공하는 별도
-프로세스로 실행한다. 두 Lattice 모델이 내부 static motion table을 공유하는
-간섭을 피하고, 동일한 지도와 안전 footprint를 쓰는 별도 global costmap을 갖는다.
-종방향 MPPI 컨트롤러는 기존 controller server의 `Longitudinal` plugin이다.
+프로세스로 실행합니다. 두 Lattice 모델이 내부 static motion table을 공유하는
+간섭을 피하고, 동일한 지도와 안전 footprint를 쓰는 별도 global costmap을 갖습니다.
+종방향 MPPI 컨트롤러는 기존 controller server의 `Longitudinal` plugin입니다.
 
-감지의 `unknown`은 정상 판정이 아니다. 유효한 측정이 3초 이상 없으면 정지 후
-실패한다. 첫 측정 전에는 명령을 허용하지 않는다. 정지 확인은 5초 제한이며,
-확인 실패도 목표 실패로 끝난다. 센서 비교와 BT tick 주기로 인해 즉시 감지나
-물리 정지 거리를 보장하지 않는다.
+감지의 `unknown`은 정상 판정이 아닙니다. 유효한 측정이 3초 이상 없으면 정지 후
+실패합니다. 첫 측정 전에는 명령을 허용하지 않습니다. 정지 확인은 5초 제한이며,
+확인 실패도 목표 실패로 끝납니다. 센서 비교와 BT tick 주기로 인해 즉시 감지나
+물리 정지 거리를 보장하지 않습니다.
 
 명령 흐름은 `motion/cmd_vel → traction_brake → motion/traction_cmd_vel →
-collision_monitor → navigation/safe_cmd_vel → 기존 최종 구동 소유자`다.
-BT 요청에 따른 감속은 충돌 검사 전에 수행한다. 충돌 STOP과 기존 Supervisor,
-MCU 허가 및 정지 확인은 계속 우선한다. BT heartbeat가 0.5초 또는 명령이
-0.3초 이상 끊기면 게이트는 0을 출력한다. 수동 조종 경로에는 게이트를 삽입하지 않는다.
+collision_monitor → navigation/safe_cmd_vel → 기존 최종 구동 소유자`입니다.
+BT 요청에 따른 감속은 충돌 검사 전에 수행합니다. 충돌 STOP과 기존 Supervisor,
+MCU 허가 및 정지 확인은 계속 우선합니다. BT heartbeat가 0.5초 또는 명령이
+0.3초 이상 끊기면 게이트는 0을 출력합니다. 수동 조종 경로에는 게이트를 삽입하지 않습니다.

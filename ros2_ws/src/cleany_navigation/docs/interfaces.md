@@ -2,8 +2,8 @@
 
 ## localization_guard
 
-실행 파일은 `localization_guard`이며 휴대폰 LiDAR 주행 launch에서 실행한다.
-지도와 scan의 정합을 관측하고, Supervisor가 요청한 정지 상태의 위치 복구를 수행한다.
+실행 파일은 `localization_guard`이며 휴대폰 LiDAR 주행 launch에서 실행합니다.
+지도와 scan의 정합을 관측하고, Supervisor가 요청한 정지 상태의 위치 복구를 수행합니다.
 
 | 방향 | 이름 | 타입 | 계약 |
 |---|---|---|---|
@@ -18,9 +18,9 @@
 | Action 서버 | `localization/recover` | cleany_interfaces/RecoverComponent | 동시에 한 요청; 정지·신선도·후보·AMCL 결과 검증 |
 | 서비스 호출 | `request_nomotion_update` | std_srvs/Empty | 정지 중 위치 미확인 또는 복구 검증 시 실제 AMCL 관측 갱신 요청 |
 
-TF는 읽기만 한다. wheel 명령과 속도를 발행하지 않는다. 토픽 이름은 ROS remap으로
-바꿀 수 있다. 다른 `localization/recover` owner와 동시에 실행하지 않는다.
-상태와 복구 조건은 [위치 정합과 복구](localization.md)를 따른다.
+TF는 읽기만 합니다. wheel 명령과 속도를 발행하지 않습니다. 토픽 이름은 ROS remap으로
+바꿀 수 있습니다. 다른 `localization/recover` owner와 동시에 실행하지 않습니다.
+상태와 복구 조건은 [위치 정합과 복구](localization.md)를 따릅니다.
 
 ## slip_monitor, traction_brake와 SlipRecovery BT
 
@@ -64,13 +64,13 @@ flowchart LR
 | Retry lifecycle | 별도 `traction_retry` namespace, global costmap과 manager |
 | 입력 | `/map`, `/scan` |
 
-[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#휴대폰-omni-주행의-슬립-복구)을 따른다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 참고한다.
+[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#휴대폰-omni-주행의-슬립-복구)을 따릅니다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 참고합니다.
 
 ## phone_collision_monitor
 
 실행 파일: `phone_collision_monitor`. 실행 노드명: `collision_monitor`. 원본: [phone_collision_monitor.cpp](../src/phone_collision_monitor.cpp).
 
-Nav2 Collision Monitor의 lifecycle, 센서 좌표 변환, polygon 판정과 정지를 사용한다. 별도의 안전 출력 publisher를 추가하지 않는다.
+Nav2 Collision Monitor의 lifecycle, 센서 좌표 변환, polygon 판정과 정지를 사용합니다. 별도의 안전 출력 publisher를 추가하지 않습니다.
 
 | 제한 | 계산 / 적용 |
 |---|---|
@@ -128,7 +128,7 @@ flowchart TD
 | 입력 | phone_depth_local.yaml: `/camera/d435/depth/image_rect_raw`, `/camera/d435/depth/camera_info` |
 | Clearing | `/perception/depth/nav_points`, 카메라 좌표; local VoxelLayer ray 원점 `sensor_frame=d435_depth_frame` |
 | Marking | `/perception/depth/nav_obstacle_points`, base_link; spatial_filter_file 적용 |
-| Self-mask | self_filter_boxes_file은 base-frame 고정 AABB JSON; self_filter_profile과 동시 지정 금지 |
+| Self-mask | self_filter_boxes_file은 base-좌표계 고정 AABB JSON; self_filter_profile과 동시 지정 금지 |
 | 가려진 ray | Marking과 clearing 모두 제외 |
 | 수락 | max_image_age_s=0.5, min_valid_fraction=0.05; 촬영 시각 유지 |
 | 무효 depth | positive_infinity_is_free=false; 빈 공간으로 변환 안 함 |
@@ -170,7 +170,7 @@ flowchart TD
 | 토픽 발행 | `head_pan/command` | `std_msgs/msg/Float64` | R10; `pan_command_topic` |
 | 토픽 발행 | `head_pan/state` | `std_msgs/msg/String` | R10; `state_topic` |
 
-`observation_only=true`에서는 속도 출력 publisher와 odom/depth 구독을 생성하지 않는다. Update 주기는 `update_period_s` 기본 0.05초다. TF listener는 없다.
+`observation_only=true`에서는 속도 출력 publisher와 odom/depth 구독을 생성하지 않습니다. Update 주기는 `update_period_s` 기본 0.05초입니다. TF listener는 없습니다.
 
 ## reactive_guard
 
@@ -189,7 +189,7 @@ flowchart TD
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-선택 실행 경로다. Full voxel 경로의 최종 publisher와 중복 실행하지 않는다. Update 주기는 `update_period_s` 기본 0.05초다.
+선택 실행 경로입니다. Full voxel 경로의 최종 publisher와 중복 실행하지 않습니다. Update 주기는 `update_period_s` 기본 0.05초입니다.
 
 ## obstacle_memory
 
@@ -212,7 +212,7 @@ flowchart TD
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-Update 주기는 `update_period` 기본 0.5초이며, 출력별 실제 발행은 변경 여부와 별도 주기 설정에 따라 달라진다.
+Update 주기는 `update_period` 기본 0.5초이며, 출력별 실제 발행은 변경 여부와 별도 주기 설정에 따라 달라집니다.
 
 ## voxel_guard
 
@@ -230,8 +230,8 @@ Update 주기는 `update_period` 기본 0.5초이며, 출력별 실제 발행은
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-충돌 검사와 속도 출력 주기는 `update_period_s` 기본 0.10초(10Hz)다. 기존 Collision Monitor와
-ToF의 주기는 별도로 유지한다. 이름 외에도 body profile과 안전 설정이 필요하다.
+충돌 검사와 속도 출력 주기는 `update_period_s` 기본 0.10초(10Hz)입니다. 기존 Collision Monitor와
+ToF의 주기는 별도로 유지합니다. 이름 외에도 body 프로필과 안전 설정이 필요합니다.
 
 ## nav2_bt_trace
 
@@ -244,13 +244,13 @@ ToF의 주기는 별도로 유지한다. 이름 외에도 body profile과 안전
 | 토픽 구독 | `navigate_to_pose/_action/status` | `action_msgs/msg/GoalStatusArray` | R/T1; `action` + suffix |
 | 토픽 발행 | `navigation/bt_trace` | `std_msgs/msg/String` | R/T1; 입력 이벤트 처리 시, `output_topic` |
 
-시작할 때 `manifest_file`과 `xml_file`을 검증한다.
+시작할 때 `manifest_file`과 `xml_file`을 검증합니다.
 
 ## 매핑 세션 상태
 
 `mapping/status`의 `error_code`, `error_file`은 마지막 작업 실패의 단계 코드와
-진단 JSON 경로다. 오류가 없으면 빈 문자열이며 새 작업 접수 시 초기화된다.
-`output`은 시작 준비 단계부터 제공되고, `generation`은 성공한 시작 횟수만 나타낸다.
+진단 JSON 경로입니다. 오류가 없으면 빈 문자열이며 새 작업 접수 시 초기화됩니다.
+`output`은 시작 준비 단계부터 제공되고, `generation`은 성공한 시작 횟수만 나타냅니다.
 
 ## nav2_lifecycle_recovery
 
@@ -302,7 +302,7 @@ flowchart LR
 | ToF | RGB-D coverage 요구나 observer 강제 활성 없음 |
 | 기존 Nav2 / recovery | 같은 선택 명령 경로 사용 |
 
-[ToF 계약](../../cleany_tof/docs/interfaces.md)을 따른다.
+[ToF 계약](../../cleany_tof/docs/interfaces.md)을 따릅니다.
 
 | 병행 지도 확장 | 계약 |
 |---|---|
@@ -317,16 +317,16 @@ flowchart LR
 | context 필드 | 기록 기준 |
 |---|---|
 | 생성 | 새 관측 창마다 고정; heartbeat에서 갱신 안 함 |
-| pose / frame | at=t1의 map→base_link TF, `[x,y,yaw]`; 비교 창 끝점이며 실제 슬립 시작 접촉점 아님 |
+| pose / 좌표계 | at=t1의 map→base_link TF, `[x,y,yaw]`; 비교 창 끝점이며 실제 슬립 시작 접촉점 아님 |
 | TF 없음 | pose=null, historical_transform_unavailable; 최신 TF 대체 금지 |
-| map_revision | 문맥 생성 시 지도의 frame / geometry / cells SHA-256 |
+| map_revision | 문맥 생성 시 지도의 좌표계 / geometry / cells SHA-256 |
 | commands.requested / output | 기본 nav2/cmd_vel / cmd_vel의 velocity, received_at, age_s, topic, reason |
 | 명령 시간 | Header 없는 Twist이므로 ros_receive_time; t1 이전 마지막 수신값 |
 | 최대 나이 | command_context_max_age_s=0.3; 오래되거나 없으면 null, 미래 값 사용 금지 |
 | 이력 | 출처별 4 s / 최대 512개 |
 | 이름 설정 | requested_command_topic, output_command_topic, map_topic, map_frame |
 
-이 문맥은 분석용이며 감지 판정이나 BT 입력이 아니다. Logger는 slip 5 Hz, traction_recovery 수신 이벤트를 기존 CDR bag과 용량·보존 정책으로 기록한다.
+이 문맥은 분석용이며 감지 판정이나 BT 입력이 아닙니다. Logger는 slip 5 Hz, traction_recovery 수신 이벤트를 기존 CDR bag과 용량·보존 정책으로 기록합니다.
 
 ## depth_obstacles_preview
 
@@ -336,7 +336,7 @@ flowchart LR
 </figure>
 
 실행 파일 `depth_obstacles_preview`는 촬영 시점 pan/tilt TF로 깊이 점을
-`base_link`로 변환하는 미리보기 노드다. costmap, clearing, 주행 명령은 발행하지 않는다.
+`base_link`로 변환하는 미리보기 노드입니다. costmap, clearing, 주행 명령은 발행하지 않습니다.
 
 | 방향 | 토픽 | 타입 | 의미 |
 |---|---|---|---|

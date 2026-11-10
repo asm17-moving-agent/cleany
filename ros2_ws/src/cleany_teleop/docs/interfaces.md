@@ -1,6 +1,6 @@
 # 휴대폰 조종과 자동 주행 인터페이스
 
-`phone_remote`는 브라우저 입력을 base driver에 전달한다. MCU 휠 명령은 발행하지 않으며 단일 브라우저가 입력 lease를 소유한다.
+`phone_remote`는 브라우저 입력을 base driver에 전달합니다. MCU 휠 명령은 발행하지 않으며 단일 브라우저가 입력 lease를 소유합니다.
 
 ```mermaid
 flowchart LR
@@ -40,7 +40,7 @@ stateDiagram-v2
     정지확인 --> 대기: 해제 / STOP / pointer cancel / 화면 이탈
 ```
 
-서버 재시작은 이전 lease를 복원하지 않고 눌림 없이 ENABLE하지 않는다. `commission_wheels`는 protocol-v2 독립 시험 CLI이므로 base driver와 동시에 실행하지 않는다.
+서버 재시작은 이전 lease를 복원하지 않고 눌림 없이 ENABLE하지 않습니다. `commission_wheels`는 protocol-v2 독립 시험 CLI이므로 base driver와 동시에 실행하지 않습니다.
 
 ### 전후진과 회전만 허용하기
 
@@ -53,7 +53,7 @@ stateDiagram-v2
 | 차단 | UI 횡이동 숨김, 서버도 횡이동 / 대각 명령 거부 |
 | 상태 | `GET /api/status`의 `forward_only` |
 
-키 이름은 forward_only지만 회전은 허용한다. STOP·입력 만료·허가 검사는 유지하며 driver나 다른 controller는 변경하지 않는다.
+키 이름은 forward_only지만 회전은 허용합니다. STOP·입력 만료·허가 검사는 유지하며 driver나 다른 controller는 변경하지 않습니다.
 
 ## HTTP와 인증
 
@@ -65,7 +65,7 @@ stateDiagram-v2
 | `GET /api/mapping/status` | Token 필수 |
 | `POST /api/reset` | Token + 동일 Origin + request_id; 202는 접수, running이 완료 |
 
-Token은 `#token=...`에서 읽고 저장하지 않는다. STOP도 인증한다. Stale 요청 409는 통신 단절과 구분하고, 초기화 응답 지연은 같은 request_id로 재시도한다.
+Token은 `#token=...`에서 읽고 저장하지 않습니다. STOP도 인증합니다. Stale 요청 409는 통신 단절과 구분하고, 초기화 응답 지연은 같은 request_id로 재시도합니다.
 
 | UI 갱신 | 동작 |
 |---|---|
@@ -97,7 +97,7 @@ Token은 `#token=...`에서 읽고 저장하지 않는다. STOP도 인증한다.
 
 ## 지도 클릭 주행 (명시적 선택)
 
-`phone_remote --navigation`은 일반 수동 조종과 별도 선택이다. 수락한 자동 목표는 화면 잠금·앱 전환 중에도 Supervisor와 센서 감시 아래 계속 실행된다. 수동 조종은 기존 입력 만료와 화면 이탈 정지를 유지한다.
+`phone_remote --navigation`은 일반 수동 조종과 별도 선택입니다. 수락한 자동 목표는 화면 잠금·앱 전환 중에도 Supervisor와 센서 감시 아래 계속 실행됩니다. 수동 조종은 기존 입력 만료와 화면 이탈 정지를 유지합니다.
 
 ```mermaid
 sequenceDiagram
@@ -125,7 +125,7 @@ sequenceDiagram
 | Preview 상태 | preview_request_id, phase, path, error, target(x/y/yaw) |
 | Preview 무효화 | 목적지 / 지도 변경, 취소, 이동 시작; 늦은 응답은 generation으로 제외 |
 
-도착 판정은 표시된 목표의 3 cm / 0.1 rad를 유지한다. 초기 위치 설정과 수동 조종이 가능하더라도 자동 목표에는 새 위치 정합과 새 Supervisor 허가가 필요하다.
+도착 판정은 표시된 목표의 3 cm / 0.1 rad를 유지합니다. 초기 위치 설정과 수동 조종이 가능하더라도 자동 목표에는 새 위치 정합과 새 Supervisor 허가가 필요합니다.
 
 ### 자동 속도와 정지 경로
 
@@ -148,7 +148,7 @@ flowchart LR
 | 최종 휠 상한 | `phone_navigation.yaml`의 `navigation.max_wheel_rad_s=10` |
 | 혼합 명령 | 네 휠 최대 절댓값으로 같은 비율 축소; 작은 요청을 키우지 않음 |
 
-실물 자동 주행은 별도 통합 검증 대상이다. Plugin 로딩이나 mock 통과가 실물 구동 증거는 아니다.
+실물 자동 주행은 별도 통합 검증 대상입니다. Plugin 로딩이나 mock 통과가 실물 구동 증거는 아닙니다.
 
 ### ROS 연결과 재기동 후 정지
 
@@ -174,7 +174,7 @@ flowchart LR
 | `slip`, `traction_recovery` | navigation/slip, navigation/traction_recovery의 String JSON; 표시용이며 권한 추가 없음 |
 | `localization` | localization/status String; 정합 미확인으로 허가 거부 시 이유 표시 |
 | `last_input_failure` | 센서 지연 취소의 입력별 수신 나이; event log의 navigation_input_failure와 함께 정지 뒤에도 보존 |
-| 파란 전역 경로 | `/plan`의 유한한 map-frame 점; 빈 경로 / 지도 변경 / 새 목표 / 취소 시 제거 |
+| 파란 전역 경로 | `/plan`의 유한한 map-좌표계 점; 빈 경로 / 지도 변경 / 새 목표 / 취소 시 제거 |
 | 경로 상태 | global_path_topic, global_path_points, global_path_age_s; 없으면 “경로 생성 대기” |
 
-Subscription 변경은 기존 서버 프로세스에 자동 반영되지 않으므로 코드 반영 뒤 서버를 재실행한다.
+Subscription 변경은 기존 서버 프로세스에 자동 반영되지 않으므로 코드 반영 뒤 서버를 재실행합니다.

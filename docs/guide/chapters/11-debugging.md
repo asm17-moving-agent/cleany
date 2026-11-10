@@ -6,9 +6,10 @@
 
 “캔 점군은 있는데 팔이 움직이지 않는다”는 문제를 생각해 봅시다. 어느 파일이 원인인지 바로 알기는 어렵습니다. 대신 가장 최근에 **확인한 결과**와 그다음 **기대하는 결과**를 적어보세요.
 
-```text
-RGB-D → target/context 점군 → 파지 후보 → 도달 가능한 후보 → 계획 → 실행 피드백
-                               ↑ 어디까지 확인했는가?
+```mermaid
+flowchart TD
+  Image["RGB-D"] --> Cloud["target / context 점군"] --> Grasp["파지 후보"]
+  Grasp --> Plan["도달성과 경로 계획"] --> Feedback["실행 피드백"]
 ```
 
 점군 생성, 후보 생성, 계획, 실행은 다른 단계입니다. 후보가 비었는지, 모든 후보가 도달 불가인지, 계획만 수행하도록 실행했는지 나누면 읽을 파일이 좁아집니다. 성공 메시지도 어느 단계의 성공인지 확인합니다.
@@ -24,7 +25,7 @@ RGB-D → target/context 점군 → 파지 후보 → 도달 가능한 후보 �
 
 [nearest_pregrasp_coordinator.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/nearest_pregrasp_coordinator.py)의 `_detect_objects()`, `_inspect_selected()`, `_plan_grasps()`를 순서대로 읽습니다. RGB-D 복원은 Perception이, 후보 생성은 Grasp 서버가 담당합니다.
 
-요청에는 `snapshot_id`, `object_id`, target/context 점군과 target OBB가 들어갑니다. `GraspNode._validate()`는 object ID 일치, 점군의 frame·timestamp 일치, 유한한 OBB와 정규화된 quaternion을 확인합니다. 다음은 `_plan()`의 실제 후보 생성 부분입니다.
+요청에는 `snapshot_id`, `object_id`, target/context 점군과 target OBB가 들어갑니다. `GraspNode._validate()`는 object ID 일치, 점군의 좌표계·측정 시각 일치, 유한한 OBB와 정규화된 quaternion을 확인합니다. 다음은 `_plan()`의 실제 후보 생성 부분입니다.
 
 ```python
 candidates = self._predictor.predict(target, context, workspace)
@@ -34,30 +35,29 @@ grasp = ranked[0] if ranked else None
 
 `predictor_type`은 geometric 또는 AnyGrasp를 선택합니다. `rank_grasps()`는 점수순 후보에서 허용 폭, 대상 접촉 범위와 중복 후보를 검사합니다. 통과 후보는 측정 시각의 TF로 `planning_frame`에 변환되어 응답에 담깁니다. `success=True`는 후보 생성 성공이며 팔 동작 성공이 아닙니다.
 
-그 다음 `grasp/select_reachable` action은 [GraspSelector.select()](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/core/grasp_selection.py)를 사용합니다. 가까운 팔부터 pre-grasp IK → grasp IK → 두 상태의 유효성 → 두 구간의 계획을 검사하고 실패하면 다음 팔·후보로 진행합니다. 여기서 생성 predictor와 도달 가능성 selector는 서로 다른 책임입니다.
+그 다음 `grasp/select_reachable` action은 [GraspSelector.select()](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/core/grasp_selection.py)를 사용합니다. 팔 순서를 정한 뒤 pre-grasp의 방향 정합, 상태와 접근 계획을 검사하고, grasp의 자세와 상태, 파지 구간 계획을 검사합니다. 실패하면 다음 해나 팔, 후보로 진행합니다. [8장의 흐름](08-grasp.md#084-양팔-선택과-moveit-호출)에서 호출 순서를 확인합니다. 여기서 생성 predictor와 도달 가능성 selector는 서로 다른 책임입니다.
 
 ## 11.3 테스트로 필터의 의도 읽기
 
 테스트는 입력 → 호출 → `assert` 순서로 읽습니다. 함수 내부를 모두 이해하기 전에 지켜야 하는 약속을 알 수 있습니다. [test_selector.py](../../../ros2_ws/src/cleany_grasping/test/test_selector.py)의 `test_selects_highest_scoring_target_contact_after_width_filter()`에는 다음 입력이 있습니다.
 
 ```python
-predictor = FakePredictor(
-    (
-        grasp((0.0, 0.0, 0.52), 0.8),
-        grasp((0.0, 0.0, 0.52), 0.99, width=0.2),
-        grasp((0.3, 0.0, 0.52), 0.9),
-    )
+candidates = (
+    grasp((0.0, 0.0, 0.52), 0.8),
+    grasp((0.0, 0.0, 0.52), 0.99, width=0.2),
+    grasp((0.3, 0.0, 0.52), 0.9),
 )
 
-result = select_grasp(predictor, target, target)
+ranked = rank_grasps(candidates, target)
 
-assert result is not None
+assert len(ranked) == 1
+result = ranked[0]
 assert result.score == 0.8
 ```
 
 0.99 후보의 요구 폭 0.2m는 기본 최대 폭 0.10m를 넘습니다. 0.9 후보는 target 접촉 범위를 벗어납니다. 따라서 0.8이 선택됩니다. 이 테스트가 말하는 것은 “점수가 가장 높은 후보”보다 **필터를 통과한 후보 중 최고 점수**가 중요하다는 것입니다.
 
-`FakePredictor`는 모델 추론을 대신해 지정한 후보를 반환합니다. 따라서 이 테스트는 필터·순위 로직을 검증하며, 카메라 인식 정확도나 AnyGrasp 실제 추론 품질을 측정하지 않습니다. 같은 파일의 빈 후보와 중복 억제 테스트를 이어 읽으면 반환 `None`과 NMS 동작도 확인할 수 있습니다.
+이 테스트는 지정한 후보를 `rank_grasps()`에 직접 전달해 필터와 순위 로직을 검증하며, 카메라 인식 정확도나 AnyGrasp 실제 추론 품질을 측정하지 않습니다. 같은 파일의 빈 후보와 중복 억제 테스트를 이어 읽으면 반환 `None`과 NMS 동작도 확인할 수 있습니다.
 
 ## 11.4 Plan-only와 로그 판독
 
@@ -85,7 +85,7 @@ flowchart TD
   Mode -->|아니오| Execution["controller 결과 / 접촉 / 물체 상태 확인"]
 ```
 
-[grasp_selection.yaml](../../../ros2_ws/src/cleany_skill_executor/config/grasp_selection.yaml)의 frame, joint-state age 0.5초, 최대 후보 12개와 pregrasp offset 0.14 m를 실행 설정과 대조합니다. `First ranked` 로그는 최종 선택 결과나 물리 파지 성공이 아닙니다.
+[grasp_selection.yaml](../../../ros2_ws/src/cleany_skill_executor/config/grasp_selection.yaml)에서 좌표계, 관절 상태의 최신성 한계, 후보 수와 접근 거리를 실행 설정과 대조합니다. `First ranked` 로그는 최종 선택 결과나 물리 파지 성공이 아닙니다.
 
 ## 11.5 Mission 실패와 검증 범위
 

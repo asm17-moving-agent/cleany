@@ -1,6 +1,6 @@
 # Robot model 계약
 
-기본 모델 `cad_final`은 `Cleany-final.FCStd`의 조립 형상을 사용한다. 외장, 팔과 링크형 그리퍼를 포함한 308개 CAD 부품을 공유하며, 실물 보정과 관성 추정은 별도다.
+기본 모델 `cad_final`은 `Cleany-final.FCStd`의 조립 형상을 사용합니다. 외장, 팔과 링크형 그리퍼를 포함한 308개 CAD 부품을 공유하며, 실물 보정과 관성 추정은 별도입니다.
 
 ```mermaid
 flowchart LR
@@ -30,7 +30,7 @@ flowchart LR
 | 이전 장착 | `model_profile:=jetson_20261009`; 이전 URDF, MJCF와 보정 자료 보존 |
 | 예전 Gazebo 평가 형상 | `robot_model:=legacy`를 명시할 때만 사용 |
 
-[형상 등록 정보](../config/geometry/cad_final.json)는 CAD 해시, 부품별 메시 해시, 좌표 변환과 조립 자세를 기록한다. 팔 장착점, 헤드, 그리퍼와 카메라 형상은 최신 CAD 기준이다. 팔의 관절 방향과 이름은 유지하며 CAD 조립 자세를 관절 영점으로 바꾸지 않는다.
+[형상 등록 정보](../config/geometry/cad_final.json)는 CAD 해시, 부품별 메시 해시, 좌표 변환과 조립 자세를 기록합니다. 팔 장착점, 헤드, 그리퍼와 카메라 형상은 최신 CAD 기준입니다. 팔의 관절 방향과 이름은 유지하며 CAD 조립 자세를 관절 영점으로 바꾸지 않습니다.
 
 ## 좌표와 동작 범위
 
@@ -46,7 +46,7 @@ flowchart LR
 | 링크형 그리퍼 | CAD의 닫힌 링크 관계가 제공되지 않아 현재 조립 형상으로 고정; 명령 활성화 거부 |
 | 질량과 관성 | 이전 모델의 추정값 유지; 새 부품의 실측 동역학으로 해석하지 않음 |
 
-D435 preview의 CAD 좌표는 조립 원점 기준이다. 위 `base_link` 이동을 적용하지 않은 값을 URDF 좌표와 섞지 않는다. Gazebo의 LiDAR 높이 실험 프로필과 기존 실물 LiDAR TF는 독립된 센서 설정이다.
+D435 preview의 CAD 좌표는 조립 원점 기준입니다. 위 `base_link` 이동을 적용하지 않은 값을 URDF 좌표와 섞지 않습니다. Gazebo의 LiDAR 높이 실험 프로필과 기존 실물 LiDAR TF는 독립된 센서 설정입니다.
 
 ## 카메라
 
@@ -63,4 +63,4 @@ D435 preview의 CAD 좌표는 조립 원점 기준이다. 위 `base_link` 이동
 | Sorting wrist TF | `cleany_mujoco_sim/config/sorting_wrist_cameras.yaml`의 같은 배치 |
 | `jetson_20261009` 보정 | 같은 이름의 이전 모델 프로필에서만 허용 |
 
-이전 v8 카메라 형상과 optical 보정은 이전 장착에 보존한다. 최신 CAD에 이전 보정을 선택하면 Xacro가 실패한다. 렌즈의 기계적 축 등록은 intrinsics나 실제 hand-eye 보정을 대신하지 않는다.
+이전 v8 카메라 형상과 optical 보정은 이전 장착에 보존합니다. 최신 CAD에 이전 보정을 선택하면 Xacro가 실패합니다. 렌즈의 기계적 축 등록은 intrinsics나 실제 hand-eye 보정을 대신하지 않습니다.

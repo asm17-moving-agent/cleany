@@ -1,20 +1,20 @@
 # 실물 베이스의 정지 응답과 odometry 평가
 
-휠 피드백으로 정지한 위치와 LiDAR 또는 바닥 마킹으로 측정한 변위를 비교한다. 평가용 P 제어는 상시 주행 controller나 wheel geometry 보정과 별개다.
+휠 피드백으로 정지한 위치와 LiDAR 또는 바닥 마킹으로 측정한 변위를 비교합니다. 평가용 P 제어는 상시 주행 controller나 wheel geometry 보정과 별개입니다.
 
 | 확인하려는 것 | 진입점 | 입력 |
 |---|---|---|
 | 한 패턴의 왕복 잔차 | `run_eval.sh` | pattern / 거리 / 회전 수 |
 | 속도별 wheel odom 재측정 | `run_wheel_only_eval.sh` | [wheel 평가 config](../../configs/mission/wheel_odometry_evaluation.json) |
-| 축별 P 응답과 외부 오차 | `run_motion_response.sh` | [전 축 프로토콜](validation_protocol.md) |
+| 축별 P 응답과 외부 오차 | `run_motion_response.sh` | [전 축 프로토콜](validation-protocol.md) |
 | 저장 스캔만 다시 정합 | `replay_scan_matches.py` | response summary + NPZ; ROS/장치 사용 안 함 |
 
 ## 1. 사전 준비 및 바닥 마킹
 
-1. 최소 3.5×3.5 m의 평탄하고 장애물 없는 바닥을 확보한다. 기본 legacy 패턴의 시작점 기준 최대 변위는 3.0 m다.
-2. 바닥 십자선과 로봇 외곽 기준점을 정렬한다. 필요하면 전방 2.5 m, 좌측 2.0 m에도 마킹한다.
-3. 물리 Emergency Stop을 즉시 사용할 수 있게 준비하고 다른 명령원을 종료한다.
-4. Dry-run으로 해당 **실행 경로의** 거리·속도·반복 수를 확인한다. 전 축 응답 시험은 별도 0.5 m/90° 한계다.
+1. 최소 3.5×3.5 m의 평탄하고 장애물 없는 바닥을 확보합니다. 기본 legacy 패턴의 시작점 기준 최대 변위는 3.0 m입니다.
+2. 바닥 십자선과 로봇 외곽 기준점을 정렬합니다. 필요하면 전방 2.5 m, 좌측 2.0 m에도 마킹합니다.
+3. 물리 Emergency Stop을 즉시 사용할 수 있게 준비하고 다른 명령원을 종료합니다.
+4. Dry-run으로 해당 **실행 경로의** 거리·속도·반복 수를 확인합니다. 전 축 응답 시험은 별도 0.5 m/90° 한계입니다.
 
 ## 2. 노드 기동
 
@@ -41,7 +41,7 @@ ros2 launch cleany_base_driver base_driver.launch.py   mock:=false config:="$PWD
 
 ## 3. 평가 스크립트 실행
 
-Ubuntu 22.04 외 호스트에서는 launcher가 `ros2-humble` Distrobox로 전환한다. 먼저 이동 없는 계획을 확인한다.
+Ubuntu 22.04 외 호스트에서는 launcher가 `ros2-humble` Distrobox로 전환합니다. 먼저 이동 없는 계획을 확인합니다.
 
 ```bash
 bash tools/odometry_evaluation/run_eval.sh --pattern surge --dry-run
@@ -51,7 +51,7 @@ bash tools/odometry_evaluation/run_motion_response.sh --dry-run
 
 ### 한 패턴 선택
 
-아래 경로는 로봇 좌표계 +X 전방, +Y 좌측이다. 도식의 길이는 축척이 아니며 실제 거리는 표를 따른다.
+아래 경로는 로봇 좌표계 +X 전방, +Y 좌측입니다. 도식의 길이는 축척이 아니며 실제 거리는 표를 따릅니다.
 
 ```mermaid
 flowchart LR
@@ -79,7 +79,7 @@ flowchart LR
 | `--pattern box --distance 2.0` | yaw 고정, 2×2 m 폐루프; 최대 반경 2.828 m | 복합 누적 drift |
 | `--pattern return_x` / `return_y` | 지정 거리 직진/횡이동 후 복귀 | 원위치 잔차 |
 
-병진 명령 상한은 0.5 m/s, yaw는 1.0 rad/s다. 실제 속도와 구분한다. 확인한 패턴으로 실물 실행한다.
+병진 명령 상한은 0.5 m/s, yaw는 1.0 rad/s입니다. 실제 속도와 구분합니다. 확인한 패턴으로 실물 실행합니다.
 
 ```bash
 bash tools/odometry_evaluation/run_eval.sh --pattern surge --distance 2.5
@@ -99,17 +99,17 @@ bash tools/odometry_evaluation/run_wheel_only_eval.sh   --config configs/mission
 | 반복 | 각 조건 3회, 45회 왕복 / 90개 편도 |
 | 평가 odom | `/wheel/odom`; IMU/localization 융합 없음, ICP도 odom에 융합하지 않음 |
 
-긴 wheel 평가의 거리는 이 config의 `translation_distance_m`에서 변경한다. P 응답 프로토콜의 0.5 m 제한과 혼동하지 않는다. 경로와 `output_dir`는 레포 루트 기준이다. Dry-run은 ROS나 결과 폴더를 만들지 않는다. 이동 또는 ICP 실패 시 후속 반복을 시작하지 않는다.
+긴 wheel 평가의 거리는 이 config의 `translation_distance_m`에서 변경합니다. P 응답 프로토콜의 0.5 m 제한과 혼동하지 않습니다. 경로와 `output_dir`는 레포 루트 기준입니다. Dry-run은 ROS나 결과 폴더를 만들지 않습니다. 이동 또는 ICP 실패 시 후속 반복을 시작하지 않습니다.
 
 ### 전 축 P=6 검증 프로토콜
 
-시험 행렬과 조정 범위의 원본은 [VALIDATION_PROTOCOL](validation_protocol.md)이다.
+시험 행렬과 조정 범위의 원본은 [VALIDATION_PROTOCOL](validation-protocol.md)입니다.
 
 ```bash
 bash tools/odometry_evaluation/run_motion_response.sh   --config configs/mission/all_axis_validation.json
 ```
 
-현재 P는 X/Y/yaw와 대각선 모두 6.0이며 trial에만 적용한다. `motion_settings.json`의 `candidate_settings: true`는 재검증 대상임을 표시한다. 기본 `require_valid_icp=true`, 전 축 preset inlier 하한은 0.30이며 생략 시 0.40이다. 제어 응답 완료와 외부 정확도 판정을 구분한다.
+현재 P는 X/Y/yaw와 대각선 모두 6.0이며 trial에만 적용합니다. `motion_settings.json`의 `candidate_settings: true`는 재검증 대상임을 표시합니다. 기본 `require_valid_icp=true`, 전 축 preset inlier 하한은 0.30이며 생략 시 0.40입니다. 제어 응답 완료와 외부 정확도 판정을 구분합니다.
 
 ### X/Y/yaw P 응답 측정과 현재 적용값
 
@@ -124,7 +124,7 @@ bash tools/odometry_evaluation/run_motion_response.sh   --config configs/mission
 # 위 계획과 시험 공간을 확인한 뒤 같은 명령에서 --dry-run을 제외한다.
 ```
 
-150 ms odom watchdog을 유지한다. `guards`는 시작점 반경, 횡이탈, 병진 중 yaw, 과도 변위를 제한하는 시험용 중단값이다. `require_valid_icp=false`를 명시하면 정상 제어 trace는 이어 측정하되 거부된 외부 비교는 무효로 남긴다. 주행 실패·watchdog·경계 이탈은 항상 중단한다.
+150 ms odom watchdog을 유지합니다. `guards`는 시작점 반경, 횡이탈, 병진 중 yaw, 과도 변위를 제한하는 시험용 중단값입니다. `require_valid_icp=false`를 명시하면 정상 제어 trace는 이어 측정하되 거부된 외부 비교는 무효로 남깁니다. 주행 실패·watchdog·경계 이탈은 항상 중단합니다.
 
 ### 대각선 P 튜닝과 외부 오차 측정
 
@@ -133,11 +133,11 @@ bash tools/odometry_evaluation/run_motion_response.sh   --config configs/mission
 | `diagonal_left` | 전좌 ↔ 후우 (+45°/−135°) | abs(X)=abs(Y)≈0.354 m |
 | `diagonal_right` | 전우 ↔ 후좌 (−45°/+135°) | abs(X)=abs(Y)≈0.354 m |
 
-속도와 거리는 벡터 크기다. 제어와 5 mm 정지 허용치는 진행방향 투영값이며 2D norm이 아니다. 횡편차와 yaw는 별도로 측정하고 guard를 적용한다. 대각선 P는 fallback `linear_kp`만 바꾼다.
+속도와 거리는 벡터 크기입니다. 제어와 5 mm 정지 허용치는 진행방향 투영값이며 2D norm이 아닙니다. 횡편차와 yaw는 별도로 측정하고 guard를 적용합니다. 대각선 P는 fallback `linear_kp`만 바꿉니다.
 
 ## 4. Ground-Truth 계측 방식 (LiDAR ICP vs 바닥 테이프 수동 측정)
 
-ICP는 품질을 검사한 상대변위 추정이다. 독립적으로 측정한 절대 정답이나 슬립 원인 판정으로 취급하지 않는다.
+ICP는 품질을 검사한 상대변위 추정입니다. 독립적으로 측정한 절대 정답이나 슬립 원인 판정으로 취급하지 않습니다.
 
 ```mermaid
 flowchart LR
@@ -153,7 +153,7 @@ flowchart LR
 
 ### 2D LiDAR ICP 자동 계측
 
-`/scan`의 고정 구조물 반사를 시작/종료 각 1초 burst로 모아 Point-to-Line ICP로 비교한다. 기본 활성이고 `--no-lidar`로 끈다. RMSE, inlier 비율과 Hessian 관측성 검사를 통과해야 유효하다. 결과 JSON과 같은 이름의 PNG는 scan overlay와 정합을 보여준다.
+`/scan`의 고정 구조물 반사를 시작/종료 각 1초 burst로 모아 Point-to-Line ICP로 비교합니다. 기본 활성이고 `--no-lidar`로 끕니다. RMSE, inlier 비율과 Hessian 관측성 검사를 통과해야 유효합니다. 결과 JSON과 같은 이름의 PNG는 scan overlay와 정합을 보여줍니다.
 
 ### ICP 수렴과 관측성
 
@@ -219,15 +219,15 @@ Enter physical Yaw error relative to tape mark in deg (CCW + / CW -):
 ## 자동 기동과 준비 확인
 
 [`ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json`](../../ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json)에서
-MCU·LiDAR by-id USB 경로, base hardware profile, LiDAR 옵션과 대기 시간을 바꿉니다.
+MCU·LiDAR by-id USB 경로, base hardware 프로필, LiDAR 옵션과 대기 시간을 바꿉니다.
 
 - Agent가 없으면 연결된 MCU에 serial Agent를 시작하고, base driver가 없으면
   `mock:=false`로 wheel odometry를 함께 시작합니다.
 - LiDAR가 정상 스캔을 발행하면 재사용합니다. USB 재연결 후 스캔이 끊긴 기존
-  프로세스는 같은 사용자·설정된 serial 경로·허용 node 이름까지 식별되는 경우만
+  프로세스는 같은 사용자·설정된 serial 경로·허용 노드 이름까지 식별되는 경우만
   종료하고 by-id 경로로 다시 시작합니다. 식별되지 않는 프로세스를 임의 종료하거나
   중복 driver를 추가하지 않습니다.
-- `/base/enable` service와 timestamp가 진행하는 실제 odom·scan·WheelState를
+- `/base/enable` service와 측정 시각가 진행하는 실제 odom·scan·WheelState를
   확인합니다. MCU가 disabled·fault-free이고 wheel 목표/PWM이 0이며,
   차체 필터 뒤 외부 환경 반사점이 충분히 수신되어야 주행을 시작합니다.
 - 기본 30초 안에 준비되지 않으면 누락·정체 원인을 기록하고 평가 프로세스를
@@ -250,7 +250,7 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 보정 파일은 `yaw_deg`, `lever_arm_x_m`, `lever_arm_y_m`의 유한한 수치 세 개를
 필수로 포함하는 JSON입니다. 추가 provenance 필드는 허용합니다. 적용한 보정값과
 파일 식별 정보, odom 입력 및 최소 거리는 개별 결과와 summary에 기록합니다.
-배치 실행은 설정을 사전 검증하고 `output_dir/batch_<시각>_<pid>/`에 고정 사본과 결과를 남긴다. 하위 `run_oneway_eval.py`를 직접 사용할 때 현재 장착의 extrinsic 파일을 생략하면 이전 장착 기본값이 적용되므로 생략하지 않는다.
+배치 실행은 설정을 사전 검증하고 `output_dir/batch_<시각>_<pid>/`에 고정 사본과 결과를 남깁니다. 하위 `run_oneway_eval.py`를 직접 사용할 때 현재 장착의 extrinsic 파일을 생략하면 이전 장착 기본값이 적용되므로 생략하지 않습니다.
 
 
 ## 5. 결과와 그래프 읽기
@@ -260,7 +260,7 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 <figcaption><strong>필요한 자료:</strong> 현재 평가 도구의 response.png와 대응하는 실제 trace·결과 JSON.<br><strong>빈 이유:</strong> 기존 wheel 비교 자료는 이 도구의 응답 trace와 연결되지 않아 재사용하지 않았습니다.</figcaption>
 </figure>
 
-`response.png`는 축별 열과 3개 행으로 구성된다. **실제 trace가 있는 실행에서 생성한 그림**을 결과 JSON과 함께 열어 해석한다.
+`response.png`는 축별 열과 3개 행으로 구성됩니다. **실제 trace가 있는 실행에서 생성한 그림**을 결과 JSON과 함께 열어 해석합니다.
 
 | 그림 위치 / 표시 | 의미 |
 |---|---|
@@ -271,7 +271,7 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 | 색상 | P와 속도 상한 조합 |
 | 시간 축 | 주행 응답만; 종료 후 dwell과 scan 수집 제외 |
 
-`settling_entry_s`는 위치와 속도가 모두 허용 범위에 들어와 이후 유지되는 시각이다. 0.5초 hold 완료와 별도 1.5초 dwell을 더한 시각이 아니다.
+`settling_entry_s`는 위치와 속도가 모두 허용 범위에 들어와 이후 유지되는 시각입니다. 0.5초 hold 완료와 별도 1.5초 dwell을 더한 시각이 아닙니다.
 
 | JSON 결과 | 비교 | 해석 한계 |
 |---|---|---|
@@ -280,13 +280,13 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 | `odom_minus_icp` | wheel odom − 유효 ICP | 피드백과 외부 추정의 불일치 |
 | 무효 ICP | `icp_goal`, `odom_minus_icp`는 null | 0으로 대체하거나 평균에 포함하지 않음 |
 
-빠르게 정착하거나 wheel 잔차가 작아도 실제 위치 오차가 작다는 뜻은 아니다. 결과에는 ICP 거부 건수와 전체 분모를 함께 남긴다. 원인은 측정 불확실성과 장착 보정까지 고려하며 P나 슬립으로 단정하지 않는다.
+빠르게 정착하거나 wheel 잔차가 작아도 실제 위치 오차가 작다는 뜻은 아닙니다. 결과에는 ICP 거부 건수와 전체 분모를 함께 남깁니다. 원인은 측정 불확실성과 장착 보정까지 고려하며 P나 슬립으로 단정하지 않습니다.
 
 | 배치 출력 | 내용 |
 |---|---|
 | `config_snapshot.json` | 실험 설정과 원본 식별 |
 | `motion_config.json`, `extrinsic_config.json` | 반복에 적용한 고정 사본 |
-| `runtime_config.json`, `base_hardware.yaml` | runtime과 hardware profile |
+| `runtime_config.json`, `base_hardware.yaml` | runtime과 hardware 프로필 |
 | `run_1/`, `run_2/`, `run_3/` | 개별 측정, trace, JSON/NPZ/PNG |
 | `runtime_logs/` | 자체 시작한 agent/base/lidar 로그 |
 | `batch_summary.json` | 배치 종료 상태; 중단 시 후속 반복 없음 |
@@ -302,7 +302,7 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 | `capture_preflight.py` | 정지 odom/WheelState/scan 확인 |
 | [휠 진단](../wheel_calibration/README.md) | 정상상태 휠 속도/PWM |
 
-주행 도구는 `/tmp/cleany_odom_eval.lock`과 `/cmd_vel` publisher 검사로 중복을 막는다. Legacy `run_eval.sh`/`run_multi_speed_eval.py`의 LiDAR→base 기본값은 yaw −7.85°, X lever arm 0.029 m이며 extrinsic 선택 옵션이 없다. 현재 장착 재측정에는 명시 config 기반 launcher를 사용한다.
+주행 도구는 `/tmp/cleany_odom_eval.lock`과 `/cmd_vel` publisher 검사로 중복을 막습니다. Legacy `run_eval.sh`/`run_multi_speed_eval.py`의 LiDAR→base 기본값은 yaw −7.85°, X lever arm 0.029 m이며 extrinsic 선택 옵션이 없습니다. 현재 장착 재측정에는 명시 config 기반 launcher를 사용합니다.
 
 ## 6. 단위 테스트
 
@@ -310,4 +310,4 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 make test-odometry-evaluation
 ```
 
-Batch config, 변환, ICP, 공통 제어, 휠 진단 pytest와 Bash 문법을 검사하며 장치를 실행하지 않는다.
+Batch config, 변환, ICP, 공통 제어, 휠 진단 pytest와 Bash 문법을 검사하며 장치를 실행하지 않습니다.

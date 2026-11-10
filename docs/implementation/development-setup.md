@@ -9,7 +9,7 @@
 | Monitor 웹 개발 | [웹 도구](#monitor-웹) | frontend build; ROS 실행에는 Node 불필요 |
 | Fedora / Jetson 화면 | [선택 환경](#7-선택-환경), [얼굴 화면](#jetson-얼굴-디스플레이-환경) | 해당 호스트 조건 |
 
-새 Ubuntu native 환경은 1–6단계 순서로 구성한다. VM 이미지는 별도로 배포하지 않는다.
+새 Ubuntu native 환경은 1–6단계 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
 
 ## 기준 환경
 
@@ -24,7 +24,7 @@
 
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
 
-기존 환경에서는 먼저 아래 버전을 확인한다. Native 설치는 현재 APT 저장소를 사용하고, [CI](../../.github/workflows/ci.yml)는 snapshot/constraints를 고정하므로 세부 버전이 같다고 가정하지 않는다. [CI 재현 기준](reference/testing.md#ci-실행과-재사용)을 따른다.
+기존 환경에서는 먼저 아래 버전을 확인합니다. Native 설치는 현재 APT 저장소를 사용하고, [CI](../../.github/workflows/ci.yml)는 snapshot/constraints를 고정하므로 세부 버전이 같다고 가정하지 않습니다. [CI 재현 기준](reference/testing.md#ci-실행과-재사용)을 따릅니다.
 
 ```bash
 lsb_release -ds
@@ -157,12 +157,12 @@ sudo apt install -y ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
 ## 6. 빌드와 출력 경로
 
 `CLEANY_BUILD_ROOT`는 빌드 캐시, `CLEANY_DATA_ROOT`는 실행 환경별 로컬 데이터
-경로다. 데이터 경로를 지정하지 않으면 Makefile이 인접한 `cleany-data` 경로를
-선택한다. 이 기본값은 팀 공유 위치를 의미하지 않는다. 실제 경로는
-`make -s print-build-root`와 `make -s print-data-root`로 확인한다.
-입력 자료와 결과를 팀에 공유할 때는 별도로 합의한 위치와 접근 방법을 사용한다.
+경로입니다. 데이터 경로를 지정하지 않으면 Makefile이 인접한 `cleany-data` 경로를
+선택합니다. 이 기본값은 팀 공유 위치를 의미하지 않습니다. 실제 경로는
+`make -s print-build-root`와 `make -s print-data-root`로 확인합니다.
+입력 자료와 결과를 팀에 공유할 때는 별도로 합의한 위치와 접근 방법을 사용합니다.
 
-로컬 데이터 경로를 지정하려면 아래 값을 사용할 경로로 바꾼다.
+로컬 데이터 경로를 지정하려면 아래 값을 사용할 경로로 바꿉니다.
 
 ```bash
 export CLEANY_DATA_ROOT="/path/to/local-data"
@@ -250,9 +250,9 @@ pnpm build
 
 ## 실물 매핑 의존성
 
-`cleany_bringup`의 실물 매핑은 native ROS 2 Humble의 설치된 패키지를 사용한다.
-`make build-hardware-mapping`은 lockfile로 shadcn UI를 빌드한 뒤 관련 ROS 패키지를 빌드한다.
-UI 빌드에는 Node.js 22.12 이상과 npm이 필요하며 실행 시 Node 서버나 외부 CDN은 필요 없다.
+`cleany_bringup`의 실물 매핑은 native ROS 2 Humble의 설치된 패키지를 사용합니다.
+`make build-hardware-mapping`은 lockfile로 shadcn UI를 빌드한 뒤 관련 ROS 패키지를 빌드합니다.
+UI 빌드에는 Node.js 22.12 이상과 npm이 필요하며 실행 시 Node 서버나 외부 CDN은 필요 없습니다.
 
 | 하드웨어 매핑 의존성 | 준비 / 확인 |
 |---|---|
@@ -268,16 +268,16 @@ vcs import src < /path/to/cleany/configs/dependencies/hardware.repos
 ros2 pkg prefix sllidar_ros2
 ```
 
-운영 노드는 실행 중 Git clone이나 colcon build를 수행하지 않는다.
+운영 노드는 실행 중 Git clone이나 colcon build를 수행하지 않습니다.
 
-센서 by-id, baud, 장착 TF와 scan mode는 `cleany_bringup/config/mapping_*.yaml`에서 관리한다.
+센서 by-id, baud, 장착 TF와 scan mode는 `cleany_bringup/config/mapping_*.yaml`에서 관리합니다.
 장치가 없는 단위/모의 검사는 실물 드라이버 설치 없이 실행할 수 있지만 실물 launch에는 두 외부
-드라이버가 모두 설치돼 있어야 한다. 이 통합은 MCU 펌웨어를 빌드하거나 업로드하지 않는다.
+드라이버가 모두 설치돼 있어야 합니다. 이 통합은 MCU 펌웨어를 빌드하거나 업로드하지 않습니다.
 
 Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make deps`와 장치 없는 CI는
-`sllidar_ros2`, `micro_ros_agent`만 명시적으로 제외한다. package.xml의 실행 의존성은 유지하고
-실물 실행 전 두 드라이버의 package prefix를 확인한다. CI는 호스트 Node 24에서 조종 UI와
-입력 검사를 먼저 빌드한 뒤 ROS 컨테이너의 workspace에 설치한다.
+`sllidar_ros2`, `micro_ros_agent`만 명시적으로 제외합니다. package.xml의 실행 의존성은 유지하고
+실물 실행 전 두 드라이버의 package prefix를 확인합니다. CI는 호스트 Node 24에서 조종 UI와
+입력 검사를 먼저 빌드한 뒤 ROS 컨테이너의 workspace에 설치합니다.
 
 ## Jetson 얼굴 디스플레이 환경
 
@@ -288,4 +288,4 @@ Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make 
 | 부팅 표시 | 그래픽 자동 로그인 필요; 설치기는 로그인 설정 미변경 |
 | Browser 설치 | install-browser.sh가 전용 폴더에 Playwright 1.64.1 / ARM64 browser 설치; 시스템 Python 미변경 |
 
-[디스플레이 운영](../../ros2_ws/src/cleany_display/README.md)을 따른다.
+[디스플레이 운영](../../ros2_ws/src/cleany_display/README.md)을 따릅니다.

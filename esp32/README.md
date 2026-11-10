@@ -34,7 +34,7 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 | 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
 | 토픽 발행 | `base/imu_state` | `cleany_base_interfaces/msg/ImuState` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
 
-MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/implementation/ros_interfaces.md)에서 찾습니다.
+MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/implementation/ros-interfaces.md)에서 찾습니다.
 
 ## Runtime
 
@@ -104,16 +104,16 @@ flowchart LR
 | 획득 | Data-ready 2 ms polling; motorMutex 미사용 |
 | 발행 | 새 표본으로 최대 100 Hz, Best-effort / Volatile / Keep-last 1; WheelState는 50 Hz |
 | 통신 정체 | 중간 표본 overwrite; 재연결 때 backlog 방출 안 함 |
-| 거부 | 100 ms 초과 획득값, 중복 / 역행 timestamp |
+| 거부 | 100 ms 초과 획득값, 중복 / 역행 측정 시각 |
 | 센서 오류 | 최대 10 Hz fault heartbeat, saturation 별도 bit; 초기화 / 읽기 재시도 250 ms–5 s backoff |
 
 | ImuState 데이터 | 의미 |
 |---|---|
-| 원본 | Sensor-frame SI vectors, 온도, MCU MAC, WHO_AM_I |
-| 식별 | Boot ID, packet sequence, MCU 획득 timestamp, fault bits |
+| 원본 | Sensor-좌표계 SI vectors, 온도, MCU MAC, WHO_AM_I |
+| 식별 | Boot ID, packet sequence, MCU 획득 측정 시각, fault bits |
 | v2 보정 | MCU-corrected gyro, 선택 bias/covariance, 보정 상태 / 이유 |
 
-ROS interface와 firmware를 함께 빌드한다. I2C 오류가 모터 허가를 만들지는 않는다. USB/I2C 동시 부하의 실제 주기와 motor timing은 실물 측정 대상이다.
+ROS interface와 firmware를 함께 빌드합니다. I2C 오류가 모터 허가를 만들지는 않습니다. USB/I2C 동시 부하의 실제 주기와 motor timing은 실물 측정 대상입니다.
 
 ### Power-on calibration
 
@@ -139,15 +139,15 @@ flowchart TD
 | 설정 반영 | firmware-build 검증 → build 디렉터리 cleany_config/imu_startup_config.hpp 생성 → rebuild / upload |
 | 구현 | Acquisition enqueue가 metadata 부착과 inhibit 해제를 담당, IMU task stack 6144 bytes |
 
-[ROS IMU 계약](../ros2_ws/src/cleany_base_driver/docs/imu.md#imu-실시간-수신)과 [독립 bench 진단](imu_calibration/README.md)을 참고한다. 정상 부팅 보정은 motor image에 포함된다.
+[ROS IMU 계약](../ros2_ws/src/cleany_base_driver/docs/imu.md#imu-실시간-수신)과 [독립 bench 진단](imu_calibration/README.md)을 참고합니다. 정상 부팅 보정은 motor image에 포함됩니다.
 
 ## 휠 속도 제어 설정
 
 `src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`는 FF scale, Kp, Ki와 PWM limit을
-설정한다. 변경 후 rebuild와 upload가 필요하다. FF 출력은
-`target / FF scale × PWM limit`이다. 진단 기준값은
+설정합니다. 변경 후 rebuild와 upload가 필요합니다. FF 출력은
+`target / FF scale × PWM limit`입니다. 진단 기준값은
 [`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
-보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인한다.
+보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인합니다.
 
 | 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) |
 |---|---:|---:|---:|---:|
@@ -156,19 +156,19 @@ flowchart TD
 | RL | 11.7678 | 6.246 | 12.492 | 100 |
 | RR | 11.3872 | 6.154 | 12.309 | 100 |
 
-FF 초기 추정은 `PWM≈k×속도`, `FF scale=100/k`를 사용한다. PI 초기 추정에는
+FF 초기 추정은 `PWM≈k×속도`, `FF scale=100/k`를 사용합니다. PI 초기 추정에는
 측정한 gain K, 시정수 τ와 delay L을 사용하며,
-`Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`로 계산한다.
-추정값은 실제 하중과 속도 필터 설정에 맞춰 재검증한다.
+`Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`로 계산합니다.
+추정값은 실제 하중과 속도 필터 설정에 맞춰 재검증합니다.
 
-명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정한다.
-속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초다.
-STOP, 만료 및 연결 단절은 슬루 감속을 기다리지 않고 PWM zero를 요청한다.
+명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정합니다.
+속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초입니다.
+STOP, 만료 및 연결 단절은 슬루 감속을 기다리지 않고 PWM zero를 요청합니다.
 
 측정과 재검증 방법은 [휠 진단 안내](../tools/wheel_calibration/README.md)와
-[오도메트리 평가 안내](../tools/odometry_evaluation/README.md)를 따른다.
+[오도메트리 평가 안내](../tools/odometry_evaluation/README.md)를 따릅니다.
 오도메트리 내부 제어 잔차와 바닥 테이프 또는 LiDAR 기준의 실측 오차는
-별도 지표로 기록한다. 측정 JSON과 PNG는 Git 제외 경로인 `artifacts/`에 저장한다.
+별도 지표로 기록합니다. 측정 JSON과 PNG는 Git 제외 경로인 `artifacts/`에 저장합니다.
 
 ## 1. 빌드와 장치 없는 검사
 

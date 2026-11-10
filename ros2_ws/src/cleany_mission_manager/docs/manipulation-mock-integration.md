@@ -1,6 +1,6 @@
 # Gazebo 주행과 Mock 조작 연결
 
-베이스는 Gazebo/Nav2가 주행하고 인식, 계획과 팔 조작은 Mock이다. Python Mock 서버는 PR #55 `86a6d85`의 실행 core, model, mock adapter, port, 단계, SQLite 저장소와 ROS wrapper를 선별 포함했다. Native BT와 MuJoCo 실행기는 포함하지 않았다.
+베이스는 Gazebo/Nav2가 주행하고 인식, 계획과 팔 조작은 Mock입니다. Python Mock 서버는 PR #55 `86a6d85`의 실행 core, model, mock adapter, port, 단계, SQLite 저장소와 ROS wrapper를 선별 포함했습니다. Native BT와 MuJoCo 실행기는 포함하지 않았습니다.
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,7 @@ flowchart LR
   FSM --> Report["MissionResult / Gateway"]
 ```
 
-FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유한다. 청소 BT는 `ObserveBefore → [PlanNext → ValidateProposal → ExecuteOne → Reobserve → VerifyCompletion]`을 실행한다. 접근, 집기와 운반은 Action 서버 내부 진행이며 Mission BT에 노드를 추가하지 않는다. 검증된 성공만 논리적 책상 목록을 갱신한다. Gazebo 팔 애니메이션이나 물리 수거는 실행하지 않는다.
+FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유합니다. 청소 BT는 `ObserveBefore → [PlanNext → ValidateProposal → ExecuteOne → Reobserve → VerifyCompletion]`을 실행합니다. 접근, 집기와 운반은 Action 서버 내부 진행이며 Mission BT에 노드를 추가하지 않습니다. 검증된 성공만 논리적 책상 목록을 갱신합니다. Gazebo 팔 애니메이션이나 물리 수거는 실행하지 않습니다.
 
 | 안내 | 원본 |
 |---|---|
@@ -38,13 +38,13 @@ FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유한다. �
 | `action_mock` | `true` | `/mock` 서버 동시 시작 |
 | `mock` | `true` | 설정 오류로 시작 거절 |
 
-[통합 launch](../../cleany_bringup/launch/mission_sim.launch.py)는 backend, fixture의 snapshot wire ID와 목적지를 검사한다. 서버 동시 시작 시 scenario, 서버 설정과 DB 분리도 Gazebo 실행 전에 확인한다. `profile`은 Fortress만 지원한다.
+[통합 launch](../../cleany_bringup/launch/mission_sim.launch.py)는 backend, fixture의 snapshot wire ID와 목적지를 검사합니다. 서버 동시 시작 시 scenario, 서버 설정과 DB 분리도 Gazebo 실행 전에 확인합니다. `profile`은 Fortress만 지원합니다.
 
-`action_mock`은 기존 `lidar_depth_nav` 센서, `nav2_safety.yaml`의 collision monitor, `nav2_omni_motion.yaml`의 mecanum controller를 조합한다. Controller의 도착 오차는 3 cm이고 Mission의 기존 8 cm gate는 유지한다. Costmap footprint는 monitor envelope와 맞춘다. 지도 파일명과 targets의 `map_id`는 같아야 하며 초기 위치는 [AMCL 설정](../../cleany_gazebo_sim/config/nav2_amcl.yaml)의 지도 좌표를 사용한다.
+`action_mock`은 기존 `lidar_depth_nav` 센서, `nav2_safety.yaml`의 collision monitor, `nav2_omni_motion.yaml`의 mecanum controller를 조합합니다. Controller의 도착 오차는 3 cm이고 Mission의 기존 8 cm gate는 유지합니다. Costmap footprint는 monitor envelope와 맞춥니다. 지도 파일명과 targets의 `map_id`는 같아야 하며 초기 위치는 [AMCL 설정](../../cleany_gazebo_sim/config/nav2_amcl.yaml)의 지도 좌표를 사용합니다.
 
 ## 공유 입력과 영속성
 
-[공유 fixture](../config/manipulation_server_fixture.yaml)는 두 물체와 네 관측을 등록한다. 표시 ID `trash-1`과 wire ID `1`은 명시적으로 매핑하며 문자열에서 숫자를 추정하지 않는다.
+[공유 fixture](../config/manipulation_server_fixture.yaml)는 두 물체와 네 관측을 등록합니다. 표시 ID `trash-1`과 wire ID `1`은 명시적으로 매핑하며 문자열에서 숫자를 추정하지 않습니다.
 
 | 관측 ID | wire ID 목록 | 역할 |
 |---|---|---|
@@ -53,9 +53,9 @@ FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유한다. �
 | `mock-snapshot-003` | `[]` | 두 번째 수거 후 완료 제안 |
 | `mock-snapshot-004` | `[]` | 추가 빈 관측으로 완료 확인 |
 
-모든 consumer는 같은 install prefix의 생성 타입을 사용한다. Mission DB, 서버 DB와 Bridge DB는 분리하며 재시작 시험에서 유지한다. `manipulation_initial_mock_safe=true`는 새 journal에만 적용한다. 저장된 위험 상태나 진행 기록을 덮어쓰지 않으며 조작 실행 기록이 있으면 로컬 Mock 전환으로 gate를 우회할 수 없다.
+모든 consumer는 같은 install prefix의 생성 타입을 사용합니다. Mission DB, 서버 DB와 Bridge DB는 분리하며 재시작 시험에서 유지합니다. `manipulation_initial_mock_safe=true`는 새 journal에만 적용합니다. 저장된 위험 상태나 진행 기록을 덮어쓰지 않으며 조작 실행 기록이 있으면 로컬 Mock 전환으로 gate를 우회할 수 없습니다.
 
-Gazebo가 clock, TF와 odom을 소유한다. Mock 서버는 물리 상태 토픽을 발행하지 않으며 Mission과 서버는 steady clock으로 timeout과 취소를 처리한다. 출처는 `navigation=sim`, `perception/planning/execution=mock`이다.
+Gazebo가 clock, TF와 odom을 소유합니다. Mock 서버는 물리 상태 토픽을 발행하지 않으며 Mission과 서버는 steady clock으로 timeout과 취소를 처리합니다. 출처는 `navigation=sim`, `perception/planning/execution=mock`입니다.
 
 ## Mock 조작의 관찰 시간
 
@@ -85,12 +85,12 @@ Gazebo가 clock, TF와 odom을 소유한다. Mock 서버는 물리 상태 토픽
 `stage_durations_sec`는 모든 scenario의 기본 시간이고, scenario별 값이 우선합니다.
 설정을 바꾸면 Mock 서버를 다시 실행해야 합니다. 이미 진행 중인 실행의 DB는 보존합니다.
 
-| Runtime timeout | 기본 로컬 Mock | 외부 Action Mock profile |
+| Runtime timeout | 기본 로컬 Mock | 외부 Action Mock 프로필 |
 |---|---:|---:|
 | 단일 작업 | 30초 | 120초 |
 | 취소 확인 | 5초 | 15초 |
 | 청소 전체 | 180초 | 300초 |
 
-ROS 계약 회귀 검사는 같은 논리 fixture의 시간을 줄이고 Gazebo 검사는 위 관찰 시간을 사용한다.
-설정은 [Runtime profile](../config/runtime_manipulation_mock.yaml)과
-[Gazebo profile](../config/runtime_gazebo_manipulation_mock.yaml)에서 관리한다.
+ROS 계약 회귀 검사는 같은 논리 fixture의 시간을 줄이고 Gazebo 검사는 위 관찰 시간을 사용합니다.
+설정은 [Runtime 프로필](../config/runtime_manipulation_mock.yaml)과
+[Gazebo 프로필](../config/runtime_gazebo_manipulation_mock.yaml)에서 관리합니다.

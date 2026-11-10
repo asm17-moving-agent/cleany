@@ -2,14 +2,14 @@
 
 ROS 2 주행과 매핑, 센서 관측, 물체 조작 시뮬레이션, ESP32 구동을 개발합니다.
 
-**[문서 홈](docs/index.md) · [브라우저로 문서 읽기](docs/index.html) · [개발환경 설치](docs/implementation/development_setup.md) · [팀 KB](docs/cleany-docs/README.md)**
+**[문서 홈](docs/index.md) · [브라우저로 문서 읽기](docs/index.html) · [개발환경 설치](docs/implementation/development-setup.md) · [팀 KB](docs/cleany-docs/README.md)**
 
 
 ## 바로 시작하기
 
 | 목표 | 안내 |
 |---|---|
-| 처음 빌드·실행 | [개발환경](docs/implementation/development_setup.md) |
+| 처음 빌드·실행 | [개발환경](docs/implementation/development-setup.md) |
 | 센서 입력과 인식 확인 | [센서 가이드](docs/implementation/how-to/sensors.md) |
 | 물체 관찰·계획·조작 | [조작 가이드](docs/implementation/how-to/manipulation.md) |
 | MCU와 휠 구동 확인 | [베이스 가이드](docs/implementation/how-to/base.md) |
@@ -30,7 +30,7 @@ make test-gazebo
 make sim-gazebo
 ```
 
-전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 명령의 범위와 준비 조건은 [개발환경](docs/implementation/development_setup.md)과 [검증 안내](docs/implementation/testing.md)를 따릅니다. 시뮬레이션과 실물 동작은 구분해서 확인합니다.
+전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 명령의 범위와 준비 조건은 [개발환경](docs/implementation/development-setup.md)과 [검증 안내](docs/implementation/testing.md)를 따릅니다. 시뮬레이션과 실물 동작은 구분해서 확인합니다.
 
 ## 코드와 문서
 

@@ -102,7 +102,7 @@ ros2 launch cleany_description description.launch.py \
   calibration_profile:=jetson_20261009
 ```
 
-`robot_state_publisher`만 실행하므로 `/joint_states`는 별도로 필요합니다. 기본 `calibration_profile`은 빈 문자열이며, 명목 TF를 사용합니다. 보정은 optical frame에 적용하고 카메라 mesh와 헤드 depth frame의 명목값을 옮기지 않습니다. EEPROM homing offset을 관절식에 이중 적용하지 않습니다.
+`robot_state_publisher`만 실행하므로 `/joint_states`는 별도로 필요합니다. 기본 `calibration_profile`은 빈 문자열이며, 명목 TF를 사용합니다. 보정은 optical 좌표계에 적용하고 카메라 mesh와 헤드 depth 좌표계의 명목값을 옮기지 않습니다. EEPROM homing offset을 관절식에 이중 적용하지 않습니다.
 
 카메라 평가는 고정 보드 가정의 일관성 검사입니다. RMS·수집 조건은 각 보정 YAML을 따르며, `absolute_calibration_verified: false`를 유지합니다. 절대 위치 정확도·노출 동기화·관절 절대각이 검증됐다는 의미는 아닙니다. [모델과 좌표 규약](../../ros2_ws/src/cleany_description/docs/model.md)도 확인하세요.
 
@@ -119,7 +119,7 @@ ros2 launch cleany_description description.launch.py \
 | 장착·방향 | 작은 표적을 각 native zone에 이동. flip, roll/pitch/yaw, 위치·유효 FOV |
 | 거리·평면 | 알려진 평판의 거리·기울기, sigma·residual, 접근 거리·yaw 오차. 선택 ROI가 책상 전면을 보는지 확인 |
 | 표면·사각 | 빈 공간·검정·유리·금속·햇빛·다리·얇은 물체의 유효율, `NO_RETURN`, 불신뢰, ROI 높이. 다른 센서와 함께 놓치는 경우 포함 |
-| 시간·단절 | USB 부하·read 지연·재연결·watchdog. first-frame offset 불확실성도 reaction budget에 포함 |
+| 시간·단절 | USB 부하·read 지연·재연결·watchdog. first-좌표계 offset 불확실성도 reaction budget에 포함 |
 | 실제 제동 | 감독자·독립 E-stop이 있는 통제 공간에서 payload·바닥·배터리별 전후·횡이동·회전의 최악 제동거리와 감속도 하한 |
 | 접근·취소 | 저속·비스듬한 평판·가림, Nav2 동시 goal, cancel, Mission/Supervisor/guard 재시작, lease 회수와 완료 후 정지 유지 |
 | ROI 필터 | 바닥·몸체 return 구분. 15Hz에서 인접 수·cluster 거리·confirm/release·hysteresis 조정. 비상 단일 return과 일반 검출의 지연·오탐·미탐 분리 |

@@ -1,6 +1,6 @@
 # 모델 실행과 검증
 
-기본 `cad_final`과 이전 실물 장착 `jetson_20261009`를 명시적으로 구분한다. [모델 계약](model.md)은 형상과 좌표를, 이 문서는 실행과 재생성을 관리한다.
+기본 `cad_final`과 이전 실물 장착 `jetson_20261009`를 명시적으로 구분합니다. [모델 계약](model.md)은 형상과 좌표를, 이 문서는 실행과 재생성을 관리합니다.
 
 ```mermaid
 flowchart LR
@@ -18,7 +18,7 @@ flowchart LR
 ros2 launch cleany_description description.launch.py model_profile:=cad_final
 ```
 
-이전 실물 보정과 형상을 함께 선택한다.
+이전 실물 보정과 형상을 함께 선택합니다.
 
 ```bash
 ros2 launch cleany_description description.launch.py \
@@ -34,7 +34,7 @@ ros2 launch cleany_description description.launch.py \
 | `mjcf/cleany_jetson_20261009.xml` | 이전 모델의 독립 실행과 회귀 검사 |
 | MoveIt `move_group.launch.py` | 최신 모델 기본; 이전 프로필은 해당 이전 joint limits와 함께 선택 |
 
-`include_head_camera:=false`여도 고정 마스트는 남는다. `include_wheel_joints:=false`는 wheel 형상과 고정 연결을 유지한다. 최신 링크형 그리퍼에 `enable_gripper_command:=true`를 전달하면 실행을 거부한다. 링크 기구 검증 전에는 집기 성공을 평가할 수 없다.
+`include_head_camera:=false`여도 고정 마스트는 남습니다. `include_wheel_joints:=false`는 wheel 형상과 고정 연결을 유지합니다. 최신 링크형 그리퍼에 `enable_gripper_command:=true`를 전달하면 실행을 거부합니다. 링크 기구 검증 전에는 집기 성공을 평가할 수 없습니다.
 
 ## 충돌 형상
 
@@ -54,7 +54,7 @@ ros2 launch cleany_description description.launch.py \
 
 ## 재생성과 검증
 
-별도 Python 환경에 `cadquery-ocp`, `numpy`, `scipy`를 준비하고 ROS overlay를 source한다. 입력 CAD는 팀이 공유하는 원본을 지정한다. Exporter는 URDF, MJCF, 부품별 메시, 등록 JSON과 MuJoCo 손목 TF 설정을 함께 갱신한다.
+별도 Python 환경에 `cadquery-ocp`, `numpy`, `scipy`를 준비하고 ROS overlay를 source합니다. 입력 CAD는 팀이 공유하는 원본을 지정합니다. Exporter는 URDF, MJCF, 부품별 메시, 등록 JSON과 MuJoCo 손목 TF 설정을 함께 갱신합니다.
 
 ```bash
 xacro ros2_ws/src/cleany_description/urdf/cleany.urdf.xacro \
@@ -72,7 +72,7 @@ make test-description-models
 | Gazebo 실행 | 이전/최신 모델의 주행, LiDAR, IMU, TF와 영상 수신; 최신 navigation 모델은 head RGB-D만 포함 |
 | 이전 모델 회귀 | 기존 FK, 광학축, 질량과 최적화 충돌 메시 검사 유지 |
 
-Gazebo 실행 검사는 EGL headless 렌더링을 사용하며 명시적으로 실행한다.
+Gazebo 실행 검사는 EGL headless 렌더링을 사용하며 명시적으로 실행합니다.
 
 ```bash
 python3 -m pytest -q -s \
@@ -81,4 +81,4 @@ python3 -m pytest -q -s \
   --run-sim-runtime -k cad_frame
 ```
 
-실물 보정, 새 질량·관성, 링크형 그리퍼 운동학과 전체 수거 성공은 이 검사 범위 밖이다.
+실물 보정, 새 질량·관성, 링크형 그리퍼 운동학과 전체 수거 성공은 이 검사 범위 밖입니다.

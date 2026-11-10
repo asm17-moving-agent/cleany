@@ -1,10 +1,10 @@
 # cleany_dev_monitor 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
 ## cleany_dev_monitor
 
-실행 파일: `dev_monitor`. 원본: [node.py](../cleany_dev_monitor/node.py).
+실행 파일: `dev_monitor`. 원본: [노드.py](../cleany_dev_monitor/node.py).
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
@@ -53,11 +53,11 @@
 | 토픽 구독 | `<action>/_action/feedback` | `<action package>/action/<Action>_FeedbackMessage` | Discovery 타입과 publisher QoS |
 | 토픽 구독 | `<사용자 선택 / camera 토픽>` | `discovery 타입` | 설정과 웹 선택에 따라 구독 생성 / 해제 |
 
-응용 ROS publisher, service server와 action server/client는 없다. SubmapQuery client는 서브맵을 읽고, 녹화 제어 client는 독립 logger에 요청한다. Discovery에서 해당 이름과 타입이 확인돼야 실제 구독을 생성한다. 표의 타입은 기본 입력의 기대 타입이며 구독은 discovery 타입을 사용한다. `runtime_namespace`가 비어 있으면 prefix는 없다. TF listener 구독은 별도로 생성된다.
+응용 ROS publisher, service server와 action server/client는 없습니다. SubmapQuery client는 서브맵을 읽고, 녹화 제어 client는 독립 logger에 요청합니다. Discovery에서 해당 이름과 타입이 확인돼야 실제 구독을 생성합니다. 표의 타입은 기본 입력의 기대 타입이며 구독은 discovery 타입을 사용합니다. `runtime_namespace`가 비어 있으면 prefix는 없습니다. TF listener 구독은 별도로 생성됩니다.
 
-동적 QoS는 모든 publisher와 호환되는 reliability/durability를 선택한다. Depth는 image 1, runtime_events 2048, manipulation execution events 100, 그 밖의 토픽 5다. 구독의 존재와 발행 주기는 보장하지 않는다.
+동적 QoS는 모든 publisher와 호환되는 reliability/durability를 선택합니다. Depth는 image 1, runtime_events 2048, manipulation execution events 100, 그 밖의 토픽 5입니다. 구독의 존재와 발행 주기는 보장하지 않습니다.
 
-HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경로는 `/api/snapshot`, `/api/camera`, `/api/recordings`, `/api/recordings/{session}/replay`, `/ws`이며 전체 route는 [server.py](../cleany_dev_monitor/server.py)를 따른다. 기록 설정 API는 독립 logger의 서비스를 호출하며 로봇 구동 명령은 보내지 않는다. [관측 데이터 계약](data.md)을 함께 확인한다.
+HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값입니다. 주요 경로는 `/api/snapshot`, `/api/camera`, `/api/recordings`, `/api/recordings/{session}/replay`, `/ws`이며 전체 route는 [server.py](../cleany_dev_monitor/server.py)를 따릅니다. 기록 설정 API는 독립 logger의 서비스를 호출하며 로봇 구동 명령은 보내지 않습니다. [관측 데이터 계약](data.md)을 함께 확인합니다.
 
 ## Logger 연결
 
@@ -68,9 +68,9 @@ HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경�
 | RecordingStatus 구독 | status, Reliable / Transient Local depth 1 |
 | 상태 / service timeout | logger_timeout_s=3.0 |
 
-서비스 의미와 단위는 [Logger 인터페이스](../../cleany_logger/docs/interfaces.md)를 따른다.
+서비스 의미와 단위는 [Logger 인터페이스](../../cleany_logger/docs/interfaces.md)를 따릅니다.
 
-Monitor와 logger의 `state_directory`는 같은 호스트의 같은 디렉터리여야 한다.
-HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성 녹화를 정지한다.
+Monitor와 logger의 `state_directory`는 같은 호스트의 같은 디렉터리여야 합니다.
+HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성 녹화를 정지합니다.
 `POST /api/recording/session`은 정지 후 새 세션을 시작하고, 이미 녹화 중이면 같은
-세션을 반환한다. Monitor 종료는 logger 서비스 호출 없이 자체 HTTP와 구독만 닫는다.
+세션을 반환합니다. Monitor 종료는 logger 서비스 호출 없이 자체 HTTP와 구독만 닫습니다.

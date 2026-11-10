@@ -1,6 +1,6 @@
 # MuJoCo Manipulation 실행 계약
 
-승인된 물체 하나를 실행하는 `execution_profile=mujoco` 서버의 계약이다. [실행 명령](../README.md)과 [Goal·Feedback·Result 명세](../../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 함께 확인한다.
+승인된 물체 하나를 실행하는 `execution_profile=mujoco` 서버의 계약입니다. [실행 명령](../README.md)과 [Goal·Feedback·Result 명세](../../cleany_skill_executor/docs/execute-manipulation-skill-action-spec.md)를 함께 확인합니다.
 
 ```mermaid
 flowchart TD
@@ -16,7 +16,7 @@ flowchart TD
 
 ## 실행 순서와 결과
 
-[collect_trash_mujoco.xml](../trees/collect_trash_mujoco.xml)이 단계를 관리한다. BT `FAILURE`와 Action의 BLOCKED/FAILED/CANCELED/FATAL은 서로 다른 의미다.
+[collect_trash_mujoco.xml](../trees/collect_trash_mujoco.xml)이 단계를 관리합니다. BT `FAILURE`와 Action의 BLOCKED/FAILED/CANCELED/FATAL은 서로 다른 의미입니다.
 
 ```mermaid
 sequenceDiagram
@@ -32,7 +32,7 @@ sequenceDiagram
     Note over BT,W: halt는 cancel(operation_id) 전달
 ```
 
-Worker 하나가 동작을 수행해 ROS 응답이나 추론 대기가 tick을 막지 않는다. 큰 영상·점군과 계획 결과는 실행별 Python context, Blackboard에는 execution ID만 둔다. [비동기 노드 계약](https://www.behaviortree.dev/docs/tutorial-basics/tutorial_04_sequence/)을 따른다.
+Worker 하나가 동작을 수행해 ROS 응답이나 추론 대기가 tick을 막지 않습니다. 큰 영상·점군과 계획 결과는 실행별 Python context, Blackboard에는 execution ID만 둡니다. [비동기 노드 계약](https://www.behaviortree.dev/docs/tutorial-basics/tutorial_04_sequence/)을 따릅니다.
 
 ### 대상 검증
 
@@ -41,7 +41,7 @@ Worker 하나가 동작을 수행해 ROS 응답이나 추론 대기가 tick을 �
 | `collect_trash` | `cup`, `crumpled tissue`; `paper cup`, `disposable paper cup`은 컵 alias | 쓰레기 분류·사유와 정책 목적지 일치 |
 | `collect_lost_item` | `mouse`, `computer mouse`, `wireless mouse`, `lego brick` | `lost_item` 분류·사유 + `lost_items_left` |
 
-두 skill은 같은 집기·이동·놓기·확인 트리를 공유한다. 원래 label과 분류는 보존하며 정책과 `bt_supported_trash_labels`, `bt_supported_lost_item_labels`에서 허용값을 읽는다.
+두 skill은 같은 집기·이동·놓기·확인 트리를 공유합니다. 원래 label과 분류는 보존하며 정책과 `bt_supported_trash_labels`, `bt_supported_lost_item_labels`에서 허용값을 읽습니다.
 
 | 시점 | 통과 조건 |
 |---|---|
@@ -64,7 +64,7 @@ Worker 하나가 동작을 수행해 ROS 응답이나 추론 대기가 tick을 �
 | 기한 내 동작 terminal 또는 정지 미확인 | `FATAL / STOP_UNCONFIRMED` |
 | 최종 Result 뒤 관측 | 확정 결과 변경 안 함 |
 
-정지 평가가 먼저 끝나도 이전 동작의 terminal 결과 전에는 Result를 확정하지 않는다. 이 수집은 기존 정지 기한 안에서만 수행하며, timeout 후 다음 정상 동작이나 취소 후 복귀를 새로 시작하지 않는다.
+정지 평가가 먼저 끝나도 이전 동작의 terminal 결과 전에는 Result를 확정하지 않습니다. 이 수집은 기존 정지 기한 안에서만 수행하며, timeout 후 다음 정상 동작이나 취소 후 복귀를 새로 시작하지 않습니다.
 
 ## 취소
 
@@ -74,7 +74,7 @@ Worker 하나가 동작을 수행해 ROS 응답이나 추론 대기가 tick을 �
 | `CHECKPOINT` | 현재 checkpoint까지 제한 시간 내 완료 | 잡기+확인, 들기+보유 확인, 놓기+위치/열기/이탈 확인 뒤 다음 단계 차단 |
 | `RETURN_ARM` | 현재 작업에 즉시 중단 요청 | 정지 → 보유 시 현재 위치 놓기 → 팔 복귀 → 최종 정지 |
 
-일반 Action cancel은 CHECKPOINT다. 적용 mode를 Result와 실행 기록의 `cancel_mode`에 남긴다.
+일반 Action cancel은 CHECKPOINT입니다. 적용 mode를 Result와 실행 기록의 `cancel_mode`에 남깁니다.
 
 ```mermaid
 flowchart TD
@@ -96,14 +96,14 @@ flowchart TD
 | 수거 성공과 구분 | 목적지 이동·안착 검증 없음; 기존 `placement_state`만 보존 |
 | 선점 | 복귀 중 IMMEDIATE가 우선, 뒤의 약한 요청으로 완화 안 함 |
 
-IMMEDIATE/RETURN_ARM도 이전 동작 terminal과 정지를 모두 확인해야 놓기·복귀 또는 최종 확정을 진행한다. 늦은 실제 실패는 취소보다 우선하며 늦은 성공은 확인 근거만 보존한다. 기한 내 종료나 정지를 확인하지 못하면 STOP_UNCONFIRMED다.
+IMMEDIATE/RETURN_ARM도 이전 동작 terminal과 정지를 모두 확인해야 놓기·복귀 또는 최종 확정을 진행합니다. 늦은 실제 실패는 취소보다 우선하며 늦은 성공은 확인 근거만 보존합니다. 기한 내 종료나 정지를 확인하지 못하면 STOP_UNCONFIRMED입니다.
 
 ```bash
 ros2 service call /sim/manipulation/cancel cleany_interfaces/srv/CancelManipulation \
   "{execution_id: '실행-UUID', mode: 'RETURN_ARM'}"
 ```
 
-테스트 클라이언트는 `--cancel-stage TRANSPORTING --cancel-mode RETURN_ARM`으로 재현한다.
+테스트 클라이언트는 `--cancel-stage TRANSPORTING --cancel-mode RETURN_ARM`으로 재현합니다.
 
 ## 정상 수거의 놓기·정지 확인
 
@@ -116,7 +116,7 @@ flowchart LR
     Stop --> Success["SUCCESS"]
 ```
 
-평가기의 false는 확인 대기다. 제한 시간 안에 안착 근거를 얻지 못하면 `placement_state=UNKNOWN / VERIFICATION_TIMEOUT`이다. SUCCESS에는 독립 방출·안착, 팔 복귀와 최종 정지가 모두 필요하다.
+평가기의 false는 확인 대기입니다. 제한 시간 안에 안착 근거를 얻지 못하면 `placement_state=UNKNOWN / VERIFICATION_TIMEOUT`입니다. SUCCESS에는 독립 방출·안착, 팔 복귀와 최종 정지가 모두 필요합니다.
 
 ### 정지 근거
 
@@ -130,7 +130,7 @@ flowchart LR
 | 연속 유지 | 전 관절 속도 이내 + Action 종료가 연속 횟수와 유지 시간을 모두 충족 |
 | 구간 재시작 | 오래된 정보, 움직임 또는 미종료 Action |
 
-[manipulation_mujoco.yaml](../config/manipulation_mujoco.yaml)의 초기값이다. 실물 안전 기준으로 사용하지 않는다.
+[manipulation_mujoco.yaml](../config/manipulation_mujoco.yaml)의 초기값입니다. 실물 안전 기준으로 사용하지 않습니다.
 
 | ROS parameter | 기본값 | 의미 |
 |---|---|---|
@@ -169,7 +169,7 @@ flowchart TD
 | 오류 종료 경계 | 계약 |
 |---|---|
 | 작업 번호 전 start 실패 | `Backend.abort()`가 현재 context에 중단 신호 전달 |
-| 중단 / native halt 추가 오류 | 원인 보존; 정지 평가 계속, native node reset 뒤 core 처리 |
+| 중단 / native halt 추가 오류 | 원인 보존; 정지 평가 계속, native 노드 reset 뒤 core 처리 |
 | 이미 정지 평가 중 | 같은 평가와 원래 기한 유지 |
 | 허용 동작 | 이전 최종 관측 수집만 수행; 놓기 / 팔 복귀 시작 안 함 |
 | 확정 | 확인된 물체·놓기·복귀 근거 보존; Result와 종료 이벤트 한 번만 확정 |
@@ -177,4 +177,4 @@ flowchart TD
 | 준비 / XML 구성 실패 | Goal 거절 |
 | 실행 ID 예약 뒤 context 초기화 실패 | Goal 수락 후 위 오류 종료 경로로 결과 반환 |
 
-프로세스가 살아 있는 동안의 예외 계약이다. 프로세스 종료 후 처리는 [재시작 복구 계약](../README.md#기록과-모니터)을 따른다.
+프로세스가 살아 있는 동안의 예외 계약입니다. 프로세스 종료 후 처리는 [재시작 복구 계약](../README.md#기록과-모니터)을 따릅니다.

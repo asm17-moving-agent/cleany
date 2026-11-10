@@ -38,7 +38,7 @@ make build-dev-monitor
 make run-dev-monitor
 ```
 
-브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](../development_setup.md)을 따릅니다.
+브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](../development-setup.md)을 따릅니다.
 
 실시간 입력과 logger 연결은 [monitor.yaml](../../../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서
 설정합니다. `make build-dev-monitor`는 logger도 빌드하지만 Monitor 실행은 logger를
@@ -71,7 +71,7 @@ make run-dev-monitor
    ros2 run cleany_logger logger stop
    ```
 
-   녹화 중에는 설정을 변경할 수 없다. 먼저 `stop`하고 아래 옵션을 적용한다.
+   녹화 중에는 설정을 변경할 수 없습니다. 먼저 `stop`하고 아래 옵션을 적용합니다.
 
    | CLI 옵션 | 의미 |
    |---|---|
@@ -80,7 +80,7 @@ make run-dev-monitor
    | `--hz all` | 출처별 수신마다 기록; 카메라와 점군 원본에는 숫자 Hz 지정 |
    | `--node /robot/logger`, `--timeout 3`, `--json` | 대상, 요청 대기, 자동화 출력; 하위 명령 앞/뒤 모두 허용 |
 
-   루트의 `make logger LOGGER_ARGS='status'`도 같은 CLI다. CLI 종료 후에도 Logger는 계속 실행된다.
+   루트의 `make logger LOGGER_ARGS='status'`도 같은 CLI입니다. CLI 종료 후에도 Logger는 계속 실행됩니다.
 
 4. 대시보드를 사용하려면 별도 터미널에서 `make run-dev-monitor`를 실행합니다.
    기본 저장 위치는 두 프로세스 모두 `~/.local/state/cleany/recordings`입니다.
@@ -123,7 +123,7 @@ Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해�
 | submap, matched points, map, 가공 관측 | 기존 정책 유지 |
 | 카메라 / depth 점군 | 필요한 토픽과 주기를 별도 선택 |
 
-정지 상태에서 정책을 바꾼다. 기록 주기는 실시간 RViz나 센서 발행 빈도를 바꾸지 않는다. 용량은 실제 입력으로 측정하며 `limit_mib`는 시간당 속도가 아닌 **세션 총량**이다.
+정지 상태에서 정책을 바꿉니다. 기록 주기는 실시간 RViz나 센서 발행 빈도를 바꾸지 않습니다. 용량은 실제 입력으로 측정하며 `limit_mib`는 시간당 속도가 아닌 **세션 총량**입니다.
 
 | 남은 결과 | 읽는 방법 |
 |---|---|
@@ -134,4 +134,4 @@ Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해�
 
 ## Jetson 얼굴 디스플레이
 
-전용 앱은 `/home/cleany/cleany-display`에 독립 설치한다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독한다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../../../ros2_ws/src/cleany_display/README.md)을 따른다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않는다.
+전용 앱은 `/home/cleany/cleany-display`에 독립 설치합니다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독합니다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../../../ros2_ws/src/cleany_display/README.md)을 따릅니다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않습니다.
