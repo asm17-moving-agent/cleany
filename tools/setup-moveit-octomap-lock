@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Rebuild the matching upstream package; do not overwrite /opt/ros.
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+work="${CLEANY_MOVEIT_PATCH_WORK:-${HOME}/.cache/cleany/moveit-octomap-lock}"
+prefix="${CLEANY_MOVEIT_PATCH_PREFIX:-${HOME}/.local/share/cleany/moveit-octomap-lock}"
+version="$(dpkg-query -W -f='${Version}' ros-humble-moveit-ros-planning)"
+[[ "$version" == 2.5.9-* ]] || { echo "Patch requires MoveIt 2.5.9; installed: $version" >&2; exit 1; }
+group_version="$(dpkg-query -W -f='${Version}' ros-humble-moveit-ros-move-group)"
+[[ "$group_version" == 2.5.9-* ]] || { echo "Patch requires move_group 2.5.9; installed: $group_version" >&2; exit 1; }
+geometry_version="$(dpkg-query -W -f='${Version}' ros-humble-geometric-shapes)"
+[[ "$geometry_version" == 2.3.4-* ]] || { echo "Geometry cache requires geometric_shapes 2.3.4; installed: $geometry_version" >&2; exit 1; }
+geometry_headers="$repo_root/ros2_ws/src/cleany_scene_mapping/include/cleany_scene_mapping"
+patch_hash="$(cat "$repo_root/tools/setup-moveit-octomap-lock" \
+    "$repo_root/tools/patches/moveit-2.5.9-octomap-read-lock.patch" \
+    "$repo_root/tools/patches/moveit-2.5.9-capability-lifetime.patch" \
+    "$repo_root/tools/patches/moveit-2.5.9-mesh-preparation.patch" \
+    "$repo_root/tools/patches/geometric-shapes-2.3.4-verified-cache.patch" \
+    "$geometry_headers/mesh_merge.hpp" "$geometry_headers/verified_mesh_cache.hpp" | sha256sum | cut -d ' ' -f1)"
+if [[ -f "$prefix/octomap-read-lock.receipt" && -s "$prefix/geometric_shapes/lib/libgeometric_shapes.so.2.3.4" && -s "$prefix/moveit_ros_planning/lib/libmoveit_planning_scene_monitor.so.2.5.9" && -x "$prefix/moveit_ros_move_group/lib/moveit_ros_move_group/move_group" ]]; then
+    read -r installed_hash _ < "$prefix/octomap-read-lock.receipt"
+    if [[ "$installed_hash" == "$patch_hash" ]]; then
+        echo "Matching Octomap lock patch already installed: $prefix"
+        exit 0
+    fi
+fi
+mkdir -p "$work"
+archive="$work/moveit2-2.5.9.tar.gz"
+if [[ ! -f "$archive" ]]; then
+    curl --fail --location --retry 2 https://codeload.github.com/moveit/moveit2/tar.gz/refs/tags/2.5.9 -o "$archive"
+fi
+echo "18a2f4b8c00aa6a64c13effe93355f8d284b883fe67a7fa3704132dbb650d620  $archive" | sha256sum --check
+geometry_archive="$work/geometric_shapes-2.3.4.tar.gz"
+if [[ ! -f "$geometry_archive" ]]; then
+    curl --fail --location --retry 2 https://codeload.github.com/moveit/geometric_shapes/tar.gz/refs/tags/2.3.4 -o "$geometry_archive"
+fi
+echo "bce652010794a1fdf9d84fe6667547b69b374a872802d95e1c2ecb28c0a9a5e5  $geometry_archive" | sha256sum --check
+tar -xzf "$geometry_archive" -C "$work"
+tar -xzf "$archive" -C "$work" moveit2-2.5.9/moveit_ros/planning moveit2-2.5.9/moveit_ros/move_group
+source_dir="$work/moveit2-2.5.9/moveit_ros/planning"
+patch --batch -d "$source_dir" -p1 < "$repo_root/tools/patches/moveit-2.5.9-octomap-read-lock.patch"
+patch --batch -d "$source_dir" -p1 < "$repo_root/tools/patches/moveit-2.5.9-mesh-preparation.patch"
+cp "$geometry_headers/mesh_merge.hpp" "$source_dir/planning_scene_monitor/src/cleany_mesh_merge.hpp"
+patch --batch -d "$work/geometric_shapes-2.3.4" -p1 < "$repo_root/tools/patches/geometric-shapes-2.3.4-verified-cache.patch"
+cp "$geometry_headers/verified_mesh_cache.hpp" "$work/geometric_shapes-2.3.4/src/cleany_verified_mesh_cache.hpp"
+patch --batch -d "$work/moveit2-2.5.9/moveit_ros/move_group" -p1 < "$repo_root/tools/patches/moveit-2.5.9-capability-lifetime.patch"
+set +u
+source /opt/ros/humble/setup.bash
+set -u
+export MAKEFLAGS="-j${CLEANY_BUILD_JOBS:-2}"
+cd "$work"
+colcon build --base-paths "$work/geometric_shapes-2.3.4" "$work/moveit2-2.5.9/moveit_ros" --build-base "$work/build" \
+    --install-base "$prefix" --packages-select geometric_shapes moveit_ros_planning moveit_ros_move_group \
+    --allow-overriding geometric_shapes moveit_ros_planning moveit_ros_move_group --executor sequential \
+    --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCLEANY_GEOMETRY_CACHE_BUILD_ID="$patch_hash"
+echo "$patch_hash" > "$prefix/octomap-read-lock.receipt"
+echo "Patched MoveIt installed: $prefix. Source tools/scene-mapping-env before launching."

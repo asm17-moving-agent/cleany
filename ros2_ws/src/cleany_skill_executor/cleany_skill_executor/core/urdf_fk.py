@@ -7,10 +7,15 @@ import numpy as np
 
 def axis_rotation(axis, angle):
     axis = np.asarray(axis, dtype=float)
-    axis /= np.linalg.norm(axis)
-    x,y,z = axis
-    skew = np.array([[0,-z,y],[z,0,-x],[-y,x,0]])
-    return np.eye(3)+math.sin(angle)*skew+(1-math.cos(angle))*(skew@skew)
+    x, y, z = map(float, axis / np.linalg.norm(axis))
+    sine, cosine = math.sin(angle), math.cos(angle)
+    complement = 1.0 - cosine
+    # Expand Rodrigues' formula without temporary 3x3 products.
+    return np.array((
+        (cosine + x*x*complement, x*y*complement - z*sine, x*z*complement + y*sine),
+        (y*x*complement + z*sine, cosine + y*y*complement, y*z*complement - x*sine),
+        (z*x*complement - y*sine, z*y*complement + x*sine, cosine + z*z*complement),
+    ))
 
 
 @dataclass(frozen=True)

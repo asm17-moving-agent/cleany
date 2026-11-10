@@ -16,6 +16,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import qos_profile_sensor_data
 from cleany_interfaces.srv import ObserveWristTarget
+from cleany_interfaces.msg import WristTrackingStatus
 from cleany_perception.adapters.tf2_transform import rotation_matrix_from_quaternion
 from cleany_perception.core.wrist_observation import (
     WristObservationConfig, project_box, bbox_iou, verify_mask,
@@ -47,6 +48,8 @@ class WristService:
         self.images = {arm: OrderedDict() for arm in ('left', 'right')}
         self.infos = {arm: OrderedDict() for arm in ('left', 'right')}
         self.reference = None
+        self.status_publisher = node.create_publisher(
+            WristTrackingStatus, '/perception/wrist_tracking_status', 10)
         self.subscriptions = []
         for arm in self.images:
             for message, suffix, cache in ((Image, 'image_raw', self.images), (CameraInfo, 'camera_info', self.infos)):
@@ -183,8 +186,23 @@ class WristService:
             response.status = response.ERROR
             response.message = str(error)
         finally:
-            with self.node._busy_lock:
-                self.node._busy = False
+            try:
+                status = WristTrackingStatus()
+                status.header = deepcopy(response.header)
+                status.arm = request.arm
+                status.reference_id = response.reference_id or request.reference_id
+                status.source_snapshot_id = request.source_snapshot_id
+                status.source_object_id = request.source_object_id
+                status.valid = status.visible = bool(
+                    response.success and request.operation != request.CLEAR)
+                status.image_pixels = response.mask.width * response.mask.height
+                status.mask_pixels = int(np.count_nonzero(
+                    np.frombuffer(bytes(response.mask.data), dtype=np.uint8)))
+                status.reason = response.message
+                self.status_publisher.publish(status)
+            finally:
+                with self.node._busy_lock:
+                    self.node._busy = False
         return response
 
     def process(self, req, out):

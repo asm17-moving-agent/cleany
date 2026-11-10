@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import xml.etree.ElementTree as ET
 
 import pytest
@@ -263,7 +264,10 @@ def test_ompl_is_configured_for_each_arm() -> None:
         'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
         'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
     ):
-        assert ompl[group]['planner_configs'] == ['RRTConnectkConfigDefault']
+        expected = ['RRTConnectkConfigDefault']
+        if group in ('left_grasp_arm', 'right_grasp_arm'):
+            expected.append('RRTConnectReturnkConfigDefault')
+        assert ompl[group]['planner_configs'] == expected
 
 
 def test_pilz_lin_and_cartesian_limits_are_configured() -> None:
@@ -325,7 +329,8 @@ def test_sorting_controller_profile_adds_disjoint_grippers_only():
         assert _load_yaml('ompl_planning.yaml')[f'{arm}_return_close']['longest_valid_segment_fraction'] == .001
 
 
-def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
+@pytest.mark.parametrize('include_head', [False, True])
+def test_mock_ros2_control_matches_moveit_controller_contract(include_head: bool) -> None:
     controllers = _load_yaml('mock_ros2_controllers.yaml')
     manager = controllers['controller_manager']['ros__parameters']
     assert manager['joint_state_broadcaster']['type'] == (
@@ -344,17 +349,35 @@ def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
         assert parameters['allow_partial_joints_goal'] is False
         assert parameters['allow_nonzero_velocity_at_trajectory_end'] is False
 
-    mock_root = ET.parse(CONFIG_ROOT / 'cleany_mock.urdf.xacro').getroot()
+    mock_root = ET.fromstring(subprocess.check_output([
+        'xacro', str(CONFIG_ROOT / 'cleany_mock.urdf.xacro'),
+        f'include_head_camera:={str(include_head).lower()}',
+    ], text=True))
     plugin = mock_root.find('.//hardware/plugin')
     assert plugin is not None
     assert plugin.text == 'mock_components/GenericSystem'
     configured_mock_joints = {
-        element.attrib['joint_name']
-        for element in mock_root.iter()
-        if element.tag.endswith('cleany_mock_joint')
-        and 'joint_name' in element.attrib
+        element.attrib['name']
+        for element in mock_root.findall('ros2_control/joint')
     }
-    assert configured_mock_joints == _all_modeled_joints()
+    expected = _all_modeled_joints()
+    if include_head:
+        expected.update(('head_pan_joint', 'head_tilt_joint'))
+    assert configured_mock_joints == expected
+
+    canonical = ET.fromstring(subprocess.check_output([
+        'xacro', str(DESCRIPTION_ROOT / 'urdf' / 'cleany.urdf.xacro'),
+        f'include_head_camera:={str(include_head).lower()}',
+        'include_wheel_joints:=false',
+    ], text=True))
+
+    def geometry(root: ET.Element) -> dict[str, str]:
+        return {element.attrib['name']: ET.canonicalize(
+            ET.tostring(element, encoding='unicode'), strip_text=True)
+            for element in root if element.tag in ('link', 'joint')}
+
+    # Mock adds control interfaces, never a different mast/head assembly.
+    assert geometry(mock_root) == geometry(canonical)
 
 
 def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
@@ -363,7 +386,7 @@ def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
     assert config['octomap_resolution'] == 0.01
     sensor = config['depth_cloud']
     assert sensor['sensor_plugin'] == (
-        'occupancy_map_monitor/PointCloudOctomapUpdater'
+        'cleany_scene_mapping/KnownGeometryOctomapUpdater'
     )
     assert sensor['point_cloud_topic'] == '/perception/scene_cloud'
     assert sensor['filtered_cloud_topic'] == '/perception/scene_cloud_filtered'
@@ -380,3 +403,15 @@ def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
         dependency.text for dependency in manifest.findall('exec_depend')
     }
 
+
+
+def test_return_profile_keeps_collision_resolution_and_avoids_duplicate_simplification():
+    ompl = _load_yaml('ompl_planning.yaml')
+    base = ompl['planner_configs']['RRTConnectkConfigDefault']
+    fast = ompl['planner_configs']['RRTConnectReturnkConfigDefault']
+    assert fast['type'] == base['type'] and fast['range'] == base['range']
+    assert fast['simplify_solutions'] == 0 and 'simplify_solutions' not in base
+    assert 'interpolate' not in fast
+    for side in SIDES:
+        assert ompl[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
+    assert 'cleany/RobustTimeParameterization' in ompl['request_adapters']

@@ -1,0 +1,67 @@
+grasp_selection_server:
+  ros__parameters:
+    action_name: grasp/select_reachable
+    motion_backend: moveit  # moveit | curobo | curobo_ik_moveit (optional CUDA runtime)
+    curobo_num_seeds: 32
+    curobo_ik_position_threshold_m: 0.001
+    curobo_joint_tolerance_rad: 0.002
+    curobo_spheres_per_link: 64
+    curobo_sphere_budget_per_link: 16
+    curobo_sphere_model: joint_simplified
+    curobo_sphere_surface_radius_m: 0.0005
+    curobo_collision_hull_max_expansion_m: 0.001
+    curobo_geometry_cache_directory: ''  # Optional content-addressed mesh fitting cache.
+    curobo_interpolation_dt: 0.05
+    curobo_validation_step_rad: 0.025
+    curobo_maximum_validation_states: 2000
+    # Initial simulation tuning, not measured hardware acceleration/jerk limits.
+    curobo_max_acceleration: 1.0
+    curobo_max_jerk: 10.0
+    curobo_use_cuda_graph: true
+    curobo_collision_margin_m: 0.0001
+    curobo_moveit_shadow_validation: false  # development cross-check only; adds CPU calls
+    joint_state_topic: joint_states
+    planning_frame: base_link
+    joint_state_max_age_sec: 0.5
+    ik_timeout_sec: 0.15
+    fk_timeout_sec: 1.0
+    # Physical OctoMap and mesh collision checks measured about 1.8 s on Orin.
+    state_validity_timeout_sec: 5.0
+    state_validity_batch_size: 32
+    planning_scene_timeout_sec: 5.0
+    planning_timeout_sec: 4.0
+    planning_attempts: 1
+    velocity_scaling: 0.1
+    acceleration_scaling: 0.1
+    maximum_candidates: 12
+    grasp_ik_first: false
+    prefer_near_wrist_grasp_direction: false
+    wrist_direction_tie_tolerance_degrees: 5.0
+    grasp_direction_pair_position_tolerance_m: 0.00001
+    grasp_direction_pair_axis_tolerance_degrees: 1.0
+    grasp_direction_pair_score_tolerance: 0.000001
+    action_timeout_sec: 120.0
+    pregrasp_offset_m: 0.08
+    planner_id: RRTConnectkConfigDefault
+    aim_tip_offset_m: 0.14
+    ik_seed_wrist_offsets_degrees: [0.0, -45.0, 45.0, -90.0, 90.0]
+    # Flattened 5-joint elbow-up seeds; wrist offsets above are applied to each.
+    ik_seed_nominal_postures_rad: [0.0, 0.65, 0.80, -0.40, 0.0, 0.0, 1.10, 1.70, -0.90, 0.0]
+    maximum_gripper_width_m: 0.10  # Simulation mapping; not hardware calibration.
+    gripper_safety_margin_m: 0.0  # Plan-only profile: accept openings up to 100 mm.
+    gripper_closed_joint_rad: -0.374532977628
+    gripper_open_joint_rad: 1.74532919957
+    # One fixed jaw at local +X and one moving jaw. The signed CAD value is the
+    # fixed-jaw distal reference relative to left/right_grasp_tcp along local X.
+    # It is an initial CAD estimate, not a force/contact calibration.
+    asymmetric_gripper_enabled: true
+    fixed_jaw_closing_axis_sign: 1.0
+    fixed_jaw_tcp_offset_m: 0.009849299681842694
+    # Empirical translation farther toward the fixed jaw. Kept separate from
+    # the CAD offset so calibration intent remains explicit.
+    fixed_jaw_additional_bias_m: 0.020
+    approach_tolerance_degrees: 15.0
+    closing_tolerance_degrees: 30.0
+    position_tolerance_m: 0.002
+    pregrasp_position_tolerance_m: 0.0  # 0 inherits position_tolerance_m.
+    trajectory_maximum_waypoints: 20

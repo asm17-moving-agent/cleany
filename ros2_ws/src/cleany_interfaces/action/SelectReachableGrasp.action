@@ -1,8 +1,7 @@
 # Candidates must share snapshot_id, object_id, configured planning frame,
 # and target OBB.
 GraspCandidate[] candidates
-# Optional arm lock for post-pregrasp re-selection. Empty preserves the
-# nearest-arm-first bilateral fallback behavior.
+# Empty keeps bilateral selection; reobservation can lock the previously selected arm.
 string required_arm
 ---
 uint8 ERROR_NONE=0
@@ -23,12 +22,40 @@ string selected_arm
 GraspCandidate selected_candidate
 sensor_msgs/JointState pregrasp_joint_state
 sensor_msgs/JointState grasp_joint_state
+# Sample-validated, retimed cubic paths when validate_motion_paths is enabled.
+# Empty timing means this result is not an executable trajectory.
+sensor_msgs/JointState planning_start_state
+trajectory_msgs/JointTrajectory pregrasp_trajectory
+trajectory_msgs/JointTrajectory grasp_trajectory
+
+# Requested candidate pose/opening remain in selected_candidate. These poses
+# and errors are measured by MoveIt FK for the selected 5-DOF solution.
+geometry_msgs/Pose fk_pregrasp_pose
+geometry_msgs/Pose fk_grasp_pose
+float32 pregrasp_position_error_m
+float32 grasp_position_error_m
+float32 pregrasp_approach_error_degrees
+float32 pregrasp_closing_error_degrees
+float32 grasp_approach_error_degrees
+float32 grasp_closing_error_degrees
+float32 trajectory_max_approach_error_degrees
+float32 trajectory_max_closing_error_degrees
+float32 gripper_joint_position
+string planner_id
+
+# Parallel arrays. Stage names are stable strings such as opening,
+# pregrasp_ik, grasp_ik, plan_pregrasp, and trajectory_alignment.
+string[] latency_stages
+float32[] latency_seconds
 ---
 uint8 STAGE_PREGRASP_IK=1
 uint8 STAGE_GRASP_IK=2
 uint8 STAGE_STATE_VALIDITY=3
 uint8 STAGE_PLAN_PREGRASP=4
 uint8 STAGE_PLAN_GRASP=5
+uint8 STAGE_OPENING=6
+uint8 STAGE_POSE_ALIGNMENT=7
+uint8 STAGE_TRAJECTORY_ALIGNMENT=8
 
 uint32 candidate_index
 string arm

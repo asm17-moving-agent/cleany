@@ -63,7 +63,7 @@ def _launch_nodes(context):
         'use_sim_time': ParameterValue(LaunchConfiguration('use_sim_time'), value_type=bool),
         'allow_trajectory_execution': ParameterValue(LaunchConfiguration('allow_trajectory_execution'), value_type=bool),
         'publish_robot_description_semantic': True,
-        'capabilities': 'cleany/RequireCollisionDetector',
+        'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
         'collision_detector': value('collision_detector'),
         'trajectory_execution.allowed_execution_duration_scaling': ParameterValue(
             LaunchConfiguration('allowed_execution_duration_scaling'), value_type=float),

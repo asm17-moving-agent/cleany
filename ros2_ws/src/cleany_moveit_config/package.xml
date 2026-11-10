@@ -13,6 +13,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>cleany_description</exec_depend>
   <exec_depend>cleany_moveit_collision</exec_depend>
+  <exec_depend>cleany_moveit_capabilities</exec_depend>
   <exec_depend>cleany_scene_mapping</exec_depend>
   <exec_depend>control_msgs</exec_depend>
   <exec_depend>controller_manager</exec_depend>
