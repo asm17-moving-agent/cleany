@@ -70,6 +70,8 @@ CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외�
 
 `make test`는 package test가 실패해도 `colcon test-result --verbose`로 실패 상세를 출력하고 실패 상태를 반환합니다.
 
+병렬 ROS 검사에서 ToF 합성 그래프는 도메인 10–24를 사용하고, ToF 가상 시리얼 검사는 25를 사용합니다. Supervisor 그래프와 E2E의 기본 범위는 각각 190–199와 200–224입니다. 새 검사를 추가하거나 Supervisor의 기본 도메인을 재정의할 때는 동시에 실행되는 검사 간에 범위가 겹치지 않도록 지정합니다.
+
 ## Jetson USB 카메라 인수검사
 
 `make test-camera-orientation`은 가짜 sysfs, 프로세스 정보와 USB ioctl을 사용합니다.
