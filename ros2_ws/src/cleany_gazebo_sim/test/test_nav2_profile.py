@@ -6,6 +6,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 import yaml
+from cleany_navigation.runtime_config import load_navigation_profile
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -16,12 +17,12 @@ PACKAGE_XML = PACKAGE_ROOT / 'package.xml'
 
 
 def _nav2_params(node_name: str) -> dict[str, object]:
-    document = yaml.safe_load(NAV2_CONFIG.read_text(encoding='utf-8'))
+    document = load_navigation_profile(PACKAGE_ROOT.parent/'cleany_navigation/config/nav2_amcl.yaml', NAV2_CONFIG)
     return document[node_name]['ros__parameters']
 
 
 def _costmap_params(costmap_name: str) -> dict[str, object]:
-    document = yaml.safe_load(NAV2_CONFIG.read_text(encoding='utf-8'))
+    document = load_navigation_profile(PACKAGE_ROOT.parent/'cleany_navigation/config/nav2_amcl.yaml', NAV2_CONFIG)
     return document[costmap_name][costmap_name]['ros__parameters']
 
 

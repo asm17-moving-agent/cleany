@@ -96,7 +96,7 @@ def release_target():
 @pytest.mark.parametrize('radius', [float('nan'), float('inf'), 0.0, -0.01])
 def test_action_release_rejects_invalid_payload_radius(release_target, monkeypatch, radius):
     node, held, _ = release_target
-    monkeypatch.setattr('cleany_manipulation_bt.ros_operations.held_bounding_radius',
+    monkeypatch.setattr('cleany_skill_executor.sorting_operations.held_bounding_radius',
                         lambda *args: radius)
     with pytest.raises(RuntimeError, match='radius must be positive and finite'):
         node.check_release_target(held, 'bin')
@@ -122,15 +122,15 @@ def test_action_release_checks_actual_payload_geometry(release_target, problem):
 def test_action_carry_validates_fit_before_motion(release_target, monkeypatch, problem):
     node, held, _ = release_target
     motions = []
-    monkeypatch.setattr(SortingCoordinator, 'transport',
-                        lambda *args: motions.append('carry'))
+    node._require_held_contact = lambda _: None
+    node._transport_fixed_release = lambda *args: motions.append('carry')
     if problem == 'too_large':
         held.selected.selected_candidate.target_object.obb_size.x = .20
     elif problem == 'low_point':
         node._fixed_release_points['bin'][2] = .35
     if problem:
-        error = ValueError if problem == 'too_large' else RuntimeError
-        message = 'does not fit inside bin opening' if problem == 'too_large' else 'does not fit payload'
+        error = ValueError
+        message = 'does not fit inside bin opening' if problem == 'too_large' else 'does not fit observed payload'
         with pytest.raises(error, match=message):
             node.transport(held, 'bin')
         assert motions == []

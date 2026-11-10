@@ -376,7 +376,7 @@ Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따릅�
 | `depth_scene_node` | `depth_scene_node` | [Depth 점군](../../ros2_ws/src/cleany_perception/docs/runtime.md#전체-depth-환경-포인트클라우드) |
 | `scene_cloud_receipt` | `scene_cloud_receipt_node` | [점군 수신 확인](../../ros2_ws/src/cleany_perception/docs/runtime.md#필터링-점군-수신-확인) |
 | `nearest_pregrasp_coordinator` | `nearest_pregrasp_coordinator` | [조작 경로](../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp) |
-| `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../../ros2_ws/src/cleany_skill_executor/docs/study-cafe-sorting-usage.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
+| 공통 연산의 기본 `nearest_pregrasp_coordinator` 이름 | `sorting_coordinator` | [분류와 수거](../../ros2_ws/src/cleany_skill_executor/docs/study-cafe-sorting-usage.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
 | `simulation_placement_verifier` | `placement_verifier` | [MuJoCo 표](../../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#simulation_placement_verifier) |
 | `manipulation_server` | `manipulation_server` | [Mock Action 서버](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
 | `manipulation_monitor` | `manipulation_monitor` | [읽기 전용 트리 모니터](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_monitor) |

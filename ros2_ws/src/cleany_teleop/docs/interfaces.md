@@ -173,6 +173,7 @@ flowchart LR
 |---|---|
 | `slip`, `traction_recovery` | navigation/slip, navigation/traction_recovery의 String JSON; 표시용이며 권한 추가 없음 |
 | `localization` | localization/status String; 정합 미확인으로 허가 거부 시 이유 표시 |
+| `tf_error` | 마지막 TF 조회 오류; 정상 새 TF에서 해제. 예상 밖 처리 오류는 위치를 즉시 무효화하고 5 s 간격 제한 오류 로그 출력 |
 | `last_input_failure` | 센서 지연 취소의 입력별 수신 나이; event log의 navigation_input_failure와 함께 정지 뒤에도 보존 |
 | 파란 전역 경로 | `/plan`의 유한한 map-좌표계 점; 빈 경로 / 지도 변경 / 새 목표 / 취소 시 제거 |
 | 경로 상태 | global_path_topic, global_path_points, global_path_age_s; 없으면 “경로 생성 대기” |

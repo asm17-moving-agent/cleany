@@ -98,3 +98,27 @@ def test_success_outside_selected_goal_tolerance_remains_failure():
     b.finished(f,3)
     assert b.outcome=='failed'
     b.control.stop.assert_called_once_with('Nav2 완료')
+
+
+@pytest.mark.parametrize('unexpected', [False, True])
+def test_tf_failure_keeps_stop_processing_observable(unexpected):
+    from tf2_ros import TransformException
+    b=bridge();b.pose_at=99.;b.node=Mock();b.buffer=Mock()
+    b.buffer.lookup_transform.side_effect=RuntimeError('bad transform') if unexpected else TransformException('not yet available')
+    b._update_pose(100.)
+    assert b.pose_at == (0. if unexpected else 99.)
+    assert b.tf_error
+    if unexpected:
+        b.node.get_logger().error.assert_called_once()
+        assert b.node.get_logger().error.call_args.kwargs['throttle_duration_sec'] == 5.
+    else:
+        b.node.get_logger.assert_not_called()
+
+
+def test_fresh_tf_clears_failure_without_forging_receipt_on_error():
+    b=bridge();b.pose_at=0.;b.tf_error='old error';b.node=Mock();b.buffer=Mock()
+    b.node.get_clock().now().nanoseconds=100_000_000_000
+    b.buffer.lookup_transform.return_value=Obj(header=Obj(stamp=Obj(sec=100,nanosec=0)),
+        transform=Obj(translation=Obj(x=1.,y=2.),rotation=Obj(w=1.,z=0.)))
+    b._update_pose(101.)
+    assert b.pose == [1.,2.,0.] and b.pose_at == 101. and b.tf_error == ''

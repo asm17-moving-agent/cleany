@@ -14,6 +14,21 @@ flowchart TD
     Terminal --> Result["최종 Result 한 번 확정"]
 ```
 
+## 실행 순서와 공통 연산의 경계
+
+```mermaid
+flowchart TD
+    Auto["SortingCoordinator / 여러 물체 반복"] --> Sort["SortingOperations / 운반과 놓기"]
+    BT["BT / 승인된 물체 하나의 단계와 취소"] --> Mujoco["MujocoOperations / Action 연결"]
+    Mujoco --> Sort
+    Nearest["NearestPregraspCoordinator / 거리순 탐색"] --> Grasp["GraspMotionOperations / 인식과 파지"]
+    Sort --> Grasp
+    Grasp --> Motion["CartesianMotion / 경로와 피드백"]
+    Grasp --> Grip["GripperOperations / 접촉과 보유 검사"]
+```
+
+BT는 자동 분류 coordinator를 상속하지 않습니다. 두 실행 경로는 같은 운반·놓기 연산과 [입구 적합성 계약](../../cleany_skill_executor/docs/study-cafe-sorting-contract.md#수거함-운반)을 사용하며, BT의 timeout·취소·결과 확정은 Action 실행기가 담당합니다.
+
 ## 실행 순서와 결과
 
 [collect_trash_mujoco.xml](../trees/collect_trash_mujoco.xml)이 단계를 관리합니다. BT `FAILURE`와 Action의 BLOCKED/FAILED/CANCELED/FATAL은 서로 다른 의미입니다.

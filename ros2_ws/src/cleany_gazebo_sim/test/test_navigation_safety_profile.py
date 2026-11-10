@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import yaml
+from cleany_navigation.runtime_config import load_navigation_profile
 
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -50,7 +51,7 @@ def test_clearing_rays_cannot_be_marked_and_fit_the_actual_camera_clip():
 
 
 def test_stop_zone_encloses_padded_footprint_and_slow_zone_encloses_stop():
-    nav = yaml.safe_load((PACKAGE/'config/nav2_amcl.yaml').read_text())
+    nav = load_navigation_profile(PACKAGE.parent/'cleany_navigation/config/nav2_amcl.yaml', PACKAGE/'config/nav2_amcl.yaml')
     local = nav['local_costmap']['local_costmap']['ros__parameters']
     safety = yaml.safe_load((PACKAGE/'config/nav2_safety.yaml').read_text())['collision_monitor']['ros__parameters']
     footprint = ast.literal_eval(local['footprint'])
@@ -63,7 +64,7 @@ def test_stop_zone_encloses_padded_footprint_and_slow_zone_encloses_stop():
 
 
 def test_lidar_below_base_origin_is_not_filtered_from_either_costmap():
-    nav = yaml.safe_load((PACKAGE/'config/nav2_amcl.yaml').read_text())
+    nav = load_navigation_profile(PACKAGE.parent/'cleany_navigation/config/nav2_amcl.yaml', PACKAGE/'config/nav2_amcl.yaml')
     lidar_z = 0.30-0.38
     for name in ('local_costmap', 'global_costmap'):
         layer = nav[name][name]['ros__parameters']['obstacle_layer']
@@ -73,7 +74,7 @@ def test_lidar_below_base_origin_is_not_filtered_from_either_costmap():
 
 def test_planning_envelope_includes_monitor_stop_region():
     safety = yaml.safe_load((PACKAGE/'config/nav2_safety.yaml').read_text())
-    nav = yaml.safe_load((PACKAGE/'config/nav2_amcl.yaml').read_text())
+    nav = load_navigation_profile(PACKAGE.parent/'cleany_navigation/config/nav2_amcl.yaml', PACKAGE/'config/nav2_amcl.yaml')
     stop = ast.literal_eval(safety['collision_monitor']['ros__parameters']['StopZone']['points'])
     for name in ('local_costmap', 'global_costmap'):
         config = safety[name][name]['ros__parameters']
@@ -86,7 +87,7 @@ def test_planning_envelope_includes_monitor_stop_region():
 
 
 def test_goal_handoff_matches_available_prediction_distance():
-    nav = yaml.safe_load((PACKAGE/'config/nav2_amcl.yaml').read_text())
+    nav = load_navigation_profile(PACKAGE.parent/'cleany_navigation/config/nav2_amcl.yaml', PACKAGE/'config/nav2_amcl.yaml')
     safety = yaml.safe_load((PACKAGE/'config/nav2_safety.yaml').read_text())
     controller = nav['controller_server']['ros__parameters']['FollowPath']
     overlay = safety['controller_server']['ros__parameters']['FollowPath']

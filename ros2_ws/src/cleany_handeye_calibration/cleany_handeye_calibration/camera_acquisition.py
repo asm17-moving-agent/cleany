@@ -13,7 +13,7 @@ from enum import Enum
 import math
 import threading
 import time
-from typing import Callable, Protocol, Sequence
+from typing import Callable, Sequence
 
 
 CAMERA_FRAME_ID = 'left_wrist_rgb_optical_frame'
@@ -735,16 +735,6 @@ class CameraAcquisitionTimeout(TimeoutError):
     ) -> None:
         super().__init__(message)
         self.rejections = tuple(rejections)
-
-
-class CameraAcquisitionPort(Protocol):
-    def wait_for_first_compatible_frame(
-        self,
-        *,
-        settled_stamp_ns: int,
-        timeout_sec: float,
-    ) -> CameraFramePair:
-        """정착 시각보다 엄격히 뒤에 있는 첫 유효한 정확 시각 쌍을 반환합니다."""
 
 
 class ExactCameraPairPort:

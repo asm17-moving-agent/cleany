@@ -13,6 +13,8 @@ import subprocess
 import sys
 import time
 from typing import Any
+
+from evaluation_results import reference_error
 import numpy as np
 
 _active_subproc: subprocess.Popen | None = None
@@ -86,7 +88,7 @@ def run_single_eval(
 def generate_multi_speed_plots(
     results_by_speed: dict[float, list[dict[str, Any]]],
     save_path: Path,
-    title: str = "Multi-Speed Box Trajectory: Odometry vs LiDAR Ground Truth",
+    title: str = "Multi-Speed Box Trajectory: Odometry vs LiDAR ICP Reference",
 ) -> None:
     """다중 속도 비교 시각화를 생성합니다."""
     import matplotlib
@@ -102,21 +104,21 @@ def generate_multi_speed_plots(
     ax_quality, ax_scatter = axes[1, 0], axes[1, 1]
 
     # 첫 번째 패널: 속도와 기준 변위 편차
-    means_x = [np.mean([r["physical_ground_truth"]["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
-    stds_x = [np.std([r["physical_ground_truth"]["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
+    means_x = [np.mean([reference_error(r)["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
+    stds_x = [np.std([reference_error(r)["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
 
-    means_y = [np.mean([r["physical_ground_truth"]["error_y_mm"] for r in results_by_speed[s]]) for s in speeds]
-    stds_y = [np.std([r["physical_ground_truth"]["error_y_mm"] for r in results_by_speed[s]]) for s in speeds]
+    means_y = [np.mean([reference_error(r)["error_y_mm"] for r in results_by_speed[s]]) for s in speeds]
+    stds_y = [np.std([reference_error(r)["error_y_mm"] for r in results_by_speed[s]]) for s in speeds]
 
-    means_norm = [np.mean([r["physical_ground_truth"]["position_norm_mm"] for r in results_by_speed[s]]) for s in speeds]
-    stds_norm = [np.std([r["physical_ground_truth"]["position_norm_mm"] for r in results_by_speed[s]]) for s in speeds]
+    means_norm = [np.mean([reference_error(r)["position_norm_mm"] for r in results_by_speed[s]]) for s in speeds]
+    stds_norm = [np.std([reference_error(r)["position_norm_mm"] for r in results_by_speed[s]]) for s in speeds]
 
     ax_drift.errorbar(speeds, means_x, yerr=stds_x, fmt="-o", capsize=5, label="Longitudinal Error (X)", color="#1f77b4", linewidth=2)
     ax_drift.errorbar(speeds, means_y, yerr=stds_y, fmt="-s", capsize=5, label="Lateral Error (Y)", color="#ff7f0e", linewidth=2)
     ax_drift.errorbar(speeds, means_norm, yerr=stds_norm, fmt="-^", capsize=5, label="2D Position Error Norm", color="#d62728", linewidth=2.5)
     ax_drift.set_xlabel("Linear Speed (m/s)")
-    ax_drift.set_ylabel("Physical Return Error (mm)")
-    ax_drift.set_title("Ground-Truth Return Error vs Speed (LiDAR ICP)")
+    ax_drift.set_ylabel("Reference Return Error (mm)")
+    ax_drift.set_title("Reference Return Error vs Speed (LiDAR ICP)")
     ax_drift.grid(True, linestyle="--", alpha=0.5)
     ax_drift.legend(loc="upper left")
 
@@ -125,10 +127,10 @@ def generate_multi_speed_plots(
     width = 0.04
     x_indices = np.array(speeds)
     ax_compare.bar(x_indices - width/2, odom_norms, width=width, label="Wheel Odom Residual (ROS)", color="#2ca02c", alpha=0.8)
-    ax_compare.bar(x_indices + width/2, means_norm, width=width, label="LiDAR Ground Truth Error", color="#d62728", alpha=0.8)
+    ax_compare.bar(x_indices + width/2, means_norm, width=width, label="LiDAR ICP Reference Error", color="#d62728", alpha=0.8)
     ax_compare.set_xlabel("Linear Speed (m/s)")
     ax_compare.set_ylabel("Error Norm (mm)")
-    ax_compare.set_title("Wheel Odometry vs Physical Ground Truth")
+    ax_compare.set_title("Wheel Odometry vs LiDAR ICP Reference")
     ax_compare.set_xticks(speeds)
     ax_compare.grid(True, linestyle="--", alpha=0.5)
     ax_compare.legend(loc="upper left")
@@ -158,8 +160,8 @@ def generate_multi_speed_plots(
     colors = {speeds[0]: "#1f77b4", speeds[1]: "#ff7f0e", speeds[2]: "#d62728"} if len(speeds) == 3 else {}
     for s in speeds:
         c = colors.get(s, "#333333")
-        xs = [r["physical_ground_truth"]["error_x_mm"] for r in results_by_speed[s]]
-        ys = [r["physical_ground_truth"]["error_y_mm"] for r in results_by_speed[s]]
+        xs = [reference_error(r)["error_x_mm"] for r in results_by_speed[s]]
+        ys = [reference_error(r)["error_y_mm"] for r in results_by_speed[s]]
         ax_scatter.scatter(xs, ys, s=80, color=c, alpha=0.9, label=f"{s:.2f} m/s")
         for i, (x, y) in enumerate(zip(xs, ys)):
             ax_scatter.annotate(f"{s:.2f}m/s #{i+1}", (x + 1.0, y + 1.0), fontsize=9)
@@ -181,7 +183,7 @@ def generate_multi_speed_plots(
     print(f"\n[Multi-Speed Plot] Saved comparison figure to: {save_path}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Multi-Speed Holonomic Odometry Evaluation")
     parser.add_argument("--speeds", type=float, nargs="+", default=[0.20, 0.35, 0.50],
                         help="List of speeds to evaluate in m/s (default: 0.20 0.35 0.50)")
@@ -195,11 +197,29 @@ def main() -> int:
                         help="Dwell time between runs in seconds (default: 3.0s)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Run dry-run verification without robot motion")
-    args = parser.parse_args()
+    parser.add_argument("--output-dir", type=Path,
+                        help="New run directory; otherwise use CLEANY_DATA_ROOT/runs/navigation/control")
+    args = parser.parse_args(argv)
 
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    out_dir = Path("artifacts/odometry_evaluation")
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if (args.runs_per_speed < 1 or not math.isfinite(args.distance) or args.distance <= 0
+            or not math.isfinite(args.dwell_between) or args.dwell_between < 0
+            or any(not math.isfinite(speed) or speed <= 0 for speed in args.speeds)):
+        parser.error("Runs, distance and speeds must be positive; dwell must be finite and nonnegative")
+    timestamp = time.strftime("%Y-%m-%d_%H%M%S")
+    data_root = os.environ.get("CLEANY_DATA_ROOT")
+    if args.output_dir is not None:
+        out_dir = args.output_dir.expanduser().resolve()
+    elif data_root:
+        out_dir = Path(data_root).expanduser().resolve() / "runs/navigation/control" / f"{timestamp}_odometry"
+    elif args.dry_run:
+        out_dir = Path("DRY_RUN_OUTPUT")
+    else:
+        parser.error("Set --output-dir or CLEANY_DATA_ROOT before starting robot motion")
+    if not args.dry_run:
+        out_dir.mkdir(parents=True, exist_ok=False)
+        (out_dir / "batch_config.json").write_text(json.dumps({
+            **vars(args), "output_dir": str(out_dir), "timestamp": timestamp,
+        }, indent=2), encoding="utf-8")
 
     print(f"=== Starting Multi-Speed Batch Evaluation ===")
     print(f"Pattern: {args.pattern.upper()}, Distance: {args.distance}m (Total Loop: {args.distance*4:.1f}m)")
@@ -207,7 +227,6 @@ def main() -> int:
     print(f"Runs per speed: {args.runs_per_speed} (Total runs: {len(args.speeds) * args.runs_per_speed})")
     print(f"Dry-run: {args.dry_run}")
 
-    all_results: list[dict[str, Any]] = []
     results_by_speed: dict[float, list[dict[str, Any]]] = {s: [] for s in args.speeds}
 
     run_count = 0
@@ -237,7 +256,6 @@ def main() -> int:
                     "repetition": rep,
                     "timestamp": timestamp,
                 }
-                all_results.append(res)
                 results_by_speed[spd].append(res)
 
                 if run_count < total_runs:
@@ -248,9 +266,7 @@ def main() -> int:
         print("\nDry-run completed successfully.")
         return 0
 
-    # 다중 속도 비교 그림 생성
     plot_path = out_dir / f"multi_speed_{args.pattern}_comparison_{timestamp}.png"
-    generate_multi_speed_plots(results_by_speed, plot_path)
 
     # 집계한 일괄 결과 저장
     batch_json_path = out_dir / f"multi_speed_{args.pattern}_batch_{timestamp}.json"
@@ -268,9 +284,12 @@ def main() -> int:
     batch_json_path.write_text(json.dumps(batch_summary, indent=2), encoding="utf-8")
     print(f"\n[Batch Summary JSON] Saved to: {batch_json_path}")
 
+    # 그림 생성 실패가 원본 집계 결과를 잃게 하지 않습니다.
+    generate_multi_speed_plots(results_by_speed, plot_path)
+
     # 요약 비교표 출력
     print("\n" + "=" * 80)
-    print("=== Multi-Speed Odometry vs LiDAR Ground Truth Comparison Summary ===")
+    print("=== Multi-Speed Odometry vs LiDAR ICP Reference Comparison Summary ===")
     print("=" * 80)
     print(f"{'Speed':^8} | {'Rep':^5} | {'Odom dX (mm)':^13} | {'Odom dY (mm)':^13} | {'LiDAR X (mm)':^13} | {'LiDAR Y (mm)':^13} | {'LiDAR Norm':^11} | {'RMSE':^8} | {'Inliers':^8}")
     print("-" * 80)
@@ -279,9 +298,9 @@ def main() -> int:
         for idx, r in enumerate(results_by_speed[spd], 1):
             odom_dx = r["odom_residual"]["delta_x_m"] * 1000.0
             odom_dy = r["odom_residual"]["delta_y_m"] * 1000.0
-            lidar_x = r["physical_ground_truth"]["error_x_mm"]
-            lidar_y = r["physical_ground_truth"]["error_y_mm"]
-            norm_mm = r["physical_ground_truth"]["position_norm_mm"]
+            lidar_x = reference_error(r)["error_x_mm"]
+            lidar_y = reference_error(r)["error_y_mm"]
+            norm_mm = reference_error(r)["position_norm_mm"]
             lm = r.get("lidar_metrics", {})
             rmse = lm.get("rmse_mm", 0.0)
             inliers = lm.get("inlier_ratio_pct", 0.0)

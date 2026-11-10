@@ -43,6 +43,8 @@ ros2 topic echo /odom --once
 ros2 run tf2_ros tf2_echo odom base_link
 ```
 
+Gazebo AMCL launch의 `params_file`은 [공통 주행 설정에 적용하는 환경 overlay](../../../ros2_ws/src/cleany_navigation/docs/planning.md#공통-설정과-환경별-차이)입니다. Nav2 노드에 단독으로 전달하지 않습니다.
+
 Topic 등록 이후 실제 발행, 이동, 정지를 각각 확인합니다. 실행별 sensor와 odometry 소유권은 [연동 가이드](../integration.md)를 따릅니다.
 
 ## 시설 생성 도구와 종료

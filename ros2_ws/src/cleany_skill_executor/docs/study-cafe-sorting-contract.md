@@ -11,7 +11,8 @@ flowchart TD
   Pre --> Contact["접근 / 닫기 / 새 접촉 feedback"]
   Contact --> Map["attachment 이후 새 Depth / 지도 확인"]
   Map --> Lift["후퇴 / lift / CHECK"]
-  Lift --> Carry["부착 물체 충돌 검사 / 고정 투하점"]
+  Lift --> Fit["물체 경계 구 / 입구와 고정 놓기점 검사"]
+  Fit --> Carry["부착 물체 충돌 검사 / 고정 투하점"]
   Carry --> Release["중심 + 손목 확인 / 놓기 / 복귀"]
   Release --> Verify{"독립 안착 검증 사용?"}
   Verify -->|false 기본| Unverified["complete_unverified"]
@@ -20,8 +21,7 @@ flowchart TD
 
 | 경로 | 놓기 직전 확인 | 결과의 한계 |
 |---|---|---|
-| 자동 sorting | 물체 중심, wrist feedback, MoveIt 충돌 | `TODO(bin-opening-fit)`: 입구 적합성 미구현 |
-| MuJoCo BT Action | 위 조건 + bounding sphere 입구 검사 | 아래 margin / 높이 적용; 실물 검증 아님 |
+| 자동 sorting / MuJoCo BT Action | 물체 중심, wrist feedback, MoveIt 충돌, bounding sphere 입구 검사 | 같은 margin / 높이와 공통 검사 적용; 실물 검증 아님 |
 
 ## 분류·운반 실행 계약
 
@@ -72,6 +72,8 @@ flowchart TD
     Next --> Review
     IK -->|성공| Chosen["선택 종료 / 실행 전 경로 검증"]
 ```
+
+접근 방향의 어깨 기준점은 launch가 현재 기본 URDF의 `base_link` 기준 원점에서 읽습니다. 별도 CAD 좌표를 복제하지 않습니다.
 
 선택하지 않은 물체도 전체 depth OctoMap의 충돌 검사에는 남습니다. 만료된 snapshot의 시각을 갱신하지 않으며, 미해결 물체와 이전 관측 물체의 누락을 계속 검사합니다.
 
@@ -200,12 +202,12 @@ flowchart LR
 
 FK corridor의 자세·속도·가속도·충돌 검사는 유지합니다. Roll 유지가 세계좌표 방향 고정, 물체 수평 유지 또는 전역 최적해를 뜻하지 않습니다.
 
-| BT Action의 추가 입구 검사 | 기준 |
+| 공통 입구 검사 | 기준 |
 |---|---|
 | 입구 내 포함 | 벽 두께와 `sorting_release_edge_margin_m=0.005 m`를 제외한 내부에 bounding sphere 포함 |
 | 테두리 위 물체 하단 | `sorting_release_clearance_m=0.06 m`부터 `sorting_release_maximum_clearance_m=0.21 m`까지 |
 | 실행 / 놓기 전 | 범위 밖이면 이동 중단; 놓기 직전 실제 중심 / 손목 / 입구 재검사 |
-| 자동 sorting | 위 sphere 검사는 미적용; 중심 / 손목 / MoveIt 검사만 수행 |
+| 고정 놓기점 | 계획 오차 ±1 mm까지 허용 영역 안에 포함; 큰 물체나 범위 밖 점은 운반 전에 거부 |
 
 ## 준비 자세와 접근 경로
 

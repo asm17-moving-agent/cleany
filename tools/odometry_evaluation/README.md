@@ -304,6 +304,15 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 
 주행 도구는 `/tmp/cleany_odom_eval.lock`과 `/cmd_vel` publisher 검사로 중복을 막습니다. Legacy `run_eval.sh`/`run_multi_speed_eval.py`의 LiDAR→base 기본값은 yaw −7.85°, X lever arm 0.029 m이며 extrinsic 선택 옵션이 없습니다. 현재 장착 재측정에는 명시 config 기반 launcher를 사용합니다.
 
+다중 속도 실행은 `--output-dir /absolute/new-run` 또는 `CLEANY_DATA_ROOT`를 지정합니다. 환경변수만 지정하면 `runs/navigation/control/YYYY-MM-DD_HHMMSS_odometry/`에 실행 설정, 개별 결과, 집계와 그림을 모읍니다. 기존 디렉터리는 재사용하지 않으며 dry-run은 결과 디렉터리를 만들지 않습니다.
+
+| 결과 표현 | 계약 |
+|---|---|
+| LiDAR ICP reference | scan matching 상대 추정; 독립적인 실물 정답을 뜻하지 않음 |
+| `reference_error` | 새 기준 오차 키; `measurement_method`로 ICP와 수동 측정 구분 |
+| `calibrated_base_reference` | 외부 보정 후 base 좌표계의 ICP 상대 변위 |
+| 과거 JSON | `physical_ground_truth`, `calibrated_base_ground_truth`를 호환 키로 함께 저장; 읽을 때 새 키 우선, 없으면 과거 키 사용 |
+
 ## 6. 단위 테스트
 
 ```bash

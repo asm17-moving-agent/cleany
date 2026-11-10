@@ -340,3 +340,25 @@ def test_tof_selects_before_all_safety_and_limits_after_all_safety(pan, voxel, m
     if mode == 'reactive':
         assert result[owner]['ros__parameters']['raw_command_topic'] == 'motion/cmd_vel'
     assert original != result
+
+
+def test_environment_overlay_tracks_common_changes_and_replaces_plugin_parameters(tmp_path):
+    from cleany_navigation.runtime_config import load_navigation_profile
+    base, overlay = tmp_path/'base.yaml', tmp_path/'overlay.yaml'
+    base.write_text(yaml.safe_dump({'node': {'ros__parameters': {
+        'rate': 20, 'checker': {'plugin': 'Pose', 'required_angle': .1},
+        'controller': {'plugin': 'MPPI', 'batch_size': 1000, 'speed': .3}}}}))
+    overlay.write_text(yaml.safe_dump({'node': {'ros__parameters': {
+        'checker': {'plugin': 'Simple', 'radius': .1},
+        'controller': {'plugin': 'MPPI', 'speed': .5}}}}))
+    original = base.read_text()
+    parameters = load_navigation_profile(base, overlay)['node']['ros__parameters']
+    assert parameters['rate'] == 20
+    assert parameters['checker'] == {'plugin': 'Simple', 'radius': .1}
+    assert parameters['controller'] == {'plugin': 'MPPI', 'batch_size': 1000, 'speed': .5}
+    parameters['rate'] = 99
+    assert base.read_text() == original
+    assert load_navigation_profile(base, overlay)['node']['ros__parameters']['rate'] == 20
+    overlay.write_text('[]')
+    with pytest.raises(ValueError, match='Expected parameter mapping'):
+        load_navigation_profile(base, overlay)

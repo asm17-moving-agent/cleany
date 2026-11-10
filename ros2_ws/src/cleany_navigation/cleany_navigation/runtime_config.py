@@ -42,6 +42,23 @@ def merge_parameters(target: dict, overlay: dict) -> None:
             target[key] = deepcopy(value)
 
 
+def load_navigation_profile(base: Path, overlay: Path) -> dict:
+    """공통 주행 설정에 환경 차이를 적용합니다. 교체한 플러그인의 이전 설정은 버립니다."""
+    parameters = load_parameters(base)
+
+    def merge(target, changes):
+        for key, value in changes.items():
+            previous = target.get(key)
+            if (isinstance(value, dict) and isinstance(previous, dict)
+                    and ('plugin' not in value or value['plugin'] == previous.get('plugin'))):
+                merge(previous, value)
+            else:
+                target[key] = deepcopy(value)
+
+    merge(parameters, load_parameters(overlay))
+    return parameters
+
+
 def merge_localization_parameters(target: dict, overlay: dict) -> None:
     """위치 추정 보정값을 이동 및 안전 재정의와 분리합니다."""
     amcl = overlay.get('amcl')

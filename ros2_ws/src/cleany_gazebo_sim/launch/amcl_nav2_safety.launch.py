@@ -10,7 +10,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
 
-from cleany_navigation.runtime_config import load_parameters
+from cleany_navigation.runtime_config import load_parameters, load_navigation_profile
 
 
 def _launch(context: LaunchContext) -> list:
@@ -21,7 +21,7 @@ def _launch(context: LaunchContext) -> list:
     safety = load_parameters(Path(value('safety_params_file')))
     camera = safety.pop('depth_camera_tf')
     robot = safety
-    base = load_parameters(Path(value('params_file')))
+    base = load_navigation_profile(navigation/'config/nav2_amcl.yaml', Path(value('params_file')))
     for name in ('local_costmap', 'global_costmap'):
         layer = base[name][name]['ros__parameters']['obstacle_layer']
         robot[name][name]['ros__parameters']['obstacle_layer'] = {
@@ -41,6 +41,8 @@ def _launch(context: LaunchContext) -> list:
         robot['local_costmap']['local_costmap']['ros__parameters']['depth_layer'].setdefault(
             key, safety['local_costmap']['local_costmap']['ros__parameters']['depth_layer'][key])
     directory = Path(mkdtemp(prefix='cleany-gazebo-navigation-'))
+    parameters_file = directory/'parameters.yaml'
+    parameters_file.write_text(yaml.safe_dump(base, sort_keys=False))
     robot_file = directory/'robot.yaml'
     robot_file.write_text(yaml.safe_dump(robot, sort_keys=False))
     adapters = []
@@ -67,7 +69,7 @@ def _launch(context: LaunchContext) -> list:
         launch_arguments={
             'map': value('map'), 'robot_params_file': str(robot_file), 'use_sim_time': value('use_sim_time'),
             'autostart': value('autostart'), 'axis_motion': value('axis_motion'),
-            'axis_params_file': value('axis_params_file'), 'omni_params_file': value('omni_params_file'), 'params_file': value('params_file'),
+            'axis_params_file': value('axis_params_file'), 'omni_params_file': value('omni_params_file'), 'params_file': str(parameters_file),
             'localization_params_file': value('localization_params_file'),
             # 포함된 launch 사이에는 인자 컨텍스트가 공유됩니다. Gazebo 메타데이터 YAML이
             # 공통 ROS 파라미터 overlay로 전달되지 않게 합니다.

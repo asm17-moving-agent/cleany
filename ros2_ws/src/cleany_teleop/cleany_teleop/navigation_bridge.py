@@ -18,7 +18,7 @@ from sensor_msgs.msg import LaserScan
 from std_srvs.srv import Empty
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
-from tf2_ros import Buffer, TransformListener
+from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_mission_manager.adapters.supervision import RosSupervision
 from cleany_mission_manager.core.supervision import Authorization
@@ -51,6 +51,7 @@ class NavigationBridge:
         self.last_input_failure={}
         self.slip={};self.traction={};self.traction_at=0.
         self.localization={}
+        self.tf_error=''
         self.pending=None;self.heartbeat=0.;self.sequence=0;self.last_update=0.
         self.epoch=0;self.outcome='cancelled';self.requests={};self.cancel_future=None;self.started_control=False
         self.supervision=RosSupervision(node,['NAVIGATION'],heartbeat_timeout=1.,request_timeout=1.)
@@ -172,6 +173,7 @@ class NavigationBridge:
                     last_input_failure=getattr(self,'last_input_failure',{}),
                     slip=getattr(self,'slip',{}),traction_recovery=getattr(self,'traction',{}),
                     localization=getattr(self,'localization',{}),
+                    tf_error=getattr(self,'tf_error',''),
                     map_id=self.map.revision if self.map else None)
 
     def request(self,operation,data):
@@ -306,15 +308,26 @@ class NavigationBridge:
                 return f'{label} 갱신 지연 ({now-stamp:.2f}초)',ages
         return '',ages
 
-    def tick(self):
-        now=time.monotonic()
+    def _update_pose(self, now):
+        """TF 미수신은 최신성 판정에 맡기고, 예상 밖 오류는 위치를 무효화해 보고합니다."""
         try:
             tf=self.buffer.lookup_transform('map','base_link',Time(),timeout=Duration(seconds=0.))
             age=(self.node.get_clock().now().nanoseconds-(tf.header.stamp.sec*10**9+tf.header.stamp.nanosec))/1e9
             if 0<=age<.5:
                 q=tf.transform.rotation;p=tf.transform.translation
                 self.pose=[p.x,p.y,math.atan2(2*q.w*q.z,1-2*q.z*q.z)];self.pose_at=now
-        except Exception:pass
+                self.tf_error=''
+        except TransformException as error:
+            self.tf_error=str(error)
+        except Exception as error:
+            self.pose_at=0.
+            self.tf_error=f'{type(error).__name__}: {error}'
+            self.node.get_logger().error('Navigation TF processing failed: '+self.tf_error,
+                                         throttle_duration_sec=5.)
+
+    def tick(self):
+        now=time.monotonic()
+        self._update_pose(now)
         # 정지 중 실제 스캔 처리를 AMCL에 요청하며 자세 stamp를 직접 갱신하지 않습니다.
         if (now-self.nomotion_at>=.5 and self.nomotion.service_is_ready()
                 and (self.nomotion_future is None or self.nomotion_future.done())):

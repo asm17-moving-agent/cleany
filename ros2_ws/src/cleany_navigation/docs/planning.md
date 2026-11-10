@@ -28,6 +28,19 @@ flowchart TD
     Diff --> Safety
 ```
 
+### 공통 설정과 환경별 차이
+
+```mermaid
+flowchart LR
+    Base["cleany_navigation/config/nav2_amcl.yaml"] --> Compose["공통 값 + 환경별 차이"]
+    Gazebo["cleany_gazebo_sim/config/nav2_amcl.yaml"] --> Compose
+    Compose --> Launch["Gazebo AMCL launch / 최종 파라미터"]
+```
+
+Gazebo의 `params_file`은 공통 파일 위에 적용하는 overlay입니다. 같은 plugin의 값은 병합하고, plugin 종류가 달라지면 해당 설정 묶음을 교체해 이전 plugin의 전용 값이 남지 않게 합니다. Gazebo overlay를 Nav2 노드에 단독으로 전달하지 않습니다.
+
+`navigation.launch.py`가 안전 센서를 포함한 공통 진입점이며 `amcl_nav2_safety.launch.py`는 같은 인자를 전달하는 호환 이름입니다. 축 이동 구성은 `AxisGenerator`와 `PathHeadingCritic`을 사용합니다. StraightFirst planner의 연속 footprint 검사는 별도 `footprint_sweep` 라이브러리를 사용합니다.
+
 ## 휴대폰 시연 프로필
 
 ### 클릭한 목표와 실제 도착 판정
