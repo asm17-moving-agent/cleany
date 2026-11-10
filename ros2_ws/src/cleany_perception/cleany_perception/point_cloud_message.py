@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import struct
+from array import array
+
+import numpy as np
 
 from builtin_interfaces.msg import Time
 from sensor_msgs.msg import PointCloud2, PointField
@@ -29,12 +31,12 @@ def colored_point_cloud_message(
     message.is_bigendian = False
     message.point_step = 16
     message.row_step = message.point_step * message.width
-    payload = bytearray(message.row_step)
-    for index, (point, color) in enumerate(zip(cloud.points, cloud.colors)):
-        packed_rgb = (
-            (int(color[0]) << 16) | (int(color[1]) << 8) | int(color[2])
-        )
-        struct.pack_into('<fffI', payload, index * 16, *point, packed_rgb)
-    message.data = bytes(payload)
+    # Keep the existing little-endian XYZ + 0x00RRGGBB wire layout.
+    payload = array('B', [0]) * message.row_step
+    packed = np.frombuffer(payload, dtype=[('xyz', '<f4', (3,)), ('rgb', 'u1', (4,))])
+    packed['xyz'] = cloud.points
+    packed['rgb'][:, :3] = cloud.colors[:, ::-1]
+    packed['rgb'][:, 3] = 0
+    message.data = payload
     message.is_dense = True
     return message

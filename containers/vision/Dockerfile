@@ -75,13 +75,33 @@ RUN git clone --branch dev https://github.com/graspnet/anygrasp_sdk.git && \
       /opt/anygrasp/gsnet.so
 
 
+RUN python3 -m pip install --no-cache-dir \
+      accelerate==1.10.1 \
+      google-genai==2.18.0 \
+      huggingface-hub==0.36.0 \
+      safetensors==0.6.2 \
+      transformers==4.57.6 \
+      ultralytics==8.4.104
 
-RUN python3 -m pip install --no-cache-dir google-genai==2.18.0
+# YOLOE text prompts import Ultralytics' CLIP fork at runtime. Ubuntu 22.04's
+# pip/setuptools pair misreads the fork's PEP 621 metadata, so update the build
+# frontend while keeping setuptools below colcon-core's upper bound.
+RUN python3 -m pip install --no-cache-dir --upgrade \
+      packaging==25.0 pip==25.3 setuptools==79.0.1 wheel==0.45.1 && \
+    python3 -m pip install --no-cache-dir \
+      'git+https://github.com/ultralytics/CLIP.git@a13192f8cb767260d7dfd98c843b0716593169e7'
 
 # graspnetAPI imports IPython from its Dex-Net compatibility modules while the
 # licensed detector is being constructed, even for headless inference.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3-ipython && \
+    rm -rf /var/lib/apt/lists/*
+
+# Shared cleany_interfaces includes CheckStateValidityBatch. Both role workspaces
+# generate its types even though only the motion runtime calls the service.
+# Keep this late layer so adding message dependencies reuses the GPU SDK build.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ros-${ROS_DISTRO}-moveit-msgs && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONPATH=/opt/anygrasp

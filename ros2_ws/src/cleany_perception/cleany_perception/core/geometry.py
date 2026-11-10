@@ -25,17 +25,18 @@ def deproject_masked_depth(
         raise ValueError('Depth and selection mask shapes do not match')
     if stride <= 0:
         raise ValueError('Depth sampling stride must be positive')
-    selected = np.asarray(mask, dtype=np.bool_).copy()
-    selected &= np.isfinite(depth_m)
-    selected &= depth_m >= minimum_depth_m
-    selected &= depth_m <= maximum_depth_m
-    if stride > 1:
-        sampling = np.zeros_like(selected)
-        sampling[::stride, ::stride] = True
-        selected &= sampling
+    # Sample on the original image grid before testing depth validity.
+    sampled_depth = depth_m[::stride, ::stride]
+    selected = np.asarray(mask, dtype=np.bool_)[::stride, ::stride].copy()
+    selected &= np.isfinite(sampled_depth)
+    selected &= sampled_depth >= minimum_depth_m
+    selected &= sampled_depth <= maximum_depth_m
     rows, columns = np.nonzero(selected)
     if rows.size == 0:
         return np.empty((0, 3), dtype=np.float64)
+    if stride > 1:
+        rows *= stride
+        columns *= stride
     depth = depth_m[rows, columns].astype(np.float64)
     x = (columns.astype(np.float64) - intrinsics.cx) * depth / intrinsics.fx
     y = (rows.astype(np.float64) - intrinsics.cy) * depth / intrinsics.fy
@@ -86,6 +87,9 @@ def fit_plane_ransac(
         if count > best_count:
             best_inliers = inliers
             best_count = count
+            # The first complete consensus cannot be improved by later samples.
+            if count == cloud.shape[0]:
+                break
 
     required_count = max(
         minimum_inliers,

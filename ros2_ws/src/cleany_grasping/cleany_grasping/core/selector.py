@@ -93,6 +93,7 @@ def rank_grasps(
     target_max = target_cloud.points.max(axis=0)
     sorted_candidates = sorted(candidates, key=lambda item: item.score, reverse=True)
     kept: list[RawGrasp] = []
+    kept_translations = np.empty((len(sorted_candidates), 3), dtype=np.float64)
     contact_min = target_min - settings.target_contact_margin_m
     contact_max = target_max + settings.target_contact_margin_m
     for candidate in sorted_candidates:
@@ -101,14 +102,22 @@ def rank_grasps(
         contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
         if not np.all((contact >= contact_min) & (contact <= contact_max)):
             continue
+        # A Euclidean neighbor must lie inside this axis-aligned cube.
+        # Keep the exact distance and rotation tests for every nearby pose.
+        nearby = np.flatnonzero(np.all(
+            np.abs(kept_translations[:len(kept)] - candidate.translation)
+            < settings.nms_translation_threshold_m,
+            axis=1,
+        ))
         if any(
-            np.linalg.norm(candidate.translation - prior.translation)
+            np.linalg.norm(candidate.translation - kept[index].translation)
             < settings.nms_translation_threshold_m
-            and _rotation_distance(candidate.rotation, prior.rotation)
+            and _rotation_distance(candidate.rotation, kept[index].rotation)
             < settings.nms_rotation_threshold_rad
-            for prior in kept
+            for index in nearby
         ):
             continue
+        kept_translations[len(kept)] = candidate.translation
         kept.append(candidate)
     ranked = []
     for candidate in kept:

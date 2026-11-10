@@ -6,10 +6,13 @@
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
   <depend>rclpy</depend>
+  <depend>action_msgs</depend>
+  <depend>std_srvs</depend>
   <depend>cleany_interfaces</depend>
   <depend>geometry_msgs</depend>
   <depend>shape_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>tf2_ros</depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>

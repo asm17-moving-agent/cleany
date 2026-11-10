@@ -1,8 +1,10 @@
 # Snapshot-local number presented to users. Numbering starts at 1.
 uint32 object_id
 
-# Detector label and normalized confidence in [0, 1].
+# Normalized semantic type and original detector class, as in DetectedObject2D.
 string label
+string detector_label
+# Detector confidence in [0, 1], not semantic classification confidence.
 float32 confidence
 
 # Oriented bounding-box center/orientation and full local-axis extents in m.

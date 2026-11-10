@@ -98,9 +98,18 @@ class ObjectTracker:
         return self.aliases.get(key, key)
 
     def update(self, session_id: str, snapshot_id: str,
-               labels: Sequence[str], positions: Sequence[Point | None]) -> TrackingOutput:
+               labels: Sequence[str], positions: Sequence[Point | None], *,
+               detector_labels: Sequence[str] | None = None) -> TrackingOutput:
+        """Associate detector classes spatially while retaining semantic names.
+
+        A semantic correction does not create a new identity. Consumers must
+        revalidate semantic type and category before using an existing approval.
+        Empty detector classes use the semantic name for non-YOLOE adapters.
+        """
         if not snapshot_id or len(labels) != len(positions):
             raise ValueError('Snapshot and parallel labels/positions required')
+        if detector_labels is not None and len(detector_labels) != len(labels):
+            raise ValueError('Detector labels must match semantic labels')
         if any(not label.strip() for label in labels):
             raise ValueError('Empty tracking label')
         for point in positions:
@@ -120,7 +129,9 @@ class ObjectTracker:
         if snapshot_id == session.last_snapshot:
             assert session.last_output is not None
             return session.last_output
-        keys = [self.label_key(label) for label in labels]
+        association_labels = labels if detector_labels is None else [
+            detector or label for detector, label in zip(detector_labels, labels)]
+        keys = [self.label_key(label) for label in association_labels]
         tracks = list(session.tracks.values())
         distances = {(i, j): math.dist(point, track.position)
                      for i, point in enumerate(positions) if point is not None

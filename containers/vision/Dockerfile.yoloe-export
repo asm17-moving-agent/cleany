@@ -1,0 +1,7 @@
+# Export dependencies stay separate from the Jetson runtime and CUDA wheels.
+ARG VISION_IMAGE=cleany-vision:jp6.2
+FROM ${VISION_IMAGE}
+RUN python3 -m pip install --no-cache-dir --no-deps \
+      onnx==1.19.1 ml_dtypes==0.5.3 protobuf==6.32.1
+ENV YOLO_AUTOINSTALL=false
+ENTRYPOINT ["python3", "/workspace/cleany/tools/yoloe_trt.py"]
