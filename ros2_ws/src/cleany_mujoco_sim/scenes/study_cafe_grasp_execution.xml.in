@@ -1,5 +1,5 @@
 <mujoco model="cleany_study_cafe_grasp_execution">
-  <!-- Camera materialization contract: @CLEANY_STUDY_CAFE_HEAD_CAMERA_CONTRACT@ -->
+  <!-- 카메라 구체화 계약: @CLEANY_STUDY_CAFE_HEAD_CAMERA_CONTRACT@ -->
   <include file="@CLEANY_MJCF_PATH@"/>
 
   <option timestep="0.001" gravity="0 0 -9.80665" integrator="implicitfast"
@@ -39,9 +39,9 @@
     @CLEANY_STUDY_CAFE_ENVIRONMENT@
   </worldbody>
 
-  <!-- Simulation-only jaw friction; expanded across the paper cup / LEGO compound geoms. -->
+  <!-- 시뮬레이션 전용 그리퍼 마찰이며 종이컵과 LEGO의 복합 geom 전체에 적용합니다. -->
   <contact>
-    <!-- Rigid mouse proxy: same original mixed friction, stiff jaw contact. -->
+    <!-- 강체 마우스 대체 형상입니다. 원래 혼합 마찰과 강성이 높은 그리퍼 접촉을 사용합니다. -->
     <pair name="mouse_left_fixed_1" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="mouse_left_fixed_2" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="mouse_left_moving_1" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
@@ -52,7 +52,7 @@
     <pair name="mouse_right_moving_1" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="mouse_right_moving_2" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="mouse_right_moving_3" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <!-- Rigid tissue proxy: preserve mixed friction, prevent numerical penetration. -->
+    <!-- 강체 티슈 대체 형상입니다. 혼합 마찰을 유지하고 수치적 침투를 방지합니다. -->
     <pair name="tissue_left_fixed_1" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="tissue_left_fixed_2" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="tissue_left_moving_1" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
@@ -63,8 +63,8 @@
     <pair name="tissue_right_moving_1" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="tissue_right_moving_2" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="tissue_right_moving_3" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <!-- Rigid thin-shell cup: stiff contact prevents jaw penetration through walls.
-         This is not a deformable paper model; friction and actuator limits unchanged. -->
+    <!-- 얇은 강체 컵입니다. 높은 접촉 강성으로 그리퍼의 벽 침투를 막습니다.
+변형 가능한 종이 모델이 아니며 마찰과 구동기 한계는 유지합니다. -->
     <pair name="cup_left_fixed_1" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_left_fixed_2" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_left_moving_1" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
@@ -75,8 +75,8 @@
     <pair name="cup_right_moving_1" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_right_moving_2" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_right_moving_3" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <!-- LEGO: retain sliding grip, but avoid oversized torsional/rolling contact resistance.
-         Constant across grip/release; no contact disabling or artificial drop force. -->
+    <!-- LEGO는 미끄럼 마찰 파지를 유지하되 과도한 비틀림 및 구름 접촉 저항을 피합니다.
+파지와 놓기 동안 동일하며 접촉 비활성화나 인위적 낙하 힘을 사용하지 않습니다. -->
     <pair name="lego_left_fixed_1" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="lego_left_fixed_2" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="lego_left_moving_1" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>

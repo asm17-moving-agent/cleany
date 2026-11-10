@@ -1,4 +1,4 @@
-"""Stationary geometric matching, uncertainty and temporal evidence boundaries."""
+"""정지 기하 정합, 불확실성과 시간 근거의 경계를 검사합니다."""
 from dataclasses import replace
 
 import numpy as np
@@ -59,7 +59,7 @@ def test_bad_and_good_evidence_require_time_and_duplicates_do_not_advance():
     assert health.state == 'unavailable'
     health.observe(12.6, good)
     assert health.state == 'unavailable'
-    health.observe(13.4, good)  # A data gap must restart stability.
+    health.observe(13.4, good)  # 데이터 공백이 있으면 안정 구간을 다시 시작해야 합니다.
     assert health.state == 'unknown'
     for t in np.arange(13.6, 14.8, .2):health.observe(t, good)
     assert health.state == 'available'

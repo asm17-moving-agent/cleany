@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CMAKE_CXX_COMPILER_LAUNCHER=ccache \
     COLCON_DEFAULTS_FILE=/opt/cleany-ci/colcon-defaults.yaml
 
-# The build context contains dependency declarations, never application sources.
+# 빌드 컨텍스트에는 의존성 선언만 포함하며 애플리케이션 소스는 넣지 않습니다.
 COPY ros2_ws /opt/cleany-ci/ros2_ws
 COPY containers/ci /opt/cleany-ci
 RUN bash /opt/cleany-ci/install-dependencies

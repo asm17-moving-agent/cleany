@@ -1,4 +1,4 @@
-"""Semantic localization health and stationary recovery owned by the localization component."""
+"""위치 추정 컴포넌트가 관리하는 의미상 상태 검사와 정지 복구입니다."""
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -40,29 +40,29 @@ def stamp(header) -> float:
 
 
 class LocalizationGuard(Node):
-    """Check scan/map agreement and recover only while the base is disarmed.
+    """스캔과 지도 일치를 확인하며 베이스 구동이 해제된 동안에만 복구합니다.
 
     Subscriptions:
-        map (OccupancyGrid): Static map; transient-local depth 1.
-        scan (LaserScan): Filtered planar ranges; sensor-data QoS.
-        amcl_pose (PoseWithCovarianceStamped): Fresh finite covariance evidence.
-        diagnostics (DiagnosticArray): Base driver's validated disarmed evidence.
+        map (OccupancyGrid): 정적 지도. transient_local, depth 1.
+        scan (LaserScan): 필터링된 평면 거리. sensor_data QoS.
+        amcl_pose (PoseWithCovarianceStamped): 최신이며 유한한 공분산 근거.
+        diagnostics (DiagnosticArray): 베이스 드라이버가 검증한 구동 해제 근거.
     Publishers:
-        system/component_health (ComponentHealth): localization_alignment health.
-        localization/status (String): JSON measurements and recovery progress.
-        navigation/localization_speed_limit (SpeedLimit): Percentage speed cap;
-            degraded retains verified permission with reduced speed.
-        initialpose (PoseWithCovarianceStamped): Bounded validated recovery pose.
+        system/component_health (ComponentHealth): localization_alignment 상태.
+        localization/status (String): JSON 측정값과 복구 진행.
+        navigation/localization_speed_limit (SpeedLimit): 백분율 속도 상한.
+            degraded는 검증된 허가를 유지하며 속도를 낮춥니다.
+        initialpose (PoseWithCovarianceStamped): 범위와 유효성을 확인한 복구 자세.
     Actions:
-        localization/recover (RecoverComponent): Serialized component recovery.
+        localization/recover (RecoverComponent): 직렬화된 컴포넌트 복구.
     Services:
-        request_nomotion_update (Empty): Refresh real AMCL observations while stopped.
+        request_nomotion_update (Empty): 정지 중 실제 AMCL 관측 갱신.
     TF:
-        Reads scan-time map -> base_link and the scan extrinsic; publishes none.
+        스캔 시각의 map -> base_link와 스캔 외부 변환을 읽으며 발행하지 않습니다.
     Notes:
-        Sends no wheel or velocity commands. The Supervisor owns permission and
-        stop dispatch. Candidate search uses separate fit/validation beams and
-        refuses ambiguous map matches; it cannot prove absolute ground truth.
+        바퀴나 속도 명령을 보내지 않습니다. 허가와 정지 요청은 Supervisor가 관리합니다.
+        후보 탐색은 적합 및 검증 beam을 분리하고 모호한 지도 정합을 거부하지만
+        절대 위치 참값을 보증할 수는 없습니다.
     """
 
     def __init__(self, **kwargs):
@@ -312,7 +312,7 @@ class LocalizationGuard(Node):
                                      require_improvement=not observation['score'].acceptable(self.settings))
                 if result['accepted'] and not canceled():
                     self._phase('verifying_candidate')
-                    # Validate the same candidate against another genuinely new scan before changing AMCL.
+                    # AMCL을 바꾸기 전에 실제로 새로 받은 다른 스캔으로 같은 후보를 검증합니다.
                     candidate = np.array(result['pose'])
                     next_observation = None
                     while not canceled():

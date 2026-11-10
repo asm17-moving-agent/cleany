@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Original seamless weave approximations, not copied product photographs."""
+"""제품 사진을 복사하지 않고 이음매 없는 직조 근사 텍스처를 직접 생성합니다."""
 
 from pathlib import Path
 import argparse

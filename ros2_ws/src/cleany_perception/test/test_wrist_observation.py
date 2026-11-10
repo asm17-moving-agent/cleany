@@ -38,7 +38,7 @@ def instance(label: str = 'cup') -> Detection2D:
 
 
 def receive_frame(service: WristService, arm: str, stamp: int) -> None:
-    # HANDOFF clears the opposite arm's cache; subsequent CHECK uses this arm.
+    # HANDOFF는 반대 팔 캐시를 지우고 이후 CHECK는 이 팔을 사용합니다.
     source = arm if 2_000_000_000 in service.images[arm] else 'left'
     image = deepcopy(service.images[source][2_000_000_000])
     info = deepcopy(service.infos[source][2_000_000_000])

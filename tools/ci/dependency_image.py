@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare a dependency-only Docker context and its content-based image identity."""
+"""의존성 전용 Docker 컨텍스트와 내용 기반 이미지 식별자를 준비합니다."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def dependency_files(root: Path) -> list[Path]:
 
 
 def dependency_key(root: Path, platform: str) -> str:
-    """Include paths as well as bytes so package additions/removals invalidate."""
+    """바이트뿐 아니라 경로도 포함해 패키지 추가와 삭제가 무효화를 유발하게 합니다."""
     digest = hashlib.sha256(f'{platform}\0'.encode())
     for path in dependency_files(root):
         digest.update(path.relative_to(root).as_posix().encode() + b'\0')

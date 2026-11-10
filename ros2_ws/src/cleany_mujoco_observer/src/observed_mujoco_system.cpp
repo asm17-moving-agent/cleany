@@ -13,13 +13,13 @@
 namespace cleany_mujoco_observer
 {
 /**
- * @brief Add snapshot observers while delegating physics and control to the backend.
+ * @brief 물리와 제어는 백엔드에 위임하며 snapshot 관측기를 추가합니다.
  *
- * get_data() copies under the backend simulation mutex, avoiding concurrent
- * reads of live mjData. SortingObserver and ScheduledCameras own publication;
- * their private snapshots are never written back into physics.
- * With scheduled cameras enabled, vendor startup frames use internal topics
- * so the scheduled renderer remains the public camera source.
+ * get_data()는 백엔드 시뮬레이션 mutex 안에서 복사해 실행 중인 mjData의
+ * 동시 읽기를 피합니다. SortingObserver와 ScheduledCameras가 발행을 담당하며
+ * 전용 snapshot을 물리 상태에 다시 쓰지 않습니다.
+ * 예약 카메라를 켜면 vendor 시작 프레임은 내부 토픽을 사용하므로
+ * 공개 카메라 입력은 예약 렌더러가 담당합니다.
  */
 class ObservedMujocoSystem : public mujoco_ros2_control::MujocoSystemInterface
 {
@@ -36,12 +36,12 @@ public:
       return hardware_interface::CallbackReturn::ERROR;
     }
     if (scheduled) {
-      // Initialize GLFW synchronously before the backend starts its rendering
-      // threads. Concurrent glfwInit calls race inside GLFW's global mutexes.
+      // 백엔드 렌더링 스레드를 시작하기 전에 GLFW를 동기적으로 초기화합니다.
+      // glfwInit을 동시에 호출하면 GLFW 전역 mutex 안에서 경쟁이 발생합니다.
       if (!glfwInit()) {return hardware_interface::CallbackReturn::ERROR;}
       backend_info.hardware_parameters["camera_publish_rate"] = "0.0";
-      // The installed backend emits one startup frame even at zero rate.
-      // Quarantine it: the scheduled renderer is the only public sensor source.
+      // 설치된 백엔드는 속도 0에서도 시작 프레임 하나를 발행합니다.
+      // 이를 격리해 예약 렌더러만 공개 센서 소스가 되게 합니다.
       backend_info.sensors.erase(std::remove_if(backend_info.sensors.begin(), backend_info.sensors.end(),
         [](const auto& sensor) {
           return sensor.name == "head_realsense_rgb" || sensor.name == "head_realsense_depth" ||
@@ -66,8 +66,8 @@ public:
     get_data(snapshot);
     snapshot_.reset(snapshot);
     if (snapshot_) {simulation_time_seconds_.store(snapshot_->time, std::memory_order_relaxed);}
-    // Publisher-only node; no executor/thread or live parameter mutation.
-    // Launch parameter files are inherited through global ROS arguments.
+    // 발행 전용 노드로 executor, 스레드와 실행 중 파라미터 변경이 없습니다.
+    // launch 파라미터 파일은 전역 ROS 인자를 통해 상속합니다.
     rclcpp::NodeOptions options;
     options.automatically_declare_parameters_from_overrides(true);
     node_ = std::make_shared<rclcpp::Node>("sorting_observer", options);
@@ -99,8 +99,8 @@ public:
     const auto now = std::chrono::steady_clock::now();
     if (now < next_sample_) {return result;}
     next_sample_ = now + std::chrono::milliseconds(100);
-    // Allocated during init, never shared with the renderer or physics thread.
-    // No set_data(), mj_forward(), mj_step(), force or command changes here.
+    // 초기화 때 할당하며 렌더러나 물리 스레드와 공유하지 않습니다.
+    // 여기서는 set_data(), mj_forward(), mj_step(), 힘 또는 명령 변경을 수행하지 않습니다.
     auto* snapshot = snapshot_.get();
     get_data(snapshot);
     observer_->update(model_.get(), snapshot);

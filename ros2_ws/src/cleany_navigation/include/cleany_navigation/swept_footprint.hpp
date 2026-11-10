@@ -1,14 +1,14 @@
 #pragma once
 #include "cleany_navigation/observed_footprint.hpp"
 namespace cleany_navigation {
-/// Conservative continuous sweep for linearly interpolated center/yaw between
-/// adjacent rollout poses. Occupied cells represent their full square area.
+/// 인접 rollout 자세 사이의 중심과 yaw를 선형 보간한 보수적 연속 sweep입니다.
+/// 점유 셀은 전체 정사각형 면적을 나타냅니다.
 bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &,
   const std::vector<geometry_msgs::msg::Point> &,
   const geometry_msgs::msg::Pose2D &, const geometry_msgs::msg::Pose2D &);
 /**
- * @brief Reject swept-body collisions between rollout poses and during command hold.
- * Uses occupied cell areas rather than only center-point samples.
+ * @brief rollout 자세 사이와 명령 유지 중 body sweep 충돌을 거부합니다.
+ * 중심점 표본만이 아닌 점유 셀의 면적을 사용합니다.
  */
 class SweptFootprintCritic : public ObservedFootprintCritic {
 public:

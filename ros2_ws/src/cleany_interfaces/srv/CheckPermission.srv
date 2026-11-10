@@ -1,4 +1,4 @@
-# Empty lease_id acquires; nonempty lease_id renews an existing unexpired lease.
+# lease_id가 비어 있으면 취득하며, 값이 있으면 만료되지 않은 기존 임대를 갱신합니다.
 string epoch
 string mission_id
 string[] capabilities

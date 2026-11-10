@@ -6,7 +6,7 @@
 #include "freertos/task.h"
 
 namespace {
-// pinmap.md: M1, M2, M3, M4 PWM/DIR. No LEDC or command receiver runs here.
+// pinmap.md의 M1~M4 PWM/DIR 핀입니다. 여기서는 LEDC나 명령 수신기를 실행하지 않습니다.
 constexpr std::array<gpio_num_t, 8> kMotorPins{{
     GPIO_NUM_2, GPIO_NUM_1, GPIO_NUM_12, GPIO_NUM_11,
     GPIO_NUM_5, GPIO_NUM_6, GPIO_NUM_16, GPIO_NUM_17,

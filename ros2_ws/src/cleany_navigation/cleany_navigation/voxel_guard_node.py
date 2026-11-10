@@ -1,7 +1,7 @@
-"""Backend-independent 3-D gate after Nav2 Collision Monitor.
+"""Nav2 Collision Monitor 뒤에 놓는 백엔드 독립 3D gate입니다.
 
-/nav2/cmd_vel -> Collision Monitor -> /safety_2d/cmd_vel -> this gate -> /cmd_vel.
-The backend's command watchdog remains independent of this process.
+/nav2/cmd_vel -> Collision Monitor -> /safety_2d/cmd_vel -> 이 gate -> /cmd_vel.
+백엔드 명령 watchdog은 이 프로세스와 독립적으로 유지됩니다.
 """
 from __future__ import annotations
 from dataclasses import replace
@@ -50,30 +50,30 @@ def localization_jumped(previous: np.ndarray | None, current: np.ndarray, max_m:
 
 
 class VoxelGuardNode(Node):
-    """Gate velocity against the body's predicted sweep through observed voxels.
+    """관측 voxel 속에서 예측한 body 이동 영역으로 속도를 통과시키거나 정지합니다.
 
     Subscriptions:
-        safety_2d/cmd_vel (geometry_msgs/msg/Twist): Upstream command.
-        odom (nav_msgs/msg/Odometry): Measured motion.
-        obstacle_memory/voxels (sensor_msgs/msg/PointCloud2): Occupied voxels.
-        obstacle_memory/voxel_status (std_msgs/msg/String): Matching revision and age.
+        safety_2d/cmd_vel (geometry_msgs/msg/Twist): 상위 명령.
+        odom (nav_msgs/msg/Odometry): 측정 움직임.
+        obstacle_memory/voxels (sensor_msgs/msg/PointCloud2): 점유 voxel.
+        obstacle_memory/voxel_status (std_msgs/msg/String): 대응 revision과 경과 시간.
 
     Publishers:
-        cmd_vel (geometry_msgs/msg/Twist): Gated velocity.
-        body_guard_3d/state (std_msgs/msg/String): JSON decision and timing evidence.
-        body_guard_3d/risk_voxels (sensor_msgs/msg/PointCloud2): Collision candidates.
+        cmd_vel (geometry_msgs/msg/Twist): 통과 또는 정지한 속도.
+        body_guard_3d/state (std_msgs/msg/String): JSON 판정과 시간 근거.
+        body_guard_3d/risk_voxels (sensor_msgs/msg/PointCloud2): 충돌 후보.
 
     TF:
-        Reads map/odom/base transforms; frame names are configurable defaults.
+        map/odom/base 변환을 읽으며 좌표계 이름은 변경 가능한 기본값입니다.
 
     QoS:
-        Voxel/status inputs and diagnostic outputs use reliable, transient-local
-        depth 1. Odometry uses sensor_data.
+        voxel 및 상태 입력과 진단 출력은 reliable, transient_local, depth 1입니다.
+        odometry는 sensor_data를 사용합니다.
 
     Notes:
-        Input and velocity output names are configurable defaults. Requires a
-        body profile. Steady-clock checks stop on stale data, stalled simulation
-        time, transform discontinuity or exceeded processing budget.
+        입력과 속도 출력 이름은 변경 가능한 기본값이며 body 프로파일이 필요합니다.
+        steady-clock 검사에서 오래된 데이터, 멈춘 시뮬레이션 시각, 변환 불연속이나
+        처리 예산 초과를 확인하면 정지합니다.
     """
     def __init__(self):
         super().__init__('voxel_guard')
@@ -125,7 +125,7 @@ class VoxelGuardNode(Node):
         self.create_subscription(Odometry, self.p['odom_topic'], self.on_odom, qos_profile_sensor_data)
         self.create_subscription(PointCloud2, self.p['voxel_topic'], self.on_cloud, durable)
         self.create_subscription(String, self.p['status_topic'], self.on_status, durable)
-        # A steady timer can still send zero when /clock or a data publisher stalls.
+        # steady timer는 /clock이나 데이터 publisher가 멈춰도 0을 보낼 수 있습니다.
         self.create_timer(self.p['update_period_s'], self.update, clock=Clock(clock_type=ClockType.STEADY_TIME))
 
     def on_command(self, msg):
@@ -211,7 +211,7 @@ class VoxelGuardNode(Node):
             if self.command is None or start-self.command_wall > self.p['command_timeout_s']:
                 raise ValueError('Command timeout')
             requested = twist_vector(self.command)
-            # Include observed input age in the prediction, in addition to reaction time.
+            # 반응 시간 외에 관측 입력의 경과 시간도 예측에 포함합니다.
             config = replace(self.config, reaction_s=self.config.reaction_s+source_age)
             self.guard.config = config
             max_speed = max(np.linalg.norm(requested[:2]), np.linalg.norm(measured[:2]))

@@ -1,4 +1,4 @@
-"""Opt-in real ROS service/action transport checks; no physical actuators."""
+"""실물 구동기 없이 실제 ROS 서비스 및 action 전송을 선택적으로 검사합니다."""
 
 import os
 import time
@@ -29,21 +29,21 @@ def ros_runtime(tmp_path, request):
     from cleany_mission_manager.node import MissionRuntimeNode
 
     class NavigationFixture(Node):
-        """Emulate navigation transport and lifecycle state for mission tests.
+        """임무 테스트용 주행 전송과 lifecycle 상태를 모사합니다.
 
         Publishers:
-            wheel/odom (nav_msgs/msg/Odometry): Synthetic stop feedback.
+            wheel/odom (nav_msgs/msg/Odometry): 합성 정지 피드백.
 
         Services:
             {map_server,amcl,planner_server,controller_server,bt_navigator,
-            collision_monitor}/get_state (lifecycle_msgs/srv/GetState): Test-controlled state.
+            collision_monitor}/get_state (lifecycle_msgs/srv/GetState): 테스트가 제어하는 상태.
 
         Actions:
-            navigate_to_pose (nav2_msgs/action/NavigateToPose): Server that completes,
-                holds or cancels goals under test control.
+            navigate_to_pose (nav2_msgs/action/NavigateToPose): 테스트에 따라 목표를
+                완료, 유지하거나 취소하는 Server.
 
         TF:
-            Broadcasts synthetic map -> base_link pose updates.
+            합성 map -> base_link 자세 갱신을 발행합니다.
         """
         def __init__(self):
             super().__init__("navigation_fixture")
@@ -255,7 +255,7 @@ def test_lost_action_result_cannot_prove_stopped_or_release_next_mission(ros_run
     mid = str(uuid4())
     assert runtime.runtime.offer(RuntimeRequest(mid, "seat-12", "integration-test")).accepted
     spin(lambda: bool(nav.goals) and runtime.navigator.operation.handle is not None)
-    # The action is still executing even though the fixture publishes zero velocity.
+    # fixture가 0 속도를 발행해도 action은 여전히 실행 중입니다.
     lost_reply = Future()
     lost_reply.set_exception(RuntimeError("GetResult transport lost"))
     runtime.navigator._finished(runtime.navigator.operation, lost_reply)

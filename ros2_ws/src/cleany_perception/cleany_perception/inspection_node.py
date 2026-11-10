@@ -127,41 +127,41 @@ _LATCHED_DEBUG_IMAGE_QOS = QoSProfile(
 
 
 class InspectionNode(Node):
-    """Inspect a synchronized RGB-D snapshot and retain selectable observations.
+    """동기화된 RGB-D snapshot을 검사하고 선택 가능한 관측을 보관합니다.
 
     Subscriptions:
-        camera/color/image_raw and camera/depth/image_raw (sensor_msgs/msg/Image):
-            Color and depth; configurable defaults.
-        camera/color/camera_info and camera/depth/camera_info
-            (sensor_msgs/msg/CameraInfo): Corresponding intrinsics; configurable.
+        camera/color/image_raw, camera/depth/image_raw (sensor_msgs/msg/Image):
+            색상과 깊이이며 변경 가능한 기본값입니다.
+        camera/color/camera_info, camera/depth/camera_info
+            (sensor_msgs/msg/CameraInfo): 대응 내부 파라미터이며 변경 가능합니다.
         /{left,right}_wrist_camera/{image_raw,camera_info}
-            (sensor_msgs/msg/Image, sensor_msgs/msg/CameraInfo): Optional wrist RGB pairs.
+            (sensor_msgs/msg/Image, sensor_msgs/msg/CameraInfo): 선택적 손목 RGB 쌍.
 
     Publishers:
-        perception/objects (cleany_interfaces/msg/DetectedObject3DArray): Located objects.
-        perception/detections_2d (cleany_interfaces/msg/DetectedObject2DArray): Image detections.
-        perception/debug_image and perception/debug_image_latched (sensor_msgs/msg/Image):
-            Detection overlays. All publisher names are configurable defaults.
+        perception/objects (cleany_interfaces/msg/DetectedObject3DArray): 위치를 구한 물체.
+        perception/detections_2d (cleany_interfaces/msg/DetectedObject2DArray): 영상 검출.
+        perception/debug_image, perception/debug_image_latched (sensor_msgs/msg/Image):
+            검출 overlay. 모든 publisher 이름은 변경 가능한 기본값입니다.
 
     Services:
         /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
-            Optional WristService endpoint when enable_wrist_observation is true.
+            enable_wrist_observation을 켜면 제공하는 선택적 WristService endpoint.
 
     Actions:
-        perception/inspect_scene (cleany_interfaces/action/InspectScene): Server
-            for inspection and selection from cached snapshots; configurable default.
+        perception/inspect_scene (cleany_interfaces/action/InspectScene): 검사와 캐시된
+            snapshot 선택을 위한 Server이며 변경 가능한 기본값입니다.
 
     TF:
-        Resolves capture-time camera geometry into target_frame, default base_link.
+        촬영 시각 카메라 형상을 target_frame으로 변환하며 기본값은 base_link입니다.
 
     QoS:
-        Camera inputs and live debug output use sensor_data; latched debug uses
-        reliable, transient-local QoS.
+        카메라 입력과 실시간 debug 출력은 sensor_data입니다. latched debug는
+        reliable, transient_local입니다.
 
     Notes:
-        Sensor callbacks and action work use separate callback groups. Missing
-        synchronized input, invalid geometry or expired snapshots fail the request.
-        Wrist RGB supplies image evidence, not measured depth.
+        센서 콜백과 action 작업은 별도 콜백 그룹을 사용합니다. 동기 입력 누락,
+        무효 형상이나 만료된 snapshot은 요청을 실패시킵니다. 손목 RGB는 영상
+        근거를 제공하며 측정 깊이를 제공하지 않습니다.
     """
     def __init__(
         self,
@@ -355,7 +355,7 @@ class InspectionNode(Node):
                     f'Unsupported segmenter_type: {segmenter_type}'
                 )
         preload = bool(self.get_parameter('preload_models').value)
-        # Lazily loaded models cannot be claimed ready before the first request.
+        # 지연 로드 모델을 첫 요청 전에 준비 완료로 보고할 수 없습니다.
         self._models_ready = preload or not any(
             callable(getattr(adapter, 'prepare', None)) for adapter in (detector, segmenter))
         if preload:

@@ -1,4 +1,4 @@
-"""UUID4 test client with feedback, optional stage cancellation and journal lookup."""
+"""피드백, 선택적 단계 취소와 journal 조회를 제공하는 UUID4 테스트 client입니다."""
 
 from __future__ import annotations
 

@@ -57,13 +57,13 @@ static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
     }
   }
   if(!std::isfinite(area) || std::abs(area)<1e-12)return false;
-  // Linear interpolation error of each rotating vertex is bounded by
-  // max|p''(t)|/8 = radius * delta_yaw^2/8. The endpoint hull expanded by this
-  // bound therefore contains every intermediate footprint, not just samples.
+  // 회전 정점 각각의 선형 보간 오차는
+  // max|p''(t)|/8 = radius * delta_yaw^2/8로 제한됩니다. 끝점의 볼록 껍질을
+  // 이 한계만큼 확장하면 표본뿐 아니라 모든 중간 footprint를 포함합니다.
   const double angle=b.theta-a.theta;
-  // An issued body-frame twist also curves the center while yaw changes.
-  // Relative to the Euler center segment, its deviation is bounded by
-  // segment_length * |delta_yaw|/2 for a constant twist over that interval.
+  // body 좌표계 twist를 내보내면 yaw 변화 중 중심도 곡선을 그립니다.
+  // 해당 구간에서 twist가 일정할 때 Euler 중심 선분과의 편차는
+  // segment_length * |delta_yaw|/2로 제한됩니다.
   const double padding=radius*angle*angle/8.+
     std::hypot(b.x-a.x,b.y-a.y)*std::abs(angle)/2.+
     1e-10*(1.+std::max({std::abs(min_x),std::abs(max_x),std::abs(min_y),std::abs(max_y)}));
@@ -80,8 +80,8 @@ static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
     const size_t stride=static_cast<size_t>(map.getSizeInCellsX())+1;
     const auto &sum=*prefix;
     if(sum.size()!=stride*(static_cast<size_t>(map.getSizeInCellsY())+1))return false;
-    // Exact empty-region certificate for this same locked scoring map. Only
-    // nonempty swept boxes need hull construction or per-cell SAT tests.
+    // 잠긴 동일 평가 지도에서 빈 영역을 정확히 확인합니다. 비어 있지 않은
+    // sweep 상자에만 볼록 껍질 구성이나 셀별 SAT 검사가 필요합니다.
     const auto occupied=sum[(y1+1)*stride+x1+1]+sum[y0*stride+x0]-
       sum[y0*stride+x1+1]-sum[(y1+1)*stride+x0];
     if(occupied==0)return true;
@@ -171,9 +171,9 @@ double SweptFootprintCritic::scoreFootprintTrajectory(const dwb_msgs::msg::Traje
     const auto &v=trajectory.velocity;
     if(!std::isfinite(v.x) || !std::isfinite(v.y) || !std::isfinite(v.theta))
       throw dwb_core::IllegalTrajectoryException(name_,"Non-finite issued command");
-    // The nominal rollout continues accelerating toward its sampled target.
-    // Only its first velocity is published. Check that velocity independently
-    // during a bounded hold, without assuming the next control update arrives.
+    // 명목 rollout은 표본 목표를 향해 계속 가속하지만
+    // 실제로 발행하는 것은 첫 속도뿐입니다. 다음 제어 갱신 도착을 가정하지 않고
+    // 제한된 유지 시간 동안 해당 속도를 독립적으로 검사합니다.
     const auto &start=trajectory.poses.front();
     dwb_msgs::msg::Trajectory2D held;held.velocity=v;held.poses.push_back(start);
     const auto count=static_cast<size_t>(std::ceil(command_hold_time_/command_hold_step_));
@@ -187,8 +187,8 @@ double SweptFootprintCritic::scoreFootprintTrajectory(const dwb_msgs::msg::Traje
       pose.y+=distance*(v.x*std::sin(mid)+v.y*std::cos(mid));
       held.poses.push_back(pose);
     }
-    // Retain stock raster-cell checks as well as full-cell continuous geometry.
-    // The additional hold check changes admissibility, not the soft score.
+    // 전체 셀의 연속 기하 검사와 함께 기본 래스터 셀 검사도 유지합니다.
+    // 추가 유지 검사는 수락 가능성을 바꾸며 연속 비용 점수는 바꾸지 않습니다.
     try {ObservedFootprintCritic::scoreFootprintTrajectory(held);}
     catch(const dwb_core::IllegalTrajectoryException &error) {
       throw dwb_core::IllegalTrajectoryException(name_,std::string("Held command: ")+error.what());

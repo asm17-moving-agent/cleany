@@ -219,7 +219,7 @@ source esp32/micro_ros/agent/install/local_setup.bash
 source "$(make -s print-install-base)/local_setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$CLEANY_ESP_PORT" -b 115200
-# Another terminal with the same overlays/domain:
+# 같은 overlay와 ROS 도메인을 설정한 다른 터미널에서 실행:
 ros2 topic echo /base/wheel_state --qos-reliability best_effort
 ```
 

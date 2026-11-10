@@ -1,6 +1,6 @@
 simulation_placement_verifier:
   ros__parameters:
-    # Simulation association starting values; not real-robot calibration.
+    # 시뮬레이션 대응의 초기값이며 실물 로봇 보정값이 아닙니다.
     registration_maximum_distance_m: 0.05
     registration_ambiguity_margin_m: 0.01
     registration_maximum_size_error_m: 0.08

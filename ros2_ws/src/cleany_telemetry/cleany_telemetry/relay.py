@@ -1,4 +1,4 @@
-"""Small, dependency-free pose relay core and websocket worker."""
+"""외부 의존성 없는 소형 자세 relay core와 WebSocket worker입니다."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def quaternion_yaw(x: float, y: float, z: float, w: float) -> Optional[float]:
-    """World +X heading in radians, CCW positive; invalid rotations have no yaw."""
+    """월드 +X 기준 라디안 방향이며 반시계가 양수입니다. 무효 회전에는 yaw가 없습니다."""
     if not all(math.isfinite(v) for v in (x, y, z, w)):
         return None
     norm = math.hypot(x, y, z, w)
@@ -40,7 +40,7 @@ class Pose:
 
 
 class PoseCache:
-    """Latest-only cache. ``received_at`` is always a monotonic timestamp."""
+    """최신값만 보관하는 캐시이며 received_at은 항상 단조 시각입니다."""
 
     def __init__(self, input_timeout: float) -> None:
         self.input_timeout = input_timeout
@@ -55,8 +55,8 @@ class PoseCache:
         if not (math.isfinite(x) and math.isfinite(y)):
             return False
         with self._lock:
-            # A clock reset must not leak the old pose.  The reset message itself
-            # is discarded; the next message is the first fresh sample.
+            # 시계 reset 후 이전 자세가 새어나오지 않게 합니다. reset 메시지 자체는
+            # 버리며 다음 메시지를 첫 최신 표본으로 사용합니다.
             if (
                 sim_stamp is not None
                 and self._last_sim_stamp is not None
@@ -70,7 +70,7 @@ class PoseCache:
                 and self._last_sim_stamp is not None
                 and sim_stamp == self._last_sim_stamp
             ):
-                # Repeated messages from a paused simulator are not fresh input.
+                # 멈춘 시뮬레이터의 반복 메시지는 최신 입력이 아닙니다.
                 return False
             self._last_sim_stamp = sim_stamp
             valid_yaw = yaw if yaw is not None and math.isfinite(yaw) else None
@@ -85,7 +85,7 @@ class PoseCache:
 
 
 class PoseRelay:
-    """Wall-clock worker; callbacks only update ``PoseCache``."""
+    """경과 시간 기반 worker이며 콜백은 PoseCache만 갱신합니다."""
 
     def __init__(
         self,
@@ -192,7 +192,7 @@ def _websocket_transport(url: str) -> Transport:
 
 
 class _WebsocketTransport:
-    """Read frames so websocket-client can answer ping and observe close."""
+    """websocket-client가 ping에 응답하고 종료를 감지하도록 프레임을 읽습니다."""
 
     def __init__(self, socket: object, module: object) -> None:
         self._socket = socket

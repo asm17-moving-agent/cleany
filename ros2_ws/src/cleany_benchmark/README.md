@@ -12,7 +12,7 @@ controller_server:
       plugin: cleany_benchmark::TimedController
       wrapped_plugin: teb_local_planner::TebLocalPlannerROS
       benchmark_timing_file: /absolute/run/directory/controller_compute.csv
-      # Original FollowPath parameters go here unchanged.
+      # 기존 FollowPath 파라미터를 변경 없이 여기에 입력합니다.
 ```
 
 RPP's original plugin is

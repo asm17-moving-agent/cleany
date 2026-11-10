@@ -1,4 +1,4 @@
-"""Serialized asynchronous operations; neither this backend nor its worker owns order."""
+"""직렬화된 비동기 작업입니다. 백엔드와 worker 모두 작업 순서를 결정하지 않습니다."""
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -80,9 +80,8 @@ class WorkerBackend:
         if context is None or context.goal.execution_id != execution_id:
             raise RuntimeError('Execution identity mismatch')
         if node_id == 'ReleaseInPlace':
-            # The core only starts recovery after StopAndAssess. Clear the old
-            # operation's abort before submission, so a later IMMEDIATE request
-            # can still set it and interrupt this new operation.
+            # core는 StopAndAssess 이후에만 복구를 시작합니다. 제출 전에 이전 작업의
+            # abort를 지워 이후 IMMEDIATE 요청이 새 작업에도 abort를 설정할 수 있게 합니다.
             context.abort.clear()
         token = uuid4().hex
         self.pending[token] = (self.worker.submit(self.operation, node_id, context), context)
@@ -100,13 +99,13 @@ class WorkerBackend:
             return Observation(False, Error.INTERNAL_ERROR, str(error))
 
     def cancel(self, operation_id: str) -> None:
-        # Do not cancel the Future and call that stop evidence. The operation
-        # unwinds through the guarded ROS boundary; StopAndAssess observes it.
+        # Future 취소를 정지 근거로 삼지 않습니다. 작업은 보호된 ROS 경계를 통해
+        # 빠져나오며 StopAndAssess가 이를 관측합니다.
         _, context = self.pending[operation_id]
         context.abort.set()
 
     def abort(self) -> None:
-        """Interrupt the context even if operation submission lost its token."""
+        """작업 제출 중 token을 잃었더라도 컨텍스트를 중단합니다."""
         if self.context is not None:
             self.context.abort.set()
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Compare recovery admission policies on recorded, stationary LiDAR windows.
+"""기록된 정지 LiDAR 구간으로 복구 수락 정책을 비교합니다.
 
-Recorded AMCL poses are references, not surveyed ground truth. Offset trials
-measure residual injected error relative to those references, not physical accuracy.
-No ROS publishers or robot motion commands are created.
+기록 AMCL 자세는 기준값이며 측량 참값이 아닙니다. 오프셋 시험은 물리 정확도가
+아닌 기준 대비 주입 오차의 잔차를 측정합니다. ROS publisher나 로봇 이동 명령은
+생성하지 않습니다.
 """
 from __future__ import annotations
 
@@ -76,7 +76,7 @@ def read_events(bag: Path) -> tuple[list, list]:
 
 
 def extract(bag: Path, end: float | None = None) -> tuple[list[Observation], dict]:
-    """Reconstruct fresh observations at causal 5Hz ticks from each bag's own map."""
+    """각 bag의 지도에서 미래 입력 없이 5Hz tick마다 최신 관측을 재구성합니다."""
     events,sources=read_events(bag)
     if end is not None:events=[e for e in events if e[0]/1e9<=end]
     buffer=Buffer(cache_time=Duration(seconds=30.))
@@ -141,7 +141,7 @@ def extract(bag: Path, end: float | None = None) -> tuple[list[Observation], dic
 
 def stable(scores: list[AlignmentScore], stamps: list[float], settings: AlignmentSettings,
            *, recovery: bool = False, duration: float = 1.5) -> int | None:
-    """Return first stable-run endpoint, resetting evidence across gaps or failures."""
+    """공백이나 실패 시 근거를 초기화하며 첫 안정 구간 끝점을 반환합니다."""
     since=None;previous=None
     for i,(score,t) in enumerate(zip(scores,stamps)):
         if previous is not None and (t<=previous or t-previous>.6):since=None
@@ -176,7 +176,7 @@ def select_windows(observations: list[Observation], resets: list[float], count: 
         if any(o.received-2<=t<=w[-1].received+1 for t in resets):continue
         if any(np.linalg.norm(x.odom_pose[:2]-o.odom_pose[:2])>.02 or abs(wrap(x.odom_pose[2]-o.odom_pose[2]))>.03 for x in w):continue
         windows.append(w)
-    # Evenly sample normal and difficult stationary evidence, avoiding adjacent windows.
+    # 인접 구간을 피하며 정상 및 어려운 정지 근거를 고르게 표본화합니다.
     selected=[]
     for normal in (True,False):
         candidates=[w for w in windows if (stable([x.score for x in w],[x.stamp for x in w],SETTINGS)is not None)==normal]
@@ -190,8 +190,8 @@ def select_windows(observations: list[Observation], resets: list[float], count: 
 
 def evaluate(window: list[Observation], offset: tuple[float,float,float]) -> dict:
     reference=window[0];seed=reference.pose+np.array(offset);seed[2]=wrap(seed[2])
-    # Rigidly offset the whole recorded pose stream; never let future unperturbed
-    # AMCL poses silently erase the injected error.
+    # 기록된 전체 자세 스트림에 강체 오프셋을 적용합니다. 이후의 원래 AMCL 자세가
+    # 주입한 오차를 조용히 지우지 못하게 합니다.
     def shifted(pose: np.ndarray) -> np.ndarray:
         local=transform((pose[:2]-reference.pose[:2])[None,:],np.array([0.,0.,offset[2]]))[0]
         return np.array([*(seed[:2]+local),wrap(pose[2]+offset[2])])
@@ -199,7 +199,7 @@ def evaluate(window: list[Observation], offset: tuple[float,float,float]) -> dic
     result=search_pose(reference.model,reference.points,seed,replace(SETTINGS,recovery_inlier_ratio=.30),
                        require_improvement=not current_scores[0].acceptable(SETTINGS))
     candidate=np.array(result.get('pose',seed))
-    # Propagate a candidate only by recorded wheel odometry during the stopped window.
+    # 정지 구간에서는 기록된 바퀴 odometry만으로 후보 자세를 전파합니다.
     candidate_scores=[]
     for x in window:
         local=transform((x.odom_pose[:2]-reference.odom_pose[:2])[None,:],
@@ -265,7 +265,7 @@ def main() -> None:
                     cases.append(result)
                 print(json.dumps({'bag':bag.name,'window':wi,'cases':len(cases)}),flush=True)
                 (args.output/'results.json').write_text(json.dumps(cases,indent=2))
-            # Save exact selected inputs so extraction and policy search can be audited separately.
+            # 추출과 정책 탐색을 별도로 검토할 수 있도록 정확히 선택된 입력을 저장합니다.
             for wi,w in enumerate(windows):
                 np.savez_compressed(args.output/f'window-{index}-{wi}.npz',
                     cells=w[0].model.cells,resolution=w[0].model.resolution,origin=w[0].model.origin,

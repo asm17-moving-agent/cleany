@@ -1,4 +1,4 @@
-"""ROS receives boot calibration; host/Agent startup never starts calibration."""
+"""ROS는 부팅 보정을 수신하며 호스트나 Agent 시작으로 보정을 다시 시작하지 않습니다."""
 import os
 from pathlib import Path
 import threading
@@ -57,7 +57,7 @@ def test_gyro_relay_calibration_reboot_and_fault_recovery():
     monitor.create_subscription(DiagnosticArray, 'imu/status', statuses.append, STATUS_QOS)
     monitor.create_subscription(DiagnosticArray, 'diagnostics', diagnostics.append, 10)
     publisher = monitor.create_publisher(ImuState, 'base/imu_state', qos_profile_sensor_data)
-    state = [ImuState.RUNNING]  # PC connects after MCU calibration.
+    state = [ImuState.RUNNING]  # MCU 보정이 끝난 뒤 PC가 연결되는 상황입니다.
     counter, faults, boot = [0], [0], [19]
     bias, gyro = [list(BIAS)], [[.11, -.22, .33]]
     origin = [time.monotonic_ns()]
@@ -80,7 +80,7 @@ def test_gyro_relay_calibration_reboot_and_fault_recovery():
         ))
 
     timer = monitor.create_timer(.01, emit)
-    # Scheduler contention must not look like delayed MCU telemetry.
+    # 스케줄러 경합을 MCU telemetry 지연으로 해석하지 않도록 합니다.
     executor = SingleThreadedExecutor()
     executor.add_node(driver)
     executor.add_node(monitor)
@@ -88,7 +88,7 @@ def test_gyro_relay_calibration_reboot_and_fault_recovery():
     thread.start()
     try:
         _wait(lambda: len(raw) >= 3 and bool(statuses))
-        # A late host gets ready immediately; it does not collect another window.
+        # 늦게 연결한 호스트는 새 표본 구간을 수집하지 않고 즉시 준비 상태가 됩니다.
         _wait(lambda: bool(corrected) and statuses[-1].status[0].message == 'RUNNING', timeout=1.)
         assert corrected[-1].angular_velocity.z == pytest.approx(.3)
         assert corrected[-1].angular_velocity.x == pytest.approx(.1)
@@ -124,7 +124,7 @@ def test_gyro_relay_calibration_reboot_and_fault_recovery():
         timer.reset()
         _wait(lambda: statuses[-1].status[0].message == 'RUNNING')
 
-        # A new MCU boot reports CALIBRATING and withholds corrected gyro again.
+        # MCU가 새로 부팅하면 CALIBRATING을 보고하고 보정 자이로 발행을 다시 보류합니다.
         state[0], boot[0], origin[0] = ImuState.CALIBRATING, 20, time.monotonic_ns()
         _wait(lambda: statuses[-1].status[0].message == 'CALIBRATING')
         output_count = len(corrected)

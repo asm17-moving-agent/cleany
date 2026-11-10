@@ -1,4 +1,4 @@
-"""OpenCV eye-in-hand solver registry and failure-isolated adapter."""
+"""OpenCV eye-in-hand solver 목록과 실패를 격리하는 어댑터입니다."""
 
 from __future__ import annotations
 
@@ -72,11 +72,11 @@ HAND_EYE_METHOD_REGISTRY = (
 
 
 class RegistryCompletenessError(RuntimeError):
-    """Installed OpenCV hand-eye methods differ from the declared registry."""
+    """설치된 OpenCV 손-눈 보정 방법이 선언된 목록과 다릅니다."""
 
 
 class InvalidHandEyeDataset(ValueError):
-    """Samples do not satisfy the eye-in-hand input frame contract."""
+    """표본이 eye-in-hand 입력 좌표계 계약을 만족하지 않습니다."""
 
 
 class HandEyeFailure(str, Enum):
@@ -112,7 +112,7 @@ class HandEyeFrameConvention:
 
 @dataclass(frozen=True, slots=True)
 class HandEyeTransformValidityPolicy:
-    """Robot-specific physical bounds for accepting a solver transform."""
+    """solver 변환을 수락하기 위한 로봇별 물리 범위입니다."""
 
     max_translation_norm_m: float
 
@@ -184,7 +184,7 @@ class _OpenCvHandEyeInputs:
 def validate_hand_eye_registry(
     cv_module: Any = cv2,
 ) -> dict[HandEyeMethod, int]:
-    """Resolve all declared methods and reject missing or newly added ones."""
+    """선언된 모든 방법을 찾고 누락되거나 새로 추가된 방법이 있으면 거부합니다."""
 
     declared_symbols = tuple(
         method_spec.opencv_symbol
@@ -420,20 +420,20 @@ def solve_all_hand_eye_methods(
     frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
     cv_module: Any = cv2,
 ) -> tuple[HandEyeResult, ...]:
-    """Solve eye-in-hand calibration with each registered OpenCV method.
+    """등록된 각 OpenCV 방법으로 eye-in-hand 보정을 계산합니다.
 
     Args:
-        samples: At least three calibration-split samples containing
-            base_T_gripper and camera_T_target, with translations in metres.
+        samples: base_T_gripper와 camera_T_target을 포함한 보정 분할 표본 세 개 이상.
+            병진 단위는 미터입니다.
 
     Returns:
-        One result per method. Valid results contain gripper_T_camera; method
-        exceptions and invalid transforms become failed results without stopping
-        the remaining solvers. Each solver receives independent input copies.
+        방법별 결과 하나입니다. 유효 결과는 gripper_T_camera를 포함합니다.
+        개별 예외와 잘못된 변환은 실패 결과로 바꾸며 나머지 solver를 중단하지 않습니다.
+        각 solver에는 독립적인 입력 복사본을 전달합니다.
 
     Raises:
-        InvalidHandEyeDataset: Samples violate the count, split or frame contract.
-        RegistryCompletenessError: Installed OpenCV methods differ from the registry.
+        InvalidHandEyeDataset: 표본 수, 분할 또는 좌표계 계약을 위반한 경우.
+        RegistryCompletenessError: 설치된 OpenCV 방법이 선언 목록과 다른 경우.
     """
 
     inputs = _prepare_opencv_inputs(samples, frame_convention)
@@ -459,7 +459,7 @@ def solve_hand_eye_method(
     frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
     cv_module: Any = cv2,
 ) -> HandEyeResult:
-    """Run one solver using the contract of solve_all_hand_eye_methods()."""
+    """solve_all_hand_eye_methods()의 계약으로 solver 하나를 실행합니다."""
 
     try:
         selected = HandEyeMethod(method)

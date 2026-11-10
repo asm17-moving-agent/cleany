@@ -1,4 +1,4 @@
-"""Action goal identity shared by the Nav2 and manipulation adapters."""
+"""Nav2와 조작 어댑터가 공유하는 Action 목표 식별자입니다."""
 
 from uuid import UUID
 

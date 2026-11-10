@@ -1,4 +1,4 @@
-"""Durable multi-pose traversal, retry policy, cancellation, and logging."""
+"""영속 기록을 남기는 다중 자세 순회, 재시도 정책과 취소 처리입니다."""
 
 from __future__ import annotations
 

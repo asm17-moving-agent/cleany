@@ -1,4 +1,4 @@
-"""Cancellation must account for an operation's eventual terminal observation."""
+"""취소는 작업이 나중에 도달하는 종료 관측까지 반영해야 합니다."""
 from dataclasses import dataclass, field
 import threading
 import time

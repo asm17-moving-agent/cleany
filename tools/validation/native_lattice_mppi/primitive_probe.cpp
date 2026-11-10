@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include "nav2_smac_planner/node_lattice.hpp"
 
-// Parse with the installed Smac implementation without starting ROS or searching.
+// ROS 시작이나 탐색 없이 설치된 Smac 구현으로 파싱합니다.
 int main(int argc, char ** argv)
 {
   if (argc != 2) {return 64;}

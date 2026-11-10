@@ -1,4 +1,4 @@
-"""Trace the current MissionRuntime with mock ports and a simulated clock."""
+"""Mock 포트와 모의 시계로 현재 MissionRuntime의 상태 변화를 관찰합니다."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from cleany_mission_manager.mocks.desk import MockDesk  # noqa: E402
 
 
 class Clock:
-    """Advance time without sleeping or connecting to ROS."""
+    """실제 대기나 ROS 연결 없이 시간을 진행합니다."""
 
     def __init__(self) -> None:
         self.now = 10.0

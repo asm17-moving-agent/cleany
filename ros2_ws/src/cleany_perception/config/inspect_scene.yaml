@@ -42,7 +42,7 @@ perception_inspector:
     yoloe_text_encoder_directory: ''
     snapshot_timeout_seconds: 2.0
     depth_16u_scale_m: 0.001
-    # Simulation starting values, not calibrated real-robot identity limits.
+    # 시뮬레이션 초기값이며 보정된 실물 로봇 개체 식별 한계가 아닙니다.
     tracking_maximum_distance_m: 0.03
     tracking_ambiguity_margin_m: 0.01
     tracking_session_ttl_seconds: 600.0

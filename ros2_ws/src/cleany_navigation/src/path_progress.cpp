@@ -29,12 +29,12 @@ double PathProgressCritic::project(const geometry_msgs::msg::Pose2D &pose,double
   for(size_t i=1;i<path_.poses.size() && cumulative_[i-1]<=maximum;++i) {
     const auto &a=path_.poses[i-1],&b=path_.poses[i];
     const double length=cumulative_[i]-cumulative_[i-1];
-    if(length<=0.)continue; // Planned in-place turns have no translational progress.
+    if(length<=0.)continue; // 계획된 제자리 회전에는 병진 진척이 없습니다.
     const double ux=(b.x-a.x)/length,uy=(b.y-a.y)/length;
     const double along=std::clamp((pose.x-a.x)*ux+(pose.y-a.y)*uy,0.,std::min(length,maximum-cumulative_[i-1]));
     const double distance=std::hypot(pose.x-a.x-along*ux,pose.y-a.y-along*uy);
-    // At crossings, retain the earliest equally close branch. A trajectory
-    // cannot gain an entire future loop just by ending at the same position.
+    // 교차점에서 거리가 같으면 가장 이른 분기를 유지합니다. 같은 위치에서
+    // 끝났다는 이유만으로 미래의 한 바퀴 전체를 진행한 것으로 계산하지 않습니다.
     if(distance<best-1e-12) {best=distance;progress=cumulative_[i-1]+along;}
   }
   return progress;
@@ -50,7 +50,7 @@ double PathProgressCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &tr
     throw dwb_core::IllegalTrajectoryException(name_,"Invalid trajectory origin or travel");
   const double total=cumulative_.back();
   const double end=project(trajectory.poses.back(),std::min(total,origin_progress_+travel));
-  return std::max(0.,total-end); // Metres, not a quantized costmap-cell distance.
+  return std::max(0.,total-end); // 양자화된 costmap 셀 거리가 아닌 미터 단위입니다.
 }
 }
 PLUGINLIB_EXPORT_CLASS(cleany_navigation::PathProgressCritic,dwb_core::TrajectoryCritic)

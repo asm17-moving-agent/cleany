@@ -1,4 +1,4 @@
-# Nominal CAD lens origin; not measured hand-eye calibration.
+# 명목 CAD 렌즈 원점이며 측정된 손-눈 보정값이 아닙니다.
 source: simulation_nominal_cad
 cad_sha256: 91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0
 left:

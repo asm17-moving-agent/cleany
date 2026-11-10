@@ -21,9 +21,9 @@ struct ExclusionVolume
     if (!mesh || mesh->getVertices().empty() || mesh->getPlanes().empty())
       return;
 
-    // geometric_shapes pads mesh vertices radially from their mean. On a long
-    // mesh that gives side faces less than padding_offset of clearance. Use
-    // the configured distance along each convex face normal for voxel clearing.
+    // geometric_shapes는 메시 평균점에서 방사 방향으로 정점을 확장합니다. 긴 메시에서는
+    // 옆면 여유가 padding_offset보다 작아지므로 voxel을 지울 때 각 볼록 면의
+    // 법선 방향으로 설정 거리를 적용합니다.
     Eigen::Vector3d center = Eigen::Vector3d::Zero();
     Eigen::Vector3d low = mesh->getVertices().front();
     Eigen::Vector3d high = low;
@@ -47,8 +47,8 @@ struct ExclusionVolume
       add_plane(plane.head<3>(), scale * plane.w() -
           (1.0 - scale) * plane.head<3>().dot(center) - padding * plane.head<3>().norm());
 
-    // Also bound the offset hull by its padded local box. This keeps the broad
-    // phase conservative without using a radial mesh sphere that can be too small.
+    // 확장된 로컬 상자로 오프셋 껍질도 제한합니다. 너무 작아질 수 있는 방사형
+    // 메시 구를 사용하지 않으면서 넓은 검사를 보수적으로 유지합니다.
     low = center + scale * (low - center) - Eigen::Vector3d::Constant(padding);
     high = center + scale * (high - center) + Eigen::Vector3d::Constant(padding);
     for (unsigned int axis = 0; axis < 3; ++axis)

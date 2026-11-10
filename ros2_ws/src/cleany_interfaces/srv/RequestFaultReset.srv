@@ -1,6 +1,6 @@
 string epoch
 string fault_code
-# Required, recorded in the audit event. Not authenticated by the Supervisor.
+# 필수이며 감사 이벤트에 기록합니다. Supervisor가 인증하는 값은 아닙니다.
 string operator_id
 ---
 bool reset

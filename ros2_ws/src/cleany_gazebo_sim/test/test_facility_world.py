@@ -46,7 +46,7 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
     assert len(metadata['description']['sha256']) == 64
     assert 'meshes/cad_final/InstalledMast.stl' in metadata['description']['mesh_sha256']
     assert not any('Upper_Arm_5cm_Sockets.stl' in mesh for mesh in meshes)
-    # DART looks up literal namespace prefixes when applying body-fixed friction.
+    # DART는 물체 고정 마찰을 적용할 때 네임스페이스 접두사를 문자열로 조회합니다.
     assert 'ignition:expressed_in="base_link"' in path.read_text()
     assert metadata['collision_bounds'][1][1] > 0.3
     assert len(json.loads(path.with_suffix('.seats.json').read_text())) == 82
@@ -109,7 +109,7 @@ def test_ground_table_and_open_glass_doors_have_physical_geometry(generated):
         a, b = (layout.world(p) for p in door['points'])
         opening_center = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         leaf_xy = tuple(map(float, leaf.findtext('pose').split()[:2]))
-        # A 90 degree open leaf is away from the center of the doorway.
+        # 90도로 열린 문짝은 출입구 중심에서 벗어납니다.
         assert hypot(*(x - y for x, y in zip(opening_center, leaf_xy))) > 0.45
     for wall in layout.segments:
         if wall.material == 'glass':
@@ -185,7 +185,7 @@ def test_roly_has_discrete_casters_arms_and_local_visual_meshes(generated):
         world.find("model[@name='cleany_mecanum']//sensor[@type='gpu_lidar']")
         is not None
     )
-    assert load_roly_config(ROLY).number('arm_top_m') < 0.68  # existing desk underside
+    assert load_roly_config(ROLY).number('arm_top_m') < 0.68  # 기존 책상 아랫면
 
 
 @pytest.mark.parametrize('mutation', ['zero', 'nan', 'duplicate', 'arc'])
@@ -278,7 +278,7 @@ def test_batched_visuals_keep_material_colors_and_world_local_assets(generated):
         assert int(root.find('.//c:triangles', ns).get('count')) > 0
     for texture in chair.findall('.//albedo_map'):
         assert Path(unquote(urlparse(texture.text).path)).is_file()
-    # 48 seats share the same six resources, so geometry is not duplicated.
+    # 좌석 48개가 같은 리소스 여섯 개를 공유하므로 형상을 중복 저장하지 않습니다.
     assert (
         len(
             {

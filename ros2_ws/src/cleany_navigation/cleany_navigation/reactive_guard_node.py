@@ -1,4 +1,4 @@
-"""Final command owner using direct LiDAR/depth and a steady-clock watchdog."""
+"""직접 LiDAR/깊이와 steady-clock watchdog을 사용하는 최종 명령 소유자입니다."""
 from __future__ import annotations
 
 import json
@@ -27,31 +27,30 @@ from cleany_navigation.voxel_guard_node import localization_jumped, pose_matrix,
 
 
 class ReactiveGuardNode(Node):
-    """Gate planar velocity using fresh sensor observations and braking bounds.
+    """최신 센서 관측과 제동 한계로 평면 속도를 통과시키거나 정지합니다.
 
     Subscriptions:
-        safety_2d/cmd_vel (geometry_msgs/msg/Twist): Upstream limited command.
-        nav2/cmd_vel (geometry_msgs/msg/Twist): Original requested command.
-        odom (nav_msgs/msg/Odometry): Measured planar motion.
-        scan (sensor_msgs/msg/LaserScan) and camera/head/depth/points
-            (sensor_msgs/msg/PointCloud2): Obstacle observations.
-        joint_states (sensor_msgs/msg/JointState): Pan feedback when required.
+        safety_2d/cmd_vel (geometry_msgs/msg/Twist): 상위에서 제한한 명령.
+        nav2/cmd_vel (geometry_msgs/msg/Twist): 원래 요청 명령.
+        odom (nav_msgs/msg/Odometry): 측정된 평면 움직임.
+        scan (sensor_msgs/msg/LaserScan), camera/head/depth/points
+            (sensor_msgs/msg/PointCloud2): 장애물 관측.
+        joint_states (sensor_msgs/msg/JointState): 필요한 경우 pan 피드백.
 
     Publishers:
-        cmd_vel (geometry_msgs/msg/Twist): Accepted or stopped command.
-        reactive_guard/state (std_msgs/msg/String): JSON decision and input health.
+        cmd_vel (geometry_msgs/msg/Twist): 수락 또는 정지 명령.
+        reactive_guard/state (std_msgs/msg/String): JSON 판정과 입력 상태.
 
     TF:
-        Reads sensor transforms and map/odom continuity; default base frame is base_link.
+        센서 변환과 map/odom 연속성을 읽습니다. 베이스 좌표계 기본값은 base_link입니다.
 
     QoS:
-        Sensor, joint and odometry inputs use sensor_data; velocity endpoints
-        use reliable depth 1.
+        센서, 관절과 odometry 입력은 sensor_data이며 속도 endpoint는 reliable, depth 1입니다.
 
     Notes:
-        Input/output topics and frames are configurable defaults. An explicit
-        body profile and distinct command topics are required. Missing or stale
-        evidence produces a stop through the steady-clock watchdog.
+        입출력 토픽과 좌표계는 변경 가능한 기본값입니다. 명시적 body 프로파일과
+        서로 다른 명령 토픽이 필요합니다. 근거가 없거나 오래되면 steady-clock
+        watchdog을 통해 정지합니다.
     """
     def __init__(self) -> None:
         super().__init__('reactive_guard')
@@ -141,9 +140,9 @@ class ReactiveGuardNode(Node):
             self.watchdog.sources.pop(name, None)
 
     def observations_in_base(self, now: float) -> tuple[np.ndarray, float]:
-        # Nonblocking TF retry. Retain the previous exactly transformed sample
-        # only within the unchanged freshness bound; never use latest camera TF
-        # for an older depth image while the pan is moving.
+        # 비블로킹 TF 재시도입니다. 기존 최신성 한계 안에서만 이전에 정확히 변환한
+        # 표본을 유지합니다. pan이 움직일 때 오래된 깊이 영상에 최신 카메라 TF를
+        # 대신 사용하지 않습니다.
         for name, (header, received, points) in list(self.pending.items()):
             try:
                 tf = self.buffer.lookup_transform(self.p['odom_frame'], header.frame_id, Time.from_msg(header.stamp))
@@ -176,7 +175,7 @@ class ReactiveGuardNode(Node):
         measured = np.zeros(3)
         reason, source_age = 'MISSING_INPUT', None
         try:
-            # Clock faults must latch even while TF or sensors are unavailable.
+            # TF나 센서가 없어도 시계 fault를 유지해야 합니다.
             self.watchdog.tick(now, start)
             points, pose_age = self.observations_in_base(now)
             required = ('scan', 'depth', 'odom')+ (('joint',) if self.p['require_pan_feedback'] else ())
@@ -186,7 +185,7 @@ class ReactiveGuardNode(Node):
             if self.odom.child_frame_id != self.p['base_frame']:
                 raise ValueError('INVALID_ODOM_FRAME')
             requested, raw, measured = twist_vector(self.command), twist_vector(self.raw), twist_vector(self.odom.twist.twist)
-            # A raw stop cannot be resurrected by a delayed monitor sample.
+            # 지연된 monitor 표본으로 원래 정지 명령이 다시 움직임으로 바뀌지 않게 합니다.
             if not np.any(raw):
                 requested = np.zeros(3)
             output, reason = self.guard.evaluate(points, requested, measured, source_age)

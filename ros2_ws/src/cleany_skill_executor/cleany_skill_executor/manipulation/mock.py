@@ -1,4 +1,4 @@
-"""Timed mock evidence. No robot commands or simulator ground truth are used."""
+"""시간에 따른 mock 근거이며 로봇 명령이나 시뮬레이터 참값을 사용하지 않습니다."""
 
 from __future__ import annotations
 
@@ -135,7 +135,7 @@ class MockAdapter:
                                 object_state=ObjectState.UNKNOWN if self.stage in (
                                     Stage.GRASPING, Stage.LIFTING, Stage.PLACING) else None,
                                 message=f'Mock {current.label} failed')
-            # Invalid observation must block before any reconstruction or planning.
+            # 무효 관측은 재구성이나 계획 전에 차단해야 합니다.
             if self.stage == Stage.PREPARING_TARGET and self._step_index == 0:
                 evidence = self._stage_evidence(now)
                 if evidence.error != Error.NONE:

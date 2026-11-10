@@ -21,8 +21,8 @@ bool PreciseGoalDistCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   if(!std::isfinite(distance))return false;
   if(!dwb_critics::GoalDistCritic::prepare(pose,velocity,goal,path))return false;
   goal_=goal;
-  // The actual goal, rather than a truncated local-plan endpoint, is used only
-  // near arrival. Far from the goal, stock Manhattan guidance is unchanged.
+  // 잘린 로컬 계획 끝점 대신 실제 목표를 사용하는 것은 도착 근처뿐입니다.
+  // 목표에서 멀면 기본 Manhattan 유도는 유지합니다.
   weight_=std::max(0.,1.-distance/near_goal_distance_);
   return true;
 }

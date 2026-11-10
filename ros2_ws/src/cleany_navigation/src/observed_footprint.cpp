@@ -66,8 +66,8 @@ void ObservedFootprintCritic::debrief(const nav_2d_msgs::msg::Twist2D &command) 
     return;
   }
   if(directory_.empty() || captured_)return;
-  // DWB calls prepare, scoring and failure debrief with its costmap mutex held.
-  // The grid and the scored pose therefore belong to the same failed cycle.
+  // DWB는 costmap mutex를 잡은 채 prepare, 점수 계산과 실패 debrief를 호출합니다.
+  // 따라서 격자와 평가 자세는 같은 실패 주기에 속합니다.
   captured_=true;
   try {
     using Json=nlohmann::json;
@@ -103,8 +103,8 @@ void ObservedFootprintCritic::debrief(const nav_2d_msgs::msg::Twist2D &command) 
     data["costs"]=Json::array();
     const auto count=costmap_->getSizeInCellsX()*costmap_->getSizeInCellsY();
     for(size_t i=0;i<count;++i)data["costs"].push_back(costmap_->getCharMap()[i]);
-    // One coherent preceding cycle, held in memory only; it may contain
-    // obstacle-valid candidates yet fail another critic. No success is inferred.
+    // 일관된 직전 주기 하나를 메모리에만 보관합니다. 장애물 검사는 통과했어도
+    // 다른 critic에서 실패했을 수 있으므로 성공으로 추론하지 않습니다.
     if(previous_)data["previous_cycle"]=encode(*previous_);
     std::filesystem::create_directories(directory_);
     const auto target=std::filesystem::path(directory_)/"failure.json";

@@ -1,4 +1,4 @@
-"""Check the ROS message boundary without starting ROS or network workers."""
+"""ROS나 네트워크 worker를 시작하지 않고 ROS 메시지 경계를 검사합니다."""
 from types import SimpleNamespace
 import math
 

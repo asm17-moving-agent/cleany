@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot recorded alignment scores and command activity without replaying ROS topics."""
+"""ROS 토픽 재생 없이 기록된 정렬 점수와 명령 활동을 그립니다."""
 from __future__ import annotations
 
 import argparse
@@ -34,7 +34,7 @@ def main() -> None:
     records, sources = [], []
     for bag in args.bag:
         for path in sorted(bag.glob('*.db3')):
-            # One read transaction keeps all selected topics consistent even in an active bag.
+            # 활성 bag에서도 읽기 트랜잭션 하나로 선택한 모든 토픽의 일관성을 유지합니다.
             with sqlite3.connect(f'file:{path.resolve()}?mode=ro', uri=True) as db:
                 db.execute('PRAGMA query_only=ON')
                 db.execute('BEGIN')
@@ -70,7 +70,7 @@ def main() -> None:
     rows = [r for r in records if r['topic'] == '/localization/status']
     if not rows:
         raise RuntimeError('No recorded localization status in requested interval')
-    # A repeated status can retain an old score. Do not draw stale evidence as fresh.
+    # 반복 상태에 이전 점수가 남을 수 있으므로 오래된 근거를 최신처럼 그리지 않습니다.
     valid = lambda r: r['data'].get('score') and 0 <= r['received']-r['data'].get('stamp', 0) <= 1.
     with (args.output/'localization.csv').open('w') as stream:
         writer = csv.writer(stream)

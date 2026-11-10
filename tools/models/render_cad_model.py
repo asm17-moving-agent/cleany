@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the actual MuJoCo model in the CAD registration pose for review."""
+"""검토를 위해 실제 MuJoCo 모델을 CAD 등록 자세로 렌더링합니다."""
 import argparse
 import json
 from pathlib import Path

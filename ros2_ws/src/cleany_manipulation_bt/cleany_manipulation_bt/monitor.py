@@ -1,4 +1,4 @@
-"""Read-only FULLTREE/STATUS replies from the actual C++ tree, without stage projection."""
+"""단계 투영 없이 실제 C++ 트리의 읽기 전용 FULLTREE/STATUS 응답을 제공합니다."""
 import struct
 import uuid
 

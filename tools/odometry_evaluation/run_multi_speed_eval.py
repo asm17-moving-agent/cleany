@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Automated Multi-Speed Holonomic Odometry Evaluation with 2D LiDAR Ground Truth."""
+"""2D LiDAR 상대 추정을 기준으로 다중 속도 전방향 odometry를 자동 평가합니다."""
 
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def run_single_eval(
     output_path: Path,
     dry_run: bool = False,
 ) -> dict[str, Any] | None:
-    """Run a single odometry evaluation pass via subprocess."""
+    """subprocess로 odometry 평가를 한 번 실행합니다."""
     global _active_subproc
     script_dir = Path(__file__).resolve().parent
     cmd = [
@@ -88,7 +88,7 @@ def generate_multi_speed_plots(
     save_path: Path,
     title: str = "Multi-Speed Box Trajectory: Odometry vs LiDAR Ground Truth",
 ) -> None:
-    """Generate comprehensive multi-speed comparative visualization."""
+    """다중 속도 비교 시각화를 생성합니다."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -101,7 +101,7 @@ def generate_multi_speed_plots(
     ax_drift, ax_compare = axes[0, 0], axes[0, 1]
     ax_quality, ax_scatter = axes[1, 0], axes[1, 1]
 
-    # 1. Speed vs Physical Ground-Truth Drift
+    # 첫 번째 패널: 속도와 기준 변위 편차
     means_x = [np.mean([r["physical_ground_truth"]["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
     stds_x = [np.std([r["physical_ground_truth"]["error_x_mm"] for r in results_by_speed[s]]) for s in speeds]
 
@@ -120,7 +120,7 @@ def generate_multi_speed_plots(
     ax_drift.grid(True, linestyle="--", alpha=0.5)
     ax_drift.legend(loc="upper left")
 
-    # 2. Odom Residual vs LiDAR Ground Truth (Slip Discrepancy)
+    # 두 번째 패널: odom 잔차와 LiDAR 추정의 불일치
     odom_norms = [np.mean([math.hypot(r["odom_residual"]["delta_x_m"] * 1000.0, r["odom_residual"]["delta_y_m"] * 1000.0) for r in results_by_speed[s]]) for s in speeds]
     width = 0.04
     x_indices = np.array(speeds)
@@ -133,7 +133,7 @@ def generate_multi_speed_plots(
     ax_compare.grid(True, linestyle="--", alpha=0.5)
     ax_compare.legend(loc="upper left")
 
-    # 3. LiDAR ICP Registration Quality & Mount Stability
+    # 세 번째 패널: LiDAR ICP 정합 품질과 장착 안정성
     rmses = []
     inliers = []
     for s in speeds:
@@ -154,7 +154,7 @@ def generate_multi_speed_plots(
     labels = [p.get_label() for p in plots]
     ax_quality.legend(plots, labels, loc="upper right")
 
-    # 4. 2D Spatial Scatter of Final Return Positions
+    # 네 번째 패널: 최종 복귀 위치의 2D 산점도
     colors = {speeds[0]: "#1f77b4", speeds[1]: "#ff7f0e", speeds[2]: "#d62728"} if len(speeds) == 3 else {}
     for s in speeds:
         c = colors.get(s, "#333333")
@@ -248,11 +248,11 @@ def main() -> int:
         print("\nDry-run completed successfully.")
         return 0
 
-    # Generate multi-speed comparative plot
+    # 다중 속도 비교 그림 생성
     plot_path = out_dir / f"multi_speed_{args.pattern}_comparison_{timestamp}.png"
     generate_multi_speed_plots(results_by_speed, plot_path)
 
-    # Save aggregated batch results
+    # 집계한 일괄 결과 저장
     batch_json_path = out_dir / f"multi_speed_{args.pattern}_batch_{timestamp}.json"
     batch_summary = {
         "timestamp": timestamp,
@@ -268,7 +268,7 @@ def main() -> int:
     batch_json_path.write_text(json.dumps(batch_summary, indent=2), encoding="utf-8")
     print(f"\n[Batch Summary JSON] Saved to: {batch_json_path}")
 
-    # Print summary comparative table
+    # 요약 비교표 출력
     print("\n" + "=" * 80)
     print("=== Multi-Speed Odometry vs LiDAR Ground Truth Comparison Summary ===")
     print("=" * 80)

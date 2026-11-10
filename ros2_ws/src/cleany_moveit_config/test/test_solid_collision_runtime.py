@@ -1,4 +1,4 @@
-"""Check installed detector selection and contained obstacles without motor drivers."""
+"""모터 드라이버 없이 설치된 검출기 선택과 내부에 포함된 장애물을 검사합니다."""
 from contextlib import contextmanager
 import json
 import os
@@ -143,7 +143,7 @@ def test_latest_cad_panel_detects_contained_obstacle(tmp_path: Path):
         obstacle.primitives = [SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[.0005])]
         pose = Pose()
         pose.orientation.w = 1.
-        # Inside the latest side panel: CAD (220, -202.5, 400) mm.
+        # 최신 측면 패널 내부의 CAD 좌표 (220, -202.5, 400)mm입니다.
         pose.position.x, pose.position.y, pose.position.z = (.202475, .220027, .115503)
         obstacle.primitive_poses = [pose]
         update = ApplyPlanningScene.Request()

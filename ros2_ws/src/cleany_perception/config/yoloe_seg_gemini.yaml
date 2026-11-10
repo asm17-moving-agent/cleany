@@ -1,4 +1,4 @@
-# YOLOE instance masks with Gemini category and reason.
+# YOLOE instance mask에 Gemini 분류와 이유를 결합합니다.
 perception_inspector:
   ros__parameters:
     detector_type: yoloe_gemini

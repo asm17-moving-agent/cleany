@@ -2,8 +2,8 @@
 #include <optional>
 #include "dwb_core/dwb_local_planner.hpp"
 namespace cleany_navigation {
-/// Preserve DWB's transform, pruning, critic preparation and scoring. Supply
-/// only synchronous pose/goal context for extra near-goal velocity candidates.
+/// DWB의 변환, 경로 잘라내기, critic 준비와 점수 계산은 유지합니다.
+/// 목표 근처 추가 속도 후보에 동기식 자세 및 목표 컨텍스트만 제공합니다.
 class GoalDirectedController : public dwb_core::DWBLocalPlanner {
 public:
   using dwb_core::DWBLocalPlanner::computeVelocityCommands;

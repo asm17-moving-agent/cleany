@@ -104,7 +104,7 @@ _CLASSIFICATION_INTERACTION_SCHEMA: dict[str, Any] = {
 def parse_gemini_classifications(
     response_text: str, detections: Sequence[Detection2D],
 ) -> tuple[Detection2D, ...]:
-    """Attach semantics by exact YOLOE instance ID; never replace geometry."""
+    """정확한 YOLOE instance ID로 의미를 붙이며 기하는 대체하지 않습니다."""
     try:
         payload = json.loads(response_text)
         items = payload['objects']
@@ -269,7 +269,7 @@ class GeminiDetector:
         self._types = None
 
     def prepare(self) -> None:
-        """Validate local credentials/client setup, without an API inference call."""
+        """API 추론 호출 없이 로컬 자격 증명과 client 구성을 검사합니다."""
         if self._response_provider is not None:
             return
         api_key = os.environ.get(self._api_key_environment, '').strip()
@@ -463,7 +463,7 @@ class GeminiDetector:
 
 
 class GeminiClassifier(GeminiDetector):
-    """Classify numbered YOLOE instances without re-detecting their geometry."""
+    """기하를 다시 검출하지 않고 번호가 있는 YOLOE instance를 분류합니다."""
 
     def classify(self, rgb: RgbArray, detections: Sequence[Detection2D],
                  query: str = '') -> tuple[Detection2D, ...]:

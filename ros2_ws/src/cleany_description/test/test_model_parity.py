@@ -1,6 +1,6 @@
-"""Retain the complete parity checks for the archived measured assembly.
+"""보존한 이전 실측 조립 모델의 전체 동등성 검사를 유지합니다.
 
-The default CAD model has independent coverage in test_cad_final.py.
+기본 CAD 모델은 test_cad_final.py에서 독립적으로 검사합니다.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ URDF_ENTRYPOINTS = (
     "cleany.urdf.xacro",
     "cleany_control.urdf.xacro",
 )
-# MuJoCo contact geometry retains the original meshes and primitive head shapes.
+# MuJoCo 접촉 형상은 원본 메시와 primitive 헤드 형상을 유지합니다.
 MJCF_COLLISION_ARGS = (
     "optimized_arm_collision_meshes:=false",
     "head_collision_meshes:=false",
@@ -72,7 +72,7 @@ def test_grasp_roll_alignment_matches_collinear_robot_geometry():
 
 
 def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
-    # Tests mutate XML trees; only share the immutable xacro output.
+    # 테스트가 XML 트리를 수정하므로 변경하지 않는 Xacro 출력만 공유합니다.
     return ET.fromstring(_expand_urdf_xml(entrypoint, *xacro_args))
 
 
@@ -123,8 +123,8 @@ def test_description_entrypoints_share_canonical_geometry() -> None:
             "include_wheel_joints:=false",
         ),
     )
-    # The plugin-free perception description adds the nominal head RGB-D tree;
-    # the arm-control entrypoint deliberately keeps the 12-joint MoveIt state.
+    # plugin 없는 인식 모델은 명목 헤드 RGB-D 트리를 추가합니다.
+    # 팔 제어 진입점은 의도적으로 MoveIt의 12관절 상태를 유지합니다.
     assert set(_physical_model_xml(roots[1])) <= set(_physical_model_xml(roots[0]))
     assert _physical_model_xml(roots[2]) == _physical_model_xml(roots[1])
     for root in roots[1:]:
@@ -181,7 +181,7 @@ def test_full_description_wheel_contract() -> None:
 
 
 def test_urdf_geometry_and_mass_match_mjcf() -> None:
-    """Compare the original collision model, including mesh recentering/scaling."""
+    """메시 중심 재배치와 배율을 포함해 원래 충돌 모델을 비교합니다."""
     root = _expand_urdf("cleany.urdf.xacro", *MJCF_COLLISION_ARGS)
     for mesh in root.findall(".//mesh"):
         filename = mesh.get("filename")
@@ -210,7 +210,7 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
     assert urdf_model.body_mass.sum() == pytest.approx(source.body_mass.sum(), abs=1e-8)
     base = source_data.body("chassis")
     rotation = base.xmat.reshape(3, 3)
-    # Named additions must not renumber the imported CAD geometry indices.
+    # 이름 있는 형상을 추가해도 가져온 CAD 형상의 인덱스를 바꾸지 않습니다.
     named_additions = {
         urdf_model.geom(index).name for index in range(urdf_model.ngeom)
         if not urdf_model.geom(index).name.startswith("mjcf_geom_")
@@ -219,8 +219,8 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
         index for index in range(source.ngeom)
         if source.geom(index).name not in named_additions
     ]
-    # v8 replaces the two original camera visuals on each wrist. Preserve the
-    # remaining CAD identifiers instead of renumbering unrelated model geometry.
+    # v8은 손목마다 기존 카메라 visual 두 개를 교체합니다.
+    # 무관한 모델 형상의 번호를 바꾸지 않고 나머지 CAD 식별자를 보존합니다.
     retired_camera_indices = {78, 79, 110, 111}
     imported_indices = dict(zip(
         (index for index in range(len(imported_indices) + len(retired_camera_indices))
@@ -237,7 +237,7 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
             source_index = imported_indices[imported_index]
         if name.endswith("_visual"):
             assert urdf_model.geom_rgba[index] == pytest.approx(colors[source_index])
-        if piece:  # capsule end spheres; the central cylinder is checked below
+        if piece:  # capsule 끝의 구이며 가운데 원통은 아래에서 검사합니다.
             continue
         compared.add(source_index)
         expected_pos = rotation.T @ (source_data.geom_xpos[source_index] - base.xpos)
@@ -254,7 +254,7 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
 def test_arm_motor_geometry_matches_mjcf(
     entrypoint: str, side: str, optimized_meshes: str,
 ) -> None:
-    """Original and optimized motor collision meshes retain the MJCF CAD poses."""
+    """원본과 최적화한 모터 충돌 메시가 MJCF의 CAD 자세를 유지하는지 확인합니다."""
     urdf = _expand_urdf(entrypoint, f"optimized_arm_collision_meshes:={optimized_meshes}")
     mjcf = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     mesh_files = {
@@ -281,7 +281,7 @@ def test_arm_motor_geometry_matches_mjcf(
         motor = motors[0]
         mesh_file = mesh_files[motor.attrib["mesh"]]
         assert (_source_root() / "meshes" / mesh_file).is_file()
-        # Current motor meshes have no body-local rotation or scale.
+        # 현재 모터 메시에는 body 내부 회전이나 배율이 없습니다.
         assert not {"quat", "euler", "axisangle", "xyaxes", "zaxis"} & set(motor.keys())
         expected_position = np.fromstring(motor.get("pos", "0 0 0"), sep=" ")
         link = urdf.find(f"./link[@name='{side}_{link_suffix}']")
@@ -299,7 +299,7 @@ def test_arm_motor_geometry_matches_mjcf(
             attributes = {} if origin is None else origin.attrib
             assert np.fromstring(
                 attributes.get("xyz", "0 0 0"), sep=" "
-            ) == pytest.approx(expected_position, abs=2e-6)  # CAD export rounding (<2 µm).
+            ) == pytest.approx(expected_position, abs=2e-6)  # CAD 내보내기의 반올림 오차는 2 μm 미만입니다.
             assert np.fromstring(
                 attributes.get("rpy", "0 0 0"), sep=" "
             ) == pytest.approx((0, 0, 0), abs=1e-5)
@@ -322,8 +322,8 @@ def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
     assert len(collisions) == 15
     assert len(visuals) == 6
     assert not any('XLeRobot_camera' in mesh.get('filename') for mesh in link.findall('.//mesh'))
-    # The rigid geometry belongs to the gripper; optical calibration stays on
-    # its existing camera body and cannot move collision geometry.
+    # 고정 형상은 gripper에 속하며 optical 보정은 기존 카메라 body에 둡니다.
+    # 카메라 보정으로 충돌 형상을 움직여서는 안 됩니다.
     camera_body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
     assert camera_body.find('camera') is not None
     assert camera_body.find('site') is not None
@@ -360,7 +360,7 @@ def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
 @pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
 @pytest.mark.parametrize("side", ("left", "right"))
 def test_moving_jaw_mesh_poses_match_mjcf(entrypoint: str, side: str) -> None:
-    """Frame normalization must retain matching visual AND contact geometry."""
+    """좌표계 정규화 뒤에도 시각 형상과 접촉 형상이 모두 일치해야 합니다."""
     urdf = _expand_urdf(entrypoint)
     mjcf = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     joint = urdf.find(f"./joint[@name='{side}_gripper_joint']")
@@ -709,9 +709,9 @@ def test_mjcf_uses_rep103_camera_optical_axes() -> None:
 def test_arm_base_fasteners_align_with_cad_mounts(
     entrypoint: str, mount_index: int, base_index: int,
 ) -> None:
-    # Four corresponding bore axes measured in the original STL coordinates:
-    # 035armbase_step__êäèë4.stl (1.7 mm bore) and Base.stl (2.5 mm recess).
-    # These mesh-local datums are independent of the robot's placement origins.
+    # 원본 STL 좌표에서 측정한 대응 홀 축 네 개입니다.
+    # 035armbase_step__êäèë4.stl의 1.7 mm 홀과 Base.stl의 2.5 mm 오목부를 사용합니다.
+    # 메시 내부 기준점은 로봇 배치 원점과 독립적입니다.
     mount_holes = np.array([
         (-0.13873814, -0.15947649, 0.74864125),
         (-0.13873814, -0.10392350, 0.74864125),
@@ -739,7 +739,7 @@ def test_arm_base_fasteners_align_with_cad_mounts(
     for kind, index in (('visual', base_index), ('collision', base_index + 2)):
         arm_base = base.find(f"{kind}[@name='mjcf_geom_{index}_0_{kind}']")
         actual = placed_holes(arm_base, base_holes)
-        # Compare the vertical bore axes in XY, not the different face heights.
+        # 서로 다른 면 높이가 아니라 XY 평면의 수직 홀 축을 비교합니다.
         np.testing.assert_allclose(actual[:, :2], expected[:, :2], atol=1e-5, rtol=0)
 
 
@@ -762,8 +762,8 @@ def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
         centers.append(rotation.T @ (
             body.xpos + body_rotation @ local_center - chassis.xpos
         ))
-        # Compose the authored tensors directly. MuJoCo's principal-axis
-        # decomposition changes numerical precision between engine versions.
+        # 작성된 관성 텐서를 직접 합성합니다. MuJoCo의 주축 분해는 엔진 버전에
+        # 따라 수치 정밀도가 달라집니다.
         ixx, iyy, izz, ixy, ixz, iyz = np.fromstring(inertial.get('fullinertia'), sep=' ')
         body_tensor = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
         inertia_rotation = rotation.T @ body_rotation
@@ -910,8 +910,8 @@ def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
             )
             assert actual_tcp == pytest.approx(expected_tcp, abs=1e-5)
 
-            # The self-filter also consumes this articulated collision link.
-            # Fixed-jaw/TCP parity alone cannot detect its origin rotation error.
+            # 자기 형상 필터도 이 가동 충돌 링크를 사용합니다.
+            # 고정 jaw와 TCP의 일치만으로는 해당 링크 원점의 회전 오류를 찾을 수 없습니다.
             jaw_id = mujoco.mj_name2id(
                 model, mujoco.mjtObj.mjOBJ_BODY,
                 "Moving_Jaw" if side == "left" else "Moving_Jaw_2",
@@ -1079,7 +1079,7 @@ def test_xacro_reuse_preserves_argument_and_tree_isolation(monkeypatch):
 
 @pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
 def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str) -> None:
-    """Measure the actual CAD surface, rather than only comparing two model files."""
+    """모델 파일 두 개의 비교에 그치지 않고 실제 CAD 표면을 측정합니다."""
     root = _expand_urdf(entrypoint)
     joints = {joint.get('name'): joint for joint in root.findall('joint')}
     mast_pose = _urdf_fk(joints, ('top_base_joint',), {})
@@ -1102,7 +1102,7 @@ def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str) -> N
 
     _, plate = triangles('base_link', 'cad_frame/part_1__2.stl', np.eye(4))
     source, mast = triangles('top_base_link', 'cad_frame/topbase1.stl', mast_pose)
-    # The broad smooth vertical face is the CAD mesh's X=309 mm plane.
+    # 넓고 매끈한 수직면은 CAD 메시의 X=309 mm 평면입니다.
     smooth = mast[np.all(np.isclose(source[:, :, 0], .309, atol=1e-6, rtol=0), axis=1)]
     assert len(smooth) >= 2
     normal = np.cross(smooth[:, 1] - smooth[:, 0], smooth[:, 2] - smooth[:, 0]).sum(axis=0)
@@ -1141,7 +1141,7 @@ def test_measured_mast_heights_exclude_upper_pan_tilt_fittings() -> None:
     assert mount_top - bottom == pytest.approx(.065, abs=1e-6)
     assert pillar_top - mount_top == pytest.approx(.238, abs=1e-6)
     assert pillar_top - bottom == pytest.approx(.303, abs=1e-6)
-    # The upper motor seat remains above the 303 mm mount + pillar datum.
+    # 상부 모터 받침은 마운트와 기둥의 기준 높이 303 mm 위에 유지합니다.
     assert triangles[:, :, 2].max() - pillar_top == pytest.approx(.0593997, abs=1e-6)
     root = _expand_urdf('cleany.urdf.xacro', *MJCF_COLLISION_ARGS)
     joints = {joint.get('name'): joint for joint in root.findall('joint')}
@@ -1186,7 +1186,7 @@ def test_lower_mount_depth_and_offset_from_plate_front(entrypoint: str) -> None:
     assert np.ptp(mount[:, :, 1]) == pytest.approx(.120, abs=1e-6)
     assert np.ptp(mount[:, :, 2]) == pytest.approx(.065, abs=1e-6)
     assert plate[:, :, 0].max() - mount[:, :, 0].max() == pytest.approx(.041, abs=2e-6)
-    # The corrected depth reaches behind the pillar, closing the former gap.
+    # 수정한 깊이가 기둥 뒤까지 이어져 이전 틈을 메웁니다.
     smooth_world = world[np.all(np.isclose(source[:, :, 0], .309, atol=1e-6, rtol=0), axis=1)]
     assert smooth_world[:, :, 0].min() - mount[:, :, 0].min() == pytest.approx(.003, abs=1e-6)
     collision = root.find("link[@name='top_base_link']/collision[@name='lower_head_mount_collision']")

@@ -7,7 +7,7 @@ ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 SORTING_ARGS ?=
-# Keep data and generated outputs outside the source worktree.
+# 데이터와 생성물은 소스 worktree 밖에 보관합니다.
 CLEANY_DATA_ROOT ?= $(if $(wildcard $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../cleany-data))
 CLEANY_BUILD_ROOT ?= $(if $(XDG_CACHE_HOME),$(XDG_CACHE_HOME),$(HOME)/.cache)/cleany/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
 export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
@@ -40,7 +40,7 @@ BASE_TEST_ROS_DOMAIN_ID ?= 173
 IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
 IMU_CALIBRATION_TIMEOUT ?= 60
 IMU_CALIBRATION_ARGS ?=
-# Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
+# Ubuntu Distrobox 안에서는 직접 실행하고 호스트에서 호출하면 컨테이너로 진입합니다.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
@@ -353,7 +353,7 @@ test-mission: test-mission-core
 SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
 SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
 SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/platform/$(CLEANY_RUN_DATE)_supervision/latency.json
-# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+# E2E 그래프는 별도 Navigation 빌드의 Nav2 lifecycle 복구 노드를 사용합니다.
 build-supervision: build-navigation
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \

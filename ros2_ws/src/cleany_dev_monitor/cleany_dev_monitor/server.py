@@ -1,4 +1,4 @@
-"""Live HTTP views, read-only archives and a remote logger control adapter."""
+"""실시간 HTTP 화면, 읽기 전용 기록 조회와 원격 Logger 제어 어댑터입니다."""
 
 import asyncio
 import contextlib
@@ -89,8 +89,8 @@ def create_app(hub, config, recorder, assets, control):
             raise web.HTTPConflict(text='rosbag2 내보내기는 녹화를 정지한 뒤 가능합니다.')
         if not recorder.bag_available(session):
             raise web.HTTPNotFound(text='완료된 rosbag2 기록이 없습니다.')
-        # A closed bag includes native metadata and all storage segments. No CDR
-        # conversion or payload duplication into the dashboard database occurs.
+        # 종료된 bag에는 원래 메타데이터와 모든 저장 segment가 포함됩니다.
+        # CDR을 변환하거나 payload를 대시보드 DB에 중복 저장하지 않습니다.
         with tempfile.TemporaryDirectory(prefix='cleany-bag-export-') as temporary:
             archive = Path(temporary) / 'rosbag2.zip'
             recorder.export_bag(session, archive)
@@ -111,7 +111,7 @@ def create_app(hub, config, recorder, assets, control):
     def archive_status():
         status = control.status()
         recorder.session_id = status['session_id']
-        # Read-only metadata hint, never a writer or a storage lease.
+        # 읽기 전용 메타데이터 힌트이며 writer나 저장소 lease가 아닙니다.
         recorder.bag = True if status['state'] in ('RECORDING', 'STOPPING') else None
         return status
 
@@ -138,7 +138,7 @@ def create_app(hub, config, recorder, assets, control):
 
     async def export(request):
         source = recorder.resolve(request.match_info["session"])
-        # SQLite backup includes committed data consistently even for active recordings.
+        # SQLite backup은 기록 중에도 커밋된 데이터를 일관되게 포함합니다.
         with tempfile.TemporaryDirectory(prefix="cleany-monitor-export-") as directory:
             target = Path(directory) / "recording.sqlite3"
             recorder.export_sqlite(request.match_info["session"], target)
@@ -185,7 +185,7 @@ def create_app(hub, config, recorder, assets, control):
                     "reason": control.status()["reason"],
                     "state": control.status()["state"],
                 }
-                # Slow clients disconnect and obtain a fresh snapshot + explicit gap on reconnect.
+                # 느린 client는 연결을 끊고 재연결 시 최신 snapshot과 명시적인 누락 구간을 받습니다.
                 await asyncio.wait_for(ws.send_json(payload), timeout=2)
                 since, first = payload["sequence"], False
                 await asyncio.sleep(0.1)

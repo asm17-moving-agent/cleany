@@ -35,7 +35,7 @@ class FakeBackend:
         self.goal = goal
 
     def start(self, node, execution):
-        # Runtime state is updated before actuation even when its DB write fails.
+        # DB 쓰기가 실패해도 구동 전에 런타임 상태를 갱신합니다.
         record = self.store.get(execution)
         assert record.substage == node and record.result is None
         self.started.append(node)
@@ -279,7 +279,7 @@ def test_fatal_operation_error_blocks_next_goal_after_confirmed_stop(
     result = finish(core, now)
     assert result.status == Status.FATAL and result.error_code == error
     assert result.stop_confirmed and result.failed_substage == node
-    # No held/unknown object can independently account for the inhibition.
+    # held/unknown 물체가 별도로 금지 상태의 원인이 될 수 없는 조건입니다.
     assert result.object_state in (ObjectState.NOT_TOUCHED, ObjectState.LEFT_GRIPPER)
     assert core.inhibited and core.record.human_confirmation_required
     assert store.get('execution-1').result == result

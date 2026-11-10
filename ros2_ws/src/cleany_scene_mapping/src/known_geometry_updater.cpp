@@ -18,8 +18,8 @@ using Mask = point_containment_filter::ShapeMask;
 
 bool validCloud(const sensor_msgs::msg::PointCloud2& cloud)
 {
-  // ShapeMask expects packed rows and contiguous float32 XYZ. Reject other
-  // layouts rather than reading padding / truncated buffers as points.
+  // ShapeMask는 빈틈 없는 행과 연속 float32 XYZ를 요구합니다. padding이나
+  // 잘린 버퍼를 점으로 읽지 않도록 다른 구조는 거부합니다.
   if (cloud.header.frame_id.empty() || !cloud.width || !cloud.height || cloud.is_bigendian ||
       cloud.point_step < 12 || cloud.row_step != std::uint64_t(cloud.width) * cloud.point_step ||
       cloud.data.size() != std::uint64_t(cloud.row_step) * cloud.height)
@@ -155,7 +155,7 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
       "Depth callback entered: capture_ns=%ld node_now_ns=%ld points=%zu",
       static_cast<long>(capture_ns), static_cast<long>(node_->now().nanoseconds()),
       std::size_t(cloud.width) * cloud.height);
-  // Serialize cache mutation through publication, including direct callers.
+  // 직접 호출자를 포함해 발행까지 캐시 변경을 직렬화합니다.
   std::lock_guard<std::mutex> lock(frame_mutex_);
   const char* stage = "frame_lock";
   bool integrated = false;
@@ -197,8 +197,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     std::lock_guard<std::mutex> lock(geometry_mutex_);
     generation = generation_;
   }
-  // PSM holds its own shape-handles lock while calling exclude/forget. Calling
-  // its transform provider under our geometry/tree locks would invert that order.
+  // PSM은 자체 shape-handle 잠금을 잡고 exclude/forget을 호출합니다. 자체 형상 또는
+  // 트리 잠금 안에서 PSM 변환 제공자를 호출하면 잠금 순서가 역전됩니다.
   stage = "transform_cache";
   if (!updateTransformCache(cloud.header.frame_id, cloud.header.stamp))
   {
@@ -242,8 +242,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
                            bodies_.size(), transform_cache_.size());
       return false;
     }
-    // Cloud and cached shapes are optical-frame coordinates, so sensor origin
-    // is zero here. The map-frame camera translation is used for rays below.
+    // 점군과 캐시된 형상은 optical 좌표계이므로 여기서 센서 원점은 0입니다.
+    // 아래 ray에는 map 좌표계의 카메라 병진을 사용합니다.
     stage = "shape_mask";
     shape_mask_.maskContainment(cloud, Eigen::Vector3d::Zero(), 0.0, maximum_range_, mask);
     for (const auto& item : bodies_)
@@ -251,8 +251,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   }
   const auto mask_done = std::chrono::steady_clock::now();
   stage = "raycasting";
-  // No geometry lock during tree access. Scene updates can own the tree lock
-  // while changing excluded shapes. Clones preserve this capture's geometry.
+  // 트리 접근 중에는 형상 잠금을 잡지 않습니다. 장면 갱신은 제외 형상을 바꾸며
+  // 트리 잠금을 소유할 수 있습니다. 복제본이 이번 촬영의 형상을 보존합니다.
   octomap::KeySet occupied, model, clipped, free;
   octomap::KeyRay ray;
   const auto origin = octoPoint(map_from_cloud.translation());
@@ -272,8 +272,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
         Eigen::Vector3d point(raw[0], raw[1], raw[2]);
         if (!point.allFinite() || point.squaredNorm() == 0.0)
           continue;
-        // ShapeMask's empty-body shortcut skips its range test. Enforce the
-        // sensor range even before any robot/world shapes have been registered.
+        // ShapeMask는 body가 없으면 범위 검사도 건너뜁니다. 로봇이나 월드 형상을
+        // 등록하기 전에도 센서 범위를 적용합니다.
         const int kind = point.squaredNorm() > maximum_range_ * maximum_range_ ? Mask::CLIP : mask.at(index);
         if (kind == Mask::CLIP)
           point = point.normalized() * maximum_range_;
@@ -315,9 +315,9 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     const float clear_log_odds = tree_->getClampingThresMinLog() - tree_->getClampingThresMaxLog();
     for (const auto& key : model)
       tree_->updateNode(key, clear_log_odds);
-    // Clear after integration: upstream mesh self-masking uses radial vertex
-    // padding and can classify returns inside our face-offset volume as outside.
-    // Such endpoints must not immediately recreate a fully contained voxel.
+    // 통합 후 지웁니다. upstream 메시 자체 mask는 방사 정점 확장을 사용하므로
+    // 면 오프셋 부피 안의 반사점을 바깥으로 분류할 수 있습니다.
+    // 이런 끝점이 완전히 포함된 voxel을 즉시 다시 만들지 못하게 합니다.
     result = clearContainedOccupancy(*tree_, placed, static_cast<std::size_t>(maximum_examined_));
   }
   const auto tree_done = std::chrono::steady_clock::now();

@@ -13,7 +13,7 @@ else
 fi
 export CHROME_CONFIG_HOME="$root/browser-config"
 export XDG_CACHE_HOME="$root/browser-cache"
-# Yield CPU time while the NVIDIA OpenGL driver waits for graphics work.
+# NVIDIA OpenGL 드라이버가 그래픽 작업을 기다리는 동안 CPU를 양보합니다.
 export __GL_YIELD="${__GL_YIELD:-USLEEP}"
 args=(--kiosk --password-store=basic --disable-infobars --lang=ko --disable-extensions --disable-background-networking --disable-sync --disable-component-update --no-first-run --no-default-browser-check --noerrdialogs --disable-session-crashed-bubble
       --user-data-dir="$root/browser-profile")

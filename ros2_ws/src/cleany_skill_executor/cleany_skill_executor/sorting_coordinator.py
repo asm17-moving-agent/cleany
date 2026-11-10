@@ -1,4 +1,4 @@
-"""Sensor-driven pick and place with configurable semantic sorting rules."""
+"""설정 가능한 의미 분류 규칙으로 센서 기반 집기와 놓기를 수행합니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -86,29 +86,29 @@ def object_in_destination(obj, destination) -> bool:
 
 
 class SortingCoordinator(NearestPregraspCoordinator):
-    """Extend pre-grasp execution into a policy-driven pick and sorting sequence.
+    """pregrasp 실행을 정책 기반 집기 및 분류 순서로 확장합니다.
 
-    Inherits perception, scene, joint and motion interfaces from
-    NearestPregraspCoordinator; only additional interfaces are listed here.
+    NearestPregraspCoordinator의 인식, 장면, 관절과 이동 인터페이스를 상속하며
+    여기에는 추가 인터페이스만 적습니다.
 
     Subscriptions:
-        /robot_description (std_msgs/msg/String): Transport-planning geometry.
+        /robot_description (std_msgs/msg/String): 운반 계획 형상.
 
     Publishers:
-        /sorting/status (std_msgs/msg/String): JSON stage and outcome, reliable
-            and transient local with depth 1.
+        /sorting/status (std_msgs/msg/String): JSON 단계와 결과.
+            reliable, transient_local, depth 1입니다.
 
     Services:
         /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
-            Wrist observation client.
-        /sorting_cameras/set_parameters (rcl_interfaces/srv/SetParameters): Camera control.
-        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): Placement oracle.
-        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): Bin geometry updates.
+            손목 관측 Client.
+        /sorting_cameras/set_parameters (rcl_interfaces/srv/SetParameters): 카메라 제어.
+        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): 배치 판정기.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): 수거함 형상 갱신.
 
     Notes:
-        Policy and bins are loaded from configured files. Placement verification
-        is enabled by default and uses a simulation oracle. The inherited default
-        ROS node name is nearest_pregrasp_coordinator unless remapped at launch.
+        정책과 수거함을 설정 파일에서 읽습니다. 배치 검증은 기본 활성화되며
+        시뮬레이션 판정기를 사용합니다. launch에서 remap하지 않으면 상속된
+        기본 ROS 노드 이름은 nearest_pregrasp_coordinator입니다.
     """
     def __init__(self):
         super().__init__()
@@ -168,8 +168,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter(
             'sorting_required_categories', ['trash', 'lost_item'])
         self._require_category_coverage = self.declare_parameter('sorting_require_category_coverage', False).value
-        # This executable is currently simulation-only. The inspection and
-        # motion ports remain sensor-based; the outcome verifier is an oracle.
+        # 현재 이 실행 파일은 시뮬레이션 전용입니다. 검사와 이동 포트는 센서 기반을
+        # 유지하며 결과 검증기는 시뮬레이션 판정기입니다.
         if not self.get_parameter('use_sim_time').value:
             raise RuntimeError('Sorting execution is simulation-only')
         if self.get_parameter('plan_only').value:
@@ -239,8 +239,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
     def _attempts(self, detections):
         attempts = super()._attempts(detections)
         label = self.get_parameter('sorting_test_only_label').value
-        # Diagnostic isolation never changes the normal empty-workspace gate:
-        # other visible objects remain unresolved, so this cannot report clean.
+        # 진단용 격리도 일반적인 빈 작업 공간 판정을 바꾸지 않습니다. 다른 가시
+        # 물체가 미해결로 남으므로 청소 완료를 보고할 수 없습니다.
         return tuple(a for a in attempts if not label or a.label == label)
 
     def _execution_goal(self, arm, joint_state, label):
@@ -249,13 +249,13 @@ class SortingCoordinator(NearestPregraspCoordinator):
             expected = {name for name in REQUIRED_JOINT_NAMES if name.startswith(f'{arm}_')}
             if arm not in ('left', 'right') or set(joint_state.name) != expected or self._held_object is not None:
                 raise ValueError('Combined pregrasp requires only the selected empty arm and gripper')
-            # One collision-checked six-joint path, dispatched by MoveIt to
-            # disjoint arm/gripper controllers. No concurrent blind open command.
+            # 충돌 검사를 통과한 6관절 경로 하나를 MoveIt이 관절 소유권이 겹치지 않는
+            # 팔 및 그리퍼 제어기로 보냅니다. 동시 무검사 열기 명령은 없습니다.
             group = 'return_close' if label.startswith('return from ') else 'pregrasp_open'
             goal.request.group_name = f'{arm}_{group}'
         if label.startswith('return from '):
-            # Empty-hand return still has actuator torque/damping limits.
-            # Keep coordinated jaw closing and all collision/tracking checks.
+            # 빈손 복귀에도 구동기 토크와 감쇠 한계가 있습니다.
+            # 동기화된 그리퍼 닫힘과 모든 충돌 및 추종 검사를 유지합니다.
             for attribute, parameter in (
                 ('max_velocity_scaling_factor', 'sorting_return_velocity_scaling'),
                 ('max_acceleration_scaling_factor', 'sorting_return_acceleration_scaling'),
@@ -313,8 +313,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
 
     def _execute_linear(self, arm, target, label, **kwargs):
         if getattr(self, '_carry_wrist_reference', {}) and self._held_object is not None:
-            # The base execution path calls our plan-only override. Never catch
-            # execution/controller/guard failures to relax a wrist constraint.
+            # 기본 실행 경로는 계획 전용 override를 호출합니다. 손목 제약을 완화하려고
+            # 실행, 제어기나 guard 실패를 잡아 처리하지 않습니다.
             return super()._execute_linear(arm, target, label, **kwargs)
         if (getattr(self, '_direct_vertical_lift', False)
                 and label == 'vertical grasp lift' and kwargs.get('joint_target') is None):
@@ -328,8 +328,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
             validate_pose_endpoint(self._cartesian_pose(actual), self._cartesian_pose(target),
                 float(self.get_parameter('lin_position_tolerance_m').value),
                 math.radians(float(self.get_parameter('corridor_orientation_tolerance_deg').value)))
-            # Explicit position corridor for the five-axis arm; retain full
-            # seeded interpolation, FK, collision and angular-drift checks.
+            # 5축 팔에 명시적 위치 통로를 적용하며 전체 seed 기반 보간, FK,
+            # 충돌과 방향 변화 검사를 유지합니다.
             target = actual
             kwargs['joint_target'] = joints
         return super()._execute_linear(arm, target, label, **kwargs)
@@ -358,10 +358,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 joints = JointState(name=list(solution.names), position=list(solution.positions))
                 actual = self._tcp_pose(arm, joints)
                 try:
-                    # A fixed wrist can change the TCP world orientation as
-                    # shoulder/elbow move. Do not reuse the empty-arm pregrasp
-                    # orientation as a mandatory carry endpoint. Bound the new
-                    # rotation, then validate the whole FK corridor below.
+                    # 손목이 고정되어도 어깨와 팔꿈치 이동으로 TCP 월드 방향이 바뀔 수 있습니다.
+                    # 빈 팔의 pregrasp 방향을 필수 운반 끝점으로 재사용하지 않습니다.
+                    # 새 회전 범위를 제한한 뒤 아래에서 전체 FK 통로를 검증합니다.
                     orientation_reference = deepcopy(start)
                     orientation_reference.position = deepcopy(target.position)
                     validate_pose_endpoint(
@@ -465,8 +464,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
                     unresolved += 1
                     continue
                 center = inspected.objects.objects[0].obb_pose.position
-                # Already placed items are not picked again, even if a camera
-                # still sees them. This uses the perceived position, not GT.
+                # 이미 놓은 물체는 카메라에 계속 보여도 다시 집지 않습니다.
+                # 참값이 아닌 인식 위치를 사용합니다.
                 destination = self._bins.get(decision.destination)
                 if object_in_destination(inspected.objects.objects[0],destination):
                     work_count -= 1
@@ -476,10 +475,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 if planned is None:
                     self._stage('no_grasp')
                     continue
-                # Symmetric shoulder bases: target base_link Y determines the
-                # nearer arm. Exhaust its candidates before trying the other arm.
-                # Destination does not constrain picking; transport is still
-                # checked separately by the collision-aware motion planner.
+                # 어깨 베이스가 대칭이므로 base_link Y로 가까운 팔을 정합니다.
+                # 해당 팔의 후보를 모두 시도한 뒤 반대 팔을 시도합니다. 목적지는 집기를
+                # 제한하지 않으며 운반은 충돌을 고려하는 planner가 별도로 검사합니다.
                 arms = ('left', 'right') if center.y >= 0 else ('right', 'left')
                 selected = None
                 for arm in arms:
@@ -537,9 +535,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
         combined.pregrasp_joint_state.position.append(opening)
         combined.pregrasp_joint_state.velocity = []
         combined.pregrasp_joint_state.effort = []
-        # Preserve source selection and the five-joint grasp/retreat targets.
-        # Base implementation registers the OBB, forbids target contacts, and
-        # requires feedback convergence for ALL six joints before returning.
+        # 원래 소스 선택과 다섯 관절 grasp/retreat 목표를 유지합니다.
+        # 기본 구현은 OBB를 등록하고 타깃 접촉을 금지하며 반환 전에
+        # 여섯 관절 모두의 피드백 수렴을 요구합니다.
         self.get_logger().info(f'Pregrasp with simultaneous {arm} gripper opening')
         super()._execute_pregrasp(combined, attempt)
 
@@ -548,8 +546,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self._fixed_release_wrist = {}
         self._lift_completion_stamp_ns = None
         self._execute_pregrasp(target.selected, target.attempt)
-        # The selected gripper opened along the pregrasp trajectory; do not
-        # issue another timed opening after arrival.
+        # 선택한 그리퍼는 pregrasp 궤적을 따라 이미 열었으므로
+        # 도착 후 별도 시간 기반 열기 명령을 내지 않습니다.
         if getattr(self, '_wrist_enabled', False):
             selected, attempt = target.selected, target.attempt
             self._wait_arm_stationary(selected.selected_arm)
@@ -558,7 +556,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 target = SortTarget(attempt, selected)
             self._switch_camera(selected.selected_arm)
             self._wrist_reference = self._observe_wrist(selected, ObserveWristTarget.Request.HANDOFF)
-            # Preserve the original head 3D estimate. RGB consistency is not new depth.
+            # 원래 헤드 3D 추정을 유지합니다. RGB 일치성은 새 깊이 측정이 아닙니다.
             self._execution_scene.allow_contacts_for(selected.selected_arm)
         else:
             if getattr(self, '_geometry_association_lift', False):
@@ -573,8 +571,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         return self._held_object
 
     def _execute_grasp_and_lift(self, selected, attempt) -> None:
-        # Keep the selected wrist active, but refresh head RGB-D throughout approach
-        # and closure so attachment does not start with an idle-rate sensor.
+        # 선택한 손목을 활성으로 유지하며 접근과 닫힘 내내 헤드 RGB-D도 갱신해
+        # 부착을 시작할 때 센서가 유휴 속도로 동작하지 않게 합니다.
         boost = getattr(self, '_wrist_enabled', False)
         if boost:
             self._set_head_depth_boost(True)
@@ -634,8 +632,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self._lift_completion_stamp_ns = self.get_clock().now().nanoseconds
 
     def _on_grasp_contact(self, selected, attempt) -> None:
-        # The actual settled TCP, not the requested grasp endpoint, defines the
-        # same rigid attachment assumption that MoveIt will use immediately next.
+        # 요청한 파지 끝점이 아닌 실제 정착 TCP로 강체 부착을 가정합니다.
+        # 바로 다음 MoveIt 부착에도 같은 가정을 적용합니다.
         tcp = self._tcp_pose(selected.selected_arm)
         object_center = (
             selected.selected_candidate.target_object.obb_pose.position)
@@ -677,7 +675,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if not self.get_parameter('sorting_reobserve_after_lift').value:
                 raise
             self._reobserve_held_object(minimum_center_z_m)
-            # Exactly one physical recovery move; no recursive motion/retries.
+            # 물리 복구 이동은 정확히 한 번이며 재귀 이동이나 재시도는 없습니다.
             inspected = verify(
                 attempt, minimum_center_z_m=minimum_center_z_m)
         held = self._held_object
@@ -700,7 +698,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         return inspected
 
     def _verify_head_redetection(self, attempt, *, minimum_center_z_m=None):
-        """Associate a new YOLOE mask by measured 3D position, not Gemini wording."""
+        """Gemini 표현이 아닌 측정 3D 위치로 새 YOLOE mask를 대응시킵니다."""
         held = self._held_object
         if held is None:
             raise RuntimeError('No attachment reference for head RGB-D reobservation')
@@ -780,7 +778,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             raise RuntimeError('Held-object reobservation lost settled gripper contact')
 
     def _confirm_held_contact(self, held: HeldObject) -> None:
-        """Require consecutive post-request motor feedback while the arm is held."""
+        """팔을 유지한 상태에서 요청 이후의 연속 모터 피드백을 요구합니다."""
         duration = float(self.get_parameter('sorting_wrist_contact_confirmation_sec').value)
         timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
         maximum_age = float(self.get_parameter('sorting_gripper_feedback_max_age_sec').value)
@@ -798,9 +796,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if stamp <= previous:
                 continue
             now = self.get_clock().now().nanoseconds
-            # /joint_states and /clock have separate subscriptions. A joint
-            # update can arrive first; leave it uncounted until the clock catches
-            # up. A stopped clock or persistently future stamp still times out.
+            # /joint_states와 /clock은 별도 구독입니다. 관절 갱신이 먼저 오면 시계가
+            # 따라잡을 때까지 표본으로 세지 않습니다. 시계가 멈추거나 미래 stamp가
+            # 계속되어도 결국 시간 초과됩니다.
             if stamp > now:
                 continue
             if (now - stamp) / 1e9 > maximum_age:
@@ -896,7 +894,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
 
 
     def _fixed_release_ik(self, arm, point, offset, wrist):
-        """Reuse only an exactly matching pose, with fresh FK and scene validation."""
+        """정확히 같은 자세만 재사용하며 최신 FK와 장면 검증을 적용합니다."""
         key = (arm, tuple(point), tuple(offset), tuple(sorted(wrist.items())))
         self._transport_adapter.set_current_state(self._feedback_state())
         solution = self._fixed_release_cache.get(key)
@@ -924,8 +922,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
     def _transport_fixed_release(self, held, destination):
         arm = held.selected.selected_arm
         point = self._fixed_release_points[destination]
-        # Classification already selected the destination before pick. Hold the
-        # post-lift wrist and plan directly to that bin, with no shared waypoint.
+        # 집기 전에 분류가 이미 목적지를 정했습니다. 들어 올린 뒤 손목을 유지하며
+        # 공통 waypoint 없이 해당 수거함으로 직접 계획합니다.
         self._wait_arm_stationary(arm)
         self._require_held_contact(held)
         feedback = self._arm_joint_state(arm)
@@ -942,8 +940,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
 
     def transport(self, held: HeldObject, destination: str):
         self._require_held_contact(held)
-        # TODO(bin-opening-fit): check that the held object's bounding sphere
-        # fits the bin opening before transport. Planned for later development.
+        # TODO(bin-opening-fit): 운반 전에 잡은 물체의 경계 구가
+        # 수거함 입구에 들어가는지 검사해야 합니다. 아직 구현하지 않았습니다.
         self._transport_fixed_release(held, destination)
 
     def check_release_target(self, held: HeldObject, destination: str) -> None:
@@ -962,8 +960,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
                    or abs(feedback[name]-value) > self._fixed_release_hold_tolerance+1e-6
                    for name, value in self._fixed_release_wrist.items()):
                 raise RuntimeError('Fixed release wrist feedback is outside hold tolerance')
-        # TODO(bin-opening-fit): legacy automatic sorting still defers this check.
-        # The single-object Action adds the check in MujocoOperations.
+        # TODO(bin-opening-fit): 기존 자동 분류는 이 검사를 아직 미룹니다.
+        # 단일 물체 Action은 MujocoOperations에서 검사합니다.
 
     def release(self, held: HeldObject, destination: str):
         self.check_release_target(held, destination)
@@ -1018,8 +1016,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         joints.velocity, joints.effort = [], []
         if self._wrist_enabled:
             self._switch_camera('head')
-        # InspectScene waits for a new RGB-D frame after accepting the goal.
-        # Inference proceeds in the perception node while this node executes return.
+        # InspectScene은 목표 수락 후 새 RGB-D 프레임을 기다립니다.
+        # 이 노드가 복귀하는 동안 인식 노드에서 추론을 진행합니다.
         if prefetch:
             self._return_detection = self._begin_object_detection()
             self.get_logger().info('Next scene detection submitted before return motion')
@@ -1066,8 +1064,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
             completed = getattr(self, '_lift_completion_stamp_ns', None)
             if completed is None or not 0 < completed <= request.after_stamp_ns:
                 raise RuntimeError('Missing or invalid lift completion freshness barrier')
-            # Results captured during the existing stabilization hold are valid
-            # post-lift evidence. Do not force another full frame after the hold.
+            # 기존 안정화 유지 중 촬영한 결과도 유효한 들기 후 근거입니다.
+            # 유지 종료 후 전체 프레임을 다시 기다리도록 강제하지 않습니다.
             request.after_stamp_ns = max(completed, after_stamp_ns or 0)
         request.expected_pose.header=deepcopy(candidate.header)
         request.expected_pose.pose=deepcopy(obj.obb_pose)
@@ -1117,8 +1115,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         return False
 
     def _register_bins(self):
-        # Known collection-station calibration only. Desk and item geometry
-        # still comes from the depth sensor, never from the MuJoCo scene.
+        # 알려진 수거 station 설정만 사용합니다. 책상과 물체 형상은 계속
+        # 깊이 센서에서 얻으며 MuJoCo 장면에서 가져오지 않습니다.
         scene = PlanningScene(is_diff=True)
         scene.robot_state.is_diff = True
         for bin_ in self._bins.values():

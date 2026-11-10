@@ -1,4 +1,4 @@
-"""Compare the default runtime model against saved CAD geometry, not just its twin."""
+"""기본 실행 모델을 대응 모델끼리만 비교하지 않고 저장된 CAD 형상과 대조합니다."""
 from collections import defaultdict
 from functools import lru_cache
 import hashlib
@@ -77,7 +77,7 @@ def test_registered_runtime_geometry_reconstructs_cad_bounds():
     for c in MANIFEST['components']:
         v=np.concatenate(actual.pop(c['name'])) if c['name'] in actual else None
         if v is not None:
-            # Tessellation may miss a curved extremum by the 0.15 mm deflection.
+            # 곡면 극값은 삼각화 deflection 0.15 mm만큼 차이가 날 수 있습니다.
             np.testing.assert_allclose(np.r_[v.min(0),v.max(0)], c['cad_bounds_mm'],atol=.3,err_msg=c['name'])
 
 
@@ -156,8 +156,8 @@ def test_collision_stl_is_closed_convex_and_encloses_visual():
             d=np.einsum('ij,ij->i',n,tri[start:start+128,0])
             assert np.max(points@n.T-d) <= 1e-9,c['name']
             assert np.max(visual@n.T-d) <= 1e-7,c['name']
-        # Each output vertex must remain within 0.25 mm of the source hull.
-        # A point on the center-to-vertex ray supplies a conservative bound.
+        # 출력 꼭짓점은 원본 볼록 외피에서 0.25 mm 이내여야 합니다.
+        # 중심에서 꼭짓점으로 향하는 광선 위 점으로 보수적인 상한을 구합니다.
         source = ConvexHull(visual)
         center = visual.mean(0)
         delta = points-center

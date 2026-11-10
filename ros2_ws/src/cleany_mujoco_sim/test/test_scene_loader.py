@@ -27,7 +27,7 @@ def test_sorting_startup_wrist_camera_mounts_have_matching_orientation():
     mujoco.mj_forward(model, data)
     left = data.cam_xmat[model.camera('left_wrist_rgb').id].reshape(3, 3)
     right = data.cam_xmat[model.camera('right_wrist_rgb').id].reshape(3, 3)
-    # Shoulder yaw differs; compare vertical components of all camera axes.
+    # 어깨 yaw가 다르므로 모든 카메라 축의 수직 성분을 비교합니다.
     assert left[2] == pytest.approx(right[2], abs=1e-4)
     for arm in ('left', 'right'):
         assert data.ctrl[model.actuator(f'{arm}_wrist_roll_joint').id] == pytest.approx(1.58)
@@ -254,7 +254,7 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
     )
     rear_left_dof_id = model.jnt_dofadr[rear_left_joint_id]
 
-    # The 10 percent derated rated point remains on the motor curve.
+    # 10% 낮춘 정격점이 여전히 모터 곡선 위에 있는지 확인합니다.
     data.ctrl[rear_left_drive_id] = 10.8
     data.qvel[rear_left_dof_id] = 0.9 * 103.0 * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
@@ -262,7 +262,7 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
         2.646, rel=1e-6
     )
 
-    # At 90 percent voltage, the no-load equilibrium speed also scales by 0.9.
+    # 전압 90%에서는 무부하 평형 속도도 0.9배가 됩니다.
     data.qvel[rear_left_dof_id] = 0.9 * (7000.0 / 61.0) * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
     assert data.actuator_force[rear_left_drive_id] == pytest.approx(

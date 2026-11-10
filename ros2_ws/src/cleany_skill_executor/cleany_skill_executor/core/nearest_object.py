@@ -1,4 +1,4 @@
-"""ROS-independent nearest-object attempt policy."""
+"""ROS에 독립적인 최근접 물체 시도 정책입니다."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class ObjectAttempt:
 def rank_object_attempts(
     objects: Sequence[ObjectAttempt],
 ) -> tuple[ObjectAttempt, ...]:
-    """Return deterministic nearest-first autonomous attempt order."""
+    """가까운 물체부터 결정적인 자율 시도 순서를 반환합니다."""
 
     object_ids = [item.object_id for item in objects]
     if len(set(object_ids)) != len(object_ids):

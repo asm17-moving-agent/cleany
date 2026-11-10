@@ -20,7 +20,7 @@ def test_unconfigured_hardware_is_never_reported_safe():
     feed(e, 1.)
     report = e.evaluate(1.)
     assert not report.protection_ready and report.estop_engaged and not report.physical_release_confirmed
-    assert report.stopped  # Motion evidence is real even without a protection layer.
+    assert report.stopped  # 보호 계층이 없어도 움직임 근거 자체는 실제입니다.
     assert 'no e-stop circuit evidence' in report.detail
 
 

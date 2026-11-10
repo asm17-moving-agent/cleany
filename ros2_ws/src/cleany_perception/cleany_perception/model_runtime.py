@@ -1,4 +1,4 @@
-"""Local assets and explicit device selection for learned models."""
+"""학습 모델의 로컬 asset과 명시적 장치 선택입니다."""
 from __future__ import annotations
 
 from pathlib import Path

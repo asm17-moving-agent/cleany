@@ -97,7 +97,7 @@ int main() {
   cleany::ImuSample sample{};
   sample.timestampUs = origin + cfg.settlingUs;
   interrupted.addSample(sample);
-  sample.timestampUs += 100000;  // Acquisition stall exceeds the 30 ms gap limit.
+  sample.timestampUs += 100000;  // 측정 중단 시간이 최대 표본 간격 30 ms를 초과합니다.
   interrupted.addSample(sample);
   assert(interrupted.value().state == cleany::ImuCalibrationState::kFallback);
   assert(interrupted.value().reason == cleany::ImuCalibrationReason::kSample);

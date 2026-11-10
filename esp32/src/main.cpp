@@ -44,7 +44,7 @@ constexpr uint32_t kPwmFrequencyHz = 20000;
 constexpr ledc_timer_bit_t kPwmResolution = LEDC_TIMER_8_BIT;
 constexpr uint32_t kMotorControlPeriodMs = 5;
 constexpr int kOutputSlewStepPercent = 1;
-// Conservative command rampup: step 1% every 20ms = 50% per second (0.6s to 0.3 m/s)
+// 보수적인 명령 램프: 20 ms마다 1%씩, 초당 50% 증가합니다. 실제 차체 가속도와는 별개입니다.
 constexpr int64_t kCommandSlewStepIntervalUs = 20000;
 constexpr cleany::MotorFilterConfig kDefaultMotorFilterConfig{
     1, kCommandSlewStepIntervalUs, 0.5F, 50000, 3};
@@ -73,8 +73,8 @@ struct Encoder {
   volatile uint8_t previousState = 0;
 };
 
-// Per-wheel PI + FF settings: FF scale (rad/s), Kp, Ki, PWM limit (%).
-// Ground-loaded calibrated on floor across 0.5m surge & sway to equalize per-wheel velocity:
+// 휠별 PI와 feed-forward 설정: FF 기준 속도(rad/s), Kp, Ki, PWM 한계(%).
+// 휠별 속도를 맞추기 위한 바닥 부하 조건의 전후·횡이동 0.5 m 시험 설정입니다.
 constexpr cleany::WheelVelocityControllerConfig kFlControllerConfig{
     11.9352F, 6.058F, 12.118F, 100.0F};
 constexpr cleany::WheelVelocityControllerConfig kFrControllerConfig{
@@ -362,7 +362,7 @@ void imuAcquisitionTask(void*) {
     }
     wake = xTaskGetTickCount();
     while (true) {
-      // Poll data-ready faster than the independent 100 Hz sensor clock.
+      // 독립된 센서 100 Hz 주기보다 빠르게 data-ready를 확인합니다.
       vTaskDelayUntil(&wake, pdMS_TO_TICKS(2));
       calibration.poll(esp_timer_get_time());
       if (calibration.terminal() && !calibrationWasTerminal) {
@@ -565,8 +565,8 @@ void microRosTask(void*) {
         if (freshImu) lastImuSample = imuNow;
         const bool sensorFault = (received && !freshImu) ||
             imuNow - lastImuSample > cleany::kImuMaximumAgeUs;
-        // Empty mailbox between acquisitions is normal, not a sensor failure.
-        // Fault heartbeat is bounded at 10 Hz; valid data is acquisition-driven.
+        // 측정 사이의 빈 수신함은 정상이며 센서 고장이 아닙니다.
+        // 고장 heartbeat는 최대 10 Hz이며 유효 데이터는 측정 시점에 발행합니다.
         if (!freshImu && (!sensorFault ||
             (lastImuFault != 0 && imuNow - lastImuFault < 100000))) {
           vTaskDelay(pdMS_TO_TICKS(2));

@@ -118,8 +118,8 @@ TEST(PartitionedShapeMask, ReusesWorkersAcrossFramesAndRebuildsAfterReconfigurat
   std::mutex mutex;
   std::set<unsigned int> threads;
   parallel.setTransformCallback([&](unsigned int, Eigen::Isometry3d& pose) {
-    // OS thread IDs may be recycled between frames; a TLS token also detects
-    // newly created threads that happen to receive an earlier thread's ID.
+    // OS 스레드 ID는 프레임 사이에 재사용될 수 있습니다. TLS token으로 이전
+    // 스레드 ID를 우연히 받은 새 스레드도 검출합니다.
     thread_local const auto token = next_thread.fetch_add(1);
     std::lock_guard<std::mutex> lock(mutex);
     threads.insert(token);

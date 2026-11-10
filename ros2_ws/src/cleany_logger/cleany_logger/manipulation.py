@@ -1,4 +1,4 @@
-"""Bounded execution observations; no action/service clients or safety decisions."""
+"""범위가 제한된 실행 관측이며 action/service client나 안전 판정을 포함하지 않습니다."""
 
 from collections import OrderedDict
 from copy import deepcopy
@@ -35,7 +35,7 @@ class ManipulationObserver:
             raise ValueError("Invalid manipulation execution identity or timestamp")
         observed = self.executions.get(execution_id)
         if observed and revision <= observed.record["revision"]:
-            return False  # Retained/repeated progress cannot replace newer evidence.
+            return False  # 보관되거나 반복된 진행 메시지가 더 최신 근거를 덮어쓸 수 없습니다.
         gap = revision > 0 if observed is None else revision != observed.record["revision"] + 1
         if observed is None:
             observed = ObservedExecution(deepcopy(record), received_at, partial=gap)

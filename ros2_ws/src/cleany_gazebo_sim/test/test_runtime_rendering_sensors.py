@@ -435,7 +435,7 @@ def test_sensor_profile_and_rtf(
     robot_model: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # The CAD navigation profile deliberately omits arms and wrist sensors.
+    # CAD 주행 프로파일은 의도적으로 팔과 손목 센서를 제외합니다.
     options = (replace(runtime_test_options, sensor_profile="head_rgbd")
                if robot_model == "cad_frame" else runtime_test_options)
     _assert_environment()

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Render documentation figures from repository settings and existing test fixtures.
+"""저장소 설정과 기존 테스트 fixture에서 문서 도표를 렌더링합니다.
 
-Requires matplotlib, numpy, scipy, PyYAML, pytest and opencv-python-headless
-(the last two support existing calibration fixture imports).
-Run from any directory; --check regenerates in memory and compares bytes and inputs.
-These figures describe configuration or synthetic fixtures, never physical results.
+matplotlib, numpy, scipy, PyYAML, pytest와 opencv-python-headless가 필요하며
+마지막 두 패키지는 기존 보정 fixture import에 사용합니다. 어느 디렉터리에서든
+실행할 수 있고 --check는 메모리에서 다시 생성해 바이트와 입력을 비교합니다.
+그림은 설정 또는 합성 fixture를 설명하며 물리적 실행 결과가 아닙니다.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def metric(ax, x="base_link X / forward (m)", y="base_link Y / left (m)"):
 
 
 def fixture_namespace(path: str, function: str | None = None) -> dict:
-    """Reuse fixture construction and assertions without running the test suite."""
+    """테스트 전체를 실행하지 않고 fixture 구성과 assertion을 재사용합니다."""
     namespace = runpy.run_path(str(ROOT / path))
     if function is None:
         return namespace
@@ -102,7 +102,7 @@ def direction_cost():
     config = NAV + "config/nav2_phone_omni.yaml"
     code = NAV + "mppi/src/critics/directional_motion_critic.cpp"
     params = read(config)["controller_server"]["ros__parameters"]["FollowPath"]["DirectionalMotionCritic"]
-    # Keep this mathematical illustration tied to the documented implementation.
+    # 수학적 설명 그림을 문서에서 설명한 구현과 연결해 유지합니다.
     assert "lateral*sin(theta)^2 + diagonal*sin(2*theta)^2" in (ROOT / code).read_text()
     theta = np.linspace(-np.pi, np.pi, 1441)
     cost = params["lateral_weight"] * np.sin(theta)**2 + params["diagonal_weight"] * np.sin(2*theta)**2

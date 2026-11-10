@@ -38,7 +38,7 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
     const nav_2d_msgs::msg::Twist2D &, const geometry_msgs::msg::Pose2D &goal,
     const nav_2d_msgs::msg::Path2D &path) {
   active_=enabled_ && std::hypot(goal.x-pose.x, goal.y-pose.y)>goal_tolerance_;
-  if (!active_) {aligned_=false;return true;}  // RotateToGoal owns the final heading.
+  if (!active_) {aligned_=false;return true;}  // 최종 방향은 RotateToGoal이 관리합니다.
   if (path.poses.empty()) return false;
   size_t nearest=0; double distance=std::numeric_limits<double>::infinity();
   for (size_t i=0;i<path.poses.size();++i) {
@@ -58,8 +58,8 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   if (respect_path_orientation_) {
     travel_target_=std::atan2(target.y-pose.y,target.x-pose.x);
     target_=path.poses[nearest].theta;
-    // Duplicate XY poses encode an explicit in-place rotation. Execute the
-    // final heading of that group only after arriving at its position.
+    // XY가 같은 자세들은 명시적 제자리 회전을 나타냅니다.
+    // 해당 위치에 도착한 뒤에만 그 그룹의 최종 방향으로 회전합니다.
     for (size_t i=nearest;i+1<path.poses.size();++i) {
       const auto &p=path.poses[i];
       if (std::hypot(p.x-pose.x,p.y-pose.y)>lookahead_) break;
@@ -83,8 +83,8 @@ double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &tra
   const auto x=trajectory.velocity.x;
   if (std::abs(x)>1e-6 && (!aligned_ || (x<0)!=reverse_))
     throw dwb_core::IllegalTrajectoryException(name_, "Align heading before longitudinal travel");
-  // Stay on a longitudinal segment once aligned; rotate again only outside
-  // the release band. This prevents tiny heading improvements winning forever.
+  // 정렬되면 전후 방향 구간을 유지하고 해제 범위 밖에서만 다시 회전합니다.
+  // 아주 작은 방향 개선이 계속 선택되는 것을 방지합니다.
   if (aligned_ && std::abs(trajectory.velocity.theta)>1e-6)
     throw dwb_core::IllegalTrajectoryException(name_, "Keep aligned segment heading");
   const double offset=std::abs(x)>1e-6 ? std::atan2(trajectory.velocity.y*(x<0?-1:1),std::abs(x)) : 0.;

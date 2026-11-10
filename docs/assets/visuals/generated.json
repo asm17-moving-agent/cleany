@@ -17,15 +17,15 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_robot.yaml",
-          "sha256": "4e03af294afac6b2fe85da1151b51b3f601ff5e065b74e7d161938963058017f"
+          "sha256": "3afdeb5f0792c0a2e020f8be3cea927b5153d8e98b8baf075afde286f50378d3"
         },
         {
           "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_safety.yaml",
-          "sha256": "c8c1321f9df9a8af3c73644b94e1d4583ec553853274c55b108e9f9ca94b98b2"
+          "sha256": "c45e92e59de4077db8dfd6cb70e80f84be0e27e118ec3b1162b7e905a8c650a1"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -37,15 +37,15 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_navigation/config/nav2_phone_omni.yaml",
-          "sha256": "f07c1fb5fbde584b61249c51535bfabeb04f8ffc3c53ad5ddfb2b140e7f5ffa0"
+          "sha256": "f8836880e70607028638a9db253b85173c98545e05f8ad80f2af33d2d012e689"
         },
         {
           "path": "ros2_ws/src/cleany_navigation/mppi/src/critics/directional_motion_critic.cpp",
-          "sha256": "cd71ddde27ce2f7cd344f74722503393d806d595ee88a65f417284a242127328"
+          "sha256": "ca074c5cb66acba1f8241005c44729af26ffd55f62f9f463cc56d2204ed39c28"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -61,7 +61,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -73,15 +73,15 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_navigation/test/test_localization_alignment.py",
-          "sha256": "2c078a4424ac9bb062885ff44b25db2b33e386e2779ae721a0ca878f31931248"
+          "sha256": "ab8909893364608ec7b02b6a32562b6b628ed7985d9809653238f0676496e400"
         },
         {
           "path": "ros2_ws/src/cleany_navigation/cleany_navigation/localization_alignment.py",
-          "sha256": "111cfa753dae6cd98016d4d46bd4602ea24b6cfb41bf531052b724939156cd73"
+          "sha256": "77a2364edd016a1fce2bf1b33eb117f677d841ea750df99f5c1c2bcc9ed3f16a"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -97,7 +97,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -113,7 +113,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -125,11 +125,11 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_mujoco_sim/config/robot_top_bins.yaml",
-          "sha256": "1e20e991d8a11d3bb4914c4cc2fd51359ebaf48e902b7f825ff823514d23dd84"
+          "sha256": "f1a1195df649a57ed7c60e4a2fddd02001a100f7eeeb0f7897a499226d8daef2"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -145,11 +145,11 @@
         },
         {
           "path": "ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/joint_state_sync.py",
-          "sha256": "46704d12e2bc64fbcacac1d97c31d08754039f025008fe44f8287b727a905fb2"
+          "sha256": "cc41971f14a84eb55a2e9ef6aec6b90a9004748efb0175ead512563f3a70906c"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -161,11 +161,11 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_scene_mapping/test/test_known_geometry.cpp",
-          "sha256": "591aa92ae2f4de0d548388c481244a71a7ab8f33c00465f2dabdfcd5d090969f"
+          "sha256": "d53a1e6af522a293ce475c9f0adda8f30828277a3572bdce369f435018a1aad6"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     },
@@ -189,11 +189,11 @@
         },
         {
           "path": "tools/optimize_arm_collision_meshes.py",
-          "sha256": "f9a193f1aa63d038dcaaa15068258e6df3d52624455d6cf66cdf3dae1de11f37"
+          "sha256": "6c63cf7c2920d639df2e264d815fe32e29cd32e110e57190f4d77b569850dc6b"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
         }
       ]
     }

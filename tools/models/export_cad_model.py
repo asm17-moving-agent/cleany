@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Export the saved Cleany assembly into shared ROS and MuJoCo geometry.
+"""저장된 Cleany 조립체를 공통 ROS 및 MuJoCo 형상으로 내보냅니다.
 
-Requires numpy, scipy and cadquery-ocp. Never executes FreeCAD document code.
-The CAD pose is a registration pose, not an encoder calibration. Pincer linkage
-closure is unavailable in this static assembly; its cam joint remains locked.
+numpy, scipy와 cadquery-ocp가 필요하며 FreeCAD 문서 코드는 실행하지 않습니다.
+CAD 자세는 등록 자세이며 엔코더 보정이 아닙니다. 정적 조립체에서 pincer linkage
+닫힘을 구할 수 없으므로 cam 관절은 잠근 상태로 유지합니다.
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ from optimize_arm_collision_meshes import enclosing_hull, read_stl, stl_bytes
 X = '{http://www.ros.org/wiki/xacro}'
 ET.register_namespace('xacro', X[1:-1])
 CAD_R = Rotation.from_euler('z', np.pi / 2).as_matrix()
-# Keep the established chassis rest height and wheel contact convention.
+# 기존 차체 정지 높이와 바퀴 접촉 규약을 유지합니다.
 CAD_T = np.array([-0.000025, 0.000027, -0.284497])
 
 
@@ -144,14 +144,14 @@ def color(name):
 
 
 def build_registration(robot, records):
-    """Register joint axes to horn pairs while retaining existing arm angle signs."""
+    """기존 팔 각도 부호를 유지하며 혼 쌍에 관절축을 등록합니다."""
     joints = {j.get('name'): j for j in robot.findall('joint')}
     angles = {}
     anchors = {}
     for side, suffix in [('right', ''), ('left', '001')]:
         s = 1 if side == 'left' else -1
         base = records['BasePrint' + suffix]
-        # Base datum and 16.5 mm yaw-origin convention from the existing chain.
+        # 기존 체인의 베이스 기준면과 16.5mm yaw 원점 규약을 따릅니다.
         yaw_point = center(records['YawDriveHorn' + suffix])
         yaw_point[2] = float(base['placement']['Pz']) + 16.5
         yaw = cad_point(yaw_point)
@@ -174,14 +174,14 @@ def build_registration(robot, records):
         if np.linalg.norm(fitted.fun) > .01:
             raise ValueError(f'CAD arm registration failed: {side}: {fitted.fun}')
         angles.update(dict(zip(names, fitted.x)))
-        # Exact CAD pivots remove rounding/changed wrist mounting offsets.
+        # 정확한 CAD 회전축으로 반올림 및 바뀐 손목 장착 오프셋을 제거합니다.
         for joint_name, link in zip(names + [f'{side}_wrist_roll_joint'],
                                    [f'{side}_{n}' for n in ['upper_arm_link', 'lower_arm_link', 'wrist_pitch_link', 'gripper_frame']]):
             j = joints[joint_name]
             parent = fk(robot, angles)[j.find('parent').get('link')]
             local = np.linalg.inv(parent) @ np.r_[anchors[link], 1]
             j.find('origin').set('xyz', values(local[:3]))
-        # Pincer linkage is a fixed CAD snapshot, not the former hinged jaw.
+        # pincer linkage는 고정 CAD snapshot이며 이전 hinged jaw가 아닙니다.
         j = joints[f'{side}_gripper_joint']
         j.find('limit').set('lower', '0')
         j.find('limit').set('upper', '0')
@@ -193,7 +193,7 @@ def build_registration(robot, records):
         tips = [center(records[f'{side.title()}Kinematic_CameraTool180_Pinc_Removable_Tip_{n}']) for n in ['L', 'R']]
         tcp = np.linalg.inv(frames[f'{side}_gripper_frame']) @ np.r_[cad_point(np.mean(tips, axis=0)), 1]
         joints[f'{side}_grasp_tcp_joint'].find('origin').set('xyz', values(tcp[:3]))
-    # The CAD head is forward-facing at zero. Pan origin lies at tilt-axis height.
+    # CAD 헤드는 0에서 전방을 향하며 pan 원점은 tilt 축 높이에 있습니다.
     pan = center(records['HeadPanDriveHorn'])
     tilt = center(records['HeadTiltDriveHorn'])
     pan[2] = tilt[2]
@@ -201,7 +201,7 @@ def build_registration(robot, records):
     set_origin(joints['top_base_joint'], pose())
     set_origin(joints['head_pan_joint'], pose(cad_point(pan)))
     set_origin(joints['head_tilt_joint'], pose(CAD_R @ ((tilt - pan) * .001)))
-    # Use the same documented nominal D435 imager offsets as CAD validation.
+    # CAD 검증과 동일하게 문서화된 명목 D435 imager 오프셋을 사용합니다.
     camera = np.array([.11867774043964463, .016892537637999085, 1.0217826016167113]) + CAD_T
     set_origin(joints['head_camera_joint'], pose(camera - cad_point(tilt)))
     return angles, anchors
@@ -227,7 +227,7 @@ def link_for(name, parents):
     if 'HeadRig' in parents:
         return 'head_camera_link' if name.startswith('HeadCamera') else 'head_tilt_link'
     if name.startswith('Drive_') and name.endswith('_wheel'):
-        # CAD labels predate the documented X=-Y, Y=X robot axes.
+        # CAD label은 문서의 로봇 축 X=-Y, Y=X보다 먼저 정해진 이름입니다.
         aliases = {'rear_left':'front_right', 'rear_right':'front_left',
                    'front_left':'rear_right', 'front_right':'rear_left'}
         return aliases[name[6:-6]] + '_wheel_link'
@@ -255,7 +255,7 @@ def convex_mesh(points):
     if np.any(lengths == 0):
         raise ValueError('Degenerate hull triangle')
     normals /= lengths[:, None]
-    # Certify actual triangle planes, including slivers from float32 rounding.
+    # float32 반올림의 가느다란 면까지 포함해 실제 삼각형 평면을 검증합니다.
     for start in range(0, len(normals), 128):
         n = normals[start:start+128]
         d = np.einsum('ij,ij->i', n, points[faces[start:start+128, 0]])
@@ -273,7 +273,7 @@ def export_collision(visual, destination):
             max_iterations=128, planes_per_iteration=16)
         mesh = convex_mesh(mesh.vertices)
     except ValueError:
-        # Thin solids or rounded slivers retain their exact source hull.
+        # 얇은 입체나 반올림으로 생긴 가느다란 면은 정확한 원본 껍질을 유지합니다.
         mesh = convex_mesh(source.vertices)
         certificate = {'max_expansion_from_component_hull_m': 0.0,
                        'method': 'exact_convex_hull'}
@@ -337,7 +337,7 @@ def main():
                 raw = triangles(shape)
                 if not len(raw):
                     raise ValueError(f'No triangles: {name}')
-                # MuJoCo's STL decoder accepts at most 200,000 triangles per file.
+                # MuJoCo STL decoder는 파일당 삼각형을 최대 200,000개 받습니다.
                 for chunk_start in range(0, len(raw), 190000):
                     chunk = raw[chunk_start:chunk_start+190000]
                     key = name if len(shapes) == 1 and len(raw) <= 190000 else f'{name}_{part}_{chunk_start}'
@@ -359,7 +359,7 @@ def main():
                                            mesh_sha256=hashlib.sha256((package/mesh).read_bytes()).hexdigest(),
                                            collision_mesh=str(collision), collision_sha256=hashlib.sha256((package/collision).read_bytes()).hexdigest(),
                                            cad_bounds_mm=record['bounds_mm'], collision_certificate=certificate))
-    # Camera optical registrations are derived from the lens axis, not old v8 data.
+    # 카메라 광학 등록은 이전 v8 데이터가 아닌 렌즈 축에서 구합니다.
     cameras = {}
     for side in ['left', 'right']:
         lens = records[side.title() + 'Camera_Lens']
@@ -367,7 +367,7 @@ def main():
         with zipfile.ZipFile(args.source) as archive:
             glass = triangles(read_shape(archive, records[side.title()+'Camera_Glass']['brep'])).reshape(-1,3)
         glass_local = (glass-p[:3,3]) @ p[:3,:3]
-        # Nominal rendering origin just outside the modeled front glass surface.
+        # 모델링한 전면 유리 바로 바깥의 명목 렌더링 원점입니다.
         lens_center = p @ np.array([0, 0, glass_local[:,2].max()+.1, 1])
         cv = pose(cad_point(lens_center[:3]), CAD_R @ p[:3, :3])
         cameras[side] = (np.linalg.inv(frames[side + '_gripper_frame']) @ cv).tolist()
@@ -407,8 +407,8 @@ def write_xacro(package, robot):
 
 
 def write_wrist_config(path, cameras, source_sha):
-    """Keep the simulation TF publisher on the same nominal CAD registration."""
-    lines = ['# Nominal CAD lens origin; not measured hand-eye calibration.',
+    """시뮬레이션 TF publisher에도 같은 명목 CAD 등록을 적용합니다."""
+    lines = ['# 명목 CAD 렌즈 원점이며 측정된 손-눈 보정값이 아닙니다.',
              'source: simulation_nominal_cad', 'cad_sha256: ' + source_sha]
     for side, matrix in cameras.items():
         t = np.asarray(matrix)
@@ -426,7 +426,7 @@ def write_mjcf(package, robot, cameras):
     root.append(deepcopy(old.find('compiler')))
     asset = ET.SubElement(root, 'asset')
     root.append(deepcopy(old.find('default')))
-    # Shared defaults still reference these materials for roller contact visuals.
+    # 공통 기본값은 롤러 접촉 외형에 이 재질들을 계속 참조합니다.
     for m in old.findall('asset/material'):
         asset.append(deepcopy(m))
     world = ET.SubElement(root, 'worldbody')
@@ -450,7 +450,7 @@ def write_mjcf(package, robot, cameras):
             if child.endswith('_wheel_link'):
                 name = child.removesuffix('_link')
                 wheel = deepcopy(old.find(f'.//body[@name="{name}"]'))
-                # Preserve the validated roller contact model and 500 g total mass.
+                # 검증된 롤러 접촉 모델과 총질량 500g을 유지합니다.
                 for geom in wheel.findall('geom'):
                     wheel.remove(geom)
                 bodies[parent].append(wheel)
@@ -484,7 +484,7 @@ def write_mjcf(package, robot, cameras):
             ET.SubElement(asset, 'mesh', name=meshname, file=meshfile)
             rotation = np.eye(3)
             if link_name.endswith('_wheel_link'):
-                # Wheel body uses +Z axle; URDF uses +Y axle.
+                # 바퀴 body 축은 +Z이며 URDF 축은 +Y입니다.
                 rotation = Rotation.from_euler('x', np.pi/2).as_matrix()
             q = Rotation.from_matrix(rotation).as_quat()[[3,0,1,2]]
             ET.SubElement(body, 'geom', name=visual.get('name'), type='mesh', mesh=meshname,
@@ -496,7 +496,7 @@ def write_mjcf(package, robot, cameras):
                                      type='mesh', mesh=collision_name, attrib={'class':'collision'})
                 if any(meshname.endswith('Kinematic_CameraTool180_Pinc_' + part) for part in
                        ['Removable_Tip_L', 'Tip_Support_L', 'Removable_Tip_R', 'Tip_Support_R', 'Distal_Shell_R']):
-                    # Retain the simulation contact material; this is not a measured coefficient.
+                    # 시뮬레이션 접촉 재질을 유지하며 측정된 계수는 아닙니다.
                     geom.set('friction', '3 .2 .1')
                     geom.set('condim', '6')
         if link_name.endswith('_grasp_tcp'):
@@ -513,7 +513,7 @@ def write_mjcf(package, robot, cameras):
         ET.SubElement(bodies[name],'camera',name='head_realsense_'+kind,quat='0 1 0 0',fovy=fovy)
     ET.SubElement(chassis,'site',name='lidar_site',pos='0.18 0 0.08',size='.02',rgba='0 1 0 .5')
     contact = ET.SubElement(root,'contact')
-    # Only preserve exclusions whose bodies still exist. These are simulation approximations.
+    # 여전히 존재하는 body의 제외만 유지합니다. 시뮬레이션 근사입니다.
     names = {b.get('name') for b in root.findall('.//body')}
     for e in old.findall('contact/exclude'):
         if e.get('body1') in names and e.get('body2') in names:

@@ -1,4 +1,4 @@
-# Reproducible simulation stimuli and diagnostic thresholds, not product limits.
+# 재현 가능한 시뮬레이션 자극과 진단 임계값이며 제품 한계값이 아닙니다.
 fixtures:
   tall: {size: [0.4, 0.4, 1.4], z: 0.7}
   elevated: {size: [0.4, 0.4, 0.5], z: 0.85}
@@ -19,8 +19,8 @@ monitor:
   clear_s: 2.0
 avoid:
   goal: [4.0, 0.0, 0.0]
-  # Cross aisle; the box intrudes into the straight base footprint while
-  # leaving room for the configured stop envelope beside the desk ends.
+  # 가로 통로에서 상자가 직진 베이스 footprint 안으로 들어오지만
+  # 책상 끝 옆에는 설정된 정지 외곽이 들어갈 공간을 남깁니다.
   fixture_x: 3.15
   fixture_initial_y: 1.0
   fixture_final_y: 0.45

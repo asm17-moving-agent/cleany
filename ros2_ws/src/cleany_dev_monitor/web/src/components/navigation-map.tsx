@@ -10,7 +10,7 @@ const labels: Record<string, string> = {
   footprint: "차체 외곽",
 };
 
-// One overview in the map frame; sensor and planner geometry belongs in RViz.
+// 지도 좌표계의 전체 보기 하나만 제공하며 센서와 계획 형상은 RViz에서 봅니다.
 export function NavigationMap({
   rows,
   config,

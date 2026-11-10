@@ -1,4 +1,4 @@
-"""Command-line recording control; importing help and policy edits needs no ROS."""
+"""명령행 기록 제어입니다. 도움말과 정책 편집용 import에는 ROS가 필요하지 않습니다."""
 from __future__ import annotations
 
 import argparse
@@ -14,11 +14,11 @@ from .sources import SCHEMA, resolved, validate_sources
 
 
 class LoggerUnavailable(RuntimeError):
-    """Discovery or an RPC response did not arrive before its deadline."""
+    """탐색 또는 RPC 응답이 마감 시각까지 도착하지 않았습니다."""
 
 
 class LoggerRejected(RuntimeError):
-    """The logger rejected an operation against its current state."""
+    """logger가 현재 상태에서 해당 작업을 거부했습니다."""
 
 
 class ControlClient(Protocol):
@@ -56,7 +56,7 @@ def topic_rows(settings: dict) -> list[dict]:
 
 
 def edit_topic(settings: dict, edit: TopicEdit) -> dict:
-    """Patch one explicit role, preserving the effective selection of other roles."""
+    """명시한 역할 하나를 수정하고 다른 역할의 유효 선택 상태를 유지합니다."""
     value = copy.deepcopy(validate(settings))
     if edit.topics is None and edit.enabled is None and edit.hz is None:
         raise ValueError('Specify --topic, --enable, --disable or --hz')
@@ -105,7 +105,7 @@ def edit_topic(settings: dict, edit: TopicEdit) -> dict:
                   [f'{name}:{i}' for i in range(len(sources[name]))])
     if edit.enabled is not None:
         if edit.enabled and not value['enabled'][spec['group']]:
-            # Enabling a parent must not accidentally enable its other children.
+            # 부모를 활성화할 때 다른 자식이 의도치 않게 켜지지 않아야 합니다.
             for row in topic_rows(value):
                 if not row['raw'] and row['group'] == spec['group']:
                     value['source_enabled'][row['id']] = False

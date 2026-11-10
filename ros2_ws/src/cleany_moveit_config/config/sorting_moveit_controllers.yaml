@@ -1,4 +1,4 @@
-# Sorting-only opt-in: existing hardware controllers, disjoint joint ownership.
+# 분류 작업에서 선택적으로 사용하는 기존 하드웨어 제어기이며 관절 소유권은 겹치지 않습니다.
 moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
 moveit_simple_controller_manager:
   controller_names:

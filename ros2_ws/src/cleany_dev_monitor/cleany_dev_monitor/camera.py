@@ -1,4 +1,4 @@
-"""On-demand camera preview cache, independent of ROS and durable recordings."""
+"""ROS와 영속 기록에 독립적인 요청 기반 카메라 미리보기 캐시입니다."""
 
 import io
 import threading
@@ -18,7 +18,7 @@ class Frame:
 
 
 class Cameras:
-    """At most two leased topics; stale frames never masquerade as live images."""
+    """최대 두 토픽의 관측 lease를 유지하며 오래된 프레임을 실시간 영상으로 표시하지 않습니다."""
 
     def __init__(self, limit=2, fps=5.0, clock=time.monotonic):
         self.limit, self.fps, self.clock = limit, fps, clock
@@ -81,7 +81,7 @@ class Cameras:
 
 
 def encode_image(message):
-    """Bound decoding before allocation; honor ROS row stride and channel order."""
+    """메모리 할당 전에 디코딩 크기를 제한하고 ROS의 행 간격과 채널 순서를 따릅니다."""
     from PIL import Image
 
     if len(message.data) > 16 * 1024 * 1024:

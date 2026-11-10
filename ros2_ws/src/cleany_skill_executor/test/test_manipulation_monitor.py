@@ -1,4 +1,4 @@
-"""Execution evidence, replay ordering and the viewer's binary wire format."""
+"""실행 근거, 재생 순서와 viewer의 바이너리 전송 형식을 검사합니다."""
 
 from dataclasses import replace
 from pathlib import Path

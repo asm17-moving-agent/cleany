@@ -1,4 +1,4 @@
-"""Exercise the real serial bridge against a pseudo-terminal, without hardware."""
+"""하드웨어 없이 pseudo-terminal로 실제 serial 브리지를 검사합니다."""
 import json
 import os
 import time

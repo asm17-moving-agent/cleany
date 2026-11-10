@@ -1,4 +1,4 @@
-"""Run nearest-first perception, grasp selection, and pre-grasp execution."""
+"""가까운 물체부터 인식, 파지 선택과 pregrasp 실행을 수행합니다."""
 
 from __future__ import annotations
 
@@ -88,57 +88,57 @@ from cleany_skill_executor.seeded_cartesian import (
 
 
 class LiftRedetectionError(RuntimeError):
-    """A fresh detector snapshot has no distance-valid target of the same label."""
+    """새 검출 snapshot에 같은 label의 거리 유효 타깃이 없습니다."""
 
 
 class NearestPregraspCoordinator(GraspExecutionNode):
-    """Inspect objects in distance order and attempt a guarded pre-grasp.
+    """거리순으로 물체를 검사하고 보호 조건을 적용한 pregrasp를 시도합니다.
 
-    Inherits joint feedback and MoveIt/selection clients from GraspExecutionNode.
+    GraspExecutionNode의 관절 피드백과 MoveIt 및 선택 Client를 상속합니다.
 
     Subscriptions:
-        /monitored_planning_scene (moveit_msgs/msg/PlanningScene): Scene commits.
-        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): Fresh cloud;
-            replaced by a std_msgs/msg/Header subscription if a receipt topic is set.
-        /perception/debug_image_latched (sensor_msgs/msg/Image): Overlay background.
+        /monitored_planning_scene (moveit_msgs/msg/PlanningScene): 장면 반영.
+        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): 최신 점군.
+            receipt 토픽을 설정하면 std_msgs/msg/Header 구독으로 대체합니다.
+        /perception/debug_image_latched (sensor_msgs/msg/Image): overlay 배경.
         /cleany/internal/mujoco/left_wrist_camera/camera_info
-            (sensor_msgs/msg/CameraInfo): Overlay calibration.
+            (sensor_msgs/msg/CameraInfo): overlay 보정값.
         /{left,right}_arm_controller/controller_state
-            (control_msgs/msg/JointTrajectoryControllerState): Execution/contact feedback.
-        /robot_description (std_msgs/msg/String): Used by optional seeded Cartesian planning.
+            (control_msgs/msg/JointTrajectoryControllerState): 실행 및 접촉 피드백.
+        /robot_description (std_msgs/msg/String): 선택적 seed 기반 Cartesian 계획.
         /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
-            Optional observed mesh input; collision_geometry_topic default,
-            reliable and transient local.
+            선택적 관측 메시 입력. collision_geometry_topic 기본값이며
+            reliable, transient_local입니다.
 
     Publishers:
-        /grasp/debug_image_latched (sensor_msgs/msg/Image): Candidate overlay.
+        /grasp/debug_image_latched (sensor_msgs/msg/Image): 후보 overlay.
 
     Services:
-        /grasp/plan (cleany_interfaces/srv/PlanGrasp): Grasp candidates.
-        /compute_fk (moveit_msgs/srv/GetPositionFK): Measured TCP pose.
-        /compute_ik (moveit_msgs/srv/GetPositionIK) and /check_state_validity
-            (moveit_msgs/srv/GetStateValidity): Optional seeded Cartesian checks.
-        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene) and
-        /get_planning_scene (moveit_msgs/srv/GetPlanningScene): Temporary geometry
-            and allowed-contact updates through TargetSceneTransaction.
+        /grasp/plan (cleany_interfaces/srv/PlanGrasp): 파지 후보.
+        /compute_fk (moveit_msgs/srv/GetPositionFK): 측정 TCP 자세.
+        /compute_ik (moveit_msgs/srv/GetPositionIK), /check_state_validity
+            (moveit_msgs/srv/GetStateValidity): 선택적 seed 기반 Cartesian 검사.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene),
+        /get_planning_scene (moveit_msgs/srv/GetPlanningScene):
+            TargetSceneTransaction을 통한 임시 형상과 접촉 허용 갱신.
 
     Actions:
-        /perception/inspect_scene (cleany_interfaces/action/InspectScene): Inspection client.
-        /execute_trajectory (moveit_msgs/action/ExecuteTrajectory): Trajectory client.
+        /perception/inspect_scene (cleany_interfaces/action/InspectScene): 검사 Client.
+        /execute_trajectory (moveit_msgs/action/ExecuteTrajectory): 궤적 Client.
         /{left,right}_gripper_controller/follow_joint_trajectory
-            (control_msgs/action/FollowJointTrajectory): Gripper clients.
+            (control_msgs/action/FollowJointTrajectory): 그리퍼 Client.
 
     TF:
-        Reads camera/TCP transforms; does not broadcast.
+        카메라 및 TCP 변환을 읽으며 발행하지 않습니다.
 
     QoS:
-        Images and robot description are transient local; camera/cloud inputs
-        use sensor_data. Optional receipt input is reliable depth 1.
+        영상과 robot description은 transient_local이며 카메라 및 점군 입력은
+        sensor_data입니다. 선택적 receipt 입력은 reliable, depth 1입니다.
 
     Notes:
-        Inspection, grasp, scene, cloud, image and camera names above are parameter
-        defaults. Grasp/lift execution is opt-in; plan_only suppresses execution.
-        Scene receipts and scene commits are checked separately when required.
+        위 검사, 파지, 장면, 점군, 영상과 카메라 이름은 파라미터 기본값입니다.
+        파지 및 들기 실행은 선택 사항이며 plan_only는 실행을 막습니다.
+        필요한 경우 장면 수신 확인과 장면 반영을 별도로 검사합니다.
     """
 
     def __init__(self) -> None:
@@ -488,7 +488,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         selected_index: int | None = None,
         selected_arm: str = '',
     ) -> None:
-        """Publish candidate pre-grasp and grasp TCP points over the RGB view."""
+        """RGB 화면 위에 후보 pregrasp와 grasp TCP 점을 발행합니다."""
         if not self.get_parameter('publish_grasp_debug_overlay').value:
             return
         source = self._debug_image
@@ -616,7 +616,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             if self._execution_scene.active:
                 try:
                     self._execution_scene.restore()
-                # MoveGroup may stop first during launch shutdown.
+                # launch 종료 중 MoveGroup이 먼저 멈출 수 있습니다.
                 except Exception as error:
                     self.get_logger().warning(
                         'Could not restore target scene during shutdown: '
@@ -652,10 +652,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         ):
             raise RuntimeError('ExecuteTrajectory action is unavailable')
         self._wait_for_joint_state(startup_timeout)
-        # Service availability does not imply that the RGB and depth streams
-        # have produced a synchronised pair yet.  Honour the same startup hold
-        # used by the single-object demo before asking perception for a
-        # snapshot.
+        # 서비스 가용성이 RGB와 깊이의 동기 쌍 생성까지 의미하지는 않습니다.
+        # 인식 snapshot 요청 전에 단일 물체 데모와 동일한 시작 대기를 적용합니다.
         self._hold('demo_start_delay_sec')
 
         if bool(self.get_parameter('require_sensor_scene').value):
@@ -703,8 +701,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 return
             self._execute_pregrasp(selected, attempt)
             if bool(self.get_parameter('execute_grasp_and_lift').value):
-                # Every failure before physical gripper contact leaves the
-                # selected gripper open at the stationary pre-grasp pose.
+                # 물리적인 그리퍼 접촉 전 실패는 선택된 그리퍼를 연 상태로
+                # 정지한 pregrasp 자세에 남깁니다.
                 self._open_gripper(selected.selected_arm)
                 refreshed, refreshed_attempt = self._refresh_selected_grasp(
                     selected, attempt
@@ -748,14 +746,14 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             self._scene_cloud_stamp_ns = max(self._scene_cloud_stamp_ns or 0, stamp)
 
     def _check_sensor_scene(self) -> None:
-        # Humble's service serialization can race live OctoMap writes. The
-        # scene publisher takes the OctoMap read lock: consume its output.
+        # Humble 서비스 직렬화는 실시간 OctoMap 쓰기와 경쟁할 수 있습니다.
+        # OctoMap 읽기 잠금을 사용하는 장면 publisher의 출력을 소비합니다.
         age = float('inf') if self._scene_cloud_stamp_ns is None else (
             self.get_clock().now().nanoseconds - self._scene_cloud_stamp_ns
         ) / 1e9
-        # The processed-cloud receipt is published after tree writes. A static
-        # populated map need not be serialized again to prove a new integration.
-        # Raw cloud arrival alone must never renew this evidence.
+        # 처리된 점군 수신 확인은 트리 쓰기 이후 발행됩니다. 내용이 같은 정적 지도도
+        # 새 통합을 입증하려고 다시 직렬화할 필요는 없습니다.
+        # 원시 점군 도착만으로 이 근거를 갱신하지 않습니다.
         map_age = time.monotonic() - max(self._sensor_map_received_at,
             getattr(self, '_scene_commit_received_at', float('-inf')))
         maximum_age = float(self.get_parameter('sensor_scene_maximum_age_sec').value)
@@ -801,7 +799,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         return self._finish_object_detection(self._begin_object_detection())
 
     def _begin_object_detection(self):
-        """Submit detection and return its handle/future without waiting for inference."""
+        """추론을 기다리지 않고 검출을 제출한 handle/future를 반환합니다."""
         goal = InspectScene.Goal()
         goal.query = str(self.get_parameter('query').value)
         goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
@@ -929,9 +927,9 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         required_arm: str = '',
     ):
         if bool(self.get_parameter('require_sensor_scene').value):
-            # Inference may span multiple sensor updates on a CPU. Drain the
-            # subscriptions and wait for genuinely fresh geometry; do not
-            # relax the age limit or use an old map to start motion.
+            # CPU 추론 중 센서가 여러 번 갱신될 수 있습니다. 구독을 처리하고 실제로
+            # 최신인 형상을 기다리며 경과 시간 한계를 완화하거나 오래된 지도로
+            # 이동을 시작하지 않습니다.
             self._wait_for_sensor_scene(5.0)
         goal = SelectReachableGrasp.Goal()
         goal.candidates = candidates
@@ -1116,9 +1114,9 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         planned = self._plan_grasps(inspected, refreshed_attempt)
         if planned is None:
             raise RuntimeError('refreshed object produced no grasp candidates')
-        # Candidate ranking can change after a small segmentation/PCA change.
-        # Enforce the existing continuity gate before reachability selection,
-        # so an incompatible high-ranked candidate cannot hide a usable one.
+        # 작은 분할 또는 PCA 변화로 후보 순위가 바뀔 수 있습니다. 도달 가능성
+        # 선택 전에 기존 연속성 검사를 적용해 호환되지 않는 상위 후보가
+        # 사용 가능한 후보를 가리지 않게 합니다.
         compatible = []
         for candidate in planned.candidates:
             try:
@@ -1130,11 +1128,10 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         if not compatible:
             raise RuntimeError('refreshed object has no continuity-compatible grasp candidates')
         planned.candidates = compatible
-        # The selector owns a temporary OBB for the refreshed observation.
-        # Keeping the original execution OBB here represents the same object
-        # twice: jaw contacts are permitted only against the new OBB, so IK
-        # sees the old one as an unrelated obstacle. The arm is stationary
-        # and no object has been grasped at this handoff.
+        # 선택기는 새 관측의 임시 OBB를 소유합니다. 여기서 원래 실행 OBB를 유지하면
+        # 같은 물체를 두 번 표현합니다. 그리퍼 접촉은 새 OBB에만 허용되어 IK가
+        # 이전 OBB를 별도 장애물로 보게 됩니다. 이 전달 시점에는 팔이 정지해 있고
+        # 아직 물체를 잡지 않았습니다.
         self._execution_scene.restore()
         selected = self._select_reachable(
             planned.candidates,
@@ -1160,8 +1157,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             selected_arm=arm,
         )
 
-        # Replace the original snapshot's collision object with the refreshed
-        # OBB before contact-enabled Cartesian planning.
+        # 접촉을 허용한 Cartesian 계획 전에 원래 snapshot의 충돌 물체를
+        # 새 OBB로 교체합니다.
         scene_id = (
             'nearest_grasp_target_'
             f'{selected.selected_candidate.snapshot_id}_'
@@ -1216,9 +1213,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         approach_start = self._tcp_pose(arm)
         approach_start_joints = (self._arm_joint_state(arm)
                                  if getattr(self, '_use_joint_corridor', False) else None)
-        # The selector's 5-DOF IK may only approximate the candidate
-        # quaternion. Use FK of the accepted hard-constrained joint state
-        # as the exact Pilz endpoint orientation.
+        # 선택기의 5자유도 IK는 후보 quaternion을 근사할 수 있습니다.
+        # 엄격한 제약을 통과한 관절 상태의 FK를 정확한 Pilz 끝점 방향으로 사용합니다.
         grasp_pose = self._tcp_pose(
             arm, selected.grasp_joint_state
         )
@@ -1361,13 +1357,13 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             self._verify_lift_height(attempt)
 
     def _on_grasp_contact(self, selected, attempt: ObjectAttempt) -> None:
-        """Optional consumer hook after settled contact and before attachment."""
+        """접촉 정착 후 부착 전에 사용하는 선택적 소비자 hook입니다."""
 
     def _on_lift_motion_complete(self) -> None:
-        """Optional observation freshness barrier before the stabilization hold."""
+        """안정화 유지 전에 적용하는 선택적 관측 최신성 확인입니다."""
 
     def _align_refreshed_pregrasp(self, selected, attempt: ObjectAttempt) -> None:
-        """A refreshed selection may have planned from a different pregrasp."""
+        """갱신된 선택이 다른 pregrasp에서 계획되었을 수 있습니다."""
         arm = selected.selected_arm
         current = self._tcp_pose(arm)
         goal = self._tcp_pose(arm, selected.grasp_joint_state)
@@ -1532,7 +1528,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             self.get_parameter('lin_acceleration_scaling').value)
         request.start_state.joint_state.name = list(REQUIRED_JOINT_NAMES)
         request.start_state.joint_state.position = [self._joint_positions[n] for n in REQUIRED_JOINT_NAMES]
-        request.start_state.is_diff = True  # keep held-object scene attachments
+        request.start_state.is_diff = True  # 잡은 물체의 장면 부착물을 유지합니다.
         corridor = line_corridor(self._pose_position(start), self._pose_position(target),
                                  float(self.get_parameter('lin_position_tolerance_m').value))
         pose = Pose()
@@ -1579,8 +1575,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 self.get_logger().debug(f'{label} FK corridor verified: lateral={lateral:.6f}m '
                                        f'orientation={math.degrees(angle):.3f}deg samples={len(samples)}')
             else:
-                # Position-only KDL can report success while ignoring the
-                # requested Pilz orientation. Never execute such an endpoint.
+                # 위치 전용 KDL은 요청한 Pilz 방향을 무시하고도 성공할 수 있습니다.
+                # 이런 끝점은 실행하지 않습니다.
                 validate_pose_endpoint(samples[-1], self._cartesian_pose(target),
                                        position_limit, orientation_limit)
         except ValueError as error:
@@ -1648,7 +1644,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         contact_target: Pose | None = None,
         joint_target: JointState | None = None,
     ) -> RobotTrajectory:
-        """Plan and validate without sending a controller command; safe retry boundary."""
+        """제어기 명령 없이 계획 및 검증하며 이 경계에서는 재시도할 수 있습니다."""
         self._wait_arm_stationary(arm)
         start = self._tcp_pose(arm)
         goal = (self._linear_goal(arm, target, label, velocity_scaling)
@@ -1822,7 +1818,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             if state.feedback.effort
             else None
         )
-        # FK is queried only for a plausible stopped/error sample.
+        # 정지 또는 오차 조건에 부합할 가능성이 있는 표본에만 FK를 조회합니다.
         distance = math.inf
         effort_threshold = float(
             self.get_parameter('contact_effort_threshold').value
@@ -1991,7 +1987,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         return False
 
     def _wait_for_gripper_contact(self, arm: str, start: float, command: float) -> bool:
-        """Observe settling after close without sending another motor command."""
+        """추가 모터 명령 없이 닫힘 이후 정착을 관측합니다."""
         timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
         duration = float(self.get_parameter('gripper_contact_stable_duration_sec').value)
         if not all(math.isfinite(v) and v > 0 for v in (timeout, duration)):
@@ -2023,7 +2019,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 velocity = self._joint_velocities.get(joint, math.inf)
                 limit = float(self.get_parameter('gripper_contact_max_velocity_rad_s').value)
                 if abs(actual-command) <= .05 and abs(velocity) <= limit:
-                    return False  # Fully closed, with no object contact.
+                    return False  # 물체 접촉 없이 완전히 닫힌 상태입니다.
         raise RuntimeError(f'{arm} gripper contact did not stabilize within {timeout:.1f}s')
 
     def _gripper_contact_stalled(

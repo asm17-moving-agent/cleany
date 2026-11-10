@@ -1,4 +1,4 @@
-"""Simulation-only learned RGB-D pick/sort/place workflow."""
+"""시뮬레이션 전용 학습 RGB-D 집기, 분류와 놓기 절차입니다."""
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory

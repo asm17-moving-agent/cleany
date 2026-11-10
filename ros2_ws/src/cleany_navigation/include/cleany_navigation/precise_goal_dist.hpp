@@ -1,7 +1,7 @@
 #pragma once
 #include "dwb_critics/goal_dist.hpp"
 namespace cleany_navigation {
-/// Preserve stock grid guidance and failures, resolving its final-cell plateau.
+/// 기본 격자 유도와 실패 동작을 유지하며 마지막 셀의 평탄 구간을 해소합니다.
 class PreciseGoalDistCritic : public dwb_critics::GoalDistCritic {
 public:
   void onInit() override;

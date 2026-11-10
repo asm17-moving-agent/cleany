@@ -223,7 +223,7 @@ def test_dense_samples_reconstruct_same_cubic_used_by_jtc():
     path = CubicJointPath([(0.,), (.2,), (.4,)])
     samples = path.samples(.01, 10)
     for first, second in zip(samples, samples[1:]):
-        # Hermite midpoint reconstructed from emitted positions and velocities.
+        # 발행한 위치와 속도로 Hermite 중간점을 재구성합니다.
         h = second.progress-first.progress
         midpoint = .5*(first.positions[0]+second.positions[0]) + h/8*(first.derivatives[0]-second.derivatives[0])
         progress = (first.progress+second.progress)/2

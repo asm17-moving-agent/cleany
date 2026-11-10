@@ -1,4 +1,4 @@
-"""Exercise both phone launch graphs and their actual merged controller config."""
+"""핸드폰 launch graph 두 개와 실제 병합된 제어기 설정을 검사합니다."""
 from pathlib import Path
 from xml.etree import ElementTree as ET
 

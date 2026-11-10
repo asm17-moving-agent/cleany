@@ -78,7 +78,7 @@ string snapshot_id
 uint32 object_id
 sensor_msgs/PointCloud2 target_cloud
 sensor_msgs/PointCloud2 context_cloud
-# OBB pose uses the same frame and capture time as both point clouds.
+# OBB 자세는 두 점군과 동일한 좌표계 및 촬영 시각을 사용합니다.
 DetectedObject3D target_object
 ---
 ```

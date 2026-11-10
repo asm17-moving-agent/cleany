@@ -33,7 +33,7 @@ def _numpy(value: Any) -> np.ndarray:
 
 
 class YoloeDetector:
-    """Ultralytics YOLOE adapter with optional instance masks."""
+    """선택적 instance mask를 제공하는 Ultralytics YOLOE 어댑터입니다."""
 
     def __init__(
         self,
@@ -99,7 +99,7 @@ class YoloeDetector:
         self._model = None
 
     def prepare(self) -> None:
-        """Load checkpoint and text prompts before accepting requests."""
+        """요청을 받기 전에 체크포인트와 텍스트 프롬프트를 로드합니다."""
         self._get_model()
 
     def detect(
@@ -118,7 +118,7 @@ class YoloeDetector:
         model = self._get_model()
         try:
             options = dict(
-                # Ultralytics interprets NumPy images as BGR; our port is RGB.
+                # Ultralytics는 NumPy 영상을 BGR로 해석하지만 이 포트는 RGB를 사용합니다.
                 device=self._device,
                 imgsz=self._image_size,
                 conf=self._confidence_threshold,
@@ -223,9 +223,9 @@ class YoloeDetector:
                 from ultralytics import YOLOE
 
                 factory = YOLOE
-            # Ultralytics resolves mobileclip2_b.ts relative to the process
-            # working directory. Restrict that global change to serialized
-            # one-time model setup and restore it immediately afterwards.
+            # Ultralytics는 프로세스 작업 디렉터리에서 mobileclip2_b.ts를 찾습니다.
+            # 전역 경로 변경을 직렬화된 일회성 모델 설정에만 한정하고
+            # 설정 직후 복구합니다.
             with _MODEL_SETUP_LOCK:
                 original_directory = Path.cwd()
                 try:
@@ -252,7 +252,7 @@ class YoloeDetector:
 
 
 class YoloeMaskSegmenter:
-    """Use masks from the matching YOLOE detection, without a second model call."""
+    """두 번째 모델 호출 없이 대응하는 YOLOE 검출의 mask를 사용합니다."""
 
     def prepare(self) -> None:
         pass

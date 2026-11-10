@@ -90,8 +90,8 @@ def test_read_failure_is_unknown_and_recovers(monkeypatch):
 
 def test_unreadable_container_temperature_does_not_stop_other_metrics(monkeypatch):
     sampler = ResourceSampler()
-    # Two immediate reads can share a kernel CPU tick in a container. Advance
-    # counters explicitly so this test isolates temperature failure/recovery.
+    # 컨테이너에서 연속된 읽기는 같은 커널 CPU tick을 볼 수 있습니다.
+    # 카운터를 명시적으로 증가시켜 온도 실패와 복구만 검사합니다.
     from collections import namedtuple
     CpuTimes = namedtuple("CpuTimes", "user system idle")
     counters = iter([CpuTimes(10, 5, 85), CpuTimes(12, 6, 92)])

@@ -1,4 +1,4 @@
-"""Run the isolated ideal-kinematics fixture; never publish robot commands."""
+"""격리된 이상 운동학 fixture를 실행하며 로봇 명령을 발행하지 않습니다."""
 import argparse
 import json
 import os

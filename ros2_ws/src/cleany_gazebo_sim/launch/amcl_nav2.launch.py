@@ -1,4 +1,4 @@
-"""Compatibility launch using the common AMCL/Nav2 implementation."""
+"""공통 AMCL/Nav2 구현을 사용하는 호환 launch입니다."""
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription

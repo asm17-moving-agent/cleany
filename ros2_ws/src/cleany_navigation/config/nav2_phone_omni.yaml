@@ -1,4 +1,4 @@
-# Phone Omni: native Smac Lattice global planning and cost-based MPPI tracking.
+# 핸드폰 Omni: native Smac Lattice 전역 계획과 비용 기반 MPPI 추적입니다.
 controller_server:
   ros__parameters:
     speed_limit_topic: navigation/localization_speed_limit
@@ -19,7 +19,7 @@ controller_server:
       wz_std: 0.2
       temperature: 0.1
       validate_output: true
-      # Final actuator bound; body speeds are the operational limits.
+      # 최종 구동기 한계이며 body 속도는 운용 한계입니다.
       wheel_max_rad_s: 10.0
       acceleration_limits: true
       ax_max: 0.2
@@ -66,7 +66,7 @@ controller_server:
         cost_weight: 30.0
         threshold_to_consider: 0.5
       PathAlignCritic:
-        # Follow the path position; choose body yaw using motion and goal costs.
+        # 경로 위치를 따르며 이동 및 목표 비용으로 body yaw를 선택합니다.
         use_path_orientations: false
         offset_from_furthest: 2
         cost_weight: 5.0

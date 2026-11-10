@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed runtime identity checks for the licensed AnyGrasp service."""
+"""라이선스가 필요한 AnyGrasp 서비스의 실행 환경 식별자를 검사하며 불일치 시 차단합니다."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from typing import Mapping, Sequence
 
 
 IDENTITY_PATH = Path('/etc/cleany/jetson-identity.env')
-# License-bound MAC and feature ID live only in the root-owned identity file.
-# Runtime checks compare the container and SDK against that file.
+# 라이선스에 등록된 MAC과 feature ID는 root 소유 식별 파일에만 둡니다.
+# 실행 시 컨테이너와 SDK를 이 파일에 대조합니다.
 PINNED_ANYGRASP_IP = '172.30.0.10'
 PINNED_PERCEPTION_IP = '172.30.0.11'
 PINNED_VLM_IP = '172.30.0.12'
@@ -48,7 +48,7 @@ _MAC_PATTERN = re.compile(r'^[0-9a-f]{2}(?::[0-9a-f]{2}){5}$')
 
 
 class PreflightError(RuntimeError):
-    """Raised when the licensed service must not start."""
+    """라이선스 서비스를 시작할 수 없는 조건에서 발생합니다."""
 
 
 @dataclass(frozen=True)

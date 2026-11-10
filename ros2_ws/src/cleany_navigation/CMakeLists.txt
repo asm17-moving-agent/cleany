@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(cleany_navigation)
-# An unspecified single-config build otherwise compiles hot trajectory/sweep
-# and lattice-template code without optimization. Keep symbols for diagnosis;
-# explicit Debug/Release settings and multi-config generators remain intact.
+# 단일 설정 빌드에서 종류를 지정하지 않으면 자주 실행되는 궤적, sweep과
+# lattice template 코드가 최적화 없이 컴파일됩니다. 진단 심볼은 유지하며
+# 명시적인 Debug/Release와 다중 설정 생성기는 변경하지 않습니다.
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
@@ -55,11 +55,11 @@ target_include_directories(straight_first_planner PUBLIC include)
 if(nav2_core_VERSION VERSION_GREATER_EQUAL "1.2")
   target_compile_definitions(straight_first_planner PUBLIC CLEANY_NAV2_CANCEL_CHECKER=1)
 endif()
-# Humble exports hybrid, 2D and lattice libraries together. Each contains the
-# same NodeLattice static heuristic tables; loading hybrid+lattice interposes
-# those objects but registers both destructors, causing a double free at exit.
-# This adapter subclasses only SmacPlannerLattice. Retain exported headers and
-# link that single implementation instead of all package-exported plugins.
+# Humble은 hybrid, 2D와 lattice 라이브러리를 함께 내보냅니다. 각 라이브러리에
+# 같은 NodeLattice 정적 휴리스틱 표가 있어 hybrid와 lattice를 함께 로드하면
+# 객체 심볼이 겹치지만 소멸자는 둘 다 등록되어 종료 시 이중 해제가 발생합니다.
+# 이 어댑터는 SmacPlannerLattice만 상속하므로 내보낸 헤더는 유지하고
+# 패키지가 내보내는 전체 plugin 대신 해당 구현 하나만 링크합니다.
 find_library(CLEANY_NAV2_LATTICE_LIBRARY NAMES nav2_smac_planner_lattice REQUIRED)
 target_include_directories(straight_first_planner SYSTEM PUBLIC ${nav2_smac_planner_INCLUDE_DIRS})
 target_link_libraries(straight_first_planner ${CLEANY_NAV2_LATTICE_LIBRARY})
@@ -95,7 +95,7 @@ install(PROGRAMS
 )
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
 
-# The tuned MPPI implementation is part of this ROS package.
+# 조정된 MPPI 구현은 이 ROS 패키지에 포함됩니다.
 add_subdirectory(mppi)
 pluginlib_export_plugin_description_file(nav2_core mppi/controller_plugins.xml)
 pluginlib_export_plugin_description_file(cleany_navigation mppi/critics.xml)
@@ -108,8 +108,8 @@ if(BUILD_TESTING)
   ament_find_gtest()
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads REQUIRED)
-  # Regular dependency include roots can shadow ament's SYSTEM GTest headers
-  # with an incompatible version. Keep the linked GTest headers first instead.
+  # 일반 의존성 include 경로가 호환되지 않는 버전으로 ament의 SYSTEM GTest
+  # 헤더를 가릴 수 있으므로 링크하는 GTest 헤더를 먼저 찾게 합니다.
   foreach(gtest_target IN ITEMS ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
     if(TARGET ${gtest_target})
       set_property(TARGET ${gtest_target} PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "")
@@ -121,7 +121,7 @@ if(BUILD_TESTING)
     target_link_libraries(${target} ${GTEST_MAIN_LIBRARIES} ${GTEST_LIBRARIES} Threads::Threads)
     ament_add_gtest_test(${target})
   endfunction()
-  # The suite includes isolated lifecycle and sensor freshness integration checks.
+  # 검사에는 격리된 lifecycle과 센서 최신성 통합 검사를 포함합니다.
   ament_add_pytest_test(navigation_runtime_core test TIMEOUT 300)
   add_navigation_gtest(test_wheel_speed_limit test/test_wheel_speed_limit.cpp)
   add_navigation_gtest(test_slip_recovery_policy test/test_slip_recovery_policy.cpp)

@@ -1,4 +1,4 @@
-"""ROS reader. Subscriptions, TF lookups and the allowlisted read-only SubmapQuery."""
+"""구독, TF 조회와 허용 목록의 읽기 전용 SubmapQuery를 사용하는 ROS reader입니다."""
 
 import json
 import math
@@ -45,10 +45,10 @@ class NoSlam:
 
 
 class ObservationNode(Node):
-    """Bounded ROS observations shared by headless logging and live display.
+    """화면 없는 기록과 실시간 표시가 공유하는 범위 제한 ROS 관측입니다.
 
-    Reads configured sensor and runtime topics, TF and graph metadata. Adapters
-    can add camera previews or read-only SLAM queries without entering the logger.
+    설정된 센서 및 런타임 토픽, TF와 graph 메타데이터를 읽습니다. 어댑터는 logger에
+    직접 들어가지 않고 카메라 미리보기나 읽기 전용 SLAM 조회를 추가할 수 있습니다.
     """
     def __init__(self, *, node_name="cleany_observer", hub_factory=ObservationBuffer,
                  slam_factory=None, record=True, extra_defaults=None, **kwargs):
@@ -251,14 +251,14 @@ class ObservationNode(Node):
         self.hub.recording.discover(topics)
         revision = self.hub.recording.revision
         if revision != getattr(self, 'raw_recording_revision', None):
-            # Re-request every publisher's retained sample for a fresh session,
-            # including /tf_static even when another observer keeps it selected.
+            # 새 session에서 각 publisher의 보관된 표본을 다시 요청합니다. 다른 관측기가
+            # 계속 선택 중인 /tf_static도 포함합니다.
             for name in self.hub.recording.topics():
                 if name in self.subs and self.subs[name][1][2]:
                     self.destroy_subscription(self.subs.pop(name)[0])
             self.raw_recording_revision = revision
         wanted = self.fixed | selected | self.hub.cameras.selected() | self.hub.recording.topics()
-        # Action status/feedback are read-only public topics, not goal/result services.
+        # Action status/feedback은 읽기 전용 공개 토픽이며 goal/result 서비스가 아닙니다.
         wanted.update(
             sorted(
                 name
@@ -332,7 +332,7 @@ class ObservationNode(Node):
                             name,
                             lambda msg, topic=name: self.receive(topic, msg),
                             qos,
-                            # A queued retired handle must not strand the service callback group.
+                            # 큐에 남은 폐기된 handle이 서비스 콜백 그룹을 막지 않아야 합니다.
                             callback_group=MutuallyExclusiveCallbackGroup() if self.recording_enabled else None,
                         )
                         self.subs[name] = (sub, signature)
@@ -530,7 +530,7 @@ class ObservationNode(Node):
             elif topic == self.config["nav2_bt_topic"]:
                 self.navigation_receive(topic, message, ros_time)
             elif self.navigation_keys.get(topic) in ("pan", "reactive_guard", "voxel_guard", "coverage", "collision"):
-                # Detect every decision change before applying the state display cadence.
+                # 상태 표시 주기를 적용하기 전에 모든 판정 변화를 검출합니다.
                 publish_state = now - self.last_ui.get(topic, 0) >= 0.1
                 self.navigation_receive(topic, message, ros_time, publish_state=publish_state)
                 if publish_state:

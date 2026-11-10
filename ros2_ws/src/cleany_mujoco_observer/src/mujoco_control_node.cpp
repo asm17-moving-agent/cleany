@@ -29,9 +29,9 @@ using namespace std::chrono_literals;
 
 namespace
 {
-// Reference: https://man7.org/linux/man-pages/man2/sched_setparam.2.html
-// This value is used when configuring the main loop to use SCHED_FIFO scheduling
-// We use a midpoint RT priority to allow maximum flexibility to users
+// 참고: https://man7.org/linux/man-pages/man2/sched_setparam.2.html
+// 주 루프의 SCHED_FIFO 스케줄링 설정에 사용하는 값입니다.
+// 사용자가 조정할 여지를 남기도록 중간 RT 우선순위를 사용합니다.
 int const kSchedPriority = 50;
 
 }  // namespace
@@ -50,7 +50,7 @@ int main(int argc, char ** argv)
   {
     if (node_arguments.empty() && std::string(argv[i]) != "--ros-args")
     {
-      // A simple way to reject non ros args
+      // ROS 인자 이외의 인자를 거부합니다.
       continue;
     }
     node_arguments.push_back(argv[i]);
@@ -123,9 +123,9 @@ int main(int argc, char ** argv)
           thread_priority);
       }
 
-      // Based on mujoco_ros2_control 0.0.3. Keep its hardware/physics backend,
-      // but bind all three control operations to one captured ROS timestamp.
-      // The minimum-period gate prevents repeated feedback during overruns.
+      // mujoco_ros2_control 0.0.3 기반입니다. 하드웨어 및 물리 백엔드는 유지하되
+      // 세 제어 연산을 한 번 읽은 ROS 타임스탬프에 묶습니다.
+      // 최소 주기 gate가 실행 지연 중 피드백 반복 발행을 막습니다.
       try
       {
         if (!use_sim_time) {
@@ -153,8 +153,8 @@ int main(int argc, char ** argv)
         {
           const auto cycle = gate.take(clock->now().nanoseconds());
           if (cycle) {cycle->execute(manager);}
-          // An expired deadline is harmless: the gate still requires a new
-          // full period. A paused clock does not publish pretend fresh states.
+          // 지나간 마감 시각은 문제가 되지 않습니다. gate가 새 전체 주기를 요구하므로
+          // 시계가 멈췄을 때 새것처럼 보이는 상태를 발행하지 않습니다.
           if (!clock->sleep_until(rclcpp::Time(gate.next_stamp_ns(), RCL_ROS_TIME))) {break;}
         }
       }

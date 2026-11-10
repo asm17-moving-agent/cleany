@@ -61,7 +61,7 @@ def test_camera_http_staleness_leases_and_no_recorded_frames(tmp_path):
             },
         )
         recorder = Recorder(tmp_path)
-        # Resource sampling may run before any HTTP request; seed its record kind.
+        # HTTP 요청 전에 자원 수집이 실행될 수 있어 기록 종류를 미리 등록합니다.
         hub.put("resources", "host", {})
         async with (
             TestServer(create_app(hub, {}, recorder, tmp_path)) as server,
@@ -87,7 +87,7 @@ def test_camera_http_staleness_leases_and_no_recorded_frames(tmp_path):
                 response.status == 202 and (await response.json())["state"] == "stale"
             )
             hub.cameras.receive("/a", raw(encoding="16UC1"))
-            assert (await get("/a")).status == 422  # old valid frame was cleared
+            assert (await get("/a")).status == 422  # 이전의 유효 프레임을 지운 상태입니다.
             recorder.append(hub.snapshot())
             assert {
                 r["kind"]

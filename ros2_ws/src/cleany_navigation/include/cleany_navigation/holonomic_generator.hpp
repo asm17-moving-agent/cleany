@@ -6,9 +6,9 @@
 #include "dwb_plugins/standard_traj_generator.hpp"
 namespace cleany_navigation {
 /**
- * @brief Add holonomic and optional goal-directed candidates to DWB rollout.
- * Candidate velocities remain subject to the configured trajectory critics;
- * contexts supplied by the controller are valid for one iteration only.
+ * @brief DWB rollout에 전방향 및 선택적 목표 지향 후보를 추가합니다.
+ * 후보 속도에도 설정된 궤적 critic을 적용하며 제어기가 제공한 컨텍스트는
+ * 한 번의 반복 동안만 유효합니다.
  */
 class HolonomicGenerator : public dwb_plugins::StandardTrajectoryGenerator {
 public:
@@ -18,12 +18,12 @@ public:
   bool hasMoreTwists() override {return index_<candidates_.size();}
   nav_2d_msgs::msg::Twist2D nextTwist() override {return candidates_.at(index_++);}
   void reset() override;
-  /// Same-cycle controller input, in one common world frame. Consumed once;
-  /// never retain a goal across reset, replan, or a failed control cycle.
+  /// 같은 주기에서 공통 월드 좌표계로 전달하는 제어기 입력이며 한 번만 사용합니다.
+  /// reset, 재계획이나 제어 주기 실패를 넘어 목표를 보관하지 않습니다.
   void setGoalContext(const geometry_msgs::msg::Pose2D &pose,
     const geometry_msgs::msg::Pose2D &goal);
   void clearGoalContext() {goal_context_.reset();}
-  /// Extra candidates, never a post-collision velocity filter. One-cycle input.
+  /// 추가 후보이며 충돌 검사 후 속도 필터가 아닙니다. 한 주기 입력입니다.
   void setContinuityContext(const nav_2d_msgs::msg::Twist2D &velocity) {continuity_context_=velocity;}
   void clearContinuityContext() {continuity_context_.reset();}
   dwb_msgs::msg::Trajectory2D generateTrajectory(const geometry_msgs::msg::Pose2D &,
@@ -42,7 +42,7 @@ private:
     std::optional<double> first_dt_min, first_dt_max;
     size_t trajectories{0}, nonzero_targets{0}, zero_first_commands{0};
   };
-  // Opt-in bounded memory only while controlling. Write once on destruction.
+  // 제어 중에만 선택적 크기 제한 메모리를 사용하고 소멸 시 한 번 저장합니다.
   std::string timing_trace_file_;
   std::vector<TimingRecord> timing_records_;
   uint64_t reset_generation_{0};

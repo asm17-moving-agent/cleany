@@ -44,7 +44,7 @@ double CommandBearingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &
   return weight_*(angle+switch_cost_*std::min(1.,angle/switch_angle_));
 }
 void CommandBearingCritic::debrief(const nav_2d_msgs::msg::Twist2D &v) {
-  // A zero issued on failure leaves the camera at its last requested bearing.
+  // 실패 시 0을 내보내도 카메라는 마지막 요청 방위를 유지합니다.
   if(std::isfinite(v.x) && std::isfinite(v.y) && std::hypot(v.x,v.y)>1e-6)
     previous_=std::atan2(v.y,v.x);
 }

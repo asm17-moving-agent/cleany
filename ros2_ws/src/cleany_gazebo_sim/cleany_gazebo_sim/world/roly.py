@@ -1,4 +1,4 @@
-"""Local, static ROLY-inspired furniture with explicit estimated dimensions."""
+"""추정 치수를 명시한 로컬 고정 ROLY 유사 가구 모델입니다."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def load_roly_config(path: Path) -> RolyConfig:
             raise ValueError('vertical dimensions')
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError(f'invalid ROLY dimensions/colors: {error}') from error
-    # Resolve package assets independently of a custom config's directory.
+    # 사용자 설정 디렉터리와 독립적으로 패키지 asset 경로를 찾습니다.
     mesh_dir = Path(__file__).resolve().parents[2] / 'models/roly_p1g210m'
     if not mesh_dir.is_dir():
         from ament_index_python.packages import get_package_share_directory
@@ -95,7 +95,7 @@ def add_roly_chair(
     config: RolyConfig,
     mesh_cache_dir: Path | None = None,
 ) -> ET.Element:
-    # Imported lazily so the existing generator can select this model too.
+    # 기존 생성기에서도 이 모델을 선택할 수 있도록 지연 import합니다.
     from cleany_gazebo_sim.world.generator import (
         _add_box_part,
         _add_cylinder_part,
@@ -181,7 +181,7 @@ def add_roly_chair(
     )
     origin = c.vector('back_origin_m')
     back = c.vector('back_size_m')
-    # Broad collision panels follow the bow; fine weave is not simulated optically.
+    # 넓은 충돌 패널은 휨을 따르며, 미세한 직조 구조의 광학 효과는 시뮬레이션하지 않습니다.
     for i in range(5):
         t = (i + 0.5) / 5
         x = origin[0] + back[0] * (0.58 * sin(pi * t) - 0.72 * t)
@@ -223,7 +223,7 @@ def add_roly_chair(
     _add_box_collision(
         link, 'tilt_housing', (0.22, 0.17, 0.09), (-0.045, 0.0, bottom - 0.094)
     )
-    # Detailed smooth surfaces are independent of the simple physics proxies.
+    # 매끄러운 상세 표면은 단순한 물리 충돌 형상과 별도로 구성합니다.
     for visual in list(link.findall('visual')):
         link.remove(visual)
     from cleany_gazebo_sim.world.roly_geometry import add_visuals

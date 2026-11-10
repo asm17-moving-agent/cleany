@@ -1,4 +1,4 @@
-"""Verify cross-architecture dependency comparison and missing-package failures."""
+"""아키텍처 간 의존성 비교와 누락 패키지 실패를 검증합니다."""
 
 import importlib.util
 from pathlib import Path

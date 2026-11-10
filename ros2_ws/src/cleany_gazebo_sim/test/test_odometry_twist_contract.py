@@ -1,4 +1,4 @@
-"""The ideal error adapter must not reintroduce encoder velocity aliasing."""
+"""이상적 오차 어댑터가 엔코더 속도 aliasing을 다시 만들지 않는지 확인합니다."""
 from types import SimpleNamespace
 from unittest.mock import Mock
 import pytest

@@ -1,8 +1,8 @@
-"""Monotone cubic joint interpolation with analytical derivative bounds.
+"""해석적 미분 한계를 가진 단조 3차 관절 보간입니다.
 
-Positions + velocities reconstruct these same cubics in ROS 2 JTC's spline
-interpolator. Acceleration fields must remain empty (not quintic interpolation).
-This provides joint-rate bounds, not continuous Cartesian collision guarantees.
+위치와 속도로 ROS 2 JTC spline 보간기가 같은 3차식을 재구성합니다.
+5차 보간이 되지 않도록 가속도 필드는 비워야 합니다. 관절 속도 한계를
+제공하지만 연속 Cartesian 충돌 안전을 보장하지는 않습니다.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ class CubicJointPath:
             raise ValueError('joint path needs at least two finite equal-sized states')
         self._h = 1.0 / (len(q)-1)
         secants = np.diff(q, axis=0) / self._h
-        slopes = np.zeros_like(q)  # rest at both endpoints
+        slopes = np.zeros_like(q)  # 양 끝점에서 정지합니다.
         for i in range(1, len(q)-1):
             previous, following = secants[i-1], secants[i]
             same_sign = previous * following > 0
@@ -49,7 +49,7 @@ class CubicJointPath:
         return JointPathSample((segment+u)*self._h, tuple(q), tuple(derivative))
 
     def derivative_bounds(self) -> tuple[np.ndarray, np.ndarray]:
-        """Exact max |dq/ds|, |d²q/ds²| for normalized progress s."""
+        """정규 진행률 s에 대한 정확한 최대 |dq/ds|와 |d²q/ds²|입니다."""
         velocity = np.zeros(self.positions.shape[1])
         acceleration = velocity.copy()
         for a, b, c, _ in self._coefficients:
@@ -78,8 +78,8 @@ class CubicJointPath:
         if (not math.isfinite(maximum_joint_step) or maximum_joint_step <= 0 or
                 minimum_subdivisions < 1 or maximum_points < 2):
             raise ValueError('invalid joint path sampling limits')
-        # Bound each segment separately: one difficult segment must not force
-        # every near-stationary segment to use the same dense sampling rate.
+        # 구간별로 제한해 어려운 구간 하나 때문에 거의 정지한 모든 구간까지
+        # 같은 조밀한 표본 간격을 사용하지 않게 합니다.
         counts = []
         for a, b, c, _ in self._coefficients:
             maximum = np.maximum(np.abs(c), np.abs(3*a+2*b+c))

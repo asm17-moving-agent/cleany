@@ -33,12 +33,11 @@ def stamp_nanoseconds(message: Any) -> int:
 
 
 class RgbdSnapshotBuffer:
-    """Pair color, depth and both calibrations at exactly one timestamp.
+    """색상, 깊이와 두 보정값을 정확히 같은 타임스탬프로 묶습니다.
 
-    Condition-protected callbacks retain at most maximum_pending_stamps partial
-    bundles. A completed bundle replaces the previous one; older or equal
-    stamps are then ignored. Message objects are retained without copying, so
-    producers and consumers must not mutate them after insertion.
+    Condition으로 보호한 콜백은 maximum_pending_stamps개 이하의 부분 묶음을
+    유지합니다. 완성 묶음이 이전 것을 대체한 뒤 오래되거나 같은 stamp는 무시합니다.
+    메시지를 복사하지 않고 보관하므로 생성자와 소비자는 삽입 이후 변경하면 안 됩니다.
     """
     _KINDS = ('color', 'color_info', 'depth', 'depth_info')
 
@@ -79,14 +78,14 @@ class RgbdSnapshotBuffer:
         timeout_seconds: float,
         cancelled: Callable[[], bool] | None = None,
     ) -> SynchronizedRgbdMessages:
-        """Wait for a completed bundle newer than the caller's sequence cursor.
+        """호출자의 순서 cursor보다 새로 완성된 묶음을 기다립니다.
 
-        The timeout uses monotonic wall time, independent of the ROS clock.
-        Cancellation is checked while waiting, at most 50 ms apart.
+        시간 제한은 ROS 시계와 독립적인 단조 경과 시간입니다.
+        대기 중 취소는 최대 50ms 간격으로 확인합니다.
 
         Raises:
-            ValueError: The timeout is nonpositive.
-            InspectionFailure: Waiting times out or cancellation is observed.
+            ValueError: 시간 제한이 양수가 아닌 경우.
+            InspectionFailure: 대기 시간이 초과되거나 취소를 확인한 경우.
         """
         if timeout_seconds <= 0.0:
             raise ValueError('RGB-D timeout must be positive')
@@ -145,21 +144,21 @@ def snapshot_from_messages(
     messages: SynchronizedRgbdMessages,
     depth_16u_scale_m: float = 0.001,
 ) -> RgbdSnapshot:
-    """Decode an already paired, aligned RGB-D capture.
+    """이미 짝지어 정렬한 RGB-D 촬영을 디코딩합니다.
 
-    Images must share dimensions, optical frame and matching intrinsics;
-    RgbdSnapshotBuffer owns timestamp pairing before this conversion.
+    영상 크기, 광학 좌표계와 내부 파라미터가 일치해야 합니다.
+    변환 전 시각 짝짓기는 RgbdSnapshotBuffer가 담당합니다.
 
     Args:
-        depth_16u_scale_m: Metres per stored depth unit for 16UC1 images.
-            32FC1 depth is already in metres.
+        depth_16u_scale_m: 16UC1 저장 깊이 한 단위당 미터 수.
+            32FC1 깊이는 이미 미터 단위입니다.
 
     Returns:
-        RGB pixels, metric depth and intrinsics in the capture's source frame,
-        retaining its timestamp in nanoseconds.
+        촬영 원본 좌표계의 RGB 픽셀, 미터 깊이와 내부 파라미터이며
+        나노초 타임스탬프를 유지합니다.
 
     Raises:
-        InspectionFailure: Encoding, calibration or alignment is invalid.
+        InspectionFailure: 인코딩, 보정 또는 정렬이 잘못된 경우.
     """
     try:
         rgb = _rgb_array(messages.color)

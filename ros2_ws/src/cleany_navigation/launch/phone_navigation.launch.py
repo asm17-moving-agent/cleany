@@ -1,4 +1,4 @@
-"""Phone navigation defaults to longitudinal movement and rotation."""
+"""핸드폰 주행의 기본 동작은 전후 이동과 회전입니다."""
 from cleany_navigation.launch_runtime import navigation_launch_description
 
 

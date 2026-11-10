@@ -1,4 +1,4 @@
-"""One local instance-segmentation pass followed by one semantic API request."""
+"""로컬 instance 분할 한 번 후 의미 분류 API 요청 한 번을 수행합니다."""
 from __future__ import annotations
 
 from collections.abc import Sequence

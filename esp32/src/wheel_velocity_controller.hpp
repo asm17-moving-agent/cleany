@@ -13,11 +13,11 @@ struct WheelVelocityControllerConfig {
 };
 
 /**
- * @brief Convert wheel speed error to signed PWM percent with PI anti-windup.
+ * @brief PI 적분 포화 방지와 함께 휠 속도 오차를 부호 있는 PWM %로 바꿉니다.
  *
- * Inputs use rad/s and seconds. Output cannot oppose the target direction;
- * MotorCommandFilter owns reversal after encoder-confirmed stop.
- * The caller must supply finite inputs and a valid positive speed scale.
+ * 입력 단위는 rad/s와 초이며 출력 방향은 목표 방향을 거스르지 않습니다.
+ * encoder로 정지를 확인한 뒤의 방향 반전은 MotorCommandFilter가 담당합니다.
+ * 호출자는 유한한 입력과 유효한 양의 속도 기준값을 전달해야 합니다.
  */
 class WheelVelocityController {
  public:
@@ -27,8 +27,8 @@ class WheelVelocityController {
       : config_(config) {}
 
   /**
-   * @brief Advance PI state and return bounded PWM percent.
-   * Zero target or nonpositive elapsed time resets the integral and returns zero.
+   * @brief PI 상태를 갱신하고 제한된 PWM %를 반환합니다.
+   * 목표가 0이거나 경과 시간이 0 이하이면 적분 상태를 초기화하고 0을 반환합니다.
    */
   float update(float targetRadPerSecond, float measuredRadPerSecond,
                float elapsedSeconds) {
@@ -66,7 +66,7 @@ class WheelVelocityController {
     const float output =
         feedForward + config_.proportionalGain * error +
         config_.integralGain * integralError_;
-    // Direction changes are handled separately after encoder-confirmed stop.
+    // 방향 반전은 encoder로 정지를 확인한 뒤 별도로 처리합니다.
     return std::clamp(output, lowerOutput, upperOutput);
   }
 

@@ -1,6 +1,6 @@
-# Simulation calibration for quantized wheels without added odometry error.
-# Verified with the 5 cm LiDAR-plane facility map and measured-noise LiDAR.
-# Do not use as an uncalibrated physical-robot profile.
+# 추가 odometry 오차가 없는 양자화된 바퀴의 시뮬레이션 보정값입니다.
+# 5cm LiDAR 평면 시설 지도와 측정 잡음을 적용한 LiDAR로 검증했습니다.
+# 별도 보정 없이 실물 로봇 프로파일로 사용하지 않습니다.
 amcl:
   ros__parameters:
     alpha1: 0.001

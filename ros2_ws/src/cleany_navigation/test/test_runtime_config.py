@@ -78,7 +78,7 @@ def test_humble_preserves_three_point_stop_boundary_and_bt_registration():
     result = adapt_nav2_parameters(source, 'humble')
     zone = result['collision_monitor']['ros__parameters']['StopZone']
     assert len(zone['points']) == 8
-    # Jazzy triggers at points >= min_points, Humble at points > max_points.
+    # Jazzy는 points >= min_points, Humble은 points > max_points에서 발동합니다.
     assert 'min_points' not in zone
     assert zone['max_points'] == before['collision_monitor']['ros__parameters']['StopZone']['min_points'] - 1 == 2
     assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_smac_planner/SmacPlannerLattice'
@@ -248,7 +248,7 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
 
 
 def test_default_omni_lattice_mppi_survives_humble_layering():
-    """The selected motion layer must not restore DWB or an unsupported plugin name."""
+    """선택한 이동 계층이 DWB나 지원되지 않는 plugin 이름을 되살려서는 안 됩니다."""
     doc = parameters()
     merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
     adapted = adapt_nav2_parameters(doc, 'humble')
@@ -267,7 +267,7 @@ def test_default_omni_lattice_mppi_survives_humble_layering():
 
 @pytest.mark.parametrize('omni_layer', [False, True])
 def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
-    """Both launch modes resolve the actual regenerated primitive without stock fallback."""
+    """두 launch 모드 모두 기본 대체 경로 없이 실제 재생성된 기본 경로를 찾습니다."""
     import hashlib
     import json
     from cleany_navigation.runtime_config import resolve_default_lattice

@@ -1,4 +1,4 @@
-"""ROS 2 wrapper for the dependency-free pose relay."""
+"""의존성 없는 자세 relay의 ROS 2 래퍼입니다."""
 
 from __future__ import annotations
 
@@ -14,17 +14,17 @@ from .relay import PoseRelay, quaternion_yaw
 
 
 class TelemetryNode(Node):
-    """Forward finite odometry poses to the telemetry WebSocket worker.
+    """유한한 odometry 자세를 telemetry WebSocket worker로 전달합니다.
 
     Subscriptions:
-        /odom (nav_msgs/msg/Odometry): Pose and capture timestamp; odom_topic default.
+        /odom (nav_msgs/msg/Odometry): 자세와 촬영 시각이며 odom_topic 기본값입니다.
 
     QoS:
-        Input uses best-effort, keep-last depth 1.
+        입력은 best_effort, keep_last, depth 1입니다.
 
     Notes:
-        The callback updates a shared latest pose; PoseRelay owns socket I/O,
-        rate limiting and stale-input handling. Coordinates retain the input frame.
+        콜백은 공유 최신 자세만 갱신합니다. 소켓 I/O, 속도 제한과 오래된 입력
+        처리는 PoseRelay가 담당하며 좌표는 입력 좌표계를 유지합니다.
     """
     def __init__(self) -> None:
         super().__init__("cleany_telemetry")

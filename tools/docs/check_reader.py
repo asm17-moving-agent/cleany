@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Check every documentation page through an already running Chromium CDP endpoint.
+"""이미 실행 중인 Chromium CDP endpoint로 모든 문서 페이지를 검사합니다.
 
-Requires websockets. Starts no browser, ROS node, server or robot process.
-Reports and focused figure screenshots go to --output, outside the repository.
+websockets가 필요합니다. 브라우저, ROS 노드, 서버나 로봇 프로세스를 시작하지
+않습니다. 보고서와 도표별 스크린샷은 저장소 밖의 --output에 저장합니다.
 """
 
 from __future__ import annotations

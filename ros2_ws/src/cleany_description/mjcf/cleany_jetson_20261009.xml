@@ -81,18 +81,16 @@
       <geom contype="0" conaffinity="0" />
       <joint damping="0.611437854" frictionloss="0.052" armature="0.028" actuatorfrcrange="-2.6477955 2.6477955" />
       <position kp="998.22" kv="2.731" forcerange="-2.6477955 2.6477955" />
-      <!-- Deferred until the MuJoCo/ros2_control upgrade. Also remove legacy
-           damping and change the servo actuator tags when enabling this.
-      <dcmotor gear="1" nominal="12 2.941995 4.71710608647" saturation="2.6477955 0 0" input="position" controller="4071.60447248 0 11.1393799106 0 0 10.8" />
-      -->
+      <!-- MuJoCo/ros2_control 업그레이드까지 적용을 보류합니다. 활성화할 때는
+기존 damping을 제거하고 servo actuator 태그도 바꿔야 합니다.
+<dcmotor gear="1" nominal="12 2.941995 4.71710608647" saturation="2.6477955 0 0" input="position" controller="4071.60447248 0 11.1393799106 0 0 10.8" /> -->
     </default>
     <default class="sts3250">
       <geom contype="0" conaffinity="0" />
       <joint damping="0.615411848" frictionloss="0.052" armature="0.028" actuatorfrcrange="-4.4129925 4.4129925" />
       <position kp="998.22" kv="2.731" forcerange="-4.4129925 4.4129925" />
-      <!-- Deferred position-input motor; see the sts3215 upgrade note.
-      <dcmotor gear="1" nominal="12 4.903325 7.87366579847" saturation="4.4129925 0 0" input="position" controller="2442.96268349 0 6.68362794634 0 0 10.8" />
-      -->
+      <!-- 위치 입력 모터 적용을 보류합니다. sts3215 업그레이드 설명을 따릅니다.
+<dcmotor gear="1" nominal="12 4.903325 7.87366579847" saturation="4.4129925 0 0" input="position" controller="2442.96268349 0 6.68362794634 0 0 10.8" /> -->
     </default>
     <default class="visual">
       <geom type="mesh" contype="0" conaffinity="0" density="0" group="2" />
@@ -153,8 +151,7 @@
       <geom name="base_link_collision_18" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 0.175 0.425" />
       <geom name="base_link_collision_19" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 -0.175 0.425" />
       <body name="upper_structure" pos="0 0 0" quat="0 0 0 1">
-        <!-- Arm bases align with all four CAD mount holes. upper_structure
-             rotates base_link XY by pi; keep URDF placements in sync. -->
+        <!-- 팔 장착부를 CAD의 네 체결 홀에 맞춥니다. upper_structure는 base_link의 XY를 π만큼 회전하므로 URDF 배치도 함께 맞춰야 합니다. -->
         <body name="Base" pos="-0.116200343 -0.151031727 0.431297">
           <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08" />
           <body name="Rotation_Pitch" pos="0 -0.0452 0.0165" quat="0.707105482511 0.707108079859 0 0">
@@ -189,7 +186,7 @@
                     <body name="left_wrist_rgb_optical_frame" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0 0 -0.9171950194878352 0.39843857271442656">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -3.37370805697e-27 6.03357851998e-25 -1.04115093529e-27" pos="-1.01365842617e-06 5.04782112276e-09 -6.63147172246e-07" />
                     </body>
-                    <!-- v8 geometry registration; CV +Z forward, renderer -Z forward. -->
+                    <!-- v8 형상 좌표 등록입니다. CV는 +Z 전방, renderer는 -Z 전방입니다. -->
                     <body name="Left_Arm_Camera" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0.39843857271442656 0.9171950194878352 0 0">
                       <site name="left_wrist_rgb_optical_frame" pos="0 0 0" quat="0 0 0 1" size="0.005" rgba="1 0 0 0" />
                       <camera name="left_wrist_rgb" pos="0 0 0" quat="0 0 1 0" fovy="93" />
@@ -282,7 +279,7 @@
                     <body name="right_wrist_rgb_optical_frame" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0 0 -0.9171950194878352 0.39843857271442656">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -3.7862833647e-27 7.14569423757e-25 3.35665116041e-28" pos="-1.36803160262e-09 6.81718570483e-12 -8.95590072589e-10" />
                     </body>
-                    <!-- Same v8 mount and optical registration on both fixed jaws. -->
+                    <!-- 양쪽 고정 jaw에 같은 v8 마운트와 optical 좌표 등록을 적용합니다. -->
                     <body name="Right_Arm_Camera" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0.39843857271442656 0.9171950194878352 0 0">
                       <site name="right_wrist_rgb_optical_frame" pos="0 0 0" quat="0 0 0 1" size="0.005" rgba="1 0 0 0" />
                       <camera name="right_wrist_rgb" pos="0 0 0" quat="0 0 1 0" fovy="93" />
@@ -341,8 +338,7 @@
           <geom type="mesh" mesh="canonical_Base" class="collision" />
           <geom type="mesh" mesh="canonical_Base_Motor" class="collision" />
         </body>
-        <!-- Reversed mast: smooth rear face is 50 mm behind the top plate.
-             upper_structure is rotated pi from base_link. -->
+        <!-- 반전한 마스트의 매끈한 후면은 상판보다 50 mm 뒤에 있습니다. upper_structure는 base_link에서 π만큼 회전합니다. -->
         <body name="top_base_link" pos="-0.1172 0 0.35" quat="0 0 0 1">
           <inertial pos="0 0 0" mass="0.2542" diaginertia="0.0045 0.005 0.0045" />
           <body name="head_pan_link" pos="-0.103 0 0.3505" quat="0 0 0 1">
@@ -605,9 +601,7 @@
     </body>
   </worldbody>
   <contact>
-    <!-- The coarse fixed head-mount box overlaps the tilt housing across the
-         intervening pan joint. Treat these mechanically connected housings as
-         one assembly; retain all head-vs-environment collision checks. -->
+    <!-- 단순화한 고정 헤드 마운트 상자는 pan 관절 너머의 tilt 하우징과 겹칩니다. 기계적으로 연결된 하우징을 하나의 조립체로 취급하되 헤드와 환경의 충돌 검사는 유지합니다. -->
     <exclude body1="top_base_link" body2="head_tilt_link" />
     <exclude body1="Base" body2="Rotation_Pitch" />
     <exclude body1="Rotation_Pitch" body2="Upper_Arm" />

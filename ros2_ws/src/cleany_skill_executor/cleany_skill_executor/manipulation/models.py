@@ -1,4 +1,4 @@
-"""String contracts shared by the execution core and its ROS adapter."""
+"""실행 core와 ROS 어댑터가 공유하는 문자열 계약입니다."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class CancelMode(str, Enum):
 
 
 def resolve_cancel_mode(current: str, requested: CancelMode | str | None) -> CancelMode:
-    """Repeated requests are idempotent; only immediate stop may change a mode."""
+    """반복 요청은 멱등이며 즉시 정지만 모드를 바꿀 수 있습니다."""
     mode = CancelMode(requested) if requested is not None else CancelMode(current or 'CHECKPOINT')
     if current == CancelMode.IMMEDIATE:
         return CancelMode.IMMEDIATE

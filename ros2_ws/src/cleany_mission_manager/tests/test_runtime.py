@@ -54,7 +54,7 @@ def test_actual_checkpoint_loop_and_return_home():
     assert report.outcome == "SUCCESS"
     assert report.completed_tasks == ["trash-1", "trash-2"]
     assert report.before_observation != report.after_observation
-    assert len(desk.perception.commands) == 4  # before, each action, final done verification
+    assert len(desk.perception.commands) == 4  # 작업 전, 각 action 이후, 최종 완료 검증
     assert nav.commands == ["seat-12", "home"]
     assert report.cleaning_mode == "mock"
     assert report.return_result == "OK"

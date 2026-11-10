@@ -8,8 +8,8 @@ namespace cleany_scene_mapping
 {
 PartitionedShapeMask::Worker::~Worker()
 {
-  // Upstream owns/deletes ordinary SeeShape::body pointers. Remove clone entries
-  // before its destructor, because these bodies are held by shared_ptr instead.
+  // upstream은 일반 SeeShape::body 포인터를 소유하고 삭제합니다. 복제 body는
+  // shared_ptr가 보유하므로 upstream 소멸자 전에 복제 항목을 제거합니다.
   while (!clones_.empty()) removeClone(clones_.begin()->first);
 }
 
@@ -87,14 +87,14 @@ void PartitionedShapeMask::setWorkerCount(std::size_t count)
   try
   {
     threads_.reserve(count - 1);
-    // Worker zero executes on the caller; only the remaining workers need threads.
+    // worker 0은 호출자에서 실행하며 나머지 worker만 스레드가 필요합니다.
     for (std::size_t index = 1; index < count; ++index)
       threads_.emplace_back(&PartitionedShapeMask::workerLoop, this, index);
   }
   catch (...)
   {
-    // Constructor failures must not destroy joinable threads. An existing
-    // object remains usable in serial mode if reconfiguration fails.
+    // 생성자 실패 시 join 가능한 스레드를 파괴해서는 안 됩니다.
+    // 재설정이 실패해도 기존 객체는 직렬 모드로 계속 사용할 수 있습니다.
     stopWorkers();
     workers_.resize(1);
     partitions_.resize(1);
@@ -189,8 +189,8 @@ void PartitionedShapeMask::maskContainment(const sensor_msgs::msg::PointCloud2& 
     part.width = size;
     part.row_step = size * cloud.point_step;
     part.data.resize(part.row_step);
-    // Strided distribution balances even when the expensive arm occupies only
-    // a small region. No point is dropped, rounded, or merged with another.
+    // 비용이 큰 팔 영역이 작아도 일정 간격 분배로 부하를 맞춥니다.
+    // 점을 버리거나 반올림하거나 다른 점과 합치지 않습니다.
     for (std::size_t local = 0; local < size; ++local)
       std::memcpy(part.data.data() + local * cloud.point_step,
                   cloud.data.data() + (local * parallelism + worker) * cloud.point_step, cloud.point_step);
@@ -210,8 +210,8 @@ void PartitionedShapeMask::maskContainment(const sensor_msgs::msg::PointCloud2& 
   try { classify(0); }
   catch (...) { caller_error = std::current_exception(); }
   {
-    // Drain every worker even if the caller or another worker failed. Their
-    // buffers and transform/shape caches may only change after this barrier.
+    // 호출자나 다른 worker가 실패해도 모든 worker를 마무리합니다.
+    // 이 동기화 지점 이후에만 버퍼와 변환 및 형상 캐시를 바꿀 수 있습니다.
     std::unique_lock<std::mutex> lock(work_mutex_);
     work_done_.wait(lock, [&] { return pending_workers_ == 0; });
     if (caller_error) std::rethrow_exception(caller_error);

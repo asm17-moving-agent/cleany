@@ -186,7 +186,7 @@ class SerialIo {
   void restart() {
     RestartCommand request{};
     if (command_ != "calibrate") {
-      // Optional explicit 16-hex-digit nonce: "calibrate <request_id>".
+      // 선택적으로 16자리 16진수 nonce를 지정합니다: "calibrate <request_id>".
       if (command_.size() != 26 || command_.compare(0, 10, "calibrate ") != 0) {
         emitError("invalid_request_id");
         return;

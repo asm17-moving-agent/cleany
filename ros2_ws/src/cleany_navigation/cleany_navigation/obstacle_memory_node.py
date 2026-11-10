@@ -1,4 +1,4 @@
-"""Persistent obstacle observations in the saved SLAM map, without inflation."""
+"""저장된 SLAM 지도에 inflation 없이 유지하는 장애물 관측입니다."""
 from __future__ import annotations
 
 from array import array
@@ -27,35 +27,35 @@ from cleany_navigation.transforms import transform
 
 
 class ObstacleMemoryNode(Node):
-    """Maintain sensor-derived obstacle memory in a configured map frame.
+    """설정한 지도 좌표계에서 센서 기반 장애물 메모리를 유지합니다.
 
     Subscriptions:
-        map (nav_msgs/msg/OccupancyGrid): Map geometry and static occupancy.
-        scan (sensor_msgs/msg/LaserScan): LiDAR rays.
-        camera/head/depth/points (sensor_msgs/msg/PointCloud2): Depth rays.
-            These topic names are configurable defaults.
+        map (nav_msgs/msg/OccupancyGrid): 지도 기하와 정적 점유.
+        scan (sensor_msgs/msg/LaserScan): LiDAR ray.
+        camera/head/depth/points (sensor_msgs/msg/PointCloud2): 깊이 ray.
+            이 토픽 이름들은 변경 가능한 기본값입니다.
 
     Publishers:
         obstacle_memory/{grid,lidar,depth,navigation_grid}
-            (nav_msgs/msg/OccupancyGrid): Combined and source-specific projections.
+            (nav_msgs/msg/OccupancyGrid): 통합 및 소스별 투영.
         obstacle_memory/{voxels,local_voxels} (sensor_msgs/msg/PointCloud2):
-            Global and local occupied voxels when 3D publication is enabled.
-        obstacle_memory/voxel_status (std_msgs/msg/String): Revision and freshness.
+            3D 발행을 켰을 때 전역 및 로컬 점유 voxel.
+        obstacle_memory/voxel_status (std_msgs/msg/String): revision과 최신성.
 
     Services:
-        obstacle_memory/save (std_srvs/srv/Trigger): Save configured memory output.
-        obstacle_memory/set_enabled (std_srvs/srv/SetBool): Freeze or resume updates.
+        obstacle_memory/save (std_srvs/srv/Trigger): 설정된 메모리 출력 저장.
+        obstacle_memory/set_enabled (std_srvs/srv/SetBool): 갱신 정지 또는 재개.
 
     TF:
-        Reads capture-time sensor transforms into map_frame, default map.
+        촬영 시각의 센서 변환을 map_frame으로 읽으며 기본값은 map입니다.
 
     QoS:
-        Map input and memory outputs use reliable, transient-local depth 1;
-        sensor inputs use sensor_data.
+        지도 입력과 메모리 출력은 reliable, transient_local, depth 1이며
+        센서 입력은 sensor_data입니다.
 
     Notes:
-        Initialization waits for a map. Restore compatibility and source age are
-        checked; configured persistence writes snapshots to output_directory.
+        초기화 시 지도를 기다립니다. 복구 호환성과 소스 경과 시간을 확인하며
+        영속 저장을 설정하면 output_directory에 snapshot을 저장합니다.
     """
     def __init__(self):
         super().__init__('obstacle_memory')
@@ -154,8 +154,8 @@ class ObstacleMemoryNode(Node):
             try:
                 self.memory.rebind_map(geometry)
             except ValueError as exc:
-                # Retain the evidence with its original coordinate system.
-                # A durable disabled status makes the downstream guard stop.
+                # 원래 좌표계와 함께 근거를 보존합니다.
+                # 지속되는 disabled 상태로 하위 guard를 정지시킵니다.
                 self.enabled = False
                 self.map_fault = str(exc)
                 self.get_logger().error(str(exc))
@@ -179,12 +179,11 @@ class ObstacleMemoryNode(Node):
         if self.processed.get(source) == stamp:
             return
         try:
-            # This node and TransformListener share a single-threaded executor.
-            # Waiting here prevents the very TF callback that could satisfy the
-            # lookup from running. At accelerated sim rates two 30 ms waits per
-            # update can starve TF/subscriptions and keep the safety guard stopped.
-            # Retry from the next update with the original sensor stamp; never
-            # substitute a latest transform or increase the source age limit.
+            # 이 노드와 TransformListener는 단일 스레드 executor를 공유합니다. 여기서
+            # 기다리면 조회를 만족시킬 TF 콜백 자체가 실행되지 못합니다. 빠른 시뮬레이션에서
+            # 갱신마다 30ms 대기 두 번이 TF와 구독을 굶겨 안전 guard가 계속 정지할 수 있습니다.
+            # 원래 센서 stamp로 다음 갱신에서 재시도하며 최신 변환으로 대체하거나
+            # 소스 경과 시간 한계를 늘리지 않습니다.
             pose = self.buffer.lookup_transform(
                 self.map_frame, msg.header.frame_id,
                 Time.from_msg(msg.header.stamp)).transform
@@ -213,8 +212,8 @@ class ObstacleMemoryNode(Node):
                 full_distances = np.linalg.norm(full_points, axis=1)
                 full_hits = full_points[(full_distances > .01) & (full_distances < v['mark_range'])]
             stride = max(1, int(np.ceil(len(full_points)/v['max_depth_rays'])))
-            # Cycle the clearing subset so permanently skipped pixels cannot
-            # leave occupied voxels behind after an object disappears.
+            # 공간 제거 부분 집합을 순환해 항상 건너뛰는 픽셀 때문에 물체가 사라진 뒤에도
+            # 점유 voxel이 남지 않게 합니다.
             phase = self.counts['depth'] % stride if v['publish_3d'] else 0
             points = full_points[phase::stride]
             distances = np.linalg.norm(points, axis=1)
@@ -278,8 +277,8 @@ class ObstacleMemoryNode(Node):
             msg.header.frame_id = self.map_frame
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.info = self.info
-            # int8 storage preserves unknown (-1), free (0), and occupied (100)
-            # cells without Python element-by-element ROS sequence validation.
+            # int8 저장소는 Python의 ROS 시퀀스 원소별 검증 없이
+            # 미확인(-1), 빈 공간(0), 점유(100)를 유지합니다.
             msg.data = array('b', grid.tobytes())
             publisher.publish(msg)
             if name == 'grid':
@@ -298,7 +297,7 @@ class ObstacleMemoryNode(Node):
         g = self.memory.geometry
         stamp = self.get_clock().now().to_msg()
         now = Time.from_msg(stamp).nanoseconds/1e9
-        # Full-world transport is diagnostic and runs slower than the local gate.
+        # 전체 월드 전송은 진단용이며 로컬 gate보다 느리게 실행합니다.
         if now-self.last_world >= self.values['world_publish_period']:
             points = self.memory.occupied_centers()
             self.voxel_publisher.publish(xyz_cloud(points, self.map_frame, stamp))

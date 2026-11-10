@@ -46,7 +46,7 @@ static void feedWindow(GyroCalibration& calibration, int first, int count,
 }
 
 int main() {
-  // Measurement-only calibration retains bias/full covariance but never accepts.
+  // 측정 전용 보정은 편향과 전체 공분산을 보존하지만 보정 승인으로 처리하지 않습니다.
   {
     GyroCalibration c(config(false));
     const double values[] = {0, 1, 2, 3};
@@ -60,18 +60,18 @@ int main() {
     assert(c.state() == CalibrationState::kCompleted && !r.accepted);
     assert(r.error == CalibrationError::kLimitsNotReviewed);
     assert(std::fabs(r.calibration.gyroMeanRadS[0] - 1.5) < 1e-12);
-    // Welford's online covariance retains off-diagonal cross-axis terms.
+    // Welford 온라인 공분산 계산에서 축 간 비대각 항도 유지합니다.
     assert(std::fabs(r.calibration.gyroCovariance[0] - 5.0 / 3) < 1e-12);
     assert(std::fabs(r.calibration.gyroCovariance[1] - 10.0 / 3) < 1e-12);
     assert(std::fabs(r.candidateBiasRadS[0] - 1.5) < 1e-12);
     assert(std::fabs(r.validationResidualRadS[0]) < 1e-12);
-    // Measurement-only mode reports statistics, but reviewed limits gate acceptance.
+    // 측정 전용 모드는 통계만 보고하며 검토된 한계값이 있어야 승인할 수 있습니다.
   }
-  // Reviewed calibration recovers known bias and checks a separate holdout.
+  // 검토된 보정으로 알려진 편향을 추정하고 별도의 평가 표본을 검사합니다.
   {
     GyroCalibration c(config());
     feedWindow(c, 0, 4, 0.25);
-    // The holdout window is separate: it validates, rather than fits, the bias.
+    // 평가 구간은 편향 추정에 사용하지 않고 별도로 검증합니다.
     feedWindow(c, 4, 4, 0.26);
     assert(c.result().accepted);
     assert(std::fabs(c.result().candidateBiasRadS[0] - 0.25) < 1e-12);
@@ -80,7 +80,7 @@ int main() {
     c.reset();
     assert(c.state() == CalibrationState::kCalibrating);
   }
-  // A holdout mean outside the residual limit rejects the candidate calibration.
+  // 평가 평균이 잔차 한계를 넘으면 보정 후보를 거부합니다.
   {
     auto cfig = config();
     cfig.maxValidationMeanRadS = 0.005;
@@ -93,7 +93,7 @@ int main() {
     assert(c.state() == CalibrationState::kCompleted);
     assert(!c.result().accepted && c.result().error == CalibrationError::kValidation);
   }
-  // Missing reviewed quality limits fail configuration before taking samples.
+  // 검토된 품질 한계가 없으면 표본 수집 전에 설정 검증이 실패합니다.
   {
     auto bad = config();
     bad.maxGyroStdRadS = 0;
@@ -101,14 +101,14 @@ int main() {
     assert(c.state() == CalibrationState::kFailed);
     assert(!c.addSample(sample(0)));
   }
-  // Duplicate timestamps are rejected instead of counting the same sample twice.
+  // 같은 표본을 중복 집계하지 않도록 중복 시각을 거부합니다.
   {
     GyroCalibration c(config());
     assert(c.addSample(sample(0)));
     assert(!c.addSample(sample(0)));
     assert(c.result().error == CalibrationError::kTiming && !c.result().accepted);
   }
-  // Saturation and nonfinite temperature fail the attempt; reset permits retry.
+  // 포화나 유한하지 않은 온도는 시도를 실패시키며 reset 후 재시도할 수 있습니다.
   {
     GyroCalibration c(config());
     auto s = sample(0);
@@ -121,7 +121,7 @@ int main() {
     assert(!c.addSample(s));
     assert(c.result().error == CalibrationError::kInvalidSample);
   }
-  // Samples arriving ten times too fast cannot satisfy a nominal 100 Hz window.
+  // 명목 100 Hz보다 열 배 빠른 표본으로는 요구된 수집 시간을 충족할 수 없습니다.
   {
     GyroCalibration c(config());
     for (int i = 0; i < 3; ++i) {
@@ -131,7 +131,7 @@ int main() {
     assert(c.state() == CalibrationState::kFailed);
     assert(c.result().error == CalibrationError::kTiming);
   }
-  // The maximum sample gap also applies across the calibration/holdout boundary.
+  // 최대 표본 간격은 보정 구간과 평가 구간 사이에도 적용합니다.
   {
     GyroCalibration c(config());
     feedWindow(c, 0, 4, 0);
@@ -139,11 +139,11 @@ int main() {
     assert(c.state() == CalibrationState::kFailed);
     assert(c.result().error == CalibrationError::kTiming);
   }
-  // Motion-quality rejection covers both sensor types in both sampling windows.
+  // 두 수집 구간의 두 센서 종류 모두 움직임 품질을 검사합니다.
   {
     auto cfig = config();
     cfig.maxGyroStdRadS = 0.1;
-    // Excessive calibration-window gyro variance rejects the result.
+    // 보정 구간의 자이로 분산이 과도하면 결과를 거부합니다.
     GyroCalibration calibrationWindow(cfig);
     assert(calibrationWindow.addSample(varyingSample(0, -1)));
     assert(calibrationWindow.addSample(varyingSample(10000, 1)));
@@ -155,7 +155,7 @@ int main() {
 
     cfig = config();
     cfig.maxAccelStdMps2 = 0.1;
-    // Excessive calibration-window accelerometer variance rejects the result.
+    // 보정 구간의 가속도계 분산이 과도하면 결과를 거부합니다.
     GyroCalibration accelCalibrationWindow(cfig);
     for (int i = 0; i < 4; ++i) {
       assert(accelCalibrationWindow.addSample(varyingSample(i * 10000, i % 2)));
@@ -165,7 +165,7 @@ int main() {
 
     auto gyroValidationConfig = config();
     gyroValidationConfig.maxGyroStdRadS = 0.1;
-    // Excessive independent-window gyro variance rejects the result.
+    // 독립 평가 구간의 자이로 분산이 과도하면 결과를 거부합니다.
     GyroCalibration validationWindow(gyroValidationConfig);
     feedWindow(validationWindow, 0, 4, 0);
     for (int i = 0; i < 3; ++i) {
@@ -176,7 +176,7 @@ int main() {
 
     cfig = config();
     cfig.maxAccelStdMps2 = 0.1;
-    // Excessive independent-window accelerometer variance rejects the result.
+    // 독립 평가 구간의 가속도계 분산이 과도하면 결과를 거부합니다.
     GyroCalibration accelValidationWindow(cfig);
     feedWindow(accelValidationWindow, 0, 4, 0);
     for (int i = 0; i < 3; ++i) {
@@ -187,7 +187,7 @@ int main() {
     assert(accelValidationWindow.result().error == CalibrationError::kMotion);
     assert(!accelValidationWindow.result().accepted);
   }
-  // Temperature limits span both windows, not just variation inside each one.
+  // 온도 한계는 각 구간 내부뿐 아니라 두 구간 전체에 적용합니다.
   {
     auto cfig = config();
     cfig.maxTemperatureSpanC = 1;
@@ -197,7 +197,7 @@ int main() {
     assert(c.result().error == CalibrationError::kTemperatureDrift);
     assert(!c.result().accepted);
   }
-  // Negative time and nonfinite gyro/acceleration values fail independently.
+  // 음수 시각과 유한하지 않은 자이로·가속도 값은 각각 실패 조건입니다.
   {
     GyroCalibration c(config());
     ImuSample s = sample(-1);
@@ -216,7 +216,7 @@ int main() {
     assert(!c.addSample(s));
     assert(c.result().error == CalibrationError::kInvalidSample);
   }
-  // Negative finite sensor-axis values are valid signed measurements.
+  // 유한한 음수 센서 축 값은 유효한 부호 있는 측정값입니다.
   {
     GyroCalibration c(config());
     ImuSample s = sample(0, -0.5);
@@ -224,7 +224,7 @@ int main() {
     assert(c.addSample(s));
     assert(c.state() == CalibrationState::kCalibrating);
   }
-  // Neither a fitted bias nor an incomplete holdout makes calibration accepted.
+  // 편향을 추정했거나 평가 구간이 미완료인 것만으로 보정을 승인하지 않습니다.
   {
     auto cfig = config();
     cfig.calibrationSamples = 3;
@@ -237,7 +237,7 @@ int main() {
     assert(c.state() == CalibrationState::kValidating);
     assert(!c.result().accepted);
   }
-  // Too-small sample counts and nonfinite reviewed limits fail configuration.
+  // 표본 수가 너무 작거나 검토 한계가 유한하지 않으면 설정이 실패합니다.
   {
     for (size_t count : {size_t{0}, size_t{1}}) {
       auto cfig = config();
@@ -261,7 +261,7 @@ int main() {
       assert(c.result().error == CalibrationError::kInvalidConfig);
     }
   }
-  // Sensor failure invalidates an active run; reset clears it; terminal data is immutable.
+  // 센서 고장은 수집을 무효화하고 reset은 상태를 지우며 종료된 결과는 변경되지 않습니다.
   {
     GyroCalibration c(config());
     c.fail(CalibrationError::kSensor);

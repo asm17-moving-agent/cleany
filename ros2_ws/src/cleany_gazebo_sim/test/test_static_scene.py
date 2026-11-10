@@ -1,4 +1,4 @@
-"""Geometry, state and frame boundaries for opt-in static scene grouping."""
+"""선택적 고정 장면 묶기의 형상, 상태와 좌표계 경계를 검사합니다."""
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -25,7 +25,7 @@ def source(tmp_path: Path, content: str) -> Path:
 
 
 def rotation(pose):
-    # Independent coordinate composition using elementary axis rotations.
+    # 기본 축 회전으로 좌표 변환을 독립적으로 합성합니다.
     x, y, z, r, p, a = map(float, pose.split())
     cr, sr, cp, sp, ca, sa = np.cos(r), np.sin(r), np.cos(p), np.sin(p), np.cos(a), np.sin(a)
     rx = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]])

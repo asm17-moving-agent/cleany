@@ -1,4 +1,4 @@
-"""Recording policy and bounded raw-message handoff; independent of UI leases."""
+"""UI 임대와 독립적인 기록 정책과 크기 제한 원시 메시지 전달입니다."""
 import math
 import re
 import threading
@@ -30,8 +30,8 @@ TYPES = {'lidar': {'sensor_msgs/msg/LaserScan'}, 'point_cloud': {'sensor_msgs/ms
          'transforms': {'tf2_msgs/msg/TFMessage'}}
 TYPES.update(camera_info={'sensor_msgs/msg/CameraInfo'}, clock={'rosgraph_msgs/msg/Clock'})
 
-# Native visualization inputs accompany the corresponding processed records.
-# Keep this allowlist separate from heavy, independently selected sensor streams.
+# 처리된 기록과 함께 native 시각화 입력을 저장합니다. 이 허용 목록은
+# 독립적으로 선택하는 대용량 센서 스트림과 분리합니다.
 CONTEXT = {
     'slip_topic': ('motion', 'std_msgs/msg/String'),
     'traction_recovery_topic': ('motion', 'std_msgs/msg/String'),
@@ -81,7 +81,7 @@ class RawMessage:
 
 
 def observation_policies(config):
-    """Observation bounds, distinct from raw CDR recording rates."""
+    """원시 CDR 기록 속도와 별개인 관측 한계입니다."""
     interval = config.get('resource_interval_s', 1.0)
     repeat = config.get('bt_event_repeat_interval_s', 1.0)
     return {
@@ -115,7 +115,7 @@ def defaults():
 
 
 def _historical_source_rate_defaults():
-    # Freeze the generated v2/v3 values for migration, independent of new defaults.
+    # 새 기본값과 독립적으로 migration에 쓸 v2/v3 생성 값을 고정합니다.
     rates = {
         'runtime_debug_topic': 2.0,
         'runtime_events_topic': None,
@@ -162,7 +162,7 @@ def _previous_rate_profiles():
            for key, rate in standard.items()}
     precise = {key: None if rate is None else {10.: 10., 5.: 10., 2.: 5., 1.: 2., .2: 1.}[rate]
                for key, rate in standard.items()}
-    # These summaries are generated at 2 Hz, and the combined navigation state at 5 Hz.
+    # 요약은 2Hz, 통합 주행 상태는 5Hz로 생성합니다.
     for key in ('scan_topic', 'depth_points_topic', 'risk_points_topic', 'controller_evaluation_topic'):
         precise[key] = 2.
     precise['_computed_motion'] = 5.
@@ -203,9 +203,9 @@ def _version_three_rate_profiles(resource_interval_s=1.):
     return profiles
 
 
-# Rates express useful diagnostic resolution, independently of publisher maxima.
-# At 0.2 m/s, 2 Hz poses resolve roughly 10 cm; 10 Hz resolves 2 cm.
-# Slow geometry and maps do not gain useful detail from control-loop frequencies.
+# 속도는 publisher 최대값과 별개로 유용한 진단 해상도를 나타냅니다.
+# 0.2m/s에서 2Hz 자세는 약 10cm, 10Hz는 2cm 간격을 구분합니다.
+# 느리게 변하는 형상과 지도는 제어 루프 주기로 기록해도 유용한 세부가 늘지 않습니다.
 SEMANTIC_RATES = {
     'slip_topic': (5., 5., 5.),
     'localization_status_topic': (1., 2., 5.),
@@ -255,17 +255,17 @@ def validate(value):
     if isinstance(value, dict):
         value = dict(value)
         if value.get('preset') in ('basic', 'obstacles', 'custom'):
-            value['preset'] = 'standard'  # Preserve old selection and rates; replace only the legacy label.
+            value['preset'] = 'standard'  # 기존 선택과 속도를 유지하고 이전 label만 교체합니다.
         value.setdefault('sources', {})
         value.setdefault('source_enabled', {})
-        # Expand legacy group rates once; thereafter each source owns its rate.
+        # 이전 그룹 속도를 한 번 펼친 뒤 각 소스가 자체 속도를 관리합니다.
         if 'source_hz' not in value:
             legacy_rates = value.get('hz') if isinstance(value.get('hz'), dict) else {}
             value['source_hz'] = {identity: (legacy_rates[SCHEMA[identity.split(':')[0]]['group']]
                                            if legacy_rates.get(SCHEMA[identity.split(':')[0]]['group'], 10.) != 10. else rate)
                                   for identity, rate in source_rate_defaults().items()}
         if 'rate_defaults_version' not in value:
-            # Replace the prior uniform defaults; keep differing user rates.
+            # 이전의 획일적인 기본값은 교체하되 다른 사용자 지정 속도는 유지합니다.
             if isinstance(value['source_hz'], dict):
                 value['source_hz'] = {key: source_rate_defaults().get(key, rate) if rate == 10. else rate
                                       for key, rate in value['source_hz'].items()}
@@ -276,7 +276,7 @@ def validate(value):
     if not isinstance(value, dict) or set(value) != set(defaults()):
         raise ValueError('녹화 설정 형식이 올바르지 않습니다.')
     if type(value['rate_defaults_version']) is int and value['rate_defaults_version'] == 2 and value.get('preset') in rate_profiles():
-        # Upgrade generated profile values while keeping individually edited rates.
+        # 자동 생성된 프로파일 값은 갱신하되 개별 수정한 속도는 유지합니다.
         previous = _previous_rate_profiles()[value['preset']]
         updated = _version_three_rate_profiles()[value['preset']]
         for field in ('source_hz', 'hz'):
@@ -313,7 +313,7 @@ def validate(value):
         value['hz'].setdefault('slam', 2.)
     if set(value['enabled']) != set(LABELS) or any(type(v) is not bool for v in value['enabled'].values()):
         raise ValueError('녹화 항목을 모두 지정해야 합니다.')
-    # Migrate the prior raw-only schema without overwriting its configured rates.
+    # 이전 원시 기록 전용 스키마를 이전하되 설정된 속도를 덮어쓰지 않습니다.
     if set(value['hz']) == set(RAW):
         value['hz'] = {**defaults()['hz'], **value['hz']}
     if set(value['hz']) != set(defaults()['hz']) or set(value['topics']) != set(RAW):
@@ -336,7 +336,7 @@ def category(row):
         return row['category']
     kind, key = row['kind'], row['key']
     if kind in ('config', 'graph', 'recording_policy', 'recording_status') or (kind == 'layer' and key == 'map'):
-        return None  # Context is always retained.
+        return None  # 컨텍스트는 항상 보관합니다.
     if kind in ('slam', 'slam_texture') or (kind == 'event' and str(row['data'].get('kind', '')).startswith('slam_')):
         return 'slam'
     if kind == 'resources':
@@ -392,7 +392,7 @@ class RecordingControls:
 
     @contextmanager
     def transition(self):
-        """Seal in-flight callback tickets before draining or rotating a writer."""
+        """writer를 비우거나 교체하기 전에 진행 중인 콜백 ticket을 봉인합니다."""
         with self.lock:
             self.transitioning = True
             self.revision += 1
@@ -419,7 +419,7 @@ class RecordingControls:
         return topic.rsplit('/', 1)[0] + '/camera_info'
 
     def context_topics(self):
-        """Called under lock; topic remapping and per-source opt-outs apply."""
+        """잠금 안에서 호출하며 토픽 remapping과 소스별 제외 설정을 적용합니다."""
         s = self.settings
         sources = {**resolved(self.source_config), **s['sources']}
         topics = {sources[field]: (group, typ, field)

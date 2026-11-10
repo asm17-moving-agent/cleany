@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 namespace cleany_navigation {
-/// Preserve Nav2 scoring; retain the first all-obstacle-rejected cycle in an episode.
+/// Nav2 점수 계산을 유지하며 한 구간에서 모든 후보가 장애물로 거부된 첫 주기를 보관합니다.
 class ObservedFootprintCritic : public dwb_critics::ObstacleFootprintCritic {
 public:
   void onInit() override;

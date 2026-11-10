@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retry dependency preparation commands without changing their arguments."""
+"""인자를 바꾸지 않고 의존성 준비 명령을 재시도합니다."""
 
 from __future__ import annotations
 

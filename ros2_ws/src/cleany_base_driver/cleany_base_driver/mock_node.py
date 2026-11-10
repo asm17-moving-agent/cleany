@@ -1,4 +1,4 @@
-"""Device-free peer for the fixed-size MCU permission contract."""
+"""고정 크기 MCU 구동 허가 계약을 장치 없이 재현하는 상대 노드입니다."""
 import math
 import time
 
@@ -13,27 +13,27 @@ from .core import newer
 
 
 class MockMcu(Node):
-    """Emulate the MCU permission and encoder contract without hardware.
+    """하드웨어 없이 MCU의 구동 허가와 encoder 계약을 재현합니다.
 
     Subscriptions:
-        base/wheel_command (cleany_base_interfaces/msg/WheelCommand): Sequenced,
-            expiring wheel commands.
+        base/wheel_command (cleany_base_interfaces/msg/WheelCommand): sequence와
+            만료 시각이 있는 휠 명령.
 
     Publishers:
-        base/wheel_state (cleany_base_interfaces/msg/WheelState): Synthetic
-            encoder counts and permission state, with target speed as feedback.
+        base/wheel_state (cleany_base_interfaces/msg/WheelState): 합성 encoder count와
+            구동 허가 상태. 목표 속도를 피드백 속도로 사용합니다.
 
     Services:
-        mock/reboot (std_srvs/srv/Trigger): Reset boot identity and encoder state.
-        mock/transport (std_srvs/srv/SetBool): Enable or suppress feedback.
-        mock/drop_next_enable (std_srvs/srv/Trigger): Drop one enable request.
-        mock/force_disarm (std_srvs/srv/Trigger): Clear motion permission.
+        mock/reboot (std_srvs/srv/Trigger): 부팅 식별자와 encoder 상태 초기화.
+        mock/transport (std_srvs/srv/SetBool): 피드백 발행 허용 또는 억제.
+        mock/drop_next_enable (std_srvs/srv/Trigger): ENABLE 요청 한 개 유실.
+        mock/force_disarm (std_srvs/srv/Trigger): 구동 허가 해제.
 
     QoS:
-        Wheel transport uses best-effort, volatile, depth 1.
+        휠 통신은 best-effort, volatile, depth 1을 사용합니다.
 
     Notes:
-        Uses steady time and models protocol faults, not motor dynamics.
+        단조 증가 시계로 프로토콜 장애를 재현하며 모터 동역학을 모사하지 않습니다.
     """
     def __init__(self):
         super().__init__('mock_base_mcu')

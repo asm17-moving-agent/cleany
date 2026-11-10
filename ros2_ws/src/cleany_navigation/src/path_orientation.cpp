@@ -13,7 +13,7 @@ bool PathOrientationCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
     const auto &p=path.poses[i];const double d=std::hypot(p.x-pose.x,p.y-pose.y);
     if(d<distance) {distance=d;nearest=i;}
   }
-  // Same-position poses represent a planned turn, not a translation tangent.
+  // 같은 위치의 자세는 병진 접선이 아닌 계획된 회전을 나타냅니다.
   const auto &p=path.poses[nearest];
   while(nearest+1<path.poses.size() &&
     std::hypot(path.poses[nearest+1].x-p.x,path.poses[nearest+1].y-p.y)<1e-6)++nearest;

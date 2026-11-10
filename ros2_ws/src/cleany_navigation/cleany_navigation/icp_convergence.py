@@ -1,4 +1,4 @@
-"""Pure-Python detection of bounded repeating ICP poses."""
+"""범위가 제한된 반복 ICP 자세의 순수 Python 검출입니다."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from numbers import Real
 
 
 class BoundedCycleDetector:
-    """Detect stable pose cycles while bounding their total spatial excursion."""
+    """전체 공간 변위를 제한하며 안정된 자세 주기를 검출합니다."""
 
     def __init__(
         self,
@@ -45,7 +45,7 @@ class BoundedCycleDetector:
         return abs((a - b + math.pi) % (2.0 * math.pi) - math.pi)
 
     def observe(self, pose: tuple[float, float, float], *, final_stage: bool) -> bool:
-        """Record a pose and report whether three bounded cycles have repeated."""
+        """자세를 기록하고 범위 안의 주기가 세 번 반복되었는지 반환합니다."""
         if not final_stage:
             self._history.clear()
             return False

@@ -1,4 +1,4 @@
-"""ROS shell for the FSM: short services and a steady-clock nonblocking tick."""
+"""짧은 서비스와 steady-clock 비블로킹 tick으로 FSM을 연결하는 ROS 외피입니다."""
 
 import json
 from dataclasses import asdict
@@ -37,56 +37,55 @@ from cleany_mission_manager.mocks.desk import MockDesk
 
 
 class MissionRuntimeNode(Node):
-    """Adapt the journaled mission state machine to ROS.
+    """journal 기반 임무 상태 머신을 ROS에 연결합니다.
 
     Subscriptions:
-        robot/safety_fault and robot/safety_released (std_msgs/msg/String):
-            E_STOP or HARDWARE_ERROR notifications from the safety owner; only
-            with supervision_mode=disabled. Supervised, the Supervisor owns them.
-        odom (nav_msgs/msg/Odometry): Stop evidence with the Nav2 backend;
-            odom_topic default.
+        robot/safety_fault, robot/safety_released (std_msgs/msg/String):
+            안전 소유자의 E_STOP 또는 HARDWARE_ERROR 알림. supervision_mode=disabled일
+            때만 사용하며 감독 모드에서는 Supervisor가 관리합니다.
+        odom (nav_msgs/msg/Odometry): Nav2 백엔드의 정지 근거. odom_topic 기본값입니다.
         navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray):
-            Goal reconciliation in Nav2 mode.
+            Nav2 모드에서 목표 상태를 대조합니다.
 
     Publishers:
-        mission/status (cleany_interfaces/msg/MissionStatus): Changed state.
-        mission/result (cleany_interfaces/msg/MissionResult): New terminal result.
+        mission/status (cleany_interfaces/msg/MissionStatus): 변경된 상태.
+        mission/result (cleany_interfaces/msg/MissionResult): 새 종료 결과.
         mission/debug_snapshot (cleany_interfaces/msg/RuntimeDebugSnapshot):
-            Bounded diagnostic state, sampled at most twice per second.
-        mission/runtime_events (cleany_interfaces/msg/RuntimeEvent): Ordered events.
+            최대 초당 두 번 추출하는 크기 제한 진단 상태.
+        mission/runtime_events (cleany_interfaces/msg/RuntimeEvent): 순서가 있는 이벤트.
 
     Services:
-        mission/offer (cleany_interfaces/srv/OfferMission): Admit or replay a request.
-        mission/cancel (cleany_interfaces/srv/CancelMission): Request cancellation.
-        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): Read state.
-        mission/reset_error (std_srvs/srv/Trigger): Request guarded recovery.
-        Nav2 mode queries lifecycle GetState services through Nav2Navigator.
-        action_mock mode queries mock/manipulation/get_execution
-            (cleany_interfaces/srv/GetManipulationExecution), configurable.
+        mission/offer (cleany_interfaces/srv/OfferMission): 요청 수락 또는 재전달.
+        mission/cancel (cleany_interfaces/srv/CancelMission): 취소 요청.
+        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): 상태 조회.
+        mission/reset_error (std_srvs/srv/Trigger): 보호 조건을 적용한 복구 요청.
+        Nav2 모드에서는 Nav2Navigator로 lifecycle GetState 서비스를 조회합니다.
+        action_mock 모드에서는 변경 가능한 기본값 mock/manipulation/get_execution
+            (cleany_interfaces/srv/GetManipulationExecution)을 조회합니다.
 
     Actions:
-        mission/stop (cleany_interfaces/action/StopMission): Server for Supervisor
-            stop requests when supervised; stopped=True only after this Runtime
-            confirmed its own operations stopped. stop_action default.
-        navigate_to_pose (nav2_msgs/action/NavigateToPose): Client in Nav2 mode.
+        mission/stop (cleany_interfaces/action/StopMission): 감독 모드에서 Supervisor
+            정지 요청을 받는 Server. 이 Runtime이 자체 작업의 정지를 확인한 경우에만
+            stopped=True입니다. stop_action 기본값입니다.
+        navigate_to_pose (nav2_msgs/action/NavigateToPose): Nav2 모드의 Client.
         mock/manipulation/execute_skill
-            (cleany_interfaces/action/ExecuteManipulationSkill): Configurable
-            client in action_mock mode; the default desk backend is in-process mock.
+            (cleany_interfaces/action/ExecuteManipulationSkill): action_mock 모드의
+            변경 가능한 Client 기본값. 기본 책상 백엔드는 프로세스 내부 mock입니다.
 
     TF:
-        Nav2Navigator reads localization transforms; this node broadcasts none.
+        Nav2Navigator가 위치 추정 변환을 읽으며 이 노드는 발행하지 않습니다.
 
     QoS:
-        State/result/debug use reliable, transient-local depth 1; runtime events
-        retain depth 2048. Navigation odometry uses sensor_data.
+        상태, 결과와 debug는 reliable, transient_local, depth 1이며 런타임 이벤트는
+        depth 2048을 유지합니다. 주행 odometry는 sensor_data를 사용합니다.
 
     Notes:
-        State transitions run on a steady-clock tick. A safety notification
-        assumes its producer has already stopped hardware; it is not a stop actuator.
-        supervision_mode=required (default) adds RosSupervision: admission needs
-        Supervisor availability, motion needs a lease and Nav2 lifecycle checks
-        move to the Supervisor. disabled keeps the standalone behavior for mock
-        and simulation runs and is recorded in each report's execution profile.
+        상태 전이는 steady-clock tick에서 진행합니다. 안전 알림은 발행 측이 이미
+        하드웨어를 정지했다는 전제이며 정지 구동기가 아닙니다.
+        기본값 supervision_mode=required는 RosSupervision을 추가합니다. 수락에는
+        Supervisor 가용성, 이동에는 임대가 필요하며 Nav2 lifecycle 검사를 Supervisor로
+        옮깁니다. disabled는 mock과 시뮬레이션용 독립 동작을 유지하며 각 보고서의
+        실행 프로파일에 기록합니다.
     """
     def __init__(self, **kwargs) -> None:
         super().__init__("mission_runtime", **kwargs)
@@ -191,12 +190,12 @@ class MissionRuntimeNode(Node):
         self.create_service(Trigger, "mission/reset_error", self._reset)
         self.stop_waiters: list[Future] = []
         if self.supervision is None:
-            # Notification only: the backend producing this signal owns physical stop first.
+            # 알림 전용이며 이 신호를 만드는 백엔드가 먼저 물리적 정지를 담당합니다.
             self.create_subscription(String, "robot/safety_fault", self._fault, 10)
             self.create_subscription(String, "robot/safety_released", self._released, 10)
         else:
-            # Independent safety evidence reaches the Runtime only through Supervisor
-            # authority; a second, unsupervised fault path would compete with it.
+            # 독립적인 안전 근거는 Supervisor 권한을 통해서만 Runtime에 전달됩니다.
+            # 별도의 비감독 fault 경로를 두면 이 권한과 경쟁하게 됩니다.
             self.stop_server = ActionServer(self, StopMission, value("stop_action"), self._stop_mission,
                                             goal_callback=self._stop_goal,
                                             cancel_callback=lambda _: CancelResponse.REJECT)
@@ -255,8 +254,8 @@ class MissionRuntimeNode(Node):
         return GoalResponse.ACCEPT if admission.accepted else GoalResponse.REJECT
 
     async def _stop_mission(self, goal):
-        """Report stopped only after this Runtime confirmed its own operations stopped."""
-        # The Runtime's own stop budget bounds the answer; a slower stop is a failure.
+        """이 Runtime이 자체 작업의 정지를 확인한 후에만 정지를 보고합니다."""
+        # Runtime 자체 정지 예산으로 응답을 제한하며 더 늦은 정지는 실패로 처리합니다.
         deadline = time.monotonic() + self.runtime.policy.cancel_timeout + 0.5
         while rclpy.ok() and time.monotonic() < deadline:
             if self.runtime.supervisor_stop_confirmed(goal.request.mission_id):
@@ -280,7 +279,7 @@ class MissionRuntimeNode(Node):
         try:
             self._publish_debug()
         except Exception as exc:
-            # Diagnostic serialization must never prevent status/result publication.
+            # 진단 직렬화가 상태 또는 결과 발행을 막아서는 안 됩니다.
             self.get_logger().warning(f"Debug publication failed: {exc}", throttle_duration_sec=10)
         snapshot = self.runtime.snapshot(include_completed=False)
         if snapshot["sequence"] != self.last_sequence:

@@ -31,15 +31,15 @@ static bool closingFinalCellPreservesStockFailures() {
   auto prepare=[&] {return stock.prepare(pose,velocity,goal,path)&&
     precise.prepare(pose,velocity,goal,path)&&bearing.prepare(pose,velocity,goal,path);};
   bool ok=prepare();
-  // Outside the 5cm goal gate, but both endpoints lie in the zero-cost goal
-  // cell. Previously any bearing change penalized closing more than stopping.
+  // 5cm 목표 gate 밖이지만 두 끝점 모두 비용 0인 목표 셀 안입니다.
+  // 이전에는 어떤 방향 변화든 정지보다 접근에 더 큰 벌점을 주었습니다.
   ok &= std::hypot(pose.x-goal.x,pose.y-goal.y)>.05;
   ok &= stock.scoreTrajectory(stop)==0. && stock.scoreTrajectory(closing)==0.;
   nav_2d_msgs::msg::Twist2D previous;previous.x=.02;previous.y=.02;bearing.debrief(previous);
   ok &= bearing.scoreTrajectory(closing)==0.;
   ok &= precise.scoreTrajectory(closing)<precise.scoreTrajectory(stop);
-  // Continuous distance only augments near-goal scoring. Far guidance and
-  // trajectory rejection remain stock behavior; this is no collision escape.
+  // 연속 거리는 목표 근처 점수만 보완하며 먼 거리 유도와
+  // 궤적 거부는 기본 동작을 유지합니다. 충돌 탈출 기능이 아닙니다.
   pose.x=.6;path.poses={pose,goal};ok &= prepare();
   ok &= precise.scoreTrajectory(stop)==stock.scoreTrajectory(stop);
   auto outside=stop;outside.poses.back().x=2.;

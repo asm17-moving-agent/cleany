@@ -23,7 +23,7 @@ namespace cleany_navigation::mppi::critics
 {
 
 /**
- * @brief Score path alignment and optionally preserve in-place lattice turns.
+ * @brief 경로 방향 정합을 평가하고 설정에 따라 lattice의 제자리 회전을 보존합니다.
  */
 class PathAngleCritic : public CriticFunction
 {
@@ -34,7 +34,7 @@ public:
   void initialize() override;
 
   /**
-   * @brief Add orientation costs to the candidate trajectories.
+   * @brief 후보 궤적에 방향 오차 비용을 더합니다.
    */
   void score(CriticData & data) override;
 

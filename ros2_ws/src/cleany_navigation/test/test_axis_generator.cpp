@@ -51,7 +51,7 @@ TEST_F(AxisTest, FineHolonomicSamplesCloseQuantizedGoalWithoutMultiplyingYawGrid
   EXPECT_TRUE(closes);
   nav_2d_msgs::msg::Twist2D measured;measured.x=.15;
   auto braking=precise.generateTrajectory(pose,measured,nav_2d_msgs::msg::Twist2D());
-  EXPECT_GT(braking.poses.back().x,0.);  // Zero command must not imply instant stop.
+  EXPECT_GT(braking.poses.back().x,0.);  // 0 명령이 즉시 정지를 의미해서는 안 됩니다.
 }
 TEST_F(AxisTest, GoalDirectedSamplesUseBodyFrameAndRetainAccelerationRollout) {
   node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
@@ -80,7 +80,7 @@ TEST_F(AxisTest, GoalDirectedSamplesUseBodyFrameAndRetainAccelerationRollout) {
     EXPECT_NEAR(rclcpp::Duration(trajectory.time_offsets.back()).seconds(),
       node->get_parameter("FollowPath.sim_time").as_double(),1e-9);
   }
-  // Context expires after this cycle. No asynchronous retained goal.
+  // 컨텍스트는 이 주기 후 만료되며 비동기 목표를 유지하지 않습니다.
   EXPECT_EQ(generator.getTwists(nav_2d_msgs::msg::Twist2D()).size(),baseline.size());
   generator.setGoalContext(pose,goal);generator.reset();
   EXPECT_EQ(generator.getTwists(nav_2d_msgs::msg::Twist2D()).size(),baseline.size());
@@ -97,7 +97,7 @@ TEST_F(AxisTest, GoalDirectedSamplesRespectDisabledRadiusBoundsAndInvalidContext
     goal.x=distance;goal.y=0.;generator.setGoalContext(pose,goal);
     EXPECT_EQ(generator.getTwists(nav_2d_msgs::msg::Twist2D()).size(),baseline.size());
   }
-  // A forward-only X profile must not acquire reverse candidates.
+  // 전진 전용 X 프로파일에 후진 후보가 생기면 안 됩니다.
   node->set_parameter(rclcpp::Parameter("FollowPath.min_vel_x",0.));
   generator.initialize(node,"FollowPath");
   const auto forward=generator.getTwists(nav_2d_msgs::msg::Twist2D());
@@ -112,8 +112,8 @@ TEST_F(AxisTest, GoalDirectedMaximumSpeedCandidateSurvivesFloatingPointBoundary)
   generator.initialize(node,"FollowPath");
   const auto baseline=generator.getTwists(nav_2d_msgs::msg::Twist2D());
   geometry_msgs::msg::Pose2D pose,goal;
-  // The live near-43 evaluation contained just two directed candidates. The
-  // .15 m/s candidate can round one ULP above max_speed_xy and disappear.
+  // 실시간 near-43 평가에는 방향 지정 후보가 두 개뿐이었습니다.
+  // 0.15m/s 후보가 max_speed_xy보다 1ULP 크게 반올림되어 사라질 수 있습니다.
   for(double angle:{.13,.37,.83,1.07,1.417530671655,1.8,2.9,-2.9}) {
     goal.x=.65*std::cos(angle);goal.y=.65*std::sin(angle);
     generator.setGoalContext(pose,goal);
@@ -162,16 +162,16 @@ TEST_F(AxisTest, CommandBudgetUsesElapsedRosTimeIncludingPauseResetAndBackwardJu
   EXPECT_NEAR(rclcpp::Duration(result.time_offsets.back()).seconds(),2.,1e-9);
   EXPECT_NEAR(generator.generateTrajectory(pose,nav_2d_msgs::msg::Twist2D(),target).velocity.x,.008,1e-9);
   nav_2d_msgs::msg::Twist2D moving;moving.x=.1;
-  generator.getTwists(moving); // frozen clock: no additional acceleration budget
+  generator.getTwists(moving); // 시계가 멈추면 추가 가속 예산이 없습니다.
   EXPECT_NEAR(generator.generateTrajectory(pose,moving,nav_2d_msgs::msg::Twist2D()).velocity.x,.1,1e-9);
   time(9.);generator.getTwists(moving);
   EXPECT_NEAR(generator.generateTrajectory(pose,moving,nav_2d_msgs::msg::Twist2D()).velocity.x,.1,1e-9);
   time(9.02);generator.getTwists(moving);
   EXPECT_NEAR(generator.generateTrajectory(pose,moving,nav_2d_msgs::msg::Twist2D()).velocity.x,.092,1e-9);
-  target.y=0.; // isolate the clock cap from the shared X/Y progress fraction
+  target.y=0.; // 공유 X/Y 진행 비율과 분리해 시계 상한만 검사합니다.
   generator.reset();time(10.);generator.getTwists(moving);
   EXPECT_NEAR(generator.generateTrajectory(pose,moving,target).velocity.x,.1,1e-9);
-  time(11.);generator.getTwists(moving); // long gap is capped at the old .05s budget
+  time(11.);generator.getTwists(moving); // 긴 공백도 기존 0.05초 예산으로 제한합니다.
   EXPECT_NEAR(generator.generateTrajectory(pose,moving,target).velocity.x,.12,1e-9);
 }
 TEST_F(AxisTest, TimingTraceSeparatesResetAndFrozenClockWithoutChangingRollout) {
@@ -194,7 +194,7 @@ TEST_F(AxisTest, TimingTraceSeparatesResetAndFrozenClockWithoutChangingRollout) 
     normal.reset();traced.reset();time(11.);
     normal.getTwists(current);traced.getTwists(current);
     EXPECT_EQ(normal.generateTrajectory(pose,current,target),traced.generateTrajectory(pose,current,target));
-    EXPECT_FALSE(std::filesystem::exists(trace)); // No I/O in the control loop.
+    EXPECT_FALSE(std::filesystem::exists(trace)); // 제어 루프에서는 I/O를 수행하지 않습니다.
   }
   std::ifstream input(trace);nlohmann::json data;input>>data;
   const auto &rows=data.at("records");ASSERT_EQ(rows.size(),6u);
@@ -232,7 +232,7 @@ TEST_F(AxisTest, TranslationRampPreservesBearingAndRespectsBothComponentLimits) 
     current=next;
   }
   EXPECT_NEAR(current.x,0.,1e-9);EXPECT_NEAR(current.y,0.,1e-9);
-  // Reversal also follows the X/Y segment within each component's budget.
+  // 반전도 각 성분 예산 안에서 X/Y 선분을 따릅니다.
   current.x=.1;current.y=-.05;target.x=-.1;target.y=.1;
   time(21.);generator.getTwists(current);time(21.02);generator.getTwists(current);
   auto next=generator.generateTrajectory(pose,current,target).velocity;
@@ -435,7 +435,7 @@ TEST_F(AxisTest, PlannedBodyHeadingIsRequiredDespiteDiagonalTravelAllowance) {
   EXPECT_LT(critic.scoreTrajectory(turning),critic.scoreTrajectory(stopped));
   pose.theta=0.;critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);moving.poses={pose};
   EXPECT_NO_THROW(critic.scoreTrajectory(moving));
-  // At an explicit rotation waypoint, use its final body orientation.
+  // 명시적 회전 waypoint에서는 최종 body 방향을 사용합니다.
   reference=pose;auto rotated=reference;rotated.theta=-M_PI/2;goal.y=-2.;goal.x=0.;goal.theta=-M_PI/2;
   path.poses={reference,rotated,goal};critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
   EXPECT_THROW(critic.scoreTrajectory(moving),dwb_core::IllegalTrajectoryException);
@@ -492,7 +492,7 @@ TEST_F(AxisTest, HolonomicFirstCommandStaysInBoxWhenMeasuredVelocityOvershoots) 
   nav_2d_msgs::msg::Twist2D measured,target;measured.x=.18;measured.y=-.17;measured.theta=.4;
   target.x=.15;target.y=-.15;target.theta=.3;
   geometry_msgs::msg::Pose2D pose;
-  time(10.);generator.startNewIteration(measured); // reset: zero acceleration budget
+  time(10.);generator.startNewIteration(measured); // reset 시 가속 예산은 0입니다.
   auto trajectory=generator.generateTrajectory(pose,measured,target);
   EXPECT_LE(trajectory.velocity.x,.15);EXPECT_GE(trajectory.velocity.y,-.15);
   EXPECT_LE(trajectory.velocity.theta,.3);
@@ -550,10 +550,10 @@ TEST_F(AxisTest, InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking) {
   const auto trajectory=generator.generateTrajectory(pose,measured,target);
   EXPECT_LE(std::abs(trajectory.velocity.x-measured.x),.4*.05+1e-12);
   EXPECT_LE(std::abs(trajectory.velocity.y-measured.y),.4*.05+1e-12);
-  EXPECT_LT(trajectory.velocity.y,-.07); // Do not snap to an unreachable ray.
+  EXPECT_LT(trajectory.velocity.y,-.07); // 도달할 수 없는 ray로 즉시 맞추지 않습니다.
   const auto braking=generator.generateTrajectory(pose,measured,nav_2d_msgs::msg::Twist2D());
   EXPECT_NEAR(braking.velocity.x*measured.y-braking.velocity.y*measured.x,0.,1e-12);
-  EXPECT_GT(braking.poses.back().x,0.); // A stop still models finite braking.
+  EXPECT_GT(braking.poses.back().x,0.); // 정지도 유한한 제동을 모델링합니다.
 }
 
 TEST_F(AxisTest, CoupledMecanumCapScalesFullTwistAndAllWheelSigns) {

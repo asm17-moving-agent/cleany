@@ -1,4 +1,4 @@
-"""Response metrics and plots from measured wheel-odometry controller traces."""
+"""측정된 바퀴 odometry 제어기 기록의 응답 지표와 그래프입니다."""
 from __future__ import annotations
 
 import math
@@ -11,7 +11,7 @@ AXES = {"x": "surge", "y": "sway", "yaw": "rotation",
 
 
 def translation_direction(axis: str) -> tuple[float, float]:
-    """Unit direction in the leg's initial body frame; speed is vector magnitude."""
+    """구간 시작 body 좌표계의 단위 방향이며 speed는 벡터 크기입니다."""
     return PATTERN_DIRECTIONS[AXES[axis]]
 
 
@@ -21,7 +21,7 @@ def project_translation(x: float, y: float, axis: str) -> tuple[float, float]:
 
 
 def endpoint_errors(result: dict, axis: str) -> dict:
-    """Separate wheel-odom goal residual, ICP goal residual and odom-minus-ICP."""
+    """wheel odom 목표 잔차, ICP 목표 잔차와 odom-ICP 차이를 분리합니다."""
     if axis == "yaw":
         return {}
     target = result["nominal_displacement"]
@@ -49,6 +49,18 @@ def endpoint_errors(result: dict, axis: str) -> dict:
 
 
 def response_metrics(result: dict, axis: str) -> dict:
+    """바퀴 odometry 기록 표본에서 응답 시간과 잔차를 계산합니다.
+
+    위치와 정지 속도 조건을 마지막으로 위반한 표본 다음을 정착 진입점으로 삼습니다.
+    남은 기록 구간의 판정이며 연속 시간이나 기록 이후의 정착을 입증하지 않습니다.
+    10/90% 최초 도달로 상승 시간을 구하고, completion_s는 마지막 표본 시각입니다.
+
+    Returns:
+        빈 기록이나 무효 결과는 valid=False만 반환합니다. 정착 또는 비율 도달이
+        없으면 해당 시간은 None입니다. 시간은 초, 위치는 yaw일 때 rad이고 그 외는 m,
+        최대 측정 속도는 각각 rad/s 또는 m/s입니다.
+    """
+
     trace = result.get("trace", [])
     if not trace or not result.get("is_valid"):
         return {"valid": False}

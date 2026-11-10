@@ -1,4 +1,4 @@
-"""Bounded JSONL host client for the standalone IMU calibration protocol."""
+"""독립 IMU 보정 프로토콜의 시간 제한 JSONL 호스트 client입니다."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ MAX_LINE_BYTES = 65536
 
 
 class CaptureError(RuntimeError):
-    """Serial, protocol, or deadline failure."""
+    """serial, 프로토콜 또는 마감 실패입니다."""
 
 
 def _validate_result(message: dict[str, Any]) -> dict[str, Any]:
@@ -71,11 +71,10 @@ def _integer(value: Any) -> bool:
 
 
 def create_serial_port() -> Any:
-    """Create a POSIX port with atomic DTR/RTS updates during open.
+    """열 때 DTR/RTS를 원자적으로 갱신하는 POSIX 포트를 생성합니다.
 
-    pySerial normally deasserts DTR before RTS. On native ESP32-S3 USB,
-    the intervening control-line state can reset the MCU even when both
-    attributes were set False before opening.
+    pySerial은 보통 RTS보다 DTR을 먼저 해제합니다. native ESP32-S3 USB에서는
+    열기 전에 두 속성을 False로 두었어도 중간 제어선 상태로 MCU가 reset될 수 있습니다.
     """
     import fcntl
     import struct
@@ -85,8 +84,8 @@ def create_serial_port() -> Any:
     class AtomicSerial(serial.Serial):
         def _update_control_lines(self) -> None:
             try:
-                # open() calls these hooks before is_open=True; use its valid fd,
-                # not fileno(), which rejects that intermediate lifecycle state.
+                # open()은 is_open=True 전에 이 hook을 호출합니다. 이 중간 상태를
+                # 거부하는 fileno() 대신 유효한 fd를 사용합니다.
                 flags = struct.unpack(
                     "I", fcntl.ioctl(self.fd, termios.TIOCMGET, struct.pack("I", 0))
                 )[0]
@@ -109,7 +108,7 @@ def create_serial_port() -> Any:
 def capture(ser: Any, timeout: float = 60.0, calibrate: bool = False,
             clock: Callable[[], float] = time.monotonic,
             request_id: str | None = None) -> dict[str, Any]:
-    """Query retained status, or start a fresh command run, until terminal/deadline."""
+    """보관 상태를 조회하거나 새 명령 실행을 시작해 종료 또는 마감까지 기다립니다."""
     if not _finite(timeout) or timeout <= 0:
         raise CaptureError("timeout must be finite and positive")
     if calibrate:
@@ -171,7 +170,7 @@ def capture(ser: Any, timeout: float = 60.0, calibrate: bool = False,
                         continue
                     return msg
                 elif kind == "status" and calibrate and isinstance(msg.get("run_id"), int):
-                    # Status cannot establish that this is the newly commanded run.
+                    # 상태 조회만으로 방금 명령한 새 실행인지 확인할 수 없습니다.
                     continue
             else:
                 if len(buf) >= MAX_LINE_BYTES:

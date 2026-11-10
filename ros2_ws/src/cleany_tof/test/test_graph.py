@@ -1,4 +1,4 @@
-"""Synthetic ROS graph only: no serial device, Nav2 controller or motors."""
+"""합성 ROS graph 전용이며 serial 장치, Nav2 제어기와 모터가 없습니다."""
 import time
 import json
 from itertools import count
@@ -54,7 +54,7 @@ class World(Node):
 
     def forward(self, msg):
         self.selected.append(msg)
-        self.upstream.publish(msg)  # Explicit identity substitute for the existing safety chain.
+        self.upstream.publish(msg)  # 기존 안전 경로를 명시적인 항등 대체로 연결합니다.
 
     def publish(self):
         stamp = self.get_clock().now().to_msg()
@@ -104,7 +104,7 @@ class World(Node):
         return self.client.send_goal_async(self.request(**kwargs))
 
     def desk_ready(self, unreliable_zones=0):
-        # Publisher progress does not prove that the server received fresh data.
+        # publisher의 진행이 서버의 최신 데이터 수신을 입증하지는 않습니다.
         node = self.approach_node
         try:
             observation, age, _ = node.inputs.snapshot()
@@ -182,7 +182,7 @@ def test_ownership_rejection_cancellation_and_settled_success(graph):
     assert result.result().status == GoalStatus.STATUS_CANCELED
     assert not result.result().result.success
     world.distance = .75
-    # Wait until new samples replace the old plane before starting the second action.
+    # 새 표본이 이전 평면을 대체할 때까지 기다린 뒤 두 번째 action을 시작합니다.
     baseline = world.seq
     until(lambda: world.seq > baseline+4)
     future = world.goal()
@@ -206,7 +206,7 @@ def test_authority_loss_aborts_approach_and_stops_final_output(graph):
     assert result.result().status == GoalStatus.STATUS_ABORTED
     assert result.result().result.reason == 'SUPERVISOR_AUTHORITY_LOST'
     until(lambda: stopped(world.outputs[-1]))
-    # Loss of authority must not masquerade as a sensor failure.
+    # 권한 상실이 센서 실패처럼 보고되어서는 안 됩니다.
     assert world.health[-1].status == ComponentHealth.AVAILABLE
 
 

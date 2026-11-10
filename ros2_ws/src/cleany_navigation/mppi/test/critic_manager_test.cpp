@@ -131,7 +131,7 @@ TEST(CriticManagerTests, CriticLoadingTest)
   rclcpp_lifecycle::State state;
   costmap_ros->on_configure(state);
 
-  // This should grab the critics parameter and load the 3 requested plugins
+  // critics 파라미터에 지정한 세 플러그인을 불러오는지 확인합니다.
   CriticManagerWrapperEnum critic_manager;
   critic_manager.on_configure(node, "critic_manager", costmap_ros, &param_handler);
   EXPECT_EQ(critic_manager.getCriticNum(), 3u);

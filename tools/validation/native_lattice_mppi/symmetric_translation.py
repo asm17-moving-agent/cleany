@@ -1,4 +1,4 @@
-"""Build grid-aligned eight-direction translations; audit retained turn primitives."""
+"""격자 정렬 8방향 병진을 만들고 유지된 회전 기본 경로를 검사합니다."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,7 @@ def wrap(angle: float) -> float:
 
 
 def build(source: dict) -> dict:
-    """Preserve heading bins and turns, replacing fixed-yaw translations only."""
+    """방향 bin과 회전을 유지하며 고정 yaw 병진만 교체합니다."""
     result = copy.deepcopy(source)
     resolution = source['lattice_metadata']['grid_resolution']
     headings = source['lattice_metadata']['heading_angles']
@@ -41,12 +41,12 @@ def build(source: dict) -> dict:
         p['trajectory_id'] = i
     result['primitives'] = primitives
     result['lattice_metadata']['number_of_trajectories'] = len(primitives)
-    # The output is reproducible; date_generated identifies the source asset.
+    # 출력은 재현 가능하며 date_generated는 소스 asset을 식별합니다.
     return result
 
 
 def audit(source: dict) -> dict:
-    """Report geometric symmetry, without treating unequal turns as a pair."""
+    """동등하지 않은 회전을 한 쌍으로 취급하지 않고 기하 대칭성을 보고합니다."""
     headings = source['lattice_metadata']['heading_angles']
     report = []
     for index, yaw in enumerate(headings):

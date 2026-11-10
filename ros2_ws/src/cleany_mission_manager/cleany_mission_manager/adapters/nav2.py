@@ -1,4 +1,4 @@
-"""NavigateToPose adapter with goal identity, cancellation and stopped feedback."""
+"""목표 식별, 취소와 정지 피드백을 다루는 NavigateToPose 어댑터입니다."""
 
 import math
 import time
@@ -37,13 +37,12 @@ class NavigationOperation:
 
 
 class Nav2Navigator:
-    """Adapt asynchronous Nav2 goals to the runtime's polled operation contract.
+    """비동기 Nav2 목표를 런타임의 polling 작업 계약에 맞춥니다.
 
-    Call maintain() to refresh lifecycle state and cancel journaled goals after
-    a restart. Goal results, fresh stopped odometry and localized arrival are
-    separate checks; a successful action result alone does not certify arrival.
-    With check_lifecycle=False the System Supervisor owns Nav2 lifecycle
-    availability (NAVIGATION capability) and this adapter does not poll it.
+    maintain()을 호출해 lifecycle 상태를 갱신하고 재시작 후 journal의 목표를 취소합니다.
+    목표 결과, 최신 정지 odometry와 추정 위치의 도착 판정은 별도 검사이며 action 성공만으로
+    도착을 보증하지 않습니다. check_lifecycle=False이면 System Supervisor가 NAVIGATION
+    capability로 Nav2 사용 가능 상태를 관리하고 이 어댑터는 lifecycle을 조회하지 않습니다.
     """
     def __init__(self, node, targets: TargetMap, journal: MissionJournal, *,
                  check_lifecycle: bool = True) -> None:
@@ -153,12 +152,12 @@ class Nav2Navigator:
             self.active_nodes[name] = False
 
     def base_transform(self):
-        """Latest base pose in the target frame and its age in seconds."""
+        """대상 좌표계의 최신 베이스 자세와 경과 시간(초)을 반환합니다."""
         tf = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
         return tf, self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(tf.header.stamp).nanoseconds*1e-9
 
     def localization_snapshot(self) -> dict:
-        """Expose the same estimated pose used for arrival, never ground truth."""
+        """참값이 아닌 도착 판정과 동일한 추정 자세를 제공합니다."""
         tf, age = self.base_transform()
         q = tf.transform.rotation
         norm = math.sqrt(sum(v*v for v in (q.x, q.y, q.z, q.w)))
@@ -202,7 +201,7 @@ class Nav2Navigator:
         goal.pose.pose.orientation.w = math.cos(pose.yaw / 2)
         operation = NavigationOperation(str(uuid4()), target=pose)
         self.operation = operation
-        # The goal UUID is durable before it reaches Nav2. On restart cancel only this goal.
+        # 목표 UUID는 Nav2로 보내기 전에 영속 저장합니다. 재시작 시 이 목표만 취소합니다.
         self.journal.set("nav_goal_uuid", operation.operation_id)
         future = self.client.send_goal_async(goal, goal_uuid=goal_uuid(operation.operation_id))
         future.add_done_callback(lambda f: self._accepted(operation, f))
@@ -220,7 +219,7 @@ class Nav2Navigator:
                 return
             operation.result_future = handle.get_result_async()
             operation.result_future.add_done_callback(lambda f: self._finished(operation, f))
-            # A pending acceptance may arrive after cancellation. It must never start new work.
+            # 취소 후에 대기 중이던 수락 응답이 도착할 수 있지만 새 작업을 시작해서는 안 됩니다.
             if operation.cancelled or self.operation is not operation:
                 handle.cancel_goal_async()
         except Exception as exc:
@@ -248,7 +247,7 @@ class Nav2Navigator:
     def poll(self, operation_id: str) -> ModuleResult | None:
         operation = self.operation
         if operation is None or operation.operation_id != operation_id:
-            return None  # Late results cannot advance another operation.
+            return None  # 늦은 결과가 다른 작업을 진행시키지 못하게 합니다.
         if operation.result is None:
             return None
         if not operation.terminal_known or not self._base_stopped():
@@ -257,8 +256,8 @@ class Nav2Navigator:
                                           message="Navigation ended without fresh stopped feedback.")
             return None
         if operation.result.ok:
-            # Nav2 may stop near a tolerance-shifted path endpoint. Verify the
-            # original requested pose independently before desk work can start.
+            # Nav2는 허용 오차로 이동된 경로 끝점 근처에서 멈출 수 있습니다.
+            # 책상 작업 전에 원래 요청 자세를 독립적으로 확인합니다.
             try:
                 measurement = self.localization_snapshot()
                 age = measurement["age_s"]

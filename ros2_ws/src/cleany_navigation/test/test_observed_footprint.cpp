@@ -50,18 +50,18 @@ static bool coherentFailurePreservesScoring() {
   ok &= evidence["previous_cycle"]["candidates"]==2 &&
     evidence["previous_cycle"]["rejected"]==1;
   ok &= evidence["previous_cycle"]["stamp_ns"]<=evidence["stamp_ns"];
-  // Repeated failed cycles cannot overwrite the onset with a later map.
+  // 실패 주기가 반복되어도 시작 시점 지도를 이후 지도로 덮어쓸 수 없습니다.
   map->setCost(0,0,253);ok &= prepare()&&rejects(observed);observed.debrief(velocity);ok &= bytes()==first;
-  // A valid cycle ends the episode; the next failure records its new map.
+  // 유효 주기는 해당 구간을 끝내며 다음 실패는 새 지도를 기록합니다.
   std::fill(map->getCharMap(),map->getCharMap()+1600,0);
   ok &= prepare();observed.scoreTrajectory(trajectory);observed.debrief(velocity);
   std::fill(map->getCharMap(),map->getCharMap()+1600,254);map->setCost(0,0,253);
   ok &= prepare()&&rejects(observed);observed.debrief(velocity);
   ok &= nlohmann::json::parse(bytes())["costs"][0]==253;
-  // A new plan must not inherit a previous cycle or a latched failure episode.
+  // 새 계획이 이전 주기나 유지된 실패 구간을 물려받아서는 안 됩니다.
   observed.reset();ok &= prepare()&&rejects(observed);observed.debrief(velocity);
   ok &= !nlohmann::json::parse(bytes()).contains("previous_cycle");
-  // Capture errors must not change collision rejection or propagate from debrief.
+  // 수집 오류가 충돌 거부를 바꾸거나 debrief 밖으로 전파되어서는 안 됩니다.
   std::fill(map->getCharMap(),map->getCharMap()+1600,0);
   ok &= prepare();observed.scoreTrajectory(trajectory);observed.debrief(velocity);
   std::filesystem::remove_all(directory);std::ofstream(directory)<<"not a directory";

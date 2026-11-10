@@ -7,7 +7,7 @@ request_adapters: >-
   default_planner_request_adapters/FixStartStateCollision
   default_planner_request_adapters/FixStartStatePathConstraints
 start_state_max_bounds_error: 0.1
-# Joint-space rounding bound; this is not a Cartesian clearance guarantee.
+# 관절 공간의 반올림 한계이며 Cartesian 여유 거리를 보장하지 않습니다.
 path_tolerance: 0.0001
 
 planner_configs:

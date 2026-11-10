@@ -1,4 +1,4 @@
-# Jetson system Python dependency closure for google-genai and mujoco, 2026-11-02.
+# google-genai와 mujoco에 필요한 Jetson 시스템 Python 의존성 목록입니다. 기준일: 2026-11-02.
 absl-py==2.5.0
 annotated-types==0.8.0
 anyio==4.14.2

@@ -1,4 +1,4 @@
-"""Geometry contracts for the optional holonomic primitive asset."""
+"""선택적 전방향 기본 경로 asset의 기하 계약입니다."""
 from pathlib import Path
 import importlib.util
 import json

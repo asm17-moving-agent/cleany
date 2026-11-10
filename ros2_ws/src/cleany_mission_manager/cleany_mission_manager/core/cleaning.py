@@ -1,4 +1,4 @@
-"""Desk BT: one proposal, one operation, then a fresh observation."""
+"""책상 BT는 제안 하나와 작업 하나를 수행한 뒤 새로 관측합니다."""
 
 from dataclasses import dataclass, field, replace
 from uuid import uuid4
@@ -132,7 +132,7 @@ class CleaningTree:
 
     def tick(self) -> py_trees.common.Status:
         self.visited.clear()
-        # Observe each yielded node before decorators reset successful children.
+        # decorator가 성공한 자식을 초기화하기 전에 yield된 각 노드를 관측합니다.
         for node in self.root.tick():
             self.visited.add(node.name)
             if self.observer:
@@ -150,7 +150,7 @@ class CleaningTree:
         self.root.stop(py_trees.common.Status.INVALID)
 
     def settle(self) -> None:
-        # halt() invalidates the tree, but the action result still belongs in the report.
+        # halt()가 트리를 무효화해도 action 결과는 보고서에 남겨야 합니다.
         for leaf in self.root.iterate():
             if (isinstance(leaf, OperationLeaf) and leaf.name == "ExecuteOne"
                     and leaf.operation_id and not leaf.consumed):
@@ -257,7 +257,7 @@ class CleaningTree:
         if (not result.retryable or result.status != ResultStatus.FAILED
                 or attempts > self.policy.max_skill_retries):
             self.context.abort_after_observe = result
-        # Even exhausted failures are recorded and reobserved before termination.
+        # 재시도를 소진한 실패도 종료 전에 기록하고 재관측합니다.
         return True
 
     def _verify(self) -> bool:

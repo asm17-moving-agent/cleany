@@ -46,13 +46,13 @@ nav_2d_msgs::msg::Twist2DStamped GoalDirectedController::computeVelocityCommands
       nav_2d_msgs::msg::Pose2DStamped goal,transformed;
       goal.header.frame_id=global_plan_.header.frame_id;
       goal.pose=global_plan_.poses.back();
-      // Same latest-transform semantics as DWB's actual global goal. A failed
-      // transform adds no candidates; base DWB retains its own failure policy.
+      // DWB의 실제 전역 목표와 동일한 최신 변환 규칙을 사용합니다. 변환 실패 시
+      // 후보를 추가하지 않으며 기본 DWB가 자체 실패 정책을 적용합니다.
       if(nav_2d_utils::transformPose(tf_,pose.header.frame_id,goal,transformed,transform_tolerance_))
         generator->setGoalContext(pose.pose,transformed.pose);
     }
   }
-  selected_.reset(); // Exceptions and failed cycles cannot retain a command.
+  selected_.reset(); // 예외나 실패한 주기에서 명령을 유지할 수 없습니다.
   auto result=dwb_core::DWBLocalPlanner::computeVelocityCommands(pose,velocity,results);
   if(std::hypot(result.velocity.x,result.velocity.y)>1e-6)selected_=Selected{pose,result.velocity};
   return result;

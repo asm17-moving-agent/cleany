@@ -113,7 +113,7 @@ def test_cloud_voxel_downsampling_is_deterministic() -> None:
         depth, rgb, intrinsics, np.ones((2, 2), dtype=bool), 0.1, 2.0, 0.01, 10
     )
 
-    assert cloud.points.shape == (4, 3)  # Points straddle four signed voxels.
+    assert cloud.points.shape == (4, 3)  # 점들이 부호가 서로 다른 voxel 네 개에 걸칩니다.
 
 
 def test_grasp_target_reuses_reconstructed_support_plane():

@@ -1,7 +1,7 @@
 #pragma once
 #include "dwb_core/trajectory_critic.hpp"
 namespace cleany_navigation {
-/// Body orientation follows the planner; translation direction remains holonomic.
+/// body 방향은 planner를 따르며 병진 방향은 전방향을 유지합니다.
 class PathOrientationCritic : public dwb_core::TrajectoryCritic {
 public:
   bool prepare(const geometry_msgs::msg::Pose2D &, const nav_2d_msgs::msg::Twist2D &,

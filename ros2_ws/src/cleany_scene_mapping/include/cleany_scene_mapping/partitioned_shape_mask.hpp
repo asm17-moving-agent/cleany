@@ -11,8 +11,8 @@
 
 namespace cleany_scene_mapping
 {
-/// Caller serializes shape/transform mutation against maskContainment. Each
-/// worker owns an upstream ShapeMask, so no non-thread-safe Body is shared.
+/// 호출자는 maskContainment와 형상 및 변환 변경을 직렬화해야 합니다. 각 worker가
+/// upstream ShapeMask를 소유하므로 스레드 안전하지 않은 Body를 공유하지 않습니다.
 class PartitionedShapeMask
 {
 public:
@@ -34,14 +34,14 @@ private:
     void addClone(const Worker& original, unsigned int handle);
     void removeClone(unsigned int handle);
   private:
-    // Cloned Body instances own independent pose/padding caches; the immutable
-    // convex mesh data can be shared via geometric_shapes::Body::cloneAt.
+    // 복제된 Body는 자세와 여유 캐시를 독립 소유하며 불변 볼록 메시 데이터는
+    // geometric_shapes::Body::cloneAt으로 공유할 수 있습니다.
     std::unordered_map<unsigned int, bodies::BodyPtr> clones_;
   };
   Mask::TransformCallback transform_;
   std::vector<std::unique_ptr<Worker>> workers_;
   std::unordered_set<unsigned int> handles_;
-  // High-water-mark storage, reused only after every worker has finished.
+  // 최대 사용 크기를 유지하는 저장소이며 모든 worker가 끝난 뒤에만 재사용합니다.
   std::vector<sensor_msgs::msg::PointCloud2> partitions_;
   std::vector<std::vector<int>> masks_;
   std::vector<std::thread> threads_;

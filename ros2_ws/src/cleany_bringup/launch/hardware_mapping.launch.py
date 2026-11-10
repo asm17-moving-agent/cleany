@@ -1,4 +1,4 @@
-"""One lifecycle owner keeps hardware alive until the mapping session is saved."""
+"""한 실행 관리자가 매핑 세션 저장이 끝날 때까지 하드웨어를 유지합니다."""
 
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory

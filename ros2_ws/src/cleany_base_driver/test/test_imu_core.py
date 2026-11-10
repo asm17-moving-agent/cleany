@@ -1,4 +1,4 @@
-"""Transport checks and receipt-anchored timestamp mapping."""
+"""통신 계약과 수신 시점 기준 시각 변환을 검사합니다."""
 from types import SimpleNamespace
 
 import pytest

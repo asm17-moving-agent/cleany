@@ -1,8 +1,8 @@
-# Candidates must share snapshot_id, object_id, configured planning frame,
-# and target OBB.
+# 후보는 snapshot_id, object_id, 설정된 계획 좌표계와
+# 대상 OBB를 공유해야 합니다.
 GraspCandidate[] candidates
-# Optional arm lock for post-pregrasp re-selection. Empty preserves the
-# nearest-arm-first bilateral fallback behavior.
+# pregrasp 이후 재선택에 사용하는 선택적 팔 고정입니다. 빈 값이면
+# 가까운 팔을 먼저 시도한 뒤 반대 팔을 시도하는 동작을 유지합니다.
 string required_arm
 ---
 uint8 ERROR_NONE=0

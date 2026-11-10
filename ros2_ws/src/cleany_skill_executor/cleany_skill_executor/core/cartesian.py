@@ -1,4 +1,4 @@
-"""Finite, direction-preserving checks for sampled Cartesian motion plans."""
+"""표본 Cartesian 이동 계획의 유한성과 방향 보존 검사입니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ Quaternion = tuple[float, float, float, float]
 
 def execution_wall_timeout(duration_sec: float, factor: float,
                            margin_sec: float, minimum_sec: float) -> float:
-    """Bound execution in wall time without assuming a real-time simulator."""
+    """실시간 시뮬레이터를 가정하지 않고 경과 시간으로 실행을 제한합니다."""
     values = (duration_sec, factor, margin_sec, minimum_sec)
     if (not all(math.isfinite(value) for value in values)
             or duration_sec <= 0 or factor < 1 or margin_sec < 0 or minimum_sec <= 0):
@@ -70,7 +70,7 @@ class LineCorridor:
 
 
 def line_corridor(start: Vector3, end: Vector3, radius: float) -> LineCorridor:
-    """Cylinder along the segment, with one radius of endpoint padding."""
+    """선분을 따르는 원기둥이며 양 끝에 반경만큼 여유를 둡니다."""
     if not math.isfinite(radius) or radius <= 0:
         raise ValueError('corridor radius must be finite and positive')
     for point in (start, end):
@@ -80,7 +80,7 @@ def line_corridor(start: Vector3, end: Vector3, radius: float) -> LineCorridor:
     if length < 1e-9:
         raise ValueError('corridor requires distinct endpoints')
     direction = tuple((b-a)/length for a, b in zip(start, end, strict=True))
-    # Shortest rotation from the cylinder's local +Z to the segment direction.
+    # 원기둥 로컬 +Z에서 선분 방향으로의 최단 회전입니다.
     if direction[2] < -1 + 1e-12:
         orientation = (1., 0., 0., 0.)
     else:
@@ -105,7 +105,7 @@ def validate_corridor_samples(samples: Sequence[CartesianPose], start: Cartesian
                               target: CartesianPose, radius_m: float,
                               orientation_tolerance_rad: float,
                               endpoint_orientation_tolerance_rad: float) -> tuple[float, float]:
-    """Validate returned FK samples, not a continuous-collision certificate."""
+    """반환된 FK 표본을 검증하며 연속 충돌 검증서는 아닙니다."""
     line_corridor(start.position, target.position, radius_m)
     if not math.isfinite(orientation_tolerance_rad) or orientation_tolerance_rad <= 0:
         raise ValueError('corridor orientation tolerance must be finite and positive')
@@ -136,7 +136,7 @@ def validate_corridor_samples(samples: Sequence[CartesianPose], start: Cartesian
 def sampled_time_scale(samples: Sequence[CartesianPose], times: Sequence[float],
                        translation_speed: float, rotation_speed: float,
                        translation_acceleration: float, margin: float) -> float:
-    """Uniform slowdown from sampled FK rates; not a continuous speed proof."""
+    """표본 FK 속도로 균일 감속하며 연속 속도를 입증하지는 않습니다."""
     limits = (translation_speed, rotation_speed, translation_acceleration, margin)
     if (len(samples) < 2 or len(times) != len(samples) or
             not all(math.isfinite(x) and x > 0 for x in limits) or margin < 1 or

@@ -1,4 +1,4 @@
-"""Opt-in ROS graph/QoS/layer checks in an isolated DDS domain."""
+"""격리된 DDS domain에서 명시적으로 실행하는 ROS 그래프·QoS·계층 검사입니다."""
 
 import os
 import time
@@ -155,7 +155,7 @@ def test_camera_best_effort_subscription_and_expiry(tmp_path, monkeypatch):
             if frame:
                 break
         assert frame and frame.width == 2 and frame.jpeg.startswith(b"\xff\xd8")
-        # Expire observation lease without any robot motion or control calls.
+        # 로봇 이동이나 제어 호출 없이 관측 lease를 만료시킵니다.
         monitor.hub.cameras.clock = lambda: time.monotonic() + 5
         monitor.discover()
         assert "/test_camera/image" not in monitor.subs
@@ -247,7 +247,7 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
         assert any(t["selected"] and t["index"]==1 for t in observed[("navigation","controller_evaluation")]["trajectories"])
         assert observed[("navigation","controller_evaluation")]["count"] == 25
         json.dumps(monitor.hub.snapshot(), allow_nan=False)
-        # Repeated successful condition ticks are bounded; first failure is immediate.
+        # 반복 성공은 제한된 횟수로 기록하며 최초 실패는 즉시 기록합니다.
         condition = BehaviorTreeLog(event_log=[BehaviorTreeStatusChange(node_name="IsPathValid", previous_status="IDLE", current_status="SUCCESS")])
         for _ in range(10):
             monitor.navigation_receive("/behavior_tree_log", condition, None)
@@ -256,16 +256,16 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
         condition.event_log[0].current_status = "FAILURE"
         monitor.navigation_receive("/behavior_tree_log", condition, None)
         assert any(r["kind"] == "event" and r["data"].get("kind") == "nav2_bt" and r["data"]["data"]["status"] == "FAILURE" for r in monitor.hub.snapshot()["rows"])
-        # Unsubscribe large geometry while fixed diagnostics remain active.
+        # 고정 진단은 유지하며 큰 형상 데이터의 구독만 해제합니다.
         monitor.hub.release("navigation-test")
         monitor.discover()
         assert "/scan" not in monitor.subs and "/evaluation" not in monitor.subs
         assert "/wheel/odom" in monitor.subs
-        # Invalid measured frame cannot remain a fresh velocity source.
+        # 무효한 측정 프레임을 최신 속도 소스로 유지해서는 안 됩니다.
         odom.child_frame_id = "world"
         monitor.navigation_receive("/wheel/odom", odom, 10.)
         assert "odometry" not in monitor.navigation.observations
-        # Non-finite covariance or polygon vertices must not make the snapshot unrecordable.
+        # 유한하지 않은 공분산이나 polygon 꼭짓점 때문에 snapshot 기록 전체가 불가능해져서는 안 됩니다.
         amcl = PoseWithCovarianceStamped()
         amcl.header.frame_id = "map"
         amcl.pose.pose.orientation.w = 1.
@@ -279,7 +279,7 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
         assert observed[("navigation","amcl_pose")]["pose"] == [0., 0., 0.]
         assert observed[("navigation","stop_polygon")]["points"] == [[1., 0., 0.]]
         json.dumps(monitor.hub.snapshot(), allow_nan=False)
-        # A decode error is cleared by the next valid message on the same topic.
+        # 같은 토픽의 다음 유효 메시지가 디코딩 오류를 해제합니다.
         monitor.receive("/clock", String())
         assert "/clock" in monitor.errors
         monitor.receive("/clock", Clock(clock=stamp))
@@ -477,7 +477,7 @@ def test_new_session_requests_retained_static_transforms_again(tmp_path, monkeyp
     transform.header.frame_id = 'map'
     transform.child_frame_id = 'sensor'
     transform.transform.rotation.w = 1.
-    publisher.publish(TFMessage(transforms=[transform]))  # Publish only once.
+    publisher.publish(TFMessage(transforms=[transform]))  # 한 번만 발행합니다.
     executor = SingleThreadedExecutor()
     executor.add_node(monitor)
     executor.add_node(source)

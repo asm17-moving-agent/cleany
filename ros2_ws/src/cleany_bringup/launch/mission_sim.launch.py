@@ -1,4 +1,4 @@
-"""Gazebo + existing AMCL/Nav2 + mission runtime. Never starts SLAM concurrently."""
+"""Gazebo, 기존 AMCL/Nav2와 Mission Runtime을 연결하며 SLAM을 동시에 시작하지 않습니다."""
 
 import os
 from pathlib import Path
@@ -44,7 +44,7 @@ def _start(context):
     mock_node = None
     if start_mock:
         from cleany_skill_executor.manipulation.mock import MockAdapter, MockConfig
-        # Validate the full executor config before returning any launch actions.
+        # launch action을 반환하기 전에 전체 executor 설정을 검증합니다.
         MockAdapter(MockConfig.load(fixture_path), arg("manipulation_scenario"))
         mission_db = Path(arg("journal_path")).expanduser().resolve()
         manipulation_db = Path(arg("manipulation_database_path")).expanduser().resolve()
@@ -65,15 +65,15 @@ def _start(context):
     navigation = navigation_share / "launch/amcl_nav2.launch.py"
     navigation_arguments = {"use_sim_time": "true", "map": arg("map")}
     if backend == "action_mock":
-        # Use the existing mecanum controller profile with a 3 cm
-        # controller tolerance, inside the unchanged 8 cm Mission arrival gate.
+        # 기존 메카넘 controller에 허용 오차 3 cm를 적용합니다.
+        # 이는 변경하지 않은 Mission 도착 판정 8 cm 안에 들어갑니다.
         nav_parameters = yaml.safe_load((navigation_share / "config/nav2_amcl.yaml").read_text())
         omni = yaml.safe_load((navigation_share / "config/nav2_omni_motion.yaml").read_text())
         merge_parameters(nav_parameters, {"controller_server": omni["controller_server"]})
         safety = yaml.safe_load((sim / "config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):
-            # Plan with the existing monitor envelope, so its larger stop zone
-            # does not invalidate paths accepted with the default base footprint.
+            # 기존 monitor의 보호 영역으로 계획해 더 큰 정지 영역 때문에 기본 베이스
+            # footprint로 승인된 경로가 뒤에서 차단되는 상황을 피합니다.
             nav_parameters[name][name]["ros__parameters"]["footprint"] = safety[name][name][
                 "ros__parameters"]["footprint"]
         nav_config = Path(mkdtemp(prefix="cleany-mission-mock-navigation-")) / "parameters.yaml"
@@ -82,8 +82,8 @@ def _start(context):
     nav_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(str(navigation)),
                                          launch_arguments=navigation_arguments.items())
     if backend == "action_mock":
-        # The existing Runtime requires collision_monitor ACTIVE. Route Nav2
-        # commands through that monitor instead of weakening its readiness check.
+        # 기존 Runtime은 collision_monitor의 ACTIVE 상태를 요구합니다. 준비 조건을
+        # 완화하지 않고 Nav2 명령이 해당 monitor를 통과하도록 연결합니다.
         nav_launch = GroupAction([SetRemap(src="cmd_vel", dst="nav2/cmd_vel"), nav_launch])
     runtime_arguments = {name: arg(name) for name in (
         "runtime_config", "targets_file", "gateway_url", "post_mission", "journal_path",
@@ -104,8 +104,8 @@ def _start(context):
     if mock_node is not None:
         nodes.insert(0, mock_node)
     if supervised:
-        # Simulation exposes no E-stop or protection hardware: without explicit evidence
-        # topics the Supervisor stays FAULT_LOCKED and the Runtime admits no mission.
+        # 시뮬레이션에는 E-stop이나 보호 하드웨어가 없습니다. 증거 토픽을 명시하지
+        # 않으면 Supervisor는 FAULT_LOCKED를 유지하고 Runtime은 미션을 거부합니다.
         nodes.append(IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
             Path(get_package_share_directory("cleany_system_supervisor")) / "launch/supervision.launch.py")),
             launch_arguments={"use_sim_time": "true", "odom_topic": "odom",
@@ -162,7 +162,7 @@ def generate_launch_description():
         DeclareLaunchArgument("estop_released_topic", default_value=""),
         DeclareLaunchArgument("protection_ready_topic", default_value=""),
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
-        # Isolate Gazebo transport from other simulations on the same host.
+        # 같은 호스트의 다른 시뮬레이션과 Gazebo 통신을 격리합니다.
         DeclareLaunchArgument("sim_partition", default_value="cleany-mission"),
         SetEnvironmentVariable("IGN_PARTITION", LaunchConfiguration("sim_partition")),
         OpaqueFunction(function=_start),

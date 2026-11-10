@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for Wheel Tracking Diagnosis and Gain Recommendation Logic."""
+"""바퀴 추종 진단과 이득 권고 로직을 검사합니다."""
 
 import pytest
 import re
@@ -16,27 +16,27 @@ from diagnose_wheel_tracking import (
 
 
 def test_perfect_tracking_synthetic_input_no_gain_increase():
-    """Verify that a robot perfectly tracking slew-filtered commands does NOT trigger false gain increases.
+    """변화율 제한 명령을 정확히 따를 때 잘못된 이득 증가를 권고하지 않는지 확인합니다.
 
-    Prevents the bug where normal acceleration slew lag was misclassified as steady-state tracking error,
-    falsely recommending a 25.7% Kp increase.
+    정상 가속 지연을 정상 상태 추종 오차로 오분류해 Kp 25.7% 증가를
+    잘못 권고했던 문제를 방지합니다.
     """
     samples: list[WheelSample] = []
-    target = 6.0  # 6.0 rad/s step target
+    target = 6.0  # 6.0rad/s step 목표
 
-    # 100 samples (2.0s at 50Hz)
-    # First 25 samples (0.5s): ramp up from 0 to 6.0 rad/s (slew phase)
-    # Remaining 75 samples (1.5s): steady-state at 6.0 rad/s
+    # 50Hz에서 2초인 표본 100개입니다.
+    # 첫 25개(0.5초)는 변화율 제한으로 0에서 6.0rad/s까지 올리고
+    # 나머지 75개(1.5초)는 6.0rad/s 정상 상태입니다.
     for i in range(100):
         t = i * 0.02
         if i < 25:
-            cmd = target * (i / 25.0)  # ramping
+            cmd = target * (i / 25.0)  # 속도 증가 중
         else:
-            cmd = target  # steady state
+            cmd = target  # 정상 상태
 
-        # Actual velocity perfectly tracks commanded_rad_s!
+        # 실제 속도는 commanded_rad_s를 정확히 추종합니다.
         vel = cmd
-        # PWM proportional to speed (FF scale = 0.16)
+        # PWM은 속도에 비례하며 FF scale은 0.16입니다.
         pwm = int((vel / 0.16) * 0.01 * 100)
 
         samples.append(WheelSample(
@@ -53,22 +53,22 @@ def test_perfect_tracking_synthetic_input_no_gain_increase():
     for s in stats:
         assert s.has_sufficient_steady_state
         assert s.status == "VALID"
-        # Steady-state error against commanded must be zero!
+        # 명령 대비 정상 상태 오차는 0이어야 합니다.
         assert s.steady_error_rmse < 0.001
         assert s.steady_rel_err_pct < 0.01
-        # Transient slew delay must be captured (~500ms)
+        # 약 500ms의 과도 변화 지연을 검출해야 합니다.
         assert abs(s.transient_delay_ms - 500.0) < 50.0
 
-        # CRITICAL: Suggested Kp and Ki must NOT increase! Must be identical to current configs!
+        # 권고 Kp와 Ki는 증가하면 안 되며 현재 설정과 같아야 합니다.
         cfg = CURRENT_CONFIGS[s.name]
         assert s.suggested_kp == pytest.approx(cfg["kp"], abs=1e-4)
         assert s.suggested_ki == pytest.approx(cfg["ki"], abs=1e-4)
 
 
 def test_insufficient_steady_state_samples_rejects_gain_change():
-    """Verify that insufficient data (<15 settled samples) yields no speculative gain changes."""
+    """정착 표본 15개 미만이면 추측한 이득 변경을 내놓지 않는지 확인합니다."""
     samples: list[WheelSample] = []
-    # Only 5 samples
+    # 표본이 다섯 개뿐입니다.
     for i in range(5):
         samples.append(WheelSample(
             time_s=i * 0.02,
@@ -141,14 +141,14 @@ def test_combined_readiness_requires_each_direction_for_both_patterns():
 
 
 def test_tracking_lag_does_not_automatically_retune_pi():
-    """A tracking ratio is insufficient evidence for changing closed-loop PI gains."""
+    """추종 비율만으로 폐루프 PI 이득을 변경할 근거는 부족합니다."""
     samples: list[WheelSample] = []
     target = 6.0
 
     for i in range(100):
         t = i * 0.02
         cmd = target if i >= 20 else target * (i / 20.0)
-        # Real steady-state lag: motor runs at 90% of command due to friction
+        # 마찰 때문에 모터가 명령의 90%로 도는 정상 상태 지연을 모사합니다.
         vel = cmd * 0.90 if i >= 20 else cmd * 0.85
         pwm = 35
 

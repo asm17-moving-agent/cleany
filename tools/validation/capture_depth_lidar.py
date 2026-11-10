@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture stationary depth/LiDAR evidence without commanding the robot."""
+"""로봇에 명령하지 않고 정지 깊이 및 LiDAR 근거를 수집합니다."""
 
 import argparse
 import json

@@ -27,7 +27,7 @@ def render_grasp_debug_image(
     selected_index: int | None = 0,
     image_size: int = 800,
 ) -> np.ndarray:
-    """Render a support-plane top view of point clouds and grasp candidates."""
+    """점군과 파지 후보를 지지 평면의 위쪽 시점으로 렌더링합니다."""
 
     if image_size < 200:
         raise ValueError('Grasp debug image must be at least 200 pixels wide')

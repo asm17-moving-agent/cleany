@@ -51,7 +51,7 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 주석과 Docstring
 
-- Python은 Google-style Docstring, C++은 Doxygen을 사용한다. 코드의 주석과 Docstring은 간결하고 자연스러운 영어로 작성한다.
+- Python은 Google-style Docstring, C++은 Doxygen을 사용한다. 코드의 설명 주석과 Docstring은 간결하고 자연스러운 한국어로 작성한다. 코드 식별자, 표준 섹션 이름과 Doxygen 태그, 검사·빌드 지시자, 라이선스와 외부 원본은 보존한다.
 - 주석의 양보다 새로운 개발자가 역할, 설계 이유, 인터페이스 계약과 제약사항을 이해하는 데 도움이 되는지를 우선한다. 함수명, 변수명, 타입 힌트와 구현에서 자명한 동작을 반복하지 않는다.
 - 단순한 함수는 Docstring을 생략하고, 설명이 필요하면 한 줄부터 시작한다. 핵심 알고리즘과 Public API는 필요한 단위, 좌표계, 반환 조건, 부작용과 예외를 설명한다. `Args`, `Returns`, `Raises`는 유의미한 추가 정보가 있을 때만 작성한다.
 - ROS 콜백은 중요한 처리 조건과 예외 동작을 짧게 설명하고, Node 클래스에 적은 토픽과 메시지 정보를 반복하지 않는다. 함수 내부 주석은 비직관적인 구현 이유, 불변 조건과 제약사항에만 사용한다.
@@ -70,22 +70,22 @@ ROS 2 Node 클래스는 역할을 먼저 설명하고, 다음 항목 중 실제�
 
 ```python
 class WheelOdometryNode(Node):
-    """Estimate planar odometry from cumulative wheel angles.
+    """누적 바퀴 각도로 평면 odometry를 추정합니다.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): All four wheel positions
-            in radians; input_topic default. QoS: sensor_data.
+        joint_states (sensor_msgs/msg/JointState): 네 바퀴 전체 위치(rad).
+            input_topic 기본값이며 QoS는 sensor_data입니다.
 
     Publishers:
-        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
-            base_link; topic and frame names are parameter defaults.
+        wheel/odom (nav_msgs/msg/Odometry): odom의 자세와 base_link의 속도.
+            토픽과 좌표계 이름은 파라미터 기본값입니다.
 
     TF:
-        Does not broadcast; the odometry relay owns odom -> base_link.
+        발행하지 않습니다. odometry relay가 odom -> base_link를 소유합니다.
 
     Notes:
-        The first sample, non-increasing time and velocity-window warm-up
-        produce no message. Invalid wheel values raise a validation error.
+        첫 표본, 증가하지 않은 시각과 속도 계산창 준비 중에는 발행하지 않습니다.
+        무효한 바퀴 값은 검증 오류를 발생시킵니다.
     """
 ```
 

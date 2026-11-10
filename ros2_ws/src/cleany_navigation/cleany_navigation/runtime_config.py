@@ -1,4 +1,4 @@
-"""Pure parameter composition and Nav2 distribution compatibility."""
+"""순수 파라미터 구성과 Nav2 배포판 호환성입니다."""
 from __future__ import annotations
 
 import ast
@@ -9,7 +9,7 @@ from xml.etree import ElementTree as ET
 
 import yaml
 
-# Humble replaces the built-in BT list when plugin_lib_names is supplied.
+# Humble은 plugin_lib_names를 지정하면 기본 BT 목록을 대체합니다.
 HUMBLE_BT_LIBRARIES = [
     'nav2_compute_path_to_pose_action_bt_node', 'nav2_compute_path_through_poses_action_bt_node',
     'nav2_follow_path_action_bt_node', 'nav2_spin_action_bt_node', 'nav2_wait_action_bt_node',
@@ -43,7 +43,7 @@ def merge_parameters(target: dict, overlay: dict) -> None:
 
 
 def merge_localization_parameters(target: dict, overlay: dict) -> None:
-    """Keep a localization calibration separate from motion/safety overrides."""
+    """위치 추정 보정값을 이동 및 안전 재정의와 분리합니다."""
     amcl = overlay.get('amcl')
     if (set(overlay) != {'amcl'} or not isinstance(amcl, dict)
             or set(amcl) != {'ros__parameters'}
@@ -71,13 +71,13 @@ def polygon_points(value) -> list[list[float]]:
 
 
 def adapt_nav2_parameters(document: dict, distro: str) -> dict:
-    """Preserve stop trigger counts and plugin semantics across Humble/Jazzy."""
+    """Humble/Jazzy 사이에서 정지 발동 점 개수와 plugin 의미를 유지합니다."""
     if distro not in ('humble', 'jazzy'):
         raise ValueError(f'Unsupported ROS distribution: {distro}')
     result = deepcopy(document)
-    # ROS parameter YAML cannot represent nested arrays. Nav2 footprints and
-    # Jazzy monitor polygons use serialized XY lists, even if the robot file
-    # used a natural YAML list of vertices.
+    # ROS 파라미터 YAML은 중첩 배열을 표현할 수 없습니다. 로봇 파일이 일반 YAML
+    # 정점 목록을 사용해도 Nav2 footprint와 Jazzy monitor polygon에는
+    # 직렬화한 XY 목록을 사용합니다.
     for name in ('local_costmap', 'global_costmap'):
         params = result.get(name, {}).get(name, {}).get('ros__parameters', {})
         if isinstance(params.get('footprint'), list):
@@ -120,7 +120,7 @@ def adapt_nav2_parameters(document: dict, distro: str) -> dict:
     for name in monitor.get('polygons', []):
         polygon = monitor[name]
         polygon['points'] = [v for point in polygon_points(polygon['points']) for v in point]
-        # Jazzy: points >= min_points; Humble STOP/SLOWDOWN: points > max_points.
+        # Jazzy는 points >= min_points, Humble STOP/SLOWDOWN은 points > max_points입니다.
         count = polygon.pop('min_points', 3)
         if not isinstance(count, int) or count < 1:
             raise ValueError('min_points must be a positive integer')
@@ -129,7 +129,7 @@ def adapt_nav2_parameters(document: dict, distro: str) -> dict:
 
 
 def adapt_behavior_tree(xml: str, distro: str) -> str:
-    """Humble's BT v3 action nodes do not expose Jazzy error-code ports."""
+    """Humble의 BT v3 action 노드는 Jazzy 오류 코드 포트를 제공하지 않습니다."""
     if distro not in ('humble', 'jazzy'):
         raise ValueError(f'Unsupported ROS distribution: {distro}')
     root = ET.fromstring(xml)
@@ -142,7 +142,7 @@ def adapt_behavior_tree(xml: str, distro: str) -> str:
 
 
 def validate_robot_parameters(robot: dict, directory: Path, *, use_sim_time: bool) -> None:
-    """Require explicit robot geometry/braking; never pick a simulation profile."""
+    """로봇 형상과 제동값을 명시하도록 요구하며 시뮬레이션 프로파일을 임의 선택하지 않습니다."""
     required = {
         'voxel_guard': ['profile', 'max_speed', 'max_yaw_rate', 'reaction_s',
                         'linear_deceleration', 'angular_deceleration'],
@@ -239,15 +239,15 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
                         require_pan_feedback=pan_enabled,
                         source_timeout_s=pan.get('source_timeout_s', .5),
                         command_timeout_s=pan.get('command_timeout_s', .5))
-        # Preserve the costmap's observation density and clearing history.
-        # Optional voxel publication is diagnostic; it has no motion authority.
+        # costmap의 관측 밀도와 공간 제거 이력을 보존합니다.
+        # 선택적 voxel 발행은 진단용이며 이동 권한이 없습니다.
     memory = params('obstacle_memory')
     if voxel_enabled:
         memory.update(publish_3d=True, mark_all_depth_points=True)
         guard['voxel_topic'] = 'obstacle_memory/local_voxels'
     shared = memory_enabled and memory.get('shared_voxel_costmap', False)
     if shared:
-        # A single map produces height-filtered planning cells and local 3-D voxels.
+        # 지도 하나에서 높이 필터를 적용한 계획 셀과 로컬 3D voxel을 생성합니다.
         depth = result['local_costmap']['local_costmap']['ros__parameters']['depth_layer']
         memory.update(projection_min_z=depth['min_obstacle_height'],
                       projection_max_z=depth['max_obstacle_height'], publish_3d=True)
@@ -276,7 +276,7 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
 
 
 def longitudinal_lattice(source: dict) -> dict:
-    """Keep Nav2 diff primitives that translate straight or rotate in place."""
+    """직진하거나 제자리 회전하는 Nav2 diff 기본 경로를 유지합니다."""
     result = deepcopy(source)
     result['primitives'] = [p for p in result['primitives'] if p['arc_length'] == 0.]
     for index, primitive in enumerate(result['primitives']):
@@ -293,7 +293,7 @@ def longitudinal_lattice(source: dict) -> dict:
 
 
 def resolve_default_lattice(document: dict, primitive: Path) -> None:
-    """Resolve native or wrapped Lattice primitives, preserving explicit overrides."""
+    """명시적 재정의를 보존하며 native 또는 래핑된 Lattice 기본 경로를 찾습니다."""
     planner = document.get('planner_server', {}).get('ros__parameters', {}).get('GridBased', {})
     if planner.get('plugin') not in (
             'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice',
@@ -307,7 +307,7 @@ def resolve_default_lattice(document: dict, primitive: Path) -> None:
 
 
 def configure_tof_route(document: dict) -> dict:
-    """Insert command selection before safety and the proximity guard after it."""
+    """안전 경로 앞에 명령 선택을, 뒤에 근접 guard를 삽입합니다."""
     result = deepcopy(document)
     for name in ('pan_motion_gate', 'depth_coverage', 'reactive_guard'):
         params = result.get(name, {}).get('ros__parameters', {})

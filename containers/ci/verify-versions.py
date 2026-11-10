@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check CI dependencies against the observed Jetson Python and ROS versions."""
+"""CI 의존성을 관측한 Jetson Python 및 ROS 버전과 대조합니다."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def version_errors(
     expected_ros: dict[str, str],
     actual_ros: dict[str, str],
 ) -> list[str]:
-    """Compare Python pins and shared ROS upstream versions across architectures."""
+    """아키텍처별 Python 고정 버전과 공통 ROS upstream 버전을 비교합니다."""
     errors = []
     for name, expected in expected_pip.items():
         actual = actual_pip.get(name)

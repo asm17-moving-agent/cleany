@@ -27,7 +27,7 @@ export type Run = {
   partial: boolean;
   clock_regressed: boolean;
 };
-// Labels describe the Action protocol, rather than inventing an executor BT.
+// label은 Action 프로토콜을 설명하며 별도의 executor BT 구조를 만들어내지 않습니다.
 export const stages: [string, string, [string, string][]][] = [
   ["VALIDATING", "실행 준비 확인", [["ValidateGoal", "모델과 실행 준비 확인"]]],
   [
@@ -184,8 +184,8 @@ export function missionExecutions(
     runtime.proposal?.execution_id ||
     runtime.manipulation_feedback?.execution_id ||
     runtime.manipulation?.execution_id;
-  // A goal may be journaled before its first server event. Never substitute an
-  // earlier object's result while waiting for that exact execution.
+  // 첫 서버 이벤트 전에 goal이 journal에 기록될 수 있습니다. 해당 실행을
+  // 기다리는 동안 이전 물체의 결과로 대신 표시하지 않습니다.
   const automatic = execution
     ? matching.find((run) => run.record.execution_id === execution)
     : [...matching].sort(

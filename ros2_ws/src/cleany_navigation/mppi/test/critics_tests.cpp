@@ -382,7 +382,7 @@ TEST(CriticTests, LeadingLatticeRotationUsesItsEndHeading)
   EXPECT_GT(costs(1), costs(0));
   EXPECT_GT(costs(2), costs(1));
 
-  // The heading wraps at pi; crossing that seam is a small positive turn.
+  // pi 경계를 넘는 방향 차이도 작은 양의 회전으로 처리해야 합니다.
   path.yaws(0) = 3.1;
   path.yaws(1) = -3.1;
   path.yaws(2) = -3.0;
@@ -393,7 +393,7 @@ TEST(CriticTests, LeadingLatticeRotationUsesItsEndHeading)
   EXPECT_NEAR(costs(0), 0.0, 1e-5);
   EXPECT_LT(costs(1), 0.5);
 
-  // A nearby final goal can point elsewhere; its angle critic owns arrival.
+  // 가까운 최종 목표의 방향이 달라도 도착 방향은 목표 각도 critic이 담당합니다.
   TestGoalChecker goal_checker;
   data.goal_checker = &goal_checker;
   path.x(4) = .01;
@@ -403,7 +403,7 @@ TEST(CriticTests, LeadingLatticeRotationUsesItsEndHeading)
   path.x(4) = 2.0;
   data.goal_checker = nullptr;
 
-  // An ordinary translated path does not create an in-place rotation target.
+  // 일반 병진 경로는 제자리 회전 목표를 만들지 않습니다.
   path.yaws.fill(0.0);
   path.x(1) = .5;
   path.x(2) = 1.0;
@@ -477,7 +477,7 @@ TEST(CriticTests, HolonomicSegmentHeadingDoesNotAnticipateArrivalYaw)
     costs.fill(0.);critic.score(data);
     EXPECT_NEAR(costs(0),0.,1e-5);EXPECT_GT(costs(1),0.);
   }
-  // A future goal rotation must not turn a translating robot early.
+  // 이후 목표의 회전 때문에 병진 이동 중인 로봇이 미리 회전해서는 안 됩니다.
   path.x=xt::xtensor<float,1>{0.f,0.f,0.f,0.f,0.f};
   path.y=xt::xtensor<float,1>{0.f,.2f,.4f,.5f,.5f};path.yaws(4)=M_PI_2;
   costs.fill(0.);critic.score(data);EXPECT_NEAR(costs(0),0.,1e-5);EXPECT_GT(costs(1),0.);
@@ -734,7 +734,7 @@ TEST(CriticTests, PathAlignCritic)
   generated_trajectories.x = 0.66 * xt::ones<float>({1000, 30});
   critic.score(data);
   // 0.66 * 1000 * 10 weight * 6 num pts eval / 6 normalization term
-  // Test critic scoring, not float-reduction roundoff across 1000 trajectories.
+  // 1,000개 궤적의 float 합산 오차가 아닌 critic 점수를 검증합니다.
   const double total_cost = std::accumulate(costs.cbegin(), costs.cend(), 0.0);
   EXPECT_NEAR(total_cost, 6600.0, 1e-2);
 
@@ -927,7 +927,7 @@ TEST(CriticTests, DirectionalTravelCost)
     std::make_shared<OmniMotionModel>(), std::nullopt, std::nullopt};
   DirectionalMotionCritic critic;
   critic.on_configure(node, "mppi", "critic", costmap, &params);
-  // Forward, lateral, both diagonal signs, reverse, rotation, standstill.
+  // 전진, 횡이동, 양쪽 대각 이동, 후진, 회전과 정지를 비교합니다.
   xt::view(state.vx, 0, xt::all()) = 0.2f;
   xt::view(state.vy, 1, xt::all()) = 0.2f;
   xt::view(state.vx, 2, xt::all()) = 0.2f;
@@ -953,7 +953,7 @@ TEST(CriticTests, DirectionalTravelCost)
   state.vy.fill(-0.2f);
   costs.fill(0.0f);
   critic.score(data);
-  EXPECT_NEAR(costs(2), 0.5656854f, 1e-6);  // Same duration at twice the sample count.
+  EXPECT_NEAR(costs(2), 0.5656854f, 1e-6);  // 표본 수를 두 배로 해도 전체 시간은 같습니다.
   costs.fill(0.0f);
   data.motion_model = std::make_shared<DiffDriveMotionModel>();
   critic.score(data);
@@ -978,7 +978,7 @@ TEST(CriticTests, DirectionalPeakFavorsBothAxesAtEqualTravelDistance)
     std::make_shared<OmniMotionModel>(), std::nullopt, std::nullopt};
   DirectionalMotionCritic critic;
   critic.on_configure(node, "mppi", "critic", costmap, &params);
-  // Every rollout travels one metre; compare direction without a speed bias.
+  // 모든 후보가 1 m를 이동해 속도 차이 없이 방향 비용을 비교합니다.
   for (size_t angle = 0; angle <= 360; ++angle) {
     const float radians = angle * 0.017453292519943295f;
     xt::view(state.vx, angle, xt::all()) = 0.2f * std::cos(radians);
@@ -994,7 +994,7 @@ TEST(CriticTests, DirectionalPeakFavorsBothAxesAtEqualTravelDistance)
   }
   EXPECT_LT(costs(30), costs(45));
   EXPECT_LT(costs(60), costs(45));
-  EXPECT_GT(costs(47), costs(45));  // The lateral baseline shifts the peak slightly.
+  EXPECT_GT(costs(47), costs(45));  // 횡이동 비용의 기저 항 때문에 최대 비용 방향이 조금 이동합니다.
   EXPECT_LT(costs(47), 0.502f);
   for (size_t angle = 0; angle < 360; ++angle) {
     EXPECT_LT(std::abs(costs(angle + 1) - costs(angle)), 0.02f);
@@ -1004,7 +1004,7 @@ TEST(CriticTests, DirectionalPeakFavorsBothAxesAtEqualTravelDistance)
   state.vy *= 0.5f;
   costs.fill(0.f);
   critic.score(data);
-  EXPECT_NEAR(costs(45), 0.25f, 1e-6);  // Half the distance, half the cost.
+  EXPECT_NEAR(costs(45), 0.25f, 1e-6);  // 이동 거리가 절반이면 비용도 절반입니다.
 }
 
 TEST(CriticTests, DirectionalWeightsRejectInvalid)

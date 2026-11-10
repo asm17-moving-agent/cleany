@@ -1,4 +1,4 @@
-"""ROS adapter for independent LiDAR/wheel motion observations."""
+"""독립적인 LiDAR 및 바퀴 움직임 관측의 ROS 어댑터입니다."""
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 import hashlib
@@ -26,20 +26,20 @@ from .slip_context import CommandHistory, json_safe
 
 
 class SlipMonitor(Node):
-    """Publish timestamped motion disagreement; never issue motion commands.
+    """시각이 있는 움직임 불일치를 발행하며 이동 명령은 보내지 않습니다.
 
     Subscriptions:
-        scan_raw (LaserScan), odom (Odometry): Header-aligned measurements,
-            sensor-data QoS. Names are parameter defaults.
-        nav2/cmd_vel, cmd_vel (Twist): Requested and final velocity context.
-        map (OccupancyGrid): Transient-local map identity for recorded positions.
+        scan_raw (LaserScan), odom (Odometry): header로 정렬한 측정값.
+            sensor_data QoS이며 이름은 파라미터 기본값입니다.
+        nav2/cmd_vel, cmd_vel (Twist): 요청 및 최종 속도 컨텍스트.
+        map (OccupancyGrid): 기록 위치의 지도 식별 정보. transient_local.
     Publishers:
-        navigation/slip (String): JSON state and comparison timestamps, 5 Hz.
+        navigation/slip (String): JSON 상태와 비교 시각, 5Hz.
     TF:
-        Reads the scan mount and historical map to base_link transforms; publishes none.
+        스캔 장착 변환과 과거 map -> base_link를 읽으며 발행하지 않습니다.
     Notes:
-        One background matcher job, with bounded histories and no wheel prior.
-        Repeated heartbeats do not create additional persistence evidence.
+        백그라운드 정합 작업 하나와 크기 제한 이력을 사용하며 바퀴 사전값을 넣지 않습니다.
+        반복 heartbeat는 추가 지속성 근거가 되지 않습니다.
     """
 
     def __init__(self, **kwargs):
@@ -90,7 +90,7 @@ class SlipMonitor(Node):
                                (message.linear.x, message.linear.y, message.angular.z))
 
     def on_map(self, message):
-        # Hash geometry and cells, not publication time; context never changes control.
+        # 발행 시각이 아닌 기하와 셀을 해시하며 컨텍스트는 제어를 바꾸지 않습니다.
         p, q = message.info.origin.position, message.info.origin.orientation
         metadata = [message.header.frame_id, message.info.width, message.info.height,
                     message.info.resolution, p.x, p.y, p.z, q.x, q.y, q.z, q.w]
@@ -171,7 +171,7 @@ class SlipMonitor(Node):
                  and 0 <= now-self.history.odom[-1][0] <= self.max_age)
         if not fresh:
             result.update(state='unknown', reason='sensor_stale_or_warming: '+self.reason)
-        # Invalid numeric values must not be accepted by the C++ consumer.
+        # C++ 소비자가 잘못된 숫자 값을 수락하지 못하게 합니다.
         self.publisher.publish(String(data=json.dumps(json_safe(result), allow_nan=False)))
 
     def destroy_node(self):

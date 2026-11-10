@@ -60,20 +60,19 @@ class InspectionPipeline:
         cancelled: CancelCallback | None = None,
         capture_transform: RigidTransform | None = None,
     ) -> InspectionOutput:
-        """Detect, segment and reconstruct one RGB-D snapshot.
+        """RGB-D snapshot 하나를 검출, 분할하고 재구성합니다.
 
         Args:
-            capture_transform: Optional source-to-target transform at capture time.
-                If omitted, look it up at snapshot.stamp_ns through the transform port.
+            capture_transform: 선택적 촬영 시각 source-to-target 변환.
+                없으면 변환 포트에서 snapshot.stamp_ns의 변환을 조회합니다.
 
         Returns:
-            Objects in target_frame, image-space detections and masks, and the
-            support plane in the snapshot's source frame. No detections yields an
-            empty result with no plane.
+            target_frame의 물체, 영상 공간 검출과 mask, snapshot 원본 좌표계의
+            지지 평면입니다. 검출이 없으면 평면 없는 빈 결과를 반환합니다.
 
         Raises:
-            InspectionFailure: A processing stage fails or cancellation is observed
-                between stages; in-flight port calls are not interrupted.
+            InspectionFailure: 처리 단계가 실패하거나 단계 사이에서 취소를 확인한 경우.
+                진행 중인 포트 호출은 중단하지 않습니다.
         """
         report = progress or (
             lambda _stage, _detected, _objects, _message: None
@@ -186,14 +185,14 @@ class InspectionPipeline:
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
     ) -> InspectionOutput:
-        """Reconstruct one selected detection using its original capture transform.
+        """원래 촬영 변환으로 선택한 검출 하나를 재구성합니다.
 
-        All detection boxes are excluded when choosing support-plane pixels.
-        The output uses the same frame conventions as inspect().
+        지지 평면 픽셀을 선택할 때 모든 검출 상자를 제외합니다.
+        출력 좌표계 규약은 inspect()와 같습니다.
 
         Raises:
-            ValueError: The selection is absent from all_detections.
-            InspectionFailure: Reconstruction, tilt validation or cancellation fails.
+            ValueError: 선택한 검출이 all_detections에 없는 경우.
+            InspectionFailure: 재구성, 기울기 검사 또는 취소로 실패한 경우.
         """
         if selected_detection not in all_detections:
             raise ValueError('Selected detection must belong to the snapshot')

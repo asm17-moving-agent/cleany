@@ -70,7 +70,7 @@ protected:
 TEST_F(SolidCollisionTest, DetectsContainedSphereAndPreservesDisconnectedGap)
 {
   sphere(-.08);
-  EXPECT_FALSE(check().collision);  // The original triangle-surface detector misses this.
+  EXPECT_FALSE(check().collision);  // 기존 삼각형 표면 검출기는 이 경우를 놓칩니다.
   solid();
   ASSERT_TRUE(check().collision);
   EXPECT_EQ(check().contacts.begin()->first,std::make_pair(std::string("probe"),std::string("tool")));
