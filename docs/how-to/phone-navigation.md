@@ -92,7 +92,7 @@ python3 tools/ros2/run-phone-navigation \
 | Omni / longitudinal, 슬립 재시도 | `--motion-profile`, `--slip-recovery true/false` |
 | 지도·입력·출력 경로 | `tools/ros2/run-phone-navigation --help` |
 | 속도·footprint·계획 비용 | [경로 계획과 주행 설정](../../ros2_ws/src/cleany_navigation/docs/planning.md#휴대폰-시연-프로필) |
-| 위치 정합과 복구 조건 | [위치 정합 정책](../../ros2_ws/src/cleany_navigation/docs/planning.md#위치-정합과-복구) |
+| 위치 정합과 복구 조건 | [위치 정합 정책](../../ros2_ws/src/cleany_navigation/docs/localization.md) |
 | 버튼·API·취소 계약 | [휴대폰 인터페이스](../../ros2_ws/src/cleany_teleop/docs/interfaces.md#지도-클릭-주행-명시적-선택) |
 | Nav2·안전·구동 연결 | [Navigation 구성](../../ros2_ws/src/cleany_navigation/README.md) |
 

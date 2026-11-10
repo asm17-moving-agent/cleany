@@ -22,60 +22,51 @@
 
 ## 07.2 Cleany의 인식 경로
 
-현재 `cleany_perception`은 scaffold입니다. 범용 인식 파이프라인의 인터페이스와 빨간 캔 데모의 실행 가능한 코드를 구분해서 읽습니다.
+현재 `cleany_perception`은 첫 관측에서 번호와 거리를 만들고, 선택된 물체를 같은 snapshot에서 3D로 복원합니다.
 
-| 경로 | 실제 책임 |
-| --- | --- |
-| [cleany_interfaces](../../../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md) | 인식 결과·snapshot·파지 요청의 메시지 계약 |
-| [can_grasp_execution_demo.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/can_grasp_execution_demo.py) | MuJoCo 영상 수신, 변환, 서비스 요청을 연결 |
-| [core/can_rgbd.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/core/can_rgbd.py) | ROS 없이 빨간 캔 분할과 점군 투영 |
+```mermaid
+flowchart LR
+  Input["RGB-D / CameraInfo / 촬영 TF"] --> Detect["검출과 거리 정렬"]
+  Detect --> Select["snapshot + object ID 선택"]
+  Select --> Mask["instance mask"] --> Cloud["유효 depth 투영"]
+  Cloud --> OBB["지지면 / OBB / grasp 요청"]
+```
 
-데모의 `run()`은 `color, depth, info`를 기다린 뒤 `_rgb_array()`와 `_depth_array()`로 배열을 만듭니다. `_camera_projection()`으로 카메라 파라미터를 만들고 `segment_red_can()`에 전달합니다.
+| 읽을 파일 | 질문 |
+|---|---|
+| [pipeline.py](../../../ros2_ws/src/cleany_perception/cleany_perception/core/pipeline.py) | detect와 inspect_selected가 어떤 입력을 공유하나? |
+| [geometry.py](../../../ros2_ws/src/cleany_perception/cleany_perception/core/geometry.py) | 픽셀을 점군과 OBB로 어떻게 바꾸나? |
+| [nearest_pregrasp_coordinator.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/nearest_pregrasp_coordinator.py) | 복원 결과를 PlanGrasp에 어떻게 전달하나? |
 
-`CameraProjection`에는 내부 파라미터 `fx, fy, cx, cy`와 optical frame에서 base로 가는 회전·이동이 들어 있습니다. `SegmentedCanCloud`는 `target_points`, `target_colors`, `context_points`, `context_colors`를 반환합니다. ROS 메시지 처리는 바깥 노드에 있고 계산은 작은 모델과 함수로 분리되어 있습니다.
+모델과 실행 설정은 [인식 reference](../../../ros2_ws/src/cleany_perception/docs/runtime.md)에 있습니다. 시뮬레이터 정답 pose를 인식 입력으로 전달하지 않습니다.
 
 ## 07.3 분할과 유효 깊이
 
-다음은 `segment_red_can()`의 연속된 실제 발췌입니다. 앞뒤 입력 검증과 반환 부분은 생략했습니다.
+`deproject_masked_depth()`는 mask에 해당하면서 깊이가 유효한 픽셀만 투영합니다. 실제 구현의 연속된 발췌입니다.
 
 ```python
-finite = np.isfinite(depth_m) & (depth_m > 0.1) & (depth_m < 3.0)
-red = rgb[:, :, 0].astype(float)
-green = rgb[:, :, 1].astype(float)
-blue = rgb[:, :, 2].astype(float)
-target_mask = (
-    finite
-    & (red > 140.0)
-    & (red > 1.55 * green)
-    & (red > 1.70 * blue)
-)
+selected = np.asarray(mask, dtype=np.bool_).copy()
+selected &= np.isfinite(depth_m)
+selected &= depth_m >= minimum_depth_m
+selected &= depth_m <= maximum_depth_m
 ```
 
-깊이가 유효하고 빨강 성분이 충분히 강한 픽셀만 남깁니다. 학습한 모델로 임의의 물체를 찾는 YOLO 경로가 아닙니다. 빨간 캔 시뮬레이션에 한정된 색상 조건입니다.
+Mask와 depth 해상도가 다르거나 stride가 양수가 아니면 거부합니다. 선택한 점이 없으면 빈 `(0, 3)` 배열을 반환합니다. 0/NaN/Inf를 임의 표면으로 채우지 않습니다. 물체가 색상 영상에 보여도 깊이가 없으면 유효한 3D 위치를 얻지 못할 수 있습니다.
 
-`np.nonzero(target_mask)`로 선택된 행·열을 얻습니다. 기본값 `minimum_target_pixels=100`보다 적으면 `ValueError`가 발생합니다. RGB가 `H×W×3`인지, depth가 같은 `H×W`인지도 먼저 검사합니다. 색이 보이더라도 깊이가 비어 있으면 이 경로의 3차원 위치는 만들 수 없습니다.
-
-**context**는 target의 픽셀 범위에 기본 `context_margin_pixels=80`을 더한 주변 영역입니다. target만 있으면 캔은 설명할 수 있어도 주변 책상과 손가락의 관계를 검사하기 어렵습니다. 계산량을 제한하는 기본 점 수는 target 12,000개, context 30,000개이며 `_limited_indices()`가 샘플을 고릅니다.
+Target 점군은 잡을 물체, context 점군은 주변 충돌 판단에 필요한 관측입니다. 선택 물체 복원과 전체 depth 장애물 지도는 서로 다른 경로입니다.
 
 ## 07.4 카메라 투영과 좌표 변환
 
-카메라 내부 파라미터는 픽셀을 optical frame 점으로 바꿉니다. `_project()`의 연속된 실제 본문을 읽어봅시다.
+카메라 내부 파라미터는 픽셀을 optical frame 점으로 바꿉니다. `geometry.py`의 식은 다음과 같습니다.
 
-```python
-z = depth[rows, columns]
-optical = np.column_stack(
-    (
-        (columns - camera.cx) * z / camera.fx,
-        (rows - camera.cy) * z / camera.fy,
-        z,
-    )
-)
-rotation = np.asarray(camera.rotation_base_from_optical).reshape((3, 3))
-translation = np.asarray(camera.translation_base)
-return optical @ rotation.T + translation
-```
+| 값 | 계산 |
+|---|---|
+| optical Z | depth 영상의 m 값 |
+| optical X | `(u − cx) × Z / fx` |
+| optical Y | `(v − cy) × Z / fy` |
+| target frame의 점 | 촬영 시각 TF의 회전과 평행이동 적용 |
 
-앞부분은 `X=(u-cx)Z/fx`, `Y=(v-cy)Z/fy`입니다. 여기서 `Z`는 optical 전방축 깊이입니다. 뒷부분은 그 점들을 로봇의 기준 좌표로 옮깁니다. 각 점이 배열의 행으로 저장되어 있어서 곱에 `rotation.T`가 사용됩니다.
+Depth는 optical 전방축 거리입니다. 바닥 높이나 로봇 중심까지의 거리와 같지 않습니다.
 
 작은 계산으로 깊이의 효과를 확인합니다. 저장소 루트에서 실행할 수 있고 센서 연결은 필요 없습니다.
 
@@ -92,46 +83,29 @@ PYTHON
 
 ![RealSense 점군 예제에서 방 안의 책상과 벽이 색을 가진 점들로 나타나고 일부 표면에는 빈 부분이 보이는 화면](../assets/media/realsense-pointcloud.png)
 
-*외부 점군 화면 · [RealSense SDK](https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_pointcloud_preview.PNG), Apache-2.0. 앞의 깊이 화면과는 다른 장면이며, Cleany의 캔 분할 결과가 아닙니다.*
+*외부 점군 화면 · [RealSense SDK](https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_pointcloud_preview.PNG), Apache-2.0. 앞의 깊이 화면과는 다른 장면이며, Cleany의 인식 결과가 아닙니다.*
 
 점군은 물체 내부까지 채운 입체 모델이 아닙니다. 카메라가 관측한 표면의 점들이므로, 가려진 부분이나 깊이를 얻지 못한 부분은 비어 있을 수 있습니다.
 
 ## 07.5 Frame·timestamp·snapshot 계약
 
-좌표값만 전달하면 언제, 어디서 측정했는지 잃어버립니다. 데모의 `_on_camera()`는 ROS `header.stamp`의 초·나노초를 키로 사용합니다. 다음은 그 함수의 연속된 실제 발췌입니다.
+| 경계 | 보존할 것 |
+|---|---|
+| Image / CameraInfo | exact stamp, 해상도와 intrinsics |
+| optical → target | 촬영 시각 TF; 요청 완료 시각으로 대체하지 않음 |
+| 첫 관측 → 선택 복원 | 같은 snapshot ID와 object ID; 만료된 cache 거부 |
+| 물체 배열 | header frame/stamp와 snapshot ID |
+| OBB | 해당 frame의 방향 있는 경계 상자; 크기 단위 m |
 
-```python
-key = (message.header.stamp.sec, message.header.stamp.nanosec)
-sample = self._camera_messages.setdefault(key, {})
-sample[kind] = message
-if {'color', 'depth', 'info'} <= sample.keys():
-    self._rgbd_frame = (
-        sample['color'], sample['depth'], sample['info']
-    )
-    self._camera_messages.clear()
-```
-
-같은 stamp에 세 입력이 모여야 사용합니다. 서로 가까운 시간을 자동으로 짝짓는 근사 동기화가 아니므로, 다른 카메라를 연결할 때는 이 조건부터 확인해야 합니다.
-
-`run()`은 색상 stamp로 `mujoco-can-...` snapshot ID를 만들고, 두 점군을 `PointCloud2`로 변환해 `PlanGrasp`에 보냅니다. `_cloud_message()`는 촬영 stamp를 보존하고 `frame_id='base_link'`를 기록합니다. 앞 절에서 이미 점을 base 좌표로 변환했기 때문에 붙이는 frame입니다.
-
-일반 인터페이스인 [DetectedObject3DArray.msg](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3DArray.msg)는 `header`, `snapshot_id`, `objects`를 담습니다. 개별 [DetectedObject3D.msg](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3D.msg)의 `obb_pose`와 `obb_size`는 배열 header의 frame을 공유합니다. **OBB**는 방향을 가진 경계 상자이고 크기의 단위는 m입니다. 데모는 이 계약 전체를 제공하는 일반 `InspectScene` 서버 대신 직접 `PlanGrasp` 요청을 구성합니다.
+[DetectedObject3DArray](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3DArray.msg)의 header와 [DetectedObject3D](../../../ros2_ws/src/cleany_interfaces/msg/DetectedObject3D.msg)의 OBB를 함께 읽습니다. 같은 숫자라도 frame이나 시각이 다르면 같은 위치가 아닙니다.
 
 ## 07.6 점군에서 파지 요청까지 추적
 
-파일을 열고 다음 경로를 한 번 따라가 보세요. 실행 없이 읽기만 해도 됩니다.
+`InspectionPipeline.detect()` → `inspect_selected()` → `_reconstruct()`와 coordinator의 `_plan_grasps()`를 따라갑니다.
 
-```text
-_on_camera() → _wait_for_rgbd()
-→ _rgb_array() / _depth_array() / _camera_projection()
-→ segment_red_can() → _project()
-→ _target_object() / _cloud_message()
-→ PlanGrasp 요청 → /grasp/plan
-```
-
-1. `segment_red_can()`에서 깊이 제한과 최소 픽셀 조건을 찾습니다.
-2. `_cloud_message()`에서 stamp와 frame이 어디서 왔는지 설명합니다.
-3. `run()`에서 `target_cloud`와 `context_cloud`가 따로 채워지는 부분을 찾습니다.
+1. depth 단위와 유효 범위가 정해지는 곳을 찾습니다.
+2. snapshot cache 조회가 촬영 시각을 갱신하지 않는지 확인합니다.
+3. PlanGrasp의 target와 context 점군, target OBB가 같은 관측에서 왔는지 설명합니다.
 
 **확인 질문:** 분할은 성공했는데 파지 위치가 옆으로 어긋난다면 어디부터 확인할까요?
 
@@ -141,4 +115,4 @@ _on_camera() → _wait_for_rgbd()
 
 </details>
 
-데모의 실행 전제와 현재 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 확인합니다.
+조작 실행 전제와 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 확인합니다.

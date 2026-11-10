@@ -87,38 +87,32 @@ return WheelSpeeds(
 
 ## 05.4 Encoder와 PI 제어
 
-실물 측정은 [motor_controller/src/main.cpp](../../../motor_controller/src/main.cpp)의 `updateMotorVelocityLocked()`에서 따라갈 수 있습니다. count 변화량과 경과 시간으로 속도를 계산하고, 바퀴별 `encoderPolarity`를 적용해 논리 전진 방향과 부호를 맞춥니다. 프로토콜에서 사용하는 환산 기준은 출력축 1회전당 **3172 count**입니다.
+Encoder는 회전량을 count로 측정합니다. [esp32/src/main.cpp](../../../esp32/src/main.cpp)의 수집 경로와 [wheel_velocity_controller.hpp](../../../esp32/src/wheel_velocity_controller.hpp)의 제어를 나누어 읽습니다.
 
-**PI 제어**는 목표와 측정의 오차를 사용합니다. P는 현재 오차, I는 시간에 따라 누적한 오차에 반응합니다. 실제 [wheel_velocity_controller.hpp](../../../motor_controller/src/wheel_velocity_controller.hpp)는 feed-forward도 더합니다.
+| 값 | 의미 |
+|---|---|
+| 요청 속도 | Jetson이 보낸 목표 rad/s |
+| 적용 명령 | rate limit와 상태 gate 이후 값 |
+| 측정 속도 | encoder 변화와 경과 시간에서 계산 |
+| PWM | feed-forward와 PI, 출력 한계를 적용한 결과 |
 
-```cpp
-const float error = targetRadPerSecond - measuredRadPerSecond;
-const float feedForward =
-    targetRadPerSecond / config_.maximumTargetRadPerSecond *
-    config_.outputLimitPercent;
-```
-
-그 뒤 출력은 `feedForward + Kp * error + Ki * integralError`로 계산됩니다. 현재 기본 설정은 feed-forward 기준 11rad/s, `Kp=6`, `Ki=6`, 출력 한도 100%입니다. 이것은 펌웨어 기본값이며 바닥 하중에서 검증된 최적 gain이라는 뜻은 아닙니다.
-
-코드에는 출력이 포화되는 방향으로 적분이 더 쌓이지 않게 하는 **anti-windup**이 있습니다. 목표 0 또는 유효하지 않은 경과 시간이 들어오면 적분을 초기화하고 0을 반환합니다. 역회전 때는 상위 로직이 encoder로 정지 상태를 확인한 뒤 방향을 바꿉니다. 따라서 목표 속도, rate-limit 이후 명령, 측정 속도, 최종 PWM은 서로 다른 진단 값입니다.
+P는 현재 오차, I는 누적 오차에 반응합니다. Feed-forward는 목표 속도에 필요한 출력을 먼저 추정합니다. 포화 방향으로 적분이 계속 쌓이지 않게 하는 것이 anti-windup입니다. 실제 gain과 휠별 보정은 [펌웨어 설정](../../../esp32/README.md#휠-속도-제어-설정)에서 확인하며 예제 gain을 실물에 그대로 적용하지 않습니다.
 
 ## 05.5 ROS와 MCU 통신 경계
 
-[SERIAL_PROTOCOL.md](../../../motor_controller/SERIAL_PROTOCOL.md)는 구현된 binary transport를 정의합니다. 차체 역기구학은 Jetson 측 책임이고 MCU에는 바퀴별 목표를 보냅니다. 이 저장소의 계산 함수와 펌웨어가 있다는 사실만으로 ROS에서 MCU까지 연결된 실물 runtime을 입증할 수는 없습니다.
+현재 경로는 micro-ROS입니다. 차체 역기구학은 Jetson에서 계산하고 MCU에는 바퀴별 목표를 전달합니다. [프로토콜 계약](../../../ros2_ws/src/cleany_base_interfaces/docs/protocol.md)이 session, sequence, 허가와 피드백 조건을 관리합니다.
 
-| 항목 | 현재 protocol 1.0 약속 |
-| --- | --- |
-| 패킷 | `0x00 + COBS(packet) + 0x00`, CRC-16 검사 |
-| 바퀴 순서 | FL, FR, RL, RR |
-| PCB 모터 대응 | M1, M2, M4, M3 |
-| `WHEEL_COMMAND` | session ID와 네 목표 rad/s, 범위 ±10 |
-| 명령 주기 | 50Hz |
-| watchdog | 유효 명령 없이 250ms 지나면 PWM 0; 검사 task 주기 25ms |
-| `WHEEL_STATE` | count, 측정·요청·제한 속도, PWM, fault |
+```mermaid
+flowchart LR
+  Twist["차체 Twist"] --> Driver["Base driver / 역기구학 / 제한"]
+  Driver -->|"WheelCommand"| MCU["ESP32 / gate / 휠 제어"]
+  MCU -->|"WheelState / ACK"| Driver
+  Driver --> Odom["wheel odometry"]
+```
 
-ROS-facing 순서와 PCB 배열 순서는 다릅니다. 이 차이를 빠뜨리면 횡이동·회전이 잘못될 수 있습니다. 연결 시 `HELLO_REQUEST`가 기존 제어를 정지하고 session을 교체하며, zero command부터 시작하도록 계약되어 있습니다. CRC나 session·sequence 검사를 통과하지 못한 패킷은 정상 명령으로 간주하지 않습니다.
+ROS의 FL, FR, RL, RR 순서와 PCB 모터 대응을 같은 것으로 가정하지 않습니다. 시작 허가, STOP ACK, watchdog을 각각 확인해야 합니다. 노드가 보이는 것만으로 최신 피드백이나 물리 정지가 확인된 것은 아닙니다.
 
-속도 추종 문제는 요청값 → rate-limit 이후 값 → 측정값 → PWM 순서로 비교하세요. 요청 자체가 0이면 제어기 gain부터 바꿀 이유가 없고, 요청과 적용 명령이 다르면 제한·timeout·상태 전이를 먼저 확인해야 합니다.
+속도 문제는 요청 → 적용 명령 → 측정 → PWM 순서로 비교합니다. 요청이 0이면 gain보다 명령원부터, 적용 명령이 다르면 제한과 상태 gate부터 확인합니다.
 
 ## 05.6 역기구학 계산 실습
 

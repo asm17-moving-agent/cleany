@@ -1,169 +1,153 @@
-# cleany_grasping
+# 파지 후보 생성과 선택
+
+`GraspNode`는 선택 물체의 점군에서 후보를 만들고 필터링한 `GraspCandidate[]`를 점수 내림차순으로 반환한다. 팔 선택, IK, MoveIt 충돌 검사와 실제 실행은 [조작 경로](../../../../docs/how-to/manipulation.md)가 담당한다.
 
 ```mermaid
 flowchart LR
-  Cloud["선택된 물체 점군"] --> Workspace["workspace 계산"]
-  Workspace --> Predictor["predictor 후보 생성"]
-  Predictor --> Filter["폭 · 접촉 · 중복 필터"]
-  Filter --> Rank["후보 순위"]
-  Rank --> MoveIt["후속 도달성 / 충돌 검사"]
+    Input["target / context cloud + OBB"] --> Frame["촬영 시각 TF / workspace"]
+    Frame --> Predictor{"predictor"}
+    Predictor --> Geometric["geometric / 기하 기반"]
+    Predictor --> SDK["AnyGrasp / SDK 추론"]
+    Geometric --> Filter["폭 / 선택 객체 접촉 / NMS"]
+    SDK --> Filter
+    Filter --> Result["점수순 후보 / 없으면 ERROR_NO_GRASP_CANDIDATE"]
+    Result --> MoveIt["후속 IK / 충돌 / 실행"]
 ```
-
-후보 생성과 실제 팔 실행은 별도 단계입니다. [조작 경로](../../../../docs/how-to/manipulation.md)에서 실행 모드를 선택하세요.
-
-`GraspNode`가 target cloud의 workspace를 계산해 predictor를 호출하고,
-`core.selector.rank_grasps()`로 폭·접촉 위치·중복 후보를 걸러 순서대로 반환한다.
-이전 단일 후보용 `select_grasp()` wrapper는 제거했다.
-
-길이 방향 접촉 후보는 동일 품질일 때 관측된 체적 중심에 가까운 후보를 먼저
-검사한다. 마우스처럼 끝으로 갈수록 얇아지는 물체에서 가까운 끝부분을 먼저
-집어 손가락이 윗면을 스치는 문제를 줄이기 위한 순서다. 끝부분 후보도 남겨
-중앙 후보의 IK/충돌 검사가 실패하면 평가하며, 점수와 충돌 허용값은 바꾸지 않는다.
-
-sorting launch는 `publish_collision_geometry=true`로 같은 RGB-D target 점군의
-관측 볼록 외곽을 `/grasp/collision_geometry`에 발행한다(reliable/transient-local,
-depth 16). 일반 node 기본은 false다. target OBB local XY에서 모든 관측점을
-포함하는 볼록 외곽을 만들고, 관측 Z와 OBB 바닥/상단을 포함하는 프리즘을 생성한다.
-숨은 뒷면/구멍을 복원한 실제 mesh가 아니며, cup 내부도 비어 있다고 가정하지 않는다.
-최대 512 vertices를 넘거나 퇴화한 형상은 축소하지 않고 요청을 실패시킨다.
-선택 후보와 동일한 snapshot/object/capture/frame/OBB pose를 별도 메시지로
-전달하여 기존 후보 메시지 및 과거 기록 포맷을 유지한다. collision geometry만
-개선하며 물리 시뮬레이터의 물체 mesh, 질량, 마찰은 변경하지 않는다.
-
-선택 객체에 대해 geometric 또는 AnyGrasp 후보를 필터링하고 score 내림차순
-`GraspCandidate[]`를 반환한다.
-팔 선택, IK, MoveIt collision, trajectory와 실행은 이 패키지의 범위가 아니다.
-
-`geometric.prefer_upward_closing_axis`는 기본 false인 비대칭 그리퍼 진단 옵션이다.
-동일 점수 후보끼리만 fixed-jaw 쪽(+closing)이 위를 향하는 방향을 먼저 둔다.
-점수나 형상은 변경하지 않으며, 실제 파지 성공을 보장하지 않는다. sorting launch의
-`prefer_upward_closing_axis:=true`로 시험할 수 있고 기본 실행은 기존 순서를 유지한다.
-
-`geometric.search_longitudinal_contacts`는 기본 false, sorting launch에서 true다.
-얇고 긴 객체는 중심 외에 긴 방향의 파지 지점도 생성한다. 점군의 지지면 높이/
-길이 비가 `longitudinal_max_height_ratio`(0.4) 이하이고 길이가 finger length보다
-클 때만 `longitudinal_offset_fractions`(0, -0.25, 0.25)를 적용한다. 전체 finger
-길이가 robust 관측 범위 안에 남도록 이동량을 제한한다. 일반 기본은 높이 유지이며,
-sorting의 `longitudinal_contact_height_offset_m=0.003`은 이 조건을 만족하는
-얇고 긴 물체에만 지지면 법선 방향으로 3mm 보정한다. 레고처럼 finger length보다
-짧거나 컵처럼 두꺼운 물체에는 높이 보정도 적용하지 않는다. 이 값은 비대칭 jaw의
-닫힘 구간 지지면 여유를 확보하기 위한 시뮬레이션 시험값이며 실제 로봇 교정값은 아니다.
-폭과 점수는 변경하지 않으며, 동점에서는 robot reference에 가까운 지점을 먼저
-제안한다. context 충돌 검사, 후속 NMS/IK/MoveIt 검사는 그대로다. 물체 라벨이나
-시뮬레이터 실제 위치를 사용하지 않으며, 파지 유지 성공은 별도 물리 검증이 필요하다.
-
-sorting launch의 `geometric.defer_support_plane_collision=true`는 간이 대칭
-손가락 모델에서 지지 평면의 inlier만 제외한다. 평면 위 장애물은 그대로 검사한다.
-이 옵션은 반드시 아래의 실행 계약과 함께 사용해야 하며 단독 실행용이 아니다.
-selector와 executor가 plane-aligned perception OBB의 바닥으로 유한 support
-patch를 등록하고, 실제 로봇 형상으로 열린 jaw 및 전체 닫힘 구간을 검사한다.
-기본 false는 기존 간이 지지면 충돌 검사다. sorting launch는 이 계약의 세 설정을
-함께 활성화하며, 지지면을 무시하거나 MuJoCo 정답 책상 위치를 주입하지 않는다.
 
 ## 처리 경계
 
-`grasp/plan` (`cleany_interfaces/srv/PlanGrasp`)은 perception 2단계 결과의 RGB
-`target_cloud`, `context_cloud`, 원본 OBB를 받는다. predictor는 target bounds에 margin을
-더한 workspace에서 후보를 만들고 context를 이용해 충돌 후보를 제거한다. 결과는 score
-정렬, 선택 객체 접촉, gripper 최대 폭과 NMS 필터를 통과해야 한다. 남은 후보가
-없으면 `ERROR_NO_GRASP_CANDIDATE`이며 pose를 합성하지 않는다.
+| 입력 / 출력 | 계약 |
+|---|---|
+| 서비스 | `grasp/plan` (`cleany_interfaces/srv/PlanGrasp`) |
+| 입력 | Perception 2단계의 RGB `target_cloud` / `context_cloud`와 원본 OBB |
+| Workspace | target bounds + margin; context로 충돌 후보 제거 |
+| 출력 없음 | `ERROR_NO_GRASP_CANDIDATE`; pose 합성 안 함 |
+| Predictor 확장 | `GraspPredictor` port 구현 |
+| Geometric | 모델 / checkpoint / SDK license 불필요; 단순 강체의 top-down MVP |
+| AnyGrasp | Adapter import는 첫 요청까지 지연; 2026 aarch64 dev SDK의 `create_detector()` / region steering 사용 |
 
-기본 `geometric` predictor는 별도 모델 없이 다음 순서로 top-down parallel-jaw 후보를
-생성한다.
+### Geometric 후보가 만들어지는 순서
 
-1. context 점군에서 RANSAC으로 지지면 법선을 추정한다.
-2. target 점군을 지지면에 투영하고 최소 폭 방향을 탐색해 두 물체축을 구한다.
-3. 축별 robust extent 중점으로 visible surface 편향을 보정한 3D 중심을 복원한다.
-4. 설정된 support-normal tilt, 각 주축과 yaw offset마다 gripper 폭과 pose를 계산한다.
-5. finger/palm 부피가 target 외 context 점과 겹치는 후보를 제거한다.
-6. 폭 여유, 주축 정렬과 짧은 축 선호도를 점수화한다.
+```mermaid
+flowchart TD
+    Plane["context RANSAC / 지지면 법선"] --> Axes["target 투영 / 최소 폭 방향과 두 물체축"]
+    Axes --> Center["robust extent 중점 / 3D 중심 복원"]
+    Center --> Poses["접근 tilt / 주축 / yaw offset / 접촉 위치 조합"]
+    Poses --> Collision["finger / palm과 target 밖 context 충돌 제거"]
+    Collision --> Score["폭 여유 / 주축 정렬 / 짧은 축 선호 점수"]
+```
 
-이 방식은 상자·캔처럼 위에서 접근 가능한 단순 강체를 위한 deterministic MVP다. 복잡한
-형상, 변형 물체, 측면 접근과 최종 로봇 충돌 검사는 별도 predictor 또는 MoveIt 단계가
-필요하다.
-
-AnyGrasp import는 adapter가 첫 요청까지 지연한다. `predictor_type: geometric`에서는
-checkpoint와 SDK license가 필요 없다. `GraspPredictor` port를 구현하면 다른 predictor도
-주입할 수 있다.
+복잡한 형상, 변형 물체와 측면 접근에는 별도 predictor 또는 MoveIt 단계가 필요하다. 후보 생성 성공은 파지 유지 성공이 아니다.
 
 ## 물체별 접근각 탐색
 
-`geometric.search_approach_tilts=true`이면
-`geometric.approach_tilt_options`의 각도(기본 0/8/16/24도)를 평가한다.
-기존 단일 `approach_tilt_degrees` 경로는 기본값으로 유지한다.
-`include_reverse_closing_axis`는 비대칭 jaw 때문에 필요한 반대 closing
-방향 후보도 생성한다. 분리 수거 launch에서만 두 옵션을 활성화한다.
-각도 후보가 NMS에서 합쳐지지 않도록 이 launch의
-`nms_rotation_threshold_degrees`는 5도로 설정한다(기존 기본 20도).
-물리 그리퍼 최대 폭이나 충돌 검사는 완화하지 않는다.
-여러 tilt와 어깨 기준점을 함께 탐색할 때도 지지면 RANSAC, 물체축·중심,
-target 밖 장애물 점 추출은 요청당 한 번만 수행한다. 각 접근 조합은 이 공통
-기하 결과를 읽어 후보 자세만 계산하며 후보 순서·점수·충돌 기준은 유지한다.
-각 조합의 후보는 점수순으로 지연 평가한다. 전체 후보 제한에 도달하면 남은
-후보의 점군 충돌 검사를 실행하지 않으며, round-robin 접근 다양성과 최종 후보
-순서는 전체 후보를 검사한 뒤 자른 결과와 동일하게 유지한다.
+| 옵션 | 일반 기본 / Sorting | 동작 |
+|---|---|---|
+| `search_approach_tilts` | 기존 단일 `approach_tilt_degrees` / true | `approach_tilt_options` 기본 0, 8, 16, 24° 평가 |
+| `include_reverse_closing_axis` | 선택 / sorting 활성 | 비대칭 jaw의 반대 closing 방향 추가 |
+| `nms_rotation_threshold_degrees` | 20° / 5° | 접근각 후보가 NMS에서 합쳐지는 범위 조정 |
+| `approach_reference_positions` | `[0.0]` 비활성 / 양 어깨 xyz | Planning frame 기준점을 평탄화한 배열; 어깨에서 물체로 향하는 수평 접근 생성 |
+| `reject_robot_opposite_approach` | 선택 | `robot_reference_position`에서 물체로 향하는 방향과 반대인 후보 제거 |
+| `prefer_upward_closing_axis` | false | 같은 점수에서 fixed-jaw 쪽 +closing이 위인 후보 우선; 진단용 |
+| 생성 예산 | 일반 demo 24 / sorting 96 | 실행 selector의 IK 예산은 24 유지 |
+
+접근 tilt와 어깨 기준점은 교차 배분한다. 반대 closing 방향에도 같은 short-axis 점수를 주어 후보 제한에서 사라지지 않게 한다. 재관측은 기존 방향과 중심 연속성으로 먼저 선별한다.
+
+요청마다 지지면, 물체축·중심과 장애물 점은 한 번 계산한다. 각 조합은 이 결과를 공유하고 점수순으로 충돌을 지연 평가한다. 후보 상한 뒤 계산을 생략해도 전체 평가 후 자른 결과와 순서·다양성은 같아야 한다.
+
+### 길이 방향 접촉 위치
+
+| 검사 / 옵션 | 조건 |
+|---|---|
+| 활성 | `search_longitudinal_contacts`: 일반 false, sorting true |
+| 대상 | 지지면 높이/길이 ≤ `longitudinal_max_height_ratio=0.4`, 길이 > finger length |
+| 위치 | `longitudinal_offset_fractions=[0,-0.25,0.25]`; finger 전체가 robust 관측 범위 안에 남도록 제한 |
+| 높이 보정 | 일반은 유지; sorting의 `longitudinal_contact_height_offset_m=0.003`은 위 대상만 법선 방향 3 mm 보정 |
+| 제외 | 짧은 레고나 두꺼운 컵에는 위 높이 보정 미적용 |
+| 순위 | 생성 시 동점이면 robot reference에 가까운 지점; 최종 같은 품질의 길이 방향 후보는 관측 체적 중심에 가까운 후보 우선 |
+| 유지 검사 | 폭 / 점수 기준, context 충돌, NMS, 후속 IK / MoveIt |
+
+끝부분 후보도 남아 중앙 후보의 IK나 충돌 검사 실패 시 평가한다. 라벨과 시뮬레이터 정답 위치는 사용하지 않는다. 3 mm는 시뮬레이션 시험값이며 실물 보정값이 아니다.
+
+### 지지면 검사 위임
+
+```mermaid
+flowchart LR
+    Cloud["context"] --> Plane["지지면 inlier만 간이 손가락 검사에서 제외"]
+    Plane --> Patch["selector / executor가 유한 support patch 등록"]
+    Patch --> Robot["실제 로봇 형상으로 open / closure 검사"]
+```
+
+`geometric.defer_support_plane_collision=true`는 위 계약을 함께 적용하는 sorting 전용이다. 기본 false는 간이 지지면 충돌 검사다. 평면 위 장애물은 계속 검사하며 지지면 무시나 정답 책상 주입으로 사용하지 않는다. 상세 조건은 [sorting 실행 계약](../../cleany_skill_executor/docs/study_cafe_sorting_contract.md#지지면과-jaw-충돌)을 따른다.
+
+## 관측 충돌 형상
+
+| 항목 | 계약 |
+|---|---|
+| 발행 설정 | `publish_collision_geometry`: node false, sorting true |
+| 토픽 / QoS | `/grasp/collision_geometry`, Reliable / Transient Local, depth 16 |
+| 형상 | OBB local XY의 관측 볼록 외곽 + 관측 Z와 OBB 바닥/상단을 포함하는 프리즘 |
+| 거부 | 512 vertices 초과 또는 퇴화; 임의 축소 안 함 |
+| 동일성 | 후보와 동일 snapshot / object / capture / frame / OBB pose를 별도 메시지로 전달 |
+| 한계 | 숨은 뒷면과 구멍을 복원한 mesh 아님; 컵 내부가 비었다고 가정하지 않음 |
+| 영향 범위 | 기존 후보 포맷 유지; simulator mesh / 질량 / 마찰은 변경하지 않음 |
 
 ## 후보 이미지 확인
-
-각 `grasp/plan` 요청은 `grasp/debug_image`에 800x800 RGB 이미지를 발행한다. 원본 RGB와
-camera intrinsics가 grasp request에 포함되지 않으므로 pixel overlay가 아니라 추정
-지지면 기준 top view를 사용한다. 주황색은 target, 회색은 context, 파란색 선은 후보 jaw,
-초록색은 최고 점수 후보이며 숫자 뒤 값은 후보 점수다. topic은 `TRANSIENT_LOCAL`이므로
-요청 뒤에 viewer를 열어도 마지막 결과를 받을 수 있다.
 
 ```bash
 ros2 run rqt_image_view rqt_image_view /grasp/debug_image
 ```
 
-AnyGrasp import와 detector 생성은 adapter가 첫 요청까지 지연하므로 ROS 비의존 core와
-fake 테스트는 라이선스 SDK 없이 실행할 수 있다. Jetson service에서는 별도 entrypoint가
-network identity, identity 파일의 SDK Feature ID와 read-only mount를 먼저 검사하고, run command가
-license validation과 detector 초기화를 마친 뒤 node를 시작한다. `GraspPredictor` port를
-구현하면 다른 predictor도 주입할 수 있다. adapter는 2026 aarch64 `dev` SDK의
-`create_detector()`와 region steering API를 사용한다.
+800 × 800 RGB **추정 지지면 top view**다. 요청에 원본 RGB와 intrinsics가 없으므로 카메라 영상 overlay가 아니다. Transient Local 토픽이라 요청 뒤 viewer를 열어도 마지막 결과를 받는다.
+
+| 표시 | 의미 |
+|---|---|
+| 주황 | Target |
+| 회색 | Context |
+| 파란 선 | 후보 jaw |
+| 초록 | 최고 점수 후보 |
+| 숫자 뒤 값 | 후보 점수 |
 
 ## 설정
 
-`config/anygrasp.yaml`에서 다음 값을 배포 환경에 맞게 설정한다.
+[anygrasp.yaml](../config/anygrasp.yaml)이 배포 설정을 관리한다.
 
-- `predictor_type`: 기본 `geometric`, SDK 사용 시 `anygrasp`
-- `debug_image_topic`: 후보 top-view 이미지 topic
-- `geometric.*`: gripper 형상, 충돌 여유, RANSAC, depth 경계 outlier trim,
-  yaw와 planning-frame 접근 tilt 설정. `reject_robot_opposite_approach`를
-  활성화하면 `robot_reference_position`에서 물체로 향하는 수평 방향과 반대인
-  approach 후보를 생성 단계에서 제거한다.
-- `checkpoint_path`, `license_path`: Jetson-local AnyGrasp SDK 파일
-- SDK 제약상 네 license 파일의 directory 이름은 `license`여야 한다.
-- `gripper_height_m`: SDK collision model의 finger height
-- `planning_frame`: MoveIt planning frame (기본 `base_link`)
-- `maximum_gripper_width_m`: 실제 gripper calibration 뒤 확정할 값
-- `canonical_to_tcp_rotation`: GraspNet canonical frame에서 Cleany
-  `*_grasp_tcp` frame으로의 3x3 row-major rotation
-- `tcp_approach_axis`: Cleany TCP frame에서의 접근 축
+| 설정 | 의미 |
+|---|---|
+| `predictor_type` | 기본 `geometric`, SDK 사용 시 `anygrasp` |
+| `debug_image_topic` | 후보 top-view 출력 |
+| `geometric.*` | Gripper 형상, 충돌 여유, RANSAC, outlier trim, yaw / tilt |
+| `checkpoint_path` / `license_path` | Jetson-local SDK 파일; 네 license 파일의 디렉터리명은 `license` |
+| `gripper_height_m` | SDK finger height |
+| `planning_frame` | 기본 `base_link` |
+| `maximum_gripper_width_m` | 실물 gripper 보정 뒤 확정할 값 |
+| `canonical_to_tcp_rotation` | Canonical → TCP, 3×3 row-major rotation |
+| `tcp_approach_axis` | TCP 접근 축, Cleany local −Y |
 
-Cleany의 물리 TCP 접근축은 local `-Y`다. 기본 변환은 GraspNet canonical `+X`
-approach와 `+Y` closing을 각각 Cleany TCP `-Y`와 `+X`에 대응시킨다. 따라서 geometric과
-AnyGrasp 후보 모두 동일한 실제 gripper 접근축 기준의 pose와 방향을 반환한다.
-
-점군은 동일 optical frame/timestamp여야 하며 요청의 OBB pose도 그 frame을 사용한다.
-node는 촬영 시점 TF를 한 번 조회해 최종 pose, 접근 방향과 OBB pose를 모두 planning
-frame으로 변환한다.
+| Canonical 축 | Cleany TCP 대응 |
+|---|---|
+| GraspNet +X approach | −Y approach |
+| GraspNet +Y closing | +X closing |
 
 ## Jetson 첫 관문
 
-현재 공식 AnyGrasp `dev` branch의 aarch64 지원은 시험 단계이므로 배포 전 아래를 Jetson
-Orin NX에서 별도 확인해야 한다.
+SDK와 license는 저장소에 포함하지 않는다. 배포 절차와 고정 MAC은 [GPU runtime](../../../../containers/vision/README.md)을 따른다. 이 adapter 구현만으로 Jetson 호환성을 검증한 것으로 보지 않는다.
 
-1. JetPack 6.2 / CUDA 12.6 호환 PyTorch와 SDK가 요구하는 수정 MinkowskiEngine 설치
-2. 공식 example data로 SDK import, checkpoint/license load, collision-enabled inference
-3. MuJoCo box/can RGB point cloud 각각에서 후보가 하나 이상 생성되는지 확인
-4. `ros2 service call /grasp/plan ...`으로 planning-frame candidate와 RViz marker 검증
+| 순서 | 배포 환경에서 확인할 것 |
+|---|---|
+| 1 | JetPack 6.2 / CUDA 12.6 호환 PyTorch와 수정 MinkowskiEngine |
+| 2 | 공식 example data의 import, checkpoint / license load, collision-enabled inference |
+| 3 | MuJoCo box/can RGB point cloud의 후보 생성 |
+| 4 | `/grasp/plan`의 planning-frame candidate와 RViz marker |
 
-SDK와 license는 이 저장소에 vendor하지 않는다. 검증하지 않은 Jetson 호환성을 구현
-사실로 간주하지 않는다. AnyGrasp 전용 고정 MAC service와 license 신청 절차는
-[`containers/vision`](../../../../containers/vision/README.md)을 따른다. host-native feature ID와
-container feature ID는 서로 다르므로 실제 배포 container 안에서 검증한다. 배포 기준
-ID는 root-owned identity 파일에만 두며, 다르면 node 시작을 거부한다.
+```mermaid
+flowchart LR
+    Identity["network identity / root-owned Feature ID / read-only mount"] --> License["license validation"]
+    License --> Detector["detector 초기화"]
+    Detector --> Node["node 시작"]
+```
+
+Host-native와 container Feature ID는 다르다. 실제 배포 container에서 검증하고 저장된 identity와 다르면 시작을 거부한다. ROS 비의존 core와 fake 검사는 SDK 없이 실행할 수 있다.
 
 ## 빌드와 테스트
 
@@ -178,41 +162,23 @@ ros2 run cleany_grasping grasp_server --ros-args \
   --params-file src/cleany_grasping/config/anygrasp.yaml
 ```
 
-`geometric.approach_reference_positions`는 planning frame의 기준점 xyz를
-평탄화한 배열이다(기본 `[0.0]`은 비활성). 책상 정리 launch는 URDF의 두 어깨
-위치로부터 관측 물체 중심을 향하는 수평 접근 방향을 각각 생성한다.
-접근 tilt/어깨 기준점 후보를 교차 배분하며, 반대 closing-axis도 같은 short-axis
-점수를 받아 비대칭 그리퍼의 180도 방향이 후보 제한에서 사라지지 않게 한다.
-물체 위치는 RGB-D에서 오며 기준점은 로봇 기구학 정보다.
-
 ## 큰 물체의 접촉 높이
 
-Sorting launch는 기하 후보를 최대 96개 생성한다(일반 demo 24개).
-여러 접근 기울기와 closing 방향이 24개 상한에서 잘려 재관측 시 기존 방향과
-호환되는 후보가 사라지는 경우를 보완한다. 실행 selector의 IK 후보 예산은
-24개 그대로이며, 재관측에서는 기존 방향/중심 연속성 조건으로 먼저 선별한다.
-생성 후보의 증가는 파지나 충돌 안전성의 보장이 아니며 기존 검사를 모두 거친다.
+| 설정 | 동작 / 한계 |
+|---|---|
+| `geometric.maximum_top_contact_depth_m` | 일반 / sorting 기본 0: 기존 체적 중심 사용 |
+| `grasp_maximum_top_contact_depth_m` | Demo launch에서 같은 값 전달, 기본 0 |
+| 양수 설정 | Support-normal 상단 percentile에서 지정 깊이 이내 접촉점; 기존 중심이 더 높으면 유지 |
+| 적용 한계 | 높게 잡는 것만으로 파지가 개선되지 않음; TCP 보정, 충돌, 관절 / 파지 허용값 유지 |
 
-`geometric.maximum_top_contact_depth_m`은 기본 및 sorting에서 0(기존 체적 중심)이다.
-Demo launch의 `grasp_maximum_top_contact_depth_m` argument로 같은 값을 전달할
-수 있다(기본 0 유지). 현재 full-close/정밀 IK/관측 mesh 조건에서 0.035m
-높이 제한을 별도 컵 진단으로 시험한다. 과거 0.025m 실패를 성공으로 바꾸어
-기록하지 않으며, 검증 전에는 새로운 기본 운용값으로 채택하지 않는다.
-0.025m 실험에서는 RGB-D target cloud의 support-normal 방향 상단 percentile을
-기준으로 접촉점을 최대 25mm 아래에 둔다. 중심이 이미 더 높으면 그대로 유지해
-레고 같은 얇은 물체를 과도하게 높게 잡지 않는다. 컵에 깊게 들어가 그리퍼 몸체가
-윗부분을 누르던 경우를 줄이기 위한 후보 생성 설정이며 라벨/GT 좌표는 사용하지 않는다.
-로봇 TCP 보정과 충돌 검사, 관절/파지 허용오차는 별도로 그대로 적용한다.
-현재 컵에서는 움직이는 jaw가 빈 내부 공간으로 들어가 접촉하지 않아 이 실험 설정을
-채택하지 않았다. 단순히 높게 잡는 것이 파지 신뢰성을 높이는 것은 아니다.
+이 옵션은 점군 기하를 사용하며 label이나 GT 좌표를 쓰지 않는다. 별도 컵 진단값을 기본 운용값으로 간주하지 않는다.
 
 ## 요청 검증과 설정 불변성
 
-TCP 회전과 접근 축은 입력 배열에서 복사한 읽기 전용 값으로 보관한다.
-설정 검증 뒤 외부 배열 변경이 계획 결과를 바꾸지 않게 하며, 반사 행렬은
-quaternion 변환 전에 거부한다. 기존 Cleany local -Y 접근 축 계약은 유지한다.
-
-Target/context cloud의 촬영 timestamp는 같고 0이 아니어야 한다. 미지정 시각으로
-최신 TF를 사용해 과거 cloud를 계획하지 않도록 요청을 거부한다.
-XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 data
-길이를 검사한다. 정상적인 organized cloud의 행 padding과 packed RGB는 유지한다.
+| 검증 대상 | 요구 조건 |
+|---|---|
+| Target / context | 같은 optical frame, 같은 0이 아닌 촬영 timestamp |
+| OBB pose | 점군과 같은 frame |
+| TF | 촬영 시각에 한 번 조회; pose / 접근 방향 / OBB를 함께 planning frame으로 변환 |
+| XYZRGB | Field datatype / offset / point step / row step / 전체 길이 검사; 정상 행 padding과 packed RGB 허용 |
+| TCP 설정 | 입력 배열을 복사해 읽기 전용 보관; 반사 행렬은 quaternion 변환 전에 거부 |

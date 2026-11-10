@@ -53,10 +53,10 @@ flowchart TD
 | Omni 계획·속도·가속도 | [nav2_phone_omni.yaml](config/nav2_phone_omni.yaml), [주행 연속성](docs/planning.md#omni-주행-연속성) |
 | 전후진 전용 프로필 | [nav2_phone_longitudinal.yaml](config/nav2_phone_longitudinal.yaml) |
 | 감속·정지 영역 | [phone_lidar_safety.yaml](config/phone_lidar_safety.yaml), [Collision Monitor](docs/interfaces.md#phone_collision_monitor) |
-| 위치 정합·복구 | [phone_localization.yaml](config/phone_localization.yaml), [정합 정책](docs/planning.md#위치-정합과-복구) |
+| 위치 정합·복구 | [phone_localization.yaml](config/phone_localization.yaml), [정합 정책](docs/localization.md) |
 | 슬립 관측·재시도 | [phone_slip_recovery.yaml](config/phone_slip_recovery.yaml), [슬립 노드](docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
 | Robot footprint | [phone_lidar_robot.yaml](config/phone_lidar_robot.yaml) |
-| 선택적 D435 입력 | [phone_depth_local.yaml](config/phone_depth_local.yaml), [실행 안내](../../../docs/RUNNING.md#실물-depth-local-costmap-연결) |
+| 선택적 D435 입력 | [phone_depth_local.yaml](config/phone_depth_local.yaml), [실행 안내](../../../docs/how-to/sensors.md#실물-depth-local-costmap-연결) |
 
 LiDAR 프로필은 평면 장애물 감시입니다. 카메라·팔 높이의 3D 충돌이나 실측 제동거리를 보장하지 않습니다. 위치 복구는 정지 후 제한된 후보를 검사하며, 이전 목표를 자동 재개하지 않습니다.
 

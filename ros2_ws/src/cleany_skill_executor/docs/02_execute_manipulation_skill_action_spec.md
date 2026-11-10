@@ -83,13 +83,14 @@ ROS Goal 거절에는 일반 Result payload가 없다. 호출 adapter는 거절�
 4. 실제 팔, 그리퍼와 물체 상태 및 안전 조건을 확인하기 전 새 물리 Goal을 허용하지 않는다.
 5. 이전 Goal을 자동 재개하지 않는다. 후속 미션이나 행동은 별도 검증과 승인 절차를 따른다.
 
-재시작 자체를 `CANCELED` Result나 `stop_confirmed=true`의 근거로 사용하지 않는다.
-기존 Goal에 응답할 수 없으면 실행 기록 조회 및 복구 이벤트로 중단을 전달해야 한다.
-이번 구현의 중단 이벤트는 `manipulation/execution_events`의
-`ManipulationExecutionRecord`이며 Reliable·Transient Local, depth 100이다.
-SQLite 기록과 함께 제공하고 Backend 전달은 후속 Mission Manager adapter가 맡는다.
-외부 보고 연결은 [Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업)를 따르며,
-제품 요구는 [KB 재시작 규칙](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md)에 있다.
+| 재시작 보고 | 계약 |
+|---|---|
+| Result / 정지 | 재시작 자체를 CANCELED 또는 stop_confirmed 근거로 쓰지 않음 |
+| 기존 Goal에 응답 불가 | 실행 기록 조회와 복구 이벤트로 중단 전달 |
+| 구현 이벤트 | manipulation/execution_events, ManipulationExecutionRecord, Reliable / Transient Local depth 100 |
+| 외부 전달 | SQLite 기록 제공; Backend 전달은 후속 Mission adapter |
+
+[Mission 연결](../../cleany_mission_manager/docs/manipulation_mock_integration.md)과 [KB 재시작 규칙](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md)을 따른다.
 
 ## 4. Feedback: 지금 어디까지 했는지
 
@@ -163,23 +164,30 @@ MuJoCo의 복귀 목표는 실행 시작 때 저장한 팔 자세다. `arm_recov
 | `CANCELED` | 선택한 취소 정책을 마치고 정지를 확인 | `CANCELED` |
 | `FATAL` | e-stop, hardware fault 또는 정지 확인 불가 | `ABORTED` |
 
-취소 수락과 취소 완료는 다르다. 정지가 확인되지 않으면 `FATAL`을 반환한다.
-전송 연결 유실이나 client timeout은 위 Result를 실제로 받았다는 뜻이 아니다.
-정상 종료와 취소 요청이 동시에 오면 종료 상태 변경을 직렬화한다. Result가 이미
-확정된 Goal의 취소는 수락하지 않고 기존 결과를 유지한다. 취소를 먼저 수락했다면
-최종 물리 진행을 보존하면서 취소 경로를 완료한다. 실제 fault는 취소보다 우선한다.
+```mermaid
+flowchart TD
+    Race["정상 종료와 취소 경합 / 직렬화"] --> Final{"Result가 이미 확정됐나?"}
+    Final -->|예| Keep["취소 거절 / 기존 결과 유지"]
+    Final -->|아니오, 취소 수락| Cancel["물리 진행 보존 / 취소 경로 완료"]
+    Cancel --> Fault{"실제 fault 또는 정지 미확인?"}
+    Fault -->|예| Fatal["Fault 우선 / 정지 미확인은 FATAL"]
+    Fault -->|아니오| Result["최종 취소 결과"]
+```
+
+전송 연결 유실과 client timeout은 Result 수신의 근거가 아니다. 취소 수락도 정지 완료와 구분한다.
 
 ### 취소 방식과 서비스
 
-`manipulation/cancel`의 `CancelManipulation` 서비스는 활성 `execution_id`와 `mode`를
-받고 `accepted/message`를 반환한다. `accepted=true`는 요청 수락이며 정지 완료가 아니다.
-기본 ROS Action cancel은 `CHECKPOINT`다.
-`IMMEDIATE`는 현재 완료를 기다리지 않고 정지를 요청한다. `CHECKPOINT`는 현재 동작과
-필요한 확인까지만 완료한다. `RETURN_ARM`은 현재 작업 중단과 정지 확인 뒤 잡고 있는
-물체를 그 자리에서 놓고 팔을 복귀한다. 초기 정책에서는 현재 위치 놓기의 별도 안착
-검증을 추가하지 않는다. MuJoCo의 이 경로는 그리퍼 열림 완료를 근거로 하며 독립적인
-물체 이탈 확인도 제공하지 않는다. 모드는 진행과 Result에 보존하며 `IMMEDIATE`로 선점할 수 있다.
-놓기·복귀 실패는 `FAILED`, 정지 확인 실패는 `FATAL/STOP_UNCONFIRMED`로 반환한다.
+| 취소 계약 | 의미 |
+|---|---|
+| 서비스 | manipulation/cancel, 활성 execution_id + mode → accepted/message |
+| accepted=true | 요청 수락, 정지 완료 아님 |
+| IMMEDIATE | 현재 완료를 기다리지 않고 중단 요청 |
+| CHECKPOINT | 현재 동작과 필요한 확인까지 완료; 일반 Action cancel 기본 |
+| RETURN_ARM | 중단 / 정지 확인 → 현재 위치 열기 → 팔 복귀 |
+| RETURN_ARM 한계 | MuJoCo 열림 완료 기반; 별도 이탈 / 안착 확인은 초기 정책에 없음 |
+| 선점 | Mode를 진행 / Result에 보존; IMMEDIATE로 선점 가능 |
+| 실패 | 놓기 / 복귀 FAILED, 정지 미확인 FATAL/STOP_UNCONFIRMED |
 
 ### 물체 상태와 놓은 결과
 
@@ -197,12 +205,15 @@ MuJoCo의 복귀 목표는 실행 시작 때 저장한 팔 자세다. `arm_recov
 | `NOT_CONFIRMED` | 확인 기능의 성공 조건을 만족하지 못함 |
 | `UNKNOWN` | 확인 timeout 또는 센서 문제로 판단 불가 |
 
-정상 수거 경로에서 `LEFT_GRIPPER`는 그리퍼 열기 명령 성공만으로 기록하지 않는다. 추가 근거가 없으면
-`UNKNOWN`이다. 수거함 내부 검증이 성공하면 `LEFT_GRIPPER/CONFIRMED`로 갱신할 수 있다.
-기존 `VerifyPlacement.srv`의 false는 명시적인 수거함 밖 판정이 아니다.
-Mock의 확인 실패 시나리오는 `NOT_CONFIRMED`를 반환한다. MuJoCo adapter는 false를
-확인 대기로 처리하고, 기한 내 안착 근거를 얻지 못하면 `UNKNOWN / VERIFICATION_TIMEOUT`을 반환한다.
-센서 근거와 정지 확인은 [MuJoCo 실행 계약](../../cleany_manipulation_bt/docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
+| 놓기 근거 | 판정 |
+|---|---|
+| 열기 명령만 성공 | LEFT_GRIPPER로 확정하지 않음, 추가 근거 없으면 UNKNOWN |
+| 함 내부 검증 성공 | LEFT_GRIPPER / CONFIRMED로 갱신 가능 |
+| VerifyPlacement false | 명시적인 함 밖 판정 아님 |
+| Mock 확인 실패 시나리오 | NOT_CONFIRMED |
+| MuJoCo false | 확인 대기; 기한 초과 시 UNKNOWN / VERIFICATION_TIMEOUT |
+
+[MuJoCo 센서 / 정지 계약](../../cleany_manipulation_bt/docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
 
 ### 예시로 읽기
 
@@ -217,18 +228,23 @@ Mock의 확인 실패 시나리오는 `NOT_CONFIRMED`를 반환한다. MuJoCo ad
 | 취소 후 물체를 든 채 정지 | `CANCELED` | `HELD / NOT_CHECKED` | 베이스 자동 복귀 금지 |
 | 취소 후 정지 확인 불가 | `FATAL` | 마지막 확인 상태 / 기존 확인 상태 | 신규 Goal 차단 |
 
-성공 Result의 필수 조건은 `error_code=NONE`, `failed_stage=""`,
-`last_completed_stage=VERIFYING_PLACEMENT`, `object_state=LEFT_GRIPPER`,
-`placement_state=CONFIRMED`, 팔 ID 존재, `stop_confirmed=true`,
-`arm_recovered=true`, `retryable=false`다.
-`FINALIZING`은 보관 단계이며 마지막 물리 완료 단계로 쓰지 않는다.
+| 성공 Result 필드 | 필수값 |
+|---|---|
+| error_code / failed_stage | NONE / 빈 문자열 |
+| last_completed_stage | VERIFYING_PLACEMENT; FINALIZING은 보관 단계 |
+| object_state / placement_state | LEFT_GRIPPER / CONFIRMED |
+| 팔 ID | 존재 |
+| stop_confirmed / arm_recovered | true / true |
+| retryable | false |
 
-실패와 취소에서도 실제로 확인된 물체 및 놓은 결과를 초기값으로 되돌리지 않는다.
-`CANCELED`는 `error_code=CANCELED`, `retryable=false`로 반환하고 취소를 관찰한 실행
-단계를 `failed_stage`에 남긴다. 정지 실패는 그 단계와 별도로 `STOP_UNCONFIRMED` 원인을
-보존한다. 실행 후 실패 및 치명 오류의 재시도 기본 판단은 false다. 준비 중 일시 오류만
-정지 및 미접촉 근거가 있는 경우 true 후보로 검토한다. 확인하지 못한 물리 상태는
-false 또는 UNKNOWN으로 표시하고 추정해서 성공 값으로 채우지 않는다.
+| 종료 / 재시도 | 규칙 |
+|---|---|
+| 실패 / 취소 | 확인된 물체와 놓기 상태 보존 |
+| CANCELED | error_code=CANCELED, retryable=false; 취소 관찰 단계를 failed_stage로 기록 |
+| 정지 실패 | 단계와 별도로 STOP_UNCONFIRMED 원인 보존 |
+| 실행 후 실패 / 치명 오류 | 기본 retryable=false |
+| 준비 중 일시 오류 | 정지 / 미접촉 근거가 있을 때만 true 후보 |
+| 미확인 물리 상태 | false 또는 UNKNOWN; 성공값 추정 금지 |
 
 ## 6. ROS 정의
 
@@ -278,14 +294,14 @@ string message
 `VERIFICATION_TIMEOUT`, `TIMEOUT`, `CANCELED`, `E_STOP`, `HARDWARE_ERROR`,
 `STOP_UNCONFIRMED`, `INTERNAL_ERROR`.
 
-반환 단계와 adapter 대응은 [서버 명세](03_manipulation_server_behavior_spec.md)와
-[Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업)에 정리한다.
-클라이언트는 execution_id를 발급하며 테스트 클라이언트는 UUID4를 사용한다.
-실행 기록 저장 실패는 경고 로그로 전달하며 실제 실행의 status와 error_code를 유지한다.
-저장 실패만으로 동작이나 신규 Goal을 차단하지 않는다. 함께 발생한 hardware fault·e-stop·
-정지 미확인의 `FATAL`과 물리 상태에 따른 차단은 유지한다.
-조회는 서버 메모리의 최신 기록을 반환하며 저장 성공을 보장하지 않는다.
-`ManipulationExecutionRecord`는 Goal과 최신 진행·Result, `record_state`, `has_result`,
-`human_confirmation_required`, revision과 Unix nanoseconds 시각을 제공한다.
-`has_result=false`인 중단 기록에는 가짜 status/error_code를 채우지 않는다.
-제품 snapshot 보존, 실물 정지 판정·verifier와 허용 client는 후속 결정 대상이다.
+| 실행 기록 / 후속 결정 | 계약 |
+|---|---|
+| ID | Client 발급, 테스트 client UUID4 |
+| 저장 실패 | 경고만 남기고 실제 status/error_code 유지; 저장 실패만으로 동작 / 신규 Goal 차단 안 함 |
+| Fault 병행 | Hardware / E-stop / 정지 미확인 FATAL과 물리 상태 차단 유지 |
+| 조회 | 메모리 최신값, 디스크 저장 보장 아님 |
+| Record | Goal / 진행 / Result, record_state, has_result, human_confirmation_required, revision, Unix ns |
+| has_result=false | 가짜 status/error_code 생성 안 함 |
+| 미결정 | 제품 snapshot 보존, 실물 정지 / verifier, 허용 client |
+
+Adapter 대응은 [서버 명세](03_manipulation_server_behavior_spec.md)와 [Mission 연결](../../cleany_mission_manager/docs/manipulation_mock_integration.md)을 따른다.

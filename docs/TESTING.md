@@ -47,72 +47,13 @@ git diff --check
 
 브라우저에서는 데스크톱과 모바일에서 메뉴, 검색, 도표 확대와 내부 링크를 확인합니다.
 
-## 검사별 상세 참조
+## 상세 조건 찾기
 
-## 테스트와 도구 위치
-
-[테스트와 도구 위치의 명령과 조건](reference/testing.md#테스트와-도구-위치)
-
-## 검사 선택
-
-[검사 선택의 명령과 조건](reference/testing.md#검사-선택)
-
-## CI 실행과 재사용
-
-[CI 실행과 재사용의 명령과 조건](reference/testing.md#ci-실행과-재사용)
-
-## 선택 runtime과 UI
-
-[선택 runtime과 UI의 명령과 조건](reference/testing.md#선택-runtime과-ui)
-
-### 카메라 영상 수집
-
-[카메라 영상 수집의 명령과 조건](reference/testing.md#카메라-영상-수집)
-
-### 선택 실행 조건
-
-[선택 실행 조건의 명령과 조건](reference/testing.md#선택-실행-조건)
-
-## 결과와 증거
-
-[결과와 증거의 명령과 조건](reference/testing.md#결과와-증거)
-
-## 문서 변경 검사
-
-[문서 변경 검사의 명령과 조건](reference/testing.md#문서-변경-검사)
-
-## 실물 매핑 패키지 경계
-
-[실물 매핑 패키지 경계의 명령과 조건](reference/testing.md#실물-매핑-패키지-경계)
-
-## ToF와 Supervisor 통합
-
-[ToF와 Supervisor 통합의 명령과 조건](reference/testing.md#tof와-supervisor-통합)
-
-## 얼굴 디스플레이
-
-[얼굴 디스플레이의 명령과 조건](reference/testing.md#얼굴-디스플레이)
-
-## MoveIt 충돌 형상과 MuJoCo 동등성 검사
-
-[MoveIt 충돌 형상과 MuJoCo 동등성 검사의 명령과 조건](reference/testing.md#moveit-충돌-형상과-mujoco-동등성-검사)
-
-## 충돌 메시와 내부 장애물 검사
-
-[충돌 메시와 내부 장애물 검사의 명령과 조건](reference/testing.md#충돌-메시와-내부-장애물-검사)
-
-### 순정 Lattice와 Phone Omni MPPI 비교
-
-[순정 Lattice와 Phone Omni MPPI 비교의 명령과 조건](reference/testing.md#순정-lattice와-phone-omni-mppi-비교)
-
-### 기록된 Nav2 조건과 MPPI reset 검사
-
-[기록된 Nav2 조건과 MPPI reset 검사의 명령과 조건](reference/testing.md#기록된-nav2-조건과-mppi-reset-검사)
-
-## D435 높이 필터 검증
-
-[D435 높이 필터 검증의 명령과 조건](reference/testing.md#d435-높이-필터-검증)
-
-## 실물 depth costmap과 Monitor 격리 회귀
-
-[실물 depth costmap과 Monitor 격리 회귀의 명령과 조건](reference/testing.md#실물-depth-costmap과-monitor-격리-회귀)
+| 확인할 것 | 참조 |
+|---|---|
+| 전체 Make target와 준비 환경 | [검사 선택](reference/testing.md#검사-선택) |
+| CI 이미지와 캐시 | [CI 실행](reference/testing.md#ci-실행과-재사용) |
+| 명시 실행이 필요한 ROS / UI | [선택 runtime](reference/testing.md#선택-runtime과-ui) |
+| 실물 매핑 / ToF / 화면 / 모델 | [기능별 조건](reference/testing.md#실물-매핑-패키지-경계) |
+| 기록 분석과 주행 모델 비교 | [오프라인 분석](reference/testing.md#기록-분석-도구) |
+| 결과의 해석 | [결과와 증거](reference/testing.md#결과와-증거) |

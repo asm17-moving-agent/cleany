@@ -25,6 +25,7 @@
 <section><p class="nav-label">작업 가이드</p><a data-page="docs/RUNNING.md">실행할 작업 고르기</a><a data-page="docs/how-to/simulation.md">시뮬레이션</a><a data-page="docs/how-to/mapping.md">매핑과 저장 지도</a><a data-page="docs/how-to/sensors.md">센서와 인식</a><a data-page="docs/how-to/manipulation.md">계획과 조작</a><a data-page="docs/how-to/mission.md">Mission과 Backend</a><a data-page="docs/how-to/base.md">베이스와 펌웨어</a><a data-page="docs/how-to/monitoring.md">기록과 관측</a><a data-page="docs/how-to/phone-navigation.md">휴대폰 주행</a></section>
 <section><p class="nav-label">구조와 검증</p><a data-page="docs/INTEGRATION.md">시스템 연결</a><a data-page="docs/packages.md">기능별 패키지 지도</a><a data-page="docs/CALIBRATION.md">좌표계와 보정</a><a data-page="docs/TESTING.md">검사 선택</a><a data-page="docs/ROS_INTERFACES.md">ROS 인터페이스</a><a href="guide/index.html">개념 학습 가이드 ↗</a></section>
 <details><summary>패키지별 상세 참조</summary><div id="package-nav"></div></details>
+<details><summary>펌웨어와 개발 도구</summary><div id="tool-nav"></div></details>
 </aside><main class="content"><div class="page-meta"><span id="breadcrumb">Cleany / 문서</span><a id="source">Markdown 원문 ↗</a></div><article id="article" tabindex="-1"></article></main></div>
 <dialog class="image-dialog" id="image-dialog"><div class="zoom-head"><span>원본 크기 · 큰 이미지는 스크롤해서 확인하세요</span><button id="close-image">닫기</button></div><div class="zoom-stage"><img id="zoom-image" alt=""></div></dialog>
 <script src="guide/vendor/marked.umd.js"></script><script src="guide/vendor/purify.min.js"></script><script src="guide/vendor/mermaid.tiny.js"></script>
@@ -96,7 +97,12 @@ async function render(){
 for(const a of document.querySelectorAll('[data-page]'))a.href=route(a.dataset.page);
 const packageGroups=new Map();
 for(const [path,page] of Object.entries(pages)){
- if(!path.startsWith('ros2_ws/'))continue;
+ if(!path.startsWith('ros2_ws/')){
+  if(/^(tools|esp32|containers)\//.test(path)){
+   const a=document.createElement('a');a.href=route(path);a.dataset.page=path;a.textContent=page.title;document.getElementById('tool-nav').append(a);
+  }
+  continue;
+ }
  const name=path.split('/')[2];let group=packageGroups.get(name);
  if(!group){group=document.createElement('details');const label=document.createElement('summary');label.textContent=name.replace('cleany_','');group.append(label);packageGroups.set(name,group);document.getElementById('package-nav').append(group)}
  const a=document.createElement('a');a.href=route(path);a.dataset.page=path;a.textContent=page.title;group.append(a);

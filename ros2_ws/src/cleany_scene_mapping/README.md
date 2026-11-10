@@ -1,149 +1,123 @@
-# Cleany sensor scene mapping
+# 센서 기반 MoveIt OctoMap 갱신
 
-실험용 MoveIt OctoMap updater. MuJoCo sorting 파이프라인은 이 updater를
-기본으로 사용한다. 실물 및 다른 모드는 기존 updater를 유지하며,
-`depth_octomap_plugin:=cleany_scene_mapping/KnownGeometryOctomapUpdater`로
-명시 선택할 수 있다. 실제 하드웨어 안전 검증을 완료한 기능이 아니다.
+MuJoCo sorting은 `cleany_scene_mapping/KnownGeometryOctomapUpdater`를 기본으로 사용한다. 실물과 다른 모드는 기존 updater를 유지하며 `depth_octomap_plugin`으로 명시 선택한다. 실물 충돌 안전을 검증한 기능은 아니다.
 
-MoveIt의 `ShapeMask`로 점군 self-mask를 계산하고, sensor ray의 free/occupied/
-model/clip 셀을 갱신한 뒤, MoveIt이 제외 대상으로 전달한 collision shape의
-제외 영역에 완전히 포함되는 **관측된 점유 leaf**를 free로 바꾼다. 로봇 URDF,
-관측에서 구한 target mesh/OBB, 명시적으로 등록한 수거함이 shape의 출처다. MuJoCo GT나
-물체 이름/정답 위치는 읽지 않으며 planning scene의 충돌 형상을 삭제하지 않는다.
+```mermaid
+flowchart TD
+    Cloud["새 optical PointCloud2"] --> Validate{"layout / 촬영 TF / 형상 cache 유효?"}
+    Validate -->|아니오| Reject["프레임 전체 거부 / tree와 receipt 미갱신"]
+    Validate -->|예| Mask["MoveIt ShapeMask / self-mask"]
+    Mask --> Rays["sensor ray의 free / occupied / model / clip 갱신"]
+    Rays --> Clear["제외 형상 내부의 관측된 점유 leaf만 free 처리"]
+    Clear --> Publish["원본 header의 filtered cloud / 처리 receipt"]
+```
 
-가려져 현재 depth ray가 도달하지 않는 내부 잔상을 다루는 목적이다.
-표준 updater와 같은 `padding_scale` / `padding_offset` 설정을 사용한다.
-점군 self-mask는 upstream 판정을 유지한다. 내부 점유 정리에서는 mesh의
-convex face를 법선 방향으로 `padding_offset`만큼 확장하고, 확장한 local
-bounding box로도 제한한다. `padding_scale`은 hull vertex 평균을 중심으로 적용한다.
-primitive의 내부 판정은 기존과 같다. upstream의 mesh vertex 방사 방향 padding은
-긴 형상의 옆면에 설정값보다 작은 여유를 주므로, 컵과 겹치는 1cm 셀의 일부
-모서리를 놓쳐 잔상이 남을 수 있었다. 정리는 점유 갱신 **후** 수행해 같은
-프레임의 depth endpoint가 해당 셀을 다시 점유 상태로 만들지 않게 한다.
-한 convex body 안에 셀의 8개 모서리가 모두 포함되어야 한다. 일부만 겹치는
-셀, 여러 형상 사이의 틈, 바깥 장애물, 아직 관측하지 않은 셀은 비우지 않는다.
-TF는 점군 촬영 시점의 cache를 사용한다. 하나라도 누락되거나 비정상이거나,
-cache 조회 중 형상이 추가·제거됐으면 **그 프레임 전체를 거부**한다.
-그 경우 self-mask/raycast/내부 정리/점유 갱신/filtered-cloud 발행을 모두
-수행하지 않는다. 따라서 receipt relay도 해당 촬영 시각을 처리 완료로 알리지 않는다.
-로봇/OBB/TF가 틀린 경우 실제 장애물이 잘못
-제외될 위험은 남으므로 이 기능이 인식 오류나 충돌 안전을 보증하지 않는다.
+## 제거하는 셀과 남기는 셀
+
+형상의 출처는 URDF, 관측 target mesh/OBB, 명시 등록한 수거함이다. MuJoCo GT나 물체 정답 위치는 읽지 않으며 Planning Scene의 충돌 형상도 삭제하지 않는다.
+
+| 셀 | 처리 |
+|---|---|
+| 하나의 convex body 안에 8개 모서리가 모두 포함된 관측 점유 leaf | 점유 갱신 **후** free 처리 |
+| 일부만 겹친 셀 | 유지 |
+| 여러 형상 사이의 틈 / 바깥 장애물 | 유지 |
+| 아직 관측하지 않은 셀 | 비우지 않음 |
+| 형상 / TF cache 하나라도 무효 또는 조회 중 세대 변경 | self-mask부터 발행까지 프레임 전체 거부 |
+
+| 형상 검사 | 적용 방식 |
+|---|---|
+| 점군 self-mask | Upstream ShapeMask 판정 유지 |
+| 내부 mesh 정리 | Convex face를 법선 방향 `padding_offset`만큼 확장하고 확장 local bounding box로 제한 |
+| `padding_scale` | Hull vertex 평균 중심으로 적용 |
+| Primitive | 기존 내부 판정 유지 |
+| TF | 점군 촬영 시점의 cache |
+
+가려진 내부 잔상 정리가 목적이다. 로봇·OBB·TF가 잘못되면 실제 장애물을 잘못 제외할 수 있으며 인식 오류를 보완하는 안전 보장은 아니다.
 
 ## 설정
 
-`depth_cloud.known_geometry_clear_max_leaves`는 메시지당 검사하는 leaf 수의
-상한이며 기본 200000이다. 초과하면 나머지를 건드리지 않고 경고한다.
-free cell도 검사 예산에 포함한다. 정리 수/검사 수/소요 시간은 throttled
-`DEBUG` log로 기록한다. 정상 프레임의 raycast는 이 추가 검사 예산과 무관하게 수행한다.
-이 패키지는 미지정 시 `RelWithDebInfo`로 빌드한다. 점유 leaf 순회와
-convex body 검사는 CPU 경로이므로 디버그 무최적화 실행 시간과 구분한다.
+| 설정 | 기본 / 범위 | 동작 |
+|---|---|---|
+| `depth_cloud.known_geometry_clear_max_leaves` | 200,000 | Free 셀도 포함한 메시지당 추가 검사 예산; 초과 시 나머지는 유지하고 경고 |
+| `depth_cloud.mask_workers` | 4 / 1–4 | 1은 분할 없이 원래 ShapeMask 호출 |
+| 빌드 유형 | 미지정 시 `RelWithDebInfo` | CPU 경로이므로 무최적화 Debug 시간과 구분 |
+| `padding_scale` / `padding_offset` | 표준 updater와 공유 | 관측 형상 여유 |
 
-`depth_cloud.mask_workers`는 1–4개 CPU 작업자로 self-mask를 분할하며 기본은 4다.
-모든 점을 순환 배분한 뒤 원래 순서로 합치므로 점군 밀도, mesh, padding,
-range/내부/외부 판정은 바꾸지 않는다. 작업자는 각각 upstream ShapeMask와
-독립적인 Body 자세 상태를 가지며, `Body::cloneAt`으로 불변 convex mesh 계산
-결과만 공유한다. 원본 형상은 한 번만 생성해 시작 시 반복 hull 계산을 피한다.
-형상 변경/cache 갱신은 모든 작업자가 끝날 때까지 직렬화하며 작업 예외는
-프레임 전체를 거부한다. 1로 설정하면 분할 없이 원래 ShapeMask를 호출한다.
-전체 CPU 작업량/메모리는 감소한다는 보장이 없으며 CPU 여유에 맞춰 설정한다.
+추가 leaf 검사 예산은 정상 프레임 raycast를 제한하지 않는다. 작업자 수 증가는 전체 CPU 작업량이나 메모리 감소를 보장하지 않는다.
 
-병렬 작업 스레드는 worker 수 설정 시 한 번 생성하고 프레임 사이에는 condition
-variable에서 대기한다. 기본 4 worker는 호출 스레드 1개와 상주 스레드 3개로 실행한다.
-프레임마다 `std::async` 스레드를 생성·종료하지 않으며, 점군 분할 및 판정 배열도
-다음 프레임에 재사용한다. 원본 점군을 순환 분할 버퍼로 복사하는 작업 자체는 유지한다.
-버퍼는 처리한 최대 프레임 크기에 맞춰 용량을 보관하므로, 반복 할당 감소가
-프로세스 상주 메모리 감소를 의미하지는 않는다. worker 수 재설정 또는 객체 종료 시
-스레드를 종료하고 버퍼를 해제한다. 형상이 등록된 동안 worker 수 변경은 거부한다.
+### 작업자와 프레임 직렬화
 
-호출 스레드 또는 작업 스레드에서 예외가 발생하면 나머지 작업자가 모두 끝날 때까지
-기다린 후 예외를 전달한다. 실패한 프레임의 일부 판정을 반환하지 않으며 다음 프레임에서
-정상 복구할 수 있다. 상위 updater의 frame/geometry 직렬화와 TF·형상 세대 검사는 유지한다.
+```mermaid
+flowchart LR
+    Frame["한 프레임 / geometry lock"] --> Split["점을 순환 분할"]
+    Split --> Workers["독립 ShapeMask와 Body 자세 / 불변 convex mesh 공유"]
+    Workers --> Join["모든 작업 종료 / 원래 순서로 합침"]
+    Join --> Snapshot["body clone 보존 / geometry lock 해제"]
+    Snapshot --> Tree["transform provider와 tree 접근"]
+```
+
+| 수명 / 오류 | 계약 |
+|---|---|
+| 기본 4 workers | 호출 스레드 1 + 상주 스레드 3; 프레임 사이 condition variable 대기 |
+| 버퍼 | 최대 프레임 크기의 분할 / 판정 용량 재사용; 원본 복사는 유지 |
+| Mesh | 원본 hull 한 번 계산, `Body::cloneAt`으로 불변 계산 결과 공유 |
+| 형상 변경 | 모든 worker 종료까지 직렬화; 형상 등록 중 worker 수 변경 거부 |
+| Worker / 호출 예외 | 나머지 작업 완료를 기다린 뒤 전달; 부분 판정 반환 안 함, 다음 프레임 복구 가능 |
+| 재설정 / 종료 | 스레드 종료와 버퍼 해제 |
+| Lock 순서 | Callback mutex로 프레임 직렬화; transform provider / tree 접근 중 geometry mutex 미보유 |
+
+점군 밀도, mesh, padding과 내부/외부 판정은 작업자 수와 무관해야 한다. 버퍼 재사용이 RSS 감소를 뜻하지는 않는다.
+
+## 프레임 처리 계약
+
+| 항목 | 수락 / 처리 조건 |
+|---|---|
+| Layout | Little-endian FLOAT32 XYZ, offset 0/4/8, packed row, 완전한 data buffer |
+| 카메라 원점 | Shape mask는 optical frame 0; raycast에서만 촬영 시각 map-frame 위치로 변환 |
+| TF 대기 | 누락 프레임 거부 후 다음 새 프레임 사용; 대기 queue / 재발행 / timestamp 수정 없음 |
+| Filtered cloud | 원본 header 유지, BEST_EFFORT SensorDataQoS |
+| History | 입력 / 출력 `KEEP_LAST(1)`; 처리 중 밀린 입력은 가장 최근 촬영본 선택 |
+| 실행 중 프레임 | 중간 취소나 timestamp 재작성 없음 |
+| 최신성 판정 | Coordinator의 기존 capture / receipt 허용 기준 유지 |
+
+Plugin은 `OccupancyMapUpdater`로 프레임 callback 전체를 소유한다. 거부된 프레임은 tree, filtered cloud와 처리 완료 receipt를 갱신하지 않는다.
 
 ## 빌드와 검증
 
 ```bash
-make test-scene-mapping
+scene_build_root="${XDG_CACHE_HOME:-$HOME/.cache}/cleany/builds/$(basename "$PWD")"
+make test CLEANY_BUILD_ROOT="$scene_build_root"
+# 저장된 fixture를 사용한 비구동 비교
+source /opt/ros/humble/setup.bash
+source "$scene_build_root/install/setup.bash"
+"$scene_build_root/build/cleany_scene_mapping/profile_mask" /absolute/path/to/mask_fixture
 ```
 
-정지 상태에서 저장한 진단 fixture가 있다면 ROS node나 물리 명령 없이 비교한다:
+저장소 루트에서 실행한다. `make test`는 전체 workspace를 빌드하고 검사하며, `profile_mask`는 저장된 fixture 디렉터리를 인자로 받는 build 산출물이다.
 
-```bash
-make profile-scene-mask MASK_FIXTURE=/absolute/path/to/mask_fixture
-```
+| 검사 | 입력 / 확인 범위 |
+|---|---|
+| Robot-only profile | `robot.urdf`, `raw.cdr` PointCloud2, `fk.cdr` GetPositionFK response; cloud-frame collision link pose |
+| 작업자 동등성 | Serial / 2 / 4 worker의 점별 결과 완전 일치, 부품별 내부 판정 / clone 시간 |
+| Core gtest | 내부 / 외부 / 경계 / 분리 형상 / 회전 / 가변 leaf / 예산 / TF 누락 |
+| Mesh padding | Box primitive와 scale / 회전 / local offset / capture-time clone 비교 |
+| Frame integration | World / attached 형상 누락과 세대 변경 거부, 정상 지도 통합과 주변 장애물 보존 |
+| 점군 / 실행 | 원점, layout, range clipping, stop/start, 동시 callback, 지연 뒤 최신 프레임 선택 |
+| Worker 수명 | 재사용 / 재설정, 프레임 크기와 XYZ/XYZRGB 변경, 예외 뒤 전체 종료와 복구 |
 
-fixture는 `robot.urdf`, `raw.cdr`(PointCloud2), `fk.cdr`(GetPositionFK response,
-cloud frame의 collision link pose)를 요구한다. robot-only serial/2/4 worker 결과가
-점 단위로 완전히 같아야 통과하며 부품별 내부 판정/clone 시간을 출력한다.
-world/attached body는 이 프로파일에 포함되지 않는다. 별도 frame integration
-검사가 해당 형상의 누락/cache 변경 시 거부와 정상 점군 통합을 검증한다.
-이 수치는 실제 이동 중 지연 또는 Jetson 성능을 대신하지 않는다.
-
-2026-09-29 버퍼/스레드 재사용 전후 비교는 저장된 robot-only fixture
-(76,800점, 27개 형상, 4 worker)를 사용했다. 준비 후 전후 실행 순서를 교대해
-12회 비교한 self-mask 중앙값은 365.53→363.30ms(약 0.6% 감소)였고, 모든 점의
-결과는 단일 worker 기준과 일치했다. 별도 3회 계측에서 해당 호출 안의 C++
-`operator new/new[]` 할당은 프레임당 30→0회였다. 프레임마다 만들던 스레드 3개는
-초기화 시 생성한 스레드로 대체했다. 이 fixture에서 재사용하는 분할/판정 payload는
-약 1.17MiB이며 프로세스 RSS 감소를 측정한 것은 아니다. 처리 시간 차이는 작아서
-큰 속도 향상이나 전체 파이프라인 지연 급증 해소를 주장하지 않는다. 현재 실행 로그의
-지도 전체 갱신 시간과도 측정 범위가 다르다. 전후 코드·원자료·계측 프로그램은 로컬
-`artifacts/scene_mask_reuse_20260929/`에 보관한다.
-
-ROS 2 Humble의 `moveit_ros_perception`, `moveit_ros_occupancy_map_monitor`,
-`geometric_shapes`, `octomap`이 필요하다. 로컬 MoveIt perception prefix의
-설치 조건은 루트 `docs/DEVELOPMENT_SETUP.md`를 따른다. core gtest는 내부/
-외부/경계/분리 형상/회전/가변 leaf 크기/예산/TF 누락을 검사한다.
-mesh face padding은 같은 box의 primitive 표현과 비교하며, scale·회전·local
-vertex offset·capture-time clone에서 일치하는지 확인한다. 통합 검사에서는
-mesh 옆면의 과거 잔상과 새 endpoint가 반복 프레임에서도 제거되고, 주변의
-기존 장애물과 새 장애물은 유지되는지 확인한다.
-통합 gtest는 형상 세대 변경, 누락·비정상 cache, 거부 프레임의 tree/receipt
-미갱신, 정상 self-mask와 주변 장애물 보존, 카메라 원점, 잘못된 점군 layout,
-range clipping, stop/start, 동시 frame 직렬화 및 executor 지연 후 최신 프레임
-선택을 검사한다.
-이 테스트가 실제 파지·운반 성공을 증명하지는 않는다.
-`test_partitioned_shape_mask`는 worker 재사용/재설정, 큰 프레임에서 작은 프레임으로의
-전환, XYZ/XYZRGB layout 변경, 호출·작업 스레드 예외 후 전체 작업 종료와 복구도 검사한다.
-
-## 프레임 처리 계약
-
-이전 `PointCloudOctomapUpdater::updateMask` hook은 정리를 건너뛰더라도
-base callback의 점유 갱신을 중단할 수 없었다. 지금은 `OccupancyMapUpdater`
-plugin으로 프레임 callback 전체를 소유한다. 한 mutex로 callback을 직렬화하고,
-형상 세대·cache 검사와 mask를 geometry mutex 안에서 수행한 후 body clone을
-보존한다. transform provider 호출과 tree 접근 중에는 geometry mutex를 잡지
-않는다(PlanningSceneMonitor의 shape/tree lock과 역순 잠금 방지).
-
-입력은 `depth_scene_node`의 optical-frame PointCloud2 계약을 따른다:
-little-endian FLOAT32 XYZ(offset 0/4/8), packed row, 완전한 data buffer.
-다른 layout은 거부한다. shape mask에서 카메라 원점은 optical frame의 0이며,
-raycasting에서만 촬영 시점 map-frame 카메라 위치로 변환한다. TF가 아직
-도착하지 않았다면 해당 프레임을 거부하고 다음 새 프레임을 받는다. TF 대기
-queue나 재발행/임의 타임스탬프는 사용하지 않는다. 정상 filtered cloud의
-header는 원본 그대로이며 BEST_EFFORT SensorDataQoS로 발행한다. 입력/출력
-history는 `KEEP_LAST(1)`이다. 처리 중 새 입력이 쌓이면 과거 영상을 순서대로
-처리하지 않고 가장 최근 촬영본을 받는다. 한 프레임의 처리 중단이나 timestamp
-재작성은 하지 않는다. 최신성 허용 기준은 coordinator에서 그대로 검사한다.
-로그는 transform/cache, mask/shape snapshot, raycast, tree 갱신, receipt 발행
-구간의 wall time과 입력/출력의 ROS capture age를 구분한다. lock 대기는 해당
-구간 시간에 포함되므로 각 숫자를 순수 CPU 시간으로 해석하지 않는다.
-추가 callback 진단은 ROS clock과 독립적인 steady clock으로 초당 최대 한 번
-입장/종료를 기록한다. 원본 capture stamp, 해당 node의 ROS 시각, 마지막 갱신
-시각과 종료 stage(`ros_clock_rate_limit`, `transform_cache`, `map_transform`,
-`shape_mask`, `tree_update`, `integrated` 등)를 포함한다. transform cache가 false를
-반환한 경우의 시간도 경고로 남긴다. throttled 로그이므로 모든 프레임의 trace는
-아니며, callback 로그만으로 upstream 입력 중단과 executor 지연을 구분할 수는 없다.
-입력 토픽 관측과 함께 읽어야 한다. 진단은 프레임 수용 조건이나 지도 내용,
-원본 timestamp/receipt 계약을 바꾸지 않는다.
-
-참고한 [MoveIt 2.5.9 updater](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/perception/pointcloud_octomap_updater/src/pointcloud_octomap_updater.cpp)와
-[transform cache provider](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/planning_scene_monitor/src/planning_scene_monitor.cpp)의
-동작을 기준으로 한다. 시스템 전체의 실제 충돌 안전을 검증한 것은 아니다.
+Profile에는 world/attached body가 포함되지 않는다. 이 수치는 실제 이동 지연, Jetson 성능 또는 파지·운반 성공을 대신하지 않는다. 의존성 설치는 [개발환경](../../../docs/DEVELOPMENT_SETUP.md)을 따른다.
 
 ## 로그 수준
 
-준비 완료와 실패·TF cache 누락·검사 예산 초과는 기본 출력에 남는다.
-정상 프레임의 입장·종료와 `Consistent depth frame` 통계는 throttled `DEBUG`
-로그이며 `move_group.scene_mapping` 로거를 사용한다. 상위 MuJoCo launch의
-`log_level:=debug` 또는 standalone MoveIt의 같은 옵션으로 확인한다.
-기본 `INFO`에서는 대기 중 정상 프레임 진단을 계속 출력하지 않는다.
+| 로그 | 의미 |
+|---|---|
+| 기본 출력 | 준비 완료, 실패, TF cache 누락, 검사 예산 초과 |
+| `move_group.scene_mapping` DEBUG | 정상 프레임 입장 / 종료, `Consistent depth frame`, 정리 수 / 검사 수 / 소요 시간 |
+| 활성화 | 상위 MuJoCo 또는 standalone MoveIt의 `log_level:=debug` |
+| 시간 구간 | Transform/cache, mask/snapshot, raycast, tree 갱신, receipt 발행의 wall time |
+| 신선도 | 입력 / 출력 ROS capture age; wall time과 구분 |
+| 추가 callback 진단 | Steady clock 기준 초당 최대 1회, capture stamp / node ROS 시각 / 마지막 갱신 / 종료 stage |
+
+종료 stage 예시는 `ros_clock_rate_limit`, `transform_cache`, `map_transform`, `shape_mask`, `tree_update`, `integrated`다. Lock 대기도 구간 시간에 포함된다. Throttled 로그는 전체 trace가 아니므로 입력 토픽 관측과 함께 읽어야 upstream 단절과 executor 지연을 구분할 수 있다.
+
+구현 기준: [MoveIt 2.5.9 updater](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/perception/pointcloud_octomap_updater/src/pointcloud_octomap_updater.cpp), [transform cache provider](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/planning_scene_monitor/src/planning_scene_monitor.cpp).

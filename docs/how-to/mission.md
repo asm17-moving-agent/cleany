@@ -2,16 +2,30 @@
 
 외부 요청을 Runtime과 연결하고, 실행 허가와 완료·취소 결과를 확인합니다.
 
-```mermaid
-flowchart LR
-  Gateway["Backend Gateway"] --> Runtime["Mission Runtime"]
-  Supervisor["Supervisor"] <-->|"허가 / 정지 요청"| Runtime
-  Runtime --> Tasks["Navigator / 작업 adapter"]
-  Tasks -->|"진행 / 결과"| Runtime
-  Runtime -->|"최종 결과"| Gateway
-```
+| 현재 준비된 것 | 선택할 실행 | 주행 / 조작 |
+|---|---|---|
+| 새 Gazebo 환경과 Backend | [통합 실행](#주행-구성을-함께-실행) | Gazebo/Nav2 / 기본 mock |
+| 이미 실행 중인 AMCL/Nav2 | [Runtime만 연결](#기존-주행-구성에-runtime-연결) | 기존 Nav2 / 설정한 adapter |
+| Backend 없이 연동 시험 | [Gazebo + Mock Action](#gazebo-주행과-mock-조작) | Gazebo/Nav2 / Action mock |
+| 장치와 simulator 없는 시험 | [모두 Mock](#주행도-mock으로-action-연결-확인) | mock / Action mock |
 
-[공통 환경 준비](../RUNNING.md#공통-준비) · [검증 선택](../TESTING.md)
+[공통 환경](../RUNNING.md#공통-준비)을 모든 터미널에 적용한다. 같은 robot의 Runtime, bridge, canonical odometry producer는 하나씩만 실행한다.
+
+```mermaid
+sequenceDiagram
+  participant Client as Backend 또는 수동 요청
+  participant Runtime as Mission Runtime
+  participant Supervisor
+  participant Task as Navigator / 조작 adapter
+  Client->>Runtime: OfferMission (새 mission ID)
+  Runtime->>Supervisor: 실행 허가 확인 (required 모드)
+  Supervisor-->>Runtime: 허가 또는 거절 사유
+  Runtime-->>Client: 수락 / 거절
+  Runtime->>Task: 실행 요청
+  Task-->>Runtime: 진행 / 최종 결과
+  Runtime-->>Client: mission/result
+  Note over Client,Runtime: 수락 응답과 완료 결과는 별개
+```
 
 ## Mission Runtime과 Backend
 
@@ -63,7 +77,9 @@ source "$(make -s print-navigation-install-base)/setup.bash"
 source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_system_supervisor supervision.launch.py \
   "estop_released_topic:=<하드웨어 해제 Bool>" "protection_ready_topic:=<보호 계층 Bool>"
-ros2 run cleany_system_supervisor supervisor_operator            # 활성 Fault 확인
+
+# 별도 터미널: 활성 Fault 확인
+ros2 run cleany_system_supervisor supervisor_operator
 ros2 run cleany_system_supervisor supervisor_operator ESTOP --operator "<name>"
 ```
 
@@ -88,7 +104,7 @@ source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=186
 ```
 
-2. Gateway 없이 시작한다. 세 DB 경로는 분리하고 재시작 시험에서는 보존한다.
+2. 터미널 1에서 Gateway 없이 시작한다. 세 DB 경로는 분리하고 재시작 시험에서는 보존한다.
 
 ```bash
 ros2 launch cleany_bringup mission_sim.launch.py \
@@ -101,7 +117,7 @@ ros2 launch cleany_bringup mission_sim.launch.py \
   manipulation_database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
 ```
 
-3. 별도 터미널에서 `ros2 topic echo /mission/status`로 `ready: true`를 확인한 뒤 요청한다. 새 미션에는 새 ID를 사용한다. `NAV2_NOT_READY`이면 Nav2 lifecycle, odom과 TF를 먼저 확인한다.
+3. 터미널 2에서 `ros2 topic echo /mission/status`로 `ready: true`를 확인한 뒤 요청한다. 새 미션에는 새 ID를 사용한다. `NAV2_NOT_READY`이면 Nav2 lifecycle, odom과 TF를 먼저 확인한다.
 
 ```bash
 ros2 service call /mission/offer cleany_interfaces/srv/OfferMission \
@@ -135,3 +151,16 @@ ros2 run cleany_mission_manager mission_runtime --ros-args \
   -p post_mission:=wait_for_next \
   -p journal_path:=$HOME/.local/state/cleany/mission-mock/missions.db
 ```
+
+## 요청 결과를 해석하기
+
+| 관측 | 의미 / 다음 확인 |
+|---|---|
+| `/mission/status`의 `ready: true` | 요청을 받을 준비. 새 요청에는 새 mission ID 사용 |
+| `SUPERVISOR_UNAVAILABLE` | required 모드에 Supervisor 없음 |
+| `SYSTEM_FAULT_LOCKED` | 안전 증거 또는 latched Fault 확인; 재시작만으로 해제되지 않음 |
+| `NAV2_NOT_READY` | Nav2 lifecycle, 새 odom과 TF 확인 |
+| OfferMission 수락 | 실행 접수. `/mission/result`를 기다림 |
+| Mock 조작 완료 | fixture의 진행·결과; 실제 사진이나 물리 수거 근거는 아님 |
+
+재시작 시험은 journal을 보존하고 독립 실험은 DB 경로를 분리한다. 종료·재전송·취소의 상세 의미는 [Mission 계약](../../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따른다.

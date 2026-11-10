@@ -16,4 +16,4 @@
 MoveIt launch는 이 패키지를 의존하며 `collision_detector:=cleany/SolidFCL`을
 기본값으로 사용한다. 표면 검사 대조에는 `collision_detector:=FCL`을 명시한다.
 형상 계약은 [모델 문서](../cleany_description/docs/model-runtime.md#선택적-충돌-메시-평면화),
-빌드와 검사는 [검증 절차](../../../docs/TESTING.md#충돌-메시와-내부-장애물-검사)를 따른다.
+빌드와 검사는 [검증 절차](../../../docs/reference/testing.md#충돌-메시와-내부-장애물-검사)를 따른다.

@@ -87,56 +87,59 @@ flowchart TB
 
 ## Runtime MPU6050 telemetry
 
-The motor image also acquires MPU6050 data on J_I2C1 (SDA GPIO41, SCL GPIO42),
-using the existing driver: 100 kHz I2C, 100 Hz sensor sampling, ±250 deg/s gyro,
-±2 g accelerometer and 42 Hz gyro DLPF. Module/external I2C pull-ups are required.
+```mermaid
+flowchart LR
+    IMU["MPU6050 / data-ready"] --> Task["독립 acquisition task / priority 2"]
+    Task --> Queue["1-entry overwrite queue"]
+    Queue --> Comm["Communication task / priority 4"]
+    Comm --> ROS["base/imu_state"]
+    Motor["Motor task / priority 6"] -. motorMutex 독립 .-> Task
+```
 
-The independent priority-2 acquisition task polls data-ready every 2 ms. It does
-not take `motorMutex`. The priority-6 motor and priority-4 communication tasks
-remain separate. A one-entry overwrite queue drops intermediate data if
-communication stalls; reconnect does not drain a sample backlog.
+| 장치 / 설정 | 값 |
+|---|---|
+| 포트 | J_I2C1, SDA GPIO41 / SCL GPIO42; 모듈 또는 외부 pull-up 필요 |
+| I2C / 샘플 | 100 kHz / 100 Hz |
+| 센서 범위 | Gyro ±250 deg/s, accelerometer ±2 g, gyro DLPF 42 Hz |
+| 획득 | Data-ready 2 ms polling; motorMutex 미사용 |
+| 발행 | 새 표본으로 최대 100 Hz, Best-effort / Volatile / Keep-last 1; WheelState는 50 Hz |
+| 통신 정체 | 중간 표본 overwrite; 재연결 때 backlog 방출 안 함 |
+| 거부 | 100 ms 초과 획득값, 중복 / 역행 timestamp |
+| 센서 오류 | 최대 10 Hz fault heartbeat, saturation 별도 bit; 초기화 / 읽기 재시도 250 ms–5 s backoff |
 
-The communication task publishes fixed-size `ImuState` on `base/imu_state`,
-best effort / volatile / keep last 1, driven by newly acquired samples up to
-the sensor rate. WheelState remains at 50 Hz. Actual rates and motor timing
-under combined USB/I2C load require robot measurements.
+| ImuState 데이터 | 의미 |
+|---|---|
+| 원본 | Sensor-frame SI vectors, 온도, MCU MAC, WHO_AM_I |
+| 식별 | Boot ID, packet sequence, MCU 획득 timestamp, fault bits |
+| v2 보정 | MCU-corrected gyro, 선택 bias/covariance, 보정 상태 / 이유 |
 
-Packets carry uncalibrated sensor-frame SI vectors, temperature, MCU MAC,
-WHO_AM_I, boot ID, packet sequence, MCU acquisition timestamp and fault bits.
-ImuState v2 also carries MCU-corrected gyro, the selected bias/covariance,
-and calibration state/reason. Build the ROS interfaces and firmware together.
-Acquisitions older than 100 ms and duplicate/backward timestamps are not sent
-as new measurements. Missing/error data produces a sensor-fault heartbeat
-at most 10 Hz; saturation has its own fault bit. Initialization/read errors
-retry with 250 ms to 5 s backoff. IMU I2C failure does not authorize motors.
+ROS interface와 firmware를 함께 빌드한다. I2C 오류가 모터 허가를 만들지는 않는다. USB/I2C 동시 부하의 실제 주기와 motor timing은 실물 측정 대상이다.
 
 ### Power-on calibration
 
-The acquisition task calibrates once per MCU boot, independently of the Agent.
-Defaults are 5 s settling, 1,000 training samples and 500 holdout samples, with
-a 25 s deadline. It reuses the existing online gyro statistics. Noise/residual
-failure, sensor/sample errors or timeout select the saved bench coefficients.
-The selection remains fixed until MCU reboot, including across Agent reconnects.
+```mermaid
+flowchart TD
+    Boot["MCU 부팅 / PWM 0 / non-STOP 차단"] --> Settle["5 s 안정화"]
+    Settle --> Samples["training 1000 + holdout 500"]
+    Samples --> Gate{"25 s 안에 noise / residual / sensor 검사 통과?"}
+    Gate -->|예| New["이번 부팅의 측정 계수"]
+    Gate -->|아니오| Saved["저장된 bench 계수"]
+    New --> Inhibit["보정 inhibit 해제"]
+    Saved --> Inhibit
+    Inhibit --> Enable["새 ENABLE 후에만 구동 가능"]
+```
 
-During calibration, motor PWM stays zero, PID updates are skipped and non-STOP
-commands are discarded. Completion only releases this inhibit; a fresh ENABLE
-is still required. STOP, watchdog and disconnect handling remain active.
-Fallback can release the calibration inhibit even if the sensor is unavailable;
-sensor errors are still reported, and no angular-rate samples are fabricated.
+| 경계 | 계약 |
+|---|---|
+| 실행 | MCU 부팅당 한 번, Agent와 독립; online gyro 통계 사용 |
+| 선택 수명 | MCU reboot까지 고정, Agent 재연결로 바뀌지 않음 |
+| 보정 중 | PWM 0, PID 갱신 생략, non-STOP 폐기; STOP / watchdog / disconnect는 유지 |
+| Fallback | 센서 불가여도 inhibit 해제 가능; 오류를 보고하며 angular-rate를 만들지 않음 |
+| 설정 원본 | [imu_calibration.json](../ros2_ws/src/cleany_base_driver/config/imu_calibration.json)의 시간 / 창 / 검사 / 실측 fallback bias와 covariance |
+| 설정 반영 | firmware-build 검증 → build 디렉터리 cleany_config/imu_startup_config.hpp 생성 → rebuild / upload |
+| 구현 | Acquisition enqueue가 metadata 부착과 inhibit 해제를 담당, IMU task stack 6144 bytes |
 
-Edit [`ros2_ws/src/cleany_base_driver/config/imu_calibration.json`](../ros2_ws/src/cleany_base_driver/config/imu_calibration.json)
-to configure timing, windows, checks and measured fallback bias/covariance.
-`make firmware-build` validates it and generates `cleany_config/imu_startup_config.hpp`
-inside the PlatformIO build directory. The configuration is compiled into the
-image; changes require rebuilding and uploading. Runtime checks samples and
-observed statistics. A single acquisition-side enqueue helper attaches calibration
-metadata and releases the boot inhibit on completion. The IMU task uses 6144 bytes
-of stack for online statistics.
-
-ROS topics and status are documented under
-[IMU 실시간 수신](../ros2_ws/src/cleany_base_driver/docs/imu.md#imu-실시간-수신).
-The standalone [diagnostic](imu_calibration/README.md) provides bench reports;
-normal startup calibration is part of the motor image.
+[ROS IMU 계약](../ros2_ws/src/cleany_base_driver/docs/imu.md#imu-실시간-수신)과 [독립 bench 진단](imu_calibration/README.md)을 참고한다. 정상 부팅 보정은 motor image에 포함된다.
 
 ## 휠 속도 제어 설정
 
@@ -182,15 +185,12 @@ make micro-ros-agent-build
 
 Type support 원본은 `ros2_ws/src/cleany_base_interfaces`입니다. Smoke/runtime은 cache를 공유하므로 순차 빌드하며, interface, metadata, 환경을 변경하면 type support를 재생성합니다.
 
-`cmake/microros_python.cmake` exposes the pinned generator modules to IDF's
-Python during CMake configuration. PlatformIO clears the process `PYTHONPATH`
-before this step, so the SCons environment alone does not cover a fresh
-micro-ROS/type-support rebuild. Runtime and smoke projects share this helper.
-
-Smoke and runtime share a library cache and build sequentially. Changes to
-interfaces, metadata, or build environment regenerate type support.
-`sdkconfig.defaults` configures octal memory, a 1000 Hz FreeRTOS tick, and the
-USB transport. The DOUT image header lets the bootloader enable OPI.
+| 빌드 경계 | 계약 |
+|---|---|
+| cmake/microros_python.cmake | IDF Python에 고정 generator 모듈 노출; PlatformIO가 비우는 PYTHONPATH를 SCons 설정만으로 대체하지 않음 |
+| Smoke / runtime | 같은 helper와 library cache 사용, 순차 빌드 |
+| sdkconfig.defaults | Octal memory, FreeRTOS 1000 Hz, USB transport |
+| DOUT image header | Bootloader의 OPI 활성화 |
 
 For clangd, run inside Distrobox:
 

@@ -2,16 +2,14 @@
 
 Monitor는 상태를 표시하고, 독립 Logger는 기록을 소유합니다. 화면을 닫는 것과 기록 종료를 구분합니다.
 
-```mermaid
-flowchart LR
-  ROS["ROS 상태 · 센서 · 이벤트"] --> Logger["독립 Logger"]
-  Logger --> Store["rosbag2 + SQLite"]
-  Store --> Read["ArchiveReader"]
-  Read --> UI["Monitor / CLI"]
-  ROS -->|"실시간 구독"| UI
-```
-
 [공통 환경 준비](../RUNNING.md#공통-준비) · [검증 선택](../TESTING.md)
+
+| 작업 | 도구 | 시작 위치 |
+|---|---|---|
+| 현재 상태 보기 | Dev Monitor / RViz | [화면 실행](#개발-monitor) |
+| 원본 저장 | 독립 Logger + CLI | [녹화 시작·종료](#독립-logger) |
+| 완료된 기록 다시 보기 | ArchiveReader / rosbag2 / RViz | [기록 재생](#완료된-bag-재생) |
+| 로봇 얼굴 표시 | Jetson 독립 앱 | [얼굴 디스플레이](#jetson-얼굴-디스플레이) |
 
 ## 화면과 기록의 소유권
 
@@ -33,7 +31,7 @@ make run-dev-monitor
 자동 시작하지 않습니다. 기록은 아래 절차로 별도 실행합니다. 웹 자산 갱신 후에는
 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다.
 
-### 독립 Logger
+## 독립 Logger
 
 1. 웹 없이 logger만 빌드하려면 `make build-logger`를 실행합니다.
 2. 빌드 overlay를 source한 별도 터미널에서 logger를 시작합니다.
@@ -59,16 +57,17 @@ make run-dev-monitor
    ros2 run cleany_logger logger stop
    ```
 
-   `topics set <ID> --disable`은 해당 항목을 끕니다. ID는 `topics` 출력에서 확인합니다.
-   속도 체인은 `topics set velocity_topics --topic /first --topic /second`로 전체를
-   지정하거나 `velocity_topics:0`처럼 특정 항목만 변경합니다. 출처별 `--hz all`은
-   수신마다 기록하며 카메라 등 센서 원본은 숫자 Hz가 필요합니다. 카메라와 점군
-   원본은 대용량이므로 필요한 토픽과 주기를 선택합니다.
+   녹화 중에는 설정을 변경할 수 없다. 먼저 `stop`하고 아래 옵션을 적용한다.
 
-   루트에서 `make logger LOGGER_ARGS='status'`로도 호출할 수 있습니다.
-   다른 노드는 `--node /robot/logger`, 대기 시간은 `--timeout 3`, 자동화 출력은
-   `--json`으로 지정합니다. 이 옵션은 하위 명령 앞이나 뒤에 쓸 수 있습니다.
-   CLI는 한 번 요청하고 종료하며 logger 프로세스와 녹화는 계속됩니다.
+   | CLI 옵션 | 의미 |
+   |---|---|
+   | `topics set <ID> --disable` | `topics`에서 확인한 항목 끄기 |
+   | `velocity_topics --topic /first --topic /second` | 속도 체인 전체 설정; `velocity_topics:0`은 한 항목 |
+   | `--hz all` | 출처별 수신마다 기록; 카메라와 점군 원본에는 숫자 Hz 지정 |
+   | `--node /robot/logger`, `--timeout 3`, `--json` | 대상, 요청 대기, 자동화 출력; 하위 명령 앞/뒤 모두 허용 |
+
+   루트의 `make logger LOGGER_ARGS='status'`도 같은 CLI다. CLI 종료 후에도 Logger는 계속 실행된다.
+
 4. 대시보드를 사용하려면 별도 터미널에서 `make run-dev-monitor`를 실행합니다.
    기본 저장 위치는 두 프로세스 모두 `~/.local/state/cleany/recordings`입니다.
    다른 경로는 logger YAML의 `state_directory`와 Monitor의
@@ -82,6 +81,8 @@ make run-dev-monitor
 
 기록 구조는 [Logger 데이터 계약](../../ros2_ws/src/cleany_logger/docs/data.md),
 HTTP와 stale 처리는 [Monitor 계약](../../ros2_ws/src/cleany_dev_monitor/docs/data.md)을 따릅니다.
+
+## 완료된 bag 재생
 
 상세 SLAM, LiDAR, 점군과 costmap은 같은 domain의 RViz에서 확인합니다. 완료된 원본 bag ZIP을 내려받아 압축을 푼 뒤 다음과 같이 재생합니다. Bag에 기록된 토픽, TF와 CameraInfo만 사용할 수 있으며 SQLite 가공 기록은 RViz 입력이 아닙니다.
 
@@ -98,16 +99,24 @@ Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해�
 발행하고 진단 bag은 `--clock` 없이 재생합니다. 정밀 비교에는 각 bag의 첫 메시지
 시각 차이도 맞춰야 합니다.
 
-LiDAR 매핑의 보정 분석용 기록에서는 `/scan_raw`,
-`/odom`, `/base/wheel_state`, TF를 full-rate로 남기고, 중복 `/scan`, `/wheel/odom`,
-`/joint_states`는 기록에서 제외할 수 있습니다. 재생성에는 당시 필터와 휠 변환
-설정도 보존해야 합니다. 궤적은 1 Hz, 제약선은 0.5 Hz로 기록하고 submap 목록,
-matched points, map과 가공 관측의 주기는 기존 설정을 유지합니다.
-카메라와 depth 점군은 별도로 선택합니다. 설정은 녹화가 정지된
-상태에서 적용하며 실시간 RViz 표시나 센서 발행 주기는 바꾸지 않습니다.
-시간당 용량은 지도와 그래프 크기에 따라 달라지므로 실제 입력으로 확인합니다.
-이 분석용 주기에 이전의 0.1 Hz 절약 설정에서 측정한 0.97 GB/h를 적용하면 안 됩니다.
-`limit_mib`는 시간당 속도가 아닌 세션 총량 제한입니다.
+## 매핑 분석용 기록 선택
+
+| 데이터 | 권장 선택과 이유 |
+|---|---|
+| `/scan_raw`, `/odom`, `/base/wheel_state`, TF | full-rate 원본; 당시 scan 필터와 휠 변환 설정도 보존 |
+| `/scan`, `/wheel/odom`, `/joint_states` | 중복이면 생략 가능; 필요한 원본이 있는지 먼저 확인 |
+| 궤적 / 제약선 | 각각 1 Hz / 0.5 Hz |
+| submap, matched points, map, 가공 관측 | 기존 정책 유지 |
+| 카메라 / depth 점군 | 필요한 토픽과 주기를 별도 선택 |
+
+정지 상태에서 정책을 바꾼다. 기록 주기는 실시간 RViz나 센서 발행 빈도를 바꾸지 않는다. 용량은 실제 입력으로 측정하며 `limit_mib`는 시간당 속도가 아닌 **세션 총량**이다.
+
+| 남은 결과 | 읽는 방법 |
+|---|---|
+| SQLite 가공 기록 | Monitor / ArchiveReader; RViz 입력은 아님 |
+| 센서 rosbag2 | `ros2 bag info`로 토픽·메시지 수 확인 후 재생 |
+| `diagnostics/` bag | 센서 bag과 첫 메시지 시각 차이를 맞춰 재생 |
+| 종료된 세션 | Logger stop/flush와 파일을 확인; 화면 종료만으로 녹화가 끝나지 않음 |
 
 ## Jetson 얼굴 디스플레이
 

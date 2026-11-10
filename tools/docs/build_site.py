@@ -14,6 +14,7 @@ def build() -> str:
     """Keep source paths so links also work in GitHub's Markdown viewer."""
     patterns = (
         "README.md", "docs/*.md", "docs/how-to/*.md", "docs/reference/*.md", "esp32/README.md",
+        "esp32/*/README.md", "containers/*/README.md",
         "ros2_ws/src/*/README.md", "ros2_ws/src/*/docs/*.md",
         "tools/*/README.md", "tools/*/VALIDATION_PROTOCOL.md",
     )

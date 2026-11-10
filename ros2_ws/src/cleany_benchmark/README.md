@@ -31,12 +31,20 @@ CSV columns:
 | `compute_us` | Steady wall duration of the wrapped compute call, microseconds |
 | `success` | 1 when the method returns, 0 when it throws; exception is rethrown unchanged |
 
-File writes, mutex acquisition, and flushes happen after the end timestamp. A
-64 KiB stream buffer is requested; explicit flush occurs every 128 calls and on
-cleanup/destruction. Abrupt process termination may lose the last buffered rows.
-The measurement includes the original method's own visualization/logging and
-thread scheduling, and excludes the surrounding Nav2 cycle. Successful rows mean
-the method returned, not that navigation arrived at the goal.
+```mermaid
+flowchart LR
+    Start["steady start timestamp"] --> Compute["wrapped compute call"]
+    Compute --> End["steady end timestamp"]
+    End --> CSV["mutex / file write / flush"]
+```
+
+| Timing / output boundary | Contract |
+|---|---|
+| Included | Original method visualization / logging and thread scheduling |
+| Excluded | Surrounding Nav2 cycle, wrapper file write / mutex / flush |
+| Buffer | Requested 64 KiB, flush every 128 calls and cleanup / destruction |
+| Abrupt termination | Last buffered rows may be lost |
+| success=1 | Method returned; does not establish navigation arrival |
 
 For a 20 Hz controller, report a 50 ms wall deadline and the separately identified
 RTF-adjusted wall budget (25 ms at actual RTF 2). Do not infer actual RTF from its

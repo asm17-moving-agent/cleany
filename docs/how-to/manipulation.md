@@ -15,14 +15,14 @@ flowchart TD
 
 ## MuJoCo와 조작 데모
 
-```bash
-make sim
-# viewer가 필요하면 build와 overlay source 후:
-ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
-ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
-```
+| 실행 범위 | 진입점 |
+|---|---|
+| 장면만 관찰 | `ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py` |
+| 인식과 plan-only | `ros2 launch cleany_skill_executor study_cafe_nearest_grasp_demo.launch.py` |
+| 연속 수거 | `ros2 launch cleany_skill_executor study_cafe_sorting.launch.py` |
+| 단일 물체 Action | 아래 Mock / BT 실행 |
 
-위 두 실행과 `handeye_backend.launch.py` 중 backend 하나만 실행합니다. RGB-D scene 출력은 grasp/skill 입력으로 사용하며, 수거 완료는 별도로 확인해야 합니다.
+직접 launch는 `make build` 후 [공통 overlay](../RUNNING.md#공통-준비)를 적용한다. 한 domain에서 backend는 하나만 실행한다. [모델 준비와 실제 결과 판독](../../ros2_ws/src/cleany_skill_executor/docs/study_cafe_sorting_usage.md)을 따른다.
 
 ### 단일 물체 Manipulation Action
 
@@ -49,16 +49,4 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 
 ### MuJoCo 접근 데모
 
-아래 데모는 MuJoCo controller까지 연결합니다. 두 launch는 각각 별도로 실행합니다.
-
-```bash
-ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
-ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
-```
-
-| 데모 | 확인 범위 | 실행 조건 |
-|---|---|---|
-| 기본 grasp | 후보 선택, 두 trajectory 실행, 최종 joint 수렴 | MuJoCo controller 연결 |
-| can grasp | RGB-D 검출, 후보 생성, 충돌 검사, 그리퍼 개방, 방향 보정 pre-grasp 접근 | Viewer/OpenGL 필요; `headless:=true` 미지원 |
-
-두 데모 모두 gripper close, attach, lift와 실제 수거는 검증하지 않습니다. Plan-only action과 데모의 차이는 [Manipulation 계약](../../ros2_ws/src/cleany_interfaces/docs/manipulation.md)을 따릅니다.
+가까운 물체 하나의 pre-grasp와 선택적 lift는 `nearest_pregrasp_coordinator` 경로다. RGB-D, Perception, Grasp, MoveIt과 controller를 먼저 준비하고 [실행 절차](../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp)를 따른다. 기본 pre-grasp 완료와 집기·lift 성공은 서로 다른 결과다.

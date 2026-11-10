@@ -91,11 +91,16 @@ flowchart TD
 | 전체 장면 관찰, phase 1 | 빈 `snapshot_id`, `selected_object_id=0` | 2D 검출 목록과 새 snapshot |
 | 선택 대상 준비, phase 2 | 기존 snapshot과 물체 번호 | 해당 대상의 3D, mask 기반 cloud와 주변 cloud |
 
-전체 장면의 최초 관찰과 행동별 재관찰은 Mission Manager가 요청한다.
-서버는 phase 2를 대상 준비 port에서 호출하거나 이미 검증된 3D payload를 받을 수 있다.
-**phase 2는 새 사진으로 책상 전체를 다시 분류하는 요청이 아니다.** 캐시된 관찰에 대해
-선택 물체를 복원한다. 집기 전 실제 위치 확인이 필요하면 선택 대상만 확인하는 port를
-사용하고, 대상이 달라졌으면 Goal을 차단한다. 다른 대상 자동 선택은 하지 않는다.
+```mermaid
+flowchart LR
+    Mission["Mission / 최초 관찰과 재관찰"] --> Selected["승인된 선택 물체"]
+    Selected --> Port["대상 준비 port / phase 2 또는 검증 3D payload"]
+    Port --> Same{"선택 대상 확인"}
+    Same -->|같은 대상| Execute["실행"]
+    Same -->|달라짐| Block["Goal 차단 / 다른 대상 자동 선택 없음"]
+```
+
+Phase 2는 캐시된 관찰의 선택 물체 복원이다. 새 사진으로 책상 전체를 다시 분류하지 않는다.
 
 기존 [InspectScene.action](../../cleany_interfaces/action/InspectScene.action) 오류를 다음처럼 연결한다.
 
@@ -199,11 +204,13 @@ MuJoCo BT 서버의 Action 종료·새 관절 표본 검사는 [BT README](../..
 | simulation profile | 독립 확인과 stop 근거를 제공하는 simulation adapter |
 | real profile | 실제 feedback, 물리 verifier와 안전 경로가 준비되기 전 비활성 |
 
-이번 모의 구현은 SQLite에 최신 기록과 단계별 이력을 동일 트랜잭션으로 저장한다.
-execution_id UNIQUE 제약과 DB별 파일 lock을 사용하며 수락 기록과 단계 시작을
-동작 전에 메모리에 반영하고 SQLite 저장을 시도한다. 저장 실패는 실제 동작을 중단하지 않는다.
-같은 프로세스의 중복 검사와 조회는 메모리 기록을 사용한다.
-조회 Service와 복구 이벤트는 Action 명세 및 README를 따른다.
+| 기록 단계 | 계약 |
+|---|---|
+| 수락 / 단계 시작 | 동작 전에 메모리 반영 후 SQLite 저장 시도 |
+| 저장 | 최신 기록과 단계 이력을 같은 transaction, execution_id UNIQUE, DB별 file lock |
+| 저장 실패 | 실제 동작 중단 안 함 |
+| 같은 프로세스 조회 / 중복 | 메모리 기록 사용 |
+| 외부 연결 | Action 명세의 조회 service와 복구 이벤트 |
 
 ### 재시작 시 서버와 Mission Manager가 처리할 일
 
@@ -235,12 +242,14 @@ Mission Manager adapter는 후속 구현 대상이다.
 | `execution_record_retention_sec` | 중복 방지 기록 보관 |
 | backend별 베이스, 팔과 그리퍼 readiness 기준 | 시작 및 복귀 허용 조건 |
 
-실물 backend의 기본값은 미정이다. 모의 단계 0.5초·정지 확인 0.1초,
-준비·확인 제한 5초·동작 제한 10초·정지 제한 1초는 package YAML에 둔다.
-자동 재시도는 0회이며 실제 로봇의 안전 수치로 사용하지 않는다. 현재
-`arm_stationary_velocity_rad_s=0.02`, `arm_stationary_samples=5`는 기존 구현값이다.
-MuJoCo BT는 sample count, 지속 시간과 관절별 freshness를 함께 검증한다.
-실제 parameter 이름과 기본값은 [BT 정지 판정 설정](../../cleany_manipulation_bt/docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
+| 설정 | 모의 값 / 범위 |
+|---|---|
+| 단계 / 정지 확인 | 0.5 s / 0.1 s |
+| 준비·확인 / 동작 / 정지 기한 | 5 s / 10 s / 1 s |
+| 자동 재시도 | 0회 |
+| 기존 정지 설정 | arm_stationary_velocity_rad_s=0.02, arm_stationary_samples=5 |
+
+실물 기본값은 미정이다. MuJoCo는 횟수와 지속 시간 / 관절별 freshness를 함께 검사하며 [BT 설정](../../cleany_manipulation_bt/docs/execution_contract.md#정상-수거의-놓기정지-확인)을 따른다.
 
 ## 9. 기존 코드에서 재사용할 부분
 
@@ -256,7 +265,7 @@ MuJoCo BT는 sample count, 지속 시간과 관절별 freshness를 함께 검증
 팔 동작을 재사용할 때 시뮬레이션 좌석 순회와 물체 선택까지 서버로 가져오지 않는다.
 
 관련 문서: [Action 명세](02_execute_manipulation_skill_action_spec.md),
-[Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업), [설계 안내](01_manipulation_action_design.md).
+[Mission 연동 후속 작업](../../cleany_mission_manager/docs/manipulation_mock_integration.md), [설계 안내](01_manipulation_action_design.md).
 
 ## 10. 모의 서버의 구현 경계
 
@@ -265,15 +274,15 @@ MuJoCo BT는 sample count, 지속 시간과 관절별 freshness를 함께 검증
 `IMMEDIATE/RETURN_ARM`은 현재 동작을 중단한 뒤 정지 확인으로 처리한다. fault는 checkpoint 대기를
 우회하고 `FATAL`로 신규 실행을 차단한다. 취소와 Result 확정은 하나의 lock으로 직렬화한다.
 
-재시작 시 활성 기록은 `INTERRUPTED`, 사람 확인 필요로 전환하고 마지막 물리 근거를
-보존한다. Action Result를 생성하거나 이전 Goal을 자동 재개하지 않는다.
-fault·중단·물체 보유·상태 불명은 신규 Goal을 차단하며 reset은 없다.
-실행 기록 저장 실패는 경고 로그로 남기고 실제 실행의 status와 error_code를 유지한다.
-저장 실패만으로 동작이나 신규 Goal을 차단하지 않는다. 함께 발생한 hardware fault·e-stop·
-정지 미확인과 물체 보유·상태 불명에 따른 차단은 유지한다.
-메모리 기록의 `FINISHED`는 실행 종료를 뜻하며 디스크 저장 완료를 보장하지 않는다.
-기동 시 DB 초기화와 기존 이력 읽기는 필수다. 재시작 복구와 재시작 이후 중복 검사는
-디스크 기록만 사용하며 미저장 메모리 기록은 유실된다.
+| 재시작 / 저장 경계 | 처리 |
+|---|---|
+| 활성 기록 | INTERRUPTED / 사람 확인 필요, 마지막 물리 근거 보존 |
+| Result / 재개 | 가짜 Result 생성과 이전 Goal 자동 재개 없음 |
+| 신규 Goal 차단 | Fault / 중단 / HELD / UNKNOWN; reset 없음 |
+| 기록 쓰기 실패 | 경고, 실제 결과 유지; 쓰기 실패만으로 차단 안 함 |
+| FINISHED | 메모리 실행 종료, 디스크 저장 보장 아님 |
+| 기동 | DB 초기화 / 이력 읽기 필수 |
+| 재시작 복구 / 중복 | 디스크 기록만 사용; 미저장 메모리 유실 |
 
 Mock adapter는 실제 제어기 feedback, VLA, 실물 verifier 또는 베이스 readiness를
 검증하지 않는다. 해당 backend와 권한·복구·원격 전달 계약은 별도로 구현해야 한다.

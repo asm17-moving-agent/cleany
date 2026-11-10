@@ -52,7 +52,7 @@ score 순위가 높다는 것은 후보 생성기의 우선순위입니다. 현�
 
 ## 08.4 양팔 선택과 MoveIt 호출
 
-`GraspSelectionConfig`는 기본 접근 거리 `pregrasp_offset_m=0.08`과 최대 검사 후보 `maximum_candidates=12`를 둡니다. `select()`는 score 순으로 후보를 정렬하고 각 후보에 대해 팔을 순차 검사합니다. 후보 Y가 양수이면 왼팔, 음수이면 오른팔이 먼저입니다.
+`GraspSelectionConfig`는 기본 접근 거리 `pregrasp_offset_m=0.14`과 최대 검사 후보 `maximum_candidates=12`를 둡니다. `select()`는 score 순으로 후보를 정렬하고 각 후보에 대해 팔을 순차 검사합니다. 후보 Y가 양수이면 왼팔, 음수이면 오른팔이 먼저입니다.
 
 `pregrasp_position()`은 접근 벡터를 정규화하고 `목표 위치 − 접근 방향 × 거리`를 계산합니다. 저장소 루트에서 실제 함수를 호출해 보세요. ROS 연결은 필요 없습니다.
 
@@ -105,7 +105,7 @@ return Selection(index, arm, candidate, pregrasp, grasp)
 
 [SelectReachableGrasp.action](../../../ros2_ws/src/cleany_interfaces/action/SelectReachableGrasp.action)은 **plan-only**입니다. 선택과 계획 검사를 수행하고 팔 trajectory를 직접 실행하지 않습니다. 운영 action의 IK도 **position-only**이므로 TCP 방향까지 만족했다는 의미가 아닙니다.
 
-별도 [can_grasp_execution_demo.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/can_grasp_execution_demo.py)는 후보 선택 후 방향 보정을 거쳐 pre-grasp까지 이동합니다. 이 데모 범위에 gripper close·물체 attach·lift는 포함되지 않습니다. 따라서 후보 그림, action 성공, 팔 이동 각각의 관찰이 어떤 단계를 입증하는지 나눠 읽습니다.
+별도 [nearest-pregrasp coordinator](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/nearest_pregrasp_coordinator.py)가 선택 결과를 실행합니다. 기본은 pre-grasp까지이며 `execute_grasp_and_lift=true`는 재관측과 접촉 집기·후퇴·lift를 연결합니다. 연속 sorting과 BT Action은 [별도 실행 경로](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)입니다. 후보, 계획, controller 실행과 물체 상태 변화를 구분해 읽습니다.
 
 ## 08.6 파지 파이프라인 추적
 

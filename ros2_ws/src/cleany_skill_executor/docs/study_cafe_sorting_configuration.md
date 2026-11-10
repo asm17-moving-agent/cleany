@@ -1,97 +1,80 @@
 # 스터디카페 수거 설정
 
-[패키지 안내로 돌아가기](manipulation.md)
+[실행](study_cafe_sorting_usage.md) / [충돌·접촉·운반 계약](study_cafe_sorting_contract.md)
+
+아래 값은 고정 베이스 시뮬레이션용이다. Launch 인자는 다음 실행부터 적용되며 이미 실행 중인 GUI의 파라미터를 바꾸지 않는다.
 
 ## 작업자 관찰 모드와 파지 깊이
 
-시뮬레이터를 시작하는 수거 launch는 `sorting_verify_placement:=false`가
-기본이다. 물체를 놓고 팔이 복귀하면 `VerifyPlacement` 서비스 호출/대기 없이
-다음 물체 탐색으로 넘어간다. 시작 시 해당 서비스 준비도 기다리지 않는다.
-결과는 `complete_unverified`, `placement_verified: false`로 기록하며 자동
-안착 검증 성공으로 취급하지 않는다. 정상 종료 단계도 `mission_complete_unverified`
-이다. 실제 안착 여부는 작업자가 GUI로 확인한다.
-기존 자동 검증은 `sorting_verify_placement:=true`로 복원한다.
-이 변경은 운반 중 접촉 이탈 감시, 안전 정지, 충돌 검사, 다음 물체를 찾는
-카메라 인식 및 최종 작업 영역 비움 판정을 제거하지 않는다.
+| `sorting_verify_placement` | 동작 | 종료 결과 |
+|---|---|---|
+| `false` 기본 | 놓기와 복귀 후 다음 탐색; verifier 준비/호출을 기다리지 않음 | `complete_unverified`, `placement_verified=false`, `mission_complete_unverified` |
+| `true` | 독립 verifier로 안착 확인 | 확인을 통과해야 `mission_complete` |
 
-휴지(`crumpled tissue`, `tissue`, `crumpled paper`)는 시뮬레이션 수거에서만
-`tissue_grasp_extra_depth_m:=0.004`를 더해 총 접근 보정량 22mm를 사용한다.
-시뮬레이션 수거의 공통 `grasp_approach_offset_m`는 18mm로, 이전 16mm보다
-접근 방향으로 2mm 더 깊게 잡는다. Selector IK와 실행 목표는 launch의 공통 보정 설정을 공유한다.
-pregrasp 기준 위치와 물체별 추가량(마우스 +14mm, 레고/휴지 +4mm)은 유지한다.
-공통 깊이만 원복하려면 `grasp_approach_offset_m:=0.016`을 사용한다.
-휴지 변경만 원복하려면 `tissue_grasp_extra_depth_m:=0.0`으로 실행한다.
-새 기본값은 다음 launch부터 적용되며 이미 떠 있는 GUI의 파라미터를 소급 변경하지 않는다.
+두 모드 모두 접촉 이탈 감시, 정지, 충돌 검사와 빈 작업영역 재확인을 유지한다. 관찰 모드의 안착은 작업자가 GUI에서 확인한다.
+
+| 접근 보정 | MuJoCo sorting 값 | 적용 |
+|---|---:|---|
+| `grasp_approach_offset_m` | 0.018 m | 공통; 일반 경로는 0.016 m |
+| `mouse_grasp_extra_depth_m` | +0.014 m | `mouse`, `computer mouse`, `wireless mouse`; 합계 32 mm |
+| `lego_grasp_extra_depth_m` | +0.004 m | 설정 라벨 정확 일치; 합계 22 mm |
+| `tissue_grasp_extra_depth_m` | +0.004 m | `crumpled tissue`, `tissue`, `crumpled paper`; 합계 22 mm |
+
+`red building block`은 레고 추가량에 매칭되지 않는다. 실물/비sorting 추가량 기본은 0이다. 일반 ROS 설정의 `deeper_grasp_labels`와 `deeper_grasp_offsets_m`은 같은 길이이며 selector/executor가 동일한 값을 사용해야 한다. Pregrasp 위치는 유지한다. 공통 깊이는 `0.016`, 휴지 추가량은 `0.0`으로 비교할 수 있다. 실측 보정값이 아니므로 다른 물체 크기에 재사용하기 전에 검증한다.
 
 ## 선택형 시뮬레이션 최적화와 원복
 
-수거 launch에 `sim_performance_profile:=tabletop_fast`를 추가하면 먼 정적
-배경 충돌을 비활성화하고 그림자 맵만 2048로 낮춘다. 기본값 `baseline`으로
-재시작하면 기존 설정으로 돌아온다. 그림자 4096을 유지하는
-`tabletop_collision`도 제공한다. 파지 깊이·물체 물리·관절 속도·YOLOE-seg·
-MoveIt 충돌 검사와 완료 판정은 바꾸지 않는다.
-적용 범위, 실행 예제와 비교 측정은
-[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
+| 옵션 | 사용 목적 / 기본값 |
+|---|---|
+| `sim_performance_profile` | `baseline`; 배경 충돌/그림자 절감은 [MuJoCo 프로필](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화) |
+| `topdown_only` | 기본 false. true는 지지면 법선 아래 방향만 탐색하고 반대쪽 접근 필터를 끔; 사선 fallback 없음 |
+| `shutdown_on_sorting_exit` | false로 실행하면 완료/실패 뒤 GUI 유지 |
+| 초기 손목 roll | 양팔 +1.58 rad, keyframe과 actuator 목표에 적용; 실물 보정과 별개 |
+| `gripper_open_position_rad` | 1.2 rad; 열린 jaw 경로도 충돌 검사 |
+| `joint_limit_margin_rad` | sorting 0.005 rad, 일반 0; endpoint 선택 여유이며 feedback clipping 아님 |
 
-MuJoCo sorting의 마우스는 `mouse_grasp_extra_depth_m=0.014`를 기본 적용한다.
-`mouse`, `computer mouse`, `wireless mouse` 라벨에만 기본 접근 0.018m에
-14mm를 더해 옆면을 잡는다. Selector와 executor가 같은 보정을 사용하며
-pregrasp 위치, 다른 물체의 깊이, 충돌·접촉 유지 검사는 유지한다.
-레고는 `lego_grasp_extra_depth_m=0.004`로 4mm만 추가한다(총 접근 22mm).
-추가량은 설정된 라벨과 정확히 일치할 때만 적용된다. 예를 들어
-`red building block`은 현재 레고 추가량 매칭 대상이 아니므로 공통 18mm를 사용한다.
-실물/비sorting 기본 보정은 0이다. 일반 ROS 설정에서는 `deeper_grasp_labels`와
-같은 길이의 `deeper_grasp_offsets_m` 배열을 selector/executor 양쪽에 동일하게 설정한다.
-마우스 크기와 모양이 달라지면 재검증해야 하는 시뮬레이션 보정값이다.
+Top-down도 평면 추정과 IK 오차 허용이 있으므로 완벽한 수직 제어를 뜻하지 않는다. IK와 충돌 허용 기준은 동일하다.
 
-그리퍼 닫기 명령 성공 후 접촉 판정은 새 joint-state 촬영 시각으로 확인한다.
-기존 접촉 속도/잔차 기준을 연속 3개 이상, ROS 시간 기준 0.10초 이상 만족하면
-즉시 진행한다. 튀는 속도는 안정 구간을 초기화한다. 실제 시간 최대 5초
-(`gripper_contact_feedback_timeout_sec`) 동안 확인하며, 새 피드백이 없거나
-안정되지 않으면 실패한다. `gripper_contact_stable_duration_sec`로 안정 구간을
-조절한다. 확인 중 추가 닫기 명령을 보내지 않으며 controller 실패도 통과시키지 않는다.
+## 파지 후 Depth 최신성
 
-현재 스터디카페의 분실물 대상은 레고와 마우스다. Gemini/YOLOE 프로필은
-`computer mouse` 라벨을 사용하며 분류 정책은 `mouse`, `computer mouse`,
-`wireless mouse`를 분실물로 처리한다. 시뮬레이션 배치 검증도 같은 별칭을 지원한다.
+```mermaid
+sequenceDiagram
+  participant Arm as 조작 실행
+  participant Camera as sorting_cameras
+  participant Map as OctoMap
+  Arm->>Camera: 접근 / 닫기 / lift 동안 head_depth_boost=true
+  Arm->>Map: 물체 attachment
+  Camera->>Map: attachment 이후 촬영한 Depth
+  Map-->>Arm: 처리 완료 receipt + populated map
+  Note over Arm,Map: capture / map 신선도 2초 이내
+  Arm->>Camera: 구간 종료 또는 실패 시 boost=false
+```
 
-Top-down 비교 시험은 `make sim-mujoco-sorting SORTING_ARGS="topdown_only:=true"`로
-실행한다. support plane 법선 아래 방향의 후보만 만들며 기울어진 접근 후보 탐색을
-끄고, 수평 성분 잡음에 민감한 로봇 반대쪽 접근 필터도 이 모드에서만 끈다.
-기존 IK/충돌 허용 기준은 유지한다. 평면 추정과 IK에는 기존 오차 허용이 있으므로
-수학적으로 완벽한 수직 고정 제어는 아니다. 기본은 false이며 자동으로 사선 접근으로
-되돌아가지 않는다. GUI 유지가 필요하면 `shutdown_on_sorting_exit:=false`를 추가한다.
+| `attachment_scene_timeout_sec` 적용 경로 | wall time 상한 |
+|---|---:|
+| 일반 sensor-scene | 5초 |
+| simulator를 시작하지 않는 sorting 구성 | 10초 |
+| MuJoCo simulator를 시작하는 sorting | 30초 |
 
-Study-cafe 파이프라인의 초기 손목 roll은 양팔 모두 `+1.58 rad`이다.
-오른손 카메라 장착부가 왼손과 같은 방향으로 시작하도록 하며, MuJoCo 초기
-keyframe의 관절값과 actuator 유지 목표에 함께 적용된다. 카메라 TF/장착 형상이나
-실물 모터 캘리브레이션은 변경하지 않는다. 실행 중 파지 이후 손목 제한과는 별개다.
+이는 준비 응답의 최대 대기 시간이다. 신선도 2초를 늘리지 않으며 준비되면 즉시 진행한다. 외부 실물 수거 실행은 아직 지원하지 않는다. Boost 거부 시 이동하지 않으며 카메라 노드도 함께 빌드해야 한다.
 
-### 파지 후 Depth 최신성
+| 지도 설정 | 범위 / 절충 |
+|---|---|
+| `KnownGeometryOctomapUpdater` | MuJoCo sorting 기본. 등록한 물체 형상 내부에 완전히 포함된 셀만 제거; 부분 겹침과 주변 장애물 유지 |
+| `depth_octomap_plugin` | 명시 override; 실물과 비sorting은 기존 updater |
+| `scene_cloud_pixel_stride` | MuJoCo 4: 640×480 최대 19,200점. 일반 2: 76,800점. 인식 해상도는 유지하지만 작은 장애물 점 밀도 감소 |
 
-MuJoCo sorting은 `cleany_scene_mapping/KnownGeometryOctomapUpdater`를 기본으로
-사용한다. 가려진 파지 대상 내부의 이전 OctoMap 점유를 정리하여, 들기 시작점에서
-잡은 물체와 자기 잔상 사이의 충돌로 중단되는 것을 줄인다. 관측에서 등록한 형상
-내부에 완전히 포함된 셀만 정리하며, 주변 장애물과 부분 겹침 셀은 유지한다.
-실물 및 sorting 이외 실행은 기존 updater를 유지한다. `depth_octomap_plugin`으로
-명시 변경할 수 있다. 로봇/물체 형상 오차가 있는 환경의 안전성을 보증하지 않는다.
+지도 갱신은 원본 cloud 수신만으로 인정하지 않는다. 처리 receipt와 populated map 조건은 [계약](study_cafe_sorting_contract.md#접촉-재시도와-운반-감시)을 따른다. 어깨 기준점은 현재 CAD URDF shoulder origin이며 `test_learned_runtime_launch.py`가 grasp parameter와 일치하는지 검사한다.
 
-손목 카메라 사용 시 접근·그리퍼 닫기·들어올리기 구간에
-`/sorting_cameras`의 `head_depth_boost=true`를 설정한다. 손목 선택과 YOLOE-seg
-추적은 유지하며, 구간 종료(실패 포함)에 false로 복원한다. 물체 attachment 이후
-촬영된 Depth 및 최신 OctoMap 확인은 생략하지 않는다. 최신성 허용값 2초와
-실물 sorting의 attachment 대기 상한 10초는 유지한다. MuJoCo sorting은
-GUI·추적 부하로 시뮬레이션 진행이 느려지는 경우를 위해 실제 시간 기준 상한을
-30초로 둔다. `attachment_scene_timeout_sec` 실행 인수로 조절한다.
-최신 데이터가 도착하면 즉시 진행하므로 고정 30초 대기가 아니다.
-MuJoCo 장애물 점군은 `scene_cloud_pixel_stride=4`로 샘플링하여 기존 stride 2
-대비 최대 점 수를 1/4로 줄인다(640×480 기준 76,800 → 19,200).
-인식·YOLOE-seg 입력 해상도는 유지한다. 작은 장애물의 점 밀도가 줄어드는 절충이
-있으며, 비교 시 `scene_cloud_pixel_stride:=2`로 복원할 수 있다. 실물 기본은 2다.
-카메라 노드도 함께 빌드해야 하며 boost 설정 거부 시 이동을 시작하지 않는다.
+## 닫기 직후 접촉 확인
 
-스터디카페 grasp 후보 생성의 어깨 기준점은 migrated CAD URDF의 좌우
-shoulder origin을 사용한다. 기존 모델의 기준점을 혼용하지 않는다.
+| 조건 | 기본값 |
+|---|---|
+| 새 joint-state의 안정 샘플 | 연속 3개 이상 |
+| ROS 시간 안정 구간 | `gripper_contact_stable_duration_sec`: 0.10초 이상 |
+| 실제 시간 대기 | `gripper_contact_feedback_timeout_sec`: 최대 5초 |
+
+속도가 튀면 안정 구간을 초기화한다. 이 확인 중 추가 닫기 명령을 보내지 않으며 controller 실패나 새 feedback 누락은 실패다. CHECK 전후의 0.3초 확인과 닫기 재시도는 [별도 계약](study_cafe_sorting_contract.md#자동-sorting의-손목-미검출-보완)이다.
 
 ## Sorting 속도와 실행 설정
 
@@ -118,75 +101,88 @@ pregrasp와 그리퍼 열기는 기존 6관절 동시 계획을 유지하며, �
 충돌/FK/관절 위치·속도 한계, 추적·접촉 감시, timeout 취소는 유지한다.
 시뮬레이션 속도는 실제 경과 시간과 다를 수 있으며, 이 설정은 실물 성능 검증값이 아니다.
 
-sorting launch의 `use_observed_collision_geometry=true`는 grasp 서버가 발행한
-`/grasp/collision_geometry`를 target collision/attachment에 사용한다. 일반
-기본 false는 기존 OBB 경로다. 64개 bounded cache에서 snapshot/object ID,
-capture header와 OBB pose가 정확히 일치하는 mesh만 사용한다. finite/closed/
-outward/convex 검사와 vertex/triangle 상한을 통과해야 하며, 활성화 상태에서
-mesh가 없으면 timeout 후 실패하고 OBB로 조용히 대체하지 않는다. support patch,
-전체 로봇 open/closure 검사는 유지한다. 운반/재관측/놓기 반경은 OBB 반대각선과
-관측 mesh의 최대 local vertex 거리 중 큰 값이다. trimmed OBB 바깥 관측점도
-포함하며 mesh 사용 모드에서 정확히 일치하는 geometry가 없으면 실패한다.
-관측 프리즘은 숨은 실제 형상의 보장이 아니며, geometry cache는 identity 검사다.
-시간 신선도 검사는 기존 sensor-scene/wrist 경로가 별도로 수행한다.
-sorting artifact에는 수신한 `collision_geometry` CDR도 함께 기록한다.
-헤드 재관측 후에는 기존 중심/방향 연속성 제한을 만족하는 후보만 동일 팔
-reachability selector에 전달한다. 새 후보의 점수 순위 변화로 방향이 크게
-다른 후보를 먼저 선택한 뒤 전체 작업을 중단하지 않도록 한다. 제한 자체는
-완화하지 않으며 호환 후보가 없으면 이동 전에 실패한다.
-Launch argument `sorting_head_reference_refresh_age_sec` 기본값은 0초(비활성)다.
-양수 값으로 설정하면 단독 진단에서도 헤드 재관측 경로를 검증할 수 있다.
-활성화 시 simulation clock 기준 새 관측+재계획도 같은 신선도 상한을
-만족해야 하며, 설정값은 30초를 초과할 수 없다.
+## 관측 형상과 재선택
 
-`planning_scene_timeout_sec`는 응답 대기 상한이다. 일반 selector/executor는
-각각 1/2초, CPU sorting launch는 5초다. 고정 대기를 추가하지 않으며 timeout
-발생 시 해당 작업은 실패한다. 충돌 조건이나 관측 신선도 상한과는 별개다.
-selector의 `state_validity_timeout_sec`도 CPU sorting launch에서 5초로 설정한다
-(일반 기본값 1초). 이는 `/check_state_validity` 응답 상한이며 충돌 검사를
-생략하거나 실패 결과를 허용하지 않는다.
-`fk_timeout_sec`도 sorting에서 5초다. `ik_response_margin_sec`와
-`planning_response_margin_sec`는 각각 IK/MoveGroup 계산 예산 뒤에 더하는
-응답 여유이며 일반 1초, sorting 5초다. aim IK에도 같은 IK 응답 여유를 쓴다.
-IK 계산 예산 0.15초, aim IK 1초, MoveGroup 계획 예산 4초 자체는 늘리지 않는다.
-Cartesian 실행 wall deadline은 `max(minimum_sec, trajectory_duration * factor +
-margin_sec)`이다. `cartesian_execution_wall_timeout_` 접두사의 `minimum_sec`는
-60초, `margin_sec`는 10초, `factor`는 일반 2/sorting CPU simulation 10이다.
-이는 고정 대기나 동작 감속이 아니며 완료 결과가 도착하면 즉시 진행한다.
-접촉/추적 감시와 timeout 시 취소·종료 확인은 유지한다.
+```mermaid
+flowchart LR
+    Mesh["grasp 서버 / 관측 collision geometry"] --> Cache["64개 bounded cache / 동일성 검사"]
+    Cache --> Valid["finite / closed / outward / convex / 크기 상한"]
+    Valid --> Scene["target collision + attachment"]
+    New["Head 재관측 후보"] --> Continuity["기존 중심 / 방향 연속성"]
+    Continuity --> Arm["같은 팔 reachability 검사"]
+```
 
-Sorting은 초기 양손 그리퍼 열기 단계를 실행하지 않는다. 선택된 팔만
-`*_pregrasp_open` 6관절 MoveIt group으로 pregrasp 이동과 열기를 함께 계획·실행한다.
-팔과 그리퍼를 별도 비동기 명령으로 겹치지 않고, 열린 jaw를 포함한 전체 경로를
-충돌 검사한다. Target contact 허용은 여전히 grasp 접근 단계에서만 적용한다.
-MoveIt이 기존 팔/그리퍼 controller에 궤적을 분배하며, 양쪽 action의 완료와
-선택한 6관절 feedback를 확인하기 전에는 손목 인계/접근으로 넘어가지 않는다.
-반대 팔 그리퍼는 움직이지 않는다. Grasp/retreat IK는 기존 5관절 계약을 유지한다.
-투입 완료 후에는 `*_return_close` 6관절 group으로 저장된 원래 팔 자세로 복귀하면서
-선택 그리퍼를 `sorting_return_gripper_position_rad=-0.30` rad로 함께 닫는다.
-의도한 release가 완료되고 attachment가 해제된 빈 팔에서만 허용하며,
-이 경로도 jaw를 포함해 충돌 검사하고 두 controller의 완료를 확인한다.
-`gripper_open_position_rad`는 동시 이동의 최종 열림 위치다.
-`gripper_motion_sec`는 별도 파지/놓기 명령에만 적용하며 동시 이동 시간은
-MoveIt의 속도·가속도 제한 및 경로가 결정한다. 시작 상태 표시는 `search`다.
+| 설정 / 검사 | 계약 |
+|---|---|
+| use_observed_collision_geometry | Sorting true, 일반 false는 기존 OBB |
+| 입력 | /grasp/collision_geometry의 snapshot/object ID, capture header, OBB pose 정확 일치 |
+| Mesh 유효성 | Finite / closed / outward / convex, vertex / triangle 상한 |
+| 활성 상태에서 geometry 없음 | Timeout 뒤 실패; OBB로 조용히 대체 안 함 |
+| 유지 검사 | Support patch, 전체 robot open/closure |
+| 운반 / 재관측 / 놓기 반경 | OBB 반대각선과 mesh 최대 local vertex 거리 중 큰 값 |
+| 한계 | Trimmed OBB 밖 관측점 포함, 숨은 실제 형상 보장 아님; cache는 identity 검사 |
+| 시간 | Sensor-scene / wrist freshness 별도 적용 |
+| 기록 | 수신 collision_geometry CDR도 artifact에 포함 |
+| 재선택 | 중심 / 방향 연속성 통과 후보만 같은 팔 selector에 전달; 호환 후보 없으면 이동 전 실패 |
+| Head 갱신 | sorting_head_reference_refresh_age_sec 기본 0, 양수로 진단 가능, 최대 30 s |
 
-head RGB-D로 물체/3D grasp를 선택하고 pregrasp에 도착하면 해당 손목 RGB로
-인계한다. 이때 head renderer는 10→2 Hz, 선택 손목은 10 Hz가 된다.
-기존 3D 추정과 경로를 보존하고 손목 RGB로 대상 일관성을 검사하며,
-이 분기에서 head 재검출/3D 재계산과 head 시야 복구 이동을 수행하지 않는다.
-RGB 인계가 실패하면 중단하며 이전 3D 위치를 새 측정값으로 포장하지 않는다.
-lift는 손목 mask·그리퍼 관절 feedback 기반 접촉 추정·kinematic clearance로 확인한다.
-접촉 추정은 닫힘 명령 대비 정지한 관절 상태를 사용하며 독립 힘 센서 측정이 아니다. 이것은 독립적인
-depth 상승량 검증이 아니다. 수거함은 `robot_top_bins.yaml`의 초기 base_link 기준 위치를
-사용하고 운반 전후 접촉과 충돌·개구부 검사는 유지한다. 복귀 시작 전 head 활성 빈도로 복원한다.
-시뮬레이션 손목 TF는 nominal CAD mount이며 실제 로봇에서는 측정한 양팔 hand-eye
-calibration이 필요하다. `sorting_wrist_cameras_config`로 simulation nominal YAML을
-지정하며 기본은 `cleany_mujoco_sim/config/sorting_wrist_cameras.yaml`이다.
-외부 로봇 실행은 아직 지원하지 않는다. 손목 영상 기반 연속 위치 보정(visual servo)은
-구현하지 않았으며 접근/운반 경로는 기존 head 3D 추정 및 관절 feedback에 의존한다.
-기존 head-only 비교 시험은 `sorting_use_wrist_camera:=false`로 실행한다.
+Head 갱신을 켜도 새 관측과 재계획은 기존 simulation-clock 신선도 상한을 만족해야 한다.
 
-이전 캔·박스·무작위 pregrasp 데모는 제거했다. 스터디카페가 재사용하던
-MoveIt 실행·joint feedback helper는 `grasp_execution.py`의 `GraspExecutionNode`,
-카메라 투영·시각화 helper는 `core/rgbd_projection.py`로 분리했다.
-현재 launch와 테스트는 이 공통 코드를 사용한다.
+## 서비스와 실행 대기 상한
+
+응답 timeout은 고정 대기나 충돌 허용치가 아니다. 준비되면 즉시 진행하고 만료되면 해당 작업을 실패시킨다.
+
+| 설정 | 일반 | CPU sorting |
+|---|---:|---:|
+| `planning_scene_timeout_sec` | selector 1초 / executor 2초 | 5초 |
+| `state_validity_timeout_sec` | 1초 | 5초 |
+| `fk_timeout_sec` | [selector config](../config/grasp_selection.yaml) | 5초 |
+| `ik_response_margin_sec`, `planning_response_margin_sec` | 1초 | 5초 |
+| IK / aim IK / MoveGroup 계산 예산 | 0.15 / 1 / 4초 | 동일 |
+
+응답 여유는 계산 예산 뒤에 더하며 aim IK에도 적용한다. 충돌 검사나 실패 결과를 생략하지 않는다.
+
+Cartesian wall deadline은 `max(minimum_sec, trajectory_duration × factor + margin_sec)`다.
+
+| `cartesian_execution_wall_timeout_` 접미사 | 값 |
+|---|---:|
+| `minimum_sec` | 60초 |
+| `margin_sec` | 10초 |
+| `factor` | 일반 2 / CPU sorting 10 |
+
+동작 감속값이 아니며 접촉·추적 감시와 timeout 시 취소·종료 확인은 유지한다.
+
+## 동시 관절 이동과 카메라 인계
+
+```mermaid
+flowchart TD
+    Search["search / head RGB-D 선택"] --> Pre["선택 팔 6관절 pregrasp + gripper 열기"]
+    Pre --> Done["팔 / gripper 두 Action 완료 + 6관절 feedback"]
+    Done --> Handoff["손목 RGB HANDOFF / head 2 Hz, 선택 손목 10 Hz"]
+    Handoff --> Lift["접근 / 파지 / lift / CHECK"]
+    Lift --> Carry["고정 수거함 운반 / 접촉과 충돌 감시"]
+    Carry --> Release["놓기 / attachment 해제"]
+    Release --> Return["head 복원 / 6관절 복귀 + gripper 닫기"]
+```
+
+| 동시 이동 | 계약 |
+|---|---|
+| 시작 | 양손 초기 열기 없음; 선택 팔만 *_pregrasp_open 사용 |
+| 검사 | 열린 jaw 포함 전체 경로; target 접촉 허용은 grasp 접근부터 |
+| Controller | MoveIt이 팔 / gripper 궤적 분배; 두 완료와 선택 6관절 feedback 전에는 HANDOFF 금지 |
+| 반대 팔 / IK | 반대 gripper 미이동; grasp / retreat IK는 기존 5관절 |
+| 복귀 | *_return_close, 저장된 원래 팔 자세 + sorting_return_gripper_position_rad=-0.30 |
+| 복귀 조건 | 의도한 release와 attachment 해제 뒤 빈 팔만, jaw 충돌과 두 controller 완료 확인 |
+| 시간 | gripper_open_position_rad는 최종 열림; gripper_motion_sec는 별도 파지 / 놓기만, 동시 이동 시간은 MoveIt 경로가 결정 |
+
+| 손목 인계 / 운반 | 경계 |
+|---|---|
+| HANDOFF | 기존 head 3D와 경로 보존, RGB로 일관성 검사; 실패 시 중단 |
+| 이 분기의 제외 동작 | Head 재검출 / 3D 재계산 / head 시야 복구 이동 |
+| Lift 근거 | 손목 mask, 닫힘 명령 대비 관절 접촉 추정, kinematic clearance |
+| 측정 한계 | 독립 힘 센서 / depth 상승량 아님; 옛 3D를 새 측정값으로 표시 안 함 |
+| 수거함 | robot_top_bins.yaml 초기 base_link 위치, 전후 접촉 / 충돌 검사; [입구 검사는 경로별 구분](study_cafe_sorting_contract.md) |
+| 카메라 TF | Nominal CAD; 실물은 측정한 양팔 hand-eye 필요 |
+| 설정 파일 | sorting_wrist_cameras_config, 기본 cleany_mujoco_sim/config/sorting_wrist_cameras.yaml |
+| 실행 범위 | 외부 로봇 수거 / visual servo 미지원; 경로는 head 3D와 joint feedback에 의존 |
+| Head-only 비교 | sorting_use_wrist_camera:=false |

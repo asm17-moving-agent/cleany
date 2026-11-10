@@ -25,5 +25,5 @@ logger는 상태 전이와 작업 성공을 판정하지 않으며 Mission Runti
 `MissionJournal`을 열거나 갱신하지 않는다. 실패 코드는 생산자가 보낸 의미를 보존한다.
 
 ROS 계약은 [인터페이스](interfaces.md), 저장 계약은 [데이터](data.md),
-실행 절차는 [RUNNING](../../../../docs/RUNNING.md#독립-logger),
+실행 절차는 [RUNNING](../../../../docs/how-to/monitoring.md#독립-logger),
 검증 절차는 [TESTING](../../../../docs/TESTING.md)을 따른다.

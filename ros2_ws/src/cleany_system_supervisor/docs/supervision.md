@@ -67,13 +67,14 @@ Grace 값과 hysteresis는 미측정 초기값이다.
 
 Pose 공분산의 대각 성분은 상한을 유지하며, AMCL 부동소수점 연산의 음수 잔차는 `-1e-9`까지 0으로 취급한다. 그보다 작은 음수, non-finite 값과 상한 초과는 여전히 거부한다.
 
-휴대폰 LiDAR 시연은 NAVIGATION에 `localization_alignment`도 요구한다.
-`localization_guard`의 unknown/unavailable은 공분산이 작아도 허가하지 않는다.
-검증된 위치에서 제한된 시간 동안 AMCL의 재정합을 기다리는 degraded는 AVAILABLE
-health와 별도 속도 제한을 함께 발행해 기존 허가를 유지한다. 이 프로필만 정지 후
-위치 복구를 자동 요청하며, 정지 증거는
-base_driver의 fresh `base_disarmed`와 미확인 lease의 StopMission 완료를 사용한다.
-이는 물리 E-stop이나 팔을 포함한 전신 정지를 검증했다는 뜻이 아니다.
+| Phone LiDAR 위치 조건 | 허가 / 복구 |
+|---|---|
+| NAVIGATION | localization_alignment 추가 요구 |
+| Unknown / unavailable | 작은 공분산이어도 불허 |
+| Degraded | 검증 위치의 제한된 재정합 대기; AVAILABLE health + 속도 제한으로 기존 허가 유지 |
+| 자동 위치 복구 | 이 프로필에서 정지 뒤 요청 |
+| 정지 근거 | Base driver fresh base_disarmed + 미확인 lease의 StopMission 완료 |
+| 한계 | 물리 E-stop이나 팔 포함 전신 정지 증거 아님 |
 
 KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함한다. 현재 구현은 이 판단을 Runtime의 `safe_to_drive`에 두고 Capability에서는 팔 가용성만 다룬다. 이 배치는 KB 검토가 필요하다.
 
@@ -115,15 +116,22 @@ Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_i
 | 파일 손상, format 불일치 | SUPERVISOR_STATE_UNVERIFIED |
 | 빈 `state_file` | 영속화 해제. 테스트 전용 |
 
-휴대폰 LiDAR 시연은 `startup_base_reconnect.enabled=true`, `stable_s=1.0`을 사용한다.
-기본 Supervisor 프로필에서는 꺼져 있다. 이 정책은 복원된 base Fault에 기록된
-`cause=base_feedback_lost`만 대상으로 한다. 현재 base와 모든 `safety_sources`,
-`base_disarmed`가 기동 이후 fresh, stable 상태를 유지해야 한다. 다른 운영 잠금,
-정지 미확인 lease와 진행 또는 격리 중인 복구가 있으면 해제하지 않는다.
-`base_disarmed`는 base driver의 검증된 휠 피드백으로 판단하며 독립적인 전신 안전이나
-STOP ACK를 의미하지 않는다. 원인이 없는 이전 형식의 Fault, 모터/프로토콜 고장과
-현재 프로세스에서 생긴 Fault는 일반 operator reset을 유지한다. 복구는 기존 목표를
-재개하거나 새 구동 허가를 발행하지 않는다.
+```mermaid
+flowchart TD
+    Boot["재기동 / 복원된 base Fault"] --> Cause{"cause=base_feedback_lost?"}
+    Cause -->|아니오| Operator["기존 operator reset"]
+    Cause -->|예| Fresh["base / 모든 safety_sources / base_disarmed fresh + stable"]
+    Fresh --> Gate{"다른 잠금 / 정지 미확인 lease / 복구 작업 없음?"}
+    Gate -->|예| Clear["통신 Fault 해제 / 자동 목표 재개 없음"]
+    Gate -->|아니오| Hold["잠금 유지"]
+```
+
+| 재기동 통신 복구 | 설정 / 제한 |
+|---|---|
+| 활성 | Phone LiDAR startup_base_reconnect.enabled=true, stable_s=1.0; 일반 기본 OFF |
+| 자동 해제 제외 | 원인 없는 이전 Fault, motor / protocol 고장, 현재 프로세스에서 생긴 Fault |
+| base_disarmed | 검증된 휠 feedback; 독립 전신 안전 / STOP ACK 아님 |
+| 해제 뒤 | 새 구동 허가 발급이나 기존 목표 재개 없음 |
 
 ## 정리와 이벤트
 
@@ -152,7 +160,14 @@ STOP ACK를 의미하지 않는다. 원인이 없는 이전 형식의 Fault, 모
 
 ## 발신자 신뢰
 
-Humble rclpy는 메시지별 발신자를 알려 주지 않는다. Supervisor는 graph를 조회해 `trusted_publishers` topic에 allowlist 밖 node가 publish하면 잠근다. 잘못된 실행과 이름 충돌은 잡지만 같은 node 이름의 위조는 막지 못한다. `ComponentHealth.source`가 node와 묶이지 않으므로 allowlist 안 node의 source 사칭도 막지 못한다. 실제 접근 통제는 SROS2 enforce 모드에서 `safety/status`, `system/component_health` publish와 `system/request_fault_reset`, `mission/stop` 호출을 각 enclave에만 허용하는 방식으로 해야 하며, 이 저장소에서는 검증하지 않았다.
+| 발신자 검사 | 보장 / 한계 |
+|---|---|
+| Graph allowlist | trusted_publishers topic에 허용 밖 node가 publish하면 잠금 |
+| 검출 가능 | 잘못된 실행, 이름 충돌 |
+| 검출 불가 | 같은 node명 위조, 허용 node의 ComponentHealth.source 사칭 |
+| 이유 | Humble rclpy에 메시지별 발신자 없음; source와 node가 결합되지 않음 |
+| 실제 접근 통제 | SROS2 enforce enclave별 safety/status·system/component_health 발행, system/request_fault_reset·mission/stop 호출 허용 |
+| 검증 상태 | 이 저장소에서 SROS2 통제 미검증 |
 
 ## 복구 정책
 
@@ -170,7 +185,13 @@ lifecycle 복구 owner와 동시에 실행하지 않는다. 정지 상태에서 
 `localization` 감시도 계속 주행을 차단하지만 별도 복구 작업을 만들지 않는다.
 따라서 공분산과 정합 이상이 동시에 발생해도 중복 예산으로 재시도하지 않는다.
 
-일반 프로필의 lifecycle 자동 복구는 실제 Nav2 stack에서 reset이 검증되지 않아 꺼져 있다. 기본 max_attempts 2, attempt 15초, total 40초, verify 5초, cancel 2초다. 복구는 겹쳐 실행하지 않고, 같은 Fault episode의 중복 요청은 같은 job을 반환한다. 시작에는 safety adapter의 whole-robot `stopped`와 미확인 Mission 정지가 없을 것이 필요하다. Owner 성공 뒤에도 fresh health와 안정화 시간이 지나야 성공이다.
+| 일반 lifecycle 복구 | 기준 |
+|---|---|
+| 기본 | OFF; 실제 Nav2 reset 미검증 |
+| 예산 | max_attempts 2, attempt 15 s, total 40 s, verify 5 s, cancel 2 s |
+| 동시성 | 겹쳐 실행 안 함; 같은 Fault episode 중복은 같은 job 반환 |
+| 시작 | Safety adapter whole-robot stopped + 미확인 Mission 정지 없음 |
+| 성공 | Owner 응답 뒤 fresh health와 안정화까지 확인 |
 
 ## 검증 범위
 

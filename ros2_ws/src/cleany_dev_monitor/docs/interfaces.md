@@ -61,10 +61,13 @@ HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경�
 
 ## Logger 연결
 
-`logger_namespace=/cleany_logger` 아래 `start`, `stop`, `configure`, `get_config`에
-`cleany_interfaces/srv/RecordingControl` client를 생성한다. `status`는
-`cleany_interfaces/msg/RecordingStatus`, Reliable, Transient Local, depth 1로
-구독한다. `logger_timeout_s=3.0`은 상태 유효시간과 서비스 응답 제한의 기본값이다.
+| 독립 Logger 연결 | 기본 |
+|---|---|
+| Namespace | logger_namespace=/cleany_logger |
+| RecordingControl clients | start / stop / configure / get_config |
+| RecordingStatus 구독 | status, Reliable / Transient Local depth 1 |
+| 상태 / service timeout | logger_timeout_s=3.0 |
+
 서비스 의미와 단위는 [Logger 인터페이스](../../cleany_logger/docs/interfaces.md)를 따른다.
 
 Monitor와 logger의 `state_directory`는 같은 호스트의 같은 디렉터리여야 한다.

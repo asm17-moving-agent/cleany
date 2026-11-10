@@ -1,13 +1,15 @@
 # Cleany 개발환경 설치 가이드
 
 
-| 처음 준비할 것 | 바로가기 |
-|---|---|
-| 운영체제와 ROS 버전 | [기준 환경](#기준-환경) |
-| 의존성·빌드 | [rosdep 준비](#5-rosdep과-workspace-의존성-준비), [빌드 경로](#6-빌드와-출력-경로) |
-| 설치 후 첫 실행 | [실행 선택](RUNNING.md) |
+| 준비 범위 | 읽을 곳 | 완료 기준 |
+|---|---|---|
+| 모든 개발자 | 아래 1–6단계 | Humble 환경, 의존성 설치, 같은 checkout의 overlay |
+| Gazebo만 사용 | 5단계의 `deps-gazebo` | Fortress와 ROS bridge |
+| MCU / 실물 매핑 | [ESP32](#esp32), [실물 매핑 의존성](#실물-매핑-의존성) | firmware/Agent/driver를 각각 확인 |
+| Monitor 웹 개발 | [웹 도구](#monitor-웹) | frontend build; ROS 실행에는 Node 불필요 |
+| Fedora / Jetson 화면 | [선택 환경](#7-선택-환경), [얼굴 화면](#jetson-얼굴-디스플레이-환경) | 해당 호스트 조건 |
 
-새 Ubuntu native ROS 개발환경을 아래 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
+새 Ubuntu native 환경은 1–6단계 순서로 구성한다. VM 이미지는 별도로 배포하지 않는다.
 
 ## 기준 환경
 
@@ -22,10 +24,7 @@
 
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
 
-[CI workflow](../.github/workflows/ci.yml)는 [전용 이미지](../containers/ci/Dockerfile)에 설치한 Humble package 의존성으로 자동 검사를 실행합니다. 이미지 갱신과 컴파일 캐시는 [테스트 가이드](TESTING.md#ci-실행과-재사용)를 따릅니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
-
-CI 의존성은 Jetson에서 확인한 ROS upstream 버전과 MuJoCo, google-genai의 Python 의존성을 기준으로 고정합니다.
-CI 이미지의 apt 저장소는 고정 snapshot을 사용합니다. 아래 native 설치 명령은 현재 apt 저장소를 사용하므로 CI와 동일한 세부 버전을 보장하지 않습니다.
+기존 환경에서는 먼저 아래 버전을 확인한다. Native 설치는 현재 APT 저장소를 사용하고, [CI](../.github/workflows/ci.yml)는 snapshot/constraints를 고정하므로 세부 버전이 같다고 가정하지 않는다. [CI 재현 기준](reference/testing.md#ci-실행과-재사용)을 따른다.
 
 ```bash
 lsb_release -ds
@@ -64,7 +63,6 @@ sudo dpkg -i /tmp/ros2-apt-source.deb
 
 ```bash
 sudo apt update
-sudo apt upgrade -y
 sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
 ```
 
@@ -139,30 +137,6 @@ make deps
 | 단일 물체 MuJoCo Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
 | Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
 
-`cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
-`behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.
-개별 설치와 빌드는 다음 명령을 사용합니다.
-
-```bash
-sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev python3-zmq
-make build-manipulation-bt
-```
-
-Gemini 인식으로 MuJoCo Action을 실행할 터미널에는 `GEMINI_API_KEY`를 설정합니다.
-로컬 파일을 사용한다면 권한 `600`의 `~/.config/cleany/gemini.env`에 `export` 문을
-보관하고 실행 전에 source합니다. 모델 준비는 [인식 reference](../ros2_ws/src/cleany_perception/docs/runtime.md#모델-준비)를 따릅니다.
-
-아래 명령으로 runtime package 설치를 확인합니다.
-
-```bash
-ros2 pkg prefix moveit_ros_move_group
-ros2 pkg prefix moveit_kinematics
-ros2 pkg prefix moveit_planners_ompl
-ros2 pkg prefix controller_manager
-ros2 pkg prefix joint_trajectory_controller
-ros2 pkg prefix mujoco_ros2_control
-```
-
 Gazebo만 준비할 때는 다음 target을 사용합니다.
 
 ```bash
@@ -204,9 +178,43 @@ Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용�
 
 다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
 
+| 설치 확인 | 정상 확인 기준 |
+|---|---|
+| `test "$ROS_DISTRO" = humble` | 종료 코드 0 |
+| `command -v ros2 colcon rosdep` | 현재 Ubuntu 환경의 실행 경로 |
+| `make -s print-install-base` | 이 checkout의 빌드 경로; 해당 `setup.bash` source |
+| `make test` | 실패 상세와 skip을 구분; [검사 결과 해석](reference/testing.md#실행-결과-읽기) |
+
 준비 후 [실행](RUNNING.md), [테스트](TESTING.md), [캘리브레이션](CALIBRATION.md) 가이드로 이동합니다. Gazebo 지원 조합은 Humble/Fortress입니다.
 
 ## 7. 선택 환경
+
+### 조작과 인식
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
+`behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.
+개별 설치와 빌드는 다음 명령을 사용합니다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev python3-zmq
+make build-manipulation-bt
+```
+
+Gemini 인식으로 MuJoCo Action을 실행할 터미널에는 `GEMINI_API_KEY`를 설정합니다.
+로컬 파일을 사용한다면 권한 `600`의 `~/.config/cleany/gemini.env`에 `export` 문을
+보관하고 실행 전에 source합니다. 모델 준비는 [인식 reference](../ros2_ws/src/cleany_perception/docs/runtime.md#모델-준비)를 따릅니다.
+
+아래 명령으로 runtime package 설치를 확인합니다.
+
+```bash
+ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_kinematics
+ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix controller_manager
+ros2 pkg prefix joint_trajectory_controller
+ros2 pkg prefix mujoco_ros2_control
+```
+
 
 ### Fedora
 
@@ -246,15 +254,21 @@ pnpm build
 `make build-hardware-mapping`은 lockfile로 shadcn UI를 빌드한 뒤 관련 ROS 패키지를 빌드한다.
 UI 빌드에는 Node.js 22.12 이상과 npm이 필요하며 실행 시 Node 서버나 외부 CDN은 필요 없다.
 
-Cartographer, `cartographer_ros_msgs`, SLAMTEC `sllidar_ros2`, `micro_ros_agent` 실행 파일이 필요하다.
-일반 ROS 의존성은 rosdep으로 설치한다. 배포판의 공식 rosdep 규칙으로 준비되지 않는 외부
-패키지는 별도 고정 revision workspace에서 빌드하고 해당 설치 prefix를 환경에 제공한다.
-기존 Agent 준비는 `make micro-ros-agent-build`와 [ESP32 가이드](../esp32/README.md)를 따른다.
-LiDAR 드라이버 upstream은 [Slamtec/sllidar_ros2](https://github.com/Slamtec/sllidar_ros2)다.
-기존 실물 시험에서 사용한 revision은 [hardware.repos](../configs/dependencies/hardware.repos)에 고정했다.
-별도 workspace의 src에 `vcs import src < /path/to/cleany/configs/dependencies/hardware.repos`로 가져와
-빌드하고 `ros2 pkg prefix sllidar_ros2`로 설치를 확인한다.
-새 운영 노드는 실행 중 Git clone이나 colcon build를 수행하지 않는다.
+| 하드웨어 매핑 의존성 | 준비 / 확인 |
+|---|---|
+| Cartographer / cartographer_ros_msgs / sllidar_ros2 / micro_ros_agent | 공식 ROS 의존성은 rosdep 우선 |
+| 공식 rosdep으로 준비되지 않는 외부 패키지 | 별도 고정 revision workspace에서 build, 설치 prefix 적용 |
+| micro-ROS Agent | make micro-ros-agent-build, [ESP32 안내](../esp32/README.md) |
+| LiDAR 원본 / revision | [Slamtec/sllidar_ros2](https://github.com/Slamtec/sllidar_ros2), [hardware.repos](../configs/dependencies/hardware.repos) |
+
+```bash
+# 별도 dependency workspace에서 실행
+vcs import src < /path/to/cleany/configs/dependencies/hardware.repos
+# 해당 workspace를 빌드하고 설치 overlay 적용 후
+ros2 pkg prefix sllidar_ros2
+```
+
+운영 노드는 실행 중 Git clone이나 colcon build를 수행하지 않는다.
 
 센서 by-id, baud, 장착 TF와 scan mode는 `cleany_bringup/config/mapping_*.yaml`에서 관리한다.
 장치가 없는 단위/모의 검사는 실물 드라이버 설치 없이 실행할 수 있지만 실물 launch에는 두 외부
@@ -267,4 +281,11 @@ Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make 
 
 ## Jetson 얼굴 디스플레이 환경
 
-독립 디스플레이에는 ROS 2 Humble, colcon, `cleany_interfaces`의 rosdep 의존성, Python venv, Chromium, GNOME 그래픽 세션과 `gnome-session-inhibit`, curl, Noto CJK 글꼴이 필요하다. 부팅 후 전체 화면 표시에는 그래픽 자동 로그인이 필요하며 설치기는 로그인 설정을 바꾸지 않는다. `install-browser.sh`는 전용 폴더에 Playwright 1.64.1과 ARM64 브라우저를 설치하며 시스템 Python 패키지를 변경하지 않는다. 설치와 실행은 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다.
+| 독립 디스플레이 환경 | 조건 |
+|---|---|
+| ROS | Humble, colcon, cleany_interfaces rosdep 의존성 |
+| Desktop | Python venv, Chromium, GNOME 세션 / gnome-session-inhibit, curl, Noto CJK |
+| 부팅 표시 | 그래픽 자동 로그인 필요; 설치기는 로그인 설정 미변경 |
+| Browser 설치 | install-browser.sh가 전용 폴더에 Playwright 1.64.1 / ARM64 browser 설치; 시스템 Python 미변경 |
+
+[디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다.

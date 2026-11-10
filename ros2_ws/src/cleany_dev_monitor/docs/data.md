@@ -69,17 +69,52 @@ Logger 상태가 기본 3초 동안 갱신되지 않으면 `UNAVAILABLE`로 표�
 
 ## 기록 설정과 화면
 
-저사양, 기본, 정밀 프로필은 주기만 바꾸며 항목 선택, 토픽 이름, 녹화 정지 상태를 유지한다. 센서 원본 5종은 기본 OFF다. 항목별 Hz는 시간 표본화이며 점과 픽셀 수를 줄이지 않는다. 안전 판단 변경 이벤트는 해당 토픽을 끈 경우를 제외하고 Hz와 무관하게 보존한다. 정확한 항목과 주기는 `cleany_logger.recording`의 `SEMANTIC_RATES`, `cleany_logger.sources`의 출처 정의를 따른다.
+| 설정 | 변경 범위 / 유지 조건 |
+|---|---|
+| 저사양 / 기본 / 정밀 프로필 | 수집 주기만 변경; 항목 선택, 토픽 이름, 녹화 정지 상태 유지 |
+| 센서 원본 5종 | 기본 OFF |
+| 항목별 Hz | 시간 표본화; 점과 픽셀 수는 유지 |
+| 안전 판단 변경 이벤트 | 해당 토픽이 켜져 있으면 Hz와 무관하게 보존 |
+| 녹화 토픽 | Logger의 관측 출처만 변경; 대시보드는 Monitor parameter 사용 |
+| 설정 변경 | 정지 상태에서만 허용 |
+| 녹화 중 시작 요청 | 기존 세션 반환 |
 
-녹화 토픽 변경은 logger의 관측 출처만 바꾼다. 대시보드 실시간 관측은 Monitor parameter를 따른다. 설정 변경은 정지 상태에서만 허용하며 녹화 중 시작 요청은 기존 세션을 반환한다. logger 출처 세대가 바뀌면 가공 최신 상태와 주행, 조작 이력을 초기화하고 설정을 기록한다. 시간 막대는 SQLite 세션의 실제 기록 구간을 연결하고, 일시정지와 기록 없는 시각을 구분한다. 재생에는 라이브 표본을 섞지 않는다.
+정확한 항목과 주기는 `cleany_logger.recording.SEMANTIC_RATES`와 `cleany_logger.sources`의 출처 정의를 따른다.
 
-실시간 호스트 리소스는 Monitor, 기록된 호스트 리소스는 logger의 `psutil` 관측이며 다른 DDS 호스트의 지표를 추정하지 않는다. 별도 worker가 기본 1초마다 수집하고 CPU/RSS 상위 프로세스는 각각 20개, 요약 이력은 300개가 기본값이다. 권한과 장치 오류, 첫 표본은 미측정으로 표시한다. 프로세스 CPU는 논리 코어 하나가 100%이며 RSS 합계는 호스트 메모리 사용량이 아니다.
+```mermaid
+flowchart TD
+    Change[Logger 출처 세대 변경] --> Clear[가공 최신 상태 / 주행·조작 이력 초기화]
+    Clear --> Record[새 설정 기록]
+    Session[(SQLite 세션)] --> Span[실제 기록 구간 연결]
+    Span --> Timeline[시간 막대]
+    Timeline --> Play[과거 기록 재생]
+    Pause[일시정지 / 기록 없는 시각] --> Gap[구분해서 표시]
+    Gap --> Timeline
+```
+
+재생에는 라이브 표본을 섞지 않는다.
+
+| 호스트 리소스 | 출처 / 해석 |
+|---|---|
+| 실시간 / 과거 기록 | Monitor / Logger의 `psutil` 관측; 다른 DDS 호스트 지표를 추정하지 않음 |
+| 수집 | 별도 worker, 기본 1초 주기 |
+| 기본 한도 | CPU / RSS 상위 프로세스 각각 20개, 요약 이력 300개 |
+| 권한 / 장치 오류, 첫 표본 | 미측정 표시 |
+| 프로세스 CPU | 논리 코어 하나가 100% |
+| RSS 합계 | 호스트 전체 메모리 사용량과 다름 |
 
 ## Cartographer와 RViz
 
-기존 Cartographer 수집과 SQLite 재생은 호환을 위해 유지한다. `/submap_list`, `/trajectory_node_list`, `/constraint_list`, `/scan_matched_points2`를 읽고 allowlist된 SubmapQuery만 호출한다. 기본 한도는 서브맵 64개, 텍스처 262144 pixel, 이미지 캐시 16 MiB다. Epoch와 버전을 구분하고 불일치하거나 오래된 텍스처를 새 관측으로 표시하지 않는다.
+Cartographer 수집과 SQLite 재생은 기존 기록과의 호환을 위해 유지한다.
 
-전용 웹 SLAM renderer는 제거됐다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용한다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/RUNNING.md#개발-monitor)를 따른다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않는다.
+| 관측 | 입력 / 한도 |
+|---|---|
+| ROS 토픽 | `/submap_list`, `/trajectory_node_list`, `/constraint_list`, `/scan_matched_points2` |
+| Query | Allowlist된 SubmapQuery만 호출 |
+| 기본 한도 | 서브맵 64개, 텍스처 262144 pixel, 이미지 캐시 16 MiB |
+| 최신성 | Epoch와 버전 구분; 불일치하거나 오래된 텍스처를 새 관측으로 표시하지 않음 |
+
+전용 웹 SLAM renderer는 제거됐다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용한다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/how-to/monitoring.md#개발-monitor)를 따른다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않는다.
 
 관련 안내: [실행](../../../../docs/RUNNING.md), [환경](../../../../docs/DEVELOPMENT_SETUP.md).
 
@@ -100,4 +135,12 @@ ExecuteOne을 선택하면 Action 준비, 접근, 집기, 운반, 놓기와 팔 
 | 조작 완료 | 서버 최종 record의 결과; Mission의 검증과 정지 확인은 별도 |
 | 진행 상태 미확인 | 수신 정체나 이전 실행을 현재 진행으로 추정하지 않음 |
 
-`execution_events`는 revision과 서버 wall timestamp로 단계 구간을 만든다. 중간부터 구독한 기록, 누락과 시각 역행을 구분하며 역행한 기록의 경과 시간은 표시하지 않는다. Timeout과 취소는 서버 steady clock을 사용한다. 기본 최근 실행 20개, 실행당 구간 64개를 보존하며 topic QoS depth는 100이다. SQLite 가공 기록과 시간 막대 재생에서도 같은 의미를 사용한다. 재생은 로봇 명령을 보내지 않는다.
+| 실행 시간 막대 | 판정 / 한도 |
+|---|---|
+| 단계 구간 | `execution_events` revision과 서버 wall timestamp로 구성 |
+| 부분 기록 | 중간 구독, 누락, 시각 역행을 구분 |
+| 시각 역행 | 해당 기록의 경과 시간은 표시하지 않음 |
+| Timeout / 취소 | 서버 steady clock 기준 |
+| 기본 보존 | 최근 실행 20개, 실행당 구간 64개 |
+| Topic QoS depth | 100 |
+| 과거 재생 | SQLite 가공 기록도 같은 의미 사용; 로봇 명령을 보내지 않음 |

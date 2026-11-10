@@ -2,14 +2,12 @@
 
 LiDAR, 휠 피드백과 TF를 확인한 뒤 매핑 세션을 시작합니다. 저장된 지도와 원점을 확인하고 주행 구성에 연결합니다.
 
-```mermaid
-flowchart LR
-  Sensors["LiDAR + 휠 피드백"] --> Ready["scan · odom · TF 준비"]
-  Ready --> Session["매핑 세션 / Cartographer"]
-  Session --> View["지도 · 스캔 · 궤적 관측"]
-  Session --> Stop["입력 차단 · STOP 확인"]
-  Stop --> Save["지도 저장 · Logger flush · 종료"]
-```
+| 작업 | 입력 | 실행 / 결과 |
+|---|---|---|
+| 새 지도 만들기 | 현재 scan, wheel odom, TF | [실물 매핑](#실물-휠-odometry와-2d-lidar-매핑) → PGM/YAML + pbstream |
+| 재처리할 센서 기록 | 연속 raw 센서 입력 | [원본 bag](#오프라인-slam-비교용-원본-bag) → rosbag2 |
+| 저장 지도에서 주행 | 지도와 일치하는 현재 위치 | [Navigation](#저장-지도-navigation) |
+| 기존 지도 확장 | `.pbstream` + 유효한 AMCL 위치 | [병행 확장](#기존-지도-병행-확장) → 별도 namespace와 출력 |
 
 [공통 환경 준비](../RUNNING.md#공통-준비) · [검증 선택](../TESTING.md)
 
@@ -27,9 +25,8 @@ flowchart LR
 ## 실물 휠 odometry와 2D LiDAR 매핑
 
 1. [개발환경](../DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
-2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
-   별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
-3. 현재 센서 장착과 일치하는 [프로필](../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
+2. `make run-hardware-mapping` 또는 다음 직접 launch 중 하나로 시작한다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다. 직접 launch는 빌드 overlay를 먼저 source한다.
+3. 직접 실행하는 경우 현재 센서 장착과 일치하는 [프로필](../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
 
    ```bash
    ros2 launch cleany_bringup hardware_mapping.launch.py \
@@ -41,12 +38,15 @@ flowchart LR
 5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료한다.
    지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존한다.
 
-`state_root`, `host`, `phone_port`, `mock`은 launch 인자다. 모의 모드는 별도 ROS domain에서 사용하며
-실물 장치 대신 main의 mock MCU를 실행한다. 모의 LiDAR 입력은 런타임 검사 도구가 제공한다.
-새 SLAM은 IMU를 사용하지 않으며 raw scan 원본과 0.30m 마스킹을 유지한다.
-프로필의 `scan_filter.half_angle_deg: 90`은 전방 180도, `180`은 실험용 전방위 360도다.
-각도 변경은 해당 프로필로 하드웨어 런타임을 시작할 때 적용되며, 지도 초기화만으로는 바뀌지 않는다.
-기존 Dev Monitor는 별도로 실행해 지도와 센서를 관측할 수 있다.
+| 설정 / 동작 | 적용 범위 |
+|---|---|
+| `state_root`, `host`, `phone_port`, `mock` | launch 인자 |
+| mock | 별도 ROS domain, mock MCU와 검사 도구의 합성 LiDAR |
+| scan | raw 원본 보존, 0.30 m 마스킹; 새 SLAM은 IMU 미사용 |
+| `scan_filter.half_angle_deg` | 90: 전방 180°, 180: 실험용 360°; 런타임 재시작 시 적용 |
+| 관측 | Dev Monitor를 같은 domain에서 별도 실행 가능 |
+
+지도 초기화만으로 scan 각도가 바뀌지 않는다.
 
 휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
 
@@ -55,13 +55,21 @@ ros2 launch cleany_teleop teleop.launch.py \
   base_config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
 ```
 
-문제가 발생하면 조종 상태 API의 `last_permission_error`, `event_log`와 매핑 상태 API의
-`status_age_ms`, `error_code`, `error_file`을 먼저 확인한다. 기본 실행의 조종 사건은
-`~/.local/state/cleany/hardware/teleop-events.jsonl`, 매핑 오류 JSON은
-`~/.local/state/cleany/hardware/maps/errors/`에 남는다. `state_root`를 바꿨다면 해당 경로를
-따른다. 오류 JSON을 쓰지 못한 경우 `state_root/mapping.log`에서 traceback을 확인한다.
+### 종료 결과와 실패 위치
 
-### 오프라인 SLAM 비교용 원본 bag
+기본 출력 루트는 `~/.local/state/cleany/hardware/`다. `state_root`를 바꿨다면 그 경로를 따른다.
+
+| 확인 대상 | 출력 / 진단 |
+|---|---|
+| 지도 저장 | `maps/`의 지도와 pbstream; 종료 로그에서 저장 완료 확인 |
+| Logger 마감 | `recordings/`; flush와 세션 종료 확인 |
+| 조종 거절 | 상태 API의 `last_permission_error`, `event_log`; `teleop-events.jsonl` |
+| 매핑 실패 | `status_age_ms`, `error_code`, `error_file`; `maps/errors/` |
+| 오류 JSON 저장 실패 | `mapping.log`의 traceback |
+
+Ctrl+C가 전달됐다는 사실만으로 STOP 확인이나 지도 저장을 완료로 간주하지 않는다.
+
+## 오프라인 SLAM 비교용 원본 bag
 
 Logger의 가공 기록과 별도로 연속적인 센서 입력을 확보하려면 Jetson에서 빌드한
 ROS overlay를 source한 뒤 다음 도구를 실행한다. Python 관측기의 큐를 거치지 않고
@@ -94,15 +102,18 @@ ros2 launch cleany_navigation navigation.launch.py --show-args
 
 ## 기존 지도 병행 확장
 
-`tools/validation/map_extension/extend.py`는 실행 중인 센서의 `/scan`과
-`/odom`, TF를 읽어 저장된 Cartographer 상태에 새 궤적을 추가한다.
-기존 궤적은 고정하고 `/map_extension` namespace에 지도와 추정 자세를
-발행한다. 기존 `/tf`를 전용 `/map_extension/tf`로 단방향 전달하며 Cartographer도
-그 전용 토픽에만 연결한다. 전역 TF와 주행 명령은 발행하지 않으므로 AMCL/Nav2와 함께 실행할 수 있다.
-입력은 지도 이미지가 아닌 `.pbstream`이다. 시작 시 현재 `map -> base_link`
-자세와 저장 상태의 원점을 이용하므로 기존 AMCL 위치가 맞아 있어야 한다.
-확장 영역에서 기존 AMCL 지도가 부족해져도 확장 Cartographer는 자체 추정을
-계속한다. 자동주행 지도 교체는 별도 작업이며 수동조종으로 확장 영역을 주행한다.
+`.pbstream`의 기존 궤적을 고정하고 새 궤적을 추가한다. 시작 시 현재 `map → base_link`와 저장 원점을 쓰므로 AMCL 위치가 먼저 맞아 있어야 한다.
+
+```mermaid
+flowchart LR
+  Scan["scan / odom / 기존 TF"] --> Extension["확장 Cartographer"]
+  Seed["seed.pbstream / 고정된 기존 궤적"] --> Extension
+  Extension --> Map["/map_extension/map + tracked_pose"]
+  Extension --> TF["/map_extension/tf"]
+  Existing["AMCL / Nav2"] --> Global["기존 /map과 전역 TF"]
+```
+
+확장은 전역 TF와 속도 명령을 발행하지 않아 AMCL/Nav2와 병행할 수 있다. 확장 영역은 수동조종하며 자동주행 지도 교체는 별도 작업이다. 지도 이미지로 확장을 시작할 수는 없다.
 
 ROS 환경과 현재 workspace overlay를 적용한 터미널에서 실행한다.
 `--origin-reader`에는 `tools/validation/map_extension/read_origin.cpp`를
@@ -128,15 +139,15 @@ RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택한
 확장 SLAM의 자세 기준으로 표시한다. 궤적과 지도는 `/map_extension` 토픽을
 선택한다. 제약선, raw scan, scan-matched point cloud는 표시 항목에서 켤 수 있다.
 
-확장 중 센서/장치 재시작이나 odom 원점 초기화를 하면 기존 궤적을 계속 사용할 수 없다.
-확장 입력은 `/map_extension/odom`으로 전달되며, 원본 `/odom`에 2초 이상 공백,
-샘플 간 0.25m 초과 이동, 0.35rad 초과 회전 또는 역행 시각이 있으면 전달을 차단하고
-현재 확장 세션을 종료 저장한다. 임계값은 `extend.py --odom-max-*` 인자로 지정한다.
-문제를 해결한 후 깨끗한 원본 상태 또는 마지막 정상 저장 상태로 새 확장을 시작한다.
+### 확장 중단 조건
 
+아래 조건이면 odom 전달을 차단하고 현재 세션을 종료 저장한다. 장치 재시작이나 odom 원점 초기화 후 기존 궤적을 이어 쓰지 않는다.
 
-Phone Omni의 횡/대각 선호는 `nav2_phone_omni.yaml`의 `FollowPath.DirectionalMotionCritic`
-두 가중치로 조정한다. 현재 시험값은 lateral=1, diagonal=20 cost/m이며 controller 재구성 시 적용된다.
-이동 1m당 전후진 0, 횡이동 1, 45도 대각이동 20.5가 된다.
-슬립 복구 BT와 자동 학습을 연결하는 설정은 없다. 로거의 motion 항목을 켜면
-`/navigation/slip`의 위치/명령 문맥과 `/navigation/traction_recovery`가 기존 bag에 저장된다.
+| 원본 `/odom` 조건 | 기본 중단값 |
+|---|---:|
+| 수신 공백 | 2초 이상 |
+| 샘플 간 이동 | 0.25 m 초과 |
+| 샘플 간 회전 | 0.35 rad 초과 |
+| 촬영 시각 | 역행 |
+
+`extend.py --odom-max-*`로 지정한다. 문제 해결 후 원본 또는 마지막 정상 저장 상태로 새 확장을 시작한다.

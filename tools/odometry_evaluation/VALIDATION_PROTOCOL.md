@@ -42,16 +42,18 @@ P는 각 편도의 거리·각도 정지를 위한 일시적인 평가 제어다
 | `guards` | 아래 시험용 중단 경계 |
 | `output_dir` | 결과 묶음의 상위 디렉터리 |
 
-동일 축의 P를 모든 속도에서 바꾸려면 해당 축의 세 trial을 함께 편집한다.
-특정 조건만 재시험하려면 복사한 config의 `trials`에 필요한 행만 남긴다.
-튜닝 때는 P, 속도와 감속 설정을 동시에 바꾸지 않고 원본과 변경 결과를 구분한다.
-현재 전 축 preset은 inlier 하한을 30%로 사용한다. 적용값은 결과에 기록한다.
-ICP 최대 50회, 병진 `1e-5 m`·회전 `1e-5 rad`의 strict 공차를 사용한다.
-수렴은 correspondence 거리의 annealing이 최종 40 mm 단계에 도달한 뒤만
-판정한다. 주기 2~6이 세 주기 반복되고 반복 구간의 pose 차이가 1 mm·0.02°
-이하인 bounded cycle도 수렴으로 기록한다. 수렴 후 inlier·RMSE·관측성 검사를
-통과해야 유효하다. 알고리즘과 저장 스캔 재검증은
-[ICP 수렴과 관측성](README.md#icp-수렴과-관측성)을 따른다.
+| 튜닝 / ICP 기준 | 규칙 |
+|---|---|
+| 전 속도 P 변경 | 같은 축 세 trial 함께 편집 |
+| 부분 재시험 | 복사 config의 trials에 필요한 행만 유지 |
+| 비교 | P / 속도 / 감속을 동시에 바꾸지 않고 원본과 변경 결과 구분 |
+| 전 축 preset | Inlier 하한 30%, 적용값 결과에 기록 |
+| 반복 / strict 공차 | 최대 50회, 병진 1e-5 m / 회전 1e-5 rad |
+| 수렴 시점 | Correspondence annealing이 최종 40 mm에 도달한 뒤 |
+| Bounded cycle | 주기 2–6이 세 번 반복, pose 차이 ≤1 mm / 0.02° |
+| 최종 유효 | 수렴 뒤 inlier / RMSE / 관측성 모두 통과 |
+
+[ICP 수렴과 저장 스캔 재검증](README.md#icp-수렴과-관측성)을 따른다.
 
 `icp_convergence`의 설정 키는 `translation_tolerance_m`, `rotation_tolerance_rad`,
 `max_translation_span_m`, `max_rotation_span_rad`, `max_period`다.

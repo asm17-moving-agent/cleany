@@ -67,7 +67,7 @@ DetectedObject3D[] objects
 
 `header.frame_id`는 좌표 기준이고 `header.stamp`는 공통 촬영 시각입니다. 모든 객체가 이 header를 공유합니다. 숫자가 같아도 frame이 다르면 같은 위치가 아닐 수 있습니다. `snapshot_id`는 인식 결과와 이후 요청을 연결하는 식별자입니다.
 
-[InspectScene.action](../../../ros2_ws/src/cleany_interfaces/action/InspectScene.action)은 RGB-D 관측을 요청하고 이 배열을 받는 계약입니다. 현재 `cleany_perception`은 scaffold이므로 인터페이스 파일이 있다고 범용 인식 서버까지 구현되었다고 읽으면 안 됩니다. 실행 가능한 빨간 캔 경로는 07장에서 별도 데모로 살펴봅니다.
+[InspectScene.action](../../../ros2_ws/src/cleany_interfaces/action/InspectScene.action)은 RGB-D 관측과 선택 물체 복원을 요청하는 계약입니다. 현재 서버는 `cleany_perception`이며 첫 요청의 snapshot과 물체 ID를 다음 선택 요청에 전달합니다. 입력과 단계는 [7장](07-rgbd.md)을 따릅니다.
 
 ## 03.4 PlanGrasp 요청과 응답
 

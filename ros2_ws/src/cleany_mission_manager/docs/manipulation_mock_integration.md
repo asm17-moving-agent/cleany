@@ -18,7 +18,7 @@ FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유한다. �
 
 | 안내 | 원본 |
 |---|---|
-| 실행과 미션 요청 | [RUNNING](../../../../docs/RUNNING.md#gazebo-주행과-mock-조작) |
+| 실행과 미션 요청 | [RUNNING](../../../../docs/how-to/mission.md#gazebo-주행과-mock-조작) |
 | ID, 결과, 취소와 복구 | [Manipulation 계약](../../cleany_interfaces/docs/manipulation.md) |
 | 화면과 ExecuteOne 상세 | [Monitor 데이터](../../cleany_dev_monitor/docs/data.md#청소-bt와-조작-관측) |
 | 검증 명령과 범위 | [TESTING](../../../../docs/TESTING.md) |

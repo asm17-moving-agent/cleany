@@ -1,15 +1,30 @@
 # ROS 인터페이스 색인
 
-## 어떤 통신인가요?
+## 기능 사이의 연결
+
+아래는 기능 경계 요약이다. 실행별 안전 체인의 정확한 토픽과 QoS는 아래 색인 및 패키지 reference에서 확인한다.
 
 ```mermaid
-flowchart LR
-  Publisher["Publisher"] -->|"Topic: 연속 데이터"| Subscriber["Subscriber"]
-  Client["Client"] -->|"Service: 요청"| Server["Server"]
-  Server -->|"응답"| Client
-  Goal["Action client"] -->|"목표 / 취소"| Executor["Action server"]
-  Executor -->|"피드백 / 최종 결과"| Goal
+flowchart TB
+  Mission["Mission Runtime"] -->|"Navigation 목표"| Nav["Navigator / Nav2"]
+  Mission -->|"단일 물체 Action"| Skill["Skill Executor / BT"]
+  Supervisor["System Supervisor"] -->|"실행 허가와 정지"| Mission
+  Camera["RGB-D + 촬영 시각 TF"] --> Perception["InspectScene / snapshot"]
+  Perception -->|"선택 물체"| Skill
+  Skill -->|"PlanGrasp / MoveIt"| Arm["팔 controller"]
+  Nav --> Safety["프로필별 안전 경로"]
+  Safety -->|"cmd_vel"| Base["Base driver"]
+  Base -->|"wheel_command"| MCU["MCU"]
+  MCU -->|"wheel_state"| Base
+  Base -->|"odom / joint_states"| Nav
 ```
+
+| 확인 질문 | 찾을 표 |
+|---|---|
+| 누가 이 값을 발행/구독하나? | [Topic](#topic-목록) |
+| 목표를 보내고 취소하려면? | [Action](#action-목록) |
+| 한 번 요청하고 응답받으려면? | [Service](#service-목록) |
+| 기본 통신 신뢰성 / 이름 해석은? | [표 읽기](#표-읽기) |
 
 | 찾을 기능 | 패키지 표 |
 |---|---|
@@ -21,18 +36,13 @@ flowchart LR
 
 아래 표는 전체 이름 색인입니다. HTML 문서에서는 긴 표의 검색칸으로 이름·타입·노드를 좁혀 볼 수 있습니다.
 
-실물 진단 도구 `tools/validation/head_pan_tilt_probe.py`의 `d435_head_encoder_tf`는
-헤드 직렬 피드백으로 `/head/joint_states` (`sensor_msgs/msg/JointState`, R10)와
-`/tf`의 D435 pan/tilt 체인을 발행한다. 제품 bringup에 자동 포함되지 않으며,
-명시 모터 시험과 읽기 전용 실행의 차이는 [캘리브레이션 가이드](CALIBRATION.md#d435와-lidar-벽-비교-및-헤드-관절-관측)를 따른다.
+### 조건부 실행 경로
 
-`cleany_navigation`의 `slip_monitor`, `traction_brake` 실행 파일과 `SlipRecovery`
-BT plugin은 [슬립 복구 인터페이스](../ros2_ws/src/cleany_navigation/docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt)를 따른다.
-
-휴대폰의 [`localization_guard`][ros-localization-guard]는 `/map`, `/scan`, `/amcl_pose`,
-`/diagnostics`, `/initialpose`를 구독하고 `/localization/status`와
-`/system/component_health`, `/navigation/localization_speed_limit`을 발행한다. `/initialpose` 발행은 검증된 정지 복구 때만
-수행하며 `/request_nomotion_update`를 호출한다.
+| 경로 | 조건 / 참조 |
+|---|---|
+| `d435_head_encoder_tf` | 명시 진단 도구. `/head/joint_states` (JointState, R10)와 D435 TF; 제품 bringup 자동 포함 아님. [읽기 전용과 모터 시험](CALIBRATION.md#d435와-lidar-벽-비교-및-헤드-관절-관측) |
+| `slip_monitor`, `traction_brake`, `SlipRecovery` | [슬립 복구](../ros2_ws/src/cleany_navigation/docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
+| `localization_guard` | [상세 계약][ros-localization-guard]. `/initialpose` 발행과 `/request_nomotion_update` 호출은 검증된 정지 복구에서만 수행 |
 
 각 노드의 발행, 구독, 서비스 제공/호출, 액션 제공/호출을 찾는 색인이다. 상세 표는 코드 옆 `docs/interfaces.md`가 관리하고, 동작과 안전 규칙은 [INTEGRATION](INTEGRATION.md)의 계약 reference를 따른다.
 
@@ -61,7 +71,14 @@ BT plugin은 [슬립 복구 인터페이스](../ros2_ws/src/cleany_navigation/do
 
 아래 이름은 **root namespace에서 기본 이름을 해석한 값**이다. 상대 이름을 절대 이름으로 고정하는 설정이 아니며, namespace, remap과 parameter override가 있으면 달라진다. `cleany_dev_monitor`의 `runtime_namespace`는 기본 빈 값으로 표시했다. `<...>`는 실행 시 결정되는 이름 패턴이다.
 
-발행/제공 목록의 여러 노드는 실행 구성에 따른 대안이거나 서로 다른 데이터를 같은 토픽으로 보내는 노드다. 동시에 실행한다는 뜻은 아니다. `mock_*`, Gazebo, MuJoCo와 `sorting_cameras`는 mock 또는 시뮬레이션 경로이며, 외부 Nav2, MoveIt과 controller는 별도 실행이 필요하다. `—`는 이 색인에서 상대 노드를 지정하지 않은 항목이며, endpoint의 부재나 미구현을 뜻하지 않는다. `SortingObserver`는 MuJoCo host 노드에 붙는 plugin이며 독립 노드 이름이 아니다. Monitor의 동적 구독은 discovery와 사용자 선택에 따라 생성된다.
+| 색인 읽기 | 의미 |
+|---|---|
+| 여러 발행자 | 실행 대안 또는 같은 토픽의 다른 데이터 생산자; 동시 실행 지시 아님 |
+| mock_*, Gazebo, MuJoCo, sorting_cameras | Mock / simulation 경로 |
+| 외부 Nav2 / MoveIt / controller | 별도 실행 필요 |
+| — | 이 색인에서 상대 node를 지정하지 않음; endpoint 부재 / 미구현 의미 아님 |
+| sorting_observer | ObservedMujocoSystem이 사용하는 publisher node; 독립 구동 controller 아님 |
+| Monitor 동적 구독 | Discovery와 사용자 선택으로 생성 |
 
 ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페이스)에 둔다. 응용 코드가 직접 호출하거나 관찰하는 action cancel/status와 카메라 parameter 서비스는 통합 목록에도 표시한다. 외부 패키지 전체 API와 실행 중 동적으로 발견되는 모든 이름을 열거하지는 않는다.
 
@@ -163,8 +180,8 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/safety_2d/cmd_vel` | `geometry_msgs/msg/Twist` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard] | — |
 | `/scan_matched_points2` | `sensor_msgs/msg/PointCloud2` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/scan` | `sensor_msgs/msg/LaserScan` | [`ros_gz_bridge`][ros-ros-gz-bridge], [`mujoco_sim`][ros-mujoco-sim] | [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`reactive_guard`][ros-reactive-guard], [`obstacle_memory`][ros-obstacle-memory], [`system_supervisor`][ros-system-supervisor] | — |
-| `/simulation/contact_diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`SortingObserver`][ros-sortingobserver] | — | MuJoCo 전용; publish_contacts=true |
-| `/simulation/sorting_ground_truth` | `visualization_msgs/msg/MarkerArray` | [`SortingObserver`][ros-sortingobserver] | [`simulation_placement_verifier`][ros-simulation-placement-verifier] | MuJoCo 전용 |
+| `/simulation/contact_diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`sorting_observer`][ros-sortingobserver] | — | MuJoCo 전용; publish_contacts=true |
+| `/simulation/sorting_ground_truth` | `visualization_msgs/msg/MarkerArray` | [`sorting_observer`][ros-sortingobserver] | [`simulation_placement_verifier`][ros-simulation-placement-verifier] | MuJoCo 전용 |
 | `/sorting/status` | `std_msgs/msg/String` | [`sorting_coordinator`][ros-sorting-coordinator] | — | — |
 | `/submap_list` | `cartographer_ros_msgs/msg/SubmapList` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/system/capabilities` | `cleany_interfaces/msg/SystemCapabilities` | [`system_supervisor`][ros-system-supervisor] | [`mission_runtime`][ros-mission-runtime] | Runtime: supervision_mode=required |
@@ -341,7 +358,15 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `cleany_dev_monitor` | `cleany_dev_monitor` | `dev_monitor` | [표](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor) |
 | `cleany_motor_controller` | ESP32 micro-ROS | `esp32/src/main.cpp` | [MCU 표](../esp32/README.md#ros-인터페이스) |
 
-Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config`, `multi_pose_handeye_config`는 임시 bootstrap 노드다. 응용 endpoint가 없으며 ROS 기본 인터페이스만 생성한다. `cleany_description`, `cleany_bringup`은 모델/launch를 제공하고, `cleany_interfaces`, `cleany_base_interfaces`는 타입을 정의한다. `cleany_planner`에는 현재 등록된 자체 ROS 노드가 없다. `cleany_logger`는 독립 기록 노드이며 [기록 계약](../ros2_ws/src/cleany_logger/docs/data.md)을 따른다. 새 perception과 sorting 실행은 아래 패키지 문서에서 확인한다. 이전 grasp 실행 데모, RGB-D pick 노드와 MuJoCo calibration pose generator는 제거됐다.
+| 패키지 / bootstrap | 역할 |
+|---|---|
+| single_pose_handeye_config / multi_pose_handeye_config | 실행 전 설정만 읽는 임시 node; 응용 endpoint 없음 |
+| cleany_description / cleany_bringup | Model / launch |
+| cleany_interfaces / cleany_base_interfaces | ROS 타입 |
+| cleany_planner | 등록된 자체 ROS node 없음 |
+| cleany_logger | [독립 기록 node](../ros2_ws/src/cleany_logger/docs/data.md) |
+
+Perception과 sorting의 현재 진입점은 아래 패키지 문서를 따른다.
 
 ## Runtime integration에서 추가된 실행
 
@@ -351,7 +376,7 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 | `depth_scene_node` | `depth_scene_node` | [Depth 점군](../ros2_ws/src/cleany_perception/docs/runtime.md#전체-depth-환경-포인트클라우드) |
 | `scene_cloud_receipt` | `scene_cloud_receipt_node` | [점군 수신 확인](../ros2_ws/src/cleany_perception/docs/runtime.md#필터링-점군-수신-확인) |
 | `nearest_pregrasp_coordinator` | `nearest_pregrasp_coordinator` | [조작 경로](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp) |
-| `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
+| `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../ros2_ws/src/cleany_skill_executor/docs/study_cafe_sorting_usage.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
 | `simulation_placement_verifier` | `placement_verifier` | [MuJoCo 표](../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#simulation_placement_verifier) |
 | `manipulation_server` | `manipulation_server` | [Mock Action 서버](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
 | `manipulation_monitor` | `manipulation_monitor` | [읽기 전용 트리 모니터](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_monitor) |

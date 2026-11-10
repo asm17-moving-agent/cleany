@@ -45,12 +45,14 @@ Mission을 자동 재개하지 않는다.
 사용 불가능으로 처리한다. 개별 불량 Zone은 무시하므로 해당 방향의 검출 능력은 줄어든다.
 `ComponentHealth`는 입력과 guard의 가용성이지 공간 전체의 안전 증명이 아니다.
 
-firmware의 valid(status5/9) 의미는 바꾸지 않는다. Zone target_status255와 firmware
-오류 event status255는 별개다. 후자는 sensor_ready를 즉시 false로 발행하고 세션을
-닫는다. 통신 순서, backlog, acquisition 추정과 재연결 검사를 유지한다. 연결 시
-`stop` 확인 후 `cnh off`, `config 64 15 400000`, `start`를 사용한다. 부분 read를 누적하며
-재부팅 기본 10Hz frame은 주행 입력으로 수락하지 않는다. read 완료에서 read 시간과
-한 주기를 빼 stamp를 추정하므로 첫 frame부터 존재한 일정 USB 지연은 실측이 필요하다.
+| 통신 / 센서 상태 | 계약 |
+|---|---|
+| Valid | Firmware status 5/9 의미 유지 |
+| Zone target_status255 | Firmware 오류 event status255와 별개 |
+| 오류 event 255 | sensor_ready=false 즉시 발행, 세션 닫기 |
+| 연결 순서 | stop 확인 → cnh off → config 64 15 400000 → start |
+| 입력 | 부분 read 누적; reboot 기본 10 Hz는 주행 입력으로 거부 |
+| Timestamp | Read 완료에서 read 시간 + 한 주기 차감 추정; 첫 frame부터의 일정 USB 지연은 실측 필요 |
 
 ## ROI 장애물 필터와 속도 제한
 
@@ -101,20 +103,37 @@ hold는 이동 방향에 관계없이 정지한다. 그 외에는 멀어지는 �
 
 ## 책상 접근
 
-Nav2 staging와 실제 정지 확인 후 `DeskApproach`를 요청한다. `approach_rows`(기본2–5)와
-`approach_columns`(기본0–7)의 RANGE만 사용한다. 미검출/불량 Zone은 보간하지 않는다.
-각 `min_plane_rows=2`개 이상의 실제 sample이 있는 `min_plane_columns=4`개 이상의
-columns와 `min_plane_span_m=0.15m` 폭을 요구한다. column median으로
-`x=distance+slope*y`를 fit하고 전체 선택 sample의 residual와 yaw 한계를 검사한다.
-일부 불량 Zone만으로 실패하지 않지만 실제 support가 적거나 전면이 모호하면 시작을
-거부하거나 진행 중 zero를 내고 abort한다. 미검출만으로 책상이나 도착을 추정하지 않는다.
+```mermaid
+flowchart LR
+    Nav["Nav2 staging / 실제 정지"] --> Request["DeskApproach / 기존 lease 검증"]
+    Request --> Plane["RANGE만 선택 / column median 평면 fit"]
+    Plane --> Valid{"support / residual / yaw 유효?"}
+    Valid -->|아니오| Stop["시작 거부 또는 zero + abort"]
+    Valid -->|예| Align["정렬 / 저속 접근"]
+    Align --> Settle["목표 오차 내 odom 정지 0.6 s"]
+    Settle --> Success["성공 / Mission도 정지 feedback 확인"]
+```
 
-정렬 후 최대0.04m/s, 0.08rad/s로 접근한다. 목표는 base_link 원점에서 평면 y=0 교점까지의
-거리이며 범퍼 gap이 아니다. 좌우 중심은 staging pose에 의존한다. 목표 오차 내 실제
-odom 정지가 settle_s=0.6초 유지되어야 성공한다. Mission도 정지 feedback을 확인한다.
-취소, timeout, overshoot, no progress, Nav2 동시 goal, 센서/평면 소실과 lease 회수는
-성공이 아니다. 서버는 기존 Mission lease의 epoch/version/lifetime만 검증하며 신규
-권한을 발급하거나 연장하지 않는다. 재시작 journal의 해당 Action goal만 취소한다.
+| 평면 검사 | 기본 기준 |
+|---|---|
+| ROI | approach_rows 2–5, approach_columns 0–7 |
+| 입력 | RANGE만 사용; 미검출 / 불량 Zone 보간 안 함 |
+| Support | Column마다 실제 min_plane_rows=2 이상, min_plane_columns=4 이상 |
+| 폭 | min_plane_span_m=0.15 m |
+| Fit | Column median으로 x=distance+slope*y, 전체 선택 sample residual / yaw 검사 |
+| 실패 | 일부 불량 자체는 실패 아님; support 부족 / 모호한 전면은 거부 |
+
+미검출만으로 책상이나 도착을 추정하지 않는다.
+
+| 접근 / 종료 | 계약 |
+|---|---|
+| 최대 속도 | 0.04 m/s, 0.08 rad/s |
+| 목표 거리 | Base_link 원점에서 평면 y=0 교점; bumper gap 아님 |
+| 좌우 중심 | Staging pose에 의존 |
+| 성공 | 목표 오차 내 실제 odom 정지 settle_s=0.6 s, Mission 정지 feedback |
+| 실패 / 취소 | Timeout / overshoot / no progress / Nav2 동시 goal / 센서·평면 소실 / lease 회수 |
+| 권한 | 기존 lease의 epoch / version / lifetime 검증만; 발급 / 연장 없음 |
+| 재시작 | Journal의 해당 Action goal만 취소 |
 
 ## ROS endpoint와 배포
 

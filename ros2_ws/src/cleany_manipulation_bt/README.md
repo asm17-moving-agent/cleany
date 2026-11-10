@@ -48,26 +48,33 @@ headless에서도 기존 GLFW 카메라 renderer에는 유효한 `DISPLAY`가 �
 GUI 로그인 터미널에서 실행하거나 Xvfb가 설치된 CI에서
 `xvfb-run --auto-servernum make sim-mujoco-manipulation`을 사용한다.
 
-[manipulation_bins.yaml](config/manipulation_bins.yaml)은 기존 tray 좌표를 유지하고
-시뮬레이션 trash bin의 Y 외측 치수를 170 mm에서 180 mm로 넓힌다. 기존 컵의 센서 OBB를
-회전 독립 bounding sphere와 5 mm 여유로 검사하면 기존 170 mm opening에 맞지 않는 경우가
-있어 BT 경로에만 별도 설정을 사용한다. 시뮬레이터, MoveIt 충돌 형상과 평가기가 같은 설정을 읽는다.
-관측 payload의 수거함 적합성을 팔 이동 전에 검사하고 접근 전 재관측에서도 다시 검사한다.
-첫 팔 이동 전 재관찰의 임시 충돌 객체를 정리하고, 새 pregrasp 작업에서 대상 접촉을
-금지한 뒤 팔과 그리퍼를 함께 이동한다. 이후 접근 단계에서는 다시 재관찰하고 접촉을 허용한다.
-실물 수거함/장착 사양의 확정은 아니다. 기존 자동 sorting의 bin 설정은 유지한다.
+| BT 수거함 / 접근 | 계약 |
+|---|---|
+| [manipulation_bins.yaml](config/manipulation_bins.yaml) | 기존 tray 좌표, trash bin Y 외측 180 mm; 자동 sorting의 170 mm 설정과 별도 |
+| 선택 이유 | 관측 OBB의 회전 독립 bounding sphere + 5 mm 여유 검사 |
+| 공유 | Simulator / MoveIt / verifier가 동일 설정 사용 |
+| 적합성 검사 | 팔 이동 전, 접근 전 재관측 때 반복 |
+| Pregrasp | 첫 재관찰 임시 객체 정리, target 접촉 금지, 팔 / gripper 함께 이동 |
+| 접근 | 다시 재관찰 후 target 접촉 허용 |
+| 한계 | 실물 수거함 / 장착 사양 확정 아님 |
 
-이 launch는 MuJoCo, 카메라, Perception, grasp/selection 서버, MoveIt, 지도와 결과 평가기,
-BT Action 서버를 시작한다. 자동으로 물체를 고르는 `SortingCoordinator.run()`은 실행하지 않는다.
-launch 직후에는 BT가 Goal을 기다리므로 Live에 연결돼도 모든 노드가 IDLE이다.
-대기 중에도 카메라와 깊이 지도는 갱신되지만 정상 프레임 진단은 기본 로그에 출력하지 않는다.
-BT의 RUNNING 전환을 보려면
-아래의 관찰 요청 후 지정 물체의 `manipulation_test_client --namespace /sim` Goal을 보내야 한다.
-기존 sorting 프로필의 알려진 형상 OctoMap updater, jaw clearance와 좌표 보정을
-재사용한다. PTP 이동은 그리퍼 추종 오차를 줄이기 위해 속도/가속도 scaling을 각각 0.08로
-설정하며 같은 이름의 launch 인자로 조정한다. controller 실패 후 자동 재실행하지 않는다.
-이는 시뮬레이션 편의 설정이며 실제 로봇의 안전 검증으로 해석하지 않는다.
-평가기의 MuJoCo 정답 좌표를 grasp, 물체 연결 또는 경로 계획에 사용하지 않는다.
+```mermaid
+flowchart LR
+    Launch["MuJoCo / 카메라 / Perception / MoveIt / BT server"] --> Idle["Goal 대기 / 모든 BT 노드 IDLE"]
+    Observe["관찰 요청 / 승인할 물체 선택"] --> Goal["manipulation_test_client --namespace /sim"]
+    Goal --> Run["지정 물체의 BT RUNNING"]
+    Idle --> Run
+```
+
+| 실행 경계 | 동작 |
+|---|---|
+| 시작 구성 | Grasp/selection, 지도, 결과 평가기도 시작; 자동 SortingCoordinator.run 미실행 |
+| 대기 중 | 카메라 / depth 지도 갱신, 정상 frame 진단 기본 숨김 |
+| 재사용 | 알려진 형상 updater, jaw clearance, 좌표 보정 |
+| PTP 상한 | 속도 / 가속도 scaling 각각 0.08, launch 인자로 조정 |
+| 실패 / GT | Controller 실패 뒤 자동 재실행 없음; 평가 정답을 grasp / 연관 / 계획에 사용하지 않음 |
+
+시뮬레이션 편의 설정이며 실물 안전 검증이 아니다.
 
 다른 터미널에서 detector-only 관찰을 요청한다.
 
@@ -135,18 +142,17 @@ Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/
 사용한다. 서버 종료는 진행 중인 tick의 기록 쓰기를 기다린 뒤 DB를 닫으며,
 종료 자체를 정지 확인이나 수거 완료 근거로 기록하지 않는다.
 
-정상 수거의 `SUCCESS`에는 물체 이탈·안착, 팔 복귀와 최종 정지 근거가 모두 필요하다.
-관절 메시지의 시각과 내용이 모두 같은 연속 중복 수신은 새 관측으로 세지 않는다.
-기존 수신 시각을 유지하므로 멈춘 스트림은 만료되고, 같은 시각에 내용이 달라지거나
-시각이 역행하는 메시지는 기존 무효 판정을 따른다. 중복만으로 정지를 확인하지 않는다.
-스터디카페 backend의 로컬 제어 실행기는 한 주기의 `read/update/write`에 같은 시각을
-사용하고 새 시뮬레이션 시각에서만 다음 주기를 실행한다. 무효 피드백 로그의
-`invalid_reasons`는 `repeated_stamp`, `backward_stamp`, `missing_velocity`,
-`stale_receipt`, `clock_skew` 등을 구분하며, `clock_stopped`는 시계 정지를 표시한다.
-피드백 만료와 정지 확인 기준은 변경하지 않는다.
-실패·취소에서도 이미 확인한 물체 상태와 놓기 결과를 보존한다.
-정지 미확인, 장치 오류, 비상정지와 내부 오류는 `FATAL`로 종료하고 후속 Goal을 차단한다.
-실제 트리 순서, 대상 검사, timeout과 늦은 응답 처리는 [상세 실행 계약](docs/execution_contract.md)을 따른다.
+| 실행 결과 | 근거 |
+|---|---|
+| SUCCESS | 물체 이탈 / 안착 + 팔 복귀 + 최종 정지 |
+| 반복 feedback | 시각과 내용이 같으면 새 표본 아님; 수신 시각 유지, 멈춘 스트림 만료 |
+| 같은 시각 다른 내용 / 시각 역행 | 무효 표본 |
+| Backend 주기 | read/update/write에 같은 시각, 새 simulation 시각에서만 다음 주기 |
+| 진단 | invalid_reasons: repeated_stamp / backward_stamp / missing_velocity / stale_receipt / clock_skew; clock_stopped는 시계 정지 |
+| 실패 / 취소 | 이미 확인한 물체 / 놓기 상태 보존 |
+| FATAL | 정지 미확인, 장치 / 비상정지 / 내부 오류; 후속 Goal 차단 |
+
+[상세 실행 계약](docs/execution_contract.md)이 검사 기준, timeout과 늦은 응답 처리를 관리한다.
 
 ### 취소
 
@@ -172,18 +178,26 @@ Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/
 
 ### 실행 기록
 
-기본 DB는 `$XDG_STATE_HOME/cleany/manipulation_mujoco/executions.sqlite3`이다.
-`XDG_STATE_HOME`이 없으면 `~/.local/state`를 사용한다. mock DB와 분리되어 있으며
-`bt_database_path:=/절대/경로.sqlite3`로 바꿀 수 있다. 각 실제 동작의 시작 checkpoint를
-먼저 메모리에 반영하고 SQLite 저장을 시도한다. 완료 관측과 최종 Result도 같은 방식으로 처리한다.
-`bt_transitions` 테이블에는 C++ 실행기의 실제 UID/상태 전환을 추가 저장한다.
-실행 기록이나 BT 상세 로그 저장 실패는 경고로 남기며 동작 중단, Result의 status·error_code 변경,
-후속 Goal 차단의 원인으로 사용하지 않는다. 조회는 프로세스 메모리의 최신 기록을 반환한다.
-프로세스 중단 기록은 재시작 시 INTERRUPTED/사람 확인 필요로 바꾸고 자동 재개하지 않는다.
-HELD/UNKNOWN 또는 FATAL이 남으면 후속 Goal을 차단한다.
-재시작 복구와 재시작 이후 중복 검사는 디스크에 저장된 기록만 사용하며 미저장 메모리 기록은 유실된다.
-기동 시 DB 초기화와 기존 기록 읽기는 여전히 필수이며, 실패하면 서버를 기동하지 않는다.
-새 실행은 이전 worker와 ROS 요청이 종료되어야 허용하며 늦은 응답은 기존 context에만 적용된다.
+```mermaid
+flowchart LR
+    Event["동작 시작 / 완료 관측 / Result"] --> Memory["메모리 최신 기록"]
+    Memory --> Save["SQLite 저장 시도"]
+    Save -->|실패| Warn["경고 / 실제 실행 결과 유지"]
+    Disk["재시작 때 디스크 기록"] --> Recover["ACTIVE → INTERRUPTED / 사람 확인"]
+```
+
+| 기록 경계 | 계약 |
+|---|---|
+| 기본 DB | $XDG_STATE_HOME/cleany/manipulation_mujoco/executions.sqlite3; 미지정 시 ~/.local/state |
+| 별도 설정 | bt_database_path; mock DB와 분리 |
+| BT 전환 | bt_transitions에 실제 C++ UID / 상태 저장 |
+| 저장 실패 | 동작 중단 / status·error_code 변경 / 후속 차단 원인으로 사용 안 함 |
+| 조회 | 프로세스 메모리 최신값; 디스크 저장 완료를 보장하지 않음 |
+| 재시작 | 미완료를 INTERRUPTED / 사람 확인 필요로 전환, 자동 재개 없음 |
+| 차단 | HELD / UNKNOWN / FATAL이 남으면 후속 Goal 차단 |
+| 복구 / 중복 | 디스크에 저장된 기록만 사용; 미저장 메모리는 유실 |
+| 기동 | DB 초기화 / 읽기 실패 시 서버 시작 안 함 |
+| 새 실행 | 이전 worker와 ROS 요청 종료 필요; 늦은 응답은 기존 context에만 반영 |
 
 ### Live 모니터
 

@@ -46,9 +46,9 @@ Position-only IK는 orientation 도달을 보장하지 않는다. 다른 입력�
 
 ```mermaid
 flowchart TB
-    Request["고정 profile / 표본 요청"] --> FK["FK → IK → state validity"]
+    Request["고정 profile / 표본 요청"] --> FK["IK → state validity"]
     FK --> Motion["Motion → settle"] --> Acquire["Acquire → PnP"]
-    Acquire --> PNG["PNG 저장 / fsync"] --> Journal["Journal 기록"]
+    Acquire --> Feedback["촬영 시각 feedback FK"] --> PNG["PNG 저장 / fsync"] --> Journal["Journal 기록"]
     Journal --> JSONL["JSONL atomic rename"] --> Row["Row / image hash 대조"]
     Journal -. "부분 쓰기 복구" .-> Recover["Image와 row 대조<br/>저장 표본 덮어쓰기 금지"]
     Recover --> Row
@@ -59,7 +59,7 @@ flowchart TB
 
 Materialized profile은 pose/runtime/URDF, camera K/D/R/P, source hash를 고정한다. 구성은 calibration 20개와 held-out 5개이며 실패 표본을 교체하지 않는다. Random seed, 탐색 제한, 선정 근거, row/image hash, capture provenance를 보존한다.
 
-수집은 요청 → FK → IK → state validity → motion → settle → acquire → PnP → record 순서다. 저장은 PNG fsync → journal → JSONL atomic rename 순서로 수행한다. 부분 쓰기 복구 시 image 없는 row를 유효 처리하지 않으며, 기존 dataset 일부 재사용을 fresh run으로 표시하지 않는다.
+수집은 요청 → IK → state validity → plan/execute → settle → acquire → PnP → feedback FK → record 순서다. 저장은 PNG fsync → journal → JSONL atomic rename 순서로 수행한다. 부분 쓰기 복구 시 image 없는 row를 유효 처리하지 않으며, 기존 dataset 일부 재사용을 fresh run으로 표시하지 않는다.
 
 ## 평가와 적용
 

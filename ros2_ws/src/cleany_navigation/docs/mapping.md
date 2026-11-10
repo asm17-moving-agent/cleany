@@ -55,14 +55,15 @@ Cartographer는 map->odom, base relay는 odom->base_link, 단일 장착 TF는 ba
 Cartographer와 Logger 로그의 세션 디렉터리를 찾을 수 있다. `generation`은 정상 시작이
 완료됐을 때만 증가한다.
 
-작업 실패 시 `error_code`는 실패 단계에 따른 `MAPPING_<PHASE>_FAILED`를 나타낸다.
-`error_file`은 output_root의 `errors/<operation_id>.json`을 가리킨다. 파일에는 UTC,
-요청과 작업 식별자, 세션 경로, 실패 당시 상태, 예외 타입과 전체 traceback이 포함된다.
-시작과 정리 작업이 모두 실패하면 두 예외를 함께 보존한다. 관리자의 표준 오류에도
-traceback을 출력하므로 진단 파일 저장 실패는 runtime의 `mapping.log`에서 확인한다.
-새 요청을 접수하면 현재 오류 필드는 초기화되며 기존 진단 파일은 유지된다.
-실행 중 자식이 종료되면 상태 메시지에서 Cartographer와 Logger를 구분하고 종료 코드와
-로그 경로를 제공한다.
+| 실패 정보 | 보존 / 갱신 |
+|---|---|
+| error_code | 단계별 `MAPPING_<PHASE>_FAILED` |
+| error_file | `output_root/errors/<operation_id>.json` |
+| JSON 내용 | UTC / 요청·작업 ID / 세션 경로 / 당시 상태 / 예외 타입 / 전체 traceback |
+| 시작과 정리 모두 실패 | 두 예외 함께 보존 |
+| 진단 저장 실패 | Stderr traceback, runtime/mapping.log 확인 |
+| 새 요청 | 현재 오류 필드 초기화, 이전 파일 유지 |
+| 실행 자식 종료 | Cartographer / Logger 구분, 종료 코드와 로그 경로 |
 
 하드웨어 프로필의 `recording_limit_mib`는 최초 세션 정책과 Logger 시작 한도를, `recording_total_limit_mib`는 보존된 전체 기록의 총량 한도를 설정한다. 저장된 `recording-settings.json`이 있으면 세션 한도는 저장된 정책을 우선한다. 총량 한도는 세션 한도 이상이어야 하며, 프로필 변경은 런타임을 다음에 시작할 때 적용한다.
 

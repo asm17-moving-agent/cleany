@@ -14,12 +14,13 @@
 | 서비스 제공 | `~/stop` | 같은 타입 | 현재 `session_id` 필수, 다른 세션 거절, flush와 종료 후 응답 |
 | 서비스 요청 | `/submap_query` | `cartographer_ros_msgs/srv/SubmapQuery` | 기존 가공 기록 호환을 위한 읽기 전용 Cartographer 조회 |
 
-공유 관측기의 기본 ROS 입력과 QoS 선택은 [Monitor 입력 표](../../cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor)를
-따른다. logger에는 브라우저 선택이나 카메라 preview lease가 없으며, 녹화 선택은
-자체 discovery에 적용한다. 원본 CDR 허용 타입은 `recording.py`의 `CONTEXT`, `TYPES`에서
-관리한다. 지도, 경로, 위치, 속도, Runtime, BT, 안전 진단, 로그와 SLAM 원문, 선택한
-센서 원문을 기록하고 TF, clock, CameraInfo와 로봇 모델을 함께 요청한다.
-Discovery된 타입을 읽더라도 원본 허용 타입과 다르면 오류를 표시하고 저장하지 않는다.
+| 원본 구독 | 계약 |
+|---|---|
+| 입력 / QoS | [Monitor 입력 표](../../cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor) |
+| 선택 | 자체 discovery의 녹화 선택, 브라우저 / preview lease와 독립 |
+| 허용 타입 | recording.py의 CONTEXT / TYPES; discovery 타입이 달라도 우회 저장 안 함 |
+| 기록 | 지도 / 경로 / 위치 / Runtime / BT / 안전 / 로그 / SLAM / 선택 센서 |
+| 문맥 | TF / clock / CameraInfo / 로봇 모델 함께 요청 |
 
 `RecordingConfig`는 preset, MiB 한도, category별 선택과 주기, source별 토픽과
 선택과 주기를 담는다. `RecordingSource`의 topics, enabled와 rate_hz 배열은 같은
@@ -45,7 +46,7 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 실행 파일 `logger`는 `/cleany_logger_cli_<임의 suffix>` 임시 ROS 노드를 사용한다.
 [cli.py](../cleany_logger/cli.py)의 명령 처리는 저장 파일을 열지 않으며
 [cli_client.py](../cleany_logger/cli_client.py)가 위 네 서비스를 호출한다. 별도 logger
-노드가 같은 ROS domain에서 실행 중이어야 한다. 실행 예시는 [RUNNING](../../../../docs/RUNNING.md#독립-logger)을 따른다.
+노드가 같은 ROS domain에서 실행 중이어야 한다. 실행 예시는 [RUNNING](../../../../docs/how-to/monitoring.md#독립-logger)을 따른다.
 
 | 명령 | 계약 |
 |---|---|
@@ -78,8 +79,12 @@ Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않는다
 
 ## 실물 매핑 원본
 
-선택 가능한 motion 출처에 `wheel_state_topic`, `wheel_command_topic`, `joint_state_topic`,
-`canonical_odometry_topic`을, SLAM 출처에 `raw_scan_topic`을 추가한다. 기본 토픽은 각각
-`/base/wheel_state`, `/base/wheel_command`, `/joint_states`, `/odom`, `/scan_raw`다.
-허용 원본 타입은 WheelState, WheelCommand, JointState, Odometry, LaserScan으로 제한한다.
-매핑 프로필은 이 출처를 수신마다 기록하고 `/scan`, TF, 지도와 함께 한 Logger session에 보존한다.
+| 출처 | 기본 토픽 | 허용 타입 |
+|---|---|---|
+| wheel_state_topic | /base/wheel_state | WheelState |
+| wheel_command_topic | /base/wheel_command | WheelCommand |
+| joint_state_topic | /joint_states | JointState |
+| canonical_odometry_topic | /odom | Odometry |
+| raw_scan_topic | /scan_raw | LaserScan |
+
+매핑 프로필은 위 입력을 수신마다 /scan, TF, 지도와 같은 Logger 세션에 기록한다.

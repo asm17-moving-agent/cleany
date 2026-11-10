@@ -4,11 +4,11 @@ MoveIt은 팔별 5관절을 계획하며 gripper, base는 planning group에서 �
 
 ## Group과 controller
 
-기본 MoveIt 및 Mock launch는 `collision_detector:=cleany/SolidFCL`을 사용한다.
-최적화 메시의 닫힌 볼록 조각을 내부가 채워진 형상으로 읽고, RViz에도 같은
-detector를 전달한다. `cleany/RequireCollisionDetector`가 요청한 detector의 로드를
-확인하며, 실패하면 다른 검사기로 계속 계획하지 않고 프로세스를 종료한다.
-원본 CAD의 표면 검사 대조에는 `collision_detector:=FCL`을 명시한다.
+| Collision detector | 계약 |
+|---|---|
+| 기본 MoveIt / Mock | cleany/SolidFCL; 닫힌 최적화 convex 조각 내부 포함 검사, RViz에도 전달 |
+| 로딩 확인 | cleany/RequireCollisionDetector; 요청 detector 실패 시 프로세스 종료 |
+| 원본 CAD 표면 대조 | collision_detector:=FCL 명시 |
 
 ```mermaid
 flowchart TB
@@ -60,36 +60,31 @@ Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pic
 
 ## Terminal logging
 
-`move_group.launch.py` accepts `backend_log_level` (standalone default `info`)
-and `log_level` (default `info`). The sensor-driven MuJoCo workflow passes
-`backend_log_level:=warn` to reduce backend initialization and planning detail.
-Warnings and errors remain visible. The child logger `move_group.scene_mapping`
-uses `log_level` independently: `log_level:=debug` enables throttled depth
-callback and map timing diagnostics without enabling every MoveIt logger.
-In quiet mode, capability banners printed directly to stdout go to the launch
-log; this process sends ROS logs to stderr so warnings and errors remain on
-screen even if the parent environment selects stdout. `backend_log_level:=info`
-also restores those banners to the terminal.
+| 옵션 / 출력 | 동작 |
+|---|---|
+| backend_log_level | Standalone info, 센서 MuJoCo warn; 경고 / 오류 유지 |
+| log_level | 기본 info; child logger move_group.scene_mapping은 독립 적용 |
+| log_level:=debug | 전체 MoveIt debug 없이 depth callback / map timing 진단 |
+| Quiet mode | stdout capability banner는 launch log, ROS 로그는 stderr로 화면 유지 |
+| backend_log_level:=info | Banner도 터미널 복원 |
 
 ## Humble controller plugin teardown
 
-`keep_controller_plugin_loaded:=true` keeps the default controller plugin library
-mapped through process teardown using a process-local `LD_PRELOAD`. Existing
-preload entries are preserved. It applies only to
-`moveit_simple_controller_manager/MoveItSimpleControllerManager`.
+```mermaid
+flowchart LR
+    Start["move_group process 시작"] --> Preload["Controller library를 process-local LD_PRELOAD에 추가"]
+    Preload --> Run["정상 trajectory 실행"]
+    Run --> Exit["SIGINT / node 파괴 중에도 library 유지"]
+```
 
-In this VM, Ctrl+C caused a SIGSEGV in `rclcpp::CallbackGroup` while the controller
-manager node was being destroyed. MoveIt 2.5.9 declares the plugin loader after
-that node, so the loader is destroyed first; the core dump is consistent with
-a remaining weak-pointer control block referencing unloaded plugin code.
-See the [upstream member declarations](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/trajectory_execution_manager/include/moveit/trajectory_execution_manager/trajectory_execution_manager.h).
+| 항목 | 계약 |
+|---|---|
+| 활성 | keep_controller_plugin_loaded:=true |
+| 대상 | moveit_simple_controller_manager/MoveItSimpleControllerManager만 |
+| 기존 preload | 보존 |
+| 목적 | MoveIt 2.5.9 teardown 중 plugin unload와 node 수명 문제의 우회 |
+| 영향 | Controller 선택과 trajectory 동작 유지; class_loader unload 경고를 숨기지 않음 |
+| 패치된 MoveIt 검증 | keep_controller_plugin_loaded:=false |
+| Runtime 회귀 | backend_log_level:=warn에서 /check_state_validity, SIGTERM escalation 없는 SIGINT 종료, ROS 경고 표시 |
 
-Preloading prevented the observed crash. The workaround does not change
-trajectory execution or controller selection. Set
-`keep_controller_plugin_loaded:=false` when validating a patched MoveIt install.
-The workaround may leave the upstream `class_loader` unload warning visible;
-it prevents the observed crash without suppressing that warning.
-
-The runtime regression exercises `/check_state_validity` in the default MuJoCo
-logging mode (`backend_log_level:=warn`) and requires clean SIGINT termination
-without SIGTERM escalation. It also checks that ROS warnings remain on screen.
+수명 순서의 근거는 [MoveIt 2.5.9 멤버 선언](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/trajectory_execution_manager/include/moveit/trajectory_execution_manager/trajectory_execution_manager.h)이다. 모든 MoveIt 버전의 종료 문제를 해결하는 일반 수정은 아니다.

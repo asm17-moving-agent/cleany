@@ -65,4 +65,4 @@ systemctl --user disable --now cleany-display
 mv ~/.config/autostart/cleany-display.desktop /home/cleany/cleany-display/cleany-display.desktop.disabled
 ```
 
-검증 방법은 [테스트 안내](../../../docs/TESTING.md#얼굴-디스플레이)를 따른다.
+검증 방법은 [테스트 안내](../../../docs/reference/testing.md#얼굴-디스플레이)를 따른다.
