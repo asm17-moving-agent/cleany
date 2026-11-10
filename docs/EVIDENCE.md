@@ -4,6 +4,95 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
+
+PR 65의 `4427480d`에 Feetech 라이브러리를 `cleany_robot_interface`로 옮긴
+패치를 적용했다. Ubuntu 22.04 ARM64 컨테이너에서 ROS 2 Humble,
+ros2_control 2.54.3, MoveIt 2.5.10과 Feetech SDK 1.0.0으로 검사했다.
+
+`make build-jetson-control`로 5개 패키지를 빌드했다. 새 설치에서 기존 플러그인
+ID 등록, Python 실행 파일 6개, 설정 2개와 launch 인자 조회 3개를 확인했다.
+패키지의 C++ 드라이버 검사 11개와 Python 검사 118개, 실물 프로파일과 호스트
+도구를 포함한 `make test-jetson-control` 검사 178개가 통과했다. 검사에는
+저장소의 합성 프로파일과 가짜 버스를 사용했다.
+`make test-jetson-controller`는 설치된 C++ 플러그인과 ROS 컨트롤러를
+가상 시리얼에 연결해 21개 검사를 통과했다. 실물 모터는 연결하지 않았다.
+
+초기 환경에서 MoveIt perception, `fuser`와 Pillow가 누락되어 설치했고,
+컨테이너의 메모리 한도로 중단된 병렬 빌드는 순차 실행으로 완료했다.
+패치, 환경, 로그와 JUnit 원본은
+`CLEANY_DATA_ROOT/reports/pr65-feetech-library/`에 보관한다.
+
+## PR 65 main 충돌 해소 검증 (2026-11-02)
+
+기존 #65 `db4ebed`에 main `c50c440`을 병합했다. `.gitignore`와 보정, 개발환경,
+실행, ROS 색인 문서 4개의 충돌에서 실물 제어와 디스플레이, ToF 내용을 유지했다.
+`/output/` 규칙이 디스플레이 산출물도 포함하므로 중복된 하위 경로 규칙은 제거했다.
+main 대비 기능 변경 81개 파일과 Makefile 추가 명령은 기존 #65와 동일하다.
+
+macOS Python 3.12의 별도 venv에서 가짜 버스와 합성 설정으로 제어 및 호스트 도구
+107개, 상위 상태와 복구 52개, ToF core 91개 검사가 통과했다. CI 도구 9개도
+통과했으며 제어 및 호스트 도구 107개에 포함된 검사다. 최초 누락된 Python 의존성은
+검증 venv에 설치했다. SDK 가상 시리얼 1개는 macOS PTY의 1 Mbps ioctl이 지원되지
+않아 실패했으며, 해당 검사를 제외한 로컬 재실행 결과를 위에 기록했다. 테스트는 유지했다.
+Jetson 이름 해석이 되지 않아 native ROS 빌드, C++와 ROS 연결 검사는 재실행하지 않았다.
+충돌 표식, 문서 링크, output 제외와 기능 변경 보존을 별도로 확인했다.
+원본 로그와 병합 검사는 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/`에 보관한다.
+
+### 하드웨어 매핑 병합 후 재검증
+
+main에 #70이 추가된 뒤 `102a63e`에서 main `32d2d9e`를 반영했다. 개발환경,
+실행과 ROS 색인 문서 3개의 충돌은 양쪽 절을 모두 유지해 해결했다.
+
+직전 GitHub CI run `41376624141`은 Feetech SDK 1.0.0 설치에는 성공했지만
+rosdep이 `feetech-servo-sdk==1.0.0`의 설치 완료를 인식하지 못해 의존성 이미지
+단계에서 실패했다. `102a63e`에 이 절과 함께 반영한 수정은 rosdep에 패키지
+이름을 지정하고 CI constraints로 버전 1.0.0을 유지한다. macOS Python 3.12,
+rosdep 0.27.0과 실제 설치된 SDK로 기존 규칙의 감지 실패와 수정 후 성공을
+재현했으며, constraints를 적용한 pip dry-run도 같은 버전을 확인했다.
+
+합성 입력과 가짜 transport를 사용한 매핑과 조종 Python 검사 60개, Node 입력
+검사 17개와 `make test-ci-tools` 9개가 통과했다. Make의 login shell이 macOS
+시스템 Python을 선택해 pytest를 찾지 못한 뒤, 동일 Python 검사 목록을 venv에서
+직접 실행했다. Linux `/proc` 기반 PID 재사용 검사는 macOS에서 실패했으며,
+해당 1개를 제외한 재실행 결과가 60개다. 검사 코드는 변경하지 않았다.
+Jetson 이름 해석 실패와 로컬 Docker daemon 부재로 native ROS 빌드와 전체
+workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증은 별도다.
+
+원본 실패, 재실행 로그와 rosdep 감지 결과는
+`/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/recheck/`에 보관한다.
+
+## 과거 생성 보고서 보관
+
+날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
+`CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
+새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
+
+## Jetson 제어 기반 분리 검증
+
+`3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
+ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
+`make build-jetson-control`은 6개 패키지 빌드, `make test-jetson-control`은
+163개 검사를 통과했다. 실패와 skip은 없었다. 입력은 저장소의 고정 보정,
+합성 상태와 가상 시리얼이며 실물 장치를 열지 않았다.
+환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
+
+### PR 65 미사용 설정 정리 검증 (2026-10-30)
+
+갱신된 PR 64를 병합한 `197de90`에 이 절과 함께 반영한 정리 패치를 적용했다.
+TCP와 중복 손목 보정 3개, 기본 Xacro가 사용하지 않는 미리보기 인자와
+matplotlib 의존성을 제거했다. 기존 미리보기와 새 미리보기의 URDF hash는 같다.
+Jetson Ubuntu 22.04 ARM64, Humble과 MoveIt 2.5.9의 새 경로에 6개 패키지를
+빌드했고 삭제한 설정의 부재와 설치된 설정, launch 5개의 소스 일치를 확인했다.
+
+`make test-jetson-control` 163개, `make test-jetson-controller` 21개와 C++ 드라이버
+11개가 통과했다. 기존 제어 검사는 모두 유지했으며 실패와 skip은 없다.
+가상 시리얼과 합성 입력만 사용했고 실물 모터와 전체 workspace 검사는 실행하지 않았다.
+기존 Xacro 경고와 C++ 테스트의 write 반환값 경고는 유지된다.
+소스 패치, 환경, 로그, JUnit과 설치 및 URDF 비교 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr65/`에 보관한다.
+
 ## Nav2 복구 자료의 저장소 외부 보관
 
 PR #73의 복구 자료 `recovered/nav2/`는 구현 코드와 분리해 데이터 루트의
@@ -220,7 +309,7 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
-Logger 분리와 CLI의 초기 검증은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)를 따른다.
+Logger 분리와 CLI의 초기 검증은 `CLEANY_DATA_ROOT/reports/evidence/reports/SCRUM-486/validation.json`를 따른다.
 `a401f6f`의 Ubuntu 22.04 ARM64/Humble 검증에서는 합성 ROS와 웹 fixture로
 Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개와 CLI 19건을 확인했다.
 초기 rosdep 선언과 launch 기본값 누락 오류는 수정 후 재검증했다. 원본은

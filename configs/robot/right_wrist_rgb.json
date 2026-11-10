@@ -1,0 +1,7 @@
+{
+  "arm": "right",
+  "camera_config": "configs/robot/right_wristcam_charuco.json",
+  "calibration_config": "configs/robot/right_wristcam_handeye.json",
+  "publish_rate_hz": 15.0,
+  "frame_id": "right_wrist_rgb_optical_frame"
+}

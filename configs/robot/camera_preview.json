@@ -1,0 +1,25 @@
+{
+  "status": "provisional_read_only_board_comparison",
+  "output_root": "~/.local/share/cleany/camera_preview",
+  "robot_model": "ros2_ws/src/cleany_description/urdf/cleany.urdf.xacro",
+  "arm_config": "ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml",
+  "calibrated_joint_position_bounds": [
+    "left_shoulder_pitch_joint",
+    "left_elbow_pitch_joint",
+    "left_wrist_pitch_joint",
+    "right_shoulder_pitch_joint",
+    "right_elbow_pitch_joint",
+    "right_wrist_pitch_joint"
+  ],
+  "head_config": "configs/robot/head_board_view.json",
+  "head_joint_mapping": "configs/robot/head_preview_joints.json",
+  "head_rgb_extrinsics": "configs/robot/head_rgb_board_extrinsics.yaml",
+  "xacro_args": {
+    "head_fixed": "false",
+    "head_collision_meshes": "true",
+    "optimized_arm_collision_meshes": "true",
+    "include_wheel_joints": "false",
+    "calibration_profile": "jetson_20261009"
+  },
+  "rgbd_bridge": "configs/robot/head_rgbd_bridge.json"
+}

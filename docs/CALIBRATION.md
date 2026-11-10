@@ -160,6 +160,15 @@ make handeye-validate-mujoco \
 
 과거 실행 결과는 [근거 색인](EVIDENCE.md), 수학, 저장 계약은 [reference](../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md)에서 확인합니다.
 
+## 실물 상태 프로파일
+
+`cleany_robot_interface`의 상태 프로파일은 기존 엔코더 보정과 카메라 외부 보정을
+읽어 실물 모델을 생성합니다.
+기록된 보정의 적용 범위와 정확도는 원본 metadata를 따릅니다.
+
+손목 외부 보정은 `cleany_description/config/calibration/jetson_20261009/`에서
+관리합니다. 실물 모델에는 `calibration_profile:=jetson_20261009`로 적용합니다.
+
 ## ToF 근접 보호 commissioning
 
 [ToF 설정](../ros2_ws/src/cleany_tof/config/tof.yaml)은 실측하지 않은 후보값이다.

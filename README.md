@@ -54,7 +54,7 @@ make sim-gazebo
 | Backend, ROS, MCU 연동 | [연동과 계약](docs/INTEGRATION.md) |
 | 펌웨어 빌드, 업로드, 장치 확인 | [ESP32](esp32/README.md), [배선](esp32/PINMAP.md) |
 | 과거 보고서와 실행 원본 찾기 | [근거 색인](docs/EVIDENCE.md) |
-| 코드 구조와 구현 학습 | [학습 가이드](docs/guide/README.md), [HTML 뷰어](docs/guide/index.html) |
+| 코드 구조와 구현 학습 | [학습 가이드와 HTML 생성 안내](docs/guide/README.md) |
 | 인식과 sorting 실행 | [Perception](ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
 | 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md), [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md) |
 | 제품, 설계, 미해결 질문 | [KB](docs/cleany-docs/README.md) |

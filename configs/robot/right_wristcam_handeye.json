@@ -1,0 +1,25 @@
+{
+  "arm_config": "ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml",
+  "intrinsics_file": "/home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/intrinsics_candidate_20261009_20_fix_k3.json",
+  "urdf_file": "/home/cleany/.local/share/cleany/handeye_inputs/wrists_20plus5_20261009/model/robot.urdf",
+  "output_root": "~/.local/share/cleany/right_wrist_handeye",
+  "hold_seconds": 1.5,
+  "max_span_ticks": 3,
+  "max_gap_seconds": 0.3,
+  "stable_rms_px": 2.0,
+  "arm_side": "right",
+  "torque_capture": {
+    "enabled": false,
+    "motor_ids": [
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "seconds": 3.0,
+    "torque_limit_raw": 500,
+    "manual_commands": true
+  },
+  "diagnostic_monitor": true
+}

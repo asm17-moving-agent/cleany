@@ -1,0 +1,39 @@
+# SYNTHETIC TEST INPUT ONLY. No commissioning or deployment claim.
+# Operator-supervised normal-motion profile. Only left IDs 1-6 are commandable.
+status: operator_supervised_operational
+command_joints:
+  - left_shoulder_yaw_joint
+  - left_shoulder_pitch_joint
+  - left_elbow_pitch_joint
+  - left_wrist_pitch_joint
+  - left_wrist_roll_joint
+  - left_gripper_joint
+update_rate: 50
+serial_timeout_ms: 20
+max_state_age_s: 0.1
+temperature_limit_c: 80
+temperature_fault_confirmation_samples: 3
+joint_defaults:
+  max_velocity: 1.0
+  max_acceleration: 2.0
+  tracking_error: 0.0
+  speed_raw: 800
+  acceleration_raw: 254
+  torque_limit_raw: 800
+joint_overrides:
+  left_gripper_joint: {torque_limit_raw: 200, temperature_limit_c: 80}
+controller:
+  trajectory_tolerance: 0.0
+  goal_tolerance: 0.07
+  goal_time: 5.0
+
+# 2026-10-05: left calibration expressed about the user-aligned CAD reference.
+# 2026-10-09: pitch bounds use the calibrated raw ranges; EEPROM is unchanged.
+calibrated_joint_position_bounds:
+  - left_shoulder_pitch_joint
+  - left_elbow_pitch_joint
+  - left_wrist_pitch_joint
+joint_position_bounds:
+  left_shoulder_yaw_joint: [-2.16, 0.0]
+  left_wrist_roll_joint: [-1.5247769031583274, 2.9513790358919736]
+  left_gripper_joint: [-0.374532977628, 1.74532919957]

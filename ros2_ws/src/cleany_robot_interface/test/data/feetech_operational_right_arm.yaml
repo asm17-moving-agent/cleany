@@ -1,0 +1,39 @@
+# SYNTHETIC TEST INPUT ONLY. No commissioning or deployment claim.
+# Operator-supervised normal-motion profile. Only right IDs 7-12 are commandable.
+status: operator_supervised_operational
+command_joints:
+  - right_shoulder_yaw_joint
+  - right_shoulder_pitch_joint
+  - right_elbow_pitch_joint
+  - right_wrist_pitch_joint
+  - right_wrist_roll_joint
+  - right_gripper_joint
+update_rate: 50
+serial_timeout_ms: 20
+max_state_age_s: 0.1
+temperature_limit_c: 80
+temperature_fault_confirmation_samples: 3
+joint_defaults:
+  max_velocity: 1.0
+  max_acceleration: 2.0
+  tracking_error: 0.0
+  speed_raw: 800
+  acceleration_raw: 254
+  torque_limit_raw: 800
+joint_overrides:
+  right_gripper_joint: {torque_limit_raw: 200, temperature_limit_c: 80}
+controller:
+  trajectory_tolerance: 0.0
+  goal_tolerance: 0.03
+  goal_time: 5.0
+
+# 2026-10-06: calibration and measured wrist range about the manual CAD reference.
+# 2026-10-09: pitch bounds use the calibrated raw ranges; EEPROM is unchanged.
+calibrated_joint_position_bounds:
+  - right_shoulder_pitch_joint
+  - right_elbow_pitch_joint
+  - right_wrist_pitch_joint
+joint_position_bounds:
+  right_shoulder_yaw_joint: [0.0, 2.0033789089786476]
+  right_wrist_roll_joint: [-1.6137477888556946, 2.8992236891038616]
+  right_gripper_joint: [-0.374532977628, 1.74532919957]
