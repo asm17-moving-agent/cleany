@@ -4,6 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from typing import Sequence
+from statistics import median
+
+from .alignment import quaternion_axis, quaternion_from_rotation, rotation_from_quaternion
 
 
 Vector3 = tuple[float, float, float]
@@ -197,3 +200,99 @@ def validate_height_correctable_endpoint(
     guarded = CartesianPose(
         (*actual.position[:2], max(actual.position[2], target.position[2])), actual.orientation)
     validate_pose_endpoint(guarded, target, position_tolerance_m, orientation_tolerance_rad)
+
+
+def estimate_measured_path_pose(measured_start: CartesianPose, command_start: CartesianPose,
+                                command_pose: CartesianPose) -> CartesianPose:
+    """Apply commanded base-frame displacement/rotation to a measured origin.
+
+    This estimate selects a point on a recorded path. Arrival still requires
+    fresh measured FK; a supporting motor command is never the current TCP.
+    """
+    rotation = (rotation_from_quaternion(command_pose.orientation)
+                @ rotation_from_quaternion(command_start.orientation).T
+                @ rotation_from_quaternion(measured_start.orientation))
+    return CartesianPose(
+        tuple(actual+end-start for actual, start, end in zip(
+            measured_start.position, command_start.position, command_pose.position, strict=True)),
+        quaternion_from_rotation(rotation),
+    )
+
+
+def observation_corrected_pose(target: CartesianPose, reference_center: Vector3,
+                               observed_center: Vector3,
+                               maximum_correction_m: float) -> CartesianPose:
+    """Translate a planned pose by the same displacement as a tracked surface."""
+    if (not math.isfinite(maximum_correction_m) or maximum_correction_m <= 0
+            or any(len(point) != 3 or not all(math.isfinite(value) for value in point)
+                   for point in (reference_center, observed_center))):
+        raise ValueError('Invalid visual correction inputs')
+    correction = tuple(current-origin for origin, current in zip(
+        reference_center, observed_center, strict=True))
+    distance = math.sqrt(sum(value*value for value in correction))
+    if distance > maximum_correction_m:
+        raise ValueError(f'Visual target correction exceeds limit: {distance:.6f}m')
+    return CartesianPose(
+        tuple(value+offset for value, offset in zip(
+            target.position, correction, strict=True)),
+        target.orientation,
+    )
+
+
+def coordinate_median(points: Sequence[Vector3]) -> Vector3:
+    """Return a component-wise median for an odd set of finite 3D samples."""
+    if (len(points) < 1 or len(points) % 2 == 0
+            or any(len(point) != 3 or not all(math.isfinite(value) for value in point)
+                   for point in points)):
+        raise ValueError('median center requires an odd set of finite 3D points')
+    return tuple(float(median(point[axis] for point in points)) for axis in range(3))
+
+
+@dataclass(frozen=True)
+class GraspCaptureMetrics:
+    distance_m: float
+    approach_remaining_m: float
+    lateral_error_m: float
+
+    def inside(self, depth_m: float, lateral_tolerance_m: float,
+               reverse_tolerance_m: float) -> bool:
+        limits = (depth_m, lateral_tolerance_m, reverse_tolerance_m)
+        if not all(math.isfinite(value) and value >= 0 for value in limits):
+            raise ValueError('grasp capture limits must be finite and nonnegative')
+        return (
+            self.distance_m <= depth_m
+            and -reverse_tolerance_m <= self.approach_remaining_m <= depth_m
+            and self.lateral_error_m <= lateral_tolerance_m
+        )
+
+
+def grasp_capture_metrics(current: CartesianPose,
+                          target: CartesianPose) -> GraspCaptureMetrics:
+    """Resolve remaining TCP translation along and across the grasp approach axis."""
+    displacement = tuple(
+        target_value-current_value
+        for current_value, target_value in zip(
+            current.position, target.position, strict=True)
+    )
+    distance = math.sqrt(sum(value*value for value in displacement))
+    approach = quaternion_axis(target.orientation, (0., -1., 0.))
+    along = sum(value*axis for value, axis in zip(
+        displacement, approach, strict=True))
+    lateral = math.sqrt(max(0., distance*distance-along*along))
+    return GraspCaptureMetrics(distance, along, lateral)
+
+
+def bounded_cartesian_step(start: CartesianPose, target: CartesianPose,
+                           maximum_translation_m: float) -> CartesianPose:
+    """Return the next pose on a straight Cartesian segment with a bounded step."""
+    if not math.isfinite(maximum_translation_m) or maximum_translation_m <= 0:
+        raise ValueError('Cartesian step must be finite and positive')
+    distance = math.dist(start.position, target.position)
+    if distance <= maximum_translation_m:
+        return target
+    fraction = maximum_translation_m/distance
+    return CartesianPose(
+        tuple(a+(b-a)*fraction for a, b in zip(
+            start.position, target.position, strict=True)),
+        interpolate_orientation(start.orientation, target.orientation, fraction),
+    )

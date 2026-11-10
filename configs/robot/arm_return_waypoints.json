@@ -1,0 +1,53 @@
+{
+  "frame": "base_link",
+  "joint_names": {
+    "left": [
+      "left_shoulder_yaw_joint",
+      "left_shoulder_pitch_joint",
+      "left_elbow_pitch_joint",
+      "left_wrist_pitch_joint",
+      "left_wrist_roll_joint"
+    ],
+    "right": [
+      "right_shoulder_yaw_joint",
+      "right_shoulder_pitch_joint",
+      "right_elbow_pitch_joint",
+      "right_wrist_pitch_joint",
+      "right_wrist_roll_joint"
+    ]
+  },
+  "arms": {
+    "left": [
+      [
+        -1.5493205957644975,
+        1.7413564440766973,
+        1.7694723430558228,
+        0.2,
+        1.5938060386131812
+      ],
+      [
+        -1.5493205957644975,
+        2.8,
+        2.9,
+        -0.9,
+        1.5938060386131812
+      ]
+    ],
+    "right": [
+      [
+        1.53091282630987,
+        1.7413564440766975,
+        1.7694723430558228,
+        0.2,
+        1.560058461279697
+      ],
+      [
+        1.53091282630987,
+        2.8,
+        2.9,
+        -0.9,
+        1.560058461279697
+      ]
+    ]
+  }
+}

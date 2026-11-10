@@ -166,3 +166,86 @@ def test_height_shortfall_keeps_xy_rotation_and_overshoot_guards(xyz, angle, acc
     else:
         with pytest.raises(ValueError):
             validate_height_correctable_endpoint(actual, target, .030, math.radians(20.))
+
+
+from cleany_skill_executor.core.cartesian import bounded_cartesian_step, coordinate_median, estimate_measured_path_pose, grasp_capture_metrics, observation_corrected_pose
+
+from cleany_skill_executor.core.alignment import quaternion_from_rotation, rotation_from_quaternion
+
+def test_recorded_path_starts_at_measured_tcp_after_large_height_correction():
+    measured = CartesianPose((.429300486860051, .1379370516226814, .5821843963492025),
+                             (.4194112687, .3485305305, .5357298996, .6446814187))
+    command = CartesianPose((.4312287445669679, .13757803825922232, .6130968495419921),
+                            (.3845307879, .3186808912, .5534167934, .6665646372))
+    assert math.dist(measured.position, command.position) > .03
+    start = estimate_measured_path_pose(measured, command, command)
+    assert start.position == pytest.approx(measured.position)
+    assert orientation_error_rad(start.orientation, measured.orientation) < 1e-7
+    next_command = CartesianPose((command.position[0]-.01, command.position[1]+.02,
+                                 command.position[2]-.05), command.orientation)
+    predicted = estimate_measured_path_pose(measured, command, next_command)
+    assert predicted.position == pytest.approx((measured.position[0]-.01,
+                                                measured.position[1]+.02, measured.position[2]-.05))
+    assert orientation_error_rad(predicted.orientation, measured.orientation) < 1e-7
+
+
+def test_recorded_rotation_applies_world_delta_to_measured_orientation():
+    measured = CartesianPose((0., 0., .5), (math.sin(.1), 0., 0., math.cos(.1)))
+    command = CartesianPose((0., 0., .6), (0., math.sin(.3), 0., math.cos(.3)))
+    delta = rotation_from_quaternion((0., 0., math.sin(.15), math.cos(.15)))
+    endpoint = CartesianPose((0., 0., .55), quaternion_from_rotation(
+        delta @ rotation_from_quaternion(command.orientation)))
+    predicted = estimate_measured_path_pose(measured, command, endpoint)
+    expected = quaternion_from_rotation(delta @ rotation_from_quaternion(measured.orientation))
+    assert predicted.position == pytest.approx((0., 0., .45))
+    assert orientation_error_rad(predicted.orientation, expected) < 1e-7
+
+
+def test_motor_support_conversion_round_trips_the_unchanged_physical_goal():
+    measured = CartesianPose((.4, .1, .5), (math.sin(.1), 0., 0., math.cos(.1)))
+    command = CartesianPose((.41, .09, .54), (0., math.sin(.2), 0., math.cos(.2)))
+    goal = CartesianPose((.42, .12, .6), (0., 0., math.sin(.25), math.cos(.25)))
+    motor_goal = estimate_measured_path_pose(command, measured, goal)
+    assert motor_goal.position == pytest.approx((.43, .11, .64))
+    physical = estimate_measured_path_pose(measured, command, motor_goal)
+    assert physical.position == pytest.approx(goal.position)
+    assert orientation_error_rad(physical.orientation, goal.orientation) < 1e-7
+    assert goal.position == (.42, .12, .6)
+
+
+def test_visual_correction_translates_the_grasp_and_bounds_short_steps():
+    planned = CartesianPose((.3, .1, .4), IDENTITY)
+    corrected = observation_corrected_pose(
+        planned, (.2, .1, .3), (.212, .095, .3), .03)
+    assert corrected.position == pytest.approx((.312, .095, .4))
+    first = bounded_cartesian_step(
+        CartesianPose((.3, .1, .4), IDENTITY), corrected, .005)
+    assert math.dist(first.position, planned.position) == pytest.approx(.005)
+    assert first.orientation == IDENTITY
+    with pytest.raises(ValueError, match='exceeds'):
+        observation_corrected_pose(
+            planned, (.2, .1, .3), (.25, .1, .3), .03)
+
+
+def test_visual_center_median_discards_one_frame_jump():
+    assert coordinate_median([
+        (.3, .1, .4),
+        (.34, .1, .4),
+        (.301, .099, .4),
+    ]) == pytest.approx((.301, .1, .4))
+    with pytest.raises(ValueError, match='odd set'):
+        coordinate_median([(.3, .1, .4), (.31, .1, .4)])
+
+
+def test_grasp_capture_corridor_separates_approach_from_lateral_error():
+    current = CartesianPose((0., 0., 0.), IDENTITY)
+    target = CartesianPose((.003, -.02, 0.), IDENTITY)
+    metrics = grasp_capture_metrics(current, target)
+
+    assert metrics.approach_remaining_m == pytest.approx(.02)
+    assert metrics.lateral_error_m == pytest.approx(.003)
+    assert metrics.inside(.045, .005, .001)
+    assert not metrics.inside(.015, .005, .001)
+    assert not grasp_capture_metrics(
+        current, CartesianPose((.02, -.02, 0.), IDENTITY),
+    ).inside(.045, .005, .001)

@@ -2,6 +2,8 @@
 from concurrent.futures import Future
 from types import SimpleNamespace as NS
 
+from cleany_manipulation_bt.action_tracking import quiescent
+
 import pytest
 from sensor_msgs.msg import JointState
 
@@ -309,3 +311,61 @@ def test_stationary_window_rejects_invalid_limits(setting, value):
     limits[setting] = value
     with pytest.raises(ValueError):
         StationaryWindow(**limits)
+
+
+def window():
+    return StationaryWindow(barrier_ns=10_000_000_000, started_at=10.0,
+        max_age_sec=.2, maximum_velocity=.02, required_samples=3, minimum_duration_sec=.1)
+
+
+def update(feedback, now, names=('left', 'right'), velocities=(0., 0.)):
+    feedback.update(names, velocities, int(now * 1e9), now)
+
+
+def test_future_stamped_feedback_cannot_prove_physical_stop():
+    feedback, stopped = JointFeedback(('left', 'right')), window()
+    for n in range(10):
+        now = 10.01 + n * .05
+        feedback.update(('left', 'right'), (0., 0.), int((now + .05) * 1e9), now)
+        assert not stopped.observe(feedback, now=now, clock_ns=int(now * 1e9), terminal=True)
+
+
+@pytest.mark.parametrize('velocities', [(), (float('nan'), float('nan'))])
+def test_position_only_feedback_proves_stop_after_two_post_barrier_samples(velocities):
+    feedback, stopped = JointFeedback(('left', 'right')), window()
+    feedback.update(('left', 'right'), velocities, 9_990_000_000, 9.99, positions=(.4, -.2))
+    confirmed = False
+    for n in range(7):
+        now = 10.01 + n * .05
+        feedback.update(('left', 'right'), velocities, int(now * 1e9), now,
+                        positions=(.4, -.2), maximum_position_interval_sec=.2)
+        confirmed = stopped.observe(feedback, now=now, clock_ns=int(now * 1e9), terminal=True)
+        if n < 3:
+            assert not confirmed
+    assert confirmed
+
+
+@pytest.mark.parametrize('issue', ['moving', 'nan', 'missing', 'gap'])
+def test_bad_position_feedback_cannot_replace_missing_velocity(issue):
+    feedback, stopped = JointFeedback(('left', 'right')), window()
+    for n in range(10):
+        now = 10.01 + n * (.3 if issue == 'gap' else .05)
+        positions = (.1 * n if issue == 'moving' else .4, -.2)
+        if issue == 'nan':
+            positions = (float('nan'), -.2)
+        elif issue == 'missing':
+            positions = ()
+        feedback.update(('left', 'right'), (), int(now * 1e9), now,
+                        positions=positions, maximum_position_interval_sec=.2)
+        assert not stopped.observe(feedback, now=now, clock_ns=int(now * 1e9), terminal=True)
+
+
+def test_late_acknowledgement_and_terminal_result_are_both_required():
+    submitted, result = Future(), Future()
+    handle = NS(accepted=True)
+    assert not quiescent([submitted], [])
+    submitted.set_result(handle)
+    assert not quiescent([submitted], [])
+    assert not quiescent([submitted], [(handle,result)])
+    result.set_result(NS(status=4))
+    assert quiescent([submitted], [(handle,result)])

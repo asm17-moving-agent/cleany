@@ -13,6 +13,8 @@ class JointSample:
     received_at: float
     velocity: float
     invalid_reason: str = ''
+    position: float = math.nan
+    velocity_from_ns: int | None = None
 
     def failure_reason(self, now: float, clock_ns: int, max_age_sec: float,
                        *, after_ns: int = 0, after_wall: float = -math.inf) -> str:
@@ -22,6 +24,8 @@ class JointSample:
             return 'non_finite_velocity'
         if not self.stamp_ns > after_ns:
             return 'pre_command_stamp'
+        if self.velocity_from_ns is not None and self.velocity_from_ns <= after_ns:
+            return 'pre_command_velocity'
         if not self.received_at > after_wall:
             return 'pre_command_receipt'
         if now < self.received_at:
@@ -44,9 +48,11 @@ class JointFeedback:
         self.samples: dict[str, JointSample] = {}
 
     def update(self, names: Sequence[str], velocities: Sequence[float],
-               stamp_ns: int, received_at: float) -> None:
+               stamp_ns: int, received_at: float, *, positions: Sequence[float] = (),
+               maximum_position_interval_sec: float = 0.5) -> None:
         counts = Counter(names)
         complete_velocities = len(names) == len(velocities)
+        complete_positions = len(names) == len(positions)
         for index, name in enumerate(names):
             if name not in self.required_names:
                 continue
@@ -61,7 +67,23 @@ class JointFeedback:
                 reason = 'repeated_stamp' if stamp_ns == previous.stamp_ns else 'backward_stamp'
                 self.samples[name] = JointSample(previous.stamp_ns, previous.received_at, math.nan, reason)
             else:
-                self.samples[name] = JointSample(stamp_ns, received_at, velocity, reason)
+                position = positions[index] if complete_positions and counts[name] == 1 else math.nan
+                velocity_from_ns = None
+                # The physical guard publishes positions and omits unsupported
+                # velocities. Derive a rate only from two finite, advancing,
+                # closely spaced measured positions; absence never means zero.
+                if (not math.isfinite(velocity) and (not velocities or complete_velocities)
+                        and previous is not None and math.isfinite(position)
+                        and math.isfinite(previous.position)):
+                    interval = (stamp_ns - previous.stamp_ns) / 1e9
+                    receipt_interval = received_at - previous.received_at
+                    if (0 < interval < maximum_position_interval_sec
+                            and 0 < receipt_interval < maximum_position_interval_sec):
+                        velocity = (position - previous.position) / interval
+                        velocity_from_ns = previous.stamp_ns
+                self.samples[name] = JointSample(stamp_ns, received_at, velocity,
+                                                 invalid_reason='' if math.isfinite(velocity) else reason,
+                                                 position=position, velocity_from_ns=velocity_from_ns)
 
     def invalid_reasons(self, now: float, clock_ns: int, max_age_sec: float,
                         *, after_ns: int = 0, after_wall: float = -math.inf) -> dict[str, str]:
@@ -104,7 +126,10 @@ class StationaryWindow:
             sample.received_at - self._previous_receipts.get(name, sample.received_at) >= self.max_age_sec
             for name, sample in feedback.samples.items())
         self._previous_receipts = {name: sample.received_at for name, sample in feedback.samples.items()}
-        if (not terminal or gap or feedback.invalid_joints(
+        # A small cross-topic skew is acceptable for the motion guard, but a
+        # future sample cannot establish a post-command stationary interval.
+        future = any(sample.stamp_ns > clock_ns for sample in feedback.samples.values())
+        if (not terminal or gap or future or feedback.invalid_joints(
                 now, clock_ns, self.max_age_sec, after_ns=self.barrier_ns, after_wall=self.started_at)
                 or any(abs(feedback.samples[name].velocity) > self.maximum_velocity
                        for name in feedback.required_names)):

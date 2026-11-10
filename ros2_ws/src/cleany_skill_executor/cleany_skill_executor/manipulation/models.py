@@ -78,6 +78,7 @@ class ObjectState(str, Enum):
 class Placement(str, Enum):
     NOT_CHECKED = 'NOT_CHECKED'
     CONFIRMED = 'CONFIRMED'
+    ASSUMED = 'ASSUMED'
     NOT_CONFIRMED = 'NOT_CONFIRMED'
     UNKNOWN = 'UNKNOWN'
 

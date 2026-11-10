@@ -1,5 +1,6 @@
 """Replay the actual controller cubics without IK, simplification or rebiasing."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from collections.abc import Callable, Sequence
 from bisect import bisect_right
 from functools import cached_property
 import math
@@ -48,6 +49,26 @@ class RecordedTrajectory:
                 raise CommandPathValidationError('Malformed recorded arm trajectory point')
             previous = point.time_ns
 
+    def reversed_with_roll(self, wrist_name: str, roll: float) -> 'RecordedTrajectory':
+        self.validate()
+        if wrist_name not in self.joint_names or not math.isfinite(roll):
+            raise CommandPathValidationError('Reverse retreat requires a finite measured wrist roll')
+        index = self.joint_names.index(wrist_name)
+        end_ns = self.points[-1].time_ns
+        points = []
+        for point in reversed(self.points):
+            positions, velocities = list(point.positions), [-v for v in point.velocities]
+            positions[index], velocities[index] = float(roll), 0.
+            points.append(CommandPoint(end_ns-point.time_ns, tuple(positions), tuple(velocities)))
+        return RecordedTrajectory(self.joint_names, tuple(points))
+
+    def reversed(self) -> 'RecordedTrajectory':
+        """Reverse all joints, including the roll that was actually commanded."""
+        self.validate()
+        end_ns = self.points[-1].time_ns
+        return RecordedTrajectory(self.joint_names, tuple(
+            CommandPoint(end_ns-point.time_ns, point.positions,
+                         tuple(-v for v in point.velocities)) for point in reversed(self.points)))
 
     def command_samples(self) -> list[JointPathSample]:
         self.validate()
@@ -70,6 +91,41 @@ class RecordedTrajectory:
                             tuple((3*a*u*u+2*b*u+c)/dt for a,b,c,_ in coefficients))
 
 
+@dataclass
+class ArmCommandRecording:
+    arm: str
+    trajectories: list[RecordedTrajectory] = field(default_factory=list)
+    interrupted: bool = False
+
+
+def validate_command_history(paths: Sequence[RecordedTrajectory], names: tuple[str, ...]) -> None:
+    if not paths:
+        raise CommandPathValidationError('Reverse return has no completed command history')
+    for path in paths:
+        path.validate()
+        if path.joint_names != names:
+            raise CommandPathValidationError('Reverse return history belongs to another arm')
+        if any(abs(v) > 1e-9 for p in (path.points[0], path.points[-1]) for v in p.velocities):
+            raise CommandPathValidationError('Reverse return history must have stopped action boundaries')
+    for first, second in zip(paths, paths[1:]):
+        if any(abs(a-b) > 1e-9 for a, b in zip(
+                first.points[-1].positions, second.points[0].positions, strict=True)):
+            raise CommandPathValidationError('Reverse return command history is discontinuous')
+
+
+def reversed_command_history(paths: Sequence[RecordedTrajectory]) -> RecordedTrajectory:
+    if not paths:
+        raise CommandPathValidationError('Reverse return has no completed command history')
+    validate_command_history(paths, paths[0].joint_names)
+    points, elapsed = [], 0
+    for path in reversed(paths):
+        backward = path.reversed()
+        points.extend(CommandPoint(elapsed+p.time_ns, p.positions, p.velocities)
+                      for p in (backward.points if not points else backward.points[1:]))
+        elapsed += backward.points[-1].time_ns
+    return RecordedTrajectory(paths[0].joint_names, tuple(points))
+
+
 def recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int) -> RecordedTrajectory:
     path.validate()
     if not 0 <= start_ns < end_ns <= path.points[-1].time_ns:
@@ -78,6 +134,72 @@ def recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int) -> Rec
               *(p for p in path.points if start_ns < p.time_ns < end_ns), path.sample_at(end_ns))
     return RecordedTrajectory(path.joint_names, tuple(
         CommandPoint(p.time_ns-start_ns, p.positions, p.velocities) for p in points))
+
+
+def _cubic_slope_bound(a: float, b: float, c: float) -> float:
+    """Bound absolute dq/du on [0, 1] using the quadratic's endpoints and vertex."""
+    bound = max(abs(c), abs(3*a+2*b+c))
+    if a:
+        vertex = -b/(3*a)
+        if 0 < vertex < 1:
+            bound = max(bound, abs((3*a*vertex+2*b)*vertex+c))
+    return math.nextafter(bound, math.inf)
+
+
+def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[float, ...]], float],
+                           target_z: float, *, step_rad: float = .01,
+                           maximum_points: int = 2000, height_tolerance_m: float = 0.) -> int:
+    """Find a point above the first downward crossing on the saved cubics.
+
+    A positive tolerance may finish bisection once its upper-height endpoint
+    is within that many meters of the target. Zero retains nanosecond search.
+    Analytical cubic slopes bound joint steps without a loose coefficient sum.
+    This is a joint sampling bound, not a continuous Cartesian collision proof.
+    """
+    if (not math.isfinite(target_z) or not math.isfinite(step_rad) or step_rad <= 0
+            or not math.isfinite(height_tolerance_m) or height_tolerance_m < 0
+            or type(maximum_points) is not int or maximum_points < 2):
+        raise CommandPathValidationError('Invalid reverse return height search')
+    path.validate()
+    def z(point):
+        value = height(point.positions)
+        if not math.isfinite(value):
+            raise CommandPathValidationError('Reverse return FK height is not finite')
+        return value
+    previous_z = z(path.points[0])
+    if previous_z <= target_z:
+        raise CommandPathValidationError('Reverse return must start above the release height')
+    examined = 1
+    for index, (first, last) in enumerate(zip(path.points, path.points[1:])):
+        _, coefficients = path._segments[index]
+        bound = max(_cubic_slope_bound(a, b, c) for a, b, c, _ in coefficients)
+        count = max(2, math.ceil(bound/step_rad))
+        examined += count
+        if examined > maximum_points:
+            raise CommandPathValidationError('Reverse return exceeds its sample budget')
+        previous = first.time_ns
+        for i in range(1,count+1):
+            current = first.time_ns+round((last.time_ns-first.time_ns)*i/count)
+            current_z = z(path.sample_at(current))
+            if current_z <= target_z:
+                low, high = previous, current
+                low_z = previous_z
+                for _ in range(24):
+                    if high-low <= 1 or (low > 0 and 0 < low_z-target_z <= height_tolerance_m):
+                        break
+                    middle = (low+high)//2
+                    middle_z = z(path.sample_at(middle))
+                    if middle_z > target_z:
+                        low = middle
+                        low_z = middle_z
+                    else:
+                        high = middle
+                if low == 0:
+                    raise CommandPathValidationError('Reverse height search has no positive travel')
+                return low
+            previous = current
+            previous_z = current_z
+    raise CommandPathValidationError('Recorded return path does not reach the release height')
 
 
 def stopped_recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int,

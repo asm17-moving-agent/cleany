@@ -1,1 +1,1 @@
-"""The native BT runner is imported only by the MuJoCo execution path."""
+"""Native BehaviorTree execution for MuJoCo and Jetson manipulation."""
