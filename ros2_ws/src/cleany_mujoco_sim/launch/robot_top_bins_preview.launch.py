@@ -18,7 +18,7 @@ def generate_launch_description() -> LaunchDescription:
         'camera_frame_name': 'head_camera_rgb_optical_frame',
         'enable_camera_contract_adapter': 'false',
         'enable_gripper_controllers': 'true',
-        'head_tilt_initial': '1.0',
+        'head_tilt_initial': '0.8',
     }
     joints = ('shoulder_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_pitch', 'wrist_roll', 'gripper')
     for side, positions in (

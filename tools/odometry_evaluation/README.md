@@ -6,7 +6,7 @@
 |---|---|---|
 | 한 패턴의 왕복 잔차 | `run_eval.sh` | pattern / 거리 / 회전 수 |
 | 속도별 wheel odom 재측정 | `run_wheel_only_eval.sh` | [wheel 평가 config](../../configs/mission/wheel_odometry_evaluation.json) |
-| 축별 P 응답과 외부 오차 | `run_motion_response.sh` | [전 축 프로토콜](VALIDATION_PROTOCOL.md) |
+| 축별 P 응답과 외부 오차 | `run_motion_response.sh` | [전 축 프로토콜](validation_protocol.md) |
 | 저장 스캔만 다시 정합 | `replay_scan_matches.py` | response summary + NPZ; ROS/장치 사용 안 함 |
 
 ## 1. 사전 준비 및 바닥 마킹
@@ -103,7 +103,7 @@ bash tools/odometry_evaluation/run_wheel_only_eval.sh   --config configs/mission
 
 ### 전 축 P=6 검증 프로토콜
 
-시험 행렬과 조정 범위의 원본은 [VALIDATION_PROTOCOL](VALIDATION_PROTOCOL.md)이다.
+시험 행렬과 조정 범위의 원본은 [VALIDATION_PROTOCOL](validation_protocol.md)이다.
 
 ```bash
 bash tools/odometry_evaluation/run_motion_response.sh   --config configs/mission/all_axis_validation.json
@@ -254,6 +254,11 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 
 
 ## 5. 결과와 그래프 읽기
+
+<figure class="visual-slot" data-visual-id="odometry-result">
+<p><strong>시각자료 자리 · 비워 둠</strong></p>
+<figcaption><strong>필요한 자료:</strong> 현재 평가 도구의 response.png와 대응하는 실제 trace·결과 JSON.<br><strong>빈 이유:</strong> 기존 wheel 비교 자료는 이 도구의 응답 trace와 연결되지 않아 재사용하지 않았습니다.</figcaption>
+</figure>
 
 `response.png`는 축별 열과 3개 행으로 구성된다. **실제 trace가 있는 실행에서 생성한 그림**을 결과 JSON과 함께 열어 해석한다.
 

@@ -1,7 +1,7 @@
 # MuJoCo backend 계약
 
 
-[장면과 실행 설정](scenes.md) · [조작 가이드](../../../../docs/how-to/manipulation.md)
+[장면과 실행 설정](scenes.md) · [조작 가이드](../../../../docs/implementation/how-to/manipulation.md)
 
 한 실행에서는 backend 하나만 사용한다. Joint state, sensor, TF, controller의 소유자를 중복시키지 않는다.
 
@@ -25,7 +25,7 @@ Custom/ros2_control backend의 동시 실행은 joint 명령 경쟁을 일으키
 
 실행 인자는 launch/*.launch.py와 `ros2 launch ... --show-args`에서 확인한다.
 
-관련 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [검증](../../../../docs/implementation/testing.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).
 

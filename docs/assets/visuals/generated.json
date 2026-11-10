@@ -1,0 +1,201 @@
+{
+  "command": "python3 tools/docs/render_contract_figures.py",
+  "renderer_versions": {
+    "matplotlib": "3.11.2",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "PyYAML": "6.0.3",
+    "pytest": "9.2.0",
+    "opencv-python-headless": "5.0.0.93"
+  },
+  "assets": [
+    {
+      "id": "footprint",
+      "asset": "ros2_ws/src/cleany_navigation/docs/assets/footprint.png",
+      "scope": "Equal-scale configured polygons; no braking-distance claim.",
+      "sha256": "642a7d40e9ea098b3e6243fe746ceaf1350b8a11d1e704eed932cedc67a8d10f",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_robot.yaml",
+          "sha256": "4e03af294afac6b2fe85da1151b51b3f601ff5e065b74e7d161938963058017f"
+        },
+        {
+          "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_safety.yaml",
+          "sha256": "c8c1321f9df9a8af3c73644b94e1d4583ec553853274c55b108e9f9ca94b98b2"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "direction-cost",
+      "asset": "ros2_ws/src/cleany_navigation/docs/assets/direction-cost.png",
+      "scope": "Analytic critic cost using configured weights; not a motion result.",
+      "sha256": "d6a3fe1ac338dd2570140db1d04f11c628bbf3123fe3a6d2b66f644174c50b33",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_navigation/config/nav2_phone_omni.yaml",
+          "sha256": "f07c1fb5fbde584b61249c51535bfabeb04f8ffc3c53ad5ddfb2b140e7f5ffa0"
+        },
+        {
+          "path": "ros2_ws/src/cleany_navigation/mppi/src/critics/directional_motion_critic.cpp",
+          "sha256": "cd71ddde27ce2f7cd344f74722503393d806d595ee88a65f417284a242127328"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "lattice",
+      "asset": "ros2_ws/src/cleany_navigation/docs/assets/lattice.png",
+      "scope": "Stored primitive poses at heading index 0; straight segments join samples.",
+      "sha256": "a23fec33fe31559bc260310bc634f68ed35b261e2ee9cf9f66a6aeb63af929b7",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_navigation/config/lattice/omni-r10cm-balanced.json",
+          "sha256": "6e5bc489e3404b051ab13bed31303c0f4612feeee091cf3180602439a4d5f44f"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "alignment",
+      "asset": "ros2_ws/src/cleany_navigation/docs/assets/alignment.png",
+      "scope": "Exact scene() fixture and core transform; synthetic scan, not a recorded run.",
+      "sha256": "b6db89dce1234f37bc4e8be5d27083cb8dfe7d94a9c604e1f44f69773c03d158",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_navigation/test/test_localization_alignment.py",
+          "sha256": "2c078a4424ac9bb062885ff44b25db2b33e386e2779ae721a0ca878f31931248"
+        },
+        {
+          "path": "ros2_ws/src/cleany_navigation/cleany_navigation/localization_alignment.py",
+          "sha256": "111cfa753dae6cd98016d4d46bd4602ea24b6cfb41bf531052b724939156cd73"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "depth-mask",
+      "asset": "ros2_ws/src/cleany_navigation/docs/assets/depth-mask.png",
+      "scope": "XZ and YZ projections of fixed AABBs, excluding moving arms; not the full runtime 3D safety model.",
+      "sha256": "9cda24ad7168ebbd916a9250d52f301b4daf2cdc2372c796730d6c155d336f19",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_navigation/config/d435_fixed_body_boxes.json",
+          "sha256": "e396c28d92b65608c0b18e2e3219f8044dfe5bd0953cedf60cdc2df5b5a3c6d1"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "wrist-axes",
+      "asset": "ros2_ws/src/cleany_description/docs/assets/wrist-axes.png",
+      "scope": "Approximate geometry transform, not measured hand-eye calibration.",
+      "sha256": "5050795418d243e8ff63cdf550e5aaeb341870dcd35ef46baeba5d982b32a252",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_description/config/geometry/cad_final.json",
+          "sha256": "1c4197bd0ec63df1774d529deda75a7225117df62f3710580142d600c18d764a"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "bins",
+      "asset": "ros2_ws/src/cleany_mujoco_sim/docs/assets/bins.png",
+      "scope": "Plan view from YAML; opening dimensions exclude walls; simulation concept only.",
+      "sha256": "aa0a98cd73b60dc0799588a91ea8f73796832eade05f884fc0cd0d3a1da04c05",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_mujoco_sim/config/robot_top_bins.yaml",
+          "sha256": "1e20e991d8a11d3bb4914c4cc2fd51359ebaf48e902b7f825ff823514d23dd84"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "joint-sync",
+      "asset": "ros2_ws/src/cleany_handeye_calibration/docs/assets/joint-sync.png",
+      "scope": "Existing unit-test values and core interpolation; nanosecond spacing is not a hardware sample rate.",
+      "sha256": "cfb60b227509af10681a74c0e64e930b557f4256d9384aa556ee517753be5feb",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_handeye_calibration/test/test_joint_state_sync.py",
+          "sha256": "09b91c3535418137a77d4d977bc6bdc940c7292d35d28c5510eabc6199586445"
+        },
+        {
+          "path": "ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/joint_state_sync.py",
+          "sha256": "46704d12e2bc64fbcacac1d97c31d08754039f025008fe44f8287b727a905fb2"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "octomap-cells",
+      "asset": "ros2_ws/src/cleany_scene_mapping/docs/assets/octomap-cells.png",
+      "scope": "XY section at z=5 mm of C++ fixture; actual containment checks all eight 3D corners.",
+      "sha256": "7919bd04c3d96f87c4af8565eba79d60513c0186b994b69fdcaad08aeb4f0329",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_scene_mapping/test/test_known_geometry.cpp",
+          "sha256": "591aa92ae2f4de0d548388c481244a71a7ab8f33c00465f2dabdfcd5d090969f"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    },
+    {
+      "id": "collision-shape",
+      "asset": "ros2_ws/src/cleany_description/docs/assets/collision-shape.png",
+      "scope": "Current CAD elbow socket and its convex collision envelope, identical view; not a whole-robot collision result.",
+      "sha256": "dd183750400fbfe80f90116605677e5e8896163e8228590f353d6fc9ec16e8c6",
+      "inputs": [
+        {
+          "path": "ros2_ws/src/cleany_description/meshes/cad_final/Aligned_AssembledElbowBSocket.stl",
+          "sha256": "b6bd21e91a885bdd8009e6c4025f3c8a45790d1f33628f59b1214399d9a5fb4a"
+        },
+        {
+          "path": "ros2_ws/src/cleany_description/meshes/cad_final/collision/Aligned_AssembledElbowBSocket.stl",
+          "sha256": "dfce39b60f6e327446771104d5dfe8b26479c5c3aac16160d590e1ef757cf982"
+        },
+        {
+          "path": "configs/robot/arm_collision_meshes.json",
+          "sha256": "4b56639bb8873566b82437ddac9dd005a076e5109928eb5038f1844369c83d05"
+        },
+        {
+          "path": "tools/optimize_arm_collision_meshes.py",
+          "sha256": "f9a193f1aa63d038dcaaa15068258e6df3d52624455d6cf66cdf3dae1de11f37"
+        },
+        {
+          "path": "tools/docs/render_contract_figures.py",
+          "sha256": "3381d394c1c289e1aadb8bda48ca1b6bc2be58e1ef4bd10d7c2a4aeb68a70843"
+        }
+      ]
+    }
+  ]
+}

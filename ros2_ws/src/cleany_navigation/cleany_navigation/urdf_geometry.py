@@ -14,6 +14,12 @@ def rotation(rpy: list[float]) -> np.ndarray:
 
 
 def rpy(matrix: np.ndarray) -> list[float]:
+    # At pitch +/-pi/2 only yaw +/- roll is observable. Avoid dividing the
+    # orientation between two angles using near-zero matrix entries.
+    horizontal = np.hypot(matrix[0, 0], matrix[1, 0])
+    if horizontal < 1e-10:
+        return [0., float(np.arctan2(-matrix[2, 0], horizontal)),
+                float(np.arctan2(-matrix[0, 1], matrix[1, 1]))]
     return [float(np.arctan2(matrix[2, 1], matrix[2, 2])),
             float(np.arctan2(-matrix[2, 0], np.hypot(matrix[0, 0], matrix[1, 0]))),
             float(np.arctan2(matrix[1, 0], matrix[0, 0]))]

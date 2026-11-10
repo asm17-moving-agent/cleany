@@ -5,7 +5,19 @@
 주행 요약과 조작 이력 집계, 호스트 리소스, 원본 큐, 단일 writer와 세션 종료를 소유한다.
 대시보드를 종료하거나 다시 열어도 활성 세션은 유지한다.
 
-![Logger 기록 구조](assets/logger-architecture.svg)
+```mermaid
+stateDiagram-v2
+  [*] --> Waiting: 프로세스 시작 / lock 획득
+  Waiting --> Recording: 시작 요청 또는 record_on_start
+  Recording --> Closing: 정지 요청
+  Closing --> Waiting: 큐 / SQLite / bag 마감 뒤 응답
+  note right of Recording
+    Monitor 종료는 녹화를 멈추지 않음
+    재시작은 새 UUID로 별도 세션
+  end note
+```
+
+프로세스 간 연결은 [기록과 화면의 소유권](../../../../docs/implementation/how-to/monitoring.md#화면과-기록의-소유권)을 따른다.
 
 Logger와 Monitor 서버는 같은 호스트에서 같은 `state_directory`를 사용한다.
 브라우저는 원격 접속할 수 있다. 독립 CLI 실행 파일 `logger`는 ROS 서비스로
@@ -25,5 +37,5 @@ logger는 상태 전이와 작업 성공을 판정하지 않으며 Mission Runti
 `MissionJournal`을 열거나 갱신하지 않는다. 실패 코드는 생산자가 보낸 의미를 보존한다.
 
 ROS 계약은 [인터페이스](interfaces.md), 저장 계약은 [데이터](data.md),
-실행 절차는 [RUNNING](../../../../docs/how-to/monitoring.md#독립-logger),
-검증 절차는 [TESTING](../../../../docs/TESTING.md)을 따른다.
+실행 절차는 [RUNNING](../../../../docs/implementation/how-to/monitoring.md#독립-logger),
+검증 절차는 [TESTING](../../../../docs/implementation/testing.md)을 따른다.

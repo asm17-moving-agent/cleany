@@ -73,4 +73,4 @@ Transport는 전송한 execution ID와 일치하는 최신 Feedback 하나만 �
 
 취소는 정확한 Goal UUID의 기본 CHECKPOINT 모드를 사용한다. 취소 ACK는 완료나 정지 증거가 아니다. `IMMEDIATE`, `RETURN_ARM`을 선택하는 Mission API는 제공하지 않는다. FATAL이나 정지 미확인은 ERROR를 유지하며, 팔 미복귀 시 이미 안착한 결과를 보존하면서 주행을 차단한다. 손상된 DB는 오류로 처리하고 자동 초기화하지 않는다.
 
-관련 안내: [Mission](mission.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [Mission](mission.md), [검증](../../../../docs/implementation/testing.md).

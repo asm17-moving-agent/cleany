@@ -7,7 +7,7 @@
 ## 실행
 
 레포 루트에서 실행한다. 실물 실행은
-[베이스 드라이버](../../docs/how-to/base.md)의 Agent와
+[베이스 드라이버](../../docs/implementation/how-to/base.md)의 Agent와
 hardware profile 기동 절차를 따른다. 사람 없는 평탄한 시험 공간과
 물리 emergency stop을 준비한다.
 

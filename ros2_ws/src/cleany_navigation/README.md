@@ -4,7 +4,7 @@
 
 | 하려는 일 | 시작할 곳 |
 |---|---|
-| 휴대폰에서 목적지 지정 | [화면으로 따라 하는 주행 가이드](../../../docs/how-to/phone-navigation.md) |
+| 휴대폰에서 목적지 지정 | [화면으로 따라 하는 주행 가이드](../../../docs/implementation/how-to/phone-navigation.md) |
 | 하드웨어로 지도 생성·저장 | [매핑 실행](../cleany_bringup/docs/hardware-mapping.md), [매핑 규약](docs/mapping.md) |
 | 경로·속도·주행 방식 조정 | [계획과 제어](docs/planning.md) |
 | 노드별 입력·출력 연결 | [인터페이스](docs/interfaces.md) |
@@ -34,7 +34,7 @@ flowchart TD
 | 허가 | Supervisor의 NAVIGATION lease. Fault·입력 만료 시 중단 |
 | 위치 | `localization_guard`가 scan/map 정합과 제한 속도 제공 |
 
-수동 조종은 자동 목표를 취소하고 정지를 확인한 뒤 기존 operator 경로로 전환합니다. 전체 시스템의 연결은 [연동 구조](../../../docs/INTEGRATION.md)를 참고하세요.
+수동 조종은 자동 목표를 취소하고 정지를 확인한 뒤 기존 operator 경로로 전환합니다. 전체 시스템의 연결은 [연동 구조](../../../docs/implementation/integration.md)를 참고하세요.
 
 ## 실행 프로필 고르기
 
@@ -56,13 +56,13 @@ flowchart TD
 | 위치 정합·복구 | [phone_localization.yaml](config/phone_localization.yaml), [정합 정책](docs/localization.md) |
 | 슬립 관측·재시도 | [phone_slip_recovery.yaml](config/phone_slip_recovery.yaml), [슬립 노드](docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
 | Robot footprint | [phone_lidar_robot.yaml](config/phone_lidar_robot.yaml) |
-| 선택적 D435 입력 | [phone_depth_local.yaml](config/phone_depth_local.yaml), [실행 안내](../../../docs/how-to/sensors.md#실물-depth-local-costmap-연결) |
+| 선택적 D435 입력 | [phone_depth_local.yaml](config/phone_depth_local.yaml), [실행 안내](../../../docs/implementation/how-to/sensors.md#실물-depth-local-costmap-연결) |
 
 LiDAR 프로필은 평면 장애물 감시입니다. 카메라·팔 높이의 3D 충돌이나 실측 제동거리를 보장하지 않습니다. 위치 복구는 정지 후 제한된 후보를 검사하며, 이전 목표를 자동 재개하지 않습니다.
 
 ## 변경 후 확인
 
-저장소 루트에서 변경 범위에 맞춰 실행합니다. 빌드 환경과 전체 검사 선택은 [검증 가이드](../../../docs/TESTING.md)를 따릅니다.
+저장소 루트에서 변경 범위에 맞춰 실행합니다. 빌드 환경과 전체 검사 선택은 [검증 가이드](../../../docs/implementation/testing.md)를 따릅니다.
 
 | 변경 | 명령 |
 |---|---|

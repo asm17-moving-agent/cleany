@@ -73,7 +73,7 @@ stateDiagram-v2
 
 Driver는 중복, 역순 feedback을 무시하고 실제 수신 지연을 감시한다. Encoder rollover는 modular delta로 누적한다. Reboot, 단절 뒤에는 baseline을 재설정하되 누적 각도를 유지한다. 단절 중 이동량은 관측할 수 없다.
 
-관련 안내: [Driver](../../cleany_base_driver/docs/command-and-odometry.md), [펌웨어](../../../../esp32/README.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [Driver](../../cleany_base_driver/docs/command-and-odometry.md), [펌웨어](../../../../esp32/README.md), [검증](../../../../docs/implementation/testing.md).
 
 ## IMU telemetry v2
 

@@ -124,7 +124,7 @@ ROS 메시지 변환과 응답은 node가 맡고, 후보 계산은 core가 맡�
 
 ## 03.6 인터페이스 추적 실습
 
-[개발환경 설치](../../DEVELOPMENT_SETUP.md)와 `cleany_interfaces` 빌드가 끝난 저장소 루트 터미널에서 실행합니다. 실행 중인 로봇이나 시뮬레이터는 필요하지 않습니다.
+[개발환경 설치](../../implementation/development_setup.md)와 `cleany_interfaces` 빌드가 끝난 저장소 루트 터미널에서 실행합니다. 실행 중인 로봇이나 시뮬레이터는 필요하지 않습니다.
 
 ```bash
 source /opt/ros/humble/setup.bash

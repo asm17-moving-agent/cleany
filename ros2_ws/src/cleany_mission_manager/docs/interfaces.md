@@ -9,9 +9,9 @@ flowchart LR
   Runtime -->|"최종 결과"| Gateway
 ```
 
-[Mission 실행](../../../../docs/how-to/mission.md) · [미션 계약](../../cleany_interfaces/docs/mission.md)
+[Mission 실행](../../../../docs/implementation/how-to/mission.md) · [미션 계약](../../cleany_interfaces/docs/mission.md)
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
 
 ## mission_runtime
 

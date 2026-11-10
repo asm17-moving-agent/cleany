@@ -94,14 +94,16 @@ def _launch_command(world_path: Path) -> list[str]:
         'cleany_gazebo_sim',
         'gazebo_fortress.launch.py',
         'headless:=true',
+        'headless_rendering:=true',
         f'world:={world_path}',
         f'bridge_config:={bridge_path}',
     ]
 
 
-def _disable_camera_sensors(world_sdf: str) -> str:
+def _disable_camera_sensors(world_sdf: str, *, robot_model: str) -> str:
     result = world_sdf
-    for sensor_name in CAMERA_SENSOR_NAMES:
+    names = CAMERA_SENSOR_NAMES[:2] if robot_model == 'cad_frame' else CAMERA_SENSOR_NAMES
+    for sensor_name in names:
         start = result.find(f'<sensor name="{sensor_name}"')
         if start < 0:
             pytest.fail(f'camera sensor {sensor_name!r} is missing from world')
@@ -138,13 +140,13 @@ def _validation_scene_sdf() -> str:
     return '\n'.join(walls)
 
 
-def _write_validation_world(output_path: Path) -> None:
+def _write_validation_world(output_path: Path, robot_model: str) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     world_name = 'cleany_mecanum_fortress.sdf'
     materialized_world = materialize_mecanum_wheel_world(
-        package_share / 'worlds' / world_name
+        package_share / 'worlds' / world_name, robot_model=robot_model,
     ).read_text(encoding='utf-8')
-    materialized_world = _disable_camera_sensors(materialized_world)
+    materialized_world = _disable_camera_sensors(materialized_world, robot_model=robot_model)
     if materialized_world.count('</world>') != 1:
         pytest.fail('runtime validation world must contain exactly one world')
     output_path.write_text(
@@ -449,8 +451,10 @@ def _stop_process_group(process: subprocess.Popen[bytes]) -> None:
         process.wait(timeout=5.0)
 
 
+@pytest.mark.parametrize('robot_model', ['legacy', 'cad_frame'])
 def test_navigation_sensor_tf_runtime(
     runtime_test_options: RuntimeTestOptions,
+    robot_model: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     options = runtime_test_options
@@ -497,7 +501,7 @@ def test_navigation_sensor_tf_runtime(
     ) as temp_dir:
         log_path = Path(temp_dir) / 'launch.log'
         world_path = Path(temp_dir) / 'navigation_validation_world.sdf'
-        _write_validation_world(world_path)
+        _write_validation_world(world_path, robot_model)
         with log_path.open('wb') as launch_log:
             process = subprocess.Popen(
                 _launch_command(world_path),

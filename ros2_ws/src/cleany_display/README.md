@@ -6,7 +6,7 @@ Jetson의 로컬 브라우저에서 얼굴과 안내 문구를 전체 화면으�
 
 배포 폴더는 `/home/cleany/cleany-display`다. `cleany_display`와 사용하는 로봇 버전의 `cleany_interfaces` 사본을 이 폴더에서 독립적으로 빌드한다. 기존 로봇 checkout과 build/install은 수정하지 않는다.
 
-[개발환경 기준](../../../docs/DEVELOPMENT_SETUP.md#jetson-얼굴-디스플레이-환경)의 의존성과 그래픽 자동 로그인 세션이 필요하다. 이 패키지는 시스템 로그인 설정을 수정하지 않는다.
+[개발환경 기준](../../../docs/implementation/development_setup.md#jetson-얼굴-디스플레이-환경)의 의존성과 그래픽 자동 로그인 세션이 필요하다. 이 패키지는 시스템 로그인 설정을 수정하지 않는다.
 
 1. Jetson에 준비한 이 구현 레포의 루트에서 배포 파일을 복사한다. 기본 설치 위치는 현재 사용자의 `~/cleany-display`다.
 
@@ -65,4 +65,4 @@ systemctl --user disable --now cleany-display
 mv ~/.config/autostart/cleany-display.desktop /home/cleany/cleany-display/cleany-display.desktop.disabled
 ```
 
-검증 방법은 [테스트 안내](../../../docs/reference/testing.md#얼굴-디스플레이)를 따른다.
+검증 방법은 [테스트 안내](../../../docs/implementation/reference/testing.md#얼굴-디스플레이)를 따른다.

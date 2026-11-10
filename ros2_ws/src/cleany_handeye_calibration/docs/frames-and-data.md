@@ -1,6 +1,6 @@
 # Hand-eye 좌표와 데이터 계약
 
-Hand-eye 계산과 재현에 필요한 좌표, 동기화, 저장 조건을 정의한다. 모델, 상수, 허용 한계는 config와 core 코드가 원본이며, 작업 절차는 [CALIBRATION](../../../../docs/CALIBRATION.md)을 따른다.
+Hand-eye 계산과 재현에 필요한 좌표, 동기화, 저장 조건을 정의한다. 모델, 상수, 허용 한계는 config와 core 코드가 원본이며, 작업 절차는 [CALIBRATION](../../../../docs/implementation/calibration.md)을 따른다.
 
 ## 좌표와 동기화
 
@@ -31,6 +31,11 @@ Position-only IK는 orientation 도달을 보장하지 않는다. 다른 입력�
 | Frame / image | left_wrist_rgb_optical_frame / RGB8 640×480, step 1920 |
 | Distortion / rectification | plumb_bob D=0 / R=I |
 | Intrinsics | fx=fy=227.751496, cx=319.5, cy=239.5 |
+
+<figure class="contract-figure" data-visual-id="joint-sync">
+<img src="assets/joint-sync.png" alt="촬영 시각의 관절값은 어떤 샘플 사이에서 구하나?" loading="lazy">
+<figcaption>기존 동기화 테스트의 1000/1100 ns 피드백 사이에서 1025 ns 촬영 시각을 보간한 예시입니다. 같은 관절 이름으로 대응시킨 결과는 2.5 rad, 비율은 0.25입니다. 합성 fixture의 시간 간격과 각도이며 실제 샘플 주기나 로봇 동작이 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
 
 ## Board와 PnP
 

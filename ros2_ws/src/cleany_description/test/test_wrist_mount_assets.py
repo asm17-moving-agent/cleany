@@ -85,7 +85,7 @@ def test_wrist_mount_assets() -> None:
     np.testing.assert_allclose((jaw_from_cv[2, 3] - foot[:, :, 2].min()) * 1000,
                                measured['wrist_mount_contact_to_lens_vertical_height'], atol=5e-6)
 
-    canonical = ET.parse(package / 'mjcf/cleany.xml')
+    canonical = ET.parse(package / 'mjcf/cleany_jetson_20261009.xml')
     for name in ('Fixed_Jaw', 'Fixed_Jaw_2'):
         body = canonical.find(f'.//body[@name="{name}"]')
         geom = next(g for g in body.findall('geom') if g.get('mesh') == 'canonical_Fixed_Jaw')
@@ -93,7 +93,7 @@ def test_wrist_mount_assets() -> None:
         np.testing.assert_array_equal(np.fromstring(geom.get('quat', '1 0 0 0'), sep=' '), [1, 0, 0, 0])
     expected_jaw = config['validation']['target_fixed_jaw_mesh_sha256']
     assert hashlib.sha256((package / 'meshes/Fixed_Jaw.stl').read_bytes()).hexdigest() == expected_jaw
-    physical = ET.parse(package / 'urdf/physical_properties.xacro')
+    physical = ET.parse(package / 'urdf/legacy_20261009/physical_properties.xacro')
     for side, index in (('left', 70), ('right', 102)):
         origin = physical.find(f'.//visual[@name="mjcf_geom_{index}_0_visual"]/origin')
         saved = config['target_urdf_fixed_jaw_visual_origins'][side]

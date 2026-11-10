@@ -14,6 +14,11 @@
 .zoomable{cursor:zoom-in}.image-dialog{border:1px solid var(--line);border-radius:14px;padding:16px;max-width:96vw;max-height:94vh}.image-dialog::backdrop{background:#112b36bb}.zoom-stage{max-width:90vw;max-height:76vh;overflow:auto;background:white}.zoom-stage img{display:block;max-width:none;height:auto}.zoom-head{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:12px;font-size:12px}.zoom-head button{border:1px solid var(--line);border-radius:6px;background:white;padding:4px 12px}img:focus-visible{outline:3px solid var(--green)}
 .table-filter{display:flex;align-items:center;gap:12px;margin-top:20px;padding:9px 12px;background:#e9f2ed;border:1px solid var(--line);border-radius:8px}.table-filter input{flex:1;min-width:0;border:1px solid #cbdad2;border-radius:5px;padding:7px 9px;font-size:12px;background:#fff}.table-filter span{font-size:11px;color:var(--muted);white-space:nowrap}.table-filter+table{margin-top:8px}tr[hidden]{display:none}aside details details{margin-top:3px;margin-left:7px}aside details details summary{font-size:12px;padding:7px}aside details details a{font-size:11px;margin-left:6px}.page-meta span{font-size:12px}
 .reference-section{border:1px solid var(--line);border-radius:10px;padding:0 18px;background:white;margin:12px 0}.reference-section>summary{cursor:pointer;padding:15px 0;color:var(--green)}.reference-section>summary h2{display:inline;margin:0;padding:0;border:0;font-size:18px}.reference-section[open]>summary{border-bottom:1px solid var(--line);margin-bottom:16px}.section-toggle{border:1px solid var(--line);background:var(--pale);color:var(--green);border-radius:6px;padding:7px 12px;font-size:12px}
+
+.visual-slot{margin:24px 0;padding:24px;border:2px dashed #aebfb8;border-radius:10px;min-height:150px;background:#f4f7f5;display:flex;flex-direction:column;justify-content:center}
+.visual-slot p{margin:0 0 10px}.visual-slot figcaption{font-size:13px;max-width:65ch}
+.contract-figure{margin:24px 0;max-width:760px}.contract-figure img{display:block;width:100%;height:auto}.contract-figure figcaption{font-size:13px}
+.doc-collections{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:760px){.doc-collections{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -21,9 +26,9 @@
 <header><button id="menu" aria-label="문서 메뉴" aria-expanded="false">☰</button><a class="brand" href="#">cleany<span>.</span></a><span class="brand-note">DEVELOPER DOCS</span><div class="search-wrap"><input id="search" type="search" aria-label="문서 검색" placeholder="문서·토픽·설정 검색" autocomplete="off"><div id="search-results" role="region" aria-label="검색 결과"></div></div></header>
 <div class="mobile-scrim" id="scrim"></div>
 <div class="layout"><aside aria-label="문서 탐색">
-<section><p class="nav-label">START HERE</p><a data-page="docs/index.md">문서 홈</a><a data-page="docs/DEVELOPMENT_SETUP.md">개발환경 준비</a></section>
-<section><p class="nav-label">작업 가이드</p><a data-page="docs/RUNNING.md">실행할 작업 고르기</a><a data-page="docs/how-to/simulation.md">시뮬레이션</a><a data-page="docs/how-to/mapping.md">매핑과 저장 지도</a><a data-page="docs/how-to/sensors.md">센서와 인식</a><a data-page="docs/how-to/manipulation.md">계획과 조작</a><a data-page="docs/how-to/mission.md">Mission과 Backend</a><a data-page="docs/how-to/base.md">베이스와 펌웨어</a><a data-page="docs/how-to/monitoring.md">기록과 관측</a><a data-page="docs/how-to/phone-navigation.md">휴대폰 주행</a></section>
-<section><p class="nav-label">구조와 검증</p><a data-page="docs/INTEGRATION.md">시스템 연결</a><a data-page="docs/packages.md">기능별 패키지 지도</a><a data-page="docs/CALIBRATION.md">좌표계와 보정</a><a data-page="docs/TESTING.md">검사 선택</a><a data-page="docs/ROS_INTERFACES.md">ROS 인터페이스</a><a href="guide/index.html">개념 학습 가이드 ↗</a></section>
+<section><p class="nav-label">문서 안내</p><a data-page="docs/index.md">문서 홈</a><a data-page="docs/implementation/index.md">설계·구현 문서</a><a href="guide/index.html">신입 학습 가이드 ↗</a></section>
+<section><p class="nav-label">작업 가이드</p><a data-page="docs/implementation/development_setup.md">개발환경 준비</a><a data-page="docs/implementation/running.md">실행할 작업 고르기</a><a data-page="docs/implementation/how-to/simulation.md">시뮬레이션</a><a data-page="docs/implementation/how-to/mapping.md">매핑과 저장 지도</a><a data-page="docs/implementation/how-to/sensors.md">센서와 인식</a><a data-page="docs/implementation/how-to/manipulation.md">계획과 조작</a><a data-page="docs/implementation/how-to/mission.md">Mission과 Backend</a><a data-page="docs/implementation/how-to/base.md">베이스와 펌웨어</a><a data-page="docs/implementation/how-to/monitoring.md">기록과 관측</a><a data-page="docs/implementation/how-to/phone-navigation.md">휴대폰 주행</a></section>
+<section><p class="nav-label">구조와 검증</p><a data-page="docs/implementation/integration.md">시스템 연결</a><a data-page="docs/implementation/packages.md">기능별 패키지 지도</a><a data-page="docs/implementation/calibration.md">좌표계와 보정</a><a data-page="docs/implementation/testing.md">검사 선택</a><a data-page="docs/implementation/ros_interfaces.md">ROS 인터페이스</a></section>
 <details><summary>패키지별 상세 참조</summary><div id="package-nav"></div></details>
 <details><summary>펌웨어와 개발 도구</summary><div id="tool-nav"></div></details>
 </aside><main class="content"><div class="page-meta"><span id="breadcrumb">Cleany / 문서</span><a id="source">Markdown 원문 ↗</a></div><article id="article" tabindex="-1"></article></main></div>
@@ -75,7 +80,7 @@ async function render(){
  for(const pre of article.querySelectorAll('pre')){
   const code=pre.querySelector('code');if(!code)continue;
   if(code.classList.contains('language-mermaid')){
-   pre.className='diagram';try{const diagram=await mermaid.render('diagram-'+ticket+'-'+Math.random().toString(36).slice(2),code.textContent);if(ticket!==generation)return;pre.innerHTML=DOMPurify.sanitize(diagram.svg,{USE_PROFILES:{svg:true,svgFilters:true},FORBID_TAGS:['script']})}catch{pre.setAttribute('aria-label','도식 원문')}continue;
+   pre.className='diagram';try{const diagram=await mermaid.render('diagram-'+ticket+'-'+Math.random().toString(36).slice(2),code.textContent);if(ticket!==generation)return;pre.innerHTML=DOMPurify.sanitize(diagram.svg,{USE_PROFILES:{svg:true,svgFilters:true},FORBID_TAGS:['script']});const svg=pre.querySelector('svg');if(svg?.viewBox.baseVal.width){svg.style.minWidth=Math.ceil(svg.viewBox.baseVal.width*.8)+'px';pre.tabIndex=0;pre.title='넓은 도식은 가로로 스크롤해 확인하세요'}}catch{pre.setAttribute('aria-label','도식 원문')}continue;
   }
   const button=document.createElement('button');button.className='copy';button.textContent='복사';button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.textContent);button.textContent='복사됨'}catch{button.textContent='선택해 복사';const range=document.createRange();range.selectNodeContents(code);const selection=getSelection();selection.removeAllRanges();selection.addRange(range)}});pre.append(button);
  }
@@ -83,7 +88,7 @@ async function render(){
  const h2=[...article.querySelectorAll('h2')];if(h2.length&&current!=='docs/index.md'){const toc=document.createElement('nav');toc.className='toc';toc.setAttribute('aria-label','이 페이지의 내용');for(const h of h2){const a=document.createElement('a');a.href=route(current,h.id);a.textContent=h.textContent;toc.append(a)}const h1=article.querySelector('h1');if(h1)h1.after(toc)}
  for(const a of document.querySelectorAll('aside a[data-page]')){const active=a.dataset.page===current;a.classList.toggle('active',active);if(active){a.setAttribute('aria-current','page');let parent=a.parentElement;while(parent){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement}}else a.removeAttribute('aria-current')}
  const footer=document.createElement('div');footer.className='footer';footer.textContent='Cleany 개발 문서 · 실행 조건과 상세 설정은 연결된 패키지 문서를 확인하세요.';article.append(footer);
- if((current.startsWith('ros2_ws/')||current.startsWith('docs/reference/'))&&page.body.length>6500){
+ if((current.startsWith('ros2_ws/')||current.startsWith('docs/implementation/reference/'))&&page.body.length>6500){
   const sections=[];
   for(const heading of [...article.querySelectorAll(':scope > h2')]){
    const details=document.createElement('details');details.className='reference-section';const summary=document.createElement('summary');let sibling=heading.nextElementSibling;heading.before(details);summary.append(heading);details.append(summary);

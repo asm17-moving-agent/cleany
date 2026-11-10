@@ -46,6 +46,11 @@ Sorting은 새 장면 검출과 head 재선택에서 10 Hz, 검출 뒤 2 Hz로 �
 
 GLFW offscreen context와 유효한 DISPLAY가 필요하다. GLFW는 backend thread 시작 전에 동기 초기화한다.
 
+<figure class="visual-slot" data-visual-id="observer-cameras">
+<p><strong>시각자료 자리 · 비워 둠</strong></p>
+<figcaption><strong>필요한 자료:</strong> 현재 MuJoCo 모델의 같은 simulation stamp에서 얻은 head/wrist 영상과 camera 이름.<br><strong>빈 이유:</strong> 기존 Isaac 카메라 비교와 실물 영상은 backend와 시간 계약이 다릅니다.</figcaption>
+</figure>
+
 ## 제어 주기와 관절 피드백 시각
 
 ```mermaid

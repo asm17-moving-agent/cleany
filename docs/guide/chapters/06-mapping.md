@@ -115,7 +115,7 @@ Gazebo의 [ground_truth_route_follower.py](../../../ros2_ws/src/cleany_gazebo_si
 
 ## 06.6 SLAM 관찰 실습
 
-ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../DEVELOPMENT_SETUP.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
+ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../implementation/development_setup.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
 
 첫 터미널에서 센서가 있는 가상 공간을 실행합니다.
 

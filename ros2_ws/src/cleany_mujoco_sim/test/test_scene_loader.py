@@ -138,13 +138,13 @@ def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
     'left_elbow_pitch_joint': 3.12,
     'left_wrist_pitch_joint': -1.63,
     'left_wrist_roll_joint': 1.58,
-    'left_gripper_joint': -0.35,
+    'left_gripper_joint': 0.0,
     'right_shoulder_yaw_joint': 1.58,
     'right_shoulder_pitch_joint': 3.35,
     'right_elbow_pitch_joint': 3.12,
     'right_wrist_pitch_joint': -1.63,
     'right_wrist_roll_joint': 1.58,
-    'right_gripper_joint': -0.35,
+    'right_gripper_joint': 0.0,
 }])
 def test_control_scene_keyframe_preserves_joint_and_dynamic_object_pose(initial):
     package_root = Path(__file__).parents[1]

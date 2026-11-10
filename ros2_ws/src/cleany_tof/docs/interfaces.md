@@ -54,6 +54,11 @@ Mission을 자동 재개하지 않는다.
 | 입력 | 부분 read 누적; reboot 기본 10 Hz는 주행 입력으로 거부 |
 | Timestamp | Read 완료에서 read 시간 + 한 주기 차감 추정; 첫 frame부터의 일정 USB 지연은 실측 필요 |
 
+<figure class="contract-figure" data-visual-id="tof-grid">
+<img src="assets/native-grid.png" alt="ToF 64개 Zone의 원본 거리 화면은 어떤 모습인가?" loading="lazy">
+<figcaption>2026-10-25 미장착 ToF 센서의 native 8×8 거리 화면입니다. 셀 번호와 mm 단위, 회색 미표시 셀을 확인합니다. 당시 viewer의 valid 표시는 현재 RANGE/NO_RETURN 분류와 다르며 ROI 설정이나 보호 성능을 뜻하지 않습니다. <a href="../../../../docs/assets/visuals/imported.json">입력과 출처</a></figcaption>
+</figure>
+
 ## ROI 장애물 필터와 속도 제한
 
 `guard_rows`와 `guard_columns`는 native 8×8 인덱스의 감시 ROI다. 기본은 전체 Zone이며

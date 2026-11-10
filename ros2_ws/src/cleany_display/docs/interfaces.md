@@ -7,7 +7,7 @@ flowchart LR
   HTTP --> Screen["얼굴 화면"]
 ```
 
-[실행과 자동 시작](../README.md) · [관측 도구 전체](../../../../docs/how-to/monitoring.md)
+[실행과 자동 시작](../README.md) · [관측 도구 전체](../../../../docs/implementation/how-to/monitoring.md)
 
 `cleany_display`는 ROS 상태를 구독해 로컬 HTTP 화면에 전달한다. 로봇 제어 토픽을 발행하거나 서비스와 Action을 호출하지 않는다. 토픽 이름과 화면 정책은 `config/display.json`, DDS 환경은 별도 설치 폴더의 `runtime.env`로 설정한다.
 

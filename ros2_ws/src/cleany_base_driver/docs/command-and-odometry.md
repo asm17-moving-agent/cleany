@@ -1,7 +1,7 @@
 # Base 명령과 odometry
 
 
-[베이스 실행](../../../../docs/how-to/base.md) · [MCU protocol](../../cleany_base_interfaces/docs/protocol.md) · [TF 소유권](#tf-소유권)
+[베이스 실행](../../../../docs/implementation/how-to/base.md) · [MCU protocol](../../cleany_base_interfaces/docs/protocol.md) · [TF 소유권](#tf-소유권)
 
 Base driver는 차체 Twist를 wheel 명령으로 변환하고 MCU feedback을 ROS 상태로 제공한다. 차체 명령은 [Mobile base](../../cleany_interfaces/docs/mobile_base.md), MCU 통신은 [protocol v2](../../cleany_base_interfaces/docs/protocol.md)를 따른다.
 
@@ -100,6 +100,6 @@ flowchart TB
 
 실물/mock과 Gazebo는 대체 실행 경로다. Canonical odom/TF 소유자는 실행마다 하나만 둔다. 외부 estimator를 사용할 때는 `relay_odom:=false`로 중복 publisher를 제거한다.
 
-관련 안내: [ESP32](../../../../esp32/README.md), [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [ESP32](../../../../esp32/README.md), [실행](../../../../docs/implementation/running.md), [검증](../../../../docs/implementation/testing.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).

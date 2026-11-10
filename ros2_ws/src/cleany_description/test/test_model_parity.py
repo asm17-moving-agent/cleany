@@ -1,3 +1,7 @@
+"""Retain the complete parity checks for the archived measured assembly.
+
+The default CAD model has independent coverage in test_cad_final.py.
+"""
 from __future__ import annotations
 
 import math
@@ -76,7 +80,7 @@ def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
 def _expand_urdf_xml(entrypoint: str, *xacro_args: str) -> bytes:
     description = _source_root()
     return subprocess.check_output(
-        ["xacro", str(description / "urdf" / entrypoint), *xacro_args]
+        ["xacro", str(description / "urdf" / entrypoint), "model_profile:=jetson_20261009", *xacro_args]
     )
 
 
@@ -188,7 +192,7 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
     extension = ET.SubElement(root, "mujoco")
     ET.SubElement(extension, "compiler", discardvisual="false", fusestatic="false")
     urdf_model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
-    source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/cleany.xml"))
+    source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/cleany_jetson_20261009.xml"))
     urdf_data, source_data = mujoco.MjData(urdf_model), mujoco.MjData(source)
     mujoco.mj_forward(urdf_model, urdf_data)
     mujoco.mj_forward(source, source_data)
@@ -252,7 +256,7 @@ def test_arm_motor_geometry_matches_mjcf(
 ) -> None:
     """Original and optimized motor collision meshes retain the MJCF CAD poses."""
     urdf = _expand_urdf(entrypoint, f"optimized_arm_collision_meshes:={optimized_meshes}")
-    mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    mjcf = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     mesh_files = {
         mesh.attrib["name"]: mesh.attrib["file"]
         for mesh in mjcf.findall("./asset/mesh")
@@ -305,7 +309,7 @@ def test_arm_motor_geometry_matches_mjcf(
 @pytest.mark.parametrize("side", ("left", "right"))
 def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
     urdf = _expand_urdf(entrypoint)
-    mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    mjcf = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/wrist_mount_v8.xml"))
     data = mujoco.MjData(source)
     mujoco.mj_forward(source, data)
@@ -358,7 +362,7 @@ def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
 def test_moving_jaw_mesh_poses_match_mjcf(entrypoint: str, side: str) -> None:
     """Frame normalization must retain matching visual AND contact geometry."""
     urdf = _expand_urdf(entrypoint)
-    mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    mjcf = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     joint = urdf.find(f"./joint[@name='{side}_gripper_joint']")
     link = urdf.find(f"./link[@name='{joint.find('child').get('link')}']")
     body_name = "Moving_Jaw" if side == "left" else "Moving_Jaw_2"
@@ -551,7 +555,7 @@ def test_control_description_accepts_workflow_specific_initial_positions() -> No
 
 
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
-    root = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    root = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     joints = {
         node.attrib["name"]: node
         for node in root.findall(".//joint")
@@ -583,7 +587,7 @@ def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
 
 def test_mjcf_non_free_joints_have_unique_names() -> None:
     model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
+        str(_source_root() / "mjcf" / "cleany_jetson_20261009.xml")
     )
     names = []
     for joint_id in range(model.njnt):
@@ -598,7 +602,7 @@ def test_mjcf_non_free_joints_have_unique_names() -> None:
 
 
 def test_mjcf_arm_axes_are_finite_and_normalized() -> None:
-    root = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    root = ET.parse(_source_root() / "mjcf" / "cleany_jetson_20261009.xml").getroot()
     for node in root.findall(".//joint"):
         if node.attrib.get("name") not in CANONICAL_LIMITS:
             continue
@@ -611,7 +615,7 @@ def test_mjcf_arm_axes_are_finite_and_normalized() -> None:
 
 def test_mjcf_uses_rep103_base_and_joint_axes() -> None:
     model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
+        str(_source_root() / "mjcf" / "cleany_jetson_20261009.xml")
     )
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
@@ -638,7 +642,7 @@ def test_mjcf_uses_rep103_base_and_joint_axes() -> None:
 
 def test_mjcf_uses_rep103_camera_optical_axes() -> None:
     model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
+        str(_source_root() / "mjcf" / "cleany_jetson_20261009.xml")
     )
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
@@ -740,7 +744,7 @@ def test_arm_base_fasteners_align_with_cad_mounts(
 
 
 def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
-    model_path = _source_root() / 'mjcf/cleany.xml'
+    model_path = _source_root() / 'mjcf/cleany_jetson_20261009.xml'
     source = ET.parse(model_path).getroot()
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
@@ -786,7 +790,7 @@ def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
 
 def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
+        str(_source_root() / "mjcf" / "cleany_jetson_20261009.xml")
     )
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
@@ -815,7 +819,7 @@ def test_nominal_grasp_tcp_offsets_match() -> None:
         node.attrib["name"]: node for node in urdf.findall("joint")
     }
     model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
+        str(_source_root() / "mjcf" / "cleany_jetson_20261009.xml")
     )
 
     for side in ("left", "right"):
@@ -845,7 +849,7 @@ def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
     urdf = _expand_urdf(urdf_entrypoint)
     urdf_joints = {node.attrib["name"]: node for node in urdf.findall("joint")}
     model = mujoco.MjModel.from_xml_path(
-        str(description / "mjcf" / "cleany.xml")
+        str(description / "mjcf" / "cleany_jetson_20261009.xml")
     )
     data = mujoco.MjData(model)
     random = np.random.default_rng(260727)
@@ -930,7 +934,7 @@ def test_random_head_camera_optical_fk_matches_mjcf() -> None:
         node.attrib["name"]: node for node in urdf.findall("joint")
     }
     model = mujoco.MjModel.from_xml_path(
-        str(description / "mjcf" / "cleany.xml")
+        str(description / "mjcf" / "cleany_jetson_20261009.xml")
     )
     data = mujoco.MjData(model)
     random = np.random.default_rng(260806)

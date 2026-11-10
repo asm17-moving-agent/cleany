@@ -9,7 +9,7 @@ flowchart LR
   Stop --> Save["지도 저장 · Logger flush · 종료"]
 ```
 
-[지도 만들기](../../../../docs/how-to/mapping.md) · [센서 확인](../../../../docs/how-to/sensors.md) · [매핑 상태 계약](../../cleany_navigation/docs/mapping.md)
+[지도 만들기](../../../../docs/implementation/how-to/mapping.md) · [센서 확인](../../../../docs/implementation/how-to/sensors.md) · [매핑 상태 계약](../../cleany_navigation/docs/mapping.md)
 
 `hardware_mapping.launch.py`는 설치된 패키지로 hardware runtime을 시작한다.
 Runtime은 영속 센서/base/조종 launch와 매핑 관리자를 별도 프로세스 그룹으로 소유한다.
@@ -28,8 +28,8 @@ Runtime은 영속 센서/base/조종 launch와 매핑 관리자를 별도 프로
 
 설정은 설치된 package share에서 찾고, 실행 시 state_root에 확정 설정을 보존한다.
 키는 state_root/web-token(0600), 지도는 maps/, 녹화는 recordings/에 두며 저장소 소스나
-`.runtime` 빌드 경로를 사용하지 않는다. 시작 명령은 [RUNNING](../../../../docs/RUNNING.md),
-설치와 외부 드라이버는 [개발환경](../../../../docs/DEVELOPMENT_SETUP.md)을 따른다.
+`.runtime` 빌드 경로를 사용하지 않는다. 시작 명령은 [RUNNING](../../../../docs/implementation/running.md),
+설치와 외부 드라이버는 [개발환경](../../../../docs/implementation/development_setup.md)을 따른다.
 
 조종 사건은 state_root의 `teleop-events.jsonl`과 회전 백업에 저장한다. 매핑 작업 오류는
 `maps/errors/<operation_id>.json`에서 확인하며, 진단 파일 저장에 실패하면

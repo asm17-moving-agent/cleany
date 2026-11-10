@@ -8,9 +8,9 @@ flowchart LR
   Driver --> Odom["joint_states → wheel odometry"]
 ```
 
-[베이스 연결부터 확인](../docs/how-to/base.md) · [빌드와 장치 없는 검사](#1-빌드와-장치-없는-검사) · [업로드와 통신](#2-upload와-통신) · [실물 인수](#3-실물-인수)
+[베이스 연결부터 확인](../docs/implementation/how-to/base.md) · [빌드와 장치 없는 검사](#1-빌드와-장치-없는-검사) · [업로드와 통신](#2-upload와-통신) · [실물 인수](#3-실물-인수)
 
-Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](PINMAP.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
+Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](pinmap.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
 
 | 경로 | 역할 |
 |---|---|
@@ -34,7 +34,7 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 | 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
 | 토픽 발행 | `base/imu_state` | `cleany_base_interfaces/msg/ImuState` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
 
-MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/ROS_INTERFACES.md)에서 찾습니다.
+MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/implementation/ros_interfaces.md)에서 찾습니다.
 
 ## Runtime
 

@@ -1,6 +1,6 @@
 # cleany_gazebo_sim 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros_interfaces.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
 
 ## gazebo_command_guard
 
@@ -115,10 +115,26 @@ QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따른다. `/clo
 
 | 손목 카메라 | 계약 |
 |---|---|
-| 형상 원본 | description/config/geometry/wrist_mount_v8.json의 렌즈 / 광학 방향 |
+| 형상 원본 | 최신 CAD는 `description/config/geometry/cad_final.json`; legacy는 `wrist_mount_v8.json` |
 | 축 | Gazebo +X 전방을 optical +Z로 변환 |
 | SDF frame | *_wrist_rgb_optical_frame에 같은 pose; 추가 ROS TF 발행 없음 |
 | Legacy model | v8 visual 6개 사용, 기존 주행 상체 collision envelope 유지 |
-| CAD model | URDF v8 visual / collision; 팔 포함 설정에서만 손목 센서 생성 |
+| CAD model | 최신 CAD visual / collision; 팔 포함 설정에서만 손목 센서 생성 |
 | 영상 크기 | Gazebo 640×360, MuJoCo 640×480과 별도 |
 | 실행 | 원본 SDF는 template; launch / world generator로 생성 |
+
+### 변환 모델 식별
+
+생성된 `*.model.json`은 변환에 사용한 모델을 식별한다. `cad_frame`은
+설치된 `cleany_description`의 URDF를 읽으므로, 별도 CAD 파일을 바꿔도 자동 갱신되지 않는다.
+
+| 필드 | 의미 |
+|---|---|
+| `description.expanded_urdf_sha256` | 변환 전 펼친 URDF의 해시 |
+| `description.mesh_sha256` | URDF가 참조한 각 메시 파일의 내용 해시 |
+| `description.sha256` | 위 모델 식별 정보를 합친 해시 |
+| `profile_sha256` | 적용한 CAD 변환 YAML 파일의 해시 |
+| `adapter_origin_commit` | 변환기 도입 이력; 현재 형상의 버전이 아님 |
+
+실제 변환 결과에는 `simulation_excluded_link_roots`, `park_joints`와
+`simulation_park_limits`도 적용된다. 원본 형상과 이 설정을 함께 비교해야 한다.

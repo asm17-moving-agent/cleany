@@ -48,7 +48,7 @@ stateDiagram-v2
 | 3 | SCL / GPIO42 |
 | 4 | SDA / GPIO41 |
 
-Confirm pin 1 using [PINMAP.md](../PINMAP.md).
+Confirm pin 1 using [pinmap.md](../pinmap.md).
 
 - Address `0x68`, `WHO_AM_I=0x68`; module/external 3.3 V I2C pull-ups required.
 - Disconnect motor-driver power during flashing and diagnostic runs. MCU/IMU

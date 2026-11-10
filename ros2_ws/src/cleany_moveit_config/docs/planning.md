@@ -2,6 +2,8 @@
 
 MoveIt은 팔별 5관절을 계획하며 gripper, base는 planning group에서 제외한다. Grasp group은 같은 팔 관절을 사용하고 fixed TCP joint까지 chain을 확장한다.
 
+기본 형상은 최신 `cad_final`이다. `move_group.launch.py model_profile:=jetson_20261009`는 이전 형상과 이전 joint limits를 함께 선택한다. 최신 링크형 그리퍼는 0 rad 고정이며 Mock에서도 읽기 전용이다. [모델 계약](../../cleany_description/docs/model.md)을 따른다.
+
 ## Group과 controller
 
 | Collision detector | 계약 |
@@ -54,7 +56,7 @@ Applier는 /apply_planning_scene이 handeye_table, handeye_target_stand, charuco
 
 Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pick_demo.xml.in과 크기, pose가 일치한다. Box/can target은 reachable-grasp action에서 동적으로 등록한다.
 
-관련 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [검증](../../../../docs/implementation/testing.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).
 

@@ -6,7 +6,7 @@
 
 - 이 저장소는 끌리니(Cleany) 로봇 엣지 시스템 구현 레포다.
 - 핵심 구현은 `ros2_ws/`의 ROS 2 workspace에 둔다.
-- 기본 개발환경은 Ubuntu 22.04 VM의 native ROS 2 Humble이다. 신규 환경 구성은 `docs/DEVELOPMENT_SETUP.md`를 따른다.
+- 기본 개발환경은 Ubuntu 22.04 VM의 native ROS 2 Humble이다. 신규 환경 구성은 `docs/implementation/development_setup.md`를 따른다.
 - `docs/cleany-docs/`는 기획/예비설계 KB submodule이다. 비어 있거나 누락되었으면 먼저 실행한다.
 
 ```bash
@@ -25,15 +25,17 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 구현 문서 갱신
 
-- 실행 절차는 `docs/RUNNING.md`의 색인과 연결된 `docs/how-to/`, 테스트는 `docs/TESTING.md`와 상세 참조, 캘리브레이션은 `docs/CALIBRATION.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
-- ROS endpoint를 변경하면 해당 패키지 `docs/interfaces.md`를 갱신한다. 노드 추가, 삭제와 실행 파일 변경은 `docs/ROS_INTERFACES.md` 색인에도 반영한다.
+- 전역 설계·구현 문서는 `docs/implementation/`, 신입용 학습 문서는 `docs/guide/`에서 관리한다. `docs/index.md`는 두 문서 묶음의 공통 입구다. 패키지별 구현 계약은 해당 패키지의 `docs/`에 유지한다. 문서 파일명은 소문자를 사용하되 `README.md`와 `AGENTS.md`는 유지한다.
+
+- 실행 절차는 `docs/implementation/running.md`의 색인과 연결된 `docs/implementation/how-to/`, 테스트는 `docs/implementation/testing.md`와 상세 참조, 캘리브레이션은 `docs/implementation/calibration.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/implementation/integration.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
+- ROS endpoint를 변경하면 해당 패키지 `docs/interfaces.md`를 갱신한다. 노드 추가, 삭제와 실행 파일 변경은 `docs/implementation/ros_interfaces.md` 색인에도 반영한다.
 - 구현 문서는 내용에 맞는 서술 형식을 선택한다. 역할과 정상 동작은 짧은 완전한 문장으로 설명하고, 흐름은 도식, 인터페이스, 단위와 조건은 표, 실행 절차는 번호와 명령 블록으로 정리한다. 목록은 독립적인 확인 항목에 사용한다. 나열에는 쉼표나 자연스러운 접속 표현을 사용하고 가운뎃점으로 단어를 연결하지 않는다. 고정 템플릿의 빈 항목, 코드 해설, 작업 일지, 중복 설명은 추가하지 않는다.
 - 폴더마다 README를 만들지 않는다. 독립 배포, 사용 절차가 필요한 도구, 펌웨어와 asset 출처와 라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록, 코드 요약, 현재 테스트 점수, 작업 일지를 README에 복제하지 않는다.
 - 구현 문서는 현재 사용법, 구현 계약과 제약사항을 설명한다. 날짜별 작업 일지, 일회성 실행 결과와 에이전트 인수인계 내용을 누적하지 않는다.
 - 작업 가이드는 필요한 화면, 동작 순서와 정상 결과를 먼저 보여준다. 연결과 상태 흐름은 편집 가능한 다이어그램을 사용하고, 명령과 설정은 복사·검색 가능한 텍스트로 유지한다. 화면과 영상은 실물, 시뮬레이션, 합성 입력을 구분한다.
 - 문서 사이트의 원본은 Markdown과 `docs/site.template.html`이다. 변경 후 `python3 tools/docs/build_site.py`로 갱신하고 `--check`로 일치 여부를 확인한다.
 - 변경별 검증은 PR과 CI 결과에 남긴다. 별도 실험 보고서나 대용량 자료가 필요하면 팀이 합의한 공유 위치를 사용하며, 개인 디렉터리를 팀 문서의 필수 근거로 연결하지 않는다.
-- 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`에서 관리한다.
+- 개발환경 설치와 system dependency 기준은 `docs/implementation/development_setup.md`에서 관리한다.
 - KB에서 아직 검토 중인 전제는 코드나 구현 문서에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
 
 ## 3. 코드 작성 규칙
@@ -94,7 +96,7 @@ class WheelOdometryNode(Node):
 - ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.
 - 여러 패키지 경계나 ROS interface를 바꿨으면 전체 workspace test까지 고려한다.
 - 반복 빌드와 테스트는 루트 Makefile을 사용하고, 세부 옵션은 해당 launch의 `--show-args`와 Makefile을 따른다.
-- 공통 빌드는 `docs/DEVELOPMENT_SETUP.md`, 실행은 `docs/RUNNING.md`, 검증은 `docs/TESTING.md`를 따른다.
+- 공통 빌드는 `docs/implementation/development_setup.md`, 실행은 `docs/implementation/running.md`, 검증은 `docs/implementation/testing.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 
 ## 5. 대화 기반 plan과 KB 기록
@@ -109,7 +111,7 @@ plan은 실행 계획이고, Decision은 실제로 확정한 선택과 이유다
 
 - Planning과 Technical의 `출처`에는 Raw 근거를, `관련 결정`에는 Decision을 연결한다. Decision의 `출처`에는 결정 근거를 표준 Markdown 링크로 연결한다.
 - 결정 변경은 새 Decision과 `supersedes`, `superseded_by`로 기록하고 관련 기준 문서도 갱신한다.
-- 실행 절차는 `docs/RUNNING.md`, 구현 계약은 패키지 `docs/`에 둔다. KB 편집은 명시 요청과 해당 submodule의 `AGENTS.md`를 따른다.
+- 실행 절차는 `docs/implementation/running.md`, 구현 계약은 패키지 `docs/`에 둔다. KB 편집은 명시 요청과 해당 submodule의 `AGENTS.md`를 따른다.
 
 ## 6. Jira와 GitHub
 

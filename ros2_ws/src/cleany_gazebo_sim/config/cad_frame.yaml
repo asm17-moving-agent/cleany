@@ -1,6 +1,6 @@
 # Gazebo navigation evaluation pose, not an arm controller or calibration.
-source_commit: 71f8d6c
-# Description and Fortress adapter imported from feat/navigation-runtime.
+adapter_origin_commit: 71f8d6c
+# Historical adapter origin only. Generated metadata hashes the current URDF/meshes.
 wheel_radius: 0.0635
 wheel_width: 0.051
 # Evaluation margins, separate from the model's physical outer bounds.

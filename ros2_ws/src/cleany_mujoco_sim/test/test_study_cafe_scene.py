@@ -279,7 +279,7 @@ def test_mouse_collision_reuses_visible_mesh_without_hidden_box(
     assert model.geom_friction[collision] == pytest.approx((1.5, .08, .02))
 
 
-def test_tabletop_objects_fit_head_camera_at_one_radian() -> None:
+def test_tabletop_objects_fit_head_camera_at_preview_tilt() -> None:
     scene_path = materialize_control_scene(GRASP_SCENE_TEMPLATE)
     model = mujoco.MjModel.from_xml_path(str(scene_path))
     data = mujoco.MjData(model)
@@ -288,7 +288,7 @@ def test_tabletop_objects_fit_head_camera_at_one_radian() -> None:
         mujoco.mjtObj.mjOBJ_JOINT,
         'head_tilt_joint',
     )
-    data.qpos[model.jnt_qposadr[head_tilt]] = 1.0
+    data.qpos[model.jnt_qposadr[head_tilt]] = 0.8
     mujoco.mj_forward(model, data)
 
     camera = mujoco.mj_name2id(
@@ -500,7 +500,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         assert model.pair_dim[pair] == 6
         assert model.pair_friction[pair] == pytest.approx((6, 6, 0.2, 0.1, 0.1))
         jaw = model.pair_geom2[pair] if model.pair_geom1[pair] == cup else model.pair_geom1[pair]
-        assert 'jaw_contact' in mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, jaw)
+        assert 'Kinematic_CameraTool180_Pinc_' in mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, jaw)
         assert model.geom_friction[jaw] == pytest.approx((3, 0.2, 0.1))
         assert model.geom_priority[jaw] == model.geom_priority[cup] == 0
         assert model.geom_solmix[jaw] == model.geom_solmix[cup] == 1

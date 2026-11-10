@@ -6,9 +6,9 @@
 
   <xacro:cleany_robot_geometry/>
 
-  <xacro:macro name="cleany_mock_joint" params="joint_name">
+  <xacro:macro name="cleany_mock_joint" params="joint_name command:=true">
     <joint name="${joint_name}">
-      <command_interface name="position"/>
+      <xacro:if value="${command}"><command_interface name="position"/></xacro:if>
       <state_interface name="position">
         <param name="initial_value">0.0</param>
       </state_interface>
@@ -26,12 +26,12 @@
     <xacro:cleany_mock_joint joint_name="left_elbow_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="left_wrist_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="left_wrist_roll_joint"/>
-    <xacro:cleany_mock_joint joint_name="left_gripper_joint"/>
+    <xacro:cleany_mock_joint joint_name="left_gripper_joint" command="${'$(arg model_profile)' != 'cad_final'}"/>
     <xacro:cleany_mock_joint joint_name="right_shoulder_yaw_joint"/>
     <xacro:cleany_mock_joint joint_name="right_shoulder_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_elbow_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_wrist_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_wrist_roll_joint"/>
-    <xacro:cleany_mock_joint joint_name="right_gripper_joint"/>
+    <xacro:cleany_mock_joint joint_name="right_gripper_joint" command="${'$(arg model_profile)' != 'cad_final'}"/>
   </ros2_control>
 </robot>

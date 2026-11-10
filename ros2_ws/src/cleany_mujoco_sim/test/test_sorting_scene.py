@@ -35,11 +35,11 @@ def test_current_simulation_disables_mast_but_canonical_model_keeps_it():
     root = Path(__file__).parents[1]
     model = mujoco.MjModel.from_xml_path(str(materialize_control_scene(
         root/'scenes/study_cafe_grasp_execution.xml.in', sorting_bins_config=CONFIG)))
-    mast = model.geom('top_base_link_collision_0').id
+    mast = model.geom('cad_InstalledMast_collision').id
     assert model.geom_contype[mast] == model.geom_conaffinity[mast] == 0
     assert model.geom_contype[model.geom('lost_items_left_floor').id] == 1
     canonical = mujoco.MjModel.from_xml_path(str(root.parent/'cleany_description/mjcf/cleany.xml'))
-    assert canonical.geom_contype[canonical.geom('top_base_link_collision_0').id] == 1
+    assert canonical.geom_contype[canonical.geom('cad_InstalledMast_collision').id] == 1
 
 
 def test_nominal_sorting_wrist_transforms_match_both_mujoco_camera_mounts():
@@ -152,10 +152,10 @@ def test_internal_tray_rejects_unsupported_bins(tmp_path):
         add_sorting_bins('<mujoco><worldbody><body name="chassis"/></worldbody></mujoco>', config)
 
 
-def test_internal_fixtures_clear_chassis_box_collisions():
+def test_internal_fixtures_clear_legacy_chassis_box_collisions():
     """Check frame rails/electronics, not arbitrary arm poses or CAD meshes."""
     root = ET.parse(Path(__file__).parents[2] /
-                    'cleany_description/urdf/physical_properties.xacro')
+                    'cleany_description/urdf/legacy_20261009/physical_properties.xacro')
     fixtures = list(load_shelf_boxes(CONFIG))
     for bin_ in load_bins(CONFIG):
         fixtures.extend(bin_.boxes())

@@ -18,7 +18,7 @@
 아래 Make 명령은 레포 루트에서 실행한다.
 
 Ubuntu 22.04 / ROS 2 Humble의 `behaviortree_cpp` 4.x, `pybind11_vendor`, Python 개발
-header가 필요하다. 설치는 [개발환경 안내](../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
+header가 필요하다. 설치는 [개발환경 안내](../../../docs/implementation/development_setup.md)를 따른다.
 
 ```bash
 make build-manipulation-bt

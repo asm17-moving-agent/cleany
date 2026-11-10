@@ -114,9 +114,9 @@ Cartographer 수집과 SQLite 재생은 기존 기록과의 호환을 위해 유
 | 기본 한도 | 서브맵 64개, 텍스처 262144 pixel, 이미지 캐시 16 MiB |
 | 최신성 | Epoch와 버전 구분; 불일치하거나 오래된 텍스처를 새 관측으로 표시하지 않음 |
 
-전용 웹 SLAM renderer는 제거됐다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용한다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/how-to/monitoring.md#개발-monitor)를 따른다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않는다.
+전용 웹 SLAM renderer는 제거됐다. 서브맵, 정합점, LiDAR, 점군과 costmap의 상세 공간 관측은 RViz를 사용한다. 원본 bag 재생 절차는 [실행 가이드](../../../../docs/implementation/how-to/monitoring.md#개발-monitor)를 따른다. Nav2 BT 화면은 수신 XML과 상태를 기록하며 BT 실행이나 주행 명령을 보내지 않는다.
 
-관련 안내: [실행](../../../../docs/RUNNING.md), [환경](../../../../docs/DEVELOPMENT_SETUP.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [환경](../../../../docs/implementation/development_setup.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).
 

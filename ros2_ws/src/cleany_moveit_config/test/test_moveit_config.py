@@ -22,7 +22,7 @@ SIDES = ('left', 'right')
 
 
 def test_canonical_mast_exception_only_covers_its_fixed_mount():
-    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'head_camera.xacro').getroot()
+    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'cad_final' / 'geometry.xacro').getroot()
     joint = mast.find(".//joint[@name='top_base_joint']")
     assert joint.get('type') == 'fixed'
     assert joint.find('parent').get('link') == 'base_link'
@@ -65,12 +65,15 @@ def _expand_side(value: str, side: str) -> str:
 
 
 def _canonical_joint_elements() -> list[ET.Element]:
-    root = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'dual_arm.xacro').getroot()
-    return [
-        element
-        for element in root.findall('.//joint')
-        if element.get('name', '').startswith('${side}_')
-    ]
+    root = ET.parse(DESCRIPTION_ROOT / 'urdf/cad_final/geometry.xacro').getroot()
+    joints = []
+    for joint in root.findall('.//joint'):
+        if joint.get('name', '').startswith('left_'):
+            for element in joint.iter():
+                for key, value in element.attrib.items():
+                    element.set(key, value.replace('left_', '${side}_'))
+            joints.append(joint)
+    return joints
 
 
 def _canonical_chain(side: str, tip_link: str) -> tuple[str, ...]:
@@ -152,7 +155,7 @@ def test_srdf_has_arm_and_grasp_tcp_chains() -> None:
             if joint.attrib['name'] == '${side}_pregrasp_aim_tip_joint'
         )
         assert aim_joint.find('origin').attrib == {
-            'xyz': '0 -0.140 0',
+            'xyz': '0 -0.14 0',
             'rpy': '0 0 0',
         }
 

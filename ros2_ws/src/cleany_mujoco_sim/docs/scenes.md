@@ -1,5 +1,7 @@
 # MuJoCo 장면과 모델 설정
 
+기본 로봇은 최신 `cad_final`이다. 링크형 그리퍼는 고정 형상이므로 이 모델로 수거 구동을 활성화할 수 없다. 원본 메시와 고정 fingertip 접촉은 [모델 계약](../../cleany_description/docs/model.md)을 따른다.
+
 스터디카페 관찰과 고정 베이스 수거 장면을 제공한다. 로봇 형상은 `cleany_description`, 물리 제어와 촬영은 선택한 backend가 소유한다.
 
 ## 상태와 책임
@@ -30,7 +32,7 @@ flowchart LR
 
 ## 실행과 테스트
 
-저장소 루트에서 `make build` 후 [공통 ROS 환경](../../../../docs/RUNNING.md#공통-준비)을 적용한다. Vendor renderer는 headless에서도 GLFW 연결이 필요하므로 유효한 `DISPLAY`를 준비한다.
+저장소 루트에서 `make build` 후 [공통 ROS 환경](../../../../docs/implementation/running.md#공통-준비)을 적용한다. Vendor renderer는 headless에서도 GLFW 연결이 필요하므로 유효한 `DISPLAY`를 준비한다.
 
 ```bash
 # 아래 실행 중 하나를 선택
@@ -65,6 +67,11 @@ ros2 launch cleany_skill_executor study_cafe_sorting.launch.py
 기둥 옵션은 MuJoCo의 `top_base_link` 접촉과 MoveIt의 기둥–로봇 링크 충돌을 제외한다. 외형, 팔·책상·함·물체 충돌은 유지한다. `false`로 복원할 수 있으며 이 편의 설정의 경로가 실물 기둥을 피한다고 해석하지 않는다.
 
 ## 로봇 후면 수거함 배치 미리보기
+
+<figure class="contract-figure" data-visual-id="bins">
+<img src="assets/bins.png" alt="좌우 수거함과 내부 개구부는 어디인가?" loading="lazy">
+<figcaption>현재 robot_top_bins.yaml의 평면 배치입니다. 회색은 트레이, 색 테두리는 벽이며 내부 개구부는 각각 164×154 mm입니다. base_link 기준의 시뮬레이션 개념으로 실물 장착성과 수거 성공을 검증한 도면이 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
 
 `config/robot_top_bins.yaml`은 수거함과 내부 받침판의 알려진 형상을 공유한다. 파일명은 top이지만 현재 배치는 후면이다.
 
@@ -144,7 +151,7 @@ ros2 launch cleany_skill_executor study_cafe_sorting.launch.py
 | `scheduled_cameras` | backend 직접 실행 false, 통합 인식/수거 true |
 | `sim_viewer:=efficient` | 960×720 snapshot GUI 최대 20 Hz; 센서 640×480과 그림자는 유지 |
 | `sim_viewer:=native` | 전체 MuJoCo UI |
-| 손목 optical pose | v8 장착 형상의 렌즈 중심/CV축; nominal, 실물 hand-eye 별도 |
+| 손목 optical pose | 최신 CAD의 좌우별 렌즈 앞면/CV축; nominal, 실물 hand-eye 별도 |
 | 손목 영상 | 640×480, vertical FOV 93° |
 | `sorting_contact_diagnostics` | 기본 false, 접촉 부위/힘 출력 전용 |
 
@@ -279,7 +286,8 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 | `sorting_bins_config`, `scheduled_cameras`, `sorting_contact_diagnostics` | 수거함, 카메라 스케줄, 출력 진단 |
 | `camera_name`, `camera_frame_name`, `color_image_topic`, `camera_info_topic`, `depth_image_topic` | renderer 연결 |
 | `enable_camera_contract_adapter` | false; 통합 launch는 head topic 직접 연결 |
-| `enable_gripper_controllers`, `*_initial`, `head_tilt_initial` | 제어 interface와 초기 자세 |
+| `enable_gripper_controllers` | 기본 false; 최신 CAD의 링크형 그리퍼 구동은 거부 |
+| `*_initial`, `head_tilt_initial` | 초기 자세; 탁상 preview의 head tilt는 최신 헤드 기준 0.8 rad |
 
 수거 전체의 초기 자세와 센서 연결은 `cleany_skill_executor`의
 `study_cafe_sorting.launch.py` 및 `study_cafe_nearest_grasp_demo.launch.py`를 따른다.

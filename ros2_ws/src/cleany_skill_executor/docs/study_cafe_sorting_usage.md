@@ -10,7 +10,7 @@
 | 연속 수거 | `ros2 launch cleany_skill_executor study_cafe_sorting.launch.py` | MuJoCo 팔 이동과 물체 접촉, 운반과 놓기 |
 | 단일 물체 Action | [BT 실행](../../cleany_manipulation_bt/README.md) | 별도 BT Action 경로 |
 
-1. `make build` 후 [공통 환경](../../../../docs/RUNNING.md#공통-준비)을 적용하고 `GEMINI_API_KEY`, 로컬 YOLOE/AnyGrasp 모델을 준비한다. [인식 모델 설정](../../cleany_perception/docs/runtime.md#모델-준비)을 따른다.
+1. `make build` 후 [공통 환경](../../../../docs/implementation/running.md#공통-준비)을 적용하고 `GEMINI_API_KEY`, 로컬 YOLOE/AnyGrasp 모델을 준비한다. [인식 모델 설정](../../cleany_perception/docs/runtime.md#모델-준비)을 따른다.
 2. 같은 domain의 다른 simulator/controller를 종료한다. Vendor 카메라 renderer는 headless에서도 유효한 `DISPLAY`가 필요하다.
 3. 위 표에서 하나를 선택한다. Target 위치는 카메라에서 얻으며 simulator 정답을 planner 입력으로 사용하지 않는다.
 

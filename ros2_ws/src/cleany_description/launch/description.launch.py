@@ -8,17 +8,20 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description() -> LaunchDescription:
     use_sim_time = LaunchConfiguration("use_sim_time")
+    model_profile = LaunchConfiguration("model_profile")
     calibration_profile = LaunchConfiguration("calibration_profile")
     model = PathJoinSubstitution(
         [FindPackageShare("cleany_description"), "urdf", "cleany.urdf.xacro"]
     )
     robot_description = ParameterValue(
-        Command(["xacro ", model, " calibration_profile:=", calibration_profile]),
+        Command(["xacro ", model, " model_profile:=", model_profile, " calibration_profile:=", calibration_profile]),
         value_type=str,
     )
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="true"),
+            DeclareLaunchArgument("model_profile", default_value="cad_final",
+                                  choices=["cad_final", "jetson_20261009"]),
             DeclareLaunchArgument(
                 "calibration_profile",
                 default_value="",

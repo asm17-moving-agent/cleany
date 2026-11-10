@@ -18,7 +18,7 @@ Mock과 native MuJoCo BT는 `ExecuteManipulationSkill` 계약을 공유한다. �
 
 ## Python Mock Manipulation 서버
 
-`manipulation_server`는 진행과 결과를 모의 생성한다. Backend는 `mock`만 허용하며 clock, TF, odom, 카메라와 joint_states를 발행하지 않는다. Steady clock으로 timeout과 취소를 처리한다. [Endpoint 표](interfaces.md#manipulation_server)와 [실행 절차](../../../../docs/how-to/mission.md#주행도-mock으로-action-연결-확인)를 따른다.
+`manipulation_server`는 진행과 결과를 모의 생성한다. Backend는 `mock`만 허용하며 clock, TF, odom, 카메라와 joint_states를 발행하지 않는다. Steady clock으로 timeout과 취소를 처리한다. [Endpoint 표](interfaces.md#manipulation_server)와 [실행 절차](../../../../docs/implementation/how-to/mission.md#주행도-mock으로-action-연결-확인)를 따른다.
 
 | 설정 | 용도 | 정상 시간 |
 |---|---|---|

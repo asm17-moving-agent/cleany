@@ -1,4 +1,4 @@
-"""Attach Gazebo wrist optics to the shared v8 simulation geometry."""
+"""Attach wrist optics from the selected assembly registration."""
 from __future__ import annotations
 
 import json
@@ -20,7 +20,7 @@ def _pose(transform: np.ndarray, parent: str) -> ET.Element:
 def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
     """Reuse canonical visuals; legacy navigation retains its collision envelope."""
     urdf = ET.fromstring(xacro.process_file(
-        str(description / 'urdf/cleany.urdf.xacro')).toxml())
+        str(description / 'urdf/cleany.urdf.xacro'), mappings={'model_profile':'jetson_20261009'}).toxml())
     base = model.find("link[@name='base_link']")
     for side in ('left', 'right'):
         for visual in base.findall('visual'):
@@ -59,14 +59,16 @@ def apply_wrist_cameras(
     """Align present sensors and optical frames; do not add excluded CAD arms."""
     registration = json.loads(
         (description / 'config/geometry/wrist_mount_v8.json').read_text())
-    jaw_from_cv = np.asarray(registration['legacy_jaw_from_camera_cv_approximate'])
-    jaw_from_geometry = np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
+    latest = json.loads((description / 'config/geometry/cad_final.json').read_text()) if not legacy_visuals else None
     # Gazebo +X forward / +Y left / +Z up, optical +Z forward / +X right / +Y down.
     cv_from_sensor = np.array([[0., -1., 0.], [0., 0., -1.], [1., 0., 0.]])
-    jaw_from_sensor = jaw_from_cv.copy()
-    jaw_from_sensor[:3, :3] = jaw_from_cv[:3, :3] @ cv_from_sensor
     names = {element.get('name') for element in model if element.tag in ('link', 'frame')}
     for side in ('left', 'right'):
+        jaw_from_cv = np.asarray(latest['wrist_cameras'][side] if latest else
+                                 registration['legacy_jaw_from_camera_cv_approximate'])
+        jaw_from_geometry = jaw_from_cv if latest else np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
+        jaw_from_sensor = jaw_from_cv.copy()
+        jaw_from_sensor[:3, :3] = jaw_from_cv[:3, :3] @ cv_from_sensor
         sensor = model.find(f".//sensor[@name='{side}_wrist_rgb']")
         if sensor is None:
             continue

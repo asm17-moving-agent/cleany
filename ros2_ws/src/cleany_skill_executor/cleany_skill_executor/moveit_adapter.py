@@ -31,7 +31,7 @@ from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.urdf_fk import UrdfChain
 
 
-# Canonical limits from cleany_description/urdf/dual_arm.xacro.  The wrist
+# Arm limits shared by the cad_final and jetson_20261009 model profiles.  The wrist
 # roll entries are replaced by the configured bounds when seeds are built.
 _ARM_JOINT_LIMITS = (
     (-2.16, 2.16),

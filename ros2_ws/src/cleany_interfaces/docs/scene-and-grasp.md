@@ -47,4 +47,4 @@ SelectReachableGrasp는 같은 snapshot/object/frame/OBB 후보에 대해 양팔
 
 Position-only IK는 목표 orientation 도달을 검증하지 않는다. MuJoCo 접근 데모도 gripper close, attach, lift 성공을 증명하지 않는다.
 
-관련 안내: [Planning](../../cleany_moveit_config/docs/planning.md), [실행](../../../../docs/RUNNING.md).
+관련 안내: [Planning](../../cleany_moveit_config/docs/planning.md), [실행](../../../../docs/implementation/running.md).

@@ -66,7 +66,7 @@ Python 패키지의 [setup.py](../../../ros2_ws/src/cleany_mission_manager/setup
 
 반면 [grasping setup.py](../../../ros2_ws/src/cleany_grasping/setup.py)는 `grasp_server`라는 실행 이름을 `grasp_node:main`에 연결합니다. 따라서 코드를 읽을 때는 **패키지 이름 → 실행 이름 → main 함수 → node의 callback → core** 순으로 좁히면 됩니다. 3장에서 이 경로를 실제 서비스와 연결합니다.
 
-공통 개발 명령은 [Makefile](../../../Makefile)과 [workspace README](../../DEVELOPMENT_SETUP.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
+공통 개발 명령은 [Makefile](../../../Makefile)과 [workspace README](../../implementation/development_setup.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
 
 ## 01.4 Core와 Port 경계
 
@@ -92,7 +92,7 @@ Mission core는 ROS Action 객체 대신 [OperationPort](../../../ros2_ws/src/cl
 | Calibration | 왼손목 수집 adapter, PnP, solver와 오프라인 평가 |
 | MCU | `esp32/`의 micro-ROS 모터 제어와 피드백 |
 
-제품의 목표는 [KB 기술 개요](../../cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md), 현재 실행 조합은 [실행 가이드](../../RUNNING.md)를 확인합니다. `requested_by="dashboard"`라는 문자열 자체는 Dashboard 네트워크 연결을 입증하지 않습니다.
+제품의 목표는 [KB 기술 개요](../../cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md), 현재 실행 조합은 [실행 가이드](../../implementation/running.md)를 확인합니다. `requested_by="dashboard"`라는 문자열 자체는 Dashboard 네트워크 연결을 입증하지 않습니다.
 
 ## 01.6 시스템 코드 추적 실습
 

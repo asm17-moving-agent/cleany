@@ -34,7 +34,7 @@ sequenceDiagram
 ## 빠른 시작
 
 아래 명령은 **bash 터미널 두 개**, **레포 루트**에서 실행한다.
-처음 개발환경을 준비한다면 [설치 가이드](../../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
+처음 개발환경을 준비한다면 [설치 가이드](../../../../docs/implementation/development_setup.md)를 따른다.
 
 **1. 터미널 A: 빌드하고 서버 실행**
 
@@ -161,7 +161,7 @@ Result를 화면에 투영한 것으로, XML의 각 노드를 실제로 tick했�
 서버 재시작으로 `INTERRUPTED`가 된 기록은 성공한 정지·종료 처리로 표시하지 않는다.
 연결 직후 최근 보존 이벤트를 읽으며 전체 과거 기록을 재생하지는 않는다.
 
-브리지는 `python3-zmq`가 필요하다([개발환경 안내](../../../../docs/DEVELOPMENT_SETUP.md#5-rosdep과-workspace-의존성-준비)).
+브리지는 `python3-zmq`가 필요하다([개발환경 안내](../../../../docs/implementation/development_setup.md#5-rosdep과-workspace-의존성-준비)).
 확장에 **native zeromq binary unavailable**이 나오면 모니터링용 네이티브 의존성이
 설치되지 않은 것이다. 정적 미리보기와 별개이며 해당 플랫폼의 zeromq 바이너리를 준비한 뒤
 VS Code의 `Developer: Reload Window`를 실행한다. Remote SSH에서는 확장도 원격 VM에 설치한다.

@@ -1,15 +1,13 @@
-# MuJoCo v8 geometry proxy, NOT measured real-robot calibration.
-# Matches cleany_description/config/geometry/wrist_mount_v8.json:
-# legacy_jaw_from_camera_cv_approximate (quaternion stored here as xyzw).
-# No target/object ground-truth pose is part of this configuration.
+# Nominal CAD lens origin; not measured hand-eye calibration.
 source: simulation_nominal_cad
+cad_sha256: 91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0
 left:
   parent_frame: left_gripper_frame
   child_frame: left_wrist_rgb_optical_frame
-  translation_m: [0.0012308855575980408, -0.05668501651548681, 0.0549]
-  quaternion_xyzw: [0.0, -0.9171950194878352, 0.39843857271442656, 0.0]
+  translation_m: [-0.06664807115670718, -0.060958078530284954, -2.7755575615628914e-17]
+  quaternion_xyzw: [0.6644630243886747, -0.2418447626479754, 0.6644630243886746, 0.2418447626479755]
 right:
   parent_frame: right_gripper_frame
   child_frame: right_wrist_rgb_optical_frame
-  translation_m: [0.0012308855575980408, -0.05668501651548681, 0.0549]
-  quaternion_xyzw: [0.0, -0.9171950194878352, 0.39843857271442656, 0.0]
+  translation_m: [-0.06664807115670701, -0.06095807853028501, 0.0]
+  quaternion_xyzw: [0.6644630243886748, -0.24184476264797541, 0.6644630243886746, 0.24184476264797525]

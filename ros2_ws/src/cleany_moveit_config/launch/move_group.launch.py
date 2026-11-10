@@ -14,7 +14,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def _moveit_config(controller_config='config/moveit_controllers.yaml'):
+def _moveit_config(controller_config='config/moveit_controllers.yaml', model_profile='cad_final'):
     description_xacro = (
         Path(get_package_share_directory('cleany_description'))
         / 'urdf'
@@ -28,13 +28,14 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml'):
             file_path=str(description_xacro),
             # Arm-only backend publishes no wheel states; match its fixed wheels.
             mappings={
+                'model_profile': model_profile,
                 'include_head_camera': 'false',
                 'include_wheel_joints': 'false',
             },
         )
         .robot_description_semantic(file_path='config/cleany.srdf')
         .robot_description_kinematics(file_path='config/kinematics.yaml')
-        .joint_limits(file_path='config/joint_limits.yaml')
+        .joint_limits(file_path='config/joint_limits_jetson_20261009.yaml' if model_profile == 'jetson_20261009' else 'config/joint_limits.yaml')
         .trajectory_execution(
             file_path=controller_config,
             moveit_manage_controllers=False,
@@ -60,9 +61,10 @@ def _launch_setup(context):
     goal_duration_margin = LaunchConfiguration(
         'allowed_goal_duration_margin'
     )
-    moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml')
+    model_profile = LaunchConfiguration('model_profile').perform(context)
+    moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml', model_profile)
                     if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
-                    else _moveit_config())
+                    else _moveit_config(model_profile=model_profile))
     simulation_bins = LaunchConfiguration('simulation_bins_config').perform(context)
     if simulation_bins:
         fixture = yaml.safe_load(Path(simulation_bins).read_text(encoding='utf-8'))
@@ -191,6 +193,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'allowed_goal_duration_margin', default_value='0.5'
             ),
+            DeclareLaunchArgument('model_profile', default_value='cad_final', choices=['cad_final','jetson_20261009']),
             OpaqueFunction(function=_launch_setup),
         ]
     )

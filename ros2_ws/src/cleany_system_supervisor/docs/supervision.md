@@ -1,7 +1,7 @@
 # System Supervisor 계약
 
 
-[감독 stack 실행](../../../../docs/how-to/mission.md#system-supervisor-감독-stack) · [인터페이스](interfaces.md)
+[감독 stack 실행](../../../../docs/implementation/how-to/mission.md#system-supervisor-감독-stack) · [인터페이스](interfaces.md)
 
 System Supervisor는 시스템 가용성, Fault, Capability, 운영 상태, Mission 실행 허가와 복구 조정을 소유한다. 실제 안전 정지 장치가 아니며 Mission 실행, 정지 확인, 재개, journal과 Nav2 BT Recovery를 대신하지 않는다. 책임 원칙은 KB의 [System Supervisor](<../../../../docs/cleany-docs/20_TECHNICAL/14 - System Supervisor.md>)를 따른다. Endpoint 표는 [인터페이스](interfaces.md), 설정 원본은 [system_supervisor.yaml](../config/system_supervisor.yaml)이다.
 
@@ -195,7 +195,7 @@ lifecycle 복구 owner와 동시에 실행하지 않는다. 정지 상태에서 
 
 ## 검증 범위
 
-소프트웨어 검증 명령과 범위는 [테스트 가이드](../../../../docs/TESTING.md)를 따른다. 다음 항목은 하드웨어나 실제 stack에서 별도 검증이 필요하다.
+소프트웨어 검증 명령과 범위는 [테스트 가이드](../../../../docs/implementation/testing.md)를 따른다. 다음 항목은 하드웨어나 실제 stack에서 별도 검증이 필요하다.
 
 - E-stop 회로와 독립 보호 계층 상태를 내보내는 하드웨어. 현재 신호가 없어 기본 실행은 잠긴다.
 - ESP32 통신 차단 시 MCU watchdog의 모터 정지 시간과 실제 감속 거리.

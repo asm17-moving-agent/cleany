@@ -1,6 +1,6 @@
 # 파지 후보 생성과 선택
 
-`GraspNode`는 선택 물체의 점군에서 후보를 만들고 필터링한 `GraspCandidate[]`를 점수 내림차순으로 반환한다. 팔 선택, IK, MoveIt 충돌 검사와 실제 실행은 [조작 경로](../../../../docs/how-to/manipulation.md)가 담당한다.
+`GraspNode`는 선택 물체의 점군에서 후보를 만들고 필터링한 `GraspCandidate[]`를 점수 내림차순으로 반환한다. 팔 선택, IK, MoveIt 충돌 검사와 실제 실행은 [조작 경로](../../../../docs/implementation/how-to/manipulation.md)가 담당한다.
 
 ```mermaid
 flowchart LR
@@ -93,6 +93,11 @@ flowchart LR
 | 영향 범위 | 기존 후보 포맷 유지; simulator mesh / 질량 / 마찰은 변경하지 않음 |
 
 ## 후보 이미지 확인
+
+<figure class="visual-slot" data-visual-id="grasp-debug">
+<p><strong>시각자료 자리 · 비워 둠</strong></p>
+<figcaption><strong>필요한 자료:</strong> 현재 /grasp/debug_image에서 같은 snapshot의 물체, 후보 축과 접촉 위치가 보이는 화면.<br><strong>빈 이유:</strong> 기존 실물 파지 사진에는 predictor의 입력과 후보 대응 정보가 없습니다.</figcaption>
+</figure>
 
 ```bash
 ros2 run rqt_image_view rqt_image_view /grasp/debug_image

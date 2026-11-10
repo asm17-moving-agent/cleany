@@ -30,7 +30,7 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
     path = materialize_facility_world(TEMPLATE, tmp_path / 'cad.sdf')
     robot = ET.parse(path).getroot().find("world/model[@name='cleany_mecanum']")
     meshes = [mesh.text for mesh in robot.findall('.//mesh/uri')]
-    assert any('/meshes/cad_frame/' in mesh for mesh in meshes)
+    assert any('/meshes/cad_final/' in mesh for mesh in meshes)
     assert not any('raskog' in mesh.lower() for mesh in meshes)
     assert robot.find("joint[@name='head_pan_joint']") is not None
     for wheel in ('front_left', 'front_right', 'rear_left', 'rear_right'):
@@ -41,7 +41,10 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
     }
     metadata = json.loads(path.with_suffix('.model.json').read_text())
     profile = yaml.safe_load((PACKAGE / 'config/cad_frame.yaml').read_text())
-    assert metadata['source_commit'] == profile['source_commit']
+    assert metadata['adapter_origin_commit'] == profile['adapter_origin_commit']
+    assert metadata['description']['entrypoint'] == 'urdf/cleany.urdf.xacro'
+    assert len(metadata['description']['sha256']) == 64
+    assert 'meshes/cad_final/InstalledMast.stl' in metadata['description']['mesh_sha256']
     assert not any('Upper_Arm_5cm_Sockets.stl' in mesh for mesh in meshes)
     # DART looks up literal namespace prefixes when applying body-fixed friction.
     assert 'ignition:expressed_in="base_link"' in path.read_text()
@@ -52,7 +55,7 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
 def test_full_facility_preserves_dhub_and_exposes_82_seat_ids(generated, tmp_path):
     path, world = generated
     old = (
-        ET.parse(materialize_study_cafe_world(TEMPLATE, tmp_path / 'legacy.sdf'))
+        ET.parse(materialize_study_cafe_world(TEMPLATE, tmp_path / 'legacy.sdf', robot_model='legacy'))
         .getroot()
         .find('world')
     )

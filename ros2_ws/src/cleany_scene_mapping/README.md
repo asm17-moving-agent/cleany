@@ -34,6 +34,11 @@ flowchart TD
 
 가려진 내부 잔상 정리가 목적이다. 로봇·OBB·TF가 잘못되면 실제 장애물을 잘못 제외할 수 있으며 인식 오류를 보완하는 안전 보장은 아니다.
 
+<figure class="contract-figure" data-visual-id="octomap-cells">
+<img src="docs/assets/octomap-cells.png" alt="형상과 일부만 겹친 셀도 제거하나?" loading="lazy">
+<figcaption>기존 C++ 검사 fixture의 z=5 mm 단면입니다. 10 mm 점유 셀(빨강)의 중심은 9 mm 폭의 알려진 형상(녹색) 안에 있지만 모서리는 밖에 있어 셀을 유지합니다. 실제 구현은 3D의 8개 모서리를 모두 검사합니다. <a href="../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
+
 ## 설정
 
 | 설정 | 기본 / 범위 | 동작 |
@@ -105,7 +110,7 @@ source "$scene_build_root/install/setup.bash"
 | 점군 / 실행 | 원점, layout, range clipping, stop/start, 동시 callback, 지연 뒤 최신 프레임 선택 |
 | Worker 수명 | 재사용 / 재설정, 프레임 크기와 XYZ/XYZRGB 변경, 예외 뒤 전체 종료와 복구 |
 
-Profile에는 world/attached body가 포함되지 않는다. 이 수치는 실제 이동 지연, Jetson 성능 또는 파지·운반 성공을 대신하지 않는다. 의존성 설치는 [개발환경](../../../docs/DEVELOPMENT_SETUP.md)을 따른다.
+Profile에는 world/attached body가 포함되지 않는다. 이 수치는 실제 이동 지연, Jetson 성능 또는 파지·운반 성공을 대신하지 않는다. 의존성 설치는 [개발환경](../../../docs/implementation/development_setup.md)을 따른다.
 
 ## 로그 수준
 

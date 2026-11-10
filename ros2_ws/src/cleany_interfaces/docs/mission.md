@@ -162,4 +162,4 @@ control_bridge는 `ws(s)://<backend>/api/robots/cleany-01/gateway/ws`를 ROS에 
 
 관측 토픽은 명령 경로가 아니다. 소비자는 재시작과 sequence gap을 구분해야 한다.
 
-관련 안내: [실행](../../../../docs/RUNNING.md), [Manipulation](manipulation.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [Manipulation](manipulation.md).

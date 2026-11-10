@@ -46,7 +46,7 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 실행 파일 `logger`는 `/cleany_logger_cli_<임의 suffix>` 임시 ROS 노드를 사용한다.
 [cli.py](../cleany_logger/cli.py)의 명령 처리는 저장 파일을 열지 않으며
 [cli_client.py](../cleany_logger/cli_client.py)가 위 네 서비스를 호출한다. 별도 logger
-노드가 같은 ROS domain에서 실행 중이어야 한다. 실행 예시는 [RUNNING](../../../../docs/how-to/monitoring.md#독립-logger)을 따른다.
+노드가 같은 ROS domain에서 실행 중이어야 한다. 실행 예시는 [RUNNING](../../../../docs/implementation/how-to/monitoring.md#독립-logger)을 따른다.
 
 | 명령 | 계약 |
 |---|---|

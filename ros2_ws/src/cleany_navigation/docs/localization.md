@@ -52,6 +52,11 @@ flowchart LR
 | 공분산 | 비유한 값, 설정 상한 초과, 허용 범위 밖 음수는 정상 근거로 사용하지 않음 |
 | 공분산 수치 오차 | −1e−9 이내 음수는 0으로 해석 |
 
+<figure class="contract-figure" data-visual-id="alignment">
+<img src="assets/alignment.png" alt="같은 scan도 pose가 틀리면 지도 정합이 어떻게 달라지나?" loading="lazy">
+<figcaption>기존 단위 테스트의 같은 지도와 scan을 정상 pose(위), 잘못된 pose(아래)로 투영했습니다. 검정은 점유 셀, 주황은 scan 끝점입니다. 실제 bag이나 복구 성능 측정이 아닌 합성 fixture 예시입니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
+
 ## 감속 유지와 정지 시점
 
 | degraded에서 관측된 조건 | 처리 |

@@ -1,6 +1,6 @@
 # 경로 계획과 주행 제어
 
-전역 planner는 지나갈 경로를 찾고, MPPI는 그 경로를 따라갈 속도를 선택한다. 실제 출력은 [안전 경로](safety.md)의 제한을 추가로 받는다. 실행 방법은 [주행 가이드](../../../../docs/how-to/phone-navigation.md)를 따른다.
+전역 planner는 지나갈 경로를 찾고, MPPI는 그 경로를 따라갈 속도를 선택한다. 실제 출력은 [안전 경로](safety.md)의 제한을 추가로 받는다. 실행 방법은 [주행 가이드](../../../../docs/implementation/how-to/phone-navigation.md)를 따른다.
 
 ## 프로필 선택
 
@@ -112,6 +112,11 @@ Phone Omni에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 몸체 �
 | Costmap footprint | 위 외곽 + `footprint_padding=0.05 m` | 카메라와 팔 높이의 3D 검사 아님 |
 | Collision Monitor 정지 사각형 | 0.577 × 0.7548 m | 실측 제동 거리 보증 아님 |
 
+<figure class="contract-figure" data-visual-id="footprint">
+<img src="assets/footprint.png" alt="2D 바퀴 외곽, stop, slow 경계의 실제 크기는?" loading="lazy">
+<figcaption>Phone 설정의 바퀴 외곽(녹색), 정지 경계와 padded footprint(빨강), 감속 경계(주황)를 같은 축척으로 그렸습니다. base_link의 X는 전방, Y는 왼쪽입니다. 높이별 3D 보호나 실측 제동 거리를 나타내지 않습니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
+
 ### 가감속과 장애물 접근
 
 ```mermaid
@@ -172,6 +177,11 @@ Twist는 전체를 같은 비율로 보간한다. 첫 호출이나 0.2 s를 넘�
 
 슬립 측정으로 가중치를 자동 변경하지 않는다. 위치별 위험 지도와 장기 학습은 미구현이다. SlipRecovery의 감속 정지, 정지 확인, 한 번의 종방향 재시도는 별도 동작이다.
 
+<figure class="contract-figure" data-visual-id="direction-cost">
+<img src="assets/direction-cost.png" alt="이동 방향별 비용은 어떤 모양인가?" loading="lazy">
+<figcaption>현재 critic 식과 Phone 가중치로 계산한 1 m당 방향 비용입니다. 전후 0, 횡이동 1, 45°에서 20.5이며 다른 비용과 함께 평가합니다. 실측 슬립이나 주행 성능 그래프가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
+
 ## 위치 정합과 복구
 
 위치가 불확실하면 감속하거나 주행 허가를 회수한다. [위치 정합 문서](localization.md)에서 상태 전이, 정지 조건과 정지 상태의 자동 복구 순서를 확인한다.
@@ -191,6 +201,11 @@ Twist는 전체를 같은 비율로 보간한다. 첫 호출이나 0.2 s를 넘�
 | `omni-r10cm-symmetric-translation.json` | 고정 자세 이동 128 + 제자리 회전 32 + 곡선 64 = 224개 | 선택적 비교 구성 |
 
 파일은 [config/lattice](../config/lattice)에 있다. Launch 기본 경로보다 명시적인 `GridBased.lattice_filepath`가 우선한다. 원본은 공식 Nav2 1.1.20 Generator로 만들었으며 반경 설정은 실물 최소 회전 반경 측정값이 아니다.
+
+<figure class="contract-figure" data-visual-id="lattice">
+<img src="assets/lattice.png" alt="현재 기본 Lattice의 이동과 회전 후보는?" loading="lazy">
+<figcaption>Phone 기본 balanced JSON에서 시작 heading 0인 7개 primitive만 표시했습니다. 점은 저장된 pose, 화살표는 마지막 yaw이며 원점의 두 화살표는 제자리 회전입니다. 선은 pose 사이 연결이고 실제 주행 결과가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
 
 ### 대칭 고정 자세 이동 후보
 

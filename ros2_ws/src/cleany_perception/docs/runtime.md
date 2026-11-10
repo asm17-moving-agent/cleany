@@ -25,7 +25,7 @@ sequenceDiagram
 
 ## 모델 준비
 
-의존성 설치는 [개발환경](../../../../docs/DEVELOPMENT_SETUP.md)를 따른다. YOLOE checkpoint와
+의존성 설치는 [개발환경](../../../../docs/implementation/development_setup.md)를 따른다. YOLOE checkpoint와
 `mobileclip2_b.ts` text encoder는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비한다.
 모델은 저장소에 포함하거나 실행 중 자동 다운로드하지 않는다.
 Gemini 분류를 사용하는 `yoloe_gemini`는 `GEMINI_API_KEY` 환경변수가 필요하다.
@@ -139,6 +139,11 @@ TTL과 촬영 시각을 갱신하거나 새 모델 추론을 시작하지 않는
 동일 cache를 `InspectScene` 선택 물체 복원에서도 사용한다.
 
 ## 입력과 손목 관측
+
+<figure class="visual-slot" data-visual-id="perception-snapshot">
+<p><strong>시각자료 자리 · 비워 둠</strong></p>
+<figcaption><strong>필요한 자료:</strong> 같은 capture stamp와 snapshot의 RGB, segmentation, OBB와 유효 depth 점군 비교.<br><strong>빈 이유:</strong> 기존 이미지를 동일 관측의 mask·depth·모델 설정과 연결할 근거가 부족합니다.</figcaption>
+</figure>
 
 `depth_scene_node`의 Depth/CameraInfo 구독은 best-effort KEEP_LAST(1)이다.
 부하가 높을 때 과거 입력을 순차 처리하지 않고 최신 수신 프레임을 사용한다.

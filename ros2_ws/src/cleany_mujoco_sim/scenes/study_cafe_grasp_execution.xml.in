@@ -42,51 +42,51 @@
   <!-- Simulation-only jaw friction; expanded across the paper cup / LEGO compound geoms. -->
   <contact>
     <!-- Rigid mouse proxy: same original mixed friction, stiff jaw contact. -->
-    <pair name="mouse_left_fixed_1" geom1="study_cafe_mouse_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_left_fixed_2" geom1="study_cafe_mouse_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_left_moving_1" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_left_moving_2" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_left_moving_3" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_right_fixed_1" geom1="study_cafe_mouse_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_right_fixed_2" geom1="study_cafe_mouse_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_right_moving_1" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_right_moving_2" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="mouse_right_moving_3" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_fixed_1" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_fixed_2" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_1" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_2" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_3" geom1="study_cafe_mouse_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_fixed_1" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_fixed_2" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_1" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_2" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_3" geom1="study_cafe_mouse_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <!-- Rigid tissue proxy: preserve mixed friction, prevent numerical penetration. -->
-    <pair name="tissue_left_fixed_1" geom1="study_cafe_tissue_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_left_fixed_2" geom1="study_cafe_tissue_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_left_moving_1" geom1="study_cafe_tissue_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_left_moving_2" geom1="study_cafe_tissue_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_left_moving_3" geom1="study_cafe_tissue_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_right_fixed_1" geom1="study_cafe_tissue_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_right_fixed_2" geom1="study_cafe_tissue_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_right_moving_1" geom1="study_cafe_tissue_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_right_moving_2" geom1="study_cafe_tissue_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="tissue_right_moving_3" geom1="study_cafe_tissue_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_left_fixed_1" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_left_fixed_2" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_left_moving_1" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_left_moving_2" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_left_moving_3" geom1="study_cafe_tissue_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_right_fixed_1" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_right_fixed_2" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_right_moving_1" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_right_moving_2" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="tissue_right_moving_3" geom1="study_cafe_tissue_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <!-- Rigid thin-shell cup: stiff contact prevents jaw penetration through walls.
          This is not a deformable paper model; friction and actuator limits unchanged. -->
-    <pair name="cup_left_fixed_1" geom1="study_cafe_cup_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_left_fixed_2" geom1="study_cafe_cup_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_left_moving_1" geom1="study_cafe_cup_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_left_moving_2" geom1="study_cafe_cup_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_left_moving_3" geom1="study_cafe_cup_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_right_fixed_1" geom1="study_cafe_cup_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_right_fixed_2" geom1="study_cafe_cup_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_right_moving_1" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_right_moving_2" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="cup_right_moving_3" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_left_fixed_1" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_left_fixed_2" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_left_moving_1" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_left_moving_2" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_left_moving_3" geom1="study_cafe_cup_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_right_fixed_1" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_right_fixed_2" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_right_moving_1" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_right_moving_2" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="cup_right_moving_3" geom1="study_cafe_cup_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <!-- LEGO: retain sliding grip, but avoid oversized torsional/rolling contact resistance.
          Constant across grip/release; no contact disabling or artificial drop force. -->
-    <pair name="lego_left_fixed_1" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_fixed_2" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_1" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_2" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_3" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_fixed_1" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_fixed_2" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_1" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_2" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_3" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_fixed_1" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_fixed_2" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_1" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_2" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_3" geom1="study_cafe_lego_collision" geom2="cad_LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_fixed_1" geom1="study_cafe_lego_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_fixed_2" geom1="study_cafe_lego_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_1" geom1="study_cafe_lego_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_2" geom1="study_cafe_lego_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_3" geom1="study_cafe_lego_collision" geom2="cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
   </contact>
 
   <equality>
