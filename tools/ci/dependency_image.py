@@ -15,7 +15,8 @@ def dependency_files(root: Path) -> list[Path]:
     paths = [*root.glob('ros2_ws/src/**/package.xml'),
              *root.glob('ros2_ws/rosdep/*.yaml'),
              *root.glob('containers/ci/*'),
-             root / 'tools/ci/dependency_image.py']
+             root / 'tools/ci/dependency_image.py',
+             root / 'tools/ci/reuse-dependencies']
     return sorted(path for path in paths if path.is_file())
 
 
