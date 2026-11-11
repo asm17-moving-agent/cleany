@@ -202,6 +202,16 @@ def physical_limits(description: str, arm: str) -> dict[str, PhysicalJointLimit]
     return result
 
 
+def joint_rate_limits(names: Sequence[str], limits: dict[str, PhysicalJointLimit], *,
+                      velocity: float, acceleration: float,
+                      limit_scale: float = .8) -> tuple[list[float], list[float]]:
+    """Bound requested rates by a fraction of current per-joint hardware caps."""
+    if isinstance(limit_scale, bool) or not math.isfinite(limit_scale) or not 0 < limit_scale <= 1:
+        raise ValueError('Joint rate limit scale must be in (0, 1]')
+    return ([min(velocity, limits[name].velocity*limit_scale) for name in names],
+            [min(acceleration, limits[name].acceleration*limit_scale) for name in names])
+
+
 @dataclass(frozen=True)
 class BoundedJointPath:
     """One validated cubic represented by dense checks and exact command knots."""
@@ -215,7 +225,7 @@ def prepare_bounded_path(names, positions, limits, *, velocity: float, accelerat
                  step: float = .01, maximum_points: int = 10000,
                  simplification_tolerance: float = .002,
                  position_range_exemptions: Sequence[str] = (),
-                 minimum_duration_sec: float = 1.):
+                 minimum_duration_sec: float = 1., limit_scale: float = .8):
     if not names or len(set(names)) != len(names) or not set(names) <= limits.keys():
         raise ValueError('Unexpected commanded joints')
     exempt = frozenset(position_range_exemptions)
@@ -226,8 +236,8 @@ def prepare_bounded_path(names, positions, limits, *, velocity: float, accelerat
         raise ValueError('Invalid execution limits')
     if any(len(p) != len(names) for p in positions):
         raise ValueError('Malformed trajectory positions')
-    velocity_limits = [min(velocity, limits[n].velocity*.8) for n in names]
-    acceleration_limits = [min(acceleration, limits[n].acceleration*.8) for n in names]
+    velocity_limits, acceleration_limits = joint_rate_limits(
+        names, limits, velocity=velocity, acceleration=acceleration, limit_scale=limit_scale)
     path = executable_joint_path(
         list(positions), simplification_tolerance=simplification_tolerance).retimed(
             velocity_limits, acceleration_limits)
@@ -251,10 +261,10 @@ def bounded_path(names, positions, limits, *, velocity: float, acceleration: flo
                  step: float = .01, maximum_points: int = 10000,
                  simplification_tolerance: float = .002,
                  position_range_exemptions: Sequence[str] = (),
-                 minimum_duration_sec: float = 1.):
+                 minimum_duration_sec: float = 1., limit_scale: float = .8):
     prepared = prepare_bounded_path(names, positions, limits, velocity=velocity,
         acceleration=acceleration, step=step, maximum_points=maximum_points,
         simplification_tolerance=simplification_tolerance,
         position_range_exemptions=position_range_exemptions,
-        minimum_duration_sec=minimum_duration_sec)
+        minimum_duration_sec=minimum_duration_sec, limit_scale=limit_scale)
     return prepared.samples, prepared.duration

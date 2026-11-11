@@ -65,6 +65,27 @@ def test_cartesian_approach_restores_roll_endpoints_and_checks_one_sample_set():
     assert adapter.last_plan_route == 'cartesian_approach'
 
 
+@pytest.mark.parametrize('failure', ['none', 'orientation', 'lateral', 'reversed', 'endpoint'])
+def test_corridor_preserves_real_axis_and_position_checks_without_synthetic_rotations(monkeypatch, failure):
+    import cleany_skill_executor.core.cartesian as cartesian
+    adapter, _, args, _ = approach_fixture()
+    positions = [(0., 0., 0.), (.1, 0., 0.), (.2, 0., 0.)]
+    if failure == 'lateral':
+        positions[1] = (.1, .1, 0.)
+    elif failure == 'reversed':
+        positions = [(0., 0., 0.), (.15, 0., 0.), (.01, 0., 0.), (.2, 0., 0.)]
+    elif failure == 'endpoint':
+        positions[-1] = (.3, 0., 0.)
+    orientation = (0., 0., 1., 0.) if failure == 'orientation' else (0., 0., 0., 1.)
+    adapter.forward_kinematics = lambda arm, q: PoseValue(q.positions[:3], orientation)
+    samples = [NS(positions=(*position, 0., 0.)) for position in positions]
+    def unexpected_interpolation(*args):
+        pytest.fail('Translation-only corridor must not interpolate synthetic rotations')
+    monkeypatch.setattr(cartesian, 'interpolate_orientation', unexpected_interpolation)
+    assert adapter._corridor_samples_valid('left', args[1].names, samples, args[3], args[4]) == (
+        failure == 'none')
+
+
 @pytest.mark.parametrize('options', [dict(fraction=.9), dict(detour=True), dict(collision=True)])
 def test_unusable_cartesian_proposal_falls_back_to_one_final_rrt_validation(options):
     adapter, _, args, calls = approach_fixture(**options)

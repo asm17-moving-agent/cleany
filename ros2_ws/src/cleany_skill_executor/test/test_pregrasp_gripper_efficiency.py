@@ -147,6 +147,21 @@ def test_two_endpoint_gripper_keeps_curve_bounds_duration_and_dense_validation(m
     assert prepared['controller_points'] == 2 and prepared['command_samples'] == len(samples)
 
 
+def test_full_rate_scale_reaches_gripper_dispatch(monkeypatch):
+    hw, trajectory, limits, sent, _, logs, _ = gripper_fixture(monkeypatch, (.8, -.3))
+    previous_value = hw.value
+    hw.trajectory_limit_scale = 1.
+    rates = {'hardware_velocity_rad_s': 3., 'hardware_acceleration_rad_s2': 12.}
+    hw.value = lambda name: rates[name] if name in rates else previous_value(name)
+    _, duration = bounded_path(tuple(trajectory.joint_names), [(.8,), (-.3,)], limits,
+                               velocity=3., acceleration=12., limit_scale=1.)
+    HardwareExecution._execute(hw, 'left', trajectory, 'gripper')
+    end = sent[0].points[-1].time_from_start
+    assert end.sec*10**9+end.nanosec == round(duration*1e9)
+    prepared = next(json.loads(line) for line in logs if 'hardware_trajectory_prepared' in line)
+    assert prepared['trajectory_limit_scale'] == 1.
+
+
 def test_multisegment_gripper_does_not_remove_turnaround(monkeypatch):
     hw, trajectory, _, sent, checked, _, _ = gripper_fixture(monkeypatch, (0., 1., .2))
     HardwareExecution._execute(hw, 'left', trajectory, 'gripper')

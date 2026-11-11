@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import cached_property
 import importlib.metadata
 import time
 from pathlib import Path
@@ -28,6 +29,33 @@ class CuRoboResources:
 
 
 class CuRoboEngine:
+    @cached_property
+    def _coaxial_wrist_axes(self) -> dict[str, tuple[float, ...]]:
+        """TCP-frame wrist axes whose fixed TCP offset lies on the rotation axis."""
+        from cleany_skill_executor.core.urdf_fk import UrdfChain
+
+        axes = {}
+        for arm, names in ARM_JOINT_NAMES.items():
+            try:
+                chain = UrdfChain(self.model.xml, 'base_link', f'{arm}_grasp_tcp')
+            except ValueError:
+                continue
+            index = next((i for i, joint in enumerate(chain.joints)
+                          if joint.name == names[-1]), None)
+            if index is None:
+                continue
+            wrist, tail = chain.joints[index], chain.joints[index+1:]
+            if wrist.kind not in ('revolute', 'continuous') or any(
+                    joint.kind != 'fixed' for joint in tail):
+                continue
+            position, rotation = np.zeros(3), np.eye(3)
+            for joint in tail:
+                position = position + rotation @ joint.translation
+                rotation = rotation @ joint.rotation
+            if np.linalg.norm(np.cross(wrist.axis, position)) <= 1e-12:
+                axes[arm] = tuple(float(value) for value in rotation.T @ wrist.axis)
+        return axes
+
     def __init__(self, model: RobotModel, config: CuRoboConfig,
                  *, resources: CuRoboResources | None = None) -> None:
         import torch
@@ -239,6 +267,32 @@ class CuRoboEngine:
             )
             for p, q in zip(xyz, wxyz)
         ]
+
+    def fk_tensor(self, arm, joints, state):
+        """Evaluate device joint rows without exporting intermediate FK poses."""
+        self.model.validate_state(state)
+        model = self._full_fk(state)
+        full = self.tensor.to_device([[state[name] for name in model.joint_names]]).repeat(len(joints), 1)
+        indices = [model.joint_names.index(name) for name in ARM_JOINT_NAMES[arm]]
+        full[:, indices] = joints.to(dtype=full.dtype)
+        result = model.get_state(full)
+        tip = model.link_names.index(f'{arm}_grasp_tcp')
+        return result.links_position[:, tip], result.links_quaternion[:, tip]
+
+    def score_batch(self, arm, targets, solutions, state, config, preferred_rolls):
+        """Expand and score candidate wrists with device-resident FK results."""
+        from cleany_skill_executor.curobo_alignment import score_wrist_batch
+
+        owners = [index for index, group in enumerate(solutions) for _ in group]
+        if not owners:
+            return [[] for _ in targets]
+        joints = self.torch.tensor(
+            [solution.positions for group in solutions for solution in group],
+            device=self.tensor.device, dtype=self.torch.float64)
+        owner_tensor = self.torch.tensor(owners, device=self.tensor.device)
+        with self.torch.no_grad():
+            return score_wrist_batch(self, arm, targets, joints, owner_tensor,
+                                     state, config, preferred_rolls)
 
     def _full_fk(self, state):
         if self.resources.fk_model is not None:

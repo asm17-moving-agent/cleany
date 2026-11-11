@@ -31,6 +31,21 @@ def adapter(valid):
     return gpu, calls
 
 
+def test_compact_scoring_is_scoped_and_restored_after_nested_calls_and_failure():
+    gpu, _ = adapter({})
+    gpu._engine = SimpleNamespace()
+    with gpu._compact_scoring():
+        assert gpu._engine._compact_alignment_output is True
+        with gpu._compact_scoring():
+            assert gpu._engine._compact_alignment_output is True
+        assert gpu._engine._compact_alignment_output is True
+    assert gpu._engine._compact_alignment_output is False
+    with pytest.raises(RuntimeError, match='cancel'):
+        with gpu._compact_scoring():
+            raise RuntimeError('cancel')
+    assert gpu._engine._compact_alignment_output is False
+
+
 @pytest.mark.parametrize('roll', [None, -.5, .5])
 def test_ranked_validation_matches_eager_winner_with_ties_and_rejections(roll):
     rejected = alignment(0, 0.)

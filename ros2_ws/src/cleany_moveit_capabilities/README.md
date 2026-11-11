@@ -16,3 +16,5 @@
 
 빌드와 검증은 `make build-motion-foundation`, `make test-motion-native`,
 `make test-motion-runtime`을 사용한다. [검증 절차](../../../docs/TESTING.md#실물-계획과-실행-기반-검증)를 따른다.
+
+같은 관절 목록의 상태는 묶음 안에서 이름 검증과 모델 인덱스를 재사용한다. 부착 물체와 multi-DOF 변경이 없는 diff 상태는 첫 상태 변환 후 관절각을 갱신하며, 다른 요청은 장면 상태에서 독립적으로 복원한다.

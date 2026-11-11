@@ -109,6 +109,77 @@ def test_gpu_fk_and_position_ik_match_authoritative_urdf(engine, arm):
 
 
 @pytest.mark.parametrize("arm", ["left", "right"])
+@pytest.mark.parametrize("continuous", [False, True])
+def test_device_wrist_scoring_preserves_reference_order_errors_and_owners(engine, arm, continuous, monkeypatch):
+    from types import SimpleNamespace
+    from cleany_skill_executor.core.physical_grasp_selection import PoseValue
+    from cleany_skill_executor.curobo_batch import CuRoboBatchAdapter
+    from cleany_skill_executor.physical_moveit_adapter import MoveItAdapterConfig
+
+    state = dict.fromkeys(REQUIRED_JOINT_NAMES, 0.0)
+    names = ARM_JOINT_NAMES[arm]
+    lower, upper = engine.model.limits[names[-1]]
+    first = JointSolution(names, (.2, .65, .8, -.4, lower))
+    second = JointSolution(names, (.2, .65, .8, -.4, upper))
+    target = engine.fk(arm, f'{arm}_grasp_tcp', [first], state)[0]
+    targets = [target, PoseValue(target.position, (0., 0., 0., 1.)), target]
+    generator = np.random.default_rng(20261108)
+    random_solutions = [JointSolution(names, tuple(
+        generator.uniform(*engine.model.limits[name]) for name in names)) for _ in range(20)]
+    solutions = [[first, first, second, *random_solutions], [], [second, first]]
+    adapter = CuRoboBatchAdapter.__new__(CuRoboBatchAdapter)
+    adapter._config = MoveItAdapterConfig(align_wrist_roll=continuous)
+    adapter._gpu_config = engine.config
+    adapter._joint_limits = {name: (*bounds, 1.) for name, bounds in engine.model.limits.items()}
+    adapter._compute = lambda function, *args: function(*args)
+    adapter._engine = SimpleNamespace(model=engine.model, fk=engine.fk)
+    reference = adapter._score_batch(arm, targets, solutions, state, [None, 0., .7])
+    adapter._engine = engine
+    calls = []
+    original_fk = engine.fk_tensor
+    def counted_fk(arm, joints, state):
+        calls.append(len(joints))
+        return original_fk(arm, joints, state)
+    monkeypatch.setattr(engine, 'fk_tensor', counted_fk)
+    actual = engine.score_batch(arm, targets, solutions, state, adapter._config, [None, 0., .7])
+    if continuous:
+        assert arm in engine._coaxial_wrist_axes
+        assert calls == [len({q for group in solutions for q in group})]
+    assert [len(group) for group in actual] == [len(group) for group in reference]
+    for expected_group, actual_group in zip(reference, actual, strict=True):
+        for expected, result in zip(expected_group, actual_group, strict=True):
+            np.testing.assert_allclose(result.solution.positions, expected.solution.positions, atol=1e-7, rtol=0.)
+            np.testing.assert_allclose(result.pose.position, expected.pose.position, atol=1e-7, rtol=0.)
+            np.testing.assert_allclose(
+                (result.position_error_m, result.approach_error_degrees, result.closing_error_degrees),
+                (expected.position_error_m, expected.approach_error_degrees, expected.closing_error_degrees),
+                atol=1e-4, rtol=0.)
+            assert adapter._feasible_alignment(result) == adapter._feasible_alignment(expected)
+    from cleany_skill_executor.core.ik_diagnostics import AlignmentLimits, summarize_alignments
+    monkeypatch.setattr(engine, '_compact_alignment_output', True, raising=False)
+    compact = engine.score_batch(arm, targets, solutions, state, adapter._config, [None, 0., .7])
+    limits = AlignmentLimits(adapter._config.position_tolerance_m,
+                             adapter._config.approach_tolerance_degrees,
+                             adapter._config.closing_tolerance_degrees)
+    assert [summarize_alignments(group, limits) for group in compact] == [
+        summarize_alignments(group, limits) for group in actual]
+    assert [[item.solution for item in group.candidates if adapter._feasible_alignment(item)]
+            for group in compact] == [
+        [item.solution for item in group if adapter._feasible_alignment(item)] for group in actual]
+    monkeypatch.setattr(engine, '_compact_alignment_output', False)
+    if continuous:
+        monkeypatch.setattr(engine, '_coaxial_wrist_axes', {})
+        fallback = engine.score_batch(arm, targets, solutions, state, adapter._config, [None, 0., .7])
+        assert sum(calls[1:]) > calls[0]
+        for expected_group, actual_group in zip(reference, fallback, strict=True):
+            assert len(expected_group) == len(actual_group)
+            for expected, result in zip(expected_group, actual_group, strict=True):
+                np.testing.assert_allclose(result.solution.positions, expected.solution.positions,
+                                           atol=1e-7, rtol=0.)
+                assert adapter._feasible_alignment(result) == adapter._feasible_alignment(expected)
+
+
+@pytest.mark.parametrize("arm", ["left", "right"])
 def test_gpu_generates_finite_joint_path(engine, arm):
     state = dict.fromkeys(REQUIRED_JOINT_NAMES, 0.0)
     start = JointSolution(ARM_JOINT_NAMES[arm], (0.0, 0.65, 0.8, -0.4, 0.0))

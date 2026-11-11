@@ -346,6 +346,8 @@ def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatc
     assert selector['require_pregrasp_visibility'] is (sorting == 'true' and wrist == 'false')
     assert coordinator['use_seeded_cartesian_grasp'] is (sorting == 'true')
     assert parameters['grasp_server']['geometric.defer_support_plane_collision'] is (sorting == 'true')
+    assert parameters['grasp_server']['geometric.include_reverse_closing_axis'] is False
+    assert tuple(parameters['grasp_server']['geometric.yaw_offsets_degrees']) == (-40., -20., 0., 20., 40.)
     urdf_path = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
     urdf = ET.fromstring(subprocess.check_output(['xacro', str(urdf_path)]))
     shoulder_origins = [

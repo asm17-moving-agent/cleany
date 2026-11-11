@@ -77,6 +77,7 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
     assert config['fixed_jaw_maximum_correction_m'] == .010
     assert config['fixed_jaw_collision_meshes'] == ['Fixed_Jaw_part2.ply.convex.stl']
     assert config['validate_motion_paths'] is True
+    assert config['state_validity_batch_size'] == 64
     assert config['planning_timeout_sec'] == 4.0
     assert config['planning_response_margin_sec'] == 20.0
     prefix = selector['prefix'].perform(context)

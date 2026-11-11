@@ -202,17 +202,22 @@ class PregraspPipeline(Node):
 
     def measured(self):
         with self.lock:
-            state = deepcopy(self.state)
-        if state is None:
-            raise RuntimeError('No measured joint state')
-        # JointState and /clock travel independently. Give a simulation clock
-        # callback a bounded chance to catch up; never accept a future stamp.
-        stamp = state.header.stamp.sec*10**9+state.header.stamp.nanosec
-        deadline = time.monotonic()+.05
-        while (self.mode == 'mujoco'
-               and 0 < stamp-self.get_clock().now().nanoseconds <= 50_000_000
-               and time.monotonic() < deadline):
-            time.sleep(.001)
+            source = self.state
+            if source is None:
+                raise RuntimeError('No measured joint state')
+            state = JointState(name=list(source.name), position=list(source.position),
+                               velocity=list(source.velocity), effort=list(source.effort))
+            state.header.frame_id = source.header.frame_id
+            state.header.stamp.sec = source.header.stamp.sec
+            state.header.stamp.nanosec = source.header.stamp.nanosec
+        if self.mode == 'mujoco':
+            # JointState and /clock travel independently. Give the clock a
+            # bounded chance to catch up before the timestamp check.
+            stamp = state.header.stamp.sec*10**9+state.header.stamp.nanosec
+            deadline = time.monotonic()+.05
+            while (0 < stamp-self.get_clock().now().nanoseconds <= 50_000_000
+                   and time.monotonic() < deadline):
+                time.sleep(.001)
         check_joint_snapshot(state, self.get_clock().now().nanoseconds,
                              maximum_age=self.get_parameter('maximum_joint_age_sec').value)
         return state
@@ -230,8 +235,9 @@ class PregraspPipeline(Node):
                 real = getattr(self, 'real', None)
                 if real is None or not real.sensor_scene_frozen:
                     self.scene_monitor.check()
-                self.measured()
-                if real is not None:
+                if real is None:
+                    self.measured()
+                else:
                     real.monitor()
             # Wake on the response instead of adding up to 10 ms to every
             # sequential collision check. Keep the same monitoring cadence.

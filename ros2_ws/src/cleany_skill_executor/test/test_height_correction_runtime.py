@@ -133,8 +133,8 @@ def test_logged_shortfall_passes_real_transport_then_converges_against_fixed_goa
     assert sent[-1].points[-1].positions[1] > goal.position.z+sag-1e-9
 
 
-@pytest.mark.parametrize('stage,duration', [('lift_height_correction', .3), ('lift', 1.)])
-def test_short_floor_reaches_controller_only_for_height_correction(command_pipeline, stage, duration):
+@pytest.mark.parametrize('stage,duration', [('lift_height_correction', .3), ('lift', .3), ('approach', 1.)])
+def test_phase_minimum_duration_reaches_controller(command_pipeline, stage, duration):
     from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
     node, selected, state, limits, plans, sent, _ = command_pipeline
     state.position = [*node.real.arm_holds['right'].command, .2]

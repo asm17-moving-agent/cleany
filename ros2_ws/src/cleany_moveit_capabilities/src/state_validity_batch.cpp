@@ -32,20 +32,35 @@ void check_state_batch(const planning_scene::PlanningScene& scene,
     response.message = "Unknown joint model group";
     return;
   }
+  const auto& first = request.robot_states.front();
+  const auto& variables = scene.getRobotModel()->getVariableNames();
+  bool reusable_state = true;
   for (const auto& state : request.robot_states)
   {
     const auto& joints = state.joint_state;
-    std::set<std::string> names(joints.name.begin(), joints.name.end());
-    if (joints.name.size() != joints.position.size() || names.size() != joints.name.size() ||
-        !std::all_of(joints.position.begin(), joints.position.end(), [](double q) { return std::isfinite(q); }) ||
-        !std::all_of(names.begin(), names.end(), [&](const auto& name) {
-          const auto& variables = scene.getRobotModel()->getVariableNames();
-          return std::find(variables.begin(), variables.end(), name) != variables.end();
-        }))
+    const bool same_names = joints.name == first.joint_state.name;
+    if (joints.name.size() != joints.position.size() ||
+        !std::all_of(joints.position.begin(), joints.position.end(), [](double q) { return std::isfinite(q); }))
     {
       response.message = "Invalid joint state";
       return;
     }
+    if (&state == &first || !same_names)
+    {
+      std::set<std::string> names(joints.name.begin(), joints.name.end());
+      if (names.size() != joints.name.size() ||
+          !std::all_of(names.begin(), names.end(), [&](const auto& name) {
+            return std::find(variables.begin(), variables.end(), name) != variables.end();
+          }))
+      {
+        response.message = "Invalid joint state";
+        return;
+      }
+    }
+    reusable_state = reusable_state && same_names && state.is_diff &&
+        state.attached_collision_objects.empty() &&
+        state.multi_dof_joint_state.joint_names.empty() && state.multi_dof_joint_state.transforms.empty() &&
+        joints.velocity == first.joint_state.velocity && joints.effort == first.joint_state.effort;
   }
   kinematic_constraints::KinematicConstraintSet constraints(scene.getRobotModel());
   if (!constraints.add(request.constraints, scene.getTransforms()))
@@ -59,16 +74,33 @@ void check_state_batch(const planning_scene::PlanningScene& scene,
   const auto geometry_count = scene.getWorld()->size() +
       scene.getRobotModel()->getLinkModelsWithCollisionGeometry().size();
   collision_request.max_contacts = geometry_count * geometry_count;
+  std::vector<int> variable_indices;
+  if (reusable_state)
+    for (const auto& name : first.joint_state.name)
+      variable_indices.push_back(scene.getRobotModel()->getVariableIndex(name));
+  auto state = scene.getCurrentState();
   for (std::size_t index = 0; index < request.robot_states.size(); ++index)
   {
-    // Start every diff from the scene state: no state or attachment leaks from
-    // a preceding sample. Live ACM, attached objects and OctoMap stay in scene.
-    auto state = scene.getCurrentState();
-    if (!moveit::core::robotStateMsgToRobotState(request.robot_states[index], state))
+    if (reusable_state && index > 0)
     {
-      response.message = "Robot state conversion failed";
-      response.valid.clear();
-      return;
+      // The first conversion retained scene attachments and shared metadata.
+      // Indexed setters also update mimic joints and dirty transforms.
+      const auto& positions = request.robot_states[index].joint_state.position;
+      for (std::size_t joint = 0; joint < variable_indices.size(); ++joint)
+        state.setVariablePosition(variable_indices[joint], positions[joint]);
+      state.update();
+    }
+    else
+    {
+      // General diffs must start independently, including attachment changes.
+      if (index > 0)
+        state = scene.getCurrentState();
+      if (!moveit::core::robotStateMsgToRobotState(request.robot_states[index], state))
+      {
+        response.message = "Robot state conversion failed";
+        response.valid.clear();
+        return;
+      }
     }
     collision_detection::CollisionResult collision;
     scene.checkCollision(collision_request, collision, state);
