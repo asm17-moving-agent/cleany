@@ -78,11 +78,26 @@ jobs:
         id: image
         env:
           IMAGE: ${{ steps.dependencies.outputs.image }}
+          COMPATIBLE_IMAGE: ${{ steps.dependencies.outputs.compatible_image }}
           DEPENDENCY_KEY: ${{ steps.dependencies.outputs.key }}
         run: |
           set -euo pipefail
           if docker pull "${IMAGE}"; then
             echo 'hit=true' >> "${GITHUB_OUTPUT}"
+          elif [[ -n "${COMPATIBLE_IMAGE}" ]] && docker pull "${COMPATIBLE_IMAGE}" && \
+            timeout --signal=TERM --kill-after=10s 3m docker run --rm --platform linux/amd64 \
+              --entrypoint bash --env ROS_HOME=/root/.ros \
+              --volume "${RUNNER_TEMP}/ci-context:/ci-context:ro" "${COMPATIBLE_IMAGE}" -c '
+                set -eo pipefail
+                source /opt/ros/humble/setup.bash
+                rosdep check --from-paths /ci-context/ros2_ws/src --ignore-src \
+                  --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
+                python3 /ci-context/containers/ci/verify-versions.py
+              '; then
+            docker tag "${COMPATIBLE_IMAGE}" "${IMAGE}"
+            echo 'hit=false' >> "${GITHUB_OUTPUT}"
+            echo "Reused dependency image after current manifest and version checks: ${COMPATIBLE_IMAGE}" \
+              >> "${GITHUB_STEP_SUMMARY}"
           else
             echo 'hit=false' >> "${GITHUB_OUTPUT}"
             timeout --signal=TERM --kill-after=30s 15m docker build --pull --platform linux/amd64 \
