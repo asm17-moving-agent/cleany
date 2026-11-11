@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Write local command telemetry without initializing ROS or touching hardware."""
+
+import argparse
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'ros2_ws/src/cleany_skill_executor'))
+from cleany_skill_executor.core.command_progress import CommandProgress
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--file', required=True)
+parser.add_argument('--execution-id', required=True)
+parser.add_argument('--owner-pid', type=int, required=True)
+parser.add_argument('--phase', required=True)
+parser.add_argument('--state', default='ACTIVE', choices=['ACTIVE', 'FINISHED', 'FAILED'])
+parser.add_argument('--message', default='')
+args = parser.parse_args()
+CommandProgress(args.file, args.execution_id, args.owner_pid).update(args.phase, args.message, state=args.state)

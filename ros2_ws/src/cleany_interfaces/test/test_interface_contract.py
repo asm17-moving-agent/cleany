@@ -1,3 +1,5 @@
+import pytest
+
 from cleany_interfaces.action import ExecuteManipulationSkill, InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
     DetectedObject2D,
@@ -229,6 +231,33 @@ def test_tracking_and_individual_verification_contract():
     assert RegisterPlacementTarget.Response().verification_id == ''
     assert VerifyPlacement.Request().verification_id == ''
 
+def test_perception_fields_and_explicit_grasp_header_roundtrip():
+    from rclpy.serialization import serialize_message, deserialize_message
+    from cleany_interfaces.msg import DetectedObject2D
+    from std_msgs.msg import Header
+    from builtin_interfaces.msg import Time
+
+    detection = DetectedObject2D(label='remote control', detector_label='power bank',
+        sorting_category='lost_item', sorting_reason='Visible reusable device',
+        median_depth_m=0.4, estimated_width_m=0.05, estimated_height_m=0.1)
+    decoded = deserialize_message(serialize_message(detection), DetectedObject2D)
+    assert (decoded.label, decoded.detector_label, decoded.sorting_reason) == (
+        detection.label, detection.detector_label, detection.sorting_reason)
+    assert decoded.sorting_category == detection.sorting_category
+    assert (decoded.median_depth_m, decoded.estimated_width_m,
+            decoded.estimated_height_m) == pytest.approx((0.4, 0.05, 0.1))
+    request = PlanGrasp.Request(target_object_header=Header(
+        frame_id='base_link', stamp=Time(sec=12)))
+    assert deserialize_message(serialize_message(request), PlanGrasp.Request) == request
+
+
+def test_batch_validity_has_an_explicit_computation_failure_and_checked_prefix():
+    from cleany_interfaces.srv import CheckStateValidityBatch
+    from moveit_msgs.msg import RobotState
+    request = CheckStateValidityBatch.Request(robot_states=[RobotState(is_diff=True)])
+    response = CheckStateValidityBatch.Response()
+    assert request.robot_states[0].is_diff
+    assert not response.success and not response.valid
 
 def test_tof_and_approach_start_without_success_or_authority():
     from cleany_interfaces.msg import TofFrame

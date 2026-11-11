@@ -1,0 +1,7 @@
+manipulation_evidence:
+  ros__parameters:
+    request_timeout_sec: 0.8
+    tracking_maximum_age_sec: 0.5
+    tracking_maximum_skew_sec: 0.2
+    # Numeric motor criteria come from the installed copy of
+    # configs/robot/gripper_contact_decision.yaml; no legacy load-only fallback.

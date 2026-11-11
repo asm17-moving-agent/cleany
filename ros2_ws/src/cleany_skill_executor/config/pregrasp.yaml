@@ -1,0 +1,29 @@
+# Selective port profile. The planner remains OMPL/RRT-Connect.
+grasp_selection_server:
+  ros__parameters:
+    motion_backend: moveit
+    planner_id: RRTConnectkConfigDefault
+    align_wrist_roll: true
+    pose_refinement_iterations: 30
+    validate_motion_paths: true
+    validation_step_rad: 0.025
+    maximum_validation_states: 2000
+    joint_acceleration_limit: 1.0
+    require_approach_corridor: true
+    approach_corridor_radius_m: 0.01
+    require_gripper_closure_clearance: true
+    gripper_sweep_step_rad: 0.05
+    support_patch_margin_m: 0.08
+    require_pregrasp_visibility: true
+    require_sensor_scene: true
+    sensor_scene_maximum_age_sec: 2.0
+    sensor_scene_startup_timeout_sec: 15.0
+    action_timeout_sec: 180.0
+validate_pick_server:
+  ros__parameters:
+    pin_object_reference: true
+    require_sensor_scene: true
+    sensor_scene_maximum_age_sec: 2.0
+    sensor_scene_startup_timeout_sec: 15.0
+    selection_timeout_sec: 180.0
+    action_timeout_sec: 300.0

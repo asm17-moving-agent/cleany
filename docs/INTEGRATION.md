@@ -41,7 +41,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph Goal["설계 목표 / cleany_robot_interface adapter는 아직 미구현"]
+    subgraph Goal["설계 목표 / 공통 backend adapter는 아직 미구현"]
         Consumer["Mission / Skill<br/>공통 robot port"]
         Interface["robot_interface 경계"]
         Mock["Mock adapter"]
@@ -54,7 +54,7 @@ flowchart TB
     end
 ```
 
-점선은 예정된 공통 adapter 구조입니다. `cleany_robot_interface` adapter는 아직 미구현이며, 현재 구체적인 adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
+점선은 예정된 공통 adapter 구조입니다. 공통 Mock/Sim/Real adapter는 아직 미구현입니다. 실물 상태 조회와 제어 가드는 [cleany_robot_interface](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)가 제공하며, 현재 Mission adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
 
 설계 경계의 근거는 KB의 [ROS 2 Software Architecture](<cleany-docs/20_TECHNICAL/11 - ROS 2 Software Architecture.md>)에서 확인합니다.
 
@@ -66,6 +66,7 @@ flowchart TB
 
 | 경계 | 문서와 원본 |
 |---|---|
+| 실물 수거, 팔 복귀와 복구 | [실행 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md), [BT 인터페이스](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../ros2_ws/src/cleany_interfaces/docs/mission.md) |
 | 시스템 가용성, 실행 허가, 복구 조정, 운영자 reset | [System Supervisor](../ros2_ws/src/cleany_system_supervisor/docs/supervision.md) |
 | 독립 안전 증거 보고 | [Safety adapter](../ros2_ws/src/cleany_safety_adapter/docs/interfaces.md) |
@@ -75,6 +76,7 @@ flowchart TB
 | 공통 base Twist | [Mobile base](../ros2_ws/src/cleany_interfaces/docs/mobile_base.md) |
 | ROS driver, odometry, 구동 허가 | [Base driver](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md) |
 | ROS↔MCU wheel protocol | [Protocol v2](../ros2_ws/src/cleany_base_interfaces/docs/protocol.md) |
+| Navigation 경로 계획과 주행 제어 | [Planning](../ros2_ws/src/cleany_navigation/docs/planning.md) |
 | Navigation 직렬 안전, 관측, 정지 | [Safety](../ros2_ws/src/cleany_navigation/docs/safety.md) |
 | Robot model, 좌표, 형상 | [Model](../ros2_ws/src/cleany_description/docs/model.md) |
 | joint, TCP, MoveIt 그룹 | [Planning](../ros2_ws/src/cleany_moveit_config/docs/planning.md) |

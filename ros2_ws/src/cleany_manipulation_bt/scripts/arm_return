@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from cleany_manipulation_bt.arm_return_client import main
+
+raise SystemExit(main())

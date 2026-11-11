@@ -1,0 +1,31 @@
+status: provisional_20plus5_floor_board
+parent_frame: left_gripper_frame
+child_frame: left_wrist_camera_optical_frame
+xyz: 0.0073504969706288557 -0.054602466512731408 0.072165502313943308
+rpy: -2.4305476372623325 -0.014173176150060973 3.1113550693304224
+parent_T_child:
+- - -0.9994424872123707
+  - 0.013661686156244439
+  - -0.03046429198454352
+  - 0.007350496970628856
+- - 0.03022994017511093
+  - 0.7576135726670673
+  - -0.6520029334501896
+  - -0.05460246651273141
+- - 0.014172701639435495
+  - -0.6525603672013888
+  - -0.7576041853674179
+  - 0.07216550231394331
+- - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+intrinsics_file: /home/cleany/cleany/ros2_ws/src/cleany_description/config/calibration/jetson_20261107/intrinsics/left/intrinsics.json
+input_dataset: /home/cleany/cleany-data/runs/camera-recalibration-20261107/wrist/samples/left/20261106T182350_453198Z
+validation:
+  intrinsic_held_out_rms_px: 0.3565496519285619
+  extrinsic_held_out_rms_px: 19.679574382082414
+  fit_views: 20
+  held_out_views: 5
+board_condition: planar board on horizontal surface; plane height fitted
+source_fit_sha256: 10af397272e57f165ec79c18cb07bfc0e0156390f4ea8131a6c98a95657795b5

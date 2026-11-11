@@ -16,7 +16,7 @@ def select_model(model_variant: str, calibration_profile: str) -> str:
             raise ValueError(f"{model_variant} has no validated calibration profile")
         return f"cleany_{model_variant}.urdf"
     if model_variant == "legacy_runtime":
-        if calibration_profile not in ("", "jetson_20261009"):
+        if calibration_profile not in ("", "jetson_20261009", "jetson_20261107", "jetson_20261108"):
             raise ValueError(f"Unknown calibration profile: {calibration_profile}")
         return "cleany.urdf.xacro"
     raise ValueError(f"Unknown model variant: {model_variant}")
@@ -84,14 +84,14 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument(
                 "model_variant",
-                default_value="freecad_final",
+                default_value="legacy_runtime",
                 choices=["freecad_final", "freecad_kinematic", "legacy_runtime"],
                 description="Static CAD, CAD-relative joint preview, or existing runtime model.",
             ),
             DeclareLaunchArgument(
                 "calibration_profile",
                 default_value="",
-                choices=["", "jetson_20261009"],
+                choices=["", "jetson_20261009", "jetson_20261107", "jetson_20261108"],
                 description="Optional provisional camera extrinsics; empty keeps nominal TF.",
             ),
             OpaqueFunction(function=_launch_model),

@@ -11,7 +11,8 @@ SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
-export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
+CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
+export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT CLEANY_INSTALL_BASE
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
@@ -56,8 +57,40 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
 	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation test-imu-runtime
 
+# Perception and candidate generation without motors or licensed model inference.
+PERCEPTION_TEST_PATHS ?= $(ROS2_WS)/src/cleany_interfaces/test $(ROS2_WS)/src/cleany_perception/test $(ROS2_WS)/src/cleany_grasping/test containers/vision/test tests/tools/test_dds_transport.py tests/tools/test_yoloe_model_comparison.py
+PERCEPTION_PYTEST_ARGS ?=
+PERCEPTION_TEST_DOMAIN_ID ?= 225
+.PHONY: build-perception-candidates test-perception-candidates
+build-perception-candidates:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_perception cleany_grasping --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-perception-candidates:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(PERCEPTION_TEST_DOMAIN_ID) \
+	PYTHONPATH="$(REPO_ROOT)tools:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_grasping:$(ROS2_WS)/src/cleany_perception/test:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
+
+VISION_COMMANDS := init host-setup build feature-id
+.PHONY: $(addprefix vision-,$(VISION_COMMANDS)) vision-license-check
+$(addprefix vision-,$(VISION_COMMANDS)):
+	"$(REPO_ROOT)tools/vision-container" $(patsubst vision-%,%,$@)
+vision-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+VISION_SERVICE_COMMANDS := hybrid-config hybrid-up hybrid-down hybrid-run anygrasp-up anygrasp-run perception-up perception-run
+.PHONY: $(VISION_SERVICE_COMMANDS)
+$(VISION_SERVICE_COMMANDS):
+	"$(REPO_ROOT)tools/vision-container" $@
+
+.PHONY: yoloe-trt-build yoloe-trt-export yoloe-trt-validate
+yoloe-trt-build yoloe-trt-export yoloe-trt-validate:
+	python3 "$(REPO_ROOT)tools/yoloe_trt_container.py" $(patsubst yoloe-trt-%,%,$@) $(YOLOE_TRT_ARGS)
+
 .PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
+
+.PHONY: camera-host-install camera-host-uninstall test-camera-orientation
 
 help:
 	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
@@ -118,6 +151,17 @@ help:
 	@echo "  make test-imu-runtime  Test MCU calibration config and ROS gyro relay"
 	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
+	@echo "  make camera-host-install / camera-host-uninstall  Install or remove Jetson USB camera orientation"
+	@echo "  make test-camera-orientation  Test camera initialization without USB hardware"
+
+camera-host-install:
+	sudo /usr/bin/python3 "$(REPO_ROOT)tools/camera/install.py" install
+
+camera-host-uninstall:
+	sudo /usr/bin/python3 "$(REPO_ROOT)tools/camera/install.py" uninstall
+
+test-camera-orientation:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools/test_camera_orientation.py tests/tools/test_camera_install.py'
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py'
@@ -227,6 +271,31 @@ build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
+
+# Isolated native hardware and host-tool validation.
+JETSON_CONTROL_SOURCE_PATH := $(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_moveit_config
+JETSON_CONTROL_TEST_PATHS ?= $(ROS2_WS)/src/cleany_robot_interface/test $(ROS2_WS)/src/cleany_moveit_config/test/test_physical_control_config.py tests/tools
+JETSON_CONTROL_PYTEST_ARGS ?=
+.PHONY: build-jetson-control test-jetson-control test-jetson-control-native test-jetson-controller
+build-jetson-control:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_robot_interface --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-jetson-control:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
+	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_CONTROL_SOURCE_PATH):$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib $(JETSON_CONTROL_TEST_PATHS) $(JETSON_CONTROL_PYTEST_ARGS)
+
+test-jetson-control-native:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && \
+	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=224 \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--return-code-on-test-failure --packages-select cleany_robot_interface cleany_moveit_collision cleany_description cleany_moveit_config
+
+test-jetson-controller:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 \
+	python3 -m pytest -q -p no:cacheprovider $(ROS2_WS)/src/cleany_robot_interface/runtime_test/test_controller_emulator.py $(JETSON_CONTROLLER_TEST_ARGS)
 
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \
@@ -669,3 +738,89 @@ test-moveit-collision: test-description-models
 		--packages-select cleany_moveit_collision cleany_moveit_config \
 		--return-code-on-test-failure --ctest-args \
 		-R 'test_solid_collision|moveit_config_contract|simulation_collision_contract|study_cafe_collision_scene_contract|solid_collision_runtime'
+
+# Physical planning and execution foundation, isolated from the collection BT.
+MOTION_TEST_DOMAIN_ID ?= 225
+MOTION_SOURCE_PATH := $(REPO_ROOT)tools:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_grasping:$(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_moveit_config
+MOTION_TEST_SUPPORT := $(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_skill_executor/runtime_test:$(ROS2_WS)/src/cleany_moveit_config/runtime_test
+MOTION_TEST_PATHS ?= $(ROS2_WS)/src/cleany_skill_executor/test $(ROS2_WS)/src/cleany_perception/test $(ROS2_WS)/src/cleany_grasping/test $(ROS2_WS)/src/cleany_interfaces/test $(ROS2_WS)/src/cleany_robot_interface/test tests/tools
+MOTION_TEST_PYTHON ?= python3
+MOTION_PYTEST_ARGS ?=
+.PHONY: build-motion-foundation test-motion-foundation test-motion-native test-motion-runtime
+build-motion-foundation:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && \
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_skill_executor cleany_moveit_capabilities --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-motion-foundation:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(MOTION_TEST_DOMAIN_ID) \
+	PYTHONPATH="$(MOTION_SOURCE_PATH):$(MOTION_TEST_SUPPORT):$${PYTHONPATH:-}" \
+	"$(MOTION_TEST_PYTHON)" -m pytest -q -p no:cacheprovider --import-mode=importlib $(MOTION_TEST_PATHS) $(MOTION_PYTEST_ARGS)
+
+test-motion-native:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(MOTION_TEST_DOMAIN_ID) \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--return-code-on-test-failure --packages-select cleany_scene_mapping cleany_moveit_capabilities cleany_moveit_collision cleany_robot_interface
+
+test-motion-runtime:
+	CLEANY_TEST_BATCH_VALIDITY=1 CLEANY_TEST_OCTOMAP_RUNTIME=1 CLEANY_TEST_ARM_MESH_RUNTIME=1 $(MAKE) test-motion-foundation MOTION_TEST_PATHS="$(ROS2_WS)/src/cleany_moveit_config/runtime_test" MOTION_PYTEST_ARGS="$(MOTION_PYTEST_ARGS)"
+
+MOTION_GPU_PYTEST_ARGS ?=
+.PHONY: test-motion-gpu
+test-motion-gpu:
+	"$(REPO_ROOT)tools/motion-container" exec -- env CLEANY_RUN_CUROBO=1 \
+		PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+		python3 -m pytest -q -p no:cacheprovider \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_gpu.py \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_mast_gpu.py \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_ik_warmup_gpu.py \
+		-k 'gpu_fk_and_position_ik_match_authoritative_urdf or gpu_generates_finite_joint_path or gpu_convex_acceptance_handles_containment_base_and_contact_pairs or mast or warmup' \
+		$(MOTION_GPU_PYTEST_ARGS)
+
+.PHONY: motion-container-image motion-container-prepare motion-container-check scene-mapping-setup moveit-octomap-lock-setup
+motion-container-image motion-container-prepare motion-container-check:
+	"$(REPO_ROOT)tools/motion-container" $(patsubst motion-container-%,%,$@)
+scene-mapping-setup:
+	"$(REPO_ROOT)tools/setup-scene-mapping"
+moveit-octomap-lock-setup:
+	"$(REPO_ROOT)tools/setup-moveit-octomap-lock"
+
+# Physical collection, return and recovery; runtime tests use fake motion ports.
+COLLECTION_CORE_TESTS := approach_path approach_replanning automatic_goal cartesian \
+	command_progress height_correction manipulation_evidence recorded_trajectory
+COLLECTION_EXECUTION_TESTS := arrival_approach command_continuity fixed_jaw_pipeline \
+	hardware_collection hardware_execution height_correction_runtime held_object_collision_policy \
+	manipulation_client_preflight manipulation_evidence_node measured_fk_reuse return_preparation \
+	runtime_readiness runtime_readiness_ros sparse_commands release_retreat_efficiency \
+	pregrasp_safety readonly_services
+COLLECTION_TEST_PATHS ?= $(addprefix $(ROS2_WS)/src/cleany_skill_executor/test/test_,$(addsuffix .py,$(COLLECTION_CORE_TESTS) $(COLLECTION_EXECUTION_TESTS))) \
+	$(ROS2_WS)/src/cleany_manipulation_bt/test tests/tools/test_collection_runtime.py
+COLLECTION_SOURCE_PATH := $(ROS2_WS)/src/cleany_manipulation_bt/test
+.PHONY: build-collection-execution test-collection-execution test-collection-regression
+build-collection-execution:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && \
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_manipulation_bt cleany_moveit_capabilities --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-collection-execution:
+	PYTHONPATH="$(COLLECTION_SOURCE_PATH):$${PYTHONPATH:-}" $(MAKE) test-motion-foundation \
+		MOTION_TEST_PATHS="$(COLLECTION_TEST_PATHS)" MOTION_PYTEST_ARGS="$(MOTION_PYTEST_ARGS)"
+
+test-collection-regression:
+	$(MAKE) test-collection-execution \
+		COLLECTION_TEST_PATHS="$(MOTION_TEST_PATHS) $(ROS2_WS)/src/cleany_manipulation_bt/test"
+
+COLLECTION_COMMANDS := start recover-control recover-planning plan execute run status logs stop
+.PHONY: $(addprefix collection-,$(COLLECTION_COMMANDS)) manipulation-start manipulation-run manipulation-restart manipulation-recover arm-return
+$(addprefix collection-,$(COLLECTION_COMMANDS)):
+	"$(REPO_ROOT)tools/collection-runtime" $(patsubst collection-%,%,$@)
+manipulation-start:
+	"$(REPO_ROOT)tools/collection-runtime" action-start
+manipulation-run:
+	"$(REPO_ROOT)tools/collection-runtime" action-run
+manipulation-restart:
+	"$(REPO_ROOT)tools/collection-runtime" action-restart
+manipulation-recover:
+	"$(REPO_ROOT)tools/collection-runtime" action-recover
+arm-return:
+	"$(REPO_ROOT)tools/collection-runtime" arm-return

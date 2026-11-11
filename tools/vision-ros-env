@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Source after ROS to connect native nodes to the existing licensed vision bridge.
+cleany_vision_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI="file://${cleany_vision_repo}/containers/vision/cyclonedds/host.xml"
+export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
+unset cleany_vision_repo

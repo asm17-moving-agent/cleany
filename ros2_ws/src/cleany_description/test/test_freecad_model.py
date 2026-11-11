@@ -209,6 +209,8 @@ def test_launch_rejects_old_calibration_on_new_assembly() -> None:
     assert (
         module.select_model("legacy_runtime", "jetson_20261009") == "cleany.urdf.xacro"
     )
+    assert module.select_model("legacy_runtime", "jetson_20261107") == "cleany.urdf.xacro"
+    assert module.select_model("legacy_runtime", "jetson_20261108") == "cleany.urdf.xacro"
     with pytest.raises(ValueError, match="no validated calibration"):
         module.select_model("freecad_final", "jetson_20261009")
     with pytest.raises(ValueError, match="no validated calibration"):

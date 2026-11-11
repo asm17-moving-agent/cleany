@@ -1,0 +1,40 @@
+{
+  "reference_ticks": [
+    2009,
+    425
+  ],
+  "encoder_directions": [
+    -1,
+    1
+  ],
+  "encoder_scale_rad_per_tick": 0.0015339807878856412,
+  "status": "manual_front_zero_and_endpoint_ranges_verified",
+  "joint_calibration_file": "/home/cleany/cleany-data/reports/head-motor-14-live-20261109.a9jadfz7/range-session.json",
+  "direction_verification": {
+    "date": "2026-11-09",
+    "source": "User-positioned left, right, up and down endpoints",
+    "pan_left_raw_decreases": true,
+    "tilt_up_raw_decreases": true
+  },
+  "motor_configuration_written": true,
+  "motor_ranges_ticks": {
+    "13": [
+      8,
+      4001
+    ],
+    "14": [
+      44,
+      1101
+    ]
+  },
+  "joint_position_bounds": {
+    "head_pan_joint": [
+      -3.055689729468197,
+      3.069495556559168
+    ],
+    "head_tilt_joint": [
+      -0.5844466801844292,
+      1.0369710126106935
+    ]
+  }
+}

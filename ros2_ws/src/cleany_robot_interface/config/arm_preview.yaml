@@ -1,0 +1,41 @@
+# VISUALIZATION ONLY: directions and URDF zero offsets need physical verification.
+# Present_Position already includes motor EEPROM homing_offset; do not add it twice.
+port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
+baudrate: 1000000
+rate_hz: 20.0
+calibration_dir: ~/.cache/huggingface/lerobot/calibration/robots/so_follower
+arms:
+  left: {first_id: 1, calibration: cleany_so101_left.json}
+  right: {first_id: 7, calibration: cleany_so101_right.json}
+joints:
+  shoulder_pan: {suffix: shoulder_yaw_joint, direction: -1, zero_tick: 2048, offset_rad: 0.0}
+  shoulder_lift: {suffix: shoulder_pitch_joint, direction: -1, zero_tick: 2048, offset_rad: 1.5707963267948966}
+  elbow_flex: {suffix: elbow_pitch_joint, direction: 1, zero_tick: 2048, offset_rad: 1.5707963267948966}
+  wrist_flex: {suffix: wrist_pitch_joint, direction: 1, zero_tick: 2048, offset_rad: 0.0}
+  wrist_roll: {suffix: wrist_roll_joint, direction: 1, zero_tick: 2048, offset_rad: 1.5707963267948966}
+  gripper: {suffix: gripper_joint, direction: 1, zero_tick: range_min, offset_rad: -0.37453297762778586}
+# Left reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/left_arm_ros_reference_20261005.json.
+# Right reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/right_arm_ros_reference_20261006.json.
+# Manual CAD alignment does not establish precise angle or force calibration.
+overrides:
+  left:
+    # 2026-11-02: user-held URDF zero pose; medians of 60 stable samples.
+    shoulder_pan: {direction: -1, zero_tick: 2069.0, offset_rad: 0.0}
+    shoulder_lift: {direction: -1, zero_tick: 3093.0, offset_rad: 0.0}
+    elbow_flex: {direction: 1, zero_tick: 1026.0, offset_rad: 0.0}
+    wrist_flex: {direction: 1, zero_tick: 2007.0, offset_rad: 0.0}
+    # Wrist mount orientation matched to the user-confirmed RViz preview.
+    wrist_roll: {direction: -1, zero_tick: 3018.5, offset_rad: 0.0}
+    # 2026-11-02: replacement ID 6, measured closed reference and reversed opening.
+    gripper: {direction: -1, zero_tick: 2689.0, offset_rad: -0.37453297762778587}
+  right:
+    # 2026-11-02: user-held URDF zero pose; medians of 60 stable samples.
+    shoulder_pan: {direction: -1, zero_tick: 2054.0, offset_rad: 0.0}
+    shoulder_lift: {direction: -1, zero_tick: 3102.0, offset_rad: 0.0}
+    # ID 9 refined against the left elbow at the user-confirmed equal folded pose.
+    elbow_flex: {direction: 1, zero_tick: 1034.0, offset_rad: 0.0}
+    wrist_flex: {direction: 1, zero_tick: 1987.0, offset_rad: 0.0}
+    # Wrist mount orientation matched to the user-confirmed RViz preview.
+    wrist_roll: {direction: -1, zero_tick: 3137.5, offset_rad: 0.0}
+    # 2026-11-02: replacement ID 12, measured closed reference and reversed opening.
+    gripper: {direction: -1, zero_tick: 2851.0, offset_rad: -0.37453297762778587}

@@ -21,5 +21,4 @@
   <exec_depend>cleany_teleop</exec_depend><exec_depend>rclpy</exec_depend><exec_depend>cleany_interfaces</exec_depend>
   <exec_depend>sllidar_ros2</exec_depend><exec_depend>micro_ros_agent</exec_depend><exec_depend>tf2_ros</exec_depend>
   <test_depend>python3-pytest</test_depend>
-  <test_depend>cleany_description</test_depend>
 </package>

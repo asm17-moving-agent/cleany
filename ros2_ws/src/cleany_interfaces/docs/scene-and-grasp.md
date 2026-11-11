@@ -12,7 +12,7 @@ flowchart TB
     Plan --> Candidates["Score 순 후보<br/>같은 snapshot / object / frame"]
     Candidates --> Select["SelectReachableGrasp<br/>fresh RobotState / 양팔 IK / 충돌 검사"]
     Select --> Check["Pregrasp + grasp<br/>2구간 plan-only"]
-    Check --> Result["후보 / 팔 / endpoint joint state<br/>Trajectory 미반환"]
+    Check --> Result["후보 / 팔 / endpoint joint state<br/>실물 구현: 시간 궤적"]
     Result -.-> Execution["별도 조작 실행 계약<br/>실제 수거는 별도 검증"]
 ```
 
@@ -29,7 +29,7 @@ InspectScene은 detector → segmenter → 3D reconstruction → TF를 한 번 �
 
 ## 후보 생성
 
-PlanGrasp는 snapshot/object ID, target/context cloud, OBB를 직접 받아 숨은 cache에 의존하지 않는다. Cloud는 같은 nonzero capture stamp, frame을 가져야 하며, TF는 capture 시각을 사용한다. Latest TF로 대체하지 않는다.
+PlanGrasp는 snapshot/object ID, target/context cloud, OBB를 직접 받아 숨은 cache에 의존하지 않는다. Cloud는 같은 nonzero capture stamp, frame을 가져야 한다. OBB는 `target_object_header`에 명시한 frame을 사용하고 capture stamp는 cloud와 같아야 한다. OBB와 cloud의 frame은 달라도 되며 각각 capture 시각의 TF를 사용한다. Latest TF로 대체하지 않는다.
 
 PointCloud2는 XYZ float32와 packed RGB float32/uint32를 지원한다. Step, payload를 검사하고 padded row를 처리한다. Provider, approach 설정은 cleany_grasping/config가 관리한다.
 
@@ -43,7 +43,7 @@ PointCloud2는 XYZ float32와 packed RGB float32/uint32를 지원한다. Step, p
 
 SelectReachableGrasp는 같은 snapshot/object/frame/OBB 후보에 대해 양팔 IK, state validity, pregrasp/grasp 2구간을 검사한다. 완전하고 fresh한 12관절 RobotState를 사용하고 goal 하나씩 처리한다. 임시 ACM은 terminal 전에 복원해야 하며 복원 실패는 성공이 아니다.
 
-성공 결과는 candidate index, arm, candidate, endpoint joint state다. Trajectory는 현재 RobotState에 종속되어 반환하지 않는다.
+성공 결과는 candidate index, arm, candidate, endpoint joint state다. 실물 선택기는 계획 시작 상태와 시간 궤적도 반환하며 실행 직전 다시 검증해야 한다. 기존 선택기는 확장 궤적 필드를 비워둔다.
 
 Position-only IK는 목표 orientation 도달을 검증하지 않는다. MuJoCo 접근 데모도 gripper close, attach, lift 성공을 증명하지 않는다.
 

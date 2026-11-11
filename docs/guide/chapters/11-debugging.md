@@ -41,18 +41,16 @@ grasp = ranked[0] if ranked else None
 테스트는 입력 → 호출 → `assert` 순서로 읽습니다. 함수 내부를 모두 이해하기 전에 지켜야 하는 약속을 알 수 있습니다. [test_selector.py](../../../ros2_ws/src/cleany_grasping/test/test_selector.py)의 `test_selects_highest_scoring_target_contact_after_width_filter()`에는 다음 입력이 있습니다.
 
 ```python
-predictor = FakePredictor(
-    (
-        grasp((0.0, 0.0, 0.52), 0.8),
-        grasp((0.0, 0.0, 0.52), 0.99, width=0.2),
-        grasp((0.3, 0.0, 0.52), 0.9),
-    )
+target = cloud(((-0.02, -0.02, 0.5), (0.02, 0.02, 0.55)))
+candidates = (
+    grasp((0.0, 0.0, 0.52), 0.8),
+    grasp((0.0, 0.0, 0.52), 0.99, width=0.2),
+    grasp((0.3, 0.0, 0.52), 0.9),
 )
+ranked = rank_grasps(candidates, target)
 
-result = select_grasp(predictor, target, target)
-
-assert result is not None
-assert result.score == 0.8
+assert len(ranked) == 1
+assert ranked[0].score == 0.8
 ```
 
 0.99 후보의 요구 폭 0.2m는 기본 최대 폭 0.10m를 넘습니다. 0.9 후보는 target 접촉 범위를 벗어납니다. 따라서 0.8이 선택됩니다. 이 테스트가 말하는 것은 “점수가 가장 높은 후보”보다 **필터를 통과한 후보 중 최고 점수**가 중요하다는 것입니다.

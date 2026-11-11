@@ -63,3 +63,60 @@ depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 �
 `namespace` 옵션으로 선택한 서버의 `manipulation/execute_skill` Action과
 `manipulation/get_execution`, `manipulation/cancel` 서비스를 호출한다.
 요청, 취소와 결과 확인 예시는 [실행 안내](manipulation_mock_usage.md)를 따른다.
+
+
+## physical_grasp_selection_server
+
+실물 후보를 검증하고 준비 자세, 파지 자세의 시간 궤적을 반환한다. 실행 명령은 보내지 않는다.
+기존 `grasp_selection_server`와 같은 Action 이름을 사용하므로 함께 실행하지 않는다.
+
+| 방향 | 기본 이름 | 타입과 의미 |
+|---|---|---|
+| Action 제공 | `grasp/select_reachable` | `SelectReachableGrasp`; `action_name`으로 변경 |
+| 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger`; 예열 준비 상태 |
+| 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/srv/SetBool`; VLM 대기 구간 알림 |
+| 서비스 호출 | `/check_state_validity_batch` | `CheckStateValidityBatch`; 전체 상태의 배치 검사 |
+| 구독 | `joint_states` | `sensor_msgs/msg/JointState`, depth 20; `joint_state_topic` 기본값 |
+| 구독 | `/robot_description` | `std_msgs/msg/String`; transient-local |
+
+MoveIt IK, FK, 장면 조회, 변경과 `/move_action`도 사용한다.
+상세 실행 조건은 [실물 파지 계획](physical-pregrasp.md)을 따른다.
+
+## validate_pick_server
+
+`grasp/validate_pick` Action(`cleany_interfaces/action/ValidatePick`)은 인식, 후보 생성,
+도달성 검사를 연결한다. 기본 downstream은 `perception/inspect_scene`, `grasp/plan`,
+`grasp/select_reachable`이며 각각 이름 파라미터로 바꿀 수 있다.
+`pin_object_reference=true`이면 `/perception/observe_object_reference`로 기준 물체를 등록한다.
+`grasp/validate_pick_debug`는 `sensor_msgs/msg/Image`, reliable, transient-local depth 1이다.
+Action 결과는 계획 근거이며 실물 수거 성공을 뜻하지 않는다.
+
+## 준비 자세 실행 도구
+
+`pregrasp_pipeline`은 기본 plan-only이며 `mujoco` 모드를 선택할 수 있다.
+`hardware_pregrasp`는 `/grasp/validate_pick`, 기준 물체 관찰과 controller 상태 조회를
+사용하고 `/{arm}_{arm|gripper}_controller/follow_joint_trajectory` Action으로 준비 자세를
+실행한다. `/joint_states`와 `/robot_description`을 읽으며 controller를 자동 활성화하지 않는다.
+`pregrasp_sim_ready`는 시뮬레이션 시작 상태를 확인하는 명시 실행 도구다.
+
+## collection_pipeline
+
+`collection_pipeline`은 기존 인식, 경로 계획과 제어 런타임에 연결하는 명시 실행 도구다.
+`--execute`가 없으면 ROS 노드를 만들지 않고 로컬 설정만 검사한다. 실행 시에는
+[준비 자세 도구](#준비-자세-실행-도구)의 입력에 `manipulation/check_evidence`
+(`cleany_interfaces/srv/CheckManipulation`) client를 추가한다.
+[실물 수거 계약](physical-collection.md)을 따른다.
+
+## manipulation_evidence
+
+실행 파일 `manipulation_evidence`는 모터와 손목 관측에서 읽기 전용 근거를 제공한다.
+
+| 종류 | 기본 경로 | 타입 | 의미 |
+|---|---|---|---|
+| Subscription | `/joint_state_broadcaster/dynamic_joint_states` | `control_msgs/msg/DynamicJointState` | 원시 모터 피드백 |
+| Subscription | `/perception/wrist_tracking_status` | `cleany_interfaces/msg/WristTrackingStatus` | 대상 식별과 관측 시각 |
+| Subscription | `/real_control/status` | `std_msgs/msg/String` | 실물 guard 상태 JSON |
+| Subscription | `/perception/manipulation_outcome` | `cleany_interfaces/msg/ManipulationOutcome` | 독립된 놓기와 이탈 확인 |
+| Service server | `/manipulation/check_evidence` | `cleany_interfaces/srv/CheckManipulation` | arm, reference, snapshot, object, destination과 after stamp에 해당하는 근거 |
+
+근거의 나이와 모터와 카메라의 시간 차이를 검사하고 실패한 guard를 ready 메시지만으로 해제하지 않는다.

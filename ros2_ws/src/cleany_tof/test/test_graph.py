@@ -1,7 +1,6 @@
 """Synthetic ROS graph only: no serial device, Nav2 controller or motors."""
 import time
 import json
-from itertools import count
 import numpy as np
 import pytest
 import rclpy
@@ -21,7 +20,8 @@ from cleany_tof.guard import ProximityGuard
 from cleany_tof.core import Settings, project
 
 
-_DOMAINS = count(190)
+# Give each graph a fresh domain without entering another suite's range.
+_DOMAINS = iter(range(10, 25))
 
 
 class World(Node):
@@ -120,7 +120,10 @@ class World(Node):
 
 @pytest.fixture
 def graph():
-    rclpy.init(domain_id=next(_DOMAINS))
+    domain_id = next(_DOMAINS, None)
+    if domain_id is None:
+        pytest.fail('ToF graph test domains 10–24 are exhausted; update the allocations in docs/TESTING.md')
+    rclpy.init(domain_id=domain_id)
     parameters = [Parameter('calibrated', value=True)]
     guard, approach, world = ProximityGuard(parameter_overrides=parameters), DeskApproachNode(parameter_overrides=parameters), World()
     executor = SingleThreadedExecutor()

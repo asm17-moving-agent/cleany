@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -eo pipefail
+source /opt/ros/humble/setup.bash
+workspace=/opt/cleany-motion/workspace
+case "${1:-}" in
+  prepare)
+    rm -f "${workspace}/ready.json"
+    cd /workspace/cleany/ros2_ws
+    colcon --log-base "${workspace}/log" build \
+      --base-paths src/cleany_interfaces src/cleany_description src/cleany_moveit_config src/cleany_grasping src/cleany_skill_executor \
+      --packages-select cleany_interfaces cleany_description cleany_moveit_config cleany_grasping cleany_skill_executor \
+      --build-base "${workspace}/build" --install-base "${workspace}/install" \
+      --parallel-workers 2 --cmake-args -DBUILD_TESTING=OFF
+    source "${workspace}/install/local_setup.bash"
+    python3 -c 'import rclpy, curobo; from cleany_interfaces.action import SelectReachableGrasp; import cleany_skill_executor.physical_grasp_selection_node'
+    printf '%s\n' "$2" > "${workspace}/ready.json"
+    ;;
+  *)
+    source "${workspace}/install/local_setup.bash"
+    exec "$@"
+    ;;
+esac

@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Check or release torque on every Cleany Feetech motor."""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from typing import Iterable
+
+from scservo_sdk import COMM_SUCCESS, PacketHandler, PortHandler
+
+
+TORQUE_ENABLE_ADDRESS = 40
+BAUDRATE = 1_000_000
+
+
+@dataclass(frozen=True)
+class BusConfig:
+    name: str
+    device: str
+    motor_ids: tuple[int, ...]
+
+
+BUSES = (
+    BusConfig(
+        "robot",
+        "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+        tuple(range(1, 15)),
+    ),
+)
+
+
+def operate(bus: BusConfig, *, release: bool) -> Iterable[str]:
+    port = PortHandler(bus.device)
+    packet = PacketHandler(0)
+    if not port.setBaudRate(BAUDRATE):
+        yield f"{bus.name}: cannot open {bus.device}"
+        return
+    try:
+        for motor_id in bus.motor_ids:
+            if release:
+                communication, motor_error = packet.write1ByteTxRx(
+                    port, motor_id, TORQUE_ENABLE_ADDRESS, 0
+                )
+                if communication != COMM_SUCCESS or motor_error != 0:
+                    yield (
+                        f"{bus.name} ID {motor_id}: torque-off write failed "
+                        f"comm={communication} error={motor_error}"
+                    )
+                    continue
+            value, communication, motor_error = packet.read1ByteTxRx(
+                port, motor_id, TORQUE_ENABLE_ADDRESS
+            )
+            verified = (
+                communication == COMM_SUCCESS and motor_error == 0 and value == 0
+            )
+            print(
+                f"{bus.name} ID {motor_id}: torque={value} verified={verified}",
+                flush=True,
+            )
+            if not verified:
+                yield (
+                    f"{bus.name} ID {motor_id}: torque-off verification failed "
+                    f"comm={communication} error={motor_error} value={value}"
+                )
+    finally:
+        port.closePort()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "operation",
+        choices=("check-off", "off"),
+        help="Read-only torque-off check, or write torque OFF and verify it.",
+    )
+    arguments = parser.parse_args()
+    failures = [
+        failure
+        for bus in BUSES
+        for failure in operate(bus, release=arguments.operation == "off")
+    ]
+    if failures:
+        for failure in failures:
+            print(f"ERROR: {failure}")
+        return 1
+    print("TORQUE OFF VERIFIED FOR IDS 1-14")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

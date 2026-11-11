@@ -1,0 +1,47 @@
+# SYNTHETIC TEST INPUT ONLY. No commissioning or deployment claim.
+# Operator-supervised normal-motion profile for the physical dual arm.
+# Values are runtime limits, not motor nameplate maxima. EEPROM calibration is unchanged.
+status: operator_supervised_operational
+update_rate: 50
+serial_timeout_ms: 20
+serial_read_retries: 1
+serial_read_recovery_budget_ms: 60
+max_state_age_s: 0.1
+temperature_limit_c: 80
+temperature_fault_confirmation_samples: 3
+# A faulted process leaves all commanded joints holding torque. A replacement
+# process may adopt that all-on hold only after status, temperature and goal
+# proximity checks; mixed or distant motor states remain rejected.
+allow_torque_on_recovery: true
+joint_defaults:
+  max_velocity: 1.0           # rad/s, command-stream bound
+  max_acceleration: 2.0       # rad/s^2, command-stream bound
+  tracking_error: 0.0         # supervised test: disable hardware tracking-error abort
+  speed_raw: 800              # ~1.23 rad/s motor ceiling; host trajectory is limited to 1.0 rad/s
+  acceleration_raw: 254       # maximize motor-side response; host trajectory is limited to 2.0 rad/s^2
+  torque_limit_raw: 800       # 80% RAM output limit; EEPROM maximum is unchanged
+joint_overrides:
+  left_gripper_joint: {torque_limit_raw: 200, temperature_limit_c: 80}
+  right_gripper_joint: {torque_limit_raw: 200, temperature_limit_c: 80}
+controller:
+  trajectory_tolerance: 0.0   # supervised test: disable in-motion JTC path tolerance
+  goal_tolerance: 0.10        # rad, about 5.73 degrees; supervised physical test tolerance
+  goal_time: 5.0              # seconds to settle
+
+# 2026-10-05/06: both calibrations expressed about user-aligned CAD references.
+# 2026-10-09: pitch bounds come from calibrated raw ranges in the current ROS mapping.
+# Nominal CAD bounds do not reject valid measured pitch states. Other limits remain explicit.
+calibrated_joint_position_bounds:
+  - left_shoulder_pitch_joint
+  - left_elbow_pitch_joint
+  - left_wrist_pitch_joint
+  - right_shoulder_pitch_joint
+  - right_elbow_pitch_joint
+  - right_wrist_pitch_joint
+joint_position_bounds:
+  left_shoulder_yaw_joint: [-2.16, 0.0]
+  left_wrist_roll_joint: [-1.5247769031583274, 2.9513790358919736]
+  left_gripper_joint: [-0.374532977628, 1.74532919957]
+  right_shoulder_yaw_joint: [0.0, 2.0033789089786476]
+  right_wrist_roll_joint: [-1.6137477888556946, 2.8992236891038616]
+  right_gripper_joint: [-0.374532977628, 1.74532919957]

@@ -13,8 +13,23 @@ case "${role}" in
   *) echo "Unsupported workspace role: ${role}" >&2; exit 1 ;;
 esac
 
+mkdir -p "build-${role}"
+exec 8>"/workspace/cleany/ros2_ws/build-${role}/.cleany-build.lock"
+flock 8
+receipt="build-${role}/.cleany-source.sha256"
+fingerprint=$(python3 /workspace/cleany/containers/vision/scripts/workspace_fingerprint.py "${role}")
+if [[ "${CLEANY_FORCE_WORKSPACE_BUILD:-0}" != 1 && -f "install-${role}/setup.bash" \
+      && -f "${receipt}" && "$(cat "${receipt}")" == "${fingerprint}" ]]; then
+  echo "Cleany ${role} workspace is prepared; reusing the successful build."
+  exit 0
+fi
+
 colcon --log-base "log-${role}" build \
   --symlink-install \
   --build-base "build-${role}" \
   --install-base "install-${role}" \
-  --packages-up-to "${packages[@]}"
+  --packages-up-to "${packages[@]}" \
+  --cmake-args -DBUILD_TESTING=OFF
+
+printf '%s\n' "${fingerprint}" > "${receipt}.tmp"
+mv "${receipt}.tmp" "${receipt}"

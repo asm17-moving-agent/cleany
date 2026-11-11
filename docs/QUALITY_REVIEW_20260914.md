@@ -118,4 +118,4 @@ launch 설정 전달은 실제 launch 인자를 평가해 selector·coordinator 
 
 - [현재 구현과 개발 진입점](../README.md)
 - [Workspace 테스트 명령](DEVELOPMENT_SETUP.md)
-- [날짜별 수거 실행 기록](SORTING_PIPELINE_TRIALS_20260909.md)
+- [과거 실행 원본 위치](EVIDENCE.md)

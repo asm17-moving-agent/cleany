@@ -4,6 +4,314 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
+
+PR 65의 `4427480d`에 Feetech 라이브러리를 `cleany_robot_interface`로 옮긴
+패치를 적용했다. Ubuntu 22.04 ARM64 컨테이너에서 ROS 2 Humble,
+ros2_control 2.54.3, MoveIt 2.5.10과 Feetech SDK 1.0.0으로 검사했다.
+
+`make build-jetson-control`로 5개 패키지를 빌드했다. 새 설치에서 기존 플러그인
+ID 등록, Python 실행 파일 6개, 설정 2개와 launch 인자 조회 3개를 확인했다.
+패키지의 C++ 드라이버 검사 11개와 Python 검사 118개, 실물 프로파일과 호스트
+도구를 포함한 `make test-jetson-control` 검사 178개가 통과했다. 검사에는
+저장소의 합성 프로파일과 가짜 버스를 사용했다.
+`make test-jetson-controller`는 설치된 C++ 플러그인과 ROS 컨트롤러를
+가상 시리얼에 연결해 21개 검사를 통과했다. 실물 모터는 연결하지 않았다.
+
+초기 환경에서 MoveIt perception, `fuser`와 Pillow가 누락되어 설치했고,
+컨테이너의 메모리 한도로 중단된 병렬 빌드는 순차 실행으로 완료했다.
+패치, 환경, 로그와 JUnit 원본은
+`CLEANY_DATA_ROOT/reports/pr65-feetech-library/`에 보관한다.
+
+## PR 65 main 충돌 해소 검증 (2026-11-02)
+
+기존 #65 `db4ebed`에 main `c50c440`을 병합했다. `.gitignore`와 보정, 개발환경,
+실행, ROS 색인 문서 4개의 충돌에서 실물 제어와 디스플레이, ToF 내용을 유지했다.
+`/output/` 규칙이 디스플레이 산출물도 포함하므로 중복된 하위 경로 규칙은 제거했다.
+main 대비 기능 변경 81개 파일과 Makefile 추가 명령은 기존 #65와 동일하다.
+
+macOS Python 3.12의 별도 venv에서 가짜 버스와 합성 설정으로 제어 및 호스트 도구
+107개, 상위 상태와 복구 52개, ToF core 91개 검사가 통과했다. CI 도구 9개도
+통과했으며 제어 및 호스트 도구 107개에 포함된 검사다. 최초 누락된 Python 의존성은
+검증 venv에 설치했다. SDK 가상 시리얼 1개는 macOS PTY의 1 Mbps ioctl이 지원되지
+않아 실패했으며, 해당 검사를 제외한 로컬 재실행 결과를 위에 기록했다. 테스트는 유지했다.
+Jetson 이름 해석이 되지 않아 native ROS 빌드, C++와 ROS 연결 검사는 재실행하지 않았다.
+충돌 표식, 문서 링크, output 제외와 기능 변경 보존을 별도로 확인했다.
+원본 로그와 병합 검사는 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/`에 보관한다.
+
+### 하드웨어 매핑 병합 후 재검증
+
+main에 #70이 추가된 뒤 `102a63e`에서 main `32d2d9e`를 반영했다. 개발환경,
+실행과 ROS 색인 문서 3개의 충돌은 양쪽 절을 모두 유지해 해결했다.
+
+직전 GitHub CI run `41376624141`은 Feetech SDK 1.0.0 설치에는 성공했지만
+rosdep이 `feetech-servo-sdk==1.0.0`의 설치 완료를 인식하지 못해 의존성 이미지
+단계에서 실패했다. `102a63e`에 이 절과 함께 반영한 수정은 rosdep에 패키지
+이름을 지정하고 CI constraints로 버전 1.0.0을 유지한다. macOS Python 3.12,
+rosdep 0.27.0과 실제 설치된 SDK로 기존 규칙의 감지 실패와 수정 후 성공을
+재현했으며, constraints를 적용한 pip dry-run도 같은 버전을 확인했다.
+
+합성 입력과 가짜 transport를 사용한 매핑과 조종 Python 검사 60개, Node 입력
+검사 17개와 `make test-ci-tools` 9개가 통과했다. Make의 login shell이 macOS
+시스템 Python을 선택해 pytest를 찾지 못한 뒤, 동일 Python 검사 목록을 venv에서
+직접 실행했다. Linux `/proc` 기반 PID 재사용 검사는 macOS에서 실패했으며,
+해당 1개를 제외한 재실행 결과가 60개다. 검사 코드는 변경하지 않았다.
+Jetson 이름 해석 실패와 로컬 Docker daemon 부재로 native ROS 빌드와 전체
+workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증은 별도다.
+
+원본 실패, 재실행 로그와 rosdep 감지 결과는
+`/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/recheck/`에 보관한다.
+
+## 과거 생성 보고서 보관
+
+날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
+`CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
+새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
+
+## 실물 수거 실행과 복귀와 복구 D 분리 검증 (2026-10-31)
+
+PR 67 `76039e2`에 원본 `94c0fcd`의 수거 실행, 팔 복귀와 복구 변경을
+미커밋 패치로 분리했다. Jetson Ubuntu 22.04 ARM64, ROS 2 Humble과 MoveIt 2.5.9에서
+별도 build/install/log 경로와 C 검증의 테스트 venv를 사용했다.
+입력은 저장소 모델, 테스트 프로필, 합성 ROS 상태와 가짜 모션 포트다.
+
+14개 패키지의 새 빌드, Python 4,091개와 vision 실행 연결 35개 검사가 통과했다.
+실제 BehaviorTree.CPP runner와 가짜 ROS Action/Service를 연결해 취소, 종료,
+통신 fault, 팔 복귀와 복구 차단을 확인했다. launch 인자 2개와 새 인터페이스 4개의
+설치를 확인했고, `collection_pipeline`의 설정 검사에서는 모션을 요청하지 않았다.
+RealSense 장치 검사 1개는 실행 조건을 지정하지 않아 제외했다.
+실물 모터, 카메라, Gemini API와 전체 수거 시나리오, 전체 workspace 검사는 실행하지 않았다.
+GPU 구현은 변경하지 않았고 실제 CUDA 검사를 반복하지 않았다.
+
+첫 빌드에서 BehaviorTree.CPP 경로가 누락되어 실패했다. 이미 설치된 4.10.0의
+CMake와 라이브러리 경로를 해당 검증 환경에 지정한 뒤 새 경로에서 다시 빌드했다.
+첫 전체 검사에서는 제거한 복귀 보정 설정과 구형 clamp API를 참조하던 9개가 실패했다.
+구형 전용 검사를 정리하고 기존 관절 범위와 역재생 회귀 검사를 유지했다.
+관련 647개 집중 검사와 전체 검사를 다시 통과했다.
+
+소스 패치, 실행 명령과 환경, 초기 실패와 최종 JUnit, 설치 확인,
+#67 및 main 가상 병합과 원본과 output 보존 비교는
+`/home/cleany/cleany-data/reports/pr-d-collection-20261031/`에 보관한다.
+원본 브랜치와 작업 트리, output 197개 파일과 C 작업 트리는 변경하지 않았다.
+
+### D 미사용 옵션과 중복 검사 정리 검증 (2026-10-31)
+
+동일한 PR 67 `76039e2` 기준의 D 미커밋 패치에서 사용하지 않는 추가 하강 검색
+옵션과 상태값을 제거했다. 높이 검색의 전체 궤적 복사를 없애고, 복귀 경로 검증이
+동일한 궤적을 반환할 때 시간 계산 결과를 재사용한다. 장면 검증은 생략하지 않는다.
+후속 테스트 정리에서는 중복 replay 환경과 설정 조합을 줄이고 공통 fixture를
+재사용해 테스트 936줄을 줄였다. 복귀 준비 정리 검사는 기존 복귀 파일로 옮겼다.
+실행 코드와 충돌, 취소, 증거 확인, 복귀 실패 및 복구 차단 검사는 유지했다.
+
+같은 Jetson의 ROS 2 Humble 환경에서 `make test-collection-execution`의 관련 검사
+1,943개와 `make test-collection-regression`의 전체 모션 및 수거 회귀
+3,986개가 통과했다. 두 결과의 검사는 중복되므로 합산하지 않는다.
+RealSense 검사 1개는 장치 실행 조건 미지정으로 제외했다. 테스트 통합의 첫 실행에서
+보조 함수에 위치와 키워드 인자를 중복 전달한 2개가 실패했고, 호출 계약을 맞춘 뒤
+집중 검사와 위 두 검사를 통과했다. 인터페이스와 빌드 설정은 바뀌지 않아 앞 절의
+14개 패키지 빌드를 사용했다. 실제 모터, 카메라, Gemini API와 전체 workspace 검사는
+실행하지 않았다.
+
+앞선 구현 최적화 검증에서는 합성 복귀 경로의 시간 계산이 3회에서 2회로 줄고,
+장면 검증은 1회로 같았다. 높이 검색은 150개 합성 입력에서 기존과 같은 절단 시점을
+반환했다. 초기 overlay import 실패와 수정 후 결과는
+`/home/cleany/cleany-data/reports/pr-d-cleanup-20261031/`에 보관한다.
+후속 테스트 정리의 소스 패치, 제거 항목과 유지 검사 대응표, 실행 환경, 초기 실패,
+최종 JUnit과 원본 및 output 보존 비교는
+`/home/cleany/cleany-data/reports/pr-d-test-trim-20261031/`에 보관한다.
+
+### D 실측 FK 재사용 검증 (2026-10-31)
+
+PR 68의 `926ef20`에 실측 FK 재사용 변경만 추가했다. Jetson Ubuntu 22.04 ARM64,
+ROS 2 Humble에서 별도 작업 트리와 build/install/log 경로를 사용했다.
+입력은 합성 관절 상태, 가짜 FK 응답과 기존 수거 실행 fixture다.
+새 검사는 파일 하나의 8개 사례로 모았으며 동일 상태의 재사용, 관절과 모델 및 통신 복구에
+따른 무효화, 링크 의존관계, 최신 상태 감시와 실패 응답 처리를 확인했다.
+
+집중 검사 8개와 `make test-collection-execution` 1,951개가 통과했다.
+집중 검사는 후자에 포함되므로 합산하지 않는다. 기존 D 의존 패키지 설치를 underlay로
+사용해 `make build`로 `cleany_skill_executor` 한 패키지만 새로 빌드했고,
+설치 환경의 두 변경 모듈이
+검증 소스와 같은 hash임을 확인했다. 설치 확인의 첫 경로 검사는 `--symlink-install`의
+build 경로를 허용하지 않아 실패했으며, 격리된 build 경로까지 확인하도록 고쳐 통과했다.
+코드 검사와 빌드는 첫 실행에 통과했다. 실물 동작, 전체 workspace와 성능 재측정은 하지 않았다.
+
+기준 commit, 소스 패치와 hash, 실행 환경과 명령, JUnit, 설치 확인과 기존 작업 트리 보존
+결과는 `/home/cleany/cleany-data/reports/pr68-fk-reuse-20261031/`에 보관한다.
+
+### #67 반영 후 수거 실행 검증 (2026-11-05)
+
+`8436eac6`에서 #67 `8bd3273a`를 반영하고 실행과 ROS 색인 문서의 충돌을
+해결했다. 같은 Jetson Ubuntu 22.04 ARM64와 ROS 2 Humble의 격리 경로에서
+14개 패키지를 증분 빌드했다. 새로 생성한 ROS 메시지의 계약 검사 18개와
+합성 상태, 가짜 모션 포트를 사용한 수거, 복귀, 복구 검사 1,951개가 통과했다.
+실패와 제외는 없었다. 실물 모터는 사용하지 않았다. 로그와 JUnit은 데이터
+루트의 `reports/pr67-68-sync-20261105.dhC9bX/`에 보관한다.
+
+## 실물 파지 계획과 실행 C 분리 검증 (2026-10-30)
+
+`94c0fcd`의 실물 계획과 실행 기반을 `bfe0f89`에 미커밋 패치로 분리했다.
+기준은 PR 66 `504b0c6`과 최신 PR 65 `db4ebed`의 병합이다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble, MoveIt 2.5.9와 격리된 빌드 경로를 사용했다.
+호스트 기하 검사는 별도 venv의 trimesh 4.5.3, SciPy 1.13.1로 실행했다.
+
+13개 패키지 빌드, Python 2725개, C++ 83개, 기존 MoveIt 회귀 36개,
+추가 MoveIt 런타임 7개와 가상 시리얼 controller 24개가 통과했다.
+모션 컨테이너의 5개 패키지 준비와 입력 hash 확인, 실제 CUDA 검사 9개도 통과했다.
+입력은 저장소 모델, 합성 장면과 가짜 추론 및 시리얼이다.
+실물 카메라 검사 1개는 장치 실행 조건을 지정하지 않아 제외했다.
+실제 모터, Gemini API와 전체 수거 흐름 및 전체 workspace는 검증하지 않았다.
+
+최초 실행의 누락 의존성과 테스트 import 경로를 보완하고 후속 수거 흐름용 검사를 제외했다.
+설정 변경 전의 테스트 기대값을 갱신했으며, ROS 로그 설정과 디버그 backtrace에 영향을
+받던 경고 검사를 수정했다. 재시작으로 중단된 실행은 결과에 포함하지 않고 다시 실행했다.
+중복 core 검사 18개 사례와 MoveIt 가짜 서비스 구현을 통합했고 기존 충돌 회귀 검사는 유지했다.
+
+소스 패치, 입력 hash, 실행 명령, 초기 실패와 최종 JUnit, 병합 및 보존 비교는
+`/home/cleany/cleany-data/reports/pr-c-motion-20261029T235707Z/`에 보관한다.
+원본 작업 트리와 output 197개 파일, 기존 PR 66 작업 트리는 보존했다.
+
+### C 미사용 구현 정리 검증 (2026-10-31)
+
+동일한 `bfe0f89` 기준의 C 미커밋 소스에서 호출되지 않는 복귀 준비 캐시,
+높이 보정과 역방향 경로 검색, 실험용 GPU 배치 경로 계획을 제거했다.
+하이브리드 IK의 이전 비교용 재시도 옵션과 미사용 보조 함수, import도 정리했다.
+삭제한 기능의 전용 검사를 제거하고 Cartesian 끝점 검사와 비동기 읽기 정리 검사는
+기존 검사 파일로 옮겼다. 현행 파지 방향, 궤적 범위와 속도 검사는 유지했다.
+
+같은 Jetson의 격리된 빌드와 테스트 venv에서 13개 패키지 재빌드,
+Python 2,603개와 실제 CUDA 11개가 통과했다. RealSense 장치 검사 1개는 제외했다.
+CUDA 검사는 FK/IK, 경로, mast 충돌과 양팔의 grasp/aim 예열 버퍼 재사용을 확인한다.
+입력은 저장소 모델과 합성 상태이며 실물 모터와 Gemini API는 실행하지 않았다.
+C++ 구현과 ROS 메시지 정의는 이번 정리에서 바뀌지 않았고 해당 검사는 위 분리 검증을 따른다.
+
+최초 집중 검사에서는 제거한 기능의 전용 테스트 누락과 수정한 fixture의 속도 값 때문에
+4개가 실패했다. 전용 검사와 fixture를 정리한 후 집중 검사와 전체 검사를 다시 통과했다.
+정리 전후 소스 패치, 테스트 명령과 JUnit, 원본과 output 보존 비교는
+`/home/cleany/cleany-data/reports/pr-c-cleanup-20261031/`에 보관한다.
+
+### #66 반영 후 모션 기반 검증 (2026-11-05)
+
+`6e0029dc`에서 #66 `e9d15a5e`를 반영하고 중복된 `controller_manager_msgs`
+실행 의존성을 일반 의존성 선언 하나로 통합했다. Jetson Ubuntu 22.04 ARM64와
+ROS 2 Humble의 별도 빌드 경로에서 13개 패키지를 빌드했다. 합성 입력과 가짜
+서비스로 Python 검사 2,623개가 통과했고 RealSense 실물 검사 1개를 제외했다.
+충돌과 직접 관련된 검사 45개는 이 수에 포함된다. 네이티브 검사 4개 패키지의
+colcon 집계는 94개, 오류와 실패는 0개다. 실물 모터는 사용하지 않았다.
+로그와 JUnit은 데이터 루트의 `reports/pr67-68-sync-20261105.dhC9bX/`에 보관한다.
+
+## Jetson 제어 기반 분리 검증
+
+`3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
+ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
+`make build-jetson-control`은 6개 패키지 빌드, `make test-jetson-control`은
+163개 검사를 통과했다. 실패와 skip은 없었다. 입력은 저장소의 고정 보정,
+합성 상태와 가상 시리얼이며 실물 장치를 열지 않았다.
+환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
+
+### PR 65 미사용 설정 정리 검증 (2026-10-30)
+
+갱신된 PR 64를 병합한 `197de90`에 이 절과 함께 반영한 정리 패치를 적용했다.
+TCP와 중복 손목 보정 3개, 기본 Xacro가 사용하지 않는 미리보기 인자와
+matplotlib 의존성을 제거했다. 기존 미리보기와 새 미리보기의 URDF hash는 같다.
+Jetson Ubuntu 22.04 ARM64, Humble과 MoveIt 2.5.9의 새 경로에 6개 패키지를
+빌드했고 삭제한 설정의 부재와 설치된 설정, launch 5개의 소스 일치를 확인했다.
+
+`make test-jetson-control` 163개, `make test-jetson-controller` 21개와 C++ 드라이버
+11개가 통과했다. 기존 제어 검사는 모두 유지했으며 실패와 skip은 없다.
+가상 시리얼과 합성 입력만 사용했고 실물 모터와 전체 workspace 검사는 실행하지 않았다.
+기존 Xacro 경고와 C++ 테스트의 write 반환값 경고는 유지된다.
+소스 패치, 환경, 로그, JUnit과 설치 및 URDF 비교 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr65/`에 보관한다.
+
+## Nav2 복구 자료의 저장소 외부 보관
+
+PR #73의 복구 자료 `recovered/nav2/`는 구현 코드와 분리해 데이터 루트의
+`archives/pr73-recovery-cleanup-20261102-c978e838/recovered/nav2/`로 옮겼다.
+이동 전 Git 기준은 `c978e838e9f9cca8afb1bb386fa7c960c47bfdb4`이며, 원본 출처와
+검증 기록은 보관 디렉터리의 `README.md`, `INDEX.json`, `provenance/`에 있다.
+활성 MPPI 구현과 설정은 `ros2_ws/src/cleany_navigation/`에 유지한다.
+
+## PR #73 snapshot 다운로드 지연
+
+`25b8eca28ad7f493087d68464385414203715a32`의
+[CI 41379752233](https://github.com/asm17-moving-agent/cleany/actions/runs/41379752233)은
+Ubuntu snapshot의 반복된 HTTP 502와 503으로 이미지 생성에서 33분 이상 경과해 중단했다.
+코드 빌드와 테스트는 시작하지 않았다. 의존성 명령 재시도뿐 아니라 APT의 파일별 재시도가 누적됐다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41379752233.log`다.
+
+서명이 검증된 snapshot index의 SHA256과 크기를 유지하면서 동일 pool 파일을 archive 미러에서
+먼저 받는 다운로드 도구를 추가했다. SHA256 또는 크기가 다르면 cache에 넣지 않으며 snapshot으로
+돌아간다. 미러 index를 읽거나 버전을 변경하지 않는다. 설치 명령 다운로드 5분과 이미지 생성
+15분 상한을 추가하고 APT 자체 재시도 1회, 명령 실행 최대 2회로 줄였다.
+다운로드 도구와 기존 CI 도구의 자동 검사 24건이 통과했다. 고정 amd64 컨테이너에서
+이전 실패 패키지 `libxrandr-dev`, `mesa-vulkan-drivers`, `python3-pip-whl`,
+`python3-setuptools-whl`을 미러 다운로드와 SHA256 검증으로 재설치했다.
+이후 버전 검사에서 Python 36개와 공통 ROS 311개가 계속 일치했다.
+설치 로그는 같은 데이터 루트의 `pr73-combined/pr73-mirror-install.log`다.
+
+## PR #73 통합 빌드의 병렬 제한과 MPPI 계약 검사
+
+2026-11-02에 PR head `25b8eca28ad7f493087d68464385414203715a32`와 아래 수정 내용을
+고정 의존성 amd64 이미지 `61625b7ef43b330932899ca41fa455e0570962dbc1549dba6ae221a583b160d0`에서 검증했다.
+컨테이너는 CPU 3개 분량과 메모리 8 GiB로 제한했다. 첫 빌드에서는 colcon이
+`CMAKE_BUILD_PARALLEL_LEVEL=2`에도 `-j12 -l12`를 주입해 MPPI 컴파일러 5개가 OOM으로 종료됐다.
+`MAKEFLAGS=-j2 -l2`를 함께 전달한 뒤 28개 패키지가 빌드됐고 추가 OOM은 없었다.
+
+통합 검사에서 이전 GoalDirectedController와 배포판 MPPI를 기대하던 assertion 6건이 실패했다.
+기대 플러그인을 현재 Cleany MPPI로 갱신하고 Omni, 횡이동, footprint 비용과 Smac Lattice 조건을 확인했다.
+검사를 제거하거나 제어 설정을 완화하지 않았다. 관련 검사 22건과 전체 2820 reported tests가
+통과했다(errors/failures 0, 기존 skip 32). 별도 Nav2 synthetic ROS 실행 검사 3건,
+Gazebo 센서/TF 실행 검사 1건과 motor core 검사도 통과했다.
+실제 로봇 검증은 수행하지 않았다.
+
+원본 로그는 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-combined/`에 보관한다.
+
+## CI 의존성의 Jetson 버전 기준
+
+PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한
+[CI 41377740118](https://github.com/asm17-moving-agent/cleany/actions/runs/41377740118)은
+이미지 생성 중 Ubuntu snapshot 서버가 패키지 4개에 HTTP 502를 반환해 실패했다.
+`ros-humble-mujoco-ros2-control` 설치 단계에서 중단됐으며 코드 빌드와 테스트에는 도달하지 않았다.
+고정 snapshot과 Python constraints를 유지한 채 APT 다운로드 재시도 및 의존성 준비 명령의 제한된 재시도를 추가했다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41377740118-failed.log`다.
+
+2026-11-02에 `jetson-orin`의 Ubuntu 22.04 arm64 system Python과 `dpkg-query -W`를 읽었다.
+최종 검증 기준은 `c50c440540a7c5c4c0736635d9d122b4736b2a47`이며 변경은 `feat/ci-dependency-pinning` 작업 트리에서 검증했다.
+실물의 패키지 설치와 설정은 변경하지 않았다.
+
+ROS `2026-08-07` snapshot의 amd64와 arm64 package index 모두 Jetson의 ROS 패키지 388개와 upstream 버전이 일치했다.
+아키텍처별 Debian 빌드 시각은 비교에서 제외했다. MuJoCo `3.11.0`과 google-genai `2.18.0`의 Python 의존성 36개를 조회해 constraints로 보존했다.
+Ubuntu 저장소는 `20260807T000000Z` snapshot으로 고정했다. 이는 Jetson 전체 OS 패키지나 JetPack의 동일성을 뜻하지 않는다.
+
+로컬 arm64 이미지 생성은 해당 ROS snapshot에 `ros-humble-ros-gz-sim`이 없어 실패했다.
+같은 snapshot의 amd64에는 `0.244.25-1jammy.20260726.122251`이 있어 실제 CI와 같은 amd64에서 검증한다.
+첫 amd64 생성은 베이스에 남은 TF2 `0.25.20` 등과 Jetson의 `0.25.22` 차이를 버전 검사에서 감지해 실패했다.
+`rosdep install`이 이미 설치된 패키지를 갱신하지 않아, workspace 설치 전에 베이스 ROS 패키지를 snapshot으로 동기화하도록 수정했다.
+재생성은 저장소의 SHA256과 대조한 APT 파일 캐시를 사용하며 workspace 빌드와 테스트 결과는 재사용하지 않는다.
+첫 workspace 빌드는 BT.CPP `4.9.1`의 CMake export가 `lib/`에서 라이브러리를 찾지만 실제 파일은 `lib/x86_64-linux-gnu/`에 있어 실패했다.
+같은 바이너리에 대한 호환 링크를 추가한 뒤 `cleany_manipulation_bt` 단독 빌드를 통과했다.
+최종 검증은 amd64 Ubuntu 22.04, Python 3.10.12 컨테이너에서 새 workspace 빌드 디렉터리와 앞선 시도의 컴파일 캐시를 사용했다. 모든 테스트는 다시 실행했다.
+
+초기 `326c237c` 기준의 24개 패키지 빌드와 2,561개 검사도 통과했다.
+검증 도중 병합된 ToF와 Supervisor를 포함하도록 `c50c4405`에 동기화한 뒤 아래 전체 검사를 다시 실행했다.
+
+| 검사 | 결과 |
+|---|---|
+| 의존성 이미지 생성과 버전 검사 | Python 36개, 공통 ROS 311개 일치 |
+| `make test-ci-tools` | 13개 통과 |
+| `make test`: 전체 빌드 | 27개 패키지 통과 |
+| `make test`: workspace 검사 | 2,720개, 오류와 실패 0개, skip 32개 |
+| `make test-motor-core` | 통과 |
+| 합성 Navigation runtime | 3개 통과 |
+| Gazebo sensor/TF runtime | 1개 통과 |
+
+설치 버전, 이미지 ID와 dependency key는 원본의 `amd64-current/image.json`, `amd64-current/dpkg-packages.txt`, `amd64-current/pip-packages.txt`에 남겼다.
+
+원본 Jetson 환경, package index, 이미지 빌드와 검사 로그는 데이터 루트의
+`reports/ci-dependency-pinning-20261102/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
@@ -133,7 +441,7 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
-Logger 분리와 CLI의 초기 검증은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)를 따른다.
+Logger 분리와 CLI의 초기 검증은 `CLEANY_DATA_ROOT/reports/evidence/reports/SCRUM-486/validation.json`를 따른다.
 `a401f6f`의 Ubuntu 22.04 ARM64/Humble 검증에서는 합성 ROS와 웹 fixture로
 Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개와 CLI 19건을 확인했다.
 초기 rosdep 선언과 launch 기본값 누락 오류는 수정 후 재검증했다. 원본은
@@ -148,6 +456,47 @@ Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개�
 문서 개편 전 사본의 source commit은 `fbe5854`입니다. Commit, dirty 상태, SHA-256은 보관 manifest, 과거 경로 대응은 `relocation-manifest.json`에서 확인합니다. 원본의 절대 경로와 hash는 보존하고, fixture의 현재 위치와 profile-manifest의 과거 provenance를 구분합니다.
 
 재현할 때는 기록된 commit의 별도 checkout과 해당 환경, 입력을 사용합니다. 다른 브랜치의 자료는 해당 버전의 근거로 취급하며, 제품 결정은 KB 검토, Decision 절차를 따릅니다.
+
+## 인식과 파지 후보 B 분리 검증
+
+A `e780be1`을 기준으로 통합 소스 `94c0fcd`에서 인식과 파지 후보 변경을 분리했다.
+Ubuntu 22.04 ARM64, ROS 2 Humble, Python 3.10, pytest 8.4.2 환경에서
+`make build-perception-candidates`로 3개 패키지, 기존 소비자 확인을 위한
+`make build COLCON_BUILD_ARGS='--packages-up-to cleany_skill_executor --parallel-workers 2'`로
+의존성을 포함한 10개 패키지를 별도 경로에 빌드했다. 소비자 빌드는 기존
+MoveIt 2.5.9 dependency overlay를 사용했으며 통합 브랜치의 install을 사용하지 않았다.
+
+`make test-perception-candidates`는 493개 통과, 명시 활성화하지 않은 RealSense
+실물 검사 1개 skip이다. 기존 수거 소비자 검사 267개도 통과했다. 입력은 합성
+RGB-D, 가짜 모델, 저장된 설정이며 실제 Gemini API, TensorRT/AnyGrasp GPU 추론,
+카메라, 모터와 전체 수거 시나리오는 실행하지 않았다. launch 두 개의 인자 검사도 통과했다.
+초기 분리 검사에서 누락된 의존성, 후속 기능 테스트와 float32 비교를 수정했고,
+소비자 노드 생성 검사의 설치 누락은 위 빌드로 해결했다. 최종 검사 실패는 없다.
+
+검증 소스 `changes.patch`, 환경, 실행 명령, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-b-perception-20261029T222340Z/`에 보관한다.
+
+### YOLOE 설정 정리 검증 (2026-10-30)
+
+`0830839`에 이 절과 함께 반영한 정리 패치를 적용했다. 이전 34종 설정,
+미사용 nano lock과 선택 옵션, 사용되지 않는 IK 예열 설정을 제거했다.
+같은 Jetson Humble 환경의 새 빌드 경로에서 `make build-perception-candidates`로
+3개 패키지를 빌드하고, 설치된 설정 6개의 hash와 삭제한 설정의 부재를 확인했다.
+`make test-perception-candidates`는 492개 통과, RealSense 실물 검사 1개 skip이다.
+검사 수가 하나 줄어든 것은 nano 전용 검사를 제거했기 때문이다.
+입력은 합성 데이터와 가짜 모델이며 실제 GPU 추론과 실물 장치는 실행하지 않았다.
+실패는 없었다. 소스 패치, 환경, 로그, JUnit과 설치 확인 원본은
+`/home/cleany/cleany-data/reports/pr-b-yoloe-cleanup-20261029T230830Z/`에 보관한다.
+
+### 최신 제어 기반 반영 검증 (2026-11-05)
+
+`c79ed45b`에서 #65 `4427480d`를 반영했다. TensorRT 엔진의 사전 로딩 결과를
+인식 상태 발행에 반영하고, RGB-D 진단 서비스와 양쪽 인터페이스 검사를 유지했다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 별도 경로에서 3개 패키지를 빌드했다.
+합성 RGB-D와 가짜 모델을 사용한 `make test-perception-candidates`는 496개 통과,
+실패 0개이며 카메라가 필요한 RealSense 검사 1개는 제외했다. 충돌과 직접 관련된
+71개는 이 수에 포함된다. 로그와 JUnit은 데이터 루트의
+`reports/pr66-merge-20261105.2aYSk4/`에 보관한다.
 
 ## Mission Mock 조작 통합
 
@@ -1332,3 +1681,16 @@ PCB 뒤면은 24.3mm, 마운트 최후단은 40.3mm다. 사용자 실측은 카�
 `head-after-exact.json`은 고정과 회전 부품 간 간격, `assembly-results.json`은
 자세별 대조, `verification-summary.json`은 최종 결과다. 커밋과 푸시는
 수행하지 않았다.
+
+## 2026-11 Jetson 보정 근거
+
+2026-11-09 머리 모터 13번과 14번의 허용 범위 측정과 적용 검증은
+`/home/cleany/cleany-data/reports/head-motor-14-live-20261109.a9jadfz7/`에 있다.
+
+2026-11-08 카메라와 관절 프로파일의 입력 해시 및 설치 확인은
+`/home/cleany/cleany-data/reports/calibration-sync-20261108.sk5ejqmt/`에 있다.
+
+2026-11-10 손목 영상 기반 기구학 보정 후보는
+`CLEANY_DATA_ROOT/kinematics_calibration/20261110-calibration/`에 있다. 입력,
+학습 표본 내부 교차 검증과 동결 검증 결과는 각 결과 JSON에 기록한다.
+이 후보는 review_only이며 독립 실물 검증과 운영 모델 반영은 미완료다.

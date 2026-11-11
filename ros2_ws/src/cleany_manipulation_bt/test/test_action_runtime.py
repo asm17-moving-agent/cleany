@@ -16,8 +16,15 @@ from cleany_interfaces.action import ExecuteManipulationSkill
 from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution
 from cleany_manipulation_bt.backend import Observation, WorkerBackend
 from cleany_manipulation_bt.node import MujocoManipulationNode
+from cleany_manipulation_bt.jetson_node import JetsonManipulationNode
 from cleany_skill_executor.manipulation.models import ObjectState, Placement
 from cleany_skill_executor.manipulation.store import StoreError
+
+
+@pytest.fixture(params=[(MujocoManipulationNode, 'mujoco'), (JetsonManipulationNode, 'jetson')],
+                ids=['mujoco', 'jetson'])
+def runtime_server(request):
+    return request.param
 
 
 def wait(future):
@@ -41,7 +48,8 @@ def wait(future):
     (True, 'RETURN_ARM', 'all'),
 ])
 def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mode, write_failure,
-                                            action_name):
+                                            action_name, runtime_server):
+    server_type, execution_profile = runtime_server
     context = Context()
     rclpy.init(context=context)
     namespace = '/bt_test_' + uuid.uuid4().hex
@@ -65,7 +73,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
     with socket.socket() as available:
         available.bind(('127.0.0.1', 0))
         port = available.getsockname()[1]
-    server = MujocoManipulationNode(context=context, namespace=namespace, backend=backend,
+    server = server_type(context=context, namespace=namespace, backend=backend,
         cli_args=['--ros-args', '-r', f'manipulation/execute_skill:={action_name}'],
         parameter_overrides=[Parameter('database_path', value=str(tmp_path/'runtime.sqlite3')),
                              Parameter('monitor_port', value=port)])
@@ -111,7 +119,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
         assert wrapped.status == (GoalStatus.STATUS_CANCELED if cancel else GoalStatus.STATUS_SUCCEEDED)
         result = wrapped.result
         assert result.status == ('CANCELED' if cancel else 'SUCCESS')
-        assert result.execution_profile == 'mujoco' and result.stop_confirmed
+        assert result.execution_profile == execution_profile and result.stop_confirmed
         response = wait(service.call_async(GetManipulationExecution.Request(execution_id=goal.execution_id)))
         assert response.found and response.record.has_result
         assert response.record.status == result.status
@@ -142,7 +150,8 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
         context.shutdown()
 
 
-def test_shutdown_waits_for_bt_record_write_without_claiming_a_stop(tmp_path, monkeypatch):
+def test_shutdown_waits_for_bt_record_write_without_claiming_a_stop(tmp_path, monkeypatch, runtime_server):
+    server_type, _ = runtime_server
     import json
     import sqlite3
     from cleany_skill_executor.manipulation.models import Goal
@@ -153,7 +162,7 @@ def test_shutdown_waits_for_bt_record_write_without_claiming_a_stop(tmp_path, mo
         available.bind(('127.0.0.1', 0))
         port = available.getsockname()[1]
     database = tmp_path / 'shutdown.sqlite3'
-    server = MujocoManipulationNode(context=context,
+    server = server_type(context=context,
         backend=WorkerBackend(lambda *_: Observation()),
         parameter_overrides=[Parameter('database_path', value=str(database)),
                              Parameter('monitor_port', value=port)])

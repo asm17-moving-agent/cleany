@@ -4,6 +4,17 @@
 
 표는 현재 소스와 launch의 기본 이름을 기록한다. 실행별 namespace, node name, parameter와 remap에 따라 실제 graph는 달라진다. 조건부 endpoint, 외부 server, 미구현 타입을 구분하며 모든 노드가 동시에 실행되는 것으로 해석하지 않는다.
 
+
+## 인식과 파지 후보 준비
+
+| 실행 파일 | 변경 인터페이스 |
+|---|---|
+| `inspection_node` | [새 RGB-D 입력 검사와 검출 결과 필드](../ros2_ws/src/cleany_perception/docs/interfaces.md) |
+| `grasp_server` | [후보 요청의 OBB 좌표계와 AnyGrasp 준비 서비스](../ros2_ws/src/cleany_grasping/docs/interfaces.md) |
+
+실행 파일 이름은 유지됩니다. `grasp_server` 진입점은 NumPy import 전에
+CPU 연산 스레드 설정을 적용하는 `cleany_grasping.runtime`을 거칩니다.
+
 ## 표 읽기
 
 | 표기 | 뜻 |
@@ -372,6 +383,27 @@ ros2 action info /grasp/select_reachable
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
 
+## Jetson 실물 상태와 제어
+
+| 실행 파일 | 역할과 인터페이스 |
+|---|---|
+| `arm_state_reader`, `robot_state_reader` | [실측 관절 상태 조회](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `control_state_guard` | [관절 상태 검증과 컨트롤러 정지](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `motor_telemetry_recorder` | [모터 상태 수동 기록](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+
+
+## 실물 계획과 준비 자세 실행
+
+| 실행 파일 | 패키지 | 계약 |
+|---|---|---|
+| `physical_grasp_selection_server` | `cleany_skill_executor` | [선택기](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#physical_grasp_selection_server) |
+| `validate_pick_server` | `cleany_skill_executor` | [Plan-only 검증](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#validate_pick_server) |
+| `pregrasp_pipeline`, `hardware_pregrasp`, `pregrasp_sim_ready` | `cleany_skill_executor` | [준비 자세 도구](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#준비-자세-실행-도구) |
+
+인식 노드의 추가 관찰 서비스, 상태 토픽은 [인식 인터페이스](../ros2_ws/src/cleany_perception/docs/interfaces.md#기준-물체-재관찰과-예열-알림),
+MoveGroup 배치 서비스는 [계획 capability](../ros2_ws/src/cleany_moveit_capabilities/README.md)를 따른다.
+
 ## 실물 매핑과 휴대폰 조종
 
 | 패키지 | 실행 파일 | 인터페이스 |
@@ -402,3 +434,12 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 ## 로컬 얼굴 디스플레이
 
 `cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독한다. 로봇 명령을 발행하지 않는다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)를 따른다.
+
+## 실물 수거 실행과 복구
+
+| 실행 파일 | 패키지 | 참조 |
+|---|---|---|
+| `manipulation_jetson_server` | `cleany_manipulation_bt` | [BT Action, 복귀와 복구](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
+| `arm_return`, `manipulation_recovery` | `cleany_manipulation_bt` | [명시 요청 client](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
+| `collection_pipeline` | `cleany_skill_executor` | [설정 검사와 명시 실행](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#collection_pipeline) |
+| `manipulation_evidence` | `cleany_skill_executor` | [읽기 전용 실행 근거](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_evidence) |

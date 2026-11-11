@@ -1,0 +1,25 @@
+status: user_specified_reference_transported_via_paired_camera_fits
+parent_frame: right_gripper_frame
+child_frame: right_wrist_camera_optical_frame
+xyz: -0.00027446116500929978 -0.049739083899823663 0.084371470949364397
+rpy: -2.4575292018817185 -0.026430984459187457 -3.1335407327676337
+parent_T_child:
+- - -0.9996183166477547
+  - -0.022940768898894567
+  - -0.015392925148818851
+  - -0.0002744611650092998
+- - -0.008049021487334102
+  - 0.774851638953182
+  - -0.6320918848274076
+  - -0.04973908389982366
+- - 0.02642790713253817
+  - -0.6317267278926038
+  - -0.7747405417239366
+  - 0.0843714709493644
+- - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+source_reference_sha256: 3a066aec97430b4f543cb2af9d5f122afe8b40467c2205f649a0b399e5aeff40
+intrinsics_file: /home/cleany/cleany/ros2_ws/src/cleany_description/config/calibration/jetson_20261107/intrinsics/right/intrinsics.json
+intrinsic_held_out_rms_px: 0.32189086530866423

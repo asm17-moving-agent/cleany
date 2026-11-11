@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <limits>
+#include <random>
 
 namespace
 {
@@ -150,6 +151,38 @@ TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset
       }
       // An occupied cell beyond the configured padding is preserved.
       EXPECT_TRUE(mesh_tree.isNodeOccupied(mesh_tree.search(0.505, 0.085, 0.005)));
+    }
+}
+
+TEST(KnownGeometry, MeshCellSupportEqualsEightCornersUnderRotationAndScale)
+{
+  auto mesh = std::make_unique<shapes::Mesh>(4,4);
+  const double vertices[]{.2,0,0, .5,0,0, .2,.2,0, .2,0,.4};
+  const unsigned int triangles[]{0,2,1, 0,1,3, 0,3,2, 1,2,3};
+  std::copy(std::begin(vertices),std::end(vertices),mesh->vertices);
+  std::copy(std::begin(triangles),std::end(triangles),mesh->triangles);
+  std::mt19937 random(57);
+  std::uniform_real_distribution<double> position(-.3,.6);
+  for (double scale : {.8,1.,1.25})
+    for (double angle : {0.,.37,1.57})
+    {
+      bodies::BodyPtr body(bodies::createBodyFromShape(mesh.get()));
+      body->setScale(scale); body->setPadding(.015);
+      auto pose = Eigen::Isometry3d::Identity();
+      pose.linear() = Eigen::AngleAxisd(angle,Eigen::Vector3d(1,2,3).normalized()).toRotationMatrix();
+      pose.translation() = Eigen::Vector3d(.4,.1,-.2);
+      body->setPose(pose);
+      const cleany_scene_mapping::ExclusionVolume volume(body);
+      for (double half : {.005,.01,.04})
+        for (unsigned int i=0; i<1000; ++i)
+        {
+          const Eigen::Vector3d center = pose * Eigen::Vector3d(position(random),position(random),position(random));
+          bool expected = true;
+          for (unsigned int corner=0; corner<8; ++corner)
+            expected &= volume.containsPoint(center + Eigen::Vector3d(
+                (corner&1U)?half:-half, (corner&2U)?half:-half, (corner&4U)?half:-half));
+          EXPECT_EQ(volume.containsCell(center,half),expected);
+        }
     }
 }
 

@@ -2,6 +2,19 @@
 
 새 Ubuntu native ROS 개발환경을 아래 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
 
+
+## 인식과 파지 후보 패키지
+
+`make build-perception-candidates`는 `cleany_interfaces`, `cleany_perception`,
+`cleany_grasping`을 현재 checkout의 외부 빌드 경로에 설치합니다. GPU 모델과
+실물 장치 없이 빌드할 수 있습니다. YOLOE와 AnyGrasp 추론용 환경은
+[비전 컨테이너](../containers/vision/README.md), 모델 변환과 검증은
+[모델 설정](../configs/models/README.md)을 따릅니다.
+
+`DetectedObject2D/3D`와 `PlanGrasp`의 필드가 추가되어 ROS 직렬화 형식이 바뀝니다.
+배포할 때는 이 인터페이스를 사용하는 native 노드와 비전 컨테이너를 모두
+같은 소스로 재빌드하고 함께 재시작합니다. 이전 rosbag은 기록 당시의 인터페이스로 읽습니다.
+
 ## 기준 환경
 
 | 항목 | 기준 |
@@ -16,6 +29,9 @@
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
 
 [CI workflow](../.github/workflows/ci.yml)는 [전용 이미지](../containers/ci/Dockerfile)에 설치한 Humble package 의존성으로 자동 검사를 실행합니다. 이미지 갱신과 컴파일 캐시는 [테스트 가이드](TESTING.md#ci-실행과-재사용)를 따릅니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
+
+CI 의존성은 Jetson에서 확인한 ROS upstream 버전과 MuJoCo, google-genai의 Python 의존성을 기준으로 고정합니다.
+CI 이미지의 apt 저장소는 고정 snapshot을 사용합니다. 아래 native 설치 명령은 현재 apt 저장소를 사용하므로 CI와 동일한 세부 버전을 보장하지 않습니다.
 
 ```bash
 lsb_release -ds
@@ -134,7 +150,7 @@ rosdep update
 
 의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
 
-새 인식 경로의 `google-genai`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
+새 인식 경로의 `google-genai`와 물리 버스용 `feetech-servo-sdk`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
 
 ```bash
 printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
@@ -153,7 +169,7 @@ make deps
 | 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
 | MoveIt 내부 충돌 검사 | cleany_moveit_collision manifest의 libfcl-dev, geometric_shapes, pluginlib |
 | Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
-| 단일 물체 MuJoCo Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
+| 단일 물체 MuJoCo/Jetson Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
 | Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
 
 `cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
@@ -213,6 +229,45 @@ Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용�
 
 ## 7. 선택 환경
 
+### Jetson Orin USB 카메라 회전
+
+DECXIN `1M-2012V1` USB 카메라(`0bda:5844`)의 180도 회전은 native host에서
+초기화합니다. 설치 대상은 JetPack 6 계열의 Ubuntu 22.04 aarch64 Jetson Orin이며,
+system Python 3.10, systemd와 udev를 사용합니다. 별도 pip 패키지는 필요하지 않습니다.
+ROS workspace나 vision container 안에 설치하지 않습니다.
+
+저장소 루트에서 다음 명령을 실행합니다.
+
+```bash
+make test-camera-orientation
+make camera-host-install
+```
+
+설치기는 다음 파일을 root 소유로 복사하고 systemd와 udev 설정을 다시 읽습니다.
+작업 checkout은 실행 시 참조하지 않습니다.
+
+| 설치 경로 | 역할 |
+|---|---|
+| `/usr/local/libexec/cleany/camera-orientation.py` | USB 장치 확인, Roll 설정과 readback, 드라이버 복구 |
+| `/etc/systemd/system/cleany-camera-orientation@.service` | USB 장치별 일회성 초기화 |
+| `/etc/udev/rules.d/70-cleany-camera-orientation.rules` | 해당 VID/PID의 USB 연결 시 초기화 요청 |
+
+설치 명령은 실행 중인 카메라를 건드리지 않습니다. 설치 후 캡처 프로그램을 닫고 USB를
+재연결합니다. 이후 재연결과 부팅 시 udev가 초기화를 요청하므로 별도의
+`systemctl enable`은 사용하지 않습니다. 규칙은 동일 VID/PID를 가진 모든 카메라에
+적용됩니다. 이 모듈의 공통 serial 문자열로 여러 카메라를 구분하지 않습니다.
+
+호스트 설정을 바꾸지 않고 설치 결과만 확인하려면 별도 경로에 배치합니다.
+
+```bash
+python3 tools/camera/install.py install --root /tmp/cleany-camera-stage
+python3 tools/camera/install.py uninstall --root /tmp/cleany-camera-stage
+```
+
+제거는 Jetson 호스트에서 `make camera-host-uninstall`로 수행합니다.
+운영 중 조회, 수동 적용과 캡처 시작 순서는 [실행 가이드](RUNNING.md#jetson-usb-카메라-회전)를
+따릅니다.
+
 ### Fedora
 
 Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. 호스트 Python과 Ubuntu ROS Python은 혼용하지 않습니다. GUI 실행에는 display와 OpenGL 전달도 필요합니다.
@@ -248,6 +303,71 @@ pnpm build
 ## 기존 Mission Mock VM 환경
 
 이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.
+
+## Jetson 실물 제어 패키지
+
+실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
+ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
+`cleany_robot_interface` 빌드는 Python 노드와 Feetech C++ 플러그인을 함께 설치합니다.
+Feetech 드라이버를 별도 패키지로 빌드한 환경에서 전환할 때는 새 `CLEANY_BUILD_ROOT`를
+사용하고 이전 install을 source하지 않은 셸에서 빌드합니다.
+
+rosdep의 pip 규칙에는 패키지 이름을 사용하고, CI의 Feetech SDK 1.0.0 고정은
+[`pip-constraints.txt`](../containers/ci/pip-constraints.txt)에서 관리합니다. 같은 버전으로
+로컬 의존성을 준비하려면 `PIP_CONSTRAINT="$PWD/containers/ci/pip-constraints.txt" make deps`를 사용합니다.
+
+```bash
+make build-jetson-control
+source "$(make -s print-install-base)/setup.bash"
+```
+
+`CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
+`CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
+`INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
+호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
+`INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
+
+실물 실행은 [제어 실행 절차](RUNNING.md#jetson-실물-실행-경로)를 따릅니다.
+
+Jetson에서 시스템 MoveIt과 버전을 맞춘 사용자 설치본을 사용하는 경우에는
+빌드 전에 해당 dependency overlay를 source합니다. 예를 들어 기존 MoveIt 2.5.9
+설치 환경은 아래 perception/Pilz overlay를 사용합니다. 없는 환경에서는 먼저 위
+rosdep 절차로 배포판 의존성을 준비합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$HOME/.local/share/cleany/moveit-scene-runtime/local_setup.bash"
+export LD_LIBRARY_PATH="$HOME/.local/share/cleany/moveit-perception/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH):${LD_LIBRARY_PATH:-}"
+make build-jetson-control
+```
+
+
+## 실물 모션 기반
+
+Jetson의 센서 장면과 동시 OctoMap 조회는 MoveIt 2.5.9에 맞춘 로컬 overlay를 사용한다.
+시스템 패키지를 교체하지 않고 `$HOME/.local/share/cleany` 아래에 설치한다.
+
+```bash
+make scene-mapping-setup
+make moveit-octomap-lock-setup
+source tools/scene-mapping-env
+make build-motion-foundation
+```
+
+설치 도구는 버전과 패치 입력 영수증을 확인한다. 이미 준비된 환경에서는 다시 설치할 필요가 없다.
+`CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_MOVEIT_PATCH_PREFIX`로 overlay 위치를 바꿀 수 있다.
+GPU IK는 별도의 [모션 컨테이너](../containers/motion/README.md)를 사용하며 기본 MoveIt 경로는 CUDA를 요구하지 않는다.
+
+모션 기하 회귀 검사는 `trimesh`가 필요하다. `python3-trimesh`는 rosdep 키가 없으므로
+시스템 Python을 바꾸지 않는 테스트 환경에 설치한다. Jetson에 NumPy 1.26이 설치된
+경우 Ubuntu 22.04의 SciPy 1.8 대신 호환되는 SciPy 1.13.1을 이 환경에서 사용한다.
+`CLEANY_BUILD_ROOT`는 [검증 안내](TESTING.md#실물-계획과-실행-기반-검증)처럼 운영 경로와 분리해 지정한다.
+
+```bash
+python3 -m venv --system-site-packages "$CLEANY_BUILD_ROOT/test-env"
+"$CLEANY_BUILD_ROOT/test-env/bin/python3" -m pip install --no-deps trimesh==4.5.3 scipy==1.13.1
+make test-motion-foundation MOTION_TEST_PYTHON="$CLEANY_BUILD_ROOT/test-env/bin/python3"
+```
 
 ## 실물 매핑 의존성
 

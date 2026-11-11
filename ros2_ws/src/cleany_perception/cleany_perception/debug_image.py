@@ -9,6 +9,7 @@ from rclpy.time import Time
 from sensor_msgs.msg import Image
 
 from cleany_perception.core.models import Detection2D, ObjectMask, RgbArray
+from cleany_perception.byte_buffer import numpy_byte_array
 
 
 _COLORS = (
@@ -42,7 +43,7 @@ def render_debug_image(
         blended = 0.65 * result[mask].astype(np.float32) + 0.35 * color
         result[mask] = np.clip(blended, 0.0, 255.0).astype(np.uint8)
 
-    image = PilImage.fromarray(result, mode='RGB')
+    image = PilImage.fromarray(result)
     draw = ImageDraw.Draw(image)
     for index, (object_id, detection) in enumerate(zip(ids, detections)):
         color = _COLORS[index % len(_COLORS)]
@@ -74,5 +75,5 @@ def debug_image_message(
     message.encoding = 'rgb8'
     message.is_bigendian = False
     message.step = contiguous.shape[1] * 3
-    message.data = contiguous.tobytes()
+    message.data = numpy_byte_array(contiguous)
     return message

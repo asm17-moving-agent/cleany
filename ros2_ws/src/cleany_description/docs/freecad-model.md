@@ -14,11 +14,11 @@
 
 | 선택 | 용도 | 제약 |
 |---|---|---|
-| `freecad_final` | 기본 description 미리보기, 부품 배치와 표면 확인 | 관절 명령, 동역학, 파지와 센서 보정에 사용하지 않음 |
+| `freecad_final` | 정적 description 미리보기, 부품 배치와 표면 확인 | 관절 명령, 동역학, 파지와 센서 보정에 사용하지 않음 |
 | `freecad_kinematic` | 추출한 축과 집게 핀 연동의 변화량 표시 | 영점·운용 제한·실물 접촉 미확정, 실제 제어용이 아님 |
 | `legacy_runtime` | 기존 URDF의 관절, MoveIt, 제어와 기존 보정 비교 | 새 CAD 형상을 반영한 실행 모델이 아님 |
 
-`description.launch.py`의 기본값은 `freecad_final`이다. 기존 직접 진입점인
+`description.launch.py`의 기본값은 `legacy_runtime`이다. CAD 미리보기는 명시적으로 선택한다. 기존 직접 진입점인
 `cleany.urdf.xacro`, `cleany_control.urdf.xacro`와 `mjcf/cleany.xml`은 기존 실행
 모델을 유지한다. 새 정적 모델은 기존 관절명과 TCP를 제공하지 않으므로 기존
 MoveIt chain이나 컨트롤러 설정을 붙여 사용하지 않는다. 기존 실행기의 홈 자세,

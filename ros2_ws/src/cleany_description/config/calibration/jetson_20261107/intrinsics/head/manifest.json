@@ -1,0 +1,92 @@
+{
+  "config": {
+    "camera_serial": "261822075013",
+    "width": 640,
+    "height": 480,
+    "fps": 30,
+    "squares_x": 7,
+    "squares_y": 5,
+    "square_length_m": 0.05,
+    "marker_length_m": 0.035,
+    "dictionary": "DICT_6X6_250",
+    "board_pdf": "/home/cleany/Downloads/charuco_A3_50mm_marker35mm.pdf",
+    "board_pdf_sha256": "52ca2a4364091bcd19d3008a9973c95373dfd0769474b4265f89803757897464",
+    "minimum_corners": 16,
+    "minimum_calibration_views": 20,
+    "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+    "baudrate": 1000000,
+    "encoder_period_ticks": 4096,
+    "motor_ids": {
+      "pan": 13,
+      "tilt": 14
+    }
+  },
+  "camera": {
+    "serial": "261822075013",
+    "width": 640,
+    "height": 480,
+    "fps": 30,
+    "K": [
+      [
+        604.962890625,
+        0,
+        326.2489318847656
+      ],
+      [
+        0,
+        604.3519287109375,
+        244.1850128173828
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "D": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "distortion.inverse_brown_conrady",
+    "source": "RealSense SDK"
+  },
+  "opencv_version": "4.5.4",
+  "git_reference_model": "5206f51e",
+  "joint_units": "raw_encoder_ticks",
+  "cad_joint_zero_and_direction": null,
+  "board_size_verified_for_this_run": null,
+  "settle_s": 0.45,
+  "post_hold_s": 0.25,
+  "max_span_ticks": 2,
+  "max_feedback_gap_s": 0.15,
+  "camera_tf_reference": {
+    "frame": "cad_head_camera_optical_frame",
+    "parent": "cad_head_tilt",
+    "xyz_m": [
+      0.03551600000234397,
+      0.047332972295973594,
+      0.03239607805471123
+    ],
+    "rpy_rad": [
+      -1.5707963267948946,
+      0.0,
+      -1.5707963267948946
+    ],
+    "origin_basis": "front_window_surface_centroid_proxy",
+    "status": "user_adjusted_default_reference",
+    "center_xyz_m": [
+      0.035516000002344034,
+      0.017332972295973595,
+      0.03239607805471123
+    ],
+    "camera_local_offset_m": [
+      -0.03,
+      0.0,
+      0.0
+    ],
+    "offset_meaning": "robot_left_30mm"
+  }
+}

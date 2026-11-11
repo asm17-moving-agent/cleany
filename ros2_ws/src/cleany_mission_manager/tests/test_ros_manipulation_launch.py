@@ -71,7 +71,13 @@ def test_supported_compositions_start_exactly_one_simulator(
         parameters = yaml.safe_load(Path(arguments["params_file"]).read_text())
         controller = parameters["controller_server"]["ros__parameters"]
         assert controller["goal_checker"]["xy_goal_tolerance"] < .08
-        assert controller["FollowPath"]["plugin"] == "cleany_navigation::GoalDirectedController"
+        follow = controller["FollowPath"]
+        assert follow["plugin"] == "cleany_navigation::MPPIController"
+        assert follow["motion_model"] == "Omni"
+        assert follow["vy_max"] > 0
+        assert follow["CostCritic"]["consider_footprint"] is True
+        assert parameters["planner_server"]["ros__parameters"]["GridBased"]["plugin"] in (
+            "nav2_smac_planner::SmacPlannerLattice", "nav2_smac_planner/SmacPlannerLattice")
         safety = yaml.safe_load((Path(__file__).parents[2] / "cleany_gazebo_sim/config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):
             assert parameters[name][name]["ros__parameters"]["footprint"] == safety[name][name]["ros__parameters"]["footprint"]

@@ -1,0 +1,10 @@
+# Explicit operator motion: open selected grippers, then return to saved defaults.
+# Empty arm means both. No grasp/empty-object verification is requested.
+string arm
+---
+bool success
+bool stop_confirmed
+string message
+bool recovery_required
+---
+string stage

@@ -16,12 +16,11 @@ from typing import Mapping, Sequence
 
 
 IDENTITY_PATH = Path('/etc/cleany/jetson-identity.env')
-# License-bound MAC and feature ID live only in the root-owned identity file.
-# Runtime checks compare the container and SDK against that file.
+PINNED_ANYGRASP_MAC = '02:42:ac:1e:00:0a'
 PINNED_ANYGRASP_IP = '172.30.0.10'
 PINNED_PERCEPTION_IP = '172.30.0.11'
-PINNED_VLM_IP = '172.30.0.12'
 PINNED_MOTION_IP = '172.30.0.13'
+PINNED_FEATURE_ID = 'N11176336906968411287'
 
 REQUIRED_IDENTITY_KEYS = frozenset(
     {
@@ -29,7 +28,6 @@ REQUIRED_IDENTITY_KEYS = frozenset(
         'ANYGRASP_IPV4_ADDRESS',
         'ANYGRASP_EXPECTED_FEATURE_ID',
         'PERCEPTION_IPV4_ADDRESS',
-        'VLM_IPV4_ADDRESS',
         'MOTION_IPV4_ADDRESS',
         'HYBRID_SUBNET',
         'HYBRID_GATEWAY',
@@ -94,7 +92,9 @@ def read_identity(path: Path) -> dict[str, str]:
         values[key] = value
 
     missing = sorted(REQUIRED_IDENTITY_KEYS - values.keys())
-    unknown = sorted(values.keys() - REQUIRED_IDENTITY_KEYS)
+    unknown = sorted(
+        values.keys() - REQUIRED_IDENTITY_KEYS
+    )
     if missing:
         raise PreflightError(
             f'Missing Jetson identity keys: {", ".join(missing)}'
@@ -131,9 +131,10 @@ def validate_identity_file(
 
 def validate_identity_values(values: Mapping[str, str]) -> None:
     pinned = {
+        'ANYGRASP_MAC_ADDRESS': PINNED_ANYGRASP_MAC,
         'ANYGRASP_IPV4_ADDRESS': PINNED_ANYGRASP_IP,
+        'ANYGRASP_EXPECTED_FEATURE_ID': PINNED_FEATURE_ID,
         'PERCEPTION_IPV4_ADDRESS': PINNED_PERCEPTION_IP,
-        'VLM_IPV4_ADDRESS': PINNED_VLM_IP,
         'MOTION_IPV4_ADDRESS': PINNED_MOTION_IP,
     }
     for key, expected in pinned.items():
@@ -155,7 +156,6 @@ def validate_identity_values(values: Mapping[str, str]) -> None:
             for key in (
                 'ANYGRASP_IPV4_ADDRESS',
                 'PERCEPTION_IPV4_ADDRESS',
-                'VLM_IPV4_ADDRESS',
                 'MOTION_IPV4_ADDRESS',
             )
         ]
@@ -174,7 +174,7 @@ def validate_identity_values(values: Mapping[str, str]) -> None:
         raise PreflightError(
             'Hybrid gateway and service addresses must be in the IPv4 subnet'
         )
-    if len({gateway, *addresses}) != 5:
+    if len({gateway, *addresses}) != 4:
         raise PreflightError(
             'Hybrid gateway and service addresses must be unique'
         )
@@ -185,7 +185,6 @@ def validate_identity_values(values: Mapping[str, str]) -> None:
         raise PreflightError('ROS_DOMAIN_ID must be an integer') from error
     if not 0 <= domain_id <= 232:
         raise PreflightError('ROS_DOMAIN_ID must be between 0 and 232')
-
     for key in (
         'ANYGRASP_LICENSE_HOST_DIR',
         'ANYGRASP_MODEL_HOST_DIR',

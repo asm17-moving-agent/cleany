@@ -9,7 +9,6 @@ binary는 기존 것을 그대로 공유하지만 runtime service와 mount는 �
 | Native | Mission Manager, Skill Executor, Robot Interface, `ros2_control`, hardware driver, Nav2, safety watchdog, AI 결과 검증 | host |
 | `anygrasp` | `grasp/plan` (`PlanGrasp.srv`) | `172.30.0.10`, license에 묶인 고정 MAC |
 | `perception` | YOLOE-seg, depth, 3D reconstruction와 `perception/inspect_scene` (`InspectScene.action`) | `172.30.0.11` |
-| `vlm` | Qwen/VLM service 예약; 아직 Compose service 없음 | `172.30.0.12` 예약 |
 | `motion` | cuRobo/cuMotion service 예약; 아직 Compose service 없음 | `172.30.0.13` 예약 |
 
 RGB-D driver도 초기에는 native에 둔다. 실제 profiling에서 DDS 전송이 병목으로 확인된
@@ -95,10 +94,15 @@ make perception-up
 make perception-run
 ```
 
-현재 `cleany_perception`의 2D detector는 Gemini adapter이므로 Qwen/VLM service가 구현되기
-전까지 API key를 실행 process에만 전달한다. key는 identity나 Compose environment에
-저장하지 않는다. `.12` VLM 주소는 IPAM이 선점하며 service 구현 시 예약을 해제하고 같은
-주소를 승계한다.
+> [!TIP]
+> **OpenBLAS CPU 스레드 최적화 (`CLEANY_PERCEPTION_BLAS_THREADS`)**:
+> - 인식 컨테이너의 NumPy / SciPy 연산은 기본 **1개 스레드**(`OPENBLAS_NUM_THREADS=1`)를 사용합니다.
+> - VLM API 응답을 대기하는 동안 씬 매핑 및 경로 계획이 동시에 돌 때 발생하는 CPU 코어 경합을 완화하기 위함입니다.
+> - 스레드 수를 변경하려면 `export CLEANY_PERCEPTION_BLAS_THREADS=2` 등으로 지정한 뒤 `make perception-up`으로 컨테이너를 재생성하고 `make perception-run`을 실행합니다. (ROS 2 콜백 스레드 수는 변경되지 않습니다.)
+
+`cleany_perception`은 YOLOE-seg의 검출과 마스크에 Gemini 분류를 결합합니다.
+API 키는 환경 변수로 실행 프로세스에 전달하며 identity 파일에는 저장하지 않습니다.
+모델 프로파일과 TensorRT 변환은 [모델 설정](../../configs/models/README.md)을 따릅니다.
 
 전체 lifecycle 명령은 다음과 같다.
 
@@ -108,7 +112,7 @@ make hybrid-run
 make hybrid-down
 ```
 
-`vision-up/down/run`, `vision-feature-id`, `vision-license-check`는 호환 alias다.
+`vision-feature-id`와 `vision-license-check`는 SDK 확인 명령이다.
 `hybrid-down`은 같은 Compose project의 이전 `vision` orphan도 함께 정리한다. 이전
 container와 새 `anygrasp`가 같은 MAC으로 동시에 실행 중이면 시작 wrapper가 거부한다.
 

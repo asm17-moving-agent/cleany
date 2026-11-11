@@ -11,7 +11,7 @@ Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회
 
 ## FreeCAD 형상 미리보기
 
-description의 기본 모델은 새 FreeCAD 파일에 저장된 정적 조립 형상입니다.
+`model_variant:=freecad_final`은 새 FreeCAD 파일에 저장된 정적 조립 형상입니다.
 관절이나 모터를 명령하지 않으며, RViz의 Fixed Frame은 `base_link`로 지정합니다.
 기존 동작 모델과 [미확정 값의 범위](../ros2_ws/src/cleany_description/docs/freecad-model.md)를
 구분합니다. 실행 중인 로봇의 `/robot_description`과 섞이지 않도록 별도 터미널과
@@ -20,7 +20,7 @@ DDS domain에서 확인합니다.
 ```bash
 make build COLCON_BUILD_ARGS='--packages-select cleany_description'
 source "$(make -s print-install-base)/setup.bash"
-ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py use_sim_time:=false
+ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py model_variant:=freecad_final use_sim_time:=false
 ```
 
 실물 ROS graph와 함께 형상을 확인하려면 `namespace:=cad_reference`와
@@ -32,7 +32,7 @@ ROS_DOMAIN_ID=173 ros2 launch cleany_description description.launch.py use_sim_t
 
 ```bash
 ros2 launch cleany_description description.launch.py use_sim_time:=false \
-  namespace:=cad_reference frame_prefix:=cad_reference/
+  model_variant:=freecad_final namespace:=cad_reference frame_prefix:=cad_reference/
 ```
 
 기존 관절 모델을 표시하려면 `model_variant:=legacy_runtime`을 지정합니다.
@@ -159,6 +159,19 @@ cuRobo 검사 도구는 캐시 형상에서 거리 검색 범위를 계산합니
 연결할 때도 manifest의 `required_mesh_query_distance_m`을 적용하는
 [검사 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)을 따릅니다.
 
+
+## 인식과 파지 후보 실행
+
+[인식 모델 설정](../configs/models/README.md)에서 모델 경로와 프로파일을 확인하고
+[비전 컨테이너 실행 절차](../containers/vision/README.md)를 따릅니다.
+`make perception-run`은 YOLOE 인스턴스 검출과 Gemini 분류를,
+`make anygrasp-run`은 선택 객체 점군의 파지 후보 생성을 실행합니다.
+후보 생성 성공은 로봇 도달성이나 실제 파지 성공을 의미하지 않습니다.
+
+`perception/check_rgbd`는 새 RGB-D 입력의 시각과 기하 유효성을 확인합니다.
+[인식 인터페이스](../ros2_ws/src/cleany_perception/docs/interfaces.md)와
+[파지 요청 좌표계 계약](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md)을 따릅니다.
+
 ## 실행 선택과 준비 순서
 
 ```mermaid
@@ -177,6 +190,70 @@ flowchart TB
 ```
 
 `mission_sim.launch.py`는 주행과 Mission 구성을 함께 띄웁니다. Sensor와 Nav2가 이미 준비돼 있다면 `mission_runtime.launch.py`만 붙입니다. 아래에서 실행 목적에 맞는 절차를 선택합니다.
+
+## Jetson USB 카메라 회전
+
+[호스트 설정](DEVELOPMENT_SETUP.md#jetson-orin-usb-카메라-회전)을 설치하면
+DECXIN `0bda:5844` 연결마다 카메라의 UVC Roll을 `3`으로 설정합니다. 이 모듈에서 `3`은
+180도 회전이며 각도가 아닙니다. 영상 변환 프로세스를 상시 실행하지 않습니다.
+
+초기화는 USB 부모 장치의 연결 이벤트로 실행합니다. helper가 `uvcvideo`를 잠시
+분리하고 복구하면서 생기는 video node 이벤트는 다시 초기화를 요청하지 않습니다.
+`/dev/video0` 같은 번호 대신 해당 연결의 USB 장치를 지정하므로 다른 카메라로
+대체하지 않습니다.
+
+1. 캡처 프로그램을 닫고 카메라를 연결합니다.
+2. 초기화 결과를 확인한 뒤 ROS 카메라 노드나 캡처 프로그램을 시작합니다.
+
+```bash
+journalctl -b -u 'cleany-camera-orientation@*.service' --no-pager
+```
+
+정상 완료된 oneshot unit은 `inactive (dead)`로 돌아갑니다. 상시 `active` 상태인지를
+성공 조건으로 사용하지 않습니다. 장치 준비는 최대 10초 기다리고 USB 요청에도
+timeout을 적용합니다. 실패한 unit은 자동 반복하지 않습니다. 원인을 해결한 뒤 수동으로
+다시 시작하거나 USB를 재연결합니다. 잦은 재연결이 start-rate 제한에 걸리지 않도록
+unit의 시작 횟수 제한은 사용하지 않습니다.
+
+연결된 모듈의 USB 이름을 조회할 수 있습니다.
+
+```bash
+for device in /sys/bus/usb/devices/*; do
+  if grep -qx 0bda "$device/idVendor" 2>/dev/null &&
+     grep -qx 5844 "$device/idProduct" 2>/dev/null; then
+    printf '%s\n' "${device##*/}"
+  fi
+done
+```
+
+캡처를 닫은 상태에서 위 출력 중 대상 이름을 지정해 조회하거나 다시 적용합니다.
+예시의 `1-2.3`은 실제 출력으로 바꿉니다.
+
+```bash
+USB_DEVICE=1-2.3
+sudo /usr/bin/python3 -I /usr/local/libexec/cleany/camera-orientation.py \
+  --usb-device "$USB_DEVICE"
+sudo systemctl reset-failed "cleany-camera-orientation@${USB_DEVICE}.service"
+sudo systemctl start "cleany-camera-orientation@${USB_DEVICE}.service"
+```
+
+helper는 이미 사용 중인 video node를 발견하면 드라이버를 분리하지 않고 일시 실패로
+종료합니다. 수동 조회도 USB 인터페이스 확보가 필요하므로 캡처를 먼저 닫습니다.
+초기화 중 카메라를 여는 경쟁을 피하도록 캡처 시작을 초기화 완료 뒤로 배치합니다.
+자동 시작하는 캡처 서비스에는 실제 USB 이름에 대한 다음 의존성을 함께 둡니다.
+
+```ini
+[Unit]
+Requires=cleany-camera-orientation@1-2.3.service
+After=cleany-camera-orientation@1-2.3.service
+```
+
+| 실패 | 확인과 조치 |
+|---|---|
+| 장치 준비 timeout | USB 연결과 `uvcvideo` probe 로그 확인 후 재시도 |
+| 사용 중인 video node 또는 접근 확인 실패 | 캡처 종료와 native host 실행 여부 확인 후 재시도 |
+| 지원하지 않는 Roll 범위 또는 장치 ID | 다른 기종에 적용하지 말고 해당 카메라의 제어 규약 확인 |
+| USB 분리 또는 readback 실패 | 연결을 확인하고 journal의 드라이버 복구 결과 확인 |
 
 ## Gazebo
 
@@ -513,6 +590,69 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 
 MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
 
+## Jetson 실물 실행 경로
+
+`cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
+로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
+패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.
+관절 미리보기 `arm_preview.launch.py`는 모델 경로, 상태 설정, RViz, 헤드 포함 여부와
+마스트 간격을 받습니다. 기본 모델은 명목 형상이며, 저장된 보정을 적용한 실물
+모델은 아래 상태 프로파일 실행 절차를 따릅니다.
+
+1. [개발환경](DEVELOPMENT_SETUP.md#jetson-실물-제어-패키지)에 따라 빌드하고 같은 install을 적용합니다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 실물 상태와 제어기는 동일 시리얼 포트를 단독 점유합니다. 다른 상태 조회기를 종료한 뒤 읽기 전용으로 시작합니다.
+
+   ```bash
+   ros2 launch cleany_robot_interface real_control.launch.py \
+     repository_root:="$PWD" \
+     profile_file:=/absolute/path/to/state-profile.json \
+     control_file:=/absolute/path/to/control-limits.yaml \
+     read_only:=true with_moveit:=false
+   ```
+
+3. MoveIt 연결이 필요하면 `with_moveit:=true`를 사용합니다. 읽기 전용에서는 궤적 실행도 차단합니다.
+   제어를 허용하는 별도 실행은 확인한 운영 한계와 프로파일을 사용해 `read_only:=false`로 시작합니다.
+   외부 실행기가 궤적을 소유하는 경우에는 `allow_trajectory_execution:=false`로 MoveIt 실행 권한을 분리합니다.
+
+상태 가드는 결측되거나 오래된 관절 상태를 차단합니다. 정지 요청은 `/real_control/stop`
+서비스를 사용합니다. 토픽, 상태와 카메라 제어는 [패키지 인터페이스](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 따릅니다.
+
+
+## 실물 파지 계획과 준비 자세
+
+1. [환경 설정](DEVELOPMENT_SETUP.md#실물-모션-기반)의 MoveIt overlay를 준비하고 빌드한다.
+
+   ```bash
+   make build-motion-foundation
+   source tools/scene-mapping-env
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 실물 상태 조회, MoveGroup과 인식을 실행한 환경에서 계획 전용 선택기를 시작한다.
+   인식의 `inspect_scene.launch.py`에는 `enable_reference_observation:=true`를 지정한다.
+
+   ```bash
+   ros2 launch cleany_skill_executor physical_grasp_selection.launch.py \
+     repository_root:="$PWD" motion_backend:=moveit
+   ros2 launch cleany_skill_executor validate_pick.launch.py --show-args
+   ```
+
+3. 기존 실물 controller에 센서와 계획 서비스를 연결하는 설정은
+   `pregrasp_hardware_support.launch.py --show-args`로 확인한다. 이 launch는
+   RGB-D 카메라와 장면 처리도 시작하며 기본 후보 생성은 `geometric`이다.
+   같은 카메라를 별도로 중복 실행하지 않는다. 모터 실행은 요청하지 않는다.
+   `hardware_pregrasp`는 별도로 실행하는 물리 동작 도구이며 준비 자세 도달과 재관찰까지만 수행한다.
+   전체 수거와 복귀는 이 경로의 기능이 아니다.
+
+[계획과 실행 조건](../ros2_ws/src/cleany_skill_executor/docs/physical-pregrasp.md),
+[선택적 GPU 환경](../containers/motion/README.md)을 함께 확인한다.
+
 ## 실물 휠 odometry와 2D LiDAR 매핑
 
 1. [개발환경](DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
@@ -590,3 +730,9 @@ voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(
 ## Jetson 얼굴 디스플레이
 
 전용 앱은 `/home/cleany/cleany-display`에 독립 설치한다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독한다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않는다.
+
+## 실물 수거와 팔 복귀
+
+실물 준비 자세 실행 이후 수거, 복귀와 복구 명령은
+[실물 수거 안내](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md)를 따른다.
+실물 프로필을 명시적으로 입력하며 `make collection-plan`과 실제 실행 명령을 구분한다.

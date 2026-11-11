@@ -1,0 +1,30 @@
+--- a/planning_scene_monitor/src/planning_scene_monitor.cpp
++++ b/planning_scene_monitor/src/planning_scene_monitor.cpp
+@@ -617,6 +617,11 @@
+   all_components.components = UINT_MAX;  // Return all scene components if nothing is specified.
+ 
+   std::unique_lock<std::shared_mutex> ulock(scene_update_mutex_);
++  // The updater holds the Octree mutex independently of scene_update_mutex_.
++  // Keep its nodes alive throughout serialization, including exception unwinding.
++  collision_detection::OccMapTree::ReadLock octree_lock;
++  if (octomap_monitor_)
++    octree_lock = octomap_monitor_->getOcTreePtr()->reading();
+   scene_->getPlanningSceneMsg(res->scene, req->components.components ? req->components : all_components);
+ }
+ 
+--- a/trajectory_execution_manager/src/trajectory_execution_manager.cpp
++++ b/trajectory_execution_manager/src/trajectory_execution_manager.cpp
+@@ -81,6 +81,13 @@
+   if (private_executor_thread_.joinable())
+     private_executor_thread_.join();
+   private_executor_.reset();
++  // Destroy plugin-owned callback groups/control blocks before unloading the DSO.
++  // The node retains weak callback-group references even after its clients die.
++  callback_handler_.reset();
++  active_handles_.clear();
++  controller_manager_.reset();
++  controller_mgr_node_.reset();
++  controller_manager_loader_.reset();
+ }
+ 
+ void TrajectoryExecutionManager::initialize()

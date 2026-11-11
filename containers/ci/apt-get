@@ -1,0 +1,100 @@
+#!/usr/bin/python3
+"""Fetch exact signed-index package files through a mirror before installing."""
+
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+import time
+from urllib.parse import urlsplit
+from urllib.request import urlopen
+
+
+APT = '/usr/bin/apt-get'
+CACHE = Path('/var/cache/apt/archives')
+
+
+def package_urls(uri: str) -> list[str]:
+    """Prefer the public archive for the same Ubuntu pool file, never its index."""
+    parsed = urlsplit(uri)
+    parts = parsed.path.split('/pool/', 1)
+    if parsed.hostname == 'snapshot.ubuntu.com' and len(parts) == 2:
+        return ['https://archive.ubuntu.com/ubuntu/pool/' + parts[1], uri]
+    return [uri]
+
+
+def fetch_package(uri: str, filename: str, size: int, checksum: str,
+                  deadline: float, cache: Path = CACHE) -> None:
+    """Populate APT's cache only after matching its signed-index SHA256."""
+    algorithm, digest = checksum.split(':', 1)
+    if algorithm.upper() != 'SHA256' or Path(filename).name != filename:
+        raise ValueError('A safe filename and signed-index SHA256 are required')
+    destination = cache / filename
+    if destination.is_file() and destination.stat().st_size == size:
+        if hashlib.sha256(destination.read_bytes()).hexdigest() == digest:
+            return
+    temporary = destination.with_suffix('.cleany-partial')
+    errors = []
+    for url in package_urls(uri):
+        if time.monotonic() >= deadline:
+            break
+        try:
+            hasher = hashlib.sha256()
+            length = 0
+            file_deadline = min(deadline, time.monotonic() + 60)
+            with urlopen(url, timeout=15) as response, temporary.open('wb') as output:
+                while True:
+                    if time.monotonic() >= file_deadline:
+                        raise TimeoutError('package download deadline exceeded')
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    length += len(chunk)
+                    if length > size:
+                        raise ValueError('package exceeds signed-index size')
+                    hasher.update(chunk)
+                    output.write(chunk)
+            if length != size or hasher.hexdigest() != digest:
+                raise ValueError('package size or SHA256 differs from signed index')
+            temporary.replace(destination)
+            print(f'Fetched verified {filename} from {urlsplit(url).hostname}', flush=True)
+            return
+        except (OSError, ValueError) as error:
+            errors.append(str(error))
+        finally:
+            temporary.unlink(missing_ok=True)
+    raise RuntimeError(f'{filename}: no verified download within deadline: {errors}')
+
+
+def main() -> int:
+    arguments = sys.argv[1:]
+    if 'install' not in arguments:
+        os.execv(APT, [APT, *arguments])
+    plan = subprocess.run([APT, '--print-uris', '--download-only',
+                           '-o', 'Acquire::ForceHash=sha256', *arguments],
+                          text=True, stdout=subprocess.PIPE, check=False)
+    print(plan.stdout, end='', flush=True)
+    if plan.returncode:
+        return plan.returncode
+    packages = [shlex.split(line) for line in plan.stdout.splitlines()
+                if line.startswith("'")]
+    CACHE.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + 300
+    try:
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = [pool.submit(fetch_package, uri, name, int(size), checksum, deadline)
+                       for uri, name, size, checksum in packages]
+            for future in futures:
+                future.result()
+    except (RuntimeError, ValueError, OSError) as error:
+        print(f'APT package preparation failed: {error}', file=sys.stderr)
+        return 100
+    # APT rechecks cached files against its authenticated snapshot metadata.
+    os.execv(APT, [APT, '--no-download', *arguments])
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
