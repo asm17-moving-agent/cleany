@@ -9,16 +9,16 @@ from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.hardware_execution import collision_contact_details, transient_octomap_arm_collision
 
 
-@pytest.mark.parametrize('arm,zero,closed', [('left',1345,1358),('right',1359,1372)])
+@pytest.mark.parametrize('arm,zero,closed', [('left',2689,2676),('right',2851,2838)])
 def test_contact_close_uses_each_motor_raw_goal_through_physical_calibration(arm, zero, closed):
     from cleany_skill_executor.hardware_execution import HardwareExecution
     from cleany_skill_executor.core.gripper_contact import load_contact_criteria
     root = Path(__file__).resolve().parents[4]
     limit = PhysicalJointLimit(-.374532977628,1.74532919957,1.,2.,
-                               zero,1.,-.374532977628,zero,zero+1394)
+                               zero,-1.,-.374532977628,zero-1394,zero)
     node = NS(contact_criteria=load_contact_criteria(root/'configs/robot/gripper_contact_decision.yaml'))
     target = HardwareExecution.closed_contact_position(node, arm, {f'{arm}_gripper_joint':limit})
-    assert round(limit.zero+(target-limit.offset)*4096/math.tau) == closed
+    assert round(limit.zero+(target-limit.offset)*4096/math.tau/limit.direction) == closed
 
 
 def test_hardware_retimer_obeys_driver_limits_and_encoder_bounds():

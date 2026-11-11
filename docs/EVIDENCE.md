@@ -1699,7 +1699,9 @@ PCB 뒤면은 24.3mm, 마운트 최후단은 40.3mm다. 사용자 실측은 카�
 
 `3fca97bb`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 검증했다.
 `make test-freecad-model`의 51개와 운동학 보정 및 로봇 인터페이스 관련 57개 검사가
-통과했고 `cleany_description` 한 패키지를 별도 경로에 빌드했다. 입력은 저장소 CAD,
+통과했고 `cleany_description` 한 패키지를 별도 경로에 빌드했다. 새 그리퍼 보정값을
+현재 `test_hardware_execution.py`에 반영한 뒤 실행기 보정 연동 450개도 통과했다.
+입력은 저장소 CAD,
 보정 프로필과 합성 관절 및 카메라 데이터이며 실물 구동은 수행하지 않았다.
 초기 import 및 ament 환경 누락은 ROS underlay와 격리 설치 경로를 지정해 해결했다.
 FreeCAD 모델은 reference-only이며 운동학 후보 보정은 review-only다.
