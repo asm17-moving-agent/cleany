@@ -4,6 +4,21 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
+
+`aab901be`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 격리 설치에서 검증했다.
+`make test-operator-workflow`는 ROS opt-in을 켠 합성 관측, 가짜 Action과 Service로
+228개를 통과했다. 실행기 lifecycle과 런타임 도구 102개도 통과했고 관련 ROS 패키지
+6개를 별도 경로에 빌드했다. macOS에서 같은 프런트엔드의 TypeScript 검사와
+Vite 빌드, Playwright 운영 흐름 10개가 통과했다.
+
+초기 구형 설치의 메시지 및 native BT 모듈 누락은 새 interfaces와 BT 설치로 해결했다.
+추가한 legacy 수동 런타임 helper의 즉시 로딩 때문에 함수만 복사하는 fixture가 실패한
+문제는 수동 런타임 종료 시에만 로딩하도록 수정했다. 최종 검사는 위 결과다.
+실물 모터와 카메라, Gemini API는 사용하지 않았다. UI 그림은 합성 제안 데이터를
+실제 UI에 표시한 화면이며 실물 수거 성공 근거와 구분한다.
+원본 로그와 최종 commit은 `/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
+
 ## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
 
 PR 65의 `4427480d`에 Feetech 라이브러리를 `cleany_robot_interface`로 옮긴
