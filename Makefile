@@ -825,7 +825,7 @@ arm-return:
 OPERATOR_TEST_DOMAIN_ID ?= 226
 .PHONY: build-operator-workflow test-operator-workflow
 build-operator-workflow:
-	$(MAKE) build COLCON_BUILD_ARGS="--packages-select cleany_interfaces cleany_perception cleany_logger cleany_dev_monitor --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_dev_monitor cleany_manipulation_bt --parallel-workers 2 $(COLCON_BUILD_ARGS)"
 
 test-operator-workflow:
 	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
