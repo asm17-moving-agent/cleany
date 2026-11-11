@@ -1726,3 +1726,25 @@ PCB 뒤면은 24.3mm, 마운트 최후단은 40.3mm다. 사용자 실측은 카�
 FreeCAD 모델은 reference-only이며 운동학 후보 보정은 review-only다.
 원본 로그와 최종 commit 식별자는
 `/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
+
+### PR 77 CI 실패의 로컬 재검증 (2026-11-12)
+
+`14eeaf68`에 미커밋 패치를 적용해 Pillow 호환성, 보정 테스트 입력과 BT 수트 제한을
+수정했다. Jetson Ubuntu 22.04 ARM64와 ROS 2 Humble의 격리 작업트리에서 CI와 같은
+Pillow 9.0.1, pytest 6.2.5, NumPy 1.26.1과 SciPy 1.13.1을 사용했다.
+입력은 합성 RGB와 관절 피드백, 가짜 Action 및 Service이며 실물 구동은 하지 않았다.
+
+수정 전 집중 검사에서 기존 실패 34개를 재현했다. 수정 후 집중 검사 126개,
+macOS Python 3.12의 순수 검사 98개, Pillow 11.3.0의 이미지 및 결과 검사 25개가 통과했다.
+검사 묶음은 서로 겹친다. 중간 검사에서 남은 요약 이미지의 구형 API 참조도 수정했다.
+
+선택한 두 패키지를 `make test`로 재빌드하고 검사했다. 실행기 pytest는 2,421개 통과와
+CUDA 및 명시 runtime 조건 미지정 26개 제외, BT pytest는 785개 모두 통과했다.
+BT의 CTest 실행은 300초 제한에서 86.10초에 완료됐고 개별 응답 및 종료 대기 제한은 유지했다.
+colcon 집계는 CTest 항목을 포함해 3,233개, 오류 0개와 실패 0개다.
+Jetson의 BT.CPP는 4.10.0이며 amd64 CI의 4.9.1 환경은 재실행하지 않았다.
+
+기준 commit, 최종 패치와 hash, 환경, 초기 실패 및 최종 원본은
+`/Users/hyeon/.codex/reports/cleany-pr77-local-20261112/`에 보관한다.
+Jetson 원본은 `/home/cleany/cleany-data/reports/pr77-local-fix-20261112/`에 있다.
+해당 결과는 커밋과 푸시 전의 로컬 검증이며 GitHub CI 결과와 구분한다.
