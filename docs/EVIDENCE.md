@@ -77,6 +77,25 @@ workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증
 원본 실패, 재실행 로그와 rosdep 감지 결과는
 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/recheck/`에 보관한다.
 
+## CI snapshot 접속 장애 우회 검증 (2026-11-11)
+
+PR 77, 78, 79의 CI는 Ubuntu snapshot의 DNS 또는 연결 timeout 때문에
+의존성 이미지 생성 단계에서 실패했다. PR 77과 78은 재실행도 같은 결과였다.
+소스 빌드와 테스트는 시작하지 못했다.
+
+정상 실행 `a6b46068`의 CI run `42764509711`에서 사용한 GHCR 이미지를 digest로
+고정하고 현재 설치 설정의 fingerprint와 비교한다. 설치 스크립트, 저장소 snapshot,
+Python 버전 및 rosdep 규칙이 같아야 후보로 선택한다. 현재 manifest의 설치 의존성과
+현재 버전 검사까지 후보 안에서 통과해야 재사용한다. 후보가 없거나 조건이 다르면
+기존 snapshot 기반 이미지 생성을 수행한다. 전체 응용 빌드와 테스트는 생략하지 않는다.
+
+macOS의 `make test-ci-tools` 31개가 통과했다. 가짜 Docker로 동일 key 적중,
+검증 후 재사용, 의존성 불일치와 실제 빌드 실패의 전파를 확인했다.
+설치 설정 fingerprint는 위 정상 실행 commit과 같음을 별도로 확인했다.
+실제 이미지 재사용과 workspace 검사는 수정 commit의 GitHub PR checks에서 확인한다.
+로그, 원본 실패와 commit 식별자는
+`/Users/hyeon/.codex/reports/cleany-ci-fix-20261111/`에 보관한다.
+
 ## 과거 생성 보고서 보관
 
 날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은

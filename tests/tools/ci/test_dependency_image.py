@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -79,6 +80,34 @@ class DependencyImageTest(unittest.TestCase):
 
     def test_architecture_changes_invalidate_the_image(self):
         self.assertNotEqual(self.key(), self.key(platform='linux/arm64'))
+
+    def candidate(self, image='ghcr.io/owner/robot-ci@sha256:' + 'a' * 64):
+        self.write('containers/ci/compatible-image.json', json.dumps({
+            'image': image, 'platform': 'linux/amd64',
+            'provisioning_key': IMAGE.provisioning_key(self.root, 'linux/amd64'),
+        }))
+        return image
+
+    def test_manifest_changes_allow_candidate_subject_to_installed_dependency_check(self):
+        image = self.candidate()
+        self.write('ros2_ws/src/robot/package.xml', '<package><depend>new</depend></package>')
+        self.assertEqual(IMAGE.compatible_image(self.root, 'linux/amd64'), image)
+
+    def test_provisioning_changes_disallow_old_candidate(self):
+        for name in ('containers/ci/install-dependencies', 'containers/ci/pip-constraints.txt',
+                     'containers/ci/repository-snapshots.env', 'ros2_ws/rosdep/cleany.yaml'):
+            with self.subTest(name=name):
+                self.candidate()
+                path = self.root / name
+                path.write_text(path.read_text() + '\nchanged')
+                self.assertEqual(IMAGE.compatible_image(self.root, 'linux/amd64'), '')
+
+    def test_candidate_cannot_cross_architectures_or_use_a_mutable_tag(self):
+        self.candidate()
+        self.assertEqual(IMAGE.compatible_image(self.root, 'linux/arm64'), '')
+        self.candidate('ghcr.io/owner/robot-ci:latest')
+        with self.assertRaisesRegex(ValueError, 'immutable'):
+            IMAGE.compatible_image(self.root, 'linux/amd64')
 
     def test_touch_does_not_invalidate(self):
         before = self.key()
