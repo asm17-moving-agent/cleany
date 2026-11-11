@@ -1,0 +1,7 @@
+{
+  "image": "ghcr.io/asm17-moving-agent/cleany-ci@sha256:da5192457977c1266d8a594b20ed005fd6a524f0c21119e73e4d45bdc6b1a45e",
+  "platform": "linux/amd64",
+  "provisioning_key": "63eebfc983e4614460a60cedf44df10e67740580b72191418b1057b035893f39",
+  "source_commit": "a6b46068b078d90171f85a6a3bed6dc55fad8126",
+  "source_run": "https://github.com/asm17-moving-agent/cleany/actions/runs/42764509711"
+}
