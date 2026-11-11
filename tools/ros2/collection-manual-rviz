@@ -1,0 +1,96 @@
+# Shut down manual runtimes left running by older versions of collection-runtime.
+
+manual_profile_info() {
+  python3 - "$1" "$2" <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+profile = json.loads(Path(sys.argv[1]).read_text())
+review = Path(profile['review_directory']).expanduser().resolve(strict=True)
+domain = profile['review_domain']
+if type(domain) is not int or not 1 <= domain <= 232 or domain == int(sys.argv[2]):
+    raise SystemExit('RViz review must be in a separate ROS domain')
+if not (review / 'all_camera_feedback.py').is_file():
+    raise SystemExit('The reviewed RViz feedback configuration is missing')
+
+readers = []
+viewers = set()
+for process in Path('/proc').iterdir():
+    if not process.name.isdecimal():
+        continue
+    try:
+        if process.stat().st_uid != os.getuid():
+            continue
+        directory = (process / 'cwd').resolve(strict=True)
+        if directory.parent != review.parent:
+            continue
+        args = (process / 'cmdline').read_bytes().split(b'\0')
+        env = (process / 'environ').read_bytes().split(b'\0')
+        if f'ROS_DOMAIN_ID={domain}'.encode() not in env:
+            continue
+        names = [Path(os.fsdecode(arg)).name for arg in args]
+        if not names or not names[0]:
+            continue
+        if names[0] == 'rviz2' and 'all-camera-live.rviz' in names[1:]:
+            viewers.add(directory)
+        if 'all_camera_feedback.py' in names[1:]:
+            readers.append((process.name, directory))
+    except OSError:
+        continue
+
+matches = []
+for pid, directory in readers:
+    if directory == review:
+        matches.append(pid)
+    elif directory in viewers:
+        try:
+            # Calibration reviews are copied to sibling directories. Only
+            # hand off the motor bus to the same verified reader code.
+            if all((directory / script).read_bytes() == (review / script).read_bytes()
+                   for script in ('all_camera_feedback.py', 'joint_reader.py')):
+                matches.append(pid)
+        except OSError:
+            continue
+if len(matches) > 1:
+    raise SystemExit('Multiple RViz readers match the same profile')
+print(domain, matches[0] if matches else 0)
+PY
+}
+
+pause_review_reader() {
+  local pid="$1" owners
+  [[ "${pid}" != 0 ]] || return 0
+  for _ in {1..20}; do
+    kill -STOP "${pid}" || return 1
+    paused_review_pid="${pid}"
+    owners="$(fuser "${arm_port}" 2>/dev/null || true)"
+    if [[ -z "${owners}" ]] || [[ "${2:-}" == stopping && " ${owners} " != *" ${pid} "* ]]; then
+      return 0
+    fi
+    resume_review_reader
+    sleep .047
+  done
+  echo 'Could not take over the RViz motor bus.' >&2
+  return 1
+}
+
+resume_review_reader() {
+  if [[ -n "${paused_review_pid:-}" ]]; then
+    kill -CONT "${paused_review_pid}" 2>/dev/null || true
+    paused_review_pid=''
+  fi
+}
+
+stop_manual_runtime() (
+  local reader_info review_domain reader_pid
+  reader_info="$(manual_profile_info "${state_dir}/manual-rviz-profile" "${domain_id}")" || return
+  read -r review_domain reader_pid <<< "${reader_info}"
+  paused_review_pid=''
+  trap resume_review_reader EXIT
+  trap 'exit 130' INT TERM
+  pause_review_reader "${reader_pid}" stopping || return
+  stop_runtime || return
+  rm -f "${state_dir}/manual-rviz-profile"
+)

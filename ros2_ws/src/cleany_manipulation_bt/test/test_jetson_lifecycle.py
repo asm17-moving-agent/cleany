@@ -12,7 +12,10 @@ from sensor_msgs.msg import JointState
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 import zmq
+
+from action_msgs.msg import GoalStatus, GoalStatusArray
 from cleany_interfaces.srv import GetManipulationExecution
+from std_srvs.srv import Trigger
 from cleany_manipulation_bt.jetson_node import JetsonManipulationNode
 from cleany_manipulation_bt.backend import ExecutionContext
 from cleany_robot_interface.control_state_guard import ControlStateGuard, EXPECTED_JOINTS
@@ -52,6 +55,10 @@ def test_physical_server_advertises_idle_query_without_submitting_motion(tmp_pat
         assert server.core.record is None
         assert not server.operations.submissions
         assert server.operations.scene_monitor.required
+        for status, busy in ((GoalStatus.STATUS_EXECUTING, True), (GoalStatus.STATUS_SUCCEEDED, False)):
+            server._controller_status(('left', 'arm'), GoalStatusArray(status_list=[GoalStatus(status=status)]))
+            snapshot = server._control_state(Trigger.Request(), Trigger.Response())
+            assert f'"external_motion_active": {str(busy).lower()}' in snapshot.message
         with pytest.raises(RuntimeError, match='owns trajectory execution'):
             ExecutionOwnership()
     finally:

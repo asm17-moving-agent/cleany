@@ -816,7 +816,8 @@ stop_runtime() {
   if ! wait_for_execution_shutdown; then
     echo "Execution shutdown timed out; independent runtime shutdown follows. Physical stop is unconfirmed." >&2
   fi
-  local stop_order=(bbox_view hardware_support manipulation_evidence left_wrist_camera right_wrist_camera real_control motor_telemetry vision)
+  local stop_order=(bbox_view hardware_support manipulation_evidence left_wrist_camera right_wrist_camera
+                    real_control manual_feedback manual_scene motor_telemetry vision)
   for target in "${stop_order[@]}"; do
     [[ -f "${pids_file}" ]] || break
     while read -r name pid; do
@@ -842,8 +843,10 @@ stop_runtime() {
     fi
     sleep 2
   fi
-  "${repo_root}/tools/vision-container" hybrid-down || true
-  "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+  if [[ ! -f "${state_dir}/manual-rviz-profile" ]]; then
+    "${repo_root}/tools/vision-container" hybrid-down || true
+    "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+  fi
   source_ros
   local daemon_stop_status=0
   timeout --signal=TERM --kill-after=1s "${daemon_stop_timeout}s" \
@@ -871,6 +874,14 @@ stop_runtime() {
 }
 
 command="${1:-}"
+if [[ -f "${state_dir}/manual-rviz-profile" ]]; then
+  case "${command}" in
+    start|recover-control|recover-planning|action-start|action-restart|action-recover|arm-return|action-run|execute|run|plan)
+      echo 'Stop the manual joint runtime before using collection commands.' >&2
+      exit 1
+      ;;
+  esac
+fi
 case "${command}" in
   start|recover-control|recover-planning|action-start|action-restart|arm-return|action-run|execute|run)
     for profile_variable in CLEANY_MANIPULATION_COLLECTION_CONFIG CLEANY_FEETECH_CONTROL_CONFIG CLEANY_HARDWARE_MONITOR_CONFIG; do
@@ -906,7 +917,14 @@ case "${command}" in
   run) run_once ;;
   status) status_runtime ;;
   logs) follow_logs ;;
-  stop) stop_runtime ;;
+  stop)
+    if [[ -f "${state_dir}/manual-rviz-profile" ]]; then
+      source "${repo_root}/tools/ros2/collection-manual-rviz"
+      stop_manual_runtime
+    else
+      stop_runtime
+    fi
+    ;;
   help|-h|--help|'') usage; [[ -n "${command}" ]] ;;
   *) usage; exit 2 ;;
 esac
