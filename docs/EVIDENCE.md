@@ -1694,3 +1694,14 @@ PCB 뒤면은 24.3mm, 마운트 최후단은 40.3mm다. 사용자 실측은 카�
 `CLEANY_DATA_ROOT/kinematics_calibration/20261110-calibration/`에 있다. 입력,
 학습 표본 내부 교차 검증과 동결 검증 결과는 각 결과 JSON에 기록한다.
 이 후보는 review_only이며 독립 실물 검증과 운영 모델 반영은 미완료다.
+
+## CAD와 Jetson 보정 PR 검증 (2026-11-11)
+
+`3fca97bb`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 검증했다.
+`make test-freecad-model`의 51개와 운동학 보정 및 로봇 인터페이스 관련 57개 검사가
+통과했고 `cleany_description` 한 패키지를 별도 경로에 빌드했다. 입력은 저장소 CAD,
+보정 프로필과 합성 관절 및 카메라 데이터이며 실물 구동은 수행하지 않았다.
+초기 import 및 ament 환경 누락은 ROS underlay와 격리 설치 경로를 지정해 해결했다.
+FreeCAD 모델은 reference-only이며 운동학 후보 보정은 review-only다.
+원본 로그와 최종 commit 식별자는
+`/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
