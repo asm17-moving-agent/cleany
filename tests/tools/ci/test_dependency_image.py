@@ -30,6 +30,7 @@ class DependencyImageTest(unittest.TestCase):
             'containers/ci/ros-snapshots-key.asc': 'public archive key',
             'containers/ci/verify-versions.py': 'verify versions',
             'tools/ci/dependency_image.py': 'helper version 1',
+            'tools/ci/reuse-dependencies': 'reuse helper version 1',
             'ros2_ws/rosdep/cleany.yaml': 'rules: {}',
             'ros2_ws/src/robot/package.xml': '<package/>',
             'ros2_ws/src/robot/node.py': 'application code',
@@ -57,6 +58,7 @@ class DependencyImageTest(unittest.TestCase):
         for name in (
             'containers/ci/Dockerfile', 'containers/ci/pip-constraints.txt',
             'containers/ci/install-dependencies', 'tools/ci/dependency_image.py',
+            'tools/ci/reuse-dependencies',
             'containers/ci/repository-snapshots.env', 'containers/ci/jetson-ros-versions.json',
             'containers/ci/ros-snapshots-key.asc', 'containers/ci/verify-versions.py',
             'ros2_ws/rosdep/cleany.yaml', 'ros2_ws/src/robot/package.xml',
