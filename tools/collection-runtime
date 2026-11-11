@@ -881,6 +881,17 @@ case "${command}" in
     done
     ;;
 esac
+operator_directory="${CLEANY_WEB_CONTROL_DIRECTORY:-${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/dev-monitor/operator}"
+if [[ -f "${operator_directory}/enabled" && "${CLEANY_CONTROL_RUNTIME_LOCKED:-0}" != 1 ]]; then
+  case "${command}" in
+    start|recover-control|recover-planning|action-start|action-restart|arm-return|action-run|execute|run|plan)
+      mkdir -p "${operator_directory}"
+      # --close keeps background ROS processes from inheriting the command lock.
+      exec flock -n -E 75 --close "${operator_directory}/operation.lock" \
+        env CLEANY_CONTROL_RUNTIME_LOCKED=1 "$0" "$@"
+      ;;
+  esac
+fi
 case "${command}" in
   start) start_runtime ;;
   recover-control) recover_control ;;

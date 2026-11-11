@@ -68,6 +68,34 @@ workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증
 `CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
 새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
 
+## 운영 UI와 승인 흐름 E 분리 검증 (2026-10-31)
+
+원격 PR 68 `167292ef`에 원본 `94c0fcd`의 운영 UI, 제안과 승인, 대상 재확인,
+상태와 로그 변경을 미커밋 패치로 분리했다. 기존 분류 사유 계약을 재확인 응답에 유지했다.
+독립 IO 계측기, TCP와 LeRobot 도구는 포함하지 않았다.
+
+Jetson Ubuntu 22.04 ARM64와 ROS 2 Humble에서 별도 경로로 변경 패키지 4개를
+빌드했다. #68의 설치 환경을 underlay로 사용했으며 변경 모듈, FK 재사용 모듈과
+설치된 웹 자산의 source hash가 일치했다. 합성 ROS, 가짜 모션 포트와 테스트 프로필로
+운영 UI, Logger와 재확인 검사 225개, 기존 인식과 수거 회귀 4,013개가 통과했다.
+두 묶음에는 재확인 검사 19개가 겹친다. RealSense 장치 검사 1개는 실행 조건 미지정으로 제외했다.
+
+macOS, Node 26.5.0, pnpm 11.25.0에서 고정 lockfile로 웹을 빌드하고 Playwright
+1.63.0 Chromium fixture 검사 45개를 통과했다. 실제 Monitor, 리소스 서버와 Gazebo
+연결 검사 3개는 입력 서버를 준비하지 않아 제외했다. 데스크톱, 좁은 화면과 라이트,
+다크 화면을 확인했다. 실물 모터, 실제 인식 모델과 전체 workspace 검사는 실행하지 않았다.
+
+첫 검사는 새 RevalidateTarget 빌드 전 import, 합동 pytest의 fixture 검색 경로,
+Jetson에 없는 dwb_msgs와 로컬 Chromium 때문에 실패했다. 새 인터페이스를 빌드하고
+Make의 fixture 경로를 보완했다. dwb_msgs와 nav_2d_msgs는 ROS 공식 deb를 검증 전용
+경로에 풀었고 Playwright browser를 설치한 뒤 다시 통과했다. 시스템 ROS는 변경하지 않았다.
+
+현재 #68 기준 패치와 선행 PR을 포함한 main 기준 패치를 임시 index에 적용해 충돌이
+없음을 확인했다. 원본 작업 트리, output 448개와 기존 C, D 작업 트리는 hash와
+Git 상태 비교로 보존을 확인했다. 실행 명령, 초기 실패와 최종 JUnit, 소스 패치,
+설치 확인, 병합 검사와 화면 근거는
+`/home/cleany/cleany-data/reports/pr-e-operator-20261031/`에 보관한다.
+
 ## 실물 수거 실행과 복귀와 복구 D 분리 검증 (2026-10-31)
 
 PR 67 `76039e2`에 원본 `94c0fcd`의 수거 실행, 팔 복귀와 복구 변경을

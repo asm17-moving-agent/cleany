@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type Topic = { name: string; types: string[] };
+type Topic = { name: string; types: string[]; camera_supported?: boolean };
 const imageTypes = new Set([
   "sensor_msgs/msg/Image",
   "sensor_msgs/msg/CompressedImage",
@@ -18,7 +18,10 @@ export function CameraView({
   replay: boolean;
 }) {
   const cameras = topics.filter(
-    (t) => t.types.length === 1 && imageTypes.has(t.types[0]),
+    (t) =>
+      t.types.length === 1 &&
+      imageTypes.has(t.types[0]) &&
+      t.camera_supported !== false,
   );
   const [topic, setTopic] = useState("");
   const [paused, setPaused] = useState(false);

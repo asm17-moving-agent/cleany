@@ -40,6 +40,11 @@ counter의 `received_at`은 wall 초, `stored_bytes`는 세션 SQLite와 bag 합
 [logger.yaml](../config/logger.yaml)과 공유 관측기 [observer.py](../cleany_logger/observer.py)를
 따른다. HTTP endpoint는 logger에 없다.
 
+실물 서버의 heartbeat를 관측할 때는 `manipulation_observation_mode=server`와
+실물 `manipulation_events_topic`을 함께 지정한다. 기본 `mission` 모드는 같은
+revision의 반복 기록을 무시하며, `server` 모드는 동일한 활성 기록의 수신 시각만
+갱신한다. 완료 기록, 서버 timestamp와 단계 이력은 heartbeat로 바꾸지 않는다.
+
 ## CLI
 
 실행 파일 `logger`는 `/cleany_logger_cli_<임의 suffix>` 임시 ROS 노드를 사용한다.

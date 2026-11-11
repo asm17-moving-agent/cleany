@@ -15,8 +15,9 @@ from cleany_logger import ArchiveReader
 from cleany_logger.controller import ControlConflict
 from cleany_logger.recording import LABELS, RAW, observation_policies, rate_profiles, validate
 
-from .camera import IMAGE_TYPES
-from .resources import ResourceWorker
+from .camera import IMAGE_TYPES, preview_source, preview_supported
+from .operator_http import attach_control
+from cleany_logger.resources import ResourceWorker
 from .sources import (
     SCHEMA,
     maximum_reference,
@@ -43,6 +44,7 @@ async def local_origin(request, handler):
 
 def create_app(hub, config, recorder, assets, control):
     app = web.Application(middlewares=[local_origin], client_max_size=16384)
+    attach_control(app, config)
     sockets = set()
 
     def recording_view(view):
@@ -247,11 +249,14 @@ def create_app(hub, config, recorder, assets, control):
             or item["types"][0] not in IMAGE_TYPES
         ):
             raise web.HTTPBadRequest(text="카메라 토픽을 선택하세요")
+        if not preview_supported(topic):
+            raise web.HTTPBadRequest(text="깊이 원본은 미리보기를 지원하지 않습니다")
+        topic = preview_source(topic, graph.get("topics", []))
         try:
             frame, error, now = hub.cameras.request(topic)
         except ValueError as exc:
             raise web.HTTPTooManyRequests(text=str(exc)) from exc
-        headers = {"Cache-Control": "no-store"}
+        headers = {"Cache-Control": "no-store", "X-Camera-Topic": topic}
         if error:
             return web.json_response(
                 {"state": "error", "message": error}, status=422, headers=headers

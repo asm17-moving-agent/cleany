@@ -612,17 +612,27 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_logger cleany_dev_monitor
+		--packages-up-to cleany_dev_monitor cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
+MONITOR_TEST_PYTHON ?= python3
+LOGGER_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_logger/tests"
+LOGGER_PYTEST_ARGS ?=
+DEV_MONITOR_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+DEV_MONITOR_PYTEST_ARGS ?=
 test-logger:
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_logger/tests"
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(LOGGER_TEST_PATHS) $(LOGGER_PYTEST_ARGS)
 
 test-dev-monitor: test-logger
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(DEV_MONITOR_TEST_PATHS) $(DEV_MONITOR_PYTEST_ARGS)
+
+DEV_MONITOR_E2E_ARGS ?=
+.PHONY: test-dev-monitor-web
+test-dev-monitor-web:
+	pnpm --dir "$(DEV_MONITOR_WEB)" exec playwright test $(DEV_MONITOR_E2E_ARGS)
 
 run-dev-monitor:
 	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
@@ -810,3 +820,23 @@ manipulation-recover:
 	"$(REPO_ROOT)tools/collection-runtime" action-recover
 arm-return:
 	"$(REPO_ROOT)tools/collection-runtime" arm-return
+
+# Jetson operator workflow; use an isolated build root for review builds.
+OPERATOR_TEST_DOMAIN_ID ?= 226
+.PHONY: build-operator-workflow test-operator-workflow
+build-operator-workflow:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-select cleany_interfaces cleany_perception cleany_logger cleany_dev_monitor --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-operator-workflow:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(OPERATOR_TEST_DOMAIN_ID) PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor/tests:$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_perception/test:$${PYTHONPATH:-}" \
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider --import-mode=importlib \
+		$(ROS2_WS)/src/cleany_dev_monitor/tests $(ROS2_WS)/src/cleany_logger/tests \
+		$(ROS2_WS)/src/cleany_perception/test/test_target_revalidation.py \
+		$(ROS2_WS)/src/cleany_perception/test/test_target_revalidation_service.py $(DEV_MONITOR_PYTEST_ARGS)
+
+DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
+.PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
+$(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
+	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)
