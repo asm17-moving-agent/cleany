@@ -34,7 +34,7 @@ def test_controller_preload_preserves_existing_environment(monkeypatch):
 
 
 def test_move_group_exits_cleanly_after_sigint(tmp_path):
-    domain = 30 + os.getpid() % 180
+    domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 30 + os.getpid() % 180))
     context = Context()
     rclpy.init(args=[], context=context, domain_id=domain)
     executor = SingleThreadedExecutor(context=context)

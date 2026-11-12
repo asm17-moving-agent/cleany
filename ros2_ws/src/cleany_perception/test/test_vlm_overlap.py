@@ -5,6 +5,7 @@ import time
 from types import SimpleNamespace
 
 import numpy as np
+import os
 import pytest
 
 from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
@@ -171,7 +172,7 @@ def test_vlm_window_notifications_cross_ros_in_order():
     from std_srvs.srv import SetBool
 
     context = Context()
-    rclpy.init(context=context, domain_id=178)
+    rclpy.init(context=context, domain_id=int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 178)))
     server = rclpy.create_node('vlm_window_test_server', context=context)
     client = rclpy.create_node('vlm_window_test_client', context=context)
     executor = SingleThreadedExecutor(context=context)

@@ -154,20 +154,23 @@ CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor
 
 전체 빌드 이후 검사를 아래 단계로 분리합니다. 한 검사 단계가 실패해도 빌드가 성공했다면 나머지 독립 검사를 실행합니다. 주요 패키지와 runtime 검사는 실패 표시를 유지하면서 후속 검사를 계속 실행합니다. UI와 카메라 검사에 사용하는 `continue-on-error`도 마지막 집계에서 실제 실패로 반영합니다. 마지막 집계는 실패, 중단과 결과 누락을 모두 실패로 처리합니다.
 
-그룹 안의 패키지는 순서대로 실행해 같은 ROS domain에서 서로 다른 패키지 검사가 겹치지 않게 합니다. 빌드는 기존 병렬 설정을 유지합니다.
+전체 패키지를 하나의 작업 큐에서 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS/Gazebo runtime은 workspace 검사가 끝난 뒤 실행합니다.
+
+각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain이 필요한 ToF의 10–25와 Supervisor의 190–224는 해당 패키지 전용으로 유지합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
 
 | 단계 | 범위 |
 |---|---|
 | ui / camera | 조작 UI 빌드와 입력 처리, 장치 없는 USB 카메라 초기화 검사 |
 | environment | 도구, Pillow 이미지 API, 의존성 버전과 시뮬레이터 환경 |
 | build | 전체 workspace 컴파일과 설치 |
-| navigation | Navigation 패키지 전체 검사 |
-| manipulation | Skill executor와 manipulation BT 전체 검사 |
-| workspace-rest | 위 그룹에 없는 모든 패키지; 새 패키지도 자동 포함 |
+| workspace | 전체 패키지 병렬 실행과 실패 집계 |
+| navigation | Navigation 패키지 결과 묶음 |
+| manipulation | Skill executor와 manipulation BT 결과 묶음 |
+| workspace-rest | 위 그룹에 없는 모든 패키지 결과; 새 패키지도 자동 포함 |
 | motor | ESP32 motor core |
 | ros-runtime / gazebo-runtime | 합성 ROS 통합과 Gazebo 실행 검사 |
 
-[workspace_tests.py](../tools/ci/workspace_tests.py)는 전체 패키지와 그룹별 선택 목록을 보존합니다. 마지막 집계에서 세 그룹의 합집합과 중복을 확인합니다. `cleany_manipulation_bt`는 `test/test_*.py`를 파일별 CTest 검사로 등록하며 각각 60초 제한을 적용합니다. 개별 Action 응답과 종료 대기 조건은 기존 테스트가 검사합니다.
+[workspace_tests.py](../tools/ci/workspace_tests.py)는 전체 패키지와 그룹별 선택 목록을 보존합니다. `checks/workspace/schedule.json`에 동시 실행 수, 패키지별 시작과 종료 시각, 격리 환경을 기록하며 상세 로그와 진단은 `checks/<그룹>/packages/`에 둡니다. 그룹별 시간은 병렬 실행 기간이 겹치므로 합산하지 않습니다. 마지막 집계에서 세 그룹의 합집합과 중복을 확인합니다. `cleany_manipulation_bt`는 `test/test_*.py`를 파일별 CTest 검사로 등록하며 각각 60초 제한을 적용합니다. 개별 Action 응답과 종료 대기 조건은 기존 테스트가 검사합니다.
 
 [check.py](../tools/ci/check.py)는 검사별 명령, 커밋과 미커밋 변경 여부, 경과 시간, 로그와 종료 상태를 `checks/<단계>/`에 저장합니다. Python 검사가 40초 동안 끝나지 않으면 pytest faulthandler가 스택을 출력합니다. 자식 프로세스가 45초 이상 유지되면 해당 프로세스 상태와 C++ 스레드 스택을 수집합니다. GDB 수집 자체는 5초로 제한하고, 실패 정보도 보존합니다. 전체 단계 제한을 넘기면 해당 검사 process group과 관찰한 자식 프로세스를 종료합니다. ROS launch가 별도 session을 만든 경우도 PID와 시작 시각을 대조해 정리합니다.
 
@@ -178,6 +181,14 @@ MPPI 단위 검사는 실제 costmap executor의 시작을 확인한 뒤 진행�
 ```bash
 python3 tools/ci/check.py --root /path/to/ci-results run navigation \
   --kind contract --timeout 600 -- make test-navigation
+```
+
+동시 실행 수를 지정해 전체 패키지를 검증하려면 빌드한 workspace를 source한 뒤 실행합니다. `--workers 1`로 같은 검사를 순차 실행할 수 있습니다.
+
+```bash
+source "$CLEANY_BUILD_ROOT/install/setup.bash"
+cd ros2_ws
+python3 ../tools/ci/workspace_tests.py all --workers 4
 ```
 
 CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 권한이 필요합니다. Runner의 GDB와 전용 라이브러리를 읽기 전용으로 연결하며 고정 ROS 이미지의 라이브러리는 교체하지 않습니다. 진단 도구의 버전은 `debugger-version.txt`에 남깁니다. 테스트 결과는 캐시하지 않으며, 재시도로 첫 실패를 성공으로 바꾸지 않습니다.

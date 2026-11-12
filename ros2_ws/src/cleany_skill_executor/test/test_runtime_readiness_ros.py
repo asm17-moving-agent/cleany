@@ -1,5 +1,6 @@
 import json
 import time
+import os
 import pytest
 
 def test_single_participant_waits_for_servers_and_live_feedback(tmp_path, monkeypatch):
@@ -16,7 +17,7 @@ def test_single_participant_waits_for_servers_and_live_feedback(tmp_path, monkey
         FEEDBACK, REQUIRED_ACTIONS, REQUIRED_SERVICES, ReadinessProbe)
     import cleany_skill_executor.runtime_readiness as readiness
 
-    rclpy.init(domain_id=189)
+    rclpy.init(domain_id=int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 189)))
     nodes, action_clients, action_servers = [], [], []
     executor = SingleThreadedExecutor()
     try:

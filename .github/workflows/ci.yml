@@ -178,17 +178,9 @@ jobs:
         id: build
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200 -- make build COLCON_BUILD_ARGS=--cmake-force-configure
 
-      - name: Test Navigation contracts
+      - name: Test workspace contracts in parallel
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run navigation --kind contract --timeout 600 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py navigation'
-
-      - name: Test manipulation contracts
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run manipulation --kind contract --timeout 900 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py manipulation'
-
-      - name: Test remaining workspace contracts
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace-rest --kind contract --timeout 900 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py workspace-rest'
+        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace --kind contract --timeout 1200 --diagnostic-after 1200 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py all'
 
       - name: Test motor core
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -213,7 +205,7 @@ jobs:
         if: always()
         run: |
           python3 tools/ci/check.py --root "${RUNNER_TEMP}/cleany-builds/checks" summary \
-            ui environment camera build navigation manipulation workspace-rest motor ros-runtime gazebo-runtime
+            ui environment camera build workspace navigation manipulation workspace-rest motor ros-runtime gazebo-runtime
 
       - name: Collect diagnostics and compiler cache statistics
         id: diagnostics
