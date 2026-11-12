@@ -176,32 +176,26 @@ jobs:
 
       - name: Build workspace
         id: build
-        continue-on-error: true
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200 -- make build COLCON_BUILD_ARGS=--cmake-force-configure
 
       - name: Test Navigation contracts
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run navigation --kind contract --timeout 600 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py navigation'
 
       - name: Test manipulation contracts
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run manipulation --kind contract --timeout 900 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py manipulation'
 
       - name: Test remaining workspace contracts
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace-rest --kind contract --timeout 900 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py workspace-rest'
 
       - name: Test motor core
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run motor --kind contract --timeout 180 -- make test-motor-core
 
       - name: Test common navigation runtime without Gazebo
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: |
           tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run ros-runtime --kind integration --timeout 600 -- \
             make -o build-navigation test-navigation-runtime \
@@ -211,7 +205,6 @@ jobs:
 
       - name: Test Gazebo navigation runtime
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        continue-on-error: true
         run: |
           tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run gazebo-runtime --kind simulation --timeout 600 -- \
             xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make -o build-gazebo test-gazebo-nav-runtime
