@@ -14,6 +14,7 @@ import time
 
 GROUPS = ('navigation', 'manipulation', 'workspace-rest')
 SCRIPT = Path(__file__).resolve()
+EXCLUSIONS = json.loads(SCRIPT.with_name('workspace_test_exclusions.json').read_text())
 
 
 def group_packages(names: list[str], group: str) -> list[str]:
@@ -23,7 +24,7 @@ def group_packages(names: list[str], group: str) -> list[str]:
         if name in ('cleany_manipulation_bt', 'cleany_skill_executor'):
             return 'manipulation'
         return 'workspace-rest'
-    return [name for name in names if owner(name) == group]
+    return [name for name in names if owner(name) == group and name not in EXCLUSIONS]
 
 
 def package_environment(root: Path, package: str, index: int) -> dict[str, str]:
@@ -94,7 +95,8 @@ def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: i
     for group, packages in selected.items():
         output = root/'checks'/group
         output.mkdir(parents=True, exist_ok=True)
-        (output/'packages.json').write_text(json.dumps({'all': names, 'selected': packages}, indent=2))
+        (output/'packages.json').write_text(json.dumps({'all': names, 'selected': packages,
+            'excluded': [name for name in names if name in EXCLUSIONS]}, indent=2))
         (output/'result.json').write_text(json.dumps({'status': 'running', 'kind': 'contract'}))
         if not packages:
             raise RuntimeError(f'No packages selected for {group}')

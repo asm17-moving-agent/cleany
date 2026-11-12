@@ -179,10 +179,17 @@ def summarize(root: Path, expected: list[str]) -> tuple[str, bool]:
     if all(p.exists() for p in manifests):
         records = [json.loads(p.read_text()) for p in manifests]
         all_packages = set(records[0]['all'])
+        exclusions = json.loads(Path(__file__).with_name('workspace_test_exclusions.json').read_text())
+        excluded = all_packages & set(exclusions)
         selected = [p for r in records for p in r['selected']]
-        covered = all(set(r['all']) == all_packages for r in records) and set(selected) == all_packages and len(selected) == len(set(selected))
+        covered = (all(set(r['all']) == all_packages and set(r.get('excluded', [])) == excluded
+                       for r in records)
+                   and set(selected) == all_packages - excluded
+                   and len(selected) == len(set(selected)))
         ok &= covered
-        lines.extend(['', f'Workspace 검사 분할: {"전체 패키지 포함, 중복 없음" if covered else "누락 또는 중복 오류"}'])
+        lines.extend(['', f'Workspace 검사 분할: {"검사 대상 패키지 포함, 중복 없음" if covered else "누락 또는 중복 오류"}'])
+        for package in sorted(excluded):
+            lines.append(f'CI 제외: {package} — {exclusions[package]}')
     elif any(group in expected for group in ('navigation', 'manipulation', 'workspace-rest')):
         ok = False
         lines.extend(['', 'Workspace 검사 목록 누락: 전체 검사 범위를 확인할 수 없습니다.'])

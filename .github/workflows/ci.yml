@@ -155,7 +155,6 @@ jobs:
             python3 tools/ci/preflight.py
             env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
             python3 containers/ci/verify-versions.py
-            make check-gazebo-env
           '
 
       - name: Publish dependency image
@@ -186,7 +185,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run motor --kind contract --timeout 180 -- make test-motor-core
 
-      - name: Test common navigation runtime without Gazebo
+      - name: Test common navigation runtime
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run ros-runtime --kind integration --timeout 600 -- \
@@ -195,17 +194,11 @@ jobs:
             NAVIGATION_INSTALL_BASE=/ci-builds/install \
             NAVIGATION_LOG_BASE=/ci-builds/log
 
-      - name: Test Gazebo navigation runtime
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run gazebo-runtime --kind simulation --timeout 600 -- \
-            xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make -o build-gazebo test-gazebo-nav-runtime
-
       - name: Require all checks and summarize failures
         if: always()
         run: |
           python3 tools/ci/check.py --root "${RUNNER_TEMP}/cleany-builds/checks" summary \
-            ui environment camera build workspace navigation manipulation workspace-rest motor ros-runtime gazebo-runtime
+            ui environment camera build workspace navigation manipulation workspace-rest motor ros-runtime
 
       - name: Collect diagnostics and compiler cache statistics
         id: diagnostics

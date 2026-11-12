@@ -97,18 +97,30 @@ class CheckTest(unittest.TestCase):
             self.assertIn('| healthy |', report)
 
     def test_partition_covers_new_packages_once(self):
-        names = ['cleany_navigation', 'cleany_manipulation_bt', 'cleany_skill_executor', 'new_package']
+        names = ['cleany_navigation', 'cleany_manipulation_bt', 'cleany_skill_executor',
+                 'cleany_gazebo_sim', 'cleany_mujoco_sim', 'new_package']
         groups = ['navigation', 'manipulation', 'workspace-rest']
         selected = [p for group in groups for p in WORKSPACE.group_packages(names, group)]
-        self.assertCountEqual(selected, names)
+        self.assertCountEqual(selected, [name for name in names if name != 'cleany_gazebo_sim'])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for group in groups:
                 path = root/group
                 path.mkdir()
                 (path/'result.json').write_text(json.dumps({'status': 'passed'}))
-                (path/'packages.json').write_text(json.dumps({'all': names, 'selected': WORKSPACE.group_packages(names, group)}))
-            self.assertTrue(CHECK.summarize(root, groups)[1])
+                (path/'packages.json').write_text(json.dumps({'all': names,
+                    'selected': WORKSPACE.group_packages(names, group), 'excluded': ['cleany_gazebo_sim']}))
+            report, ok = CHECK.summarize(root, groups)
+            self.assertTrue(ok)
+            self.assertIn('CI 제외: cleany_gazebo_sim', report)
+            # 허용 목록 밖의 패키지를 제외했다고 적어도 누락을 성공으로 처리하지 않습니다.
+            for group in groups:
+                path = root/group/'packages.json'
+                manifest = json.loads(path.read_text())
+                manifest['excluded'].append('new_package')
+                manifest['selected'] = [p for p in manifest['selected'] if p != 'new_package']
+                path.write_text(json.dumps(manifest))
+            self.assertFalse(CHECK.summarize(root, groups)[1])
             path = root/'workspace-rest/packages.json'
             path.write_text(json.dumps({'all': names, 'selected': []}))
             self.assertFalse(CHECK.summarize(root, groups)[1])

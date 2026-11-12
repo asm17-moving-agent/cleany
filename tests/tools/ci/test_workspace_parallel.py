@@ -20,7 +20,7 @@ spec.loader.exec_module(WORKSPACE)
 
 class ParallelWorkspaceTest(unittest.TestCase):
     def test_bounded_overlap_and_failure_do_not_skip_other_packages(self):
-        names = ['cleany_navigation', 'cleany_skill_executor', 'cleany_manipulation_bt', 'extra_a', 'extra_b']
+        names = ['cleany_navigation', 'cleany_skill_executor', 'cleany_manipulation_bt', 'extra_a', 'extra_b', 'cleany_gazebo_sim']
         lock, barrier = threading.Lock(), threading.Barrier(2)
         active = peak = 0
         seen, environments = [], []
@@ -48,15 +48,15 @@ class ParallelWorkspaceTest(unittest.TestCase):
             root = Path(directory)
             self.assertEqual(WORKSPACE.run_groups(root, names, WORKSPACE.GROUPS, 2, runner), 1)
             self.assertEqual(peak, 2)
-            self.assertCountEqual(seen, names)
+            self.assertCountEqual(seen, [name for name in names if name != 'cleany_gazebo_sim'])
             for key in ('ROS_DOMAIN_ID', 'ROS_HOME', 'TMPDIR', 'IGN_PARTITION', 'GZ_PARTITION'):
-                self.assertEqual(len({env[key] for env in environments}), len(names), key)
+                self.assertEqual(len({env[key] for env in environments}), len(names) - 1, key)
             for group in WORKSPACE.GROUPS:
                 result = json.loads((root/'checks'/group/'result.json').read_text())
                 self.assertEqual(result['status'], 'failed' if group == 'workspace-rest' else 'passed')
             schedule = json.loads((root/'checks/workspace/schedule.json').read_text())
             self.assertEqual(schedule['workers'], 2)
-            self.assertEqual(len(schedule['packages']), len(names))
+            self.assertEqual(len(schedule['packages']), len(names) - 1)
 
     def test_environment_does_not_mutate_parent_and_reserves_fixture_domains(self):
         before = dict(os.environ)
