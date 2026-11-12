@@ -29,7 +29,7 @@ if ((${#ros_packages[@]})); then
   retry_dependency apt-get install -y --only-upgrade "${ros_packages[@]}"
 fi
 retry_dependency apt-get install -y --no-install-recommends \
-  ccache git make python3-pip libgl1-mesa-dri xauth xvfb
+  ccache gdb git make python3-pip libgl1-mesa-dri xauth xvfb
 source /opt/ros/humble/setup.bash
 printf 'yaml file:///opt/cleany-ci/ros2_ws/rosdep/cleany.yaml\n' \
   > /etc/ros/rosdep/sources.list.d/10-cleany.list

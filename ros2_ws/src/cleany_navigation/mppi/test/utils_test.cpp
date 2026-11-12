@@ -17,6 +17,7 @@
 
 #include <xtensor/xrandom.hpp>
 #include "gtest/gtest.h"
+#include "utils/test_costmap.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "cleany_navigation/mppi/tools/utils.hpp"
 #include "cleany_navigation/mppi/models/path.hpp"
@@ -274,7 +275,7 @@ TEST(UtilsTests, findPathCosts)
   {state, generated_trajectories, path, costs, model_dt, false, nullptr, nullptr,
     std::nullopt, std::nullopt};  /// Caution, keep references
 
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   rclcpp_lifecycle::State lstate;
   costmap_ros->on_configure(lstate);
