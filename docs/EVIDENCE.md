@@ -19,6 +19,21 @@ Vite 빌드, Playwright 운영 흐름 10개가 통과했다.
 실제 UI에 표시한 화면이며 실물 수거 성공 근거와 구분한다.
 원본 로그와 최종 commit은 `/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
 
+### PR 78 공통 CI 오류 수정 검증 (2026-11-12)
+
+`9f18b332`에 이 변경의 Pillow 호환 코드와 BT CTest 300초 제한을 적용했다.
+CI에서 Pillow 9.0.1의 `Image.Resampling` 부재로 증거 이미지 생성이 실패했고,
+BT 전체 수트는 기본 60초 제한에 걸렸다. 개별 Action 응답과 종료 제한은 유지했다.
+Jetson Ubuntu 22.04 ARM64, Humble, Python 3.10, pytest 6.2.5와 Pillow 9.0.1에서
+관련 7개 패키지의 colcon 검사 3,813 reported tests가 실패 없이 끝났다(skip 46).
+BT 785개는 약 94초에 통과했다. 별도 ROS opt-in 운영 흐름 검사는 228개가 통과했다.
+macOS의 타입 검사와 웹 빌드, Playwright 46개도 통과했고 외부 서버 검사 3개는 제외했다.
+입력은 저장소 설정, 합성 관측과 가짜 ROS 서버다. 실물 구동은 하지 않았다.
+로컬 BehaviorTree.CPP 4.10.0과 CI의 4.9.1, ARM64와 amd64 환경 차이는 남아 있다.
+환경, 소스 패치, 초기 빌드 실패와 최종 로그, JUnit 원본은
+`/home/cleany/cleany-data/reports/pr78-local-validation-20261112/`에 보관한다.
+웹 검사 원본은 `/Users/hyeon/.codex/reports/cleany-pr78-local-20261112/`에 있다.
+
 ## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
 
 PR 65의 `4427480d`에 Feetech 라이브러리를 `cleany_robot_interface`로 옮긴

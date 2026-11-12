@@ -15,6 +15,9 @@ from sensor_msgs.msg import Image
 from cleany_skill_executor.core.target_filter import TargetDecision
 
 
+_LANCZOS = getattr(PilImage, 'Resampling', PilImage).LANCZOS
+
+
 def image_message_to_pil(message: Image | None) -> PilImage.Image | None:
     if message is None or message.encoding not in ('rgb8', 'bgr8'):
         return None
@@ -86,7 +89,7 @@ def _crop_selected(base: PilImage.Image | None, detection: Any) -> PilImage.Imag
         min(base.height, int(detection.y_max) + margin),
     )
     crop = base.crop(box)
-    crop.thumbnail((640, 480), PilImage.Resampling.LANCZOS)
+    crop.thumbnail((640, 480), _LANCZOS)
     canvas = PilImage.new('RGB', (640, 480), (24, 29, 39))
     canvas.paste(crop, ((640 - crop.width) // 2, (480 - crop.height) // 2))
     return canvas
@@ -178,7 +181,7 @@ def write_validation_evidence(
     draw = ImageDraw.Draw(grid)
     for index, (panel, title) in enumerate(zip(panels, titles, strict=True)):
         panel = panel.convert('RGB')
-        panel.thumbnail((cell_width, cell_height), PilImage.Resampling.LANCZOS)
+        panel.thumbnail((cell_width, cell_height), _LANCZOS)
         column, row = index % 3, index // 3
         x = column * cell_width + (cell_width - panel.width) // 2
         y0 = row * (cell_height + title_height)
@@ -284,7 +287,7 @@ def _write_summary_grid(output_root: Path) -> None:
     draw = ImageDraw.Draw(canvas)
     for index, path in enumerate(paths):
         image = PilImage.open(path).convert('RGB')
-        image.thumbnail((cell_width, cell_height - 28), PilImage.Resampling.LANCZOS)
+        image.thumbnail((cell_width, cell_height - 28), _LANCZOS)
         column, row = index % columns, index // columns
         x = column * cell_width + (cell_width - image.width) // 2
         y = row * cell_height + 28
