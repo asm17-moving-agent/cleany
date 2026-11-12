@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 exec docker exec cleany-ci bash -lc \
-  'source /opt/ros/humble/setup.bash && exec "$@"' bash "$@"
+  'source /opt/ros/humble/setup.bash && export PATH="/ci-debugger/bin:$PATH" && exec "$@"' bash "$@"

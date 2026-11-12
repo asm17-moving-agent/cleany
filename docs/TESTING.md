@@ -180,7 +180,7 @@ python3 tools/ci/check.py --root /path/to/ci-results run navigation \
   --kind contract --timeout 600 -- make test-navigation
 ```
 
-CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 권한이 필요합니다. 테스트 결과는 캐시하지 않으며, 재시도로 첫 실패를 성공으로 바꾸지 않습니다.
+CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 권한이 필요합니다. Runner의 GDB와 전용 라이브러리를 읽기 전용으로 연결하며 고정 ROS 이미지의 라이브러리는 교체하지 않습니다. 진단 도구의 버전은 `debugger-version.txt`에 남깁니다. 테스트 결과는 캐시하지 않으며, 재시도로 첫 실패를 성공으로 바꾸지 않습니다.
 
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
