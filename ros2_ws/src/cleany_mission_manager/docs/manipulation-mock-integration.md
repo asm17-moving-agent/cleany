@@ -40,7 +40,7 @@ FSM은 수락, 좌석 이동, 취소, 종료 정책과 보고를 소유합니다
 
 [통합 launch](../../cleany_bringup/launch/mission_sim.launch.py)는 backend, fixture의 snapshot wire ID와 목적지를 검사합니다. 서버 동시 시작 시 scenario, 서버 설정과 DB 분리도 Gazebo 실행 전에 확인합니다. `profile`은 Fortress만 지원합니다.
 
-`action_mock`은 기존 `lidar_depth_nav` 센서, `nav2_safety.yaml`의 collision monitor, `nav2_omni_motion.yaml`의 mecanum controller를 조합합니다. Controller의 도착 오차는 3 cm이고 Mission의 기존 8 cm gate는 유지합니다. Costmap footprint는 monitor envelope와 맞춥니다. 지도 파일명과 targets의 `map_id`는 같아야 하며 초기 위치는 [AMCL 설정](../../cleany_gazebo_sim/config/nav2_amcl.yaml)의 지도 좌표를 사용합니다.
+`action_mock`은 기존 `lidar_depth_nav` 센서, `nav2_safety.yaml`의 collision monitor, `nav2_omni.yaml`과 `nav2_omni_low_speed.yaml`을 합친 저속 Omni controller를 조합합니다. Controller의 도착 오차는 3 cm이고 Mission의 기존 8 cm gate는 유지합니다. Costmap footprint는 monitor envelope와 맞춥니다. 지도 파일명과 targets의 `map_id`는 같아야 하며 초기 위치는 [AMCL 설정](../../cleany_gazebo_sim/config/nav2_amcl.yaml)의 지도 좌표를 사용합니다.
 
 ## 공유 입력과 영속성
 

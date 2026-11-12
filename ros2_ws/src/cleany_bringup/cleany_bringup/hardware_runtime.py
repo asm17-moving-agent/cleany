@@ -12,6 +12,7 @@ import uuid
 import yaml
 
 from .hardware_profile import load_profile
+from cleany_navigation.motion_profile import resolve_motion_profile
 
 
 def main():
@@ -32,11 +33,17 @@ def main():
     parser.add_argument("--navigation-map", default="")
     parser.add_argument("--robot-params", default="")
     parser.add_argument("--depth-params", default="")
-    parser.add_argument("--phone-motion-profile", choices=["longitudinal", "omni"], default="longitudinal")
+    parser.add_argument("--motion-profile", choices=["longitudinal", "omni"])
+    parser.add_argument("--phone-motion-profile", choices=["longitudinal", "omni"],
+                        help="Deprecated alias for --motion-profile")
     parser.add_argument("--slip-recovery", choices=["true", "false"], default="true")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--phone-port", type=int, default=8766)
     args = parser.parse_args(remove_ros_args()[1:])
+    try:
+        args.motion_profile = resolve_motion_profile(args.motion_profile, args.phone_motion_profile, default='omni')
+    except ValueError as error:
+        parser.error(str(error))
     args.navigation_map = Path(args.navigation_map) if args.navigation_map else None
     args.robot_params = Path(args.robot_params) if args.robot_params else None
     if not 1 <= args.phone_port <= 65535:
@@ -46,7 +53,7 @@ def main():
     )
     if args.navigation_map:
         if not args.robot_params:
-            args.robot_params = Path(get_package_share_directory('cleany_navigation'))/'config/phone_lidar_robot.yaml'
+            args.robot_params = Path(get_package_share_directory('cleany_navigation'))/'config/lidar_robot.yaml'
         if not args.navigation_map.is_file() or not args.robot_params.is_file():
             parser.error('Navigation requires existing map and verified robot parameters')
         if args.depth_params and not Path(args.depth_params).is_file():
@@ -91,7 +98,7 @@ def main():
         host=args.host, phone_port=args.phone_port, token_file=str(state / "web-token")
     )
     if args.navigation_map:
-        atomic_json(state/'teleop-motion.json', {'forward_only': args.phone_motion_profile == 'longitudinal'})
+        atomic_json(state/'teleop-motion.json', {'forward_only': args.motion_profile == 'longitudinal'})
     resolved = state / "resolved-profile.yaml"
     atomic_bytes(resolved, yaml.safe_dump(profile, sort_keys=False).encode())
     logger = {
@@ -167,15 +174,15 @@ def main():
         )
         if args.navigation_map:
             commands = (commands[0], ('navigation', [
-                'ros2', 'launch', 'cleany_navigation', 'phone_navigation.launch.py',
+                'ros2', 'launch', 'cleany_navigation', 'lidar_navigation.launch.py',
                 'map:=' + str(args.navigation_map.resolve()),
                 'robot_params_file:=' + str(args.robot_params.resolve()),
-                'phone_motion_profile:=' + args.phone_motion_profile,
+                'motion_profile:=' + args.motion_profile,
                 'slip_recovery:=' + args.slip_recovery,
                 'depth_params_file:=' + args.depth_params,
                 'localization_evidence_directory:=' + str(state/'localization'),
             ]), ('supervisor', ['ros2','run','cleany_system_supervisor','system_supervisor','--ros-args','-p',
-                'config_file:=' + str(Path(get_package_share_directory('cleany_navigation'))/'config/phone_lidar_supervisor.yaml')]), ('logger', ['ros2','launch','cleany_logger','logger.launch.py', 'record_on_start:=true','config:='+profile['logger_config']]))
+                'config_file:=' + str(Path(get_package_share_directory('cleany_navigation'))/'config/lidar_supervisor.yaml')]), ('logger', ['ros2','launch','cleany_logger','logger.launch.py', 'record_on_start:=true','config:='+profile['logger_config']]))
         for name, command in commands:
             stream = (state / (name + ".log")).open("ab")
             streams.append(stream)

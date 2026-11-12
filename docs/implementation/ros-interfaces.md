@@ -148,7 +148,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/nav2/cmd_vel` | `geometry_msgs/msg/Twist` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`depth_coverage`][ros-depth-coverage], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard] | — |
 | `/navigate_to_pose/_action/status` | `action_msgs/msg/GoalStatusArray` | [`bt_navigator`][ros-bt-navigator] | [`mission_runtime`][ros-mission-runtime], [`nav2_bt_trace`][ros-nav2-bt-trace] | — |
 | `/navigation/bt_trace` | `std_msgs/msg/String` | [`nav2_bt_trace`][ros-nav2-bt-trace] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
-| `/navigation/localization_speed_limit` | `nav2_msgs/msg/SpeedLimit` | [`localization_guard`][ros-localization-guard] | Nav2 controller_server, phone_collision_monitor | percentage 제한; 신선도 상실 시 정지 |
+| `/navigation/localization_speed_limit` | `nav2_msgs/msg/SpeedLimit` | [`localization_guard`][ros-localization-guard] | Nav2 controller_server, cleany_collision_monitor | percentage 제한; 신선도 상실 시 정지 |
 | `/obstacle_memory/depth` | `nav_msgs/msg/OccupancyGrid` | [`obstacle_memory`][ros-obstacle-memory] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/obstacle_memory/grid` | `nav_msgs/msg/OccupancyGrid` | [`obstacle_memory`][ros-obstacle-memory] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/obstacle_memory/lidar` | `nav_msgs/msg/OccupancyGrid` | [`obstacle_memory`][ros-obstacle-memory] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
@@ -207,7 +207,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/grasp/select_reachable` | `cleany_interfaces/action/SelectReachableGrasp` | [`grasp_selection_server`][ros-grasp-selection-server] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | 도달성 검사; controller 실행 없음 |
 | `/left_arm_controller/follow_joint_trajectory` | `control_msgs/action/FollowJointTrajectory` | [`left_arm_controller`][ros-left-arm-controller] | [`move_group`][ros-move-group] | MoveIt이 호출하는 외부 controller |
 | `/left_gripper_controller/follow_joint_trajectory` | `control_msgs/action/FollowJointTrajectory` | [`left_gripper_controller`][ros-left-gripper-controller] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | ros2_control backend 구성 필요 |
-| `/localization/recover` | `cleany_interfaces/action/RecoverComponent` | 일반: [`nav2_lifecycle_recovery`][ros-nav2-lifecycle-recovery], 휴대폰: [`localization_guard`][ros-localization-guard] | [`system_supervisor`][ros-system-supervisor] | 두 owner 동시 실행 금지; 휴대폰은 정지 후 자동 정합 복구 |
+| `/localization/recover` | `cleany_interfaces/action/RecoverComponent` | 일반: [`nav2_lifecycle_recovery`][ros-nav2-lifecycle-recovery], LiDAR 주행: [`localization_guard`][ros-localization-guard] | [`system_supervisor`][ros-system-supervisor] | 두 owner 동시 실행 금지; LiDAR 주행은 정지 후 자동 정합 복구 |
 | `/mission/stop` | `cleany_interfaces/action/StopMission` | [`mission_runtime`][ros-mission-runtime] | [`system_supervisor`][ros-system-supervisor] | supervision_mode=required |
 | `/mock/manipulation/execute_skill` | `cleany_interfaces/action/ExecuteManipulationSkill` | — | [`mission_runtime`][ros-mission-runtime] | action_mock 전용; 외부 server 별도 필요 |
 | `/move_action` | `moveit_msgs/action/MoveGroup` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | grasp_selection_server는 plan-only |
@@ -327,7 +327,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `safety_adapter` | `cleany_safety_adapter` | `safety_adapter` | [표](../../ros2_ws/src/cleany_safety_adapter/docs/interfaces.md#safety_adapter) |
 | `nav2_lifecycle_recovery` | `cleany_navigation` | `nav2_lifecycle_recovery` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#nav2_lifecycle_recovery) |
 | `localization_guard` | `cleany_navigation` | `localization_guard` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#localization_guard) |
-| `collision_monitor` (휴대폰 LiDAR 시연) | `cleany_navigation` | `phone_collision_monitor` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#phone_collision_monitor) |
+| `collision_monitor` (LiDAR 주행) | `cleany_navigation` | `cleany_collision_monitor` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#cleany_collision_monitor) |
 | `arm_health_monitor` | `cleany_skill_executor` | `arm_health_monitor` | [표](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#arm_health_monitor) |
 | `manipulation_server` | `cleany_skill_executor` | `manipulation_server` | [표](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
 | `grasp_server` | `cleany_grasping` | `grasp_server` | [표](../../ros2_ws/src/cleany_grasping/docs/interfaces.md#grasp_server) |
@@ -483,4 +483,4 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
   센서 구독, 점군 및 상태 발행, 별도 preview TF는
   [미리보기 인터페이스](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_obstacles_preview)를 따릅니다.
 
-- 실물 phone depth overlay: 기존 `depth_clearance`가 `/perception/depth/nav_points`, `/perception/depth/nav_obstacle_points`를 발행하고 local costmap 및 `collision_monitor`가 소비합니다. 별도 실행 파일이나 3D 정지 가드는 추가하지 않습니다. [실물 depth 계약](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance)을 따릅니다.
+- 실물 depth overlay: 기존 `depth_clearance`가 `/perception/depth/nav_points`, `/perception/depth/nav_obstacle_points`를 발행하고 local costmap 및 `collision_monitor`가 소비합니다. 별도 실행 파일이나 3D 정지 가드는 추가하지 않습니다. [실물 depth 계약](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance)을 따릅니다.

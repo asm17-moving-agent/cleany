@@ -25,9 +25,9 @@ from cleany_navigation.point_cloud import xyz_cloud
 @pytest.mark.parametrize('depth_enabled',[False,True])
 def test_absolute_limit_stop_priority_and_lifecycle(tmp_path,body_limits,depth_enabled):
     domain = 191
-    config = yaml.safe_load((Path(__file__).parents[1] / 'config/phone_lidar_safety.yaml').read_text())
+    config = yaml.safe_load((Path(__file__).parents[1] / 'config/lidar_safety.yaml').read_text())
     if depth_enabled:
-        overlay = yaml.safe_load((Path(__file__).parents[1] / 'config/phone_depth_local.yaml').read_text())
+        overlay = yaml.safe_load((Path(__file__).parents[1] / 'config/depth_local.yaml').read_text())
         config['collision_monitor']['ros__parameters'].update(overlay['collision_monitor']['ros__parameters'])
     config = adapt_nav2_parameters(config, 'humble')
     config['collision_monitor']['ros__parameters']['base_shift_correction'] = False
@@ -36,7 +36,7 @@ def test_absolute_limit_stop_priority_and_lifecycle(tmp_path,body_limits,depth_e
             translation_limit_m_s=0.,rotation_limit_rad_s=0.,wheel_limit_rad_s=1.5)
     filename = tmp_path / 'monitor.yaml'
     filename.write_text(yaml.safe_dump(config))
-    binary = Path(get_package_prefix('cleany_navigation')) / 'lib/cleany_navigation/phone_collision_monitor'
+    binary = Path(get_package_prefix('cleany_navigation')) / 'lib/cleany_navigation/cleany_collision_monitor'
     assert binary.is_file()
     log = (tmp_path / 'monitor.log').open('w')
     process = subprocess.Popen([str(binary), '--ros-args', '--params-file', str(filename)],

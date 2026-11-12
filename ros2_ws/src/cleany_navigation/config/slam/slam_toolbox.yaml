@@ -2,7 +2,7 @@ slam_toolbox:
   ros__parameters:
     # SCRUM-315 비교 후보인 slam_toolbox online async 프로파일입니다.
     # 알고리즘 선정 결과를 의미하지 않습니다.
-    # 아래 좌표계와 스캔 이름은 Gazebo 주행 계약의 일부입니다.
+    # External input must provide /scan and the odom -> base_link -> sensor TF chain.
     odom_frame: odom
     map_frame: map
     base_frame: base_link
@@ -32,7 +32,7 @@ slam_toolbox:
     stack_size_to_use: 40000000
     enable_interactive_mode: false
 
-    # 두 Gazebo 프로파일에서 시뮬레이션 360도 LiDAR 계약을 맞춥니다.
+    # Accepted scan range in metres; match these bounds to the active sensor.
     min_laser_range: 0.15
     max_laser_range: 12.0
 

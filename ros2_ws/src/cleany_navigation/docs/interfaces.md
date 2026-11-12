@@ -2,7 +2,7 @@
 
 ## localization_guard
 
-실행 파일은 `localization_guard`이며 휴대폰 LiDAR 주행 launch에서 실행합니다.
+실행 파일은 `localization_guard`이며 LiDAR 주행 launch에서 실행합니다.
 지도와 scan의 정합을 관측하고, Supervisor가 요청한 정지 상태의 위치 복구를 수행합니다.
 
 | 방향 | 이름 | 타입 | 계약 |
@@ -64,11 +64,11 @@ flowchart LR
 | Retry lifecycle | 별도 `traction_retry` namespace, global costmap과 manager |
 | 입력 | `/map`, `/scan` |
 
-[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#휴대폰-omni-주행의-슬립-복구)을 따릅니다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 참고합니다.
+[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#omni-주행의-슬립-복구)을 따릅니다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 참고합니다.
 
-## phone_collision_monitor
+## cleany_collision_monitor
 
-실행 파일: `phone_collision_monitor`. 실행 노드명: `collision_monitor`. 원본: [phone_collision_monitor.cpp](../src/phone_collision_monitor.cpp).
+실행 파일: `cleany_collision_monitor`. 실행 노드명: `collision_monitor`. 원본: [cleany_collision_monitor.cpp](../src/cleany_collision_monitor.cpp).
 
 Nav2 Collision Monitor의 lifecycle, 센서 좌표 변환, polygon 판정과 정지를 사용합니다. 별도의 안전 출력 publisher를 추가하지 않습니다.
 
@@ -92,7 +92,7 @@ Nav2 Collision Monitor의 lifecycle, 센서 좌표 변환, polygon 판정과 정
 
 | Geometry / 설정 | 값 / 동작 |
 |---|---|
-| phone_lidar_safety.yaml | 바퀴 외곽 +16 cm 주황 영역, +5 cm 정지 영역 |
+| lidar_safety.yaml | 바퀴 외곽 +16 cm 주황 영역, +5 cm 정지 영역 |
 | absolute_limit_polygon | 기본 SlowZone |
 | wheel_limit_rad_s | 기본 0.7 |
 | Wheel radius / wheelbase / separation | 0.0635 / 0.35 / 0.59 m |
@@ -125,7 +125,7 @@ flowchart TD
 
 | 실물 overlay | 설정 / 계약 |
 |---|---|
-| 입력 | phone_depth_local.yaml: `/camera/d435/depth/image_rect_raw`, `/camera/d435/depth/camera_info` |
+| 입력 | depth_local.yaml: `/camera/d435/depth/image_rect_raw`, `/camera/d435/depth/camera_info` |
 | Clearing | `/perception/depth/nav_points`, 카메라 좌표; local VoxelLayer ray 원점 `sensor_frame=d435_depth_frame` |
 | Marking | `/perception/depth/nav_obstacle_points`, base_link; spatial_filter_file 적용 |
 | Self-mask | self_filter_boxes_file은 base-좌표계 고정 AABB JSON; self_filter_profile과 동시 지정 금지 |

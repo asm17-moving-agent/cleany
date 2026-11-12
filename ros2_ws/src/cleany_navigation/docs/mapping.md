@@ -2,11 +2,12 @@
 
 ```mermaid
 flowchart LR
-  Sensors["LiDAR + 휠 피드백"] --> Ready["scan · odom · TF 준비"]
-  Ready --> Session["매핑 세션 / Cartographer"]
-  Session --> View["지도 · 스캔 · 궤적 관측"]
-  Session --> Stop["입력 차단 · STOP 확인"]
-  Stop --> Save["지도 저장 · Logger flush · 종료"]
+  Request["mapping/control 요청"] --> Stop["입력 차단 / STOP 확인"]
+  Stop --> Save["기존 지도 저장 / 기록 종료"]
+  Save --> Operation{"요청 종류"}
+  Operation -->|reset| Ready["입력 준비 / 새 세션 시작"]
+  Operation -->|stop| Done["세션 종료"]
+  Ready --> Status["mapping/status / 준비 결과"]
 ```
 
 [실행 가이드](../../../../docs/implementation/how-to/mapping.md) · [하드웨어 프로필](../../cleany_bringup/docs/hardware-mapping.md)
@@ -16,7 +17,7 @@ flowchart LR
 센서 yaw를 이용해 전방을 센서 좌표로 변환합니다.
 
 `mapping_session`은 지도 세션과 Cartographer, Logger 자식 프로세스를 소유합니다.
-Agent, base, 조종 웹과 센서 프로세스는 bringup 수명이므로 지도 초기화로 재시작하지 않습니다.
+센서와 구동, 조종 프로세스는 외부에서 제공하며 지도 초기화로 재시작하지 않습니다. 해당 프로세스의 실행 수명은 [하드웨어 구성](../../cleany_bringup/docs/hardware-mapping.md)이 관리합니다.
 
 기록 디렉터리에 `recording-settings.json`이 있으면 Logger가 복원한 기록 정책을
 지도 초기화 후에도 유지합니다. 저장된 정책이 없는 첫 실행에서만 매핑용 기본 토픽과
@@ -45,8 +46,9 @@ ESP32 연결 자체가 사라지면 STOP 미확인을 상태에 남기고 재연
 `recording.json`, 종료 결과를 세션별로 보존합니다. 기존 세션 디렉터리를 덮어쓰지 않습니다.
 Map YAML과 이미지는 임시 파일과 원자적 교체로 갱신합니다.
 
-Cartographer는 map->odom, base relay는 odom->base_link, 단일 장착 TF는 base_link->sensor를
-소유합니다. AMCL이나 별도 SLAM, Gazebo canonical odom과 동시에 실행하지 않습니다.
+이 매핑 세션의 Cartographer는 `map → odom`을 소유합니다. 외부 입력은
+`odom → base_link`와 센서 장착 TF를 제공해야 하며, 각 변환의 발행자는 하나여야 합니다.
+같은 `map → odom`을 발행하는 AMCL이나 다른 SLAM은 동시에 실행하지 않습니다.
 일반 Cartographer launch는 유지하고 실물 경로는 `cartographer_hardware_2d.lua`를 선택합니다.
 
 ## 실패 진단
@@ -67,4 +69,4 @@ Cartographer와 Logger 로그의 세션 디렉터리를 찾을 수 있습니다.
 
 하드웨어 프로필의 `recording_limit_mib`는 최초 세션 정책과 Logger 시작 한도를, `recording_total_limit_mib`는 보존된 전체 기록의 총량 한도를 설정합니다. 저장된 `recording-settings.json`이 있으면 세션 한도는 저장된 정책을 우선합니다. 총량 한도는 세션 한도 이상이어야 하며, 프로필 변경은 런타임을 다음에 시작할 때 적용합니다.
 
-LiDAR 전용 phone navigation은 `lidar_self_mask_cad.yaml`의 고정 기둥 직사각형을 base_link 좌표로 제외합니다. CAD -Y를 base +X, CAD +X를 base +Y로 변환하고 기둥 외곽에 15mm 여유를 둡니다. 360도 매핑 원본 `/scan_raw`는 변경하지 않으며, 일반 매핑 실행에는 이 마스크를 자동 적용하지 않습니다.
+LiDAR 주행 구성은 `lidar_self_mask_cad.yaml`의 고정 기둥 직사각형을 base_link 좌표로 제외합니다. CAD -Y를 base +X, CAD +X를 base +Y로 변환하고 기둥 외곽에 15mm 여유를 둡니다. 360도 매핑 원본 `/scan_raw`는 변경하지 않으며, 일반 매핑 실행에는 이 마스크를 자동 적용하지 않습니다.

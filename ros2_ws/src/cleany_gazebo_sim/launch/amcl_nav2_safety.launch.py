@@ -92,7 +92,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('localization_params_file', default_value=''),
         DeclareLaunchArgument('safety_params_file', default_value=str(share/'config/nav2_safety.yaml')),
         DeclareLaunchArgument('axis_params_file', default_value=str(navigation/'config/nav2_axis_motion.yaml')),
-        DeclareLaunchArgument('omni_params_file', default_value=str(navigation/'config/nav2_omni_motion.yaml')),
+        DeclareLaunchArgument('omni_params_file', default_value=str(navigation/'config/nav2_omni_low_speed.yaml')),
         DeclareLaunchArgument('voxel_params_file', default_value=str(navigation/'config/voxel_guard.yaml')),
         DeclareLaunchArgument('memory_params_file', default_value=str(navigation/'config/obstacle_memory.yaml')),
         DeclareLaunchArgument('body_profile', default_value=str(share/'config/cad_frame.yaml')),

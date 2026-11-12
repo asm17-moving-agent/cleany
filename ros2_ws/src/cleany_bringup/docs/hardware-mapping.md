@@ -16,6 +16,8 @@ Runtime은 영속 센서/base/조종 launch와 매핑 관리자를 별도 프로
 종료 시 매핑 관리자의 저장을 먼저 기다리고 장치 launch를 종료합니다.
 웹 페이지를 닫아도 지도와 기록은 종료되지 않습니다.
 
+실물 구성에서는 base relay가 `odom → base_link`, 장착 TF가 `base_link → sensor`를 제공합니다. 매핑 세션의 Cartographer는 `map → odom`을 발행합니다. 같은 변환을 발행하는 다른 실행 구성을 함께 시작하지 않습니다.
+
 | 프로필 | 출처와 범위 |
 |---|---|
 | `mapping_legacy.yaml` | 이전 실물 매핑의 x=0.029m, yaw=-7.85도. 원본 측정 artifact 미확인 |

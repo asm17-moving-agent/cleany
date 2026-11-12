@@ -1,6 +1,6 @@
 # 휴대폰으로 지도 위 목표까지 이동하기
 
-저장 지도를 불러오고, 휴대폰에서 현재 위치와 목적지를 지정합니다. 이 안내는 **LiDAR 전용 시연 프로필**을 다룹니다.
+저장 지도를 불러오고, 휴대폰에서 현재 위치와 목적지를 지정합니다. 이 안내는 **LiDAR 주행 구성**을 다룹니다.
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
 저장소 루트에서 아래 경로를 현재 환경에 맞게 바꿉니다. 출력 폴더는 이번 실행의 저장 위치입니다.
 
 ```bash
-python3 tools/ros2/run-phone-navigation \
+python3 tools/ros2/run-navigation \
   --run-root /path/to/local-data/runs/navigation/traction/YYYY-MM-DD_HHMMSS_phone-navigation \
   --profile /path/to/hardware-profile.yaml \
   --map /path/to/map.yaml \
@@ -90,8 +90,8 @@ python3 tools/ros2/run-phone-navigation \
 | 바꾸려는 것 | 위치 |
 |---|---|
 | Omni / longitudinal, 슬립 재시도 | `--motion-profile`, `--slip-recovery true/false` |
-| 지도·입력·출력 경로 | `tools/ros2/run-phone-navigation --help` |
-| 속도·footprint·계획 비용 | [경로 계획과 주행 설정](../../../ros2_ws/src/cleany_navigation/docs/planning.md#휴대폰-시연-프로필) |
+| 지도·입력·출력 경로 | `tools/ros2/run-navigation --help` |
+| 속도·footprint·계획 비용 | [경로 계획과 주행 설정](../../../ros2_ws/src/cleany_navigation/docs/planning.md#기본-튜닝과-전후진-전용-설정) |
 | 위치 정합과 복구 조건 | [위치 정합 정책](../../../ros2_ws/src/cleany_navigation/docs/localization.md) |
 | 버튼·API·취소 계약 | [휴대폰 인터페이스](../../../ros2_ws/src/cleany_teleop/docs/interfaces.md#지도-클릭-주행-명시적-선택) |
 | Nav2·안전·구동 연결 | [Navigation 구성](../../../ros2_ws/src/cleany_navigation/README.md) |
@@ -99,11 +99,11 @@ python3 tools/ros2/run-phone-navigation \
 실행 파일은 지정한 run의 `runtime/`과 `ros-log/`에 저장됩니다. 팀에 결과를 공유할 때는 팀이 접근할 수 있는 위치를 사용합니다.
 
 
-## 휴대폰 Omni 주행의 슬립 복구
+## Omni 주행의 슬립 복구
 
-LiDAR 전용 `phone_navigation.launch.py`의 Omni 프로필은 `slip_recovery:=true`가
-기본입니다. `config/phone_slip_recovery.yaml`에서 감지와 복구 시간을 조정합니다.
-`slip_recovery:=false`는 기존 기본 BT와 명령 경로를 사용합니다. 기본 종방향
+LiDAR 전용 `lidar_navigation.launch.py`의 Omni 프로필은 `slip_recovery:=true`가
+기본입니다. `config/slip_recovery.yaml`에서 감지와 복구 시간을 조정합니다.
+`slip_recovery:=false`는 기존 기본 BT와 명령 경로를 사용합니다. 명시적 `longitudinal`
 프로필과 다른 launch에는 이 복구가 자동 적용되지 않습니다.
 
 약 1초의 LiDAR/휠 이동 비교가 2개 연속 의심이면 BT가 현재 추종을 취소하고

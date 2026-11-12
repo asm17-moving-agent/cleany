@@ -121,7 +121,7 @@ def graph(tmp_path,request):
     rclpy.init(domain_id=182)
     guard=LocalizationGuard(parameter_overrides=[Parameter('evidence_directory',value=str(tmp_path/'evidence'))])
     plant=Plant(getattr(request,'param',False))
-    config=load(Path(__file__).resolve().parents[1]/'config/phone_lidar_supervisor.yaml')
+    config=load(Path(__file__).resolve().parents[1]/'config/lidar_supervisor.yaml')
     config['persistence']['state_file']=str(tmp_path/'supervisor.json')
     config['ros']['navigation_nodes']=['fake_nav'];config['ros']['localization_nodes']=['fake_amcl']
     config['ros']['lifecycle_poll_s']=.1

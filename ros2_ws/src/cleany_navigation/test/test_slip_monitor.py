@@ -3,6 +3,7 @@ import math
 import numpy as np
 import pytest
 import yaml
+from cleany_navigation.runtime_config import load_motion_profile
 from cleany_navigation.slip_estimation import Settings
 from cleany_navigation.slip_monitor import ObservationHistory, ScanHistory, base_cloud
 from cleany_navigation.traction_brake import BrakeRamp
@@ -62,9 +63,9 @@ def test_lidar_mount_rotation_and_far_subset():
 def test_retry_has_no_lateral_motion_and_preserves_omni_plugin():
     p=yaml.safe_load((ROOT/'config/nav2_amcl.yaml').read_text())
     from cleany_navigation.runtime_config import merge_parameters
-    merge_parameters(p,yaml.safe_load((ROOT/'config/nav2_phone_omni.yaml').read_text()))
+    merge_parameters(p,load_motion_profile(ROOT/'config', 'omni'))
     original=p['controller_server']['ros__parameters']['FollowPath'].copy()
-    retry=configure_retry(p,yaml.safe_load((ROOT/'config/nav2_phone_longitudinal.yaml').read_text()),'/tmp/diff.json')
+    retry=configure_retry(p,yaml.safe_load((ROOT/'config/nav2_longitudinal.yaml').read_text()),'/tmp/diff.json')
     c=p['controller_server']['ros__parameters']
     assert c['FollowPath']==original
     assert c['Longitudinal']['motion_model']=='DiffDrive'

@@ -74,14 +74,14 @@ def fixture_namespace(path: str, function: str | None = None) -> dict:
 
 
 def footprint():
-    robot = NAV + "config/phone_lidar_robot.yaml"
-    safety = NAV + "config/phone_lidar_safety.yaml"
+    robot = NAV + "config/lidar_robot.yaml"
+    safety = NAV + "config/lidar_safety.yaml"
     r = read(robot)["local_costmap"]["local_costmap"]["ros__parameters"]
     s = read(safety)["collision_monitor"]["ros__parameters"]
     wheel = np.array(json.loads(r["footprint"]))
     stop = np.array(json.loads(s["StopZone"]["points"]))
     slow = np.array(json.loads(s["SlowZone"]["points"]))
-    fig, ax = axes("Phone: wheel envelope and 2D zones")
+    fig, ax = axes("LiDAR navigation: wheel envelope and 2D zones")
     for points, color, label in [(slow, ORANGE, "Slow boundary"),
                                   (stop, RED, "Stop / padded footprint"),
                                   (wheel, GREEN, "CAD wheel envelope")]:
@@ -99,7 +99,7 @@ def footprint():
 
 
 def direction_cost():
-    config = NAV + "config/nav2_phone_omni.yaml"
+    config = NAV + "config/nav2_omni_standard.yaml"
     code = NAV + "mppi/src/critics/directional_motion_critic.cpp"
     params = read(config)["controller_server"]["ros__parameters"]["FollowPath"]["DirectionalMotionCritic"]
     # 수학적 설명 그림을 문서에서 설명한 구현과 연결해 유지합니다.

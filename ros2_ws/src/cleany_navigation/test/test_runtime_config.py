@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, set_sim_time, validate_robot_parameters)
+    load_motion_profile, load_navigation_profile, load_parameters, merge_parameters, set_sim_time, validate_robot_parameters)
 from cleany_navigation.urdf_geometry import forward_kinematics
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -250,7 +250,7 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
 def test_default_omni_lattice_mppi_survives_humble_layering():
     """선택한 이동 계층이 DWB나 지원되지 않는 plugin 이름을 되살려서는 안 됩니다."""
     doc = parameters()
-    merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+    merge_parameters(doc, load_navigation_profile(PACKAGE/'config/nav2_omni.yaml', PACKAGE/'config/nav2_omni_low_speed.yaml'))
     adapted = adapt_nav2_parameters(doc, 'humble')
     assert adapted['planner_server']['ros__parameters']['GridBased']['plugin'] == (
         'nav2_smac_planner/SmacPlannerLattice')
@@ -273,7 +273,7 @@ def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
     from cleany_navigation.runtime_config import resolve_default_lattice
     doc = parameters()
     if omni_layer:
-        merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+        merge_parameters(doc, load_navigation_profile(PACKAGE/'config/nav2_omni.yaml', PACKAGE/'config/nav2_omni_low_speed.yaml'))
     primitive = PACKAGE/'config/lattice/omni-r10cm.json'
     resolve_default_lattice(doc, primitive)
     adapted = adapt_nav2_parameters(doc, 'humble')
@@ -293,10 +293,10 @@ def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
     assert adapted['controller_server']['ros__parameters']['FollowPath']['motion_model'] == 'Omni'
 
 
-def test_phone_omni_wrapper_resolves_bundled_lattice_and_preserves_explicit_file():
+def test_lidar_omni_wrapper_resolves_bundled_lattice_and_preserves_explicit_file():
     from cleany_navigation.runtime_config import resolve_default_lattice
     doc=parameters()
-    merge_parameters(doc,load_parameters(PACKAGE/'config/nav2_phone_omni.yaml'))
+    merge_parameters(doc,load_motion_profile(PACKAGE/'config', 'omni'))
     primitive=PACKAGE/'config/lattice/omni-r10cm.json'
     resolve_default_lattice(doc,primitive)
     planner=doc['planner_server']['ros__parameters']['GridBased']

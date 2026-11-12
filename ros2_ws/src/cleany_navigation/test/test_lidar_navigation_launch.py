@@ -1,4 +1,4 @@
-"""핸드폰 launch graph 두 개와 실제 병합된 제어기 설정을 검사합니다."""
+"""Verify LiDAR launch graphs and the merged controller configuration."""
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -26,10 +26,10 @@ def test_disabling_slip_recovery_keeps_observation_and_collision_protection(tmp_
     context.launch_configurations.update({
         'map': str(map_file), 'use_sim_time': 'false', 'autostart': 'true',
         'params_file': str(package/'config/nav2_amcl.yaml'), 'localization_params_file': '',
-        'robot_params_file': str(package/'config/phone_lidar_robot.yaml'),
-        'phone_motion_profile': 'omni', 'slip_recovery': str(enabled).lower(),
+        'robot_params_file': str(package/'config/lidar_robot.yaml'),
+        'motion_profile': 'omni', 'slip_recovery': str(enabled).lower(),
         'localization_evidence_directory': str(tmp_path/'localization'),
-        'depth_params_file': str(package/'config/phone_depth_local.yaml') if depth else '',
+        'depth_params_file': str(package/'config/depth_local.yaml') if depth else '',
     })
     actions = launch_runtime._launch(context, safety=False, lidar_only=True)
     nodes = [a for a in actions if 'executable' in a]
@@ -64,3 +64,38 @@ def test_disabling_slip_recovery_keeps_observation_and_collision_protection(tmp_
     tree_file = config['bt_navigator']['ros__parameters'].get('default_nav_to_pose_bt_xml', '')
     tree = ET.parse(tree_file).getroot() if tree_file else None
     assert (tree is not None and tree.find('.//SlipRecovery') is not None) == enabled
+
+
+@pytest.mark.parametrize('launch_name', ['lidar_navigation.launch.py', 'phone_navigation.launch.py'])
+@pytest.mark.parametrize('arguments, expected', [
+    ({}, 'omni'),
+    ({'motion_profile': 'longitudinal'}, 'longitudinal'),
+    ({'phone_motion_profile': 'longitudinal'}, 'longitudinal'),
+    ({'motion_profile': 'omni', 'phone_motion_profile': 'omni'}, 'omni'),
+])
+def test_entrypoints_resolve_default_and_legacy_selection(launch_name, arguments, expected):
+    import runpy
+    from launch.actions import DeclareLaunchArgument, OpaqueFunction
+
+    launch_file = Path(__file__).resolve().parents[1]/'launch'/launch_name
+    description = runpy.run_path(str(launch_file))['generate_launch_description']()
+    context = LaunchContext()
+    context.launch_configurations.update(arguments)
+    for action in description.entities:
+        if isinstance(action, DeclareLaunchArgument) and action.name in ('motion_profile', 'phone_motion_profile'):
+            action.execute(context)
+        elif isinstance(action, OpaqueFunction):
+            # Validate arguments before the runtime action that creates ROS nodes.
+            action.execute(context)
+            break
+    assert context.launch_configurations['motion_profile'] == expected
+
+
+def test_conflicting_launch_aliases_fail_before_nodes_start():
+    from cleany_navigation.motion_profile import motion_profile_arguments
+
+    context = LaunchContext()
+    context.launch_configurations.update(motion_profile='omni', phone_motion_profile='longitudinal')
+    with pytest.raises(ValueError, match='conflicts'):
+        for action in motion_profile_arguments('omni'):
+            action.execute(context)

@@ -23,7 +23,7 @@ from cleany_navigation.point_cloud import xyz_cloud
 
 def test_mark_retain_until_observed_free_and_clear(tmp_path):
     package = Path(__file__).resolve().parents[1]
-    layer = yaml.safe_load((package/'config/phone_depth_local.yaml').read_text())['local_costmap']['local_costmap']['ros__parameters']['depth_layer']
+    layer = yaml.safe_load((package/'config/depth_local.yaml').read_text())['local_costmap']['local_costmap']['ros__parameters']['depth_layer']
     parameters = dict(global_frame='odom', robot_base_frame='base_link', rolling_window=False,
                       width=6, height=6, origin_x=-3., origin_y=-3., resolution=.05,
                       update_frequency=10., publish_frequency=10., always_send_full_costmap=True,

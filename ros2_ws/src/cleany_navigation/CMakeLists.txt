@@ -38,11 +38,11 @@ find_package(nav2_behavior_tree REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
-add_executable(phone_collision_monitor src/phone_collision_monitor.cpp)
-target_compile_features(phone_collision_monitor PRIVATE cxx_std_17)
-target_include_directories(phone_collision_monitor PRIVATE include)
-ament_target_dependencies(phone_collision_monitor nav2_collision_monitor nav2_util nav2_msgs rclcpp geometry_msgs sensor_msgs tf2_ros)
-install(TARGETS phone_collision_monitor DESTINATION lib/${PROJECT_NAME})
+add_executable(cleany_collision_monitor src/cleany_collision_monitor.cpp)
+target_compile_features(cleany_collision_monitor PRIVATE cxx_std_17)
+target_include_directories(cleany_collision_monitor PRIVATE include)
+ament_target_dependencies(cleany_collision_monitor nav2_collision_monitor nav2_util nav2_msgs rclcpp geometry_msgs sensor_msgs tf2_ros)
+install(TARGETS cleany_collision_monitor DESTINATION lib/${PROJECT_NAME})
 add_library(axis_generator SHARED src/axis_generator.cpp src/path_heading.cpp)
 add_library(footprint_sweep SHARED src/swept_footprint.cpp)
 target_compile_features(footprint_sweep PUBLIC cxx_std_17)
@@ -87,6 +87,7 @@ pluginlib_export_plugin_description_file(dwb_core plugins.xml)
 install(TARGETS axis_generator EXPORT axis_generatorTargets LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(PROGRAMS
+  scripts/phone_collision_monitor
   scripts/mapping_scan_filter scripts/mapping_session
   scripts/pan_motion_gate scripts/depth_clearance scripts/depth_coverage
   scripts/depth_obstacles_preview

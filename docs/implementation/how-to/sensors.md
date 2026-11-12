@@ -75,7 +75,7 @@ LiDAR 아래를 제외하려면 filter JSON에 `min_base_z: 0.192`를 지정하�
 
 ## 실물 depth local costmap 연결
 
-`tools/ros2/run-phone-navigation`에 `--depth-params ros2_ws/src/cleany_navigation/config/phone_depth_local.yaml`을 추가합니다. 기존 map, 프로필, DDS와 slip-recovery 선택은 유지합니다. 하위 launch의 `depth_params_file`과 hardware runtime의 `--depth-params`로 전달됩니다. 생략하면 LiDAR 전용입니다. D435 카메라와 실제 head encoder TF는 별도로 실행돼 있어야 합니다.
+`tools/ros2/run-navigation`에 `--depth-params ros2_ws/src/cleany_navigation/config/depth_local.yaml`을 추가합니다. 기존 map, 프로필, DDS와 slip-recovery 선택은 유지합니다. 하위 launch의 `depth_params_file`과 hardware runtime의 `--depth-params`로 전달됩니다. 생략하면 LiDAR 전용입니다. D435 카메라와 실제 head encoder TF는 별도로 실행돼 있어야 합니다.
 
 이 overlay는 local VoxelLayer, depth 투영 노드와 기존 Collision Monitor의 depth 입력만 추가합니다. global costmap과 3D 누적 장애물 지도, voxel guard는 추가하지 않습니다. 원본 유효 광선은 제거용, LiDAR 높이 이상의 필터 점은 표시용입니다.
 

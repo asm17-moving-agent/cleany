@@ -41,7 +41,7 @@ flowchart LR
 
 지도 밖과 미확인 영역의 끝점은 일치로 세지 않습니다. 평균에서 제외한 상위 25%도 일치율의 분모에는 남깁니다. 공분산이 작아도 이 지도 정합 검사를 생략하지 않습니다.
 
-[phone_localization.yaml](../config/phone_localization.yaml)의 값은 시연용 초기 기준입니다. 지도 품질과 실제 바닥에서 추가 검증이 필요합니다.
+[localization_guard.yaml](../config/localization_guard.yaml)의 값은 시연용 초기 기준입니다. 지도 품질과 실제 바닥에서 추가 검증이 필요합니다.
 
 | 정상 판정 항목 | 조건 |
 |---|---|

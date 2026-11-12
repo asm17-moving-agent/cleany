@@ -68,7 +68,9 @@ def _start(context):
         # 기존 메카넘 controller에 허용 오차 3 cm를 적용합니다.
         # 이는 변경하지 않은 Mission 도착 판정 8 cm 안에 들어갑니다.
         nav_parameters = yaml.safe_load((navigation_share / "config/nav2_amcl.yaml").read_text())
-        omni = yaml.safe_load((navigation_share / "config/nav2_omni_motion.yaml").read_text())
+        from cleany_navigation.runtime_config import load_navigation_profile
+        omni = load_navigation_profile(navigation_share / "config/nav2_omni.yaml",
+                                       navigation_share / "config/nav2_omni_low_speed.yaml")
         merge_parameters(nav_parameters, {"controller_server": omni["controller_server"]})
         safety = yaml.safe_load((sim / "config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):

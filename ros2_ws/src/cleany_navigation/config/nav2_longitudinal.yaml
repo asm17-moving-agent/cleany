@@ -1,4 +1,4 @@
-# 핸드폰 데모 전용 overlay이며 기본 Omni 주행은 유지합니다.
+# Explicit longitudinal overlay; keeps StraightFirst and DiffDrive tuning.
 controller_server:
   ros__parameters:
     goal_checker:

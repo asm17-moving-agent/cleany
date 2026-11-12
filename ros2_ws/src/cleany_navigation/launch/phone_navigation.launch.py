@@ -1,6 +1,6 @@
-"""핸드폰 주행의 기본 동작은 전후 이동과 회전입니다."""
+"""이전 launch 이름을 LiDAR 기반 주행으로 연결하는 호환 진입점입니다."""
 from cleany_navigation.launch_runtime import navigation_launch_description
 
 
 def generate_launch_description():
-    return navigation_launch_description(safety=False, phone_motion_profile='longitudinal', lidar_only=True)
+    return navigation_launch_description(safety=False, motion_profile='omni', lidar_only=True)

@@ -86,6 +86,7 @@ flowchart TB
 | 공통 base Twist | [Mobile base](../../ros2_ws/src/cleany_interfaces/docs/mobile-base.md) |
 | ROS driver, odometry, 구동 허가 | [Base driver](../../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md) |
 | ROS↔MCU wheel protocol | [Protocol v2](../../ros2_ws/src/cleany_base_interfaces/docs/protocol.md) |
+| Gazebo와 Navigation 연결 | [주행 연동](../../ros2_ws/src/cleany_gazebo_sim/docs/navigation.md) |
 | Navigation 경로 계획과 주행 제어 | [Planning](../../ros2_ws/src/cleany_navigation/docs/planning.md) |
 | Navigation 위치 정합과 복구 | [Localization](../../ros2_ws/src/cleany_navigation/docs/localization.md) |
 | Navigation 직렬 안전, 관측, 정지 | [Safety](../../ros2_ws/src/cleany_navigation/docs/safety.md) |

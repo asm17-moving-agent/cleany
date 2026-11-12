@@ -100,7 +100,7 @@ flowchart LR
 | `make test-slip-detection` | 시간 보간 / 좌표 변환 / 합성 scan / 단일 벽 퇴화 / 품질 실패 / odom 단절 / 연속 조건; ROS 노드나 모터 명령 없음 |
 | `make test-slip-recovery` | 빌드한 실제 BT의 child halt / 정지 / 목표별 latch / 이전 비교 무시 / 반복 실패; BASE_TEST_ROS_DOMAIN_ID 격리 |
 | Gate 단위 검사 | 병진 방향 유지, 휠별 감속 상한, heartbeat 단절 |
-| tools/validation/slip_recovery_smoke.py | 별도 domain에 빈 지도와 phone_navigation.launch.py phone_motion_profile:=omni를 먼저 실행; 합성 입력으로 추종 시작 / 취소 뒤 0 출력 |
+| tools/validation/slip_recovery_smoke.py | 별도 domain에 빈 지도와 lidar_navigation.launch.py motion_profile:=omni를 먼저 실행; 합성 입력으로 추종 시작 / 취소 뒤 0 출력 |
 
 Smoke 도구는 하드웨어 domain 0을 거부합니다. 기록 분석과 한계는 [슬립 분석](../calibration.md#bag-기반-슬립-의심-구간-분석)을 따릅니다.
 
@@ -398,7 +398,7 @@ make test-moveit-collision
 및 `/map_extension/tracked_pose`가 수신되는지 확인합니다. 실물 확장 품질은
 연결 통로 왕복 관측과 복귀 시 벽 정합으로 별도 평가합니다.
 
-### 순정 Lattice와 Phone Omni MPPI 비교
+### 순정 Lattice와 Omni 기본 튜닝 비교
 
 `tools/validation/native_lattice_mppi`는 설치된 Smac Lattice와 통합 MPPI를 격리 실행합니다. 실제 로봇에 속도를 발행하지 않습니다. 입력 폴더에는 `map.txt`(크기, 해상도, 원점), `map.bin`(Nav2 cost byte 배열), `poses.txt`(시작/목표 x y yaw)가 필요합니다. 설정은 controller_server, planner_server와 local_costmap의 합성 YAML입니다.
 
@@ -421,7 +421,7 @@ python3 tools/validation/native_lattice_mppi/compare.py \
 
 실물 주행 성공 근거로 사용하지 않습니다.
 
-`balance_primitives.py SOURCE DESTINATION`은 직선 primitive의 좌표를 변경하지 않고 길이 metadata를 재계산합니다. `test_phone_profile.py`는 번들 원본과의 차이가 오른쪽 횡이동 16개의 길이 필드뿐인지, 모든 직선 길이가 기하와 일치하는지 검사합니다.
+`balance_primitives.py SOURCE DESTINATION`은 직선 primitive의 좌표를 변경하지 않고 길이 metadata를 재계산합니다. `test_motion_profile.py`는 번들 원본과의 차이가 오른쪽 횡이동 16개의 길이 필드뿐인지, 모든 직선 길이가 기하와 일치하는지 검사합니다.
 
 
 | 자동 검사 | 범위 |
@@ -486,14 +486,14 @@ python3 tools/validation/probe_depth_obstacle_cutoff.py   --min-z .192 --output 
 | Depth 회귀 | 격리 범위 |
 |---|---|
 | test_depth_local_costmap.py | Domain 192, 실제 VoxelLayer의 marking / 미관측 유지 / 재관측 clearing |
-| test_phone_collision_monitor.py | Domain 191, LiDAR / depth 정지 우선순위, 절대 상한, required depth 단절 / 복구 |
+| test_collision_monitor.py | Domain 191, LiDAR / depth 정지 우선순위, 절대 상한, required depth 단절 / 복구 |
 | test_depth_transport.py | 실제 형식의 depth, capture TF, 무효 영상 차단, floor clearing |
-| test_phone_slip_launch.py | Depth 옵션이 global costmap / slip 설정을 바꾸지 않음 |
+| test_lidar_navigation_launch.py | Depth 옵션이 global costmap / slip 설정을 바꾸지 않음 |
 
 로봇 domain 0에 속도를 보내지 않습니다.
 
 ```bash
-python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_depth_local_costmap.py ros2_ws/src/cleany_navigation/test/test_phone_collision_monitor.py ros2_ws/src/cleany_navigation/test/test_depth_transport.py ros2_ws/src/cleany_navigation/test/test_phone_slip_launch.py
+python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_depth_local_costmap.py ros2_ws/src/cleany_navigation/test/test_collision_monitor.py ros2_ws/src/cleany_navigation/test/test_depth_transport.py ros2_ws/src/cleany_navigation/test/test_lidar_navigation_launch.py
 ```
 
 격리 합성 입력 검사는 실물 의자 이동이나 실제 제동 거리의 검증과 구분합니다. 실물에서는 조종 pause 상태에서 의자를 놓고 치운 관측과 costmap을 기록한 후 별도 주행 시험으로 진행합니다.

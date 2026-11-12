@@ -23,7 +23,7 @@ flowchart TD
   Supervisor["Supervisor"] <-->|"허가 · 정지 요청"| Bridge
 ```
 
-그림은 LiDAR 전용 phone 프로필의 논리적 역할을 표시합니다. NavigationBridge와 최종 출력 처리는 `phone_remote` 프로세스 안에 있습니다. 센서 드라이버와 물리 보호 회로 전체를 나타내는 그림은 아닙니다.
+그림은 LiDAR 주행 구성의 논리적 역할을 표시합니다. NavigationBridge와 최종 출력 처리는 `phone_remote` 프로세스 안에 있습니다. 센서 드라이버와 물리 보호 회로 전체를 나타내는 그림은 아닙니다.
 
 | 흐름 | 실제 연결 |
 |---|---|
@@ -40,25 +40,47 @@ flowchart TD
 
 | 프로필 | 선택 | 주행 방식 |
 |---|---|---|
-| Phone Omni | 실행 도구 기본값 `--motion-profile omni` | 순정 Smac Lattice + Omni MPPI, 횡이동 허용 |
-| Phone longitudinal | `--motion-profile longitudinal` | 직진 우선 계획 + DiffDrive MPPI, 횡이동 차단 |
-| 일반 navigation | AMCL/Nav2 launch | Phone과 별도 프로필. [Planning](docs/planning.md) 참조 |
+| Omni 기본 튜닝 | 실행 도구 기본값 `--motion-profile omni` | 순정 Smac Lattice + Omni MPPI, 횡이동 허용 |
+| Longitudinal | `--motion-profile longitudinal` | 직진 우선 계획 + DiffDrive MPPI, 횡이동 차단 |
+| 일반 navigation | AMCL/Nav2 launch | Omni 저속 튜닝. [Planning](docs/planning.md) 참조 |
 
-`phone_navigation.launch.py`를 직접 실행할 때의 기본값은 `longitudinal`입니다. 상위 실행 도구와 기본값이 다르므로 프로필을 명시적으로 선택하세요.
+`lidar_navigation.launch.py`, `hardware_mapping.launch.py`, `tools/ros2/run-navigation`의 기본값은 모두 `omni`입니다. Launch에서는 `motion_profile:=longitudinal`, 실행 도구에서는 `--motion-profile longitudinal`로 전후진 전용 구성을 선택합니다. 이 선택은 수동 조종의 횡이동 허용에도 적용됩니다.
 
 ## 설정을 어디서 바꾸나요?
 
 | 조정 대상 | 파일 / 문서 |
 |---|---|
-| Omni 계획·속도·가속도 | [nav2_phone_omni.yaml](config/nav2_phone_omni.yaml), [주행 연속성](docs/planning.md#omni-주행-연속성) |
-| 전후진 전용 프로필 | [nav2_phone_longitudinal.yaml](config/nav2_phone_longitudinal.yaml) |
-| 감속·정지 영역 | [phone_lidar_safety.yaml](config/phone_lidar_safety.yaml), [Collision Monitor](docs/interfaces.md#phone_collision_monitor) |
-| 위치 정합·복구 | [phone_localization.yaml](config/phone_localization.yaml), [정합 정책](docs/localization.md) |
-| 슬립 관측·재시도 | [phone_slip_recovery.yaml](config/phone_slip_recovery.yaml), [슬립 노드](docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
-| Robot footprint | [phone_lidar_robot.yaml](config/phone_lidar_robot.yaml) |
-| 선택적 D435 입력 | [phone_depth_local.yaml](config/phone_depth_local.yaml), [실행 안내](../../../docs/implementation/how-to/sensors.md#실물-depth-local-costmap-연결) |
+| Omni 공통 모델과 planner | [nav2_omni.yaml](config/nav2_omni.yaml) |
+| Omni 저속 튜닝 | [nav2_omni_low_speed.yaml](config/nav2_omni_low_speed.yaml) |
+| Omni 기본 튜닝 | [nav2_omni_standard.yaml](config/nav2_omni_standard.yaml), [주행 연속성](docs/planning.md#omni-주행-연속성) |
+| 전후진 전용 프로필 | [nav2_longitudinal.yaml](config/nav2_longitudinal.yaml) |
+| 감속·정지 영역 | [lidar_safety.yaml](config/lidar_safety.yaml), [Collision Monitor](docs/interfaces.md#cleany_collision_monitor) |
+| 위치 정합·복구 | [localization_guard.yaml](config/localization_guard.yaml), [정합 정책](docs/localization.md) |
+| 슬립 관측·재시도 | [slip_recovery.yaml](config/slip_recovery.yaml), [슬립 노드](docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
+| Robot footprint | [lidar_robot.yaml](config/lidar_robot.yaml) |
+| 선택적 D435 입력 | [depth_local.yaml](config/depth_local.yaml), [실행 안내](../../../docs/implementation/how-to/sensors.md#실물-depth-local-costmap-연결) |
 
-LiDAR 프로필은 평면 장애물 감시입니다. 카메라·팔 높이의 3D 충돌이나 실측 제동거리를 보장하지 않습니다. 위치 복구는 정지 후 제한된 후보를 검사하며, 이전 목표를 자동 재개하지 않습니다.
+LiDAR 안전 설정은 평면 장애물을 감시합니다. 카메라·팔 높이의 3D 충돌이나 실측 제동거리를 보장하지 않습니다. 위치 복구는 정지 후 제한된 후보를 검사하며, 이전 목표를 자동 재개하지 않습니다.
+
+## 이전 이름에서 전환하기
+
+| 이전 이름 | 현재 이름 |
+|---|---|
+| `phone_navigation.launch.py` | `lidar_navigation.launch.py` |
+| `tools/ros2/run-phone-navigation` | `tools/ros2/run-navigation` |
+| `phone_motion_profile` / `--phone-motion-profile` | `motion_profile` / `--motion-profile` |
+| `phone_collision_monitor` | `cleany_collision_monitor` |
+| `nav2_phone_omni.yaml` | `nav2_omni.yaml` + `nav2_omni_standard.yaml` |
+| `nav2_omni_motion.yaml` | `nav2_omni.yaml` + `nav2_omni_low_speed.yaml` |
+| `nav2_phone_longitudinal.yaml` | `nav2_longitudinal.yaml` |
+| `phone_lidar_{robot,safety,supervisor}.yaml` | `lidar_{robot,safety,supervisor}.yaml` |
+| `phone_depth_local.yaml` | `depth_local.yaml` |
+| `phone_localization.yaml` | `localization_guard.yaml` |
+| `phone_slip_recovery.yaml` | `slip_recovery.yaml` |
+
+이전 launch, 실행 도구, 실행 파일과 이동 방식 인자는 호환 진입점으로 유지합니다. `--phone-motion-profile` 호환 인자는 `hardware_runtime` CLI에서 제공합니다. 신구 인자에 서로 다른 값을 주면 시작 전에 오류로 처리합니다. YAML 경로를 직접 지정하는 명령은 새 경로로 바꾸세요. 이전 launch도 기본값은 `omni`이므로 전후진 전용 운용은 `longitudinal`을 명시합니다.
+
+`phone_remote`, 웹 조종기 설정과 포트는 그대로입니다. Supervisor의 상태 파일도 `~/.local/state/cleany/phone-nav2-supervisor.json`을 계속 사용해 기존 정지 상태를 보존합니다.
 
 ## 변경 후 확인
 

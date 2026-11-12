@@ -2,6 +2,8 @@
 
 응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
+주행 launch의 설정 병합과 어댑터 구성은 [주행 연동](navigation.md)에서 관리합니다.
+
 ## gazebo_command_guard
 
 실행 파일: `gazebo_command_guard`. 원본: [command_guard.py](../cleany_gazebo_sim/command_guard.py).

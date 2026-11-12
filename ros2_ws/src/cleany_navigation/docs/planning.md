@@ -6,16 +6,16 @@
 
 | 실행 | 전역 planner / primitive | 제어 모델 | 이동 방식 |
 |---|---|---|---|
-| 일반 AMCL / Omni | Smac Lattice / `omni-r10cm.json` | MPPI Omni | 전후, 횡이동, 회전 |
-| Phone 기본 `longitudinal` | StraightFirst → 필요 시 Lattice / 직진과 제자리 회전 | MPPI DiffDrive | 횡이동 없이 직진과 회전 |
-| Phone `omni` | Smac Lattice / `omni-r10cm-balanced.json` | MPPI Omni | 방향별 비용으로 전후, 횡이동, 회전 선택 |
+| Omni 저속 튜닝 / 일반 AMCL | Smac Lattice / `omni-r10cm.json` | MPPI Omni | 전후, 횡이동, 회전 |
+| 전후진 전용 / 명시적 `longitudinal` | StraightFirst → 필요 시 Lattice / 직진과 제자리 회전 | MPPI DiffDrive | 횡이동 없이 직진과 회전 |
+| Omni 기본 튜닝 / `omni` | Smac Lattice / `omni-r10cm-balanced.json` | MPPI Omni | 방향별 비용으로 전후, 횡이동, 회전 선택 |
 | 명시적 `axis_motion:=true` | 축 전용 기존 프로필 | DWB | 축 전용 이동 |
 
-`phone_navigation.launch.py`에는 `robot_params_file`과 기존 안전 센서 입력이 필요합니다. Phone 프로필은 일반 navigation 기본값을 바꾸지 않습니다.
+`lidar_navigation.launch.py`에는 `robot_params_file`과 기존 안전 센서 입력이 필요합니다. `lidar_navigation.launch.py`, `hardware_mapping.launch.py`, `run-navigation`은 모두 `omni`를 기본으로 사용합니다. `motion_profile:=longitudinal`을 명시하면 StraightFirst와 DiffDrive를 선택합니다. 수동 조종의 횡이동 허용도 같은 선택을 따릅니다. 일반 `navigation.launch.py`는 Omni 저속 튜닝을 사용합니다.
 
 ```mermaid
 flowchart TD
-    Goal["목표 자세"] --> Mode{"Phone 프로필"}
+    Goal["목표 자세"] --> Mode{"이동 방식"}
     Mode -->|omni| Smac["순정 Smac Lattice"]
     Mode -->|longitudinal| Direct{"전체 footprint로 직선 통과 가능?"}
     Direct -->|예| Straight["직선 경로"]
@@ -28,20 +28,36 @@ flowchart TD
     Diff --> Safety
 ```
 
-### 공통 설정과 환경별 차이
+### 공통 설정과 운용 튜닝
 
 ```mermaid
 flowchart LR
-    Base["cleany_navigation/config/nav2_amcl.yaml"] --> Compose["공통 값 + 환경별 차이"]
-    Gazebo["cleany_gazebo_sim/config/nav2_amcl.yaml"] --> Compose
-    Compose --> Launch["Gazebo AMCL launch / 최종 파라미터"]
+    Common["nav2_omni.yaml / 공통 운동 모델과 planner"] --> Low["nav2_omni_low_speed.yaml / Omni 저속 튜닝"]
+    Common --> Standard["nav2_omni_standard.yaml / Omni 기본 튜닝"]
+    Low --> M["일반 navigation / 축별 최대 0.15 m/s"]
+    Standard --> L["LiDAR navigation / 합성 최대 0.5 m/s"]
+    Long["nav2_longitudinal.yaml"] --> D["명시적 전후진 / StraightFirst + DiffDrive"]
 ```
 
-Gazebo의 `params_file`은 공통 파일 위에 적용하는 overlay입니다. 같은 plugin의 값은 병합하고, plugin 종류가 달라지면 해당 설정 묶음을 교체해 이전 plugin의 전용 값이 남지 않게 합니다. Gazebo overlay를 Nav2 노드에 단독으로 전달하지 않습니다.
+공통 파일과 운용별 차이를 합쳐 적용합니다. `standard`와 `low_speed`는 주행 튜닝 이름이며 센서 종류를 뜻하지 않습니다. 두 튜닝은 속도 외에도 탐색 시간과 비용 설정이 다릅니다. `nav2_omni_standard.yaml`과 `nav2_omni_low_speed.yaml`은 단독 설정 파일이 아닙니다. `lidar_robot.yaml`, `lidar_safety.yaml`은 센서와 로봇의 조건을, `motion_profile`은 이동 방식을 선택합니다. `phone_remote`는 웹 조종기의 이름입니다.
+
+### 외부 설정의 전달 계약
+
+```mermaid
+flowchart LR
+    Base["공통 Nav2 설정"] --> Merge["load_navigation_profile / 병합"]
+    Overlay["호출자가 제공한 환경별 차이"] --> Merge
+    Merge --> Resolved["완성된 파라미터 파일"]
+    Resolved --> Entry["Navigation launch / params_file"]
+```
+
+`load_navigation_profile(base, overlay)`는 같은 plugin의 값을 병합하고, plugin 종류가 달라지면 해당 설정 묶음을 교체합니다. 이전 plugin의 전용 값이 새 plugin에 남지 않게 하기 위한 규칙입니다. 환경별 차이만 담긴 파일은 호출자가 공통 설정과 합친 뒤 `params_file`로 전달합니다. Navigation launch는 전달받은 파일을 읽고 선택한 이동 방식과 안전 설정을 적용합니다.
+
+센서와 구동 연결, 환경별 설정 선택은 호출 패키지가 소유합니다. 실행 순서는 [전역 실행 가이드](../../../../docs/implementation/running.md), 이 패키지가 요구하는 입력은 [안전 계약](safety.md#입력과-tf)을 따릅니다.
 
 `navigation.launch.py`가 안전 센서를 포함한 공통 진입점이며 `amcl_nav2_safety.launch.py`는 같은 인자를 전달하는 호환 이름입니다. 축 이동 구성은 `AxisGenerator`와 `PathHeadingCritic`을 사용합니다. StraightFirst planner의 연속 footprint 검사는 별도 `footprint_sweep` 라이브러리를 사용합니다.
 
-## 휴대폰 시연 프로필
+## 기본 튜닝과 전후진 전용 설정
 
 ### 클릭한 목표와 실제 도착 판정
 
@@ -57,7 +73,7 @@ flowchart LR
 
 ### Omni 전역 계획
 
-Phone Omni에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 몸체 방향 탐색이나 거리 기준 방향 선택이 없습니다.
+Omni 기본 튜닝에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 몸체 방향 탐색이나 거리 기준 방향 선택이 없습니다.
 
 | 설정 | 값 | 역할 |
 |---|---|---|
@@ -71,7 +87,7 @@ Phone Omni에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 몸체 �
 
 ### Omni 지역 제어
 
-[nav2_phone_omni.yaml](../config/nav2_phone_omni.yaml)이 Phone 설정을 관리합니다. MPPI는 20 Hz로 동작하며 **60 × 0.05 s 예측 구간에 1,000개 후보**를 평가합니다.
+[nav2_omni.yaml](../config/nav2_omni.yaml)과 [nav2_omni_standard.yaml](../config/nav2_omni_standard.yaml)을 합쳐 Omni 기본 튜닝을 구성합니다. MPPI는 20 Hz로 동작하며 **60 × 0.05 s 예측 구간에 1,000개 후보**를 평가합니다.
 
 | 샘플 설정 | 값 |
 |---|---|
@@ -127,7 +143,7 @@ Phone Omni에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 몸체 �
 
 <figure class="contract-figure" data-visual-id="footprint">
 <img src="assets/footprint.png" alt="2D 바퀴 외곽, stop, slow 경계의 실제 크기는?" loading="lazy">
-<figcaption>Phone 설정의 바퀴 외곽(녹색), 정지 경계와 padded footprint(빨강), 감속 경계(주황)를 같은 축척으로 그렸습니다. base_link의 X는 전방, Y는 왼쪽입니다. 높이별 3D 보호나 실측 제동 거리를 나타내지 않습니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+<figcaption>LiDAR 설정의 바퀴 외곽(녹색), 정지 경계와 padded footprint(빨강), 감속 경계(주황)를 같은 축척으로 그렸습니다. base_link의 X는 전방, Y는 왼쪽입니다. 높이별 3D 보호나 실측 제동 거리를 나타내지 않습니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
 </figure>
 
 ### 가감속과 장애물 접근
@@ -141,7 +157,7 @@ flowchart TD
     Monitor -->|빨간 영역 또는 입력 단절| Stop["즉시 0 / 평활화하지 않음"]
 ```
 
-| 설정 | Phone Omni 값 | 의미 |
+| 설정 | Omni 기본 튜닝 값 | 의미 |
 |---|---|---|
 | `acceleration_limits` | true | 샘플, 가중 평균, 필터 후 출력, 충돌 회피 대체 후보에 동일 적용 |
 | `ax_max` / `ay_max` / `az_max` | 0.20 / 0.15 m/s² / 0.40 rad/s² | 몸체 축별 대칭 가감속; `ax_min`, `ay_min` 미사용 |
@@ -183,7 +199,7 @@ Twist는 전체를 같은 비율로 보간합니다. 첫 호출이나 0.2 s를 �
 
 | 조정 항목 | 조건 |
 |---|---|
-| `lateral_weight` / `diagonal_weight` | Phone 1.0 / 20.0 cost/m; 일반 plugin 기본값은 둘 다 0 |
+| `lateral_weight` / `diagonal_weight` | 기본 튜닝 1.0 / 20.0 cost/m; 일반 plugin 기본값은 둘 다 0 |
 | 값 반영 | configure 시 읽음; 변경 후 controller 재구성 필요 |
 | 호환성 | 이전 harmonic-overlap 계산과 같은 수치로 호환되지 않음 |
 | 검증 범위 | 초기 시험값; 실제 바닥 개선은 실물 비교 필요 |
@@ -192,53 +208,32 @@ Twist는 전체를 같은 비율로 보간합니다. 첫 호출이나 0.2 s를 �
 
 <figure class="contract-figure" data-visual-id="direction-cost">
 <img src="assets/direction-cost.png" alt="이동 방향별 비용은 어떤 모양인가?" loading="lazy">
-<figcaption>현재 critic 식과 Phone 가중치로 계산한 1 m당 방향 비용입니다. 전후 0, 횡이동 1, 45°에서 20.5이며 다른 비용과 함께 평가합니다. 실측 슬립이나 주행 성능 그래프가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+<figcaption>현재 critic 식과 기본 튜닝 가중치로 계산한 1 m당 방향 비용입니다. 전후 0, 횡이동 1, 45°에서 20.5이며 다른 비용과 함께 평가합니다. 실측 슬립이나 주행 성능 그래프가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
 </figure>
 
 ## 위치 정합과 복구
 
 위치가 불확실하면 감속하거나 주행 허가를 회수합니다. [위치 정합 문서](localization.md)에서 상태 전이, 정지 조건과 정지 상태의 자동 복구 순서를 확인합니다.
 
-| Phone 설정 | 유지하는 기능 | 실행하지 않는 기능 |
+| 슬립 복구 설정 | 유지하는 기능 | 실행하지 않는 기능 |
 |---|---|---|
 | Omni `slip_recovery:=false` | slip_monitor와 로그, 기본 Nav2 동작, 위치 정합 복구 | SlipRecovery BT, 종방향 재시도 planner, traction_brake |
 | 슬립 BT 활성 | 충돌 감시 입력 `motion/traction_cmd_vel` | — |
 | 슬립 BT 비활성 | 충돌 감시 입력 `motion/cmd_vel` | — |
 
-## Lattice 파일과 비교 구성
+## Lattice 파일
 
 | 파일 | 구성 | 용도 |
 |---|---|---|
 | `omni-r10cm.json` | 5 cm 격자, 반경 설정 10 cm, heading 16개, primitive 144개 | 일반 navigation 기본 |
-| `omni-r10cm-balanced.json` | 원본 좌표 / 방향 유지; 오른쪽 횡이동 16개의 길이 메타데이터만 교정 | Phone Omni 기본 |
-| `omni-r10cm-symmetric-translation.json` | 고정 자세 이동 128 + 제자리 회전 32 + 곡선 64 = 224개 | 선택적 비교 구성 |
+| `omni-r10cm-balanced.json` | 원본 좌표 / 방향 유지; 오른쪽 횡이동 16개의 길이 메타데이터만 교정 | Omni 기본 튜닝 |
 
 파일은 [config/lattice](../config/lattice)에 있습니다. Launch 기본 경로보다 명시적인 `GridBased.lattice_filepath`가 우선합니다. 원본은 공식 Nav2 1.1.20 Generator로 만들었으며 반경 설정은 실물 최소 회전 반경 측정값이 아닙니다.
 
 <figure class="contract-figure" data-visual-id="lattice">
 <img src="assets/lattice.png" alt="현재 기본 Lattice의 이동과 회전 후보는?" loading="lazy">
-<figcaption>Phone 기본 balanced JSON에서 시작 heading 0인 7개 primitive만 표시했습니다. 점은 저장된 pose, 화살표는 마지막 yaw이며 원점의 두 화살표는 제자리 회전입니다. 선은 pose 사이 연결이고 실제 주행 결과가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+<figcaption>기본 튜닝의 balanced JSON에서 시작 heading 0인 7개 primitive만 표시했습니다. 점은 저장된 pose, 화살표는 마지막 yaw이며 원점의 두 화살표는 제자리 회전입니다. 선은 pose 사이 연결이고 실제 주행 결과가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
 </figure>
-
-### 대칭 고정 자세 이동 후보
-
-비교 구성은 16개 heading과 5 cm 격자를 유지하며, heading마다 전후, 좌우와 네 대각선 이동을 제공합니다. 반대 방향과 좌우 반사 쌍의 길이는 같지만 축 이동과 대각선 길이는 다릅니다.
-
-```bash
-# SOURCE: balanced 파일, OUTPUT: 비교 파일, AUDIT: 대칭 검사 결과 경로
-python3 tools/validation/native_lattice_mppi/symmetric_translation.py SOURCE OUTPUT --audit AUDIT
-```
-
-| 확인 항목 | 조건 / 검사 |
-|---|---|
-| 기존 primitive | 곡선과 제자리 회전의 pose 및 길이 보존 |
-| 회전 대칭 | 45° 배수 heading은 좌우 대칭; 나머지는 인접 각도 간격이 달라 반사 쌍 없음 |
-| 후진 확장 | 후진 primitive를 직접 포함하므로 `allow_reverse_expansion=true`와 중복 가능 |
-| 사용 전 비교 | 확장 설정, 후진 비용, 경로 품질과 검색 시간 |
-| 구조 검사 | `tests/tools/test_symmetric_primitives.py` |
-| 순정 Smac 파일 읽기 | `native_lattice_mppi` CMake 대상 `primitive_probe` |
-
-이 검사는 실물 주행이나 충돌 없는 경로 생성을 보증하지 않습니다.
 
 ## MPPI 샘플 초기화
 

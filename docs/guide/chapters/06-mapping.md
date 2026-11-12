@@ -100,7 +100,7 @@ launch는 `scan`을 `/scan`, `imu`를 `/imu/data`로 remap하지만 현재 Lua�
 
 ## 06.5 SLAM 출력과 Navigation 경계
 
-현재 저장소에는 [AMCL과 Nav2 실행](../../../ros2_ws/src/cleany_navigation/launch/amcl_nav2.launch.py), [안전 노드를 연결한 실행](../../../ros2_ws/src/cleany_navigation/launch/amcl_nav2_safety.launch.py), [휴대폰 주행 실행](../../../ros2_ws/src/cleany_navigation/launch/phone_navigation.launch.py)이 있습니다. AMCL은 저장 지도에서 위치를 추정하고 Nav2는 목표에 대한 경로 계획과 속도 제어를 수행합니다. 실행 순서는 [저장 지도 Navigation](../../implementation/how-to/mapping.md#저장-지도-navigation)과 [휴대폰 주행](../../implementation/how-to/phone-navigation.md)에서 관리합니다.
+현재 저장소에는 [AMCL과 Nav2 실행](../../../ros2_ws/src/cleany_navigation/launch/amcl_nav2.launch.py), [안전 노드를 연결한 실행](../../../ros2_ws/src/cleany_navigation/launch/amcl_nav2_safety.launch.py), [LiDAR 기반 주행 실행](../../../ros2_ws/src/cleany_navigation/launch/lidar_navigation.launch.py)이 있습니다. AMCL은 저장 지도에서 위치를 추정하고 Nav2는 목표에 대한 경로 계획과 속도 제어를 수행합니다. 실행 순서는 [저장 지도 Navigation](../../implementation/how-to/mapping.md#저장-지도-navigation)과 [휴대폰 주행](../../implementation/how-to/phone-navigation.md)에서 관리합니다.
 
 Gazebo의 [ground_truth_route_follower.py](../../../ros2_ws/src/cleany_gazebo_sim/cleany_gazebo_sim/ground_truth_route_follower.py)는 ground-truth를 이용한 별도 시험 도구입니다. 이 도구로 경로를 따라갔다고 SLAM 기반 localization과 Nav2 목적지 주행이 연결된 것으로 볼 수는 없습니다.
 

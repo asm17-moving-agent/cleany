@@ -59,6 +59,15 @@ def load_navigation_profile(base: Path, overlay: Path) -> dict:
     return parameters
 
 
+def load_motion_profile(directory: Path, profile: str) -> dict:
+    """Compose motion settings; Omni uses the standard tuning overlay."""
+    if profile == 'omni':
+        return load_navigation_profile(directory/'nav2_omni.yaml', directory/'nav2_omni_standard.yaml')
+    if profile == 'longitudinal':
+        return load_parameters(directory/'nav2_longitudinal.yaml')
+    raise ValueError(f'Invalid motion profile: {profile}')
+
+
 def merge_localization_parameters(target: dict, overlay: dict) -> None:
     """위치 추정 보정값을 이동 및 안전 재정의와 분리합니다."""
     amcl = overlay.get('amcl')

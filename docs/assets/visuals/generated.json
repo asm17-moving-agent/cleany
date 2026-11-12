@@ -13,19 +13,19 @@
       "id": "footprint",
       "asset": "ros2_ws/src/cleany_navigation/docs/assets/footprint.png",
       "scope": "Equal-scale configured polygons; no braking-distance claim.",
-      "sha256": "642a7d40e9ea098b3e6243fe746ceaf1350b8a11d1e704eed932cedc67a8d10f",
+      "sha256": "4201a98fa343e036df87311b03df5b4aec0f45c95ba6af8793ae4a17cbb39072",
       "inputs": [
         {
-          "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_robot.yaml",
+          "path": "ros2_ws/src/cleany_navigation/config/lidar_robot.yaml",
           "sha256": "3afdeb5f0792c0a2e020f8be3cea927b5153d8e98b8baf075afde286f50378d3"
         },
         {
-          "path": "ros2_ws/src/cleany_navigation/config/phone_lidar_safety.yaml",
+          "path": "ros2_ws/src/cleany_navigation/config/lidar_safety.yaml",
           "sha256": "c45e92e59de4077db8dfd6cb70e80f84be0e27e118ec3b1162b7e905a8c650a1"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -36,8 +36,8 @@
       "sha256": "d6a3fe1ac338dd2570140db1d04f11c628bbf3123fe3a6d2b66f644174c50b33",
       "inputs": [
         {
-          "path": "ros2_ws/src/cleany_navigation/config/nav2_phone_omni.yaml",
-          "sha256": "f8836880e70607028638a9db253b85173c98545e05f8ad80f2af33d2d012e689"
+          "path": "ros2_ws/src/cleany_navigation/config/nav2_omni_standard.yaml",
+          "sha256": "d54f347b44e108c24dc8f1cc02a74a38864163760be95735d38d32313653d680"
         },
         {
           "path": "ros2_ws/src/cleany_navigation/mppi/src/critics/directional_motion_critic.cpp",
@@ -45,7 +45,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -61,7 +61,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -81,7 +81,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -97,7 +97,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -113,7 +113,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -129,7 +129,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -149,7 +149,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -165,7 +165,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     },
@@ -193,7 +193,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "6a55752a534941b8b8be87e08f30eddabd28876f012fded809529fa13d75c90b"
+          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
         }
       ]
     }

@@ -20,9 +20,9 @@ class WheelLimitPolygon : public nav2_collision_monitor::Polygon {
 };
 
 /// 절대 상한을 적용하며 Nav2 polygon, TF, lifecycle과 STOP 처리를 유지합니다.
-class PhoneCollisionMonitor : public nav2_collision_monitor::CollisionMonitor {
+class CleanyCollisionMonitor : public nav2_collision_monitor::CollisionMonitor {
  public:
-  PhoneCollisionMonitor() {
+  CleanyCollisionMonitor() {
     declare_parameter("absolute_limit_polygon", std::string("SlowZone"));
     declare_parameter("wheel_limit_rad_s", .7);
     declare_parameter("translation_limit_m_s", 0.);
@@ -181,7 +181,7 @@ class PhoneCollisionMonitor : public nav2_collision_monitor::CollisionMonitor {
 
 int main(int argc, char ** argv) {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<cleany_navigation::PhoneCollisionMonitor>();
+  auto node = std::make_shared<cleany_navigation::CleanyCollisionMonitor>();
   rclcpp::spin(node->get_node_base_interface());
   rclcpp::shutdown();
   return 0;
