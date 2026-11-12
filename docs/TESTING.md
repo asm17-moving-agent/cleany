@@ -152,6 +152,9 @@ target을 실행합니다.
 
 CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.
 
+`cleany_manipulation_bt`의 pytest 수트는 ROS 프로세스 종료 검사를 포함하므로 CTest 제한을
+300초로 지정합니다. 개별 Action 응답과 종료 대기 제한은 각 테스트에서 별도로 검사합니다.
+
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
 | GHCR 의존성 이미지 | 모든 `package.xml`, rosdep YAML, `containers/ci/`, 이미지 준비 도구, platform 변경 | ROS, apt, pip 의존성만 포함하며 응용 소스와 빌드 결과는 포함하지 않음 |

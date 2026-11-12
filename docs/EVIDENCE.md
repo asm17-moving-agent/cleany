@@ -311,6 +311,21 @@ MoveIt 배치 충돌 C++ 검사 7개와 실제 CUDA의 손목 평가 기준 일�
 샘플링과 재사용을 함께 적용하면 54.625374 ms였다. 세 장애물 위치의 차단 결과는 같았다.
 11월 10일 서버 내부 재생 계산이며 RPC 전송 시간과 실물 수거 전체 주기를 포함하지 않는다.
 
+### PR 79 공통 CI 오류 수정 검증 (2026-11-12)
+
+`bf447b2e`에 이 변경의 Pillow 호환 코드와 BT CTest 300초 제한을 적용했다.
+CI에서 Pillow 9.0.1의 `Image.Resampling` 부재로 증거 이미지 생성이 실패했고,
+BT 전체 수트는 기본 60초 제한에 걸렸다. 개별 Action 응답과 종료 제한은 유지했다.
+Jetson Ubuntu 22.04 ARM64, Humble, Python 3.10, pytest 6.2.5와 Pillow 9.0.1에서
+관련 3개 패키지의 colcon 검사 3,320 reported tests가 실패 없이 끝났다(skip 30).
+skill 2,484개, BT 785개와 C++ 18개가 통과했고 BT 전체는 약 90초가 걸렸다.
+관련 도구 65개와 별도 curobo-venv에서 실제 CUDA 손목 평가 검사 4개도 통과했다.
+초기 도구 검사의 Python 및 ROS import 누락은 올바른 source 환경으로 재실행해 해결했다.
+입력은 저장소 모델, 합성 관절과 센서 데이터, 가짜 모션 포트다. 실물 구동은 하지 않았다.
+로컬 BehaviorTree.CPP 4.10.0과 CI의 4.9.1, ARM64와 amd64 환경 차이는 남아 있다.
+환경, 소스 패치, 초기 실패와 최종 로그, JUnit 원본은
+`/home/cleany/cleany-data/reports/pr79-local-validation-20261112/`에 보관한다.
+
 ## CI 의존성의 Jetson 버전 기준
 
 PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한
