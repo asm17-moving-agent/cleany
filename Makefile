@@ -40,6 +40,9 @@ BASE_TEST_ROS_DOMAIN_ID ?= 173
 IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
 IMU_CALIBRATION_TIMEOUT ?= 60
 IMU_CALIBRATION_ARGS ?=
+PCB_PYTHON ?= /usr/bin/python3
+PCB_PROJECT_DIR := $(REPO_ROOT)esp32/pcb/integrated_controller
+PCB_TEST_OUTPUT ?= $(CLEANY_BUILD_ROOT)/pcb-validation
 # Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
@@ -142,6 +145,7 @@ help:
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
 	@echo "  make test-motor-core / build-base / test-base"
+	@echo "  make test-pcb      Check integrated PCB contracts, ERC and DRC (KiCad 10+)"
 	@echo "  make test-odometry-evaluation  Test config-driven wheel odom evaluation"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
@@ -183,6 +187,22 @@ firmware-upload: firmware-setup
 
 test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
+
+.PHONY: test-pcb
+test-pcb:
+ifneq ($(filter true 1,$(CI)),)
+	@echo "Skipping PCB checks in CI; run make test-pcb on a local KiCad host."
+else
+	@command -v kicad-cli >/dev/null || { echo "KiCad 10+ is required" >&2; exit 1; }
+	@"$(PCB_PYTHON)" -c 'import pcbnew; print("KiCad pcbnew:", pcbnew.GetBuildVersion())'
+	PYTHONDONTWRITEBYTECODE=1 "$(PCB_PYTHON)" -m unittest discover -s "$(PCB_PROJECT_DIR)/tests" -v
+	mkdir -p "$(PCB_TEST_OUTPUT)"
+	kicad-cli sch erc --severity-all --exit-code-violations --format json \
+		-o "$(PCB_TEST_OUTPUT)/erc.json" "$(PCB_PROJECT_DIR)/integrated_controller.kicad_sch"
+	kicad-cli pcb drc --severity-all --exit-code-violations --all-track-errors \
+		--schematic-parity --format json -o "$(PCB_TEST_OUTPUT)/drc.json" \
+		"$(PCB_PROJECT_DIR)/integrated_controller.kicad_pcb"
+endif
 
 imu-calibration-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration'

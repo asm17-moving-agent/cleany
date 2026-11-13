@@ -178,6 +178,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -189,6 +190,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -200,6 +202,7 @@
         {
           "td_allow_use_two_tracks": true,
           "td_curve_segcount": 0,
+          "td_enabled": false,
           "td_height_ratio": 1.0,
           "td_length_ratio": 0.5,
           "td_maxheight": 2.0,
@@ -490,6 +493,7 @@
       "pin_to_pin": "warning",
       "power_pin_not_driven": "error",
       "same_local_global_label": "warning",
+      "same_local_global_power": "warning",
       "similar_label_and_power": "warning",
       "similar_labels": "warning",
       "similar_power": "warning",
@@ -546,8 +550,8 @@
     "meta": {
       "version": 5
     },
-    "net_colors": null,
-    "netclass_assignments": null,
+    "net_colors": {},
+    "netclass_assignments": {},
     "netclass_patterns": [
       {
         "netclass": "Power",
@@ -704,7 +708,7 @@
         "uuid": "fc031430-6cb3-4089-9eef-14c68a40641e"
       }
     ],
-    "used_designators": "J_MDD2,#FLG1-3,J_ENC1-5,SW1-2,C1-12,D1,L1-2,R1-29,J_MOTOR1-8,#PWR1-50,J1-3,F1,U1-7",
+    "used_designators": "#FLG1-3,#PWR1-50,C1-12,D1,F1,J1-3,J_ENC1-5,J_MDD2,J_MOTOR1-8,L1-2,R1-29,SW1-2,U1-7",
     "variants": []
   },
   "sheets": [

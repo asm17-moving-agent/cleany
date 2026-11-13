@@ -14,6 +14,21 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 
 도구 이동 후에는 `make firmware-setup`으로 Git wrapper 링크를 갱신합니다. Wrapper는 component root와 하위 폴더 clone 모두 revision을 고정합니다.
 
+## KiCad 보드
+
+[통합 컨트롤러 프로젝트](pcb/integrated_controller/integrated_controller.kicad_pro)는
+ESP32-S3 모듈, BNO055, ToF 멀티플렉서와 전원 회로를 포함합니다.
+KiCad 10에서 프로젝트를 열고 [보드 핀맵](pcb/integrated_controller/PINMAP.md),
+[BOM](pcb/integrated_controller/BOM.md), [제작 규칙](pcb/integrated_controller/DESIGN_RULES.md)을 함께 확인합니다.
+검사는 저장소 루트의 `make test-pcb`로 실행하며 환경과 결과 경로는
+[개발환경](../docs/DEVELOPMENT_SETUP.md#kicad-pcb-검증-환경)과
+[검증 절차](../docs/TESTING.md#통합-컨트롤러-pcb-검증)를 따릅니다.
+
+현재 펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 모터 보드 기준입니다.
+통합 보드에는 모터 GPIO 매핑과 BNO055 드라이버의 별도 이식이 필요합니다.
+[별도 USB 센서 캐리어](pcb/sensor_controller/sensor_controller.md)는
+회로도와 제작 설정 초안이며 부품 배치와 배선이 없는 상태입니다.
+
 ## ROS 인터페이스
 
 노드 이름은 `cleany_motor_controller`, namespace는 기본 root입니다. [main.cpp](src/main.cpp)의 rclc entity 초기화를 기준으로 기록합니다.

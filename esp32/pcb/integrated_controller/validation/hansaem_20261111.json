@@ -1,0 +1,85 @@
+{
+  "profile": "Hansaem Digitec / FR-4 / 2 Layer / nominal 1.6T / base copper 1oz",
+  "manufacturer_source": "https://www.hsdgt.com/order/information.html",
+  "repository_head": "be4b8e70cb2a482ca00565190e9c5de61ab95a19",
+  "workspace_note": "PCB project is untracked in the parent repository; verification covers the saved files identified by SHA-256.",
+  "environment": {
+    "kicad": "10.0.8",
+    "python": "3.14.10",
+    "platform": "Linux-7.2.15-200.fc44.x86_64-x86_64-with-glibc2.43"
+  },
+  "inputs_sha256": {
+    "integrated_controller.kicad_pcb": "b612827275cd889bcb8a1f4706e3adc7e03a757218fec7fb4e1443293b6c2c3c",
+    "integrated_controller.kicad_pro": "162405446d3e0930fa39db9c93f2901642f1fd2d280a744afc50c06bd0f8ca27",
+    "integrated_controller.kicad_dru": "62864a1411443741e5150942be099afaa660ad74dd951a45ba4fb0aecf61a35f",
+    "integrated_controller.kicad_sch": "b76e79b7eb7b1c9b1f69b5e2ed1cea35a4c541e2a5ba3d946dd8985adad147b4",
+    "power.kicad_sch": "de19cfe1536fdbd5c8bc0c05e0431df97aa7e7566ee71400af6fb6a1b2e40bc6",
+    "sensors.kicad_sch": "87e69b0071cb3537c2b1405b066d884c312e663a071d1c15dca5d0dffd82fcb1",
+    "interfaces.kicad_sch": "93220275c0fd90941a4d1268ddf06c544cf1b0cf22d840418e8c228619943cbd",
+    "tests/test_design_rules.py": "00f6d1c73d3d1bc9b17d32f43f0a9954b50f6aa8f6e2ebc48498640e0c7cd4f5"
+  },
+  "changes": {
+    "signal_tracks_020_to_015_mm": 193,
+    "moved_track_segments": 52,
+    "moved_vias": 13,
+    "ear_root_radius_mm": 0.9,
+    "power_track_widths": "retained"
+  },
+  "geometry_comparison": {
+    "footprints_and_pads_unchanged": 111,
+    "track_and_via_inventory_unchanged": 953,
+    "board_copper_layers": 2,
+    "nominal_board_thickness_mm": 1.6
+  },
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m unittest discover -s tests -v",
+    "count": 58,
+    "exit_code": 0,
+    "result": "OK"
+  },
+  "drc_command": "kicad-cli pcb drc --severity-all --exit-code-violations --all-track-errors --schematic-parity --format json -o /tmp/cleany-hanssem-20261111/final-drc.json integrated_controller.kicad_pcb",
+  "drc_exit_code": 0,
+  "drc_report": {
+    "$schema": "https://schemas.kicad.org/drc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-11-11T15:44:45",
+    "ignored_checks": [
+      {
+        "description": "Footprint has no courtyard defined",
+        "key": "missing_courtyard"
+      },
+      {
+        "description": "Track endpoint not centered on via",
+        "key": "track_not_centered_on_via"
+      },
+      {
+        "description": "Tuning profile track geometries",
+        "key": "tuning_profile_track_geometries"
+      },
+      {
+        "description": "Footprint doesn't match symbol's footprint filters",
+        "key": "footprint_filters_mismatch"
+      },
+      {
+        "description": "Footprint component type doesn't match footprint pads",
+        "key": "footprint_type_mismatch"
+      }
+    ],
+    "included_severities": [
+      "error",
+      "warning",
+      "exclusion"
+    ],
+    "kicad_version": "10.0.8",
+    "schematic_parity": [],
+    "source": "integrated_controller.kicad_pcb",
+    "unconnected_items": [],
+    "violations": []
+  },
+  "limits": [
+    "USB 90 ohm target requires confirmation of Hansaem production stackup; previous JLCPCB impedance estimate does not apply.",
+    "Supplier 1.6T base laminate is not an exact 1.60 mm finished-thickness guarantee.",
+    "Solder-mask color and surface finish remain order selections.",
+    "No hardware, electrical load or USB signal integrity test performed."
+  ]
+}

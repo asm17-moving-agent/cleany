@@ -1,0 +1,303 @@
+(footprint "Molex_SPOX_5268-03A_1x03_P2.50mm_Horizontal"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Molex SPOX Connector System, 5268-03A, 3 Pins per row (https://www.molex.com/pdm_docs/sd/022057045_sd.pdf)")
+	(tags "connector Molex SPOX horizontal")
+	(property "Reference" "REF**"
+		(at 2.5 -2.7 0)
+		(layer "F.SilkS")
+		(uuid "6c6521ff-c611-43ea-92ff-b3b7a0b87ca2")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "Molex_SPOX_5268-03A_1x03_P2.50mm_Horizontal"
+		(at 2.499999 7.8 0)
+		(layer "F.Fab")
+		(uuid "c5fe51a4-59e1-48cf-a91b-0b2bad2b868e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://www.molex.com/content/dam/molex/molex-dot-com/products/automated/en-us/salesdrawingpdf/526/5268/022057035_sd.pdf"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "3e44f58e-2472-4a2a-be86-2ad86e9dfefa")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" "3-position right-angle through-hole header, Mini-SPOX 5268, 2.50 mm, mates with 5264"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "e773c955-4cc0-4c19-be5f-2b056ff83282")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "KiLib_Generator" "connector/Molex"
+		(at -0.000001 0 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(uuid "820a7a1f-c47c-460d-986a-51950f051dc9")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "MPN" "0022057035"
+		(at -0.000001 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "1bcfb927-61c5-456f-bfc5-bc02cb58260e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Manufacturer" "Molex"
+		(at -0.000001 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "5d363304-bdde-4767-9bed-eba5a3c38962")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property ki_fp_filters "Connector*:*_1x??_*")
+	(sheetname "/Motor and LED interfaces/")
+	(sheetfile "interfaces.kicad_sch")
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -2.726 -1.71)
+		(end -2.226 -1.71)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "b842476b-c122-4a18-81c1-bc50aab38d88")
+	)
+	(fp_line
+		(start -2.726 0.7)
+		(end -2.726 -1.71)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "5a6d64fa-387b-4c3c-87c5-bc330a0b9917")
+	)
+	(fp_line
+		(start -2.376 -1.41)
+		(end -2.376 6.71)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "868e8e41-9419-4e2c-b147-887490fa53cf")
+	)
+	(fp_line
+		(start -2.376 6.71)
+		(end 7.56 6.71)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "ceb626d3-225c-4709-ba1b-203d00df9d4a")
+	)
+	(fp_line
+		(start 7.56 -1.41)
+		(end 7.06 -1.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "36449162-e17c-4c44-bb20-fb6a82f22f51")
+	)
+	(fp_line
+		(start 7.56 6.71)
+		(end 7.56 -1.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "70fb884f-80c1-4ee5-86f0-e866d40d2ff2")
+	)
+	(fp_line
+		(start -2.95 -1.81)
+		(end -2.95 7.1)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "9b2ba27b-0a98-494a-a070-a2e550deae89")
+	)
+	(fp_line
+		(start -2.95 7.1)
+		(end 7.95 7.1)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "7c1f1ae4-423f-4d12-b341-446e87f5ab23")
+	)
+	(fp_line
+		(start 7.95 -1.81)
+		(end -2.95 -1.81)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "df047ac2-218b-4dfb-9397-b944e148b292")
+	)
+	(fp_line
+		(start 7.95 7.1)
+		(end 7.95 -1.81)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "ee2728bf-86f2-451f-813f-9bf72cd02226")
+	)
+	(fp_line
+		(start -2.45 -1.3)
+		(end -2.45 6.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "66c00c7e-fb57-4299-ba79-47e7d1a22de3")
+	)
+	(fp_line
+		(start -2.45 0.5)
+		(end -1.742893 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f7bcc878-6933-4dd4-ab46-87fb2740bbf9")
+	)
+	(fp_line
+		(start -2.45 6.6)
+		(end 7.45 6.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "9e334e74-aac1-44a1-bce4-c1e4a3f4ae32")
+	)
+	(fp_line
+		(start -1.742893 0)
+		(end -2.45 -0.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "568a3ee1-b99c-4e97-b50c-080fc777ffc6")
+	)
+	(fp_line
+		(start 7.45 -1.3)
+		(end -2.45 -1.3)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "35e8b5d7-9128-4ef2-83aa-232b1f6be450")
+	)
+	(fp_line
+		(start 7.45 6.6)
+		(end 7.45 -1.3)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "9957b8a6-c3e5-4704-b30f-eb6ffa45a98b")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 2.5 5.9 0)
+		(layer "F.Fab")
+		(uuid "517bc4c2-8f99-4a9d-beba-e2b2f8d89971")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole roundrect
+		(at 0 0)
+		(size 1.7 1.85)
+		(drill 0.85)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(roundrect_rratio 0.147059)
+		(uuid "346e2fb2-0e2b-4b1a-a210-ebb4323239ae")
+	)
+	(pad "2" thru_hole oval
+		(at 2.5 0)
+		(size 1.7 1.85)
+		(drill 0.85)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "c5690910-d7f7-4770-b0c9-2eeef3c07c99")
+	)
+	(pad "3" thru_hole oval
+		(at 5 0)
+		(size 1.7 1.85)
+		(drill 0.85)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "dde4d036-8632-4f1b-9611-5b9d0bea1ac6")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/libraries/3dmodels/molex/022057035.step"
+		(offset
+			(xyz 2.5 -3.65 2.45)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 180)
+		)
+	)
+)

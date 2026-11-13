@@ -1,0 +1,141 @@
+(footprint "MountingHole_3.4mm_M3_Head7mm"
+	(version 20260206)
+(generator "pcbnew")
+(layer "F.Cu")
+	
+	(property "Reference" "REF**"
+		(at 0 -4.8 0)
+		(layer "F.SilkS")
+		(hide yes)
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "M3 clearance"
+		(at 0 4.8 0)
+		(layer "F.Fab")
+		(hide yes)
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr board_only exclude_from_pos_files exclude_from_bom)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_circle
+		(center 0 0)
+		(end 3.6 0)
+		(stroke
+			(width 0.15)
+			(type default)
+		)
+		(fill no)
+		(layer "F.SilkS")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 3.75 0)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "B.CrtYd")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 3.75 0)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 3.5 0)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(fill no)
+		(layer "F.Fab")
+	)
+	(pad "" np_thru_hole circle
+		(at 0 0)
+		(size 3.4 3.4)
+		(drill 3.4)
+		(layers "*.Cu" "*.Mask")
+	)
+	(zone
+		(layers "F.Cu" "B.Cu")
+		(name "M3 head copper clearance")
+		(hatch edge 0.5)
+		(connect_pads yes
+			(clearance 0)
+		)
+		(min_thickness 0.2)
+		(keepout
+			(tracks not_allowed)
+			(vias not_allowed)
+			(pads allowed)
+			(copperpour not_allowed)
+			(footprints allowed)
+		)
+		(placement
+			(enabled no)
+			(sheetname "")
+		)
+		(fill
+			(thermal_gap 0.25)
+			(thermal_bridge_width 0.5)
+			(island_removal_mode 0)
+		)
+		(polygon
+			(pts
+				(xy 4.000000 0.000000) (xy 3.980739 0.392069) (xy 3.923141 0.780361) (xy 3.827761 1.161139) (xy 3.695518 1.530734)
+				(xy 3.527685 1.885587) (xy 3.325878 2.222281) (xy 3.092042 2.537573) (xy 2.828427 2.828427)
+				(xy 2.537573 3.092042) (xy 2.222281 3.325878) (xy 1.885587 3.527685) (xy 1.530734 3.695518)
+				(xy 1.161139 3.827761) (xy 0.780361 3.923141) (xy 0.392069 3.980739) (xy 0.000000 4.000000) (xy -0.392069 3.980739)
+				(xy -0.780361 3.923141) (xy -1.161139 3.827761) (xy -1.530734 3.695518) (xy -1.885587 3.527685)
+				(xy -2.222281 3.325878) (xy -2.537573 3.092042) (xy -2.828427 2.828427) (xy -3.092042 2.537573)
+				(xy -3.325878 2.222281) (xy -3.527685 1.885587) (xy -3.695518 1.530734) (xy -3.827761 1.161139)
+				(xy -3.923141 0.780361) (xy -3.980739 0.392069) (xy -4.000000 0.000000) (xy -3.980739 -0.392069) (xy -3.923141 -0.780361)
+				(xy -3.827761 -1.161139) (xy -3.695518 -1.530734) (xy -3.527685 -1.885587) (xy -3.325878 -2.222281)
+				(xy -3.092042 -2.537573) (xy -2.828427 -2.828427) (xy -2.537573 -3.092042) (xy -2.222281 -3.325878)
+				(xy -1.885587 -3.527685) (xy -1.530734 -3.695518) (xy -1.161139 -3.827761) (xy -0.780361 -3.923141)
+				(xy -0.392069 -3.980739) (xy 0.000000 -4.000000) (xy 0.392069 -3.980739) (xy 0.780361 -3.923141) (xy 1.161139 -3.827761)
+				(xy 1.530734 -3.695518) (xy 1.885587 -3.527685) (xy 2.222281 -3.325878) (xy 2.537573 -3.092042)
+				(xy 2.828427 -2.828427) (xy 3.092042 -2.537573) (xy 3.325878 -2.222281) (xy 3.527685 -1.885587)
+				(xy 3.695518 -1.530734) (xy 3.827761 -1.161139) (xy 3.923141 -0.780361) (xy 3.980739 -0.392069)
+			)
+		)
+	)
+	(embedded_fonts no)
+	)

@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Cleany_Sensor")(type "KiCad")(uri "${KIPRJMOD}/Cleany_Sensor.kicad_sym")(options "")(descr "ESP32-S3 development-board socket rows"))
+)

@@ -940,3 +940,24 @@ Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 col
 다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
 반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
 repeat_ready.py와 readiness-repeat.log다.
+
+## 2026-11-13 통합 컨트롤러 KiCad 소스 분리 검증
+
+`feat/integrated_controller`는 main `6fba958b24cfe28fa68efa52983e56692de02574`에서
+분기했다. 기존 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업 폴더의 저장된
+KiCad 파일을 가져왔으며 회로도, PCB, 제작 규칙과 라이브러리 원본 바이트를 유지했다.
+입력 SHA-256, 환경과 ERC/DRC 원본 보고서는
+[분리 검증 기록](../esp32/pcb/integrated_controller/validation/pr_import_20261113.json)에 보관한다.
+
+Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10에서 `make test-pcb`가 통과했다.
+로컬 Molex 모델이 있는 환경의 59개 검사는 모두 통과했다. Git 제외 파일을 제거한
+별도 복사본에서는 58개 통과, 로컬 전용 모델 해시 검사 1개 skip이었다.
+두 환경 모두 ERC, DRC, 미연결 네트와 회로도 일치 위반이 0건이었다.
+별도 센서 캐리어 초안의 ERC도 0건이며 부품 배치와 배선은 없는 상태다.
+기존 프로젝트에서 비활성화한 ERC/DRC 항목은 원본 보고서의 `ignored_checks`에 남겼다.
+
+실패한 검사는 없었다. 원본 명령 로그와 공개 파일 복사본은
+`CLEANY_DATA_ROOT/runs/integrated-controller-pr-20261113-egedos3h/`에 보관한다.
+펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 보드 기준이며 통합 보드 이식은 별도 작업이다.
+실물 전원 부하, USB 신호 품질, 기구/RF와 제조사 DFM은 검증하지 않았다.
+이 기록은 로컬 검증이며 CI 통과나 사람 승인, main 병합을 의미하지 않는다.

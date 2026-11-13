@@ -1,0 +1,6 @@
+# Preserve downloaded model bytes and keep CAD data out of text diffs.
+*.step binary
+# Keep CSV exports and KiCad-authored blank lines byte-for-byte.
+*.csv -text whitespace=cr-at-eol
+*.kicad_sch whitespace=-blank-at-eol
+*.kicad_mod whitespace=-blank-at-eol
