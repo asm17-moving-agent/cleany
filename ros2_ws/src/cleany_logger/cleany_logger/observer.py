@@ -68,6 +68,7 @@ class ObservationNode(Node):
             "rosout_topic": "/rosout",
             "clock_topic": "/clock",
             "manipulation_events_topic": "mock/manipulation/execution_events",
+            "manipulation_observation_mode": "mission",
             "manipulation_execution_limit": 20,
             "manipulation_interval_limit": 64,
             "map_frame": "map",
@@ -129,6 +130,8 @@ class ObservationNode(Node):
         for key, value in defaults.items():
             self.declare_parameter(key, value)
         self.config = {key: self.get_parameter(key).value for key in defaults}
+        if self.config['manipulation_observation_mode'] not in ('mission', 'server'):
+            raise ValueError('manipulation_observation_mode must be mission or server')
         if (not 16 <= self.config["navigation_point_limit"] <= 2048
                 or not 0 < self.config["navigation_freshness_s"] <= 5
                 or not .1 <= self.config["bt_event_repeat_interval_s"] <= 10
@@ -237,6 +240,10 @@ class ObservationNode(Node):
         self.slam = self.slam_factory(self)
         self.hub.reset_sources(self.config, self.topic_revision)
         self.hub.put('event', 'observation_sources', {'kind': 'observation_sources_changed', 'topic_revision': self.topic_revision}, critical=True)
+
+    def camera_preview_supported(self, topic: str) -> bool:
+        """Allow display adapters to report preview support without owning recording."""
+        return True
 
     def discover(self):
         self.apply_sources()
@@ -368,6 +375,7 @@ class ObservationNode(Node):
                 {
                     "name": name,
                     "types": types,
+                    "camera_supported": self.camera_preview_supported(name),
                     "publishers": endpoints(pubs),
                     "subscribers": endpoints(subscriptions),
                     "state": state,
@@ -484,7 +492,8 @@ class ObservationNode(Node):
                     ros_time=ros_time,
                 )
                 received_at = time.time()
-                if self.manipulation.ingest(record, received_at):
+                if self.manipulation.ingest(record, received_at,
+                        heartbeat=self.config['manipulation_observation_mode'] == 'server'):
                     self.hub.put("manipulation", "executions",
                                  {**self.manipulation.snapshot(), "topic": topic},
                                  ros_time=ros_time, received_at=received_at)

@@ -584,3 +584,25 @@ GPU 검사는 `cleany_skill_executor/runtime_test/`에 두며 고정 CUDA 환경
 검사는 합성 센서, 가상 모션 포트, 임시 SQLite와 독립 ROS domain을 사용한다.
 실물 시리얼 포트를 열거나 모터를 움직이지 않으며, 종료, 취소, 늦은 응답,
 복구 차단과 기존 MuJoCo BT 계약을 함께 확인한다.
+
+## 운영 UI와 승인 흐름 검증
+
+기존 실물 실행 기반을 빌드한 overlay에서 변경 패키지를 빌드하고 확인한다.
+웹 빌드 의존성과 Playwright browser는 [개발환경](DEVELOPMENT_SETUP.md)을 따른다.
+
+```bash
+make build-dev-monitor-web
+make build-operator-workflow
+CLEANY_RUN_ROS_TESTS=1 make test-operator-workflow
+make test-dev-monitor-web
+```
+
+`test-operator-workflow`는 localhost 독립 domain에서 Monitor, Logger와 대상 재확인을
+검사한다. `CLEANY_RUN_ROS_TESTS=1`은 합성 ROS 연결 검사를 활성화하며 장치를 구동하지 않는다.
+`MONITOR_TEST_PYTHON`으로 테스트 Python, `OPERATOR_TEST_DOMAIN_ID`로 domain을 지정한다.
+중복 실행, 인증, 불변 제안의 일회 소비, 오래된 관측과 이동 대상 거절, 취소 ACK와
+실물 정지 구분, 분류 사유 보존을 확인한다. 실물 모터와 실제 인식 모델 검증은 별도다.
+
+Playwright는 기본 로컬 fixture 서버를 사용한다. `MONITOR_URL`이 필요한 실제 서버 검사는
+서버와 합성 입력을 준비한 경우에만 실행한다. `OPERATOR_VISUAL_DIR`을 저장소 밖 경로로
+지정하면 운영 UI의 라이트, 다크와 좁은 화면 근거 이미지를 저장한다.

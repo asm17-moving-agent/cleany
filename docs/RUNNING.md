@@ -473,12 +473,51 @@ make build-dev-monitor
 make run-dev-monitor
 ```
 
-브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
+브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 기본 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
 
 실시간 입력과 logger 연결은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서
 설정합니다. `make build-dev-monitor`는 logger도 빌드하지만 Monitor 실행은 logger를
 자동 시작하지 않습니다. 기록은 아래 절차로 별도 실행합니다. 웹 자산 갱신 후에는
 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다.
+
+### Jetson 운영 UI와 작업 승인
+
+1. `make build-dev-monitor`로 웹과 ROS 패키지를 빌드한다. 처음 구성할 때는
+   [개발환경](DEVELOPMENT_SETUP.md)의 의존성과 실물 런타임 빌드를 먼저 준비한다.
+2. `make dev-monitor-start`로 사용자 systemd 서비스를 시작한다.
+   `http://<Jetson 주소>:8768/#manipulation`에서 관측한다.
+   `make dev-monitor-status`, `make dev-monitor-stop`으로 상태 조회와 종료를 수행한다.
+   로그는 `journalctl --user -u cleany-dev-monitor.service`에서 확인한다.
+   시작만으로 로봇 런타임이나 조작 Goal을 실행하지 않는다.
+3. 실물 동작을 사용할 때는 실행 중인 작업이 없는 상태에서 로봇별
+   `CLEANY_MANIPULATION_COLLECTION_CONFIG`, `CLEANY_FEETECH_CONTROL_CONFIG`,
+   `CLEANY_HARDWARE_MONITOR_CONFIG`를 지정하고 웹 제어를 켠다.
+
+   ```bash
+   make dev-monitor-control-on
+   make dev-monitor-control-key
+   ```
+
+4. 웹에서 운영자 이름과 조작키로 연결한다. `로봇 준비`의 토크 활성화를 확인한 뒤
+   `다음 작업 제안받기`를 선택한다. 이미지, 대상과 행동을 검토하고
+   `승인하여 1회 실행` 또는 `이 물체 건너뛰기`를 선택한다.
+   다음 제안도 승인 전에는 실행하지 않는다. `물체 1개 실행`은 기존
+   `make manipulation-run`의 자동 대상 선택과 즉시 실행을 호출한다.
+5. 중단 요청 후에는 실행 기록의 실제 정지와 물체 상태를 확인한다.
+   복귀 시 그리퍼가 먼저 열리는 점을 확인하고, 차단 해제는 정지, 빈 그리퍼와
+   검토한 실행 기록의 revision을 확인한 뒤 요청한다.
+6. 유휴 상태에서 `make dev-monitor-control-off`로 관측 전용으로 되돌린다.
+   전환은 모니터만 재시작하며 로봇을 종료하거나 작업을 자동 재개하지 않는다.
+   로봇 종료는 웹의 `로봇 종료·토크 해제` 또는 기존 CLI에서 별도로 요청한다.
+
+기본 ROS domain은 `CLEANY_COLLECTION_ROS_DOMAIN_ID=0`이다. Loopback 접속은
+`ssh -N -L 8768:127.0.0.1:8768 cleany@<Jetson 주소>`로 터널을 연결한다.
+포그라운드 Jetson 실행은 `tools/dev-monitor run`을 사용한다.
+
+제어 활성화 시 허용된 터미널 옵션을 0600 `runtime-settings.json`에 저장한다.
+다시 활성화하면 명시한 옵션만 덮어쓰고 나머지 저장값을 유지한다. 저장값을 제거하려면
+유휴 상태에서 해당 항목을 삭제한다. 저장 경로, 인증, 중복 실행 방지와 결과 해석은
+[운영 제어 계약](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#운영-제어와-상태)을 따른다.
 
 ### 독립 Logger
 

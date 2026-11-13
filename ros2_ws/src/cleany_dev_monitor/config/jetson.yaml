@@ -1,0 +1,7 @@
+cleany_dev_monitor:
+  ros__parameters:
+    host: 0.0.0.0
+    port: 8768
+    use_sim_time: false
+    manipulation_events_topic: /manipulation/execution_events
+    manipulation_observation_mode: server

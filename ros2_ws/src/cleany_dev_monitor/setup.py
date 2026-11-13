@@ -15,15 +15,19 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{name}"]),
         (f"share/{name}", ["package.xml"]),
-        (f"share/{name}/config", ["config/monitor.yaml"]),
+        (f"share/{name}/config", [str(path) for path in Path('config').iterdir() if path.is_file()]),
         *assets,
     ],
+    # ROS packages, including the proposal selector in cleany_skill_executor,
+    # are resolved through package.xml rather than installed from PyPI.
     install_requires=["setuptools", "cleany_logger>=0.1.0", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9"],
     zip_safe=True,
     maintainer="Cleany Team",
     maintainer_email="team@example.com",
     license="MIT",
-    description="Read-only robot developer monitor",
+    description="Robot developer monitor with authenticated task proposals and operator approvals",
     tests_require=["pytest"],
-    entry_points={"console_scripts": ["dev_monitor = cleany_dev_monitor.node:main"]},
+    entry_points={"console_scripts": [
+        "dev_monitor = cleany_dev_monitor.node:main",
+    ]},
 )

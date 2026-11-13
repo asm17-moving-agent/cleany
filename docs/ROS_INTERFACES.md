@@ -443,3 +443,12 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 | `arm_return`, `manipulation_recovery` | `cleany_manipulation_bt` | [명시 요청 client](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
 | `collection_pipeline` | `cleany_skill_executor` | [설정 검사와 명시 실행](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#collection_pipeline) |
 | `manipulation_evidence` | `cleany_skill_executor` | [읽기 전용 실행 근거](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_evidence) |
+
+## 운영 UI와 승인 대상 재확인
+
+| 실행 또는 노드 | 계약 |
+|---|---|
+| `dev_monitor`와 `cleany_dev_monitor_operator_<pid>_<id>` | [관측, 인증과 작업 제안](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md) |
+| `inspection_node`의 `perception/revalidate_target` | [승인 대상의 최신 기하와 원본 분류](../ros2_ws/src/cleany_perception/docs/interfaces.md#승인-대상-재확인) |
+
+운영 adapter는 Monitor와 작업 worker에서 생성한다. 별도 ROS console 실행 파일을 추가하지 않는다.

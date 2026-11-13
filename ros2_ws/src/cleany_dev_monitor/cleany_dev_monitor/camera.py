@@ -8,6 +8,29 @@ from dataclasses import dataclass
 IMAGE_TYPES = {"sensor_msgs/msg/Image", "sensor_msgs/msg/CompressedImage"}
 
 
+def preview_supported(topic: str) -> bool:
+    """Known metric-depth transports are not displayable RGB previews."""
+    return not (
+        "/compressedDepth" in topic
+        or any(topic == base or topic.startswith(base + "/")
+               for base in ("/camera/depth/image_raw", "/camera/raw_depth/image_raw"))
+    )
+
+
+def preview_source(topic: str, topics: list[dict]) -> str:
+    """Prefer source JPEG previews without enabling a camera or changing raw RGB-D."""
+    sources = {
+        "/camera/color/image_raw": "/camera/color/image_raw/compressed",
+        **{f"/{arm}_wrist_camera/image_raw": f"/{arm}_wrist_camera/preview/compressed"
+           for arm in ("left", "right")},
+    }
+    preview = sources.get(topic)
+    if preview and any(item["name"] == preview and item.get("types") == ["sensor_msgs/msg/CompressedImage"]
+                       for item in topics):
+        return preview
+    return topic
+
+
 @dataclass(frozen=True)
 class Frame:
     jpeg: bytes
@@ -52,12 +75,16 @@ class Cameras:
             return set(self.leases)
 
     def receive(self, topic, message):
+        # Native JPEG previews need no pixel encoding. Keep the freshest frame,
+        # including slightly early 5 Hz arrivals, instead of halving their rate.
+        passthrough = "jpeg" in getattr(message, "format", "").lower()
         with self.lock:
             now = self.clock()
             self._expire(now)
             if (
                 topic not in self.leases
-                or now - self.last_encode.get(topic, -float("inf")) < 1 / self.fps
+                or (not passthrough
+                    and now - self.last_encode.get(topic, -float("inf")) < 1 / self.fps)
             ):
                 return
             self.last_encode[topic] = now
@@ -116,6 +143,11 @@ def encode_image(message):
             raise ValueError("JPEG / PNG만 지원")
         if image.width * image.height > 2097152:
             raise ValueError("영상 해상도 제한 초과 (2 MP)")
+        if image.format == "JPEG" and image.width <= 1280 and image.height <= 720:
+            # Validate the container without decoding/re-encoding JPEG pixels.
+            width, height = image.size
+            image.verify()
+            return bytes(message.data), width, height
     image.thumbnail((1280, 720))
     output = io.BytesIO()
     image.convert("RGB").save(output, format="JPEG", quality=75)

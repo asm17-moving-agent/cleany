@@ -7,6 +7,7 @@ import threading
 import time
 from pathlib import Path
 
+from action_msgs.msg import GoalStatus, GoalStatusArray
 from ament_index_python.packages import get_package_share_directory
 from cleany_interfaces.action import ExecuteManipulationSkill
 from cleany_interfaces.msg import ManipulationExecutionRecord
@@ -21,7 +22,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.clock import Clock, ClockType
 from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_action_status_default
 from rclpy.signals import SignalHandlerOptions
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -44,6 +45,11 @@ def default_database_path() -> str:
 
 class JetsonManipulationNode(ManipulationNode):
     """Run one physical collection or arm-return operation with a durable journal.
+
+    Subscriptions:
+        /<arm>_<part>_controller/follow_joint_trajectory/_action/status
+            (action_msgs/msg/GoalStatusArray): Arm/gripper controller ownership.
+            Uses the default action-status QoS.
 
     Actions:
         manipulation/execute_skill (ExecuteManipulationSkill): Single-object
@@ -128,6 +134,13 @@ class JetsonManipulationNode(ManipulationNode):
                                     callback_group=group)
         self._setup_cancel_service(group, action_name)
         self.arm_return = ArmReturnServer(self, group, self.get_parameter('arm_return_pose_file').value)
+        self.controller_busy: dict[tuple[str, str], bool] = {}
+        for arm in ('left', 'right'):
+            for part in ('arm', 'gripper'):
+                self.create_subscription(GoalStatusArray,
+                    f'/{arm}_{part}_controller/follow_joint_trajectory/_action/status',
+                    lambda msg, key=(arm, part): self._controller_status(key, msg),
+                    qos_profile_action_status_default, callback_group=group)
         self.monitor = LiveMonitor()
         # Even the idle tree is a real native tree. It is never ticked or used
         # for motion until an accepted execution creates its own context.
@@ -146,6 +159,12 @@ class JetsonManipulationNode(ManipulationNode):
         self.get_logger().info(f'Jetson BT ready; database={self.store.path}; monitor=127.0.0.1:{port}; '
                                f'inhibited={self.core.inhibited}')
 
+    def _controller_status(self, key: tuple[str, str], message: GoalStatusArray) -> None:
+        with self.core.lock:
+            self.controller_busy[key] = any(item.status in (
+                GoalStatus.STATUS_ACCEPTED, GoalStatus.STATUS_EXECUTING, GoalStatus.STATUS_CANCELING,
+            ) for item in message.status_list)
+
     def _control_state(self, _request, response):
         """Report current executor ownership without commanding or clearing faults."""
         with self.core.lock:
@@ -162,6 +181,7 @@ class JetsonManipulationNode(ManipulationNode):
                 active_stage=record.stage.value if active else '',
                 active_substage=record.substage if active else '',
                 arm_return_active=self.core.arm_return_active,
+                external_motion_active=any(self.controller_busy.values()),
                 recovery_active=self.core._recovery_in_progress,
                 backend_ready=self.backend.ready(), inhibited=self.core.inhibited,
                 blocked=[dict(execution_id=item.goal.execution_id, revision=item.revision)

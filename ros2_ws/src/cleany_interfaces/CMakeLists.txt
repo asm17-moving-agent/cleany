@@ -75,6 +75,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ManipulationOutcome.msg"
   "srv/CheckManipulation.srv"
   "srv/ConfirmManipulationRecovery.srv"
+  "srv/RevalidateTarget.srv"
   DEPENDENCIES moveit_msgs trajectory_msgs geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 
