@@ -107,6 +107,7 @@ jobs:
             --volume "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
             --volume "${RUNNER_TEMP}/cleany-builds:/ci-builds" \
             --volume "${RUNNER_TEMP}/cleany-ccache:/ci-ccache" \
+            --env CI=true \
             --env CLEANY_BUILD_ROOT=/ci-builds \
             --env CCACHE_DIR=/ci-ccache --env CCACHE_MAXSIZE=2G \
             --env CCACHE_COMPILERCHECK=content --env "CCACHE_BASEDIR=${GITHUB_WORKSPACE}" \

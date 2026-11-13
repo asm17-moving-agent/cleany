@@ -5,6 +5,9 @@
 ## 통합 컨트롤러 PCB 검증
 
 PCB 검사는 [KiCad 호스트 환경](DEVELOPMENT_SETUP.md#kicad-pcb-검증-환경)에서 실행합니다.
+PCB 검사는 로컬 전용이며 GitHub Actions CI에 포함하지 않습니다.
+`CI=true` 또는 `CI=1`이면 `make test-pcb`는 KiCad 검사와 보드 테스트를 실행하지 않고
+skip 메시지로 종료합니다. CI 컨테이너에도 `CI=true`를 전달합니다.
 
 ```bash
 make test-pcb
