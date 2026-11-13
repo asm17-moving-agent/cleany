@@ -2,6 +2,130 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## FreeCAD 정적 기준 모델
+
+`make test-freecad-model`은 부품 해시, URDF의 시각·충돌 표면 일치, 단위와
+원점 변환, 560 mm 기둥, 화면 텍스처, 잘못된 보정 선택의 거부를 확인합니다.
+MuJoCo 로드 후 관절과 actuator가 없고 주요 부품 경계가 URDF 메시와 같은지도
+검사합니다. 기존 Make 변수 `GEOMETRY_PYTHON`으로 NumPy, pytest와 MuJoCo가 있는
+Python을 선택할 수 있으며 이 검사는 ROS나 모터를 실행하지 않습니다.
+내보내기 도구 검사는 메시 분할 경계의 삼각형 보존, 이전 manifest의 호환과
+재실행 시 중복 제거를 확인합니다. 출력 실패 후 재시도와 사용자 파일 보존도 검사합니다.
+
+`make test-description-models`와 패키지의 colcon test에도 새 모델 검사가
+포함됩니다. 기존 실행 모델의 FK와 관절 검사 통과는 새 CAD의 운동학이나
+실물 정확도를 검증한 결과가 아닙니다.
+
+`test_freecad_kinematics.py`는 서보·구동 혼·지지 혼의 공통 축 근거, 부품의 단일
+링크 소유, 저장 자세 재현과 임의 변화량의 독립 URDF FK 일치를 검사합니다.
+MuJoCo mocap 배치도 FK와 대조하며 질량이나 actuator가 생성되지 않는지 확인합니다.
+`test_freecad_gripper_linkage.py`는 양쪽 집게의 핀 거리, 폐쇄 링크 잔차,
+URDF FK에서 연결된 두 부품의 핀 일치와 해가 모호한 자세의 거부를 검사합니다.
+종속 관절을 독립 입력으로 지정하면 거부하며 물리 영점·운용 한계는 null로 유지합니다.
+`test_freecad_tip_mounts.py`는 네 팁의 공통 체결축, 양방향 간섭 근거와 고정
+자식 링크를 검사합니다. 캠을 움직여도 운반 링크와 팁의 상대 배치가 유지되고
+URDF FK와 MuJoCo의 고정 자식 배치가 일치하는지 확인합니다. 체결력과 재질의
+탄성은 이 검사에서 확정하지 않습니다.
+변화량 표본은 수치 검사 입력이며 운용 제한이나 실물 정확도를 증명하지 않습니다.
+
+## FreeCAD MoveIt와 OctoMap, cuRobo 검사
+
+[검사 launch](RUNNING.md#freecad-moveit와-octomap-검사)를 실행하고 같은 ROS
+domain에서 아래 명령으로 CAD 저장 자세와 합성 점군을 보냅니다. MoveIt의 모델
+이름, 관절 상태, OctoMap과 동작 인터페이스 비활성화를 확인합니다.
+
+```bash
+python3 ros2_ws/src/cleany_moveit_config/runtime_test/check_freecad_scene.py
+```
+
+Jetson의 cuRobo CUDA 환경에서는 아래 명령으로 CAD 저장 자세의 메시 충돌을
+확인합니다. LiDAR 표면과 차체에서 떨어진 지점에 시험 구를 배치합니다.
+
+```bash
+"$HOME/cleany/runtime/curobo-venv/bin/python" tools/validation/check_freecad_curobo.py \
+  ros2_ws/src/cleany_description
+```
+
+인덱스 캐시는 같은 overlay를 읽은 상태에서 cuRobo 검사에
+`--collision-cache "$collision_cache"`를 추가해 검증합니다. MoveIt과 OctoMap은
+동일한 점군으로 STL과 GLB를 각각 검사하고 결과 지도 해시를 대조합니다.
+캐시 생성기의 좌표, 모델 해시와 손상 검사에는 아래 명령을 사용합니다.
+
+```bash
+python3 -m pytest -q tests/tools/test_freecad_collision_cache.py \
+  tests/tools/test_freecad_mesh_reduction.py tests/tools/test_freecad_moveit_cache.py
+```
+
+표면 감면 검사는 정점 일치만으로 판정하지 않습니다. 삼각형 내부까지 거리를
+확인하고, 검사량 제한에 도달하면 후보를 거부합니다. 테스트는 좁은 구멍,
+삼각형 내부 누락, 다른 대각선 분할, 오차 입력과 캐시 손상을 포함합니다.
+`manifest.json`에는 파일별 감면 수와 양방향 표면 거리 상한을 기록합니다.
+이 상한은 표본의 최대 거리나 실물 오차가 아니며, 감면 메시가 원본 입체를
+완전히 감싼다는 보증도 아닙니다. cuRobo 링크 캐시는 저장 전후 삼각형 배열의
+완전 일치를 확인합니다.
+
+MoveIt 하부 캐시 검사는 직렬화한 박스와 원통의 원본 포함, 바퀴축 보존,
+서로 움직이는 링크의 병합 거부와 비충돌 XML 보존을 확인합니다. 하부 primitive는
+작은 구멍과 홈을 채우므로 이 부분에 표면 감면의 거리 상한을 적용하지 않습니다.
+몸통 검사는 상판 투입구 추출, 기존 횡대 높이의 유지와 투입구를 가로지르는
+삼각형의 거부를 포함합니다. 모든 꼭짓점이 구멍 밖에 있어도 내부를 가로지르는
+삼각형은 거부합니다. cuRobo 검사는 CAD 저장 자세의 FK, 단순 입체별 객체 분리,
+저장 후 삼각형 일치와 관절 URDF 변경의 거부를 확인합니다. GPU 실행 시에는
+몸통의 깊은 내부와 투입구의 양쪽 경계도 검사해야 합니다.
+
+분할 외피 검사는 조각 사이 틈, 링크와 시각 모델 보존, GLB의 닫힘과 원본
+포함 관계를 확인합니다. 확장 상한은 원본 조각의 볼록 외피 기준입니다.
+`cleany_moveit_collision`의 native 테스트는 검사 전용 detector가 미선언
+CAD 표면을 유지하면서, 선언한 외피의 내부 장애물을 scene 복사 후에도
+검출하는지 확인합니다. 잘못된 외피는 거부해야 합니다. 실제 캐시에서는
+기둥 허리 바깥의 빈 공간과 각 외피 조각 내부를 자체 필터, MoveIt 접촉과
+GPU 구 쿼리로 대조합니다.
+추가 외장 감면에서는 보호 부품의 메시 해시, 동일 링크 안의 강체 묶음과
+다른 링크 병합의 거부도 검사합니다. cuRobo native cuboid는 관절 변환 후의
+위치와 quaternion, 미리보기 삼각형 일치와 박스 데이터 변조 거부를 확인합니다.
+실제 GPU에서는 같은 쿼리로 메시 박스와 native cuboid의 판정 및 시간을
+비교합니다. 삼각형 감소만으로 실행 시간이 개선됐다고 판단하지 않습니다.
+캠과 가동 링크 감면에서는 원본 삼각형 포함 외에 접촉 패드의 삼각형과 관절
+변환 일치를 검사합니다. CAD 비교 자세별로 패드 사이 입구 공간과 새 볼록
+외피의 교차 여부를 확인하고, 열린 자세의 점군과 접촉 쿼리를 전후 대조합니다.
+결합부 수정은 감면 전 표면 모델, 수정 전 외피와 수정 후 모델의 자기 접촉
+쌍을 같은 CAD 자세에서 비교합니다. 실제 MoveIt의 충돌 허용 행렬이 같은지
+확인하고, 대상 링크 사이의 최소 거리도 별도로 측정합니다. 접촉 허용 쌍
+추가나 접촉 조회 결과의 제외로 형상 수정 검사를 통과시키지 않습니다.
+원본 메시와 판정이 다른 쌍은 FreeCAD 원본 솔리드의 최소 거리와 교집합
+부피를 대조합니다. 표면 감면 후보는 구멍과 접촉 패드를 보존하면서 검증
+자세의 원본 체적 겹침과 조립 접촉 판정을 유지하는지 확인합니다.
+
+별도 inspection domain에서는 아래 검사로 합성 점군 자체 필터와 장애물 접촉을
+확인합니다. 입력 JSON의 `cloud`에는 `name`, CAD base frame의 `point`(m),
+필터 통과 여부 `keep`을 넣습니다. `contacts`에는 `name`, `point`, 박스의
+`size`(m), 예상 `collision`을 넣습니다. 검사는 저장 자세를 발행하고, 시험 박스를
+추가해 접촉을 조회한 뒤 제거합니다. 기존 CAD 자기 접촉은 시험 박스 접촉과
+구분합니다. 실행 프로필에는 사용하지 않습니다.
+선택적 `joint_positions_rad`는 CAD 관절 이름에서 rad 값으로의 매핑입니다.
+생략한 좌표는 0이며, 미등록 좌표와 비유한 값은 거부합니다. 집게의 열린 자세를
+검사할 때는 기존 명목 링크 해석기로 종속 관절까지 계산해서 넣습니다.
+이 입력은 실물 보정값이나 허용 가동 범위를 설정하지 않습니다.
+
+```bash
+python3 ros2_ws/src/cleany_moveit_config/runtime_test/check_freecad_lower_body.py \
+  /path/to/lower-body-probes.json
+```
+
+실제 CAD에서 만든 입력과 생성 스크립트의 위치는
+[하부 최적화 실행 근거](EVIDENCE.md#2026-11-05-freecad-moveit-하부-단순-형상)에 있습니다.
+투입구 보존과 상부 추가 감면의 입력은
+[몸통과 상부 최적화 실행 근거](EVIDENCE.md#2026-11-05-freecad-투입구-보존과-상부-추가-감면)에 있습니다.
+기둥 상세화와 팔 분할 외피의 입력은
+[분할 외피 실행 근거](EVIDENCE.md#2026-11-05-freecad-기둥-상세화와-팔-분할-외피)에 있습니다.
+집게 입구 보존, 강체 묶음과 native cuboid의 입력은
+[추가 최적화 실행 근거](EVIDENCE.md#2026-11-05-집게-입구-보존과-curobo-기본-박스-최적화)에 있습니다.
+캠과 링크 감면, 개방 자세별 입구 검사의 입력은
+[그리퍼 단순화 실행 근거](EVIDENCE.md#2026-11-05-그리퍼-캠과-링크-추가-단순화)에 있습니다.
+추가 자기 접촉의 형상 수정과 세 모델 대조는
+[결합부 복원 실행 근거](EVIDENCE.md#2026-11-05-그리퍼-결합부-형상-복원과-자기-접촉-회귀-검사)에 있습니다.
+저장 자세의 검사 통과는 모든 관절 자세나 실물 계획 검증을 대신하지 않습니다.
+
 
 ## 인식과 파지 후보 검증
 
@@ -152,13 +276,26 @@ target을 실행합니다.
 
 CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.
 
+`cleany_manipulation_bt`의 pytest 수트는 ROS 프로세스 종료 검사를 포함하므로 CTest 제한을
+300초로 지정합니다. 개별 Action 응답과 종료 대기 제한은 각 테스트에서 별도로 검사합니다.
+
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
 | GHCR 의존성 이미지 | 모든 `package.xml`, rosdep YAML, `containers/ci/`, 이미지 준비 도구, platform 변경 | ROS, apt, pip 의존성만 포함하며 응용 소스와 빌드 결과는 포함하지 않음 |
 | ccache | compiler 내용, 소스, header와 옵션에 따라 hit/miss 결정 | 빌드 명령은 매번 실행하며 CTest/pytest 결과는 캐시하지 않음 |
 | 같은 실행의 workspace | 전체 빌드 완료 후 runtime 검사에서 재사용 | 다른 실행의 `build/`, `install/`, test result는 복원하지 않음 |
 
-이미지가 없거나 pull할 수 없으면 고정한 저장소 snapshot과 Python 버전으로 이미지를 만든 뒤 전체 검사를 실행합니다. 같은 저장소의 실행은 환경 확인 후 의존성 이미지를 게시합니다. 응용 테스트의 성공 여부와 별개로 의존성 이미지와 compiler cache를 보존해 실패 수정 시에도 재사용하며, 다음 실행의 전체 검사와 실패 판정은 그대로 유지합니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행도 동일한 의존성 이미지를 재사용합니다.
+이미지 key가 없으면 digest로 고정한 [기존 이미지 후보](../containers/ci/compatible-image.json)를 검사합니다.
+설치 스크립트, 저장소 시점, Python 버전, rosdep 규칙과 platform이 같아야 후보로 선택합니다.
+후보 컨테이너에서 현재 manifest의 `rosdep check`와 현재 버전 검사를 모두 통과한 경우에만
+새 의존성 key로 등록합니다. 필요한 패키지가 없으면 고정된 ROS 저장소의 index만 갱신해
+추가 설치하고 다시 검사합니다. Ubuntu 기본 패키지는 기존 이미지의 버전을 유지합니다.
+의존성을 만족시키지 못하거나 버전이 다르면 후보를 사용하지 않습니다.
+후보가 없거나 검사에 실패하면 고정한 저장소 snapshot과 Python 버전으로 이미지를 만듭니다.
+이 재사용은 응용 소스나 빌드 결과를 포함하지 않으며 전체 빌드와 테스트는 매번 실행합니다.
+기하 검사의 Python 패키지는 [검증용 버전 목록](../tests/requirements-geometry.txt)으로
+실행 컨테이너에 설치합니다. NumPy와 ROS Python 버전은 변경하지 않습니다.
+같은 저장소의 실행은 환경 확인 후 의존성 이미지를 게시합니다. 응용 테스트의 성공 여부와 별개로 의존성 이미지와 compiler cache를 보존해 실패 수정 시에도 재사용하며, 다음 실행의 전체 검사와 실패 판정은 그대로 유지합니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행도 동일한 의존성 이미지를 재사용합니다.
 
 기준은 2026-11-02에 조회한 Jetson의 system Python과 설치된 ROS 패키지입니다.
 [repository-snapshots.env](../containers/ci/repository-snapshots.env)는 Ubuntu와 ROS 저장소의 시점을,

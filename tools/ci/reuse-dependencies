@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+image="$1"
+target="$2"
+context="$(cd "$3" && pwd)"
+dependency_key="$4"
+repository="$5"
+candidate_name=cleany-dependency-candidate
+trap 'docker rm --force "${candidate_name}" >/dev/null 2>&1 || true' EXIT
+
+docker pull "${image}"
+timeout --signal=TERM --kill-after=10s 5m docker run --name "${candidate_name}" \
+  --platform linux/amd64 --entrypoint bash --env ROS_HOME=/root/.ros \
+  --volume "${context}:/ci-context:ro" "${image}" -c '
+    set -eo pipefail
+    source /opt/ros/humble/setup.bash
+    check_dependencies() {
+      rosdep check --from-paths /ci-context/ros2_ws/src --ignore-src \
+        --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
+    }
+    if ! check_dependencies; then
+      # Preserve the base Ubuntu packages; only the fixed ROS index is needed.
+      python3 /ci-context/containers/ci/retry-command.py --attempts 2 -- \
+        /usr/bin/apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ros-snapshot.list \
+          -o Dir::Etc::sourceparts=- -o APT::Update::Error-Mode=any update
+      PIP_CONSTRAINT=/ci-context/containers/ci/pip-constraints.txt \
+        python3 /ci-context/containers/ci/retry-command.py --attempts 2 -- \
+          rosdep install --from-paths /ci-context/ros2_ws/src --ignore-src \
+            --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent" -y
+    fi
+    check_dependencies
+    python3 /ci-context/containers/ci/verify-versions.py
+    dpkg-query -W > /opt/cleany-ci/dpkg-packages.txt
+    python3 -m pip freeze > /opt/cleany-ci/pip-packages.txt
+    rm -rf /var/lib/apt/lists/* /root/.cache/pip
+  '
+entrypoint="$(docker image inspect --format '{{json .Config.Entrypoint}}' "${image}")"
+command="$(docker image inspect --format '{{json .Config.Cmd}}' "${image}")"
+docker commit --change "ENTRYPOINT ${entrypoint}" --change "CMD ${command}" \
+  --change "LABEL org.cleany.ci.dependencies=${dependency_key}" \
+  --change "LABEL org.opencontainers.image.source=https://github.com/${repository}" \
+  "${candidate_name}" "${target}"

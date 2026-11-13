@@ -12,6 +12,14 @@ from cleany_robot_interface.core import (
 
 def fixture():
     config = yaml.safe_load((Path(__file__).parents[1] / 'config/arm_preview.yaml').read_text())
+    # Keep recorded-angle regressions independent of later operational zero updates.
+    reference_zeros = {
+        'left': (2044, 3104, 1049, 2008, 2513),
+        'right': (2043, 3108, 1052, 2053, 2467),
+    }
+    for side, zeros in reference_zeros.items():
+        for key, zero in zip(JOINTS, zeros):
+            config['overrides'][side][key]['zero_tick'] = zero
     cal = {side: {key: dict(id=first + i, drive_mode=0, homing_offset=123,
                            range_min=500, range_max=3500)
                   for i, key in enumerate(JOINTS)}
@@ -30,15 +38,15 @@ def test_sides_and_angles():
         assert joints[index].radians(zero) == 0
         assert joints[index].radians(zero + 1024) == pytest.approx(-math.pi / 2)
         assert joints[index].radians(zero - 1024) == pytest.approx(math.pi / 2)
-    assert joints[5].radians(1345) == pytest.approx(-0.37453297762778586)
-    assert joints[11].radians(1359) == pytest.approx(-0.37453297762778586)
+    assert joints[5].radians(2689) == pytest.approx(-0.37453297762778586)
+    assert joints[11].radians(2851) == pytest.approx(-0.37453297762778586)
 
 
 def test_closed_jaw_overrides_and_range_min_fallback():
     config, cal = fixture()
     joints = mappings(config, cal)
-    # Both closure references were measured again after reassembly on 2026-10-05/06.
-    for index, closed, direction in ((5, 1345, 1), (11, 1359, 1)):
+    # Replacement grippers were measured and recentered on 2026-11-02.
+    for index, closed, direction in ((5, 2689, -1), (11, 2851, -1)):
         assert joints[index].radians(closed + 256) - joints[index].radians(closed) == pytest.approx(direction * math.pi / 8)
     config['overrides'] = {}
     joints = mappings(config, cal)

@@ -37,6 +37,11 @@ def load_camera_profile(config_file: Path, repository_root: Path) -> tuple[dict,
     rate = config['publish_rate_hz']
     if not math.isfinite(rate) or not 0 < rate <= 30:
         raise ValueError('Wrist publish rate must be in (0, 30] Hz')
+    if 'camera_device_override' in config:
+        device = config['camera_device_override']
+        if not isinstance(device, str) or not Path(device).is_absolute():
+            raise ValueError('Wrist camera device override must be an absolute path')
+        camera['camera_device'] = device
     return {**config, **camera}, intrinsic
 
 

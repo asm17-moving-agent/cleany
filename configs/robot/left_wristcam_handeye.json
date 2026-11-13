@@ -1,6 +1,6 @@
 {
   "arm_config": "ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml",
-  "intrinsics_file": "/home/cleany/.local/share/cleany/left_wrist_handeye/20261009_045633_666865/intrinsics_candidate_20261009_20.json",
+  "intrinsics_file": "/home/cleany/cleany/ros2_ws/src/cleany_description/config/calibration/jetson_20261107/intrinsics/left/intrinsics.json",
   "urdf_file": "/home/cleany/.local/share/cleany/handeye_inputs/wrists_20plus5_20261009/model/robot.urdf",
   "output_root": "~/.local/share/cleany/left_wrist_handeye",
   "hold_seconds": 1.5,

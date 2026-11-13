@@ -38,6 +38,33 @@ lsb_release -ds
 python3 --version
 ```
 
+## FreeCAD 형상 내보내기 도구
+
+배포된 CAD 메시를 읽고 ROS 노드를 실행할 때는 FreeCAD나 OCP가 필요하지
+않습니다. 원본 FCStd에서 자산을 다시 만들 때만 별도 Python 3.12 가상환경에
+`numpy==2.5.4`, `cadquery-ocp==8.0.1.1.0`을 설치합니다. 이는 ROS runtime의
+system Python을 바꾸지 않는 오프라인 CAD 도구 환경입니다.
+
+```bash
+python3.12 -m venv /tmp/cleany-cad-export
+/tmp/cleany-cad-export/bin/pip install numpy==2.5.4 cadquery-ocp==8.0.1.1.0
+/tmp/cleany-cad-export/bin/python tools/export_freecad_model.py /absolute/path/Cleany-final.FCStd
+/tmp/cleany-cad-export/bin/python tools/extract_freecad_kinematics.py /absolute/path/Cleany-final.FCStd
+```
+
+다른 디렉터리에서 내보내기를 검토하려면 `--package /path/to/staging-package`를
+추가합니다. 도구는 저장된 형상만 읽고 FreeCAD 매크로나 expression을 실행하지
+않습니다. [모델 계약](../ros2_ws/src/cleany_description/docs/freecad-model.md)에
+따라 원본 해시, 좌표 변환과 미확정 값도 함께 기록합니다.
+기존 출력에 다시 내보낼 때는 위 두 명령을 순서대로 실행해 정적 모델과 운동학
+모델을 함께 갱신합니다. 내보내기 도구는 이전 manifest와 해시가 일치하는
+미사용 메시를 정리합니다. 임의로 추가하거나 수정한 파일은 보존합니다.
+
+충돌 캐시 생성 도구는 같은 오프라인 Python 환경에 NumPy, SciPy와 trimesh가
+필요합니다. `--max-surface-error-m`으로 삼각형 감면을 선택할 때만 VTK가
+추가로 필요하며 `vtk==9.6.2`에서 검증했습니다. 생성된 GLB 캐시를 읽는 ROS와
+cuRobo runtime에는 VTK를 설치하지 않습니다.
+
 ## 1. Ubuntu 기본 설정
 
 UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비합니다.

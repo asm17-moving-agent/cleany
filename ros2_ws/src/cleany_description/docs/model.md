@@ -1,5 +1,15 @@
 # Robot model 계약
 
+## FreeCAD 기준 형상과 기존 실행 모델
+
+기본 `description.launch.py`는 `freecad_final` 정적 조립 모델을 표시한다.
+새 프레임, 외장과 PincOpen 집게를 반영하지만 관절 영점, 구동 관계, 질량과
+센서 보정은 미확정이다. [FreeCAD 모델 계약과 미확정 항목](freecad-model.md)을
+따른다. `freecad_kinematic` 선택은 [추출한 축과 집게 핀 연동](freecad-kinematics.md)의
+CAD 상대 변화량을 표시하며 실제 영점·구동 보정을 대신하지 않는다.
+기존 `cleany.urdf.xacro`, control xacro와 `mjcf/cleany.xml`은
+`legacy_runtime` 실행 모델이며 아래 수치와 보정 계약은 이 모델에 해당한다.
+
 CAD 모델은 ROS 좌표, 팔 chain, 시뮬레이션 형상을 공유한다. Geometry, 질량, 센서 TF에는 명목값과 추정값이 포함되므로 실물 검증값으로 취급하지 않는다.
 
 ## 좌표와 형상

@@ -62,6 +62,25 @@ workspace 검사는 재실행하지 않았다. CI 결과와 실물 동작 검증
 원본 실패, 재실행 로그와 rosdep 감지 결과는
 `/Users/hyeon/workspace/cleany-data/reports/pr65-main-20261102/recheck/`에 보관한다.
 
+## CI snapshot 접속 장애 우회 검증 (2026-11-11)
+
+PR 77, 78, 79의 CI는 Ubuntu snapshot의 DNS 또는 연결 timeout 때문에
+의존성 이미지 생성 단계에서 실패했다. PR 77과 78은 재실행도 같은 결과였다.
+소스 빌드와 테스트는 시작하지 못했다.
+
+정상 실행 `a6b46068`의 CI run `42764509711`에서 사용한 GHCR 이미지를 digest로
+고정하고 현재 설치 설정의 fingerprint와 비교한다. 설치 스크립트, 저장소 snapshot,
+Python 버전 및 rosdep 규칙이 같아야 후보로 선택한다. 현재 manifest의 설치 의존성과
+현재 버전 검사까지 후보 안에서 통과해야 재사용한다. 후보가 없거나 조건이 다르면
+기존 snapshot 기반 이미지 생성을 수행한다. 전체 응용 빌드와 테스트는 생략하지 않는다.
+
+macOS의 `make test-ci-tools` 31개가 통과했다. 가짜 Docker로 동일 key 적중,
+검증 후 재사용, 의존성 불일치와 실제 빌드 실패의 전파를 확인했다.
+설치 설정 fingerprint는 위 정상 실행 commit과 같음을 별도로 확인했다.
+실제 이미지 재사용과 workspace 검사는 수정 commit의 GitHub PR checks에서 확인한다.
+로그, 원본 실패와 commit 식별자는
+`/Users/hyeon/.codex/reports/cleany-ci-fix-20261111/`에 보관한다.
+
 ## 과거 생성 보고서 보관
 
 날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
@@ -940,3 +959,792 @@ Humble Distrobox의 2 CPU affinity에서 ROS graph 11건과 make test-tof의 col
 다른 ROS graph 검사 종료 후 두 시나리오를 2 CPU affinity에서 순차 20회씩, 총 40회
 반복해 통과했다. 재현 script와 로그는 CLEANY_DATA_ROOT/runs/ci-pr71-fix의
 repeat_ready.py와 readiness-repeat.log다.
+
+## 2026-11-02 FreeCAD 정적 기준 모델
+
+`707538de9d28291c679fcfd954f5587368d5a460` 기반의 기존 미커밋 작업을 유지하며
+`Cleany-final.FCStd`를 별도 정적 기준 모델로 반영했다. 원본은
+`~/Downloads/Cleany-final.FCStd`이며 SHA-256은
+`91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0`이다.
+macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0, MuJoCo 3.17.0에서 확인했다.
+
+| 검증 | 결과 |
+|---|---|
+| 원본 형상 | 308개 입체 부품, 화면 1개, 최종 입체 메시 934,253개 삼각형 |
+| 자동 검사 | `make test-freecad-model GEOMETRY_PYTHON=/tmp/cleany-cad-comparison/venv/bin/python`: 16개 통과 |
+| 독립 CAD 대조 | 삼각분할을 사용하지 않은 BREP 경계와 308개 부품 대조; 최대 차이 0.1694 mm |
+| 재현성 | 별도 출력 디렉터리에서 다시 내보낸 모델·자산·manifest 315개 파일이 바이트 단위로 동일 |
+| 파서와 정적 실행 | URDF 파서, Collada 텍스처 로드, MuJoCo 로드와 FK 통과; 구동 관절·actuator·추정 질량 없음 |
+| 코드와 범위 | 추가 Python의 Ruff 검사와 `git diff --check` 통과; 기존 제어 URDF와 canonical MJCF 수정 없음 |
+| ROS 빌드 | `make build BASE_EXEC= COLCON_BUILD_ARGS='--packages-select cleany_description'` 실패: `/opt/ros/humble/setup.bash` 없음. Docker daemon도 사용 불가 |
+
+초기 변환에서 작은 면의 삼각분할 누락과 헤드 브래킷의 원점으로 튀는 정점을
+발견했다. 각 원본 면의 해석적 경계로 확인하고 더 세밀하게 다시 삼각분할하여
+수정했다. MuJoCo의 STL당 200,000개 삼각형 제한은 LiDAR 메시를 순서대로
+분할하여 해결했으며, 원본 삼각형의 삭제나 단순화는 하지 않았다. 초기 검사에서
+발견한 XML 공백 비교 오류도 수정한 뒤 전체 검사를 다시 통과했다.
+
+검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-model-20261102/`의
+`environment.json`, `tests.txt`, `independent-geometry-check.json`,
+`reproducibility.json`, `preview.png`에 있다. 저장소의
+[형상 manifest](../ros2_ws/src/cleany_description/config/geometry/freecad_final.json)는
+입력과 부품 해시를 보존하고, [미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-model.md)은
+관절, 집게, TCP, 관성, 센서 보정과 실행 검증을 구분한다. ROS 실시간 launch,
+RViz, 동적 파지와 주행, 실물 장착·보정은 검증하지 않았다. 배포, commit과 push는
+수행하지 않았다.
+
+## 2026-11-05 손목 카메라 실측 깊이 반영
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 작업 트리에서 원본
+`Cleany-final.FCStd`와 사용자 확인 치수 A–B 9.5mm, A–C 26.7mm를 사용했다.
+기준은 앞 유리 끝 A, PCB 뒤면 B, 마운트 최후단 C이며 광축 방향으로 잰다.
+PCB와 체결 위치를 기준으로 렌즈 끝을 14.8mm 뒤로 옮기고 마운트 최후단을
+1.2mm 뒤로 옮겼다. 양쪽의 렌즈, 유리, 마운트 6개 STL과 그 manifest만
+바뀌었다. 다른 부품 레코드와 URDF 및 MJCF XML은 같은 바이트였다.
+내보내기 도구가 `freecad_wrist_camera_depth.json`으로 같은 형상을 재생성한다.
+
+비교 입력은 `freecad-head-servo-check-20261105/moveit-head-surfaces/`이며,
+실측한 마운트는 틈과 끝면을 유지하는 표면 메시로 읽는다. 최종 MoveIt 메시
+삼각형은 135,935개, 충돌 형상은 173개다. 양쪽 STL과 직렬화한 충돌 메시의
+광축 치수를 대조했다. Jetson Orin ROS Humble localhost domain 230에서
+기존 34개 자세의 엄격 검사 접촉 쌍이 모두 같았다. 엄격 검사 유효 자세는
+0/34개이며 조립 접촉을 분리한 임시 시험 scene은 34/34개였다. 같은 scene의
+외부 장애물 검사도 통과했다. 제품 접촉 허용 규칙에는 변경이 없다.
+
+34개 자세에서 카메라 형상은 입구 공간을 침범하지 않았고, 접촉 패드 4개의
+삼각형과 관절 변환은 동일했다. -25° 비교 자세의 양쪽 개구 폭은 12.0137mm다.
+입구 점군 122점과 접촉 62건이 통과했다. 양쪽의 이전 렌즈 앞 위치는 빈 공간,
+새 렌즈 앞과 마운트 뒤 표면은 접촉으로 판정해 6개 카메라 외부 장애물 검사가
+통과했다. OctoMap 합성 입력의 해시가 같고, Jetson의 격리된 description
+빌드와 Python 검사 61개가 통과했다. Python 실행에 VTK 경고 2개가 있었다.
+
+입력, `verification-summary.json`, `assembly-results.json`, `camera-probes.log`,
+`aperture.log`와 `wrist-camera-before-after.png`는
+`cleany-data/runs/freecad-camera-depth-20261105/`에 있다. 커밋과 푸시는
+수행하지 않았다.
+
+## 2026-11-05 손목 카메라의 OctoMap 및 cuRobo 반영 검사
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 작업 트리에서
+`freecad-head-servo-check-20261105/moveit-head-surfaces/`와 실측 A–B 9.5mm,
+A–C 26.7mm를 반영한 `freecad-camera-depth-20261105/moveit-cache/`를 대조했다.
+Jetson Orin에서 ROS Humble localhost domain 229와 230으로 격리하고
+OctoMap 1.9.7, cuRobo 0.7.8과 CUDA 12.6을 사용했다.
+
+OctoMap 10mm 격자에서 양쪽의 이전 렌즈 앞 위치는 실측 반영 후 합성 장애물
+점으로 남아 점유됐다. 새 렌즈 앞과 마운트 뒤쪽 4점은 자체 필터가 제거했다.
+-25° CAD 비교 자세의 양쪽 입구는 12.0137mm이고 패드 4개의 삼각형이 같다.
+전후 모두 입구 점 90개를 유지하고 패드 점 32개를 제거했다. 입구 점만
+입력하면 90개 모두 점유 셀에 들어갔다. 패드 점을 함께 입력하면 패드와
+같은 셀에 속한 입구 점 24개는 전후 모두 자유 셀로 남았다. MoveIt 입구와
+접촉면 장애물 검사 62건도 통과했다.
+
+기존 cuRobo 캐시는 형상 해시 불일치로 거부됐다. 실측 MoveIt 캐시를 입력으로
+새 mesh world를 생성했다. 삼각형은 136,959개이며 카메라 6개 부품의 충돌
+삼각형과 기존 팁 GLB 8개의 내용이 보존됐다. Jetson GPU에서 카메라 6건,
+저장 자세 표면 및 입체 2,572건, 열린 집게 184건이 통과했다.
+
+초기 OctoMap 확인은 메시지 내부 frame을 읽어 실패했다. 외부 frame을 확인하고,
+합성 점군 stamp를 TF 이력 안에 두자 변환 누락 없이 전후 검사를 통과했다.
+검사 입력, 로그, OctoMap 응답, 캐시와 `verification-summary.json`은
+`cleany-data/runs/freecad-camera-depth-octomap-curobo-20261105/`에 있다.
+실물 점군, 운영 cuRobo 궤적 계획과 OctoMap 연동은 이 검사 범위에 포함되지 않는다.
+
+## 2026-11-02 FreeCAD 관절축과 변화량 미리보기
+
+동일한 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 원본 FCStd 해시를
+사용했다. macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0과 MuJoCo 3.17.0에서
+원통면을 직접 읽어 양팔 10축, 헤드 2축, 바퀴 4축을 추출했다. 각 축은 서보와
+구동 혼의 공통 중심선이며 지지 혼이 있는 경우 함께 대조했다. 16개 모두 지지되는
+후보가 하나였고 최대 중심선 거리는 0.00003375 mm, 최대 축 방향 차이는
+0.000003674 rad였다. 이는 CAD 내부 정합성 수치이며 실물 오차가 아니다.
+
+좌우 PincOpen 구동축도 추출했지만 캠·링크의 연동과 개구 곡선은 확정하지 않았다.
+미리보기의 `cad_delta_*`는 저장된 자세 대비 변화량이며, 물리 영점과 encoder
+대응, 운용 제한은 null로 남겼다. 기존 제어 관절과 actuator는 변경하지 않았다.
+
+`make test-freecad-model GEOMETRY_PYTHON=/tmp/cleany-cad-comparison/venv/bin/python`의
+24개 검사를 통과했다. 원본 자세 재현, 6개 임의 변화량 벡터의 독립 URDF FK,
+MuJoCo mocap과 실제 메시 배치, 집게의 강체 유지와 모호한 축의 거부를 검사했다.
+새 URDF는 별도 파서로 17개 링크와 16개 변화량 관절을 읽었다. 분리된 출력 경로에서
+재생성한 manifest, URDF와 MJCF는 바이트 단위로 동일했다. Ruff와
+`git diff --check`도 통과했다.
+
+표시용 입력은 양팔 yaw ±15°, head pan +15°, 양팔 elbow ±10°이며 24프레임 GIF를
+생성했다. 각도는 검증용 입력이고 실제 가동 범위나 안전한 자세를 뜻하지 않는다.
+원본은 `$CLEANY_DATA_ROOT/runs/freecad-kinematics-20261102/`의 `verification.json`,
+`tests.txt`, `motion.gif`, `motion.png`, `motion.json`에 보존했다.
+[축 근거와 미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-kinematics.md)에
+링크 구조, 부품 소유와 사용 제한을 정리했다.
+
+ROS 패키지 빌드는 `/opt/ros/humble/setup.bash`가 없어 시작하지 못했다.
+`ros-build.txt`에 실패를 보존했다. ROS launch, RViz, 물리 시뮬레이션과 실물
+동작은 미검증이며 모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-02 FreeCAD 집게 핀 연동
+
+같은 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 FCStd 원본을 사용해
+PincOpen 캠·로드의 공통 원통축을 분석했다. 환경은 macOS 26.6.2 arm64,
+Python 3.12.14, OCP 8.0.1.1.0, NumPy 2.5.4, MuJoCo 3.17.0이다.
+캠-혼의 중앙축과 네 체결 구멍, 편심핀-구동 로드, 로드-내측 링크, 고정판-내·외측
+링크, 손끝 운반 링크의 핀을 연결해 양손 각각 두 개의 명목 폐쇄 링크를 만들었다.
+
+내·외측 링크 길이 40 mm, 고정축·손끝 핀 간격 11.5 mm와 구동 로드 약
+32.64768 mm를 확인했다. 편심핀 사이 각도 178.68°는 180°로 보정하지 않았다.
+저장된 자세의 교점 방향을 유지하며, 해가 없거나 접선으로 합쳐지는 자세는
+계산 오류로 처리한다. 기존 팔·헤드·바퀴 16축은 변경하지 않았다.
+
+명목 연동은 캠 입력 2개와 종속 좌표 16개를 추가한다. 전체 34개 좌표 중 독립
+입력은 18개다. `make test-freecad-model`의 36개 검사를 통과했다. 양손의
+캠 변화량 `[-0.6, -0.3, 0, 0.15]` rad 표본에서 핀 거리의 최대 수치 잔차는
+`1.39e-17` m였다. 이는 수학적 폐쇄 검사이며 실물 정밀도가 아니다. URDF와
+MuJoCo에서 움직이는 핀 위치도 대조했다. 새 URDF는 별도 파서로 35개 링크와
+34개 관절을 읽었으며 재생성한 manifest, URDF, MJCF는 바이트 단위로 동일했다.
+Ruff와 `git diff --check`도 통과했다.
+
+오른쪽 캠 변화량 -25°로 24프레임 GIF를 만들었다. 덮개와 서보 일부를 숨기고
+링크 종류별 진단 색상을 사용했으며 실제 동작 한계나 안전한 입력값으로 채택하지
+않았다. 검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-gripper-20261102/`의
+`verification.json`, `tests.txt`, `gripper.gif`, `gripper.png`, `gripper.json`이다.
+[연결 근거와 미확정 항목](../ros2_ws/src/cleany_description/docs/freecad-gripper.md)에
+형상 해석과 적용 범위를 기록했다.
+
+물리 영점, encoder 대응, 실물 개구 폭 보정과 접촉·유격·마찰은 미확정이다.
+외피·팁·패드는 명목 시각 부품으로 손끝 운반 링크를 따라가지만 체결·수동 회전·탄성
+구속은 확정하지 않았다. ROS 빌드는 `/opt/ros/humble/setup.bash` 부재로 시작하지
+못했으며 `ros-build.txt`에 보존했다. 실제 제어·구동과 파지는 검증하지 않았고
+모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-02 FreeCAD 팁 체결 자리
+
+동일한 `707538de9d28291c679fcfd954f5587368d5a460` 기반 작업과 원본 FCStd를 사용했다.
+macOS 26.6.2 arm64, Python 3.12.14, OCP 8.0.1.1.0에서 네 팁의 원통 구멍과
+강체 회전 간섭을 분석했다. 공통축에서 운반 링크의 구멍 2.05 mm, 팁·쉘의
+구멍 3.10 mm, 쉘의 추가 자리 5.50 mm를 확인했다. 쉘과 운반 링크의 최소
+거리는 약 0.20217 mm다. 원본 위치의 체적 중첩은 없었다.
+
+공통축에 대한 ±0.1°, ±1° 검사에서 네 팁 모두 내부 팁 형상과 운반 링크의
+교차 체적이 양수였다. 쉘 하나만의 여유 공간을 팁 전체의 자유 회전으로
+해석하지 않았다. 이 근거로 명목 조립 모델에서 네 팁을 운반 링크의 고정
+자식으로 분리했다. 새로운 수동 회전 좌표나 운용 제한은 추가하지 않았다.
+나사 규격, 체결력, 패드 고정 방법, 실제 탄성과 유격은 null로 남겼다.
+
+`make test-freecad-model`의 43개 검사를 통과했다. 변경된 URDF는 파서로 39개
+링크와 38개 관절을 읽었으며 이 중 회전 변화량은 기존 34개, 고정 연결은 4개다.
+고정 팁의 상대 배치와 MuJoCo 배치를 대조했고, 재생성한 manifest·URDF·MJCF는
+바이트 단위로 같았다. Ruff와 `git diff --check`도 통과했다.
+
+검증 원본은 `$CLEANY_DATA_ROOT/runs/freecad-tips-20261102/`의 `verification.json`,
+`reproducibility.json`, `tests.txt`, `gripper.gif`와 `gripper.json`이다.
+[팁 분석 근거와 남은 실물 확인](../ros2_ws/src/cleany_description/docs/freecad-tip-mounts.md)에
+적용 범위를 기록했다. ROS 빌드는 Humble setup 부재로 시작하지 못했으며
+`ros-build.txt`에 보존했다. 실제 팁의 고정력·변형·파지 성능이나 실물 구동은
+검증하지 않았고 모터 명령, 배포, commit과 push는 수행하지 않았다.
+
+## 2026-11-04 FreeCAD 메시 중복 제거
+
+`af6cddd9` 기반에서 위와 동일한 FCStd 입력을 Python 3.12와 MuJoCo 3.17.0으로
+검증했다. LiDAR의 250,442개 삼각형을 합쳐 기존 STL과 바이트 단위로 대조했고,
+나머지 자산과 운동학 manifest도 기존 파일과 일치했다. 자동 검사 50개와 URDF
+두 파일의 xacro 처리를 통과했다. 이전 schema 1 출력에서 다시 내보낸 320개
+파일이 이번 출력과 바이트 단위로 같았으며 기존 통파일과 분할 디렉터리는
+제거됐다. 테스트에서 주입한 출력 실패 후 재시도와 사용자 파일 보존도 확인했다.
+헤드 회전 미리보기는 로컬 `/tmp/cleany-freecad-dedup.bOWzos/full-preview.gif`에
+생성했다. 원본 검증 기록은 `$CLEANY_DATA_ROOT/runs/freecad-mesh-dedup-20261104/`의
+`migration.json`, `verification.json`, `export_freecad_model.txt`,
+`extract_freecad_kinematics.txt`에 있다. ROS 빌드는 Humble setup 파일 부재로
+시작하지 못했으며 오류를 같은 경로의 `ros-build.txt`에 보존했다.
+
+## 2026-11-04 Jetson FreeCAD 배포와 ROS 확인
+
+`6f915e04`와 namespace/frame prefix 변경을 Jetson Orin의 Ubuntu/Humble에서
+검증했다. 소스는 `/home/cleany/cleany-freecad-model-update`에 두고 worktree별
+overlay로 `cleany_description`을 빌드했다. 자동 검사 50개를 통과했으며, 기존
+system Python의 SciPy가 NumPy 1.26.1에 대해 버전 경고를 냈다.
+ROS domain 174의 localhost 검사에서 정적 모델의 고정 TF 24개와 운동학 모델의
+고정 TF 4개, 회전 TF 34개를 수신했다. 표시용 head pan 0.05 rad의 quaternion,
+namespace 적용과 기본 namespace 실행도 확인했다.
+
+사용자 service `cleany-cad-reference`는 domain 0의 `/cad_reference/` 토픽과
+`cad_reference/` TF frame으로 정적 기준 형상을 제공한다. 실물 mapping service와
+함께 실행 중인 상태를 확인했다. 검증 원본은 Jetson의
+`~/cleany-data/runs/freecad-jetson-20261104/`에 있는 `ros-verification.json`,
+`service-verification.json`, 모델별 launch 로그와 `default-launch.txt`다.
+
+실물 mapping 프로파일 `mapping_cad_20261104.yaml`은 CAD +Y를 전방으로 기록하지만
+이 모델은 CAD -Y를 전방으로 사용한다. 실물 팔의 11월 2일 영점도 이전 URDF
+기준이다. 조립 상태, 전방과 높이 원점의 대응 및 새 CAD 자세의 encoder 대응이
+미확정이므로 실물 관절 피드백, MoveIt, 모터 제어로의 연결은 보류 상태다.
+
+## 2026-11-04 실물 전방 확인과 LiDAR 위치 수정
+
+사용자가 실물이 FreeCAD와 같은 구성이고 LiDAR 장착 쪽이 전방이라고 확인했다.
+`a2f44d30` 기반 모델의 CAD -Y → ROS +X 규약과 일치한다. LiDAR 회전부의
+CAD 입체 경계에서 Y 중심 -139.275mm를 대조하고, Jetson의 기존 mount x=-0.139275m를
+`mapping_cad_lidar_front.yaml`의 +0.139275m로 수정했다. 기존 전방 표적 관측의
+yaw=180도와 평면 높이 규약 z=0을 사용하며 광학 원점 실측값으로 취급하지 않는다.
+
+변경 전 5초간 바퀴 피드백과 명령의 정지를 확인했다. 처음 저장 요청은 기존 로거의
+`get_config` 응답 timeout으로 실패했다. Cartographer WriteState로 33,394,847-byte
+pbstream을 별도 보존했고, service 종료 재시도에서 `mapping_saved=true`와
+`stop_confirmed=true`를 확인했다. 새 프로필로 재시작한 세션은
+`hardware-slam-20261104T203935-41e3aa02`다. 5초 검사에서 raw scan 39개, filtered
+scan 35개, wheel state 225개를 받았으며 실제 base_link → lidar_link의
+x=0.139275m와 yaw=180도를 확인했다. 바퀴 명령과 속도는 정지 상태였다.
+
+검증 원본은 Jetson의 `~/cleany-data/runs/freecad-front-20261104/`에 있는
+`readiness.json`, `mapping-save.json`, `manual-map-save.json`,
+`shutdown-before-restart.json`, `mapping-reset.json`, `live-verification.json`이다.
+로컬의 같은 run 경로에 CAD 입체 경계와 변경 전 프로필도 보존했다.
+실물 팔의 새 CAD 기준 영점과 집게 encoder 대응은 여전히 별도 확인이 필요하다.
+
+## 2026-11-04 FreeCAD MoveIt, OctoMap과 cuRobo 검사
+
+`21787723` 기반의 로컬 변경을 Jetson Orin의 Humble과 기존 cuRobo CUDA 환경에서
+검사했다. `cleany_moveit_config`를 별도 overlay에 빌드했다. 기본 Humble의
+PointCloudOctomapUpdater 2.5.10이 occupancy map monitor 2.5.10을 찾지 못해
+실패했다. 설치된 2.5.9 호환 `moveit-scene-runtime`과
+`moveit-octomap-lock` overlay로 다시 실행했다.
+
+localhost ROS domain 177에서 MoveIt은 CAD 저장 자세의 관절 34개를 읽었다.
+OctoMap은 로봇 자체 필터에 메시 309개를 등록하고 CAD `base_link`의 합성
+점군 64점으로 점유 지도를 만들었다. 조회한 지도는 3,190 bytes였으며,
+계획, IK와 궤적 실행 인터페이스는 없었다. cuRobo는 정적 저장 자세의 충돌
+링크 24개와 삼각형 934,253개를 CUDA mesh world로 읽었다. LiDAR 표면의
+시험 구는 충돌했고 외부 시험 구는 충돌하지 않았다.
+
+원본은 Jetson의 `~/cleany-data/runs/freecad-planning-20261104/`에 있는
+`moveit-octomap.log`, `moveit-octomap-isolated.log`,
+`scene-result-isolated.json`, `curobo-result-final.log`다. 운영 프로필을
+전환하려면 [필요한 확인](../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)을
+완료해야 한다.
+
+## 2026-11-04 FreeCAD 충돌 메시 인덱싱
+
+`21787723` 기반의 미커밋 FreeCAD 검사 구성에서 STL 충돌 메시 309개를
+GLB 캐시로 인덱싱했다. 934,253개 삼각형의 순서와 꼭짓점 좌표를 대조했고,
+URDF는 충돌 메시 경로만 달라졌다. 충돌 메시 입력은 46,738,606 bytes에서
+17,028,876 bytes로 줄었다. 손상된 캐시와 다른 형상 manifest를 거부하는
+검사 1개와 FreeCAD 관련 검사 50개가 통과했다.
+
+Jetson Orin의 Humble 2.5.9 호환 overlay에서 MoveIt과 OctoMap은 각 형식을
+두 번 검사했다. 프로세스 시작부터 점유 지도를 조회하기까지 평균 시간이
+STL 36.838초에서 GLB 29.056초로 줄었다. 네 번 모두 같은 64점 입력의
+3,190-byte OctoMap 해시가 일치했다. 초기 PLY 후보는 Jetson의 Assimp 5.2
+후처리에서 종료되어 GLB로 바꿨다.
+
+CUDA를 초기화한 뒤 cuRobo mesh world 준비와 두 시험 구 검사에 걸린 시간은
+형식당 세 번 측정한 중앙값으로 6.836초에서 4.433초로 줄었다. 모든 표본에서
+LiDAR 표면 구는 충돌했고 차체 밖 구는 충돌하지 않았다.
+
+원본 측정은 Jetson의 `~/cleany-data/runs/freecad-optimization-20261104/`에
+있는 `scene-benchmark.json`, `curobo-benchmark.json`, `scene-*.log`와
+`moveit-2-indexed.log`다. 로컬의 같은 run 경로에 `geometry-verification-glb.json`을
+보존했다.
+
+## 2026-11-04 FreeCAD 표면 감면과 cuRobo 링크 캐시
+
+`21787723` 기반 미커밋 변경에서 VTK 9.6.2로 충돌 메시 감면 후보를 만들고,
+원본과 결과의 양방향 표면 거리 상한을 0.1mm로 검사했다. 경계와 비다양체
+edge 및 Euler characteristic을 보존하고 원본 꼭짓점만 사용했다. 최종 캐시는
+265개 메시를 감면해 삼각형 934,253개를 760,943개로 줄였다. 309개 GLB 입력의
+크기는 17,028,876 bytes에서 13,908,916 bytes로 줄었다. 관절, 링크 변환과
+시각 모델 XML은 그대로였다. cuRobo용 24개 링크 파일은 같은 삼각형 배열을
+미리 합친 것으로, 입력 배열과 저장 후 배열의 일치를 확인했다.
+
+첫 감면본의 GPU 대조에서는 3,740개 시험 구 중 왼팔 카메라 묶음에서 1개의
+내부와 외부 판정이 달랐다. 해당 위치의 최근접 표면과 거리는 같았으며,
+표면 거리 상한만으로 GPU 부호 판정의 동일성을 보증할 수 없었다.
+`--preserve-link cad_snapshot_LeftCameraComponents`로 그 묶음의 원본 삼각형을
+보존한 최종본은 3,740개 판정이 모두 일치했다. 이것은 저장 자세의 회귀 검사이며
+실물 또는 모든 자세의 충돌 안전성을 입증한 결과가 아니다. Jetson trimesh 4.5.3의
+GLB 로더가 Scene을 반환하던 실패는 `load(..., force="mesh")`와 단일 재질 내보내기로
+처리했다.
+
+Jetson Orin의 CUDA 초기화 뒤 mesh world 준비와 두 시험 구 검사 시간을
+각 방식 세 번 측정했다. 기존 인덱스 캐시는 중앙값 4.792초, 개별 감면 캐시는
+4.765초, 링크를 미리 합친 최종 캐시는 2.479초였다. 궤적 계획이나 반복 충돌
+질의 속도를 측정한 값은 아니다. MoveIt과 OctoMap은 Humble 호환 overlay와
+localhost domain 199에서 최종본을 읽었고, 34개 관절과 309개 자체 필터 메시를
+확인했다. 합성 점군 64점의 3,190-byte 지도 해시는 기존 결과와 같았다.
+초기 감면본의 교차 측정에서는 MoveIt 시작 시간의 뚜렷한 개선을 확인하지 못했다.
+
+오프라인 관련 검사 60개와 별도 overlay 빌드가 통과했다. 검사 프로세스는
+종료했고 운영 mapping과 CAD reference 서비스는 계속 실행 중이었다.
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-reduction-20261104/`에 있는
+`surface-cache-verified/manifest.json`, `world-cache-verified/manifest.json`,
+`geometry-final-verification.json`, `curobo-final-benchmark.json`,
+`curobo-final-probes.npz` 및 `scene-final-result.json`이다. 초기 실패와 후보의
+측정도 같은 run에 보존했다. 커밋, 푸시와 운영 모델 전환은 수행하지 않았다.
+
+## 2026-11-05 FreeCAD MoveIt 하부 단순 형상
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 미커밋 변경에서
+`surface-cache-verified`의 하부 메시 137개를 박스 49개와 바퀴 원통 4개로
+대체했다. 원본 STL의 꼭짓점 181,468개가 직렬화된 형상 안에 들어가는지
+확인했다. 바퀴는 추출한 관절축을 유지하며 0, 0.4, 1.2, π rad의 수치
+회전에서도 포함 관계를 검사했다. 회전 계산의 최대 음수 잔차는
+5.21e-17 m 이내였다. 이 각도들은 검사 입력이며 운용 한계가 아니다.
+유지한 메시 172개의 파일 해시와 collision origin, 모든 비충돌 XML은
+입력과 같았다. 하부의 작은 구멍과 홈을 채우는 보수적 근사이므로 이전의
+0.1mm 표면 거리 상한은 대체한 부품에 적용하지 않는다.
+
+| 항목 | 표면 감면 캐시 | MoveIt 하부 단순 형상 |
+|---|---:|---:|
+| 충돌 형상 수 | 메시 309개 | 메시 172개, 박스 49개, 원통 4개 |
+| 메시 삼각형 | 760,943 | 449,649 |
+| GLB 입력 bytes | 13,908,916 | 8,208,276 |
+| 시작부터 첫 OctoMap 조회까지 평균 | 14.148초 | 9.941초 |
+| 자체 필터 형상 준비 평균 | 5.061초 | 3.393초 |
+
+시간은 Jetson Orin의 Humble 호환 overlay에서 localhost domain 205~208로
+각 구성을 두 번씩 교차 측정했다. 반복 충돌 질의나 궤적 계획 성능은 측정하지
+않았다. 모든 실행에서 관절 34개, 계획과 실행 인터페이스 비활성화를 확인했고,
+기존 합성 점군 64점의 3,190-byte OctoMap 해시가 같았다.
+추가 165점 중 하부 내부의 137점은 자체 필터에서 제거되고 외부 24점과
+40mm 패널 틈의 4점은 유지됐다. 차체, 라이다, 바퀴 등의 표면 7곳은
+2mm 시험 박스와 접촉했고, 패널 틈과 외부 5곳은 접촉하지 않았다.
+기존 자기 접촉은 시험 장애물과의 접촉으로 세지 않았다.
+
+오프라인 관련 검사 65개, Ruff와 별도 overlay 패키지 빌드가 통과했다.
+최초 runtime 검사에서는 JSON의 정수 0을 ROS float 필드에 넣어 실패했으며
+명시적인 float 변환 후 네 번 모두 통과했다. 검사 프로세스는 종료했다.
+재개 시점과 종료 시점 모두 CAD reference 서비스는 active, hardware mapping
+서비스는 inactive였으며 이 작업에서 서비스를 시작하거나 중지하지 않았다.
+cuRobo 캐시, 실물 보정과 운영 모델은 변경하지 않았고 커밋이나 푸시도 하지 않았다.
+
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-moveit-primitives-20261104/`에
+보존했다. `moveit-cache/manifest.json`은 생성 근거와 해시,
+`geometry-verification.json`은 포함 관계와 보존 검사,
+`scene-benchmark.json`과 `scene-*.log`는 네 번의 실행 결과다.
+`lower-body-probes.json`과 `make_probes.py`는 입력과 생성 스크립트이며,
+`failed-integer-probe/`는 초기 실패다. 전후 렌더링은
+`moveit-lower-body-optimization.png`, 미커밋 소스의 식별자는
+`verification-summary.json`에 있다.
+
+## 2026-11-05 FreeCAD 투입구 보존과 상부 추가 감면
+
+사용자가 몸통 내부를 채우되 팔 뒤의 상판 투입구와 아래 공간을 남기고,
+마스트와 헤드 마운트 내부를 채우도록 확인했다. `2178772352ea293d926b80849d0878c3c0a15ed3`
+기반 미커밋 변경에서 두 상판 메시의 수평 윗면 경계를 추출했다. 공통 투입구는
+base frame의 x=-0.180~-0.010m, y=-0.230~0.230m인 170×460mm 사각형이다.
+몸통은 박스 5개의 합집합으로 채우고, 이 투입구부터 기존 내부 횡대 윗면
+z=-0.1445m까지 비웠다. 이전 단순 박스가 막았던 투입구를 복원한 것이다.
+실물 통의 바닥이나 사용 가능 깊이를 결정한 것은 아니다. 몸통 측면 틈은
+채웠으며 그 근처 라이다 TF나 시각 메시를 바꾸지 않았다. 바닥 부근에서
+투입구 안쪽으로 돌출한 IMU 부품은 몸통에서 제외하고 별도 충돌 형상으로 유지했다.
+
+마스트, 고정 지지대와 관절별 헤드 마운트를 박스로 바꾸고 바퀴 원통은 유지했다.
+몸통의 원본 삼각형 342,574개가 빈 공간을 가로지르지 않는지 clipping으로
+검사했으며, 별도 표면 표본 2,398,018개도 다섯 박스 안에 있었다. 개별 단순
+형상 26개와 비충돌 XML 보존을 확인했다. 팔 본체와 헤드 하우징은 원본 STL에서
+0.5mm 양방향 표면 거리 상한으로 다시 감면했다. 83개 메시가 더 줄었고,
+집게, 팁, 손목 카메라 묶음과 헤드 광학창을 포함한 81개 메시의 해시는 이전과
+같았다. 해당 허용치는 검사 메시 근사치이며 실물 보정값이나 충돌 padding이 아니다.
+
+| 항목 | 앞선 하부 캐시 | 이번 캐시 |
+|---|---:|---:|
+| MoveIt 메시 삼각형 | 449,649 | 294,780 |
+| 충돌 형상 | 메시 172, 박스 49, 원통 4 | 메시 164, 박스 22, 원통 4 |
+| GLB 입력 bytes | 8,208,276 | 5,418,108 |
+| 팔 베이스 하우징 삼각형 | 10,053 | 4,519 |
+| 헤드 카메라 하우징 삼각형 | 18,774 | 8,936 |
+| 시작부터 첫 OctoMap 조회까지 평균 | 9.957초 | 7.491초 |
+| 자체 필터 형상 준비 평균 | 3.407초 | 1.902초 |
+
+Jetson Orin의 기존 Humble 호환 overlay에서 localhost domain 211~214로 각
+구성을 두 번씩 교차 실행했다. 모든 실행의 기존 64점 OctoMap 해시가 같았다.
+추가 점군 129점에서 단순 입체 내부 30점은 제거되고 투입구와 외부의 99점은
+유지됐다. 시험 박스 접촉 49곳도 두 번 모두 예상과 일치했다. 계획과 실행
+인터페이스는 없었으며 준비 시간은 궤적 계획 성능을 뜻하지 않는다.
+
+cuRobo는 같은 CAD 저장 자세를 객체 61개, 삼각형 296,068개로 읽었다.
+박스는 독립 객체, 원통은 외접 64각 기둥으로 변환했다. 바퀴의 반지름 확장은
+약 0.077mm이며 저장 좌표는 float32다. 초기 GPU 검사에서는 기본 0.1m 거리
+탐색 범위 때문에 큰 몸통 중앙 한 점을 놓쳤다. 객체 경계 상자의 최대 대각선
+0.73246m를 검색 범위로 적용한 뒤 몸통 내부, 투입구 경계와 메시 표면을 포함한
+1,181개 시험 구가 모두 예상과 일치했다. GPU 표면 분류를 모든 관절 자세의
+실물 안전 검증으로 확대하지 않는다.
+
+오프라인 관련 검사 69개와 Ruff가 통과했다. 이번 변경은 오프라인 캐시 도구와
+설정이며 native 검사는 앞서 빌드한 별도 overlay를 사용했다. 커밋, 푸시,
+운영 모델 전환과 실물 보정값 추가는 수행하지 않았다.
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-body-arm-20261105/`에 있는
+`moveit-cache/manifest.json`, `world-cache-verified/manifest.json`,
+`geometry-verification.json`, `scene-benchmark.json`, `body-probes.json`,
+`curobo-probes.json`, `curobo-probes.npz`, `curobo-result-verified.log`다.
+초기 GPU 실패는 `failed-default-query-distance/`에 보존했다.
+0.1mm 한도에서 감면 방법을 비교한 실험과 0.25/0.5/1mm 후보 결과도 같은
+run의 `*-experiment.*`에 있다. 전후 그림은 `body-head-optimization.png`와
+`curved-mesh-comparison.png`, 소스 해시와 명령은 `verification-summary.json`에 있다.
+
+## 2026-11-05 FreeCAD 기둥 상세화와 팔 분할 외피
+
+사용자 요청에 따라 `2178772352ea293d926b80849d0878c3c0a15ed3` 기반 미커밋
+변경에서 마스트의 단일 박스를 높이별 8개 닫힌 외피로 교체했다. 내부는
+채우면서 좁은 허리와 넓은 밑부분을 보존했다. 삼각형은 원본 8,316개에서
+672개가 됐다. 다른 헤드 마운트와 몸통 투입구는 직전 캐시와 같다.
+
+팔은 기존 `optimize_arm_collision_meshes.py`의 분할과 supporting-plane 외피
+알고리즘을 재사용했다. 예전 관절 좌표나 메시를 복사하지 않고 새 FreeCAD
+부품에서 분할 평면을 선택했다. 어깨와 손목의 큰 포크 틈은 나눠 유지하며
+작은 구멍은 채운다. 팔의 조각별 볼록 외피 확장 상한은 1mm, 마스트는
+0.25mm다. 이는 오목한 CAD 표면과의 거리 상한이나 실물 보정값이 아니다.
+71개 부품의 외피 198개에서 원본 삼각형 분할 면적의 합, 직렬화한 GLB의
+닫힘과 원본 조각 포함을 확인했다. 최대 외피 확장은 0.9871mm다. 유지한
+94개 메시의 해시, 몸통 투입구 명세와 비충돌 XML은 직전 캐시와 같았다.
+
+| 항목 | 직전 캐시 | 이번 캐시 |
+|---|---:|---:|
+| 팔 본체 메시 삼각형 | 142,676 | 8,568 |
+| 전체 MoveIt 메시 삼각형 | 294,780 | 161,344 |
+| 충돌 형상 | 메시 164, 박스 22, 원통 4 | 메시 292, 박스 21, 원통 4 |
+| GLB 입력 bytes | 5,418,108 | 3,124,352 |
+| 시작부터 첫 OctoMap 조회까지 평균 | 7.417초 | 7.022초 |
+| 자체 필터 형상 준비 평균 | 1.918초 | 1.022초 |
+
+검사 전용 `cleany/CADInspectionFCL`은 명시한 닫힌 외피만 FCL 입체로 읽고
+나머지 CAD 메시의 표면 검사를 유지한다. Jetson Orin의 ROS Humble에서
+`cleany_moveit_collision`과 `cleany_moveit_config`를 별도 workspace로 빌드했다.
+native 단위 검사 8개와 로컬 Python 검사 22개, Ruff가 통과했다. Python 검사
+초기에는 용접되지 않은 STL fixture를 닫힌 GLB처럼 사용해 한 검사가 실패했다.
+실제 캐시와 같은 인덱스 GLB fixture로 고친 후 통과했다.
+
+localhost domain 215~218에서 전후 구성을 두 번씩 교차 실행했다. 새 detector의
+로드 확인 로그가 있었고 궤적 계획과 실행 인터페이스는 없었다. 기존 64점
+OctoMap 해시는 네 번 모두 같았다. 추가 점군 335개 중 내부 228개는 제거되고
+투입구, 외부와 기둥 허리 바깥 107개는 유지됐다. 외피 내부를 포함한 장애물
+접촉 255곳은 두 번 모두 예상과 일치했다. cuRobo는 동일 저장 자세의 독립 객체
+250개, 삼각형 162,620개를 읽었다. 표면과 깊은 내부, 투입구 및 기둥 주변의
+GPU 구 쿼리 4,607개가 모두 통과했다. 검사 범위는 CAD 저장 자세이며 실제
+로봇 동작이나 모든 관절 자세의 안전을 검증한 결과가 아니다.
+
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-enclosures-20261105/`에 있다.
+`moveit-cache/manifest.json`, `world-cache/manifest.json`은 생성 근거와 해시,
+`geometry-verification.json`은 외피 포함과 보존 검사,
+`scene-benchmark.json`, `scene-*.log`, `lower-body-*-after.txt`는 native 결과다.
+`body-probes.json`, `prepare_probes.py`, `curobo-probes.json`과 `.npz`는 입력과
+GPU 결과다. 분할 후보는 `partition-candidates.json`, 렌더링은
+`mast-refinement.png`, `arm-enclosure-comparison.png`, `planning-models.png`다.
+빌드와 native 단위 검사 원본, 소스 해시와 실행 환경은 같은 run에 보존했다.
+커밋, 푸시, 운영 모델 전환이나 미확인 보정값 추가는 수행하지 않았다.
+
+## 2026-11-05 집게 입구 보존과 cuRobo 기본 박스 최적화
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 미커밋 변경에서 사용자 요청
+순서대로 집게 고정 외장, 헤드와 손목 카메라 하우징, 고정 조각 묶음과 cuRobo
+native cuboid를 적용했다. 캠, 가동 링크, 팁과 광학부 등 보호 메시 39개는
+직전 캐시와 같은 해시다. 비충돌 XML, 상세화한 마스트와 뒤쪽 상판 투입구도
+유지했다. 고정 외피는 저장 자세의 팁 영역보다 뒤쪽에 약 35.89mm 떨어져 있다.
+이 값은 CAD 분리 거리이며 새 여유나 실물 보정값이 아니다.
+
+| 단계 | MoveIt 메시 삼각형 | 전체 충돌 형상 |
+|---|---:|---:|
+| 직전 모델 | 161,344 | 317 |
+| 집게 고정 외장 | 112,852 | 389 |
+| 카메라 하우징 | 79,012 | 415 |
+| 각 강체 부품 안의 조각 통합 | 76,196 | 275 |
+| 같은 링크의 서보와 보드 부품 묶음 | 74,556 | 227 |
+
+초기 후보는 삼각형 감소에도 GPU 4,096개 쿼리 배치가 중앙값 46.63ms에서
+51.19ms로 느려졌다. 따라서 같은 링크와 메시 좌표계에 고정된 65개 원본
+부품을 17개 묶음으로 통합했다. 모든 원본 해시를 기록하고, 다른 관절 링크의
+병합을 거부한다. 최종 외피 163개에서 분할 면적 합, 원본 삼각형 포함과 GLB의
+닫힘을 확인했다. 최종 MoveIt 입력은 메시 202개, 박스 21개, 원통 4개이며
+GLB 크기는 3,124,352 bytes에서 1,494,952 bytes로 줄었다.
+
+cuRobo는 최종 메시 192개와 기본 박스 21개를 독립 객체로 읽는다. 메시
+삼각형은 162,620개에서 75,580개, GLB 크기는 3,116,184 bytes에서
+1,505,976 bytes로 줄었다. 같은 박스를 메시로 만든 대조 캐시와 표시용
+삼각형 배열 213개가 완전히 같았고, GPU 쿼리 4,096개의 충돌 판정도 같았다.
+원통은 외접 64각 기둥 메시를 유지한다. 기본 박스에는 float32 GPU 연산 외의
+물리적 여유를 추가하지 않았다.
+
+Jetson Orin에서 동일한 4,096개 입력을 CUDA graph로 50번씩 재생하고 세 구성을
+교차 순서로 7회 측정했다. 쿼리 배치 중앙값은 이전 46.863ms, 최종 형상의
+메시 박스 45.506ms, native cuboid 44.454ms다. 이전 대비 약 5.1% 개선이며
+삼각형 감소율과 같지 않다. 고정 자세의 합성 구 쿼리 결과로, 궤적 solver의
+실행 시간이나 실물 움직임 성능을 측정한 것은 아니다.
+
+ROS Humble의 별도 overlay에서 localhost domain 223~226으로 전후 구성을
+두 번씩 교차 실행했다. 동일한 64점 OctoMap 해시와 계획·실행 인터페이스의
+부재를 확인했다. 자체 필터 형상 준비 평균은 1.040초에서 0.494초가 됐다.
+시작부터 첫 OctoMap 조회까지는 7.069초에서 7.257초로, 시작 전체 시간의
+개선은 확인되지 않았다. 최종 캐시에서 점군 430점 중 내부 323점은 제거되고
+107점은 유지됐으며, 시험 장애물 접촉 350곳도 두 번 모두 예상과 일치했다.
+
+기존 명목 링크 해석기로 양쪽 캠에 표시용 -25° 변화를 주고 종속 관절까지
+계산했다. 이 입력은 실제 영점이나 가동 범위가 아니다. 양쪽 집게 입구는
+전후 모두 약 12.0137mm이며 팁 삼각형의 변환 결과가 완전히 같았다.
+열린 자세의 점군 122개에서 입구의 90개는 유지되고 접촉부 내부 32개는
+제거됐다. 접촉 검사 62곳도 전후 각각 두 번 모두 통과했다. GPU는 저장 자세
+4,275개와 열린 자세 184개 쿼리가 모두 통과했다. Python 검사 18개와 Ruff가
+통과했으며, 변경한 도구와 검사 노드는 직접 실행했다. native 검사에는 기존
+`cleany/CADInspectionFCL` 빌드 overlay를 사용했다.
+
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-tool-camera-20261105/`에 있다.
+최종 입력은 `moveit-cache-final/`, `world-cache-final/`이며, 같은 박스를
+메시로 읽는 대조 입력은 `world-cache-mesh-boxes-final/`이다.
+`moveit-cache-final-geometry.json`, `native-box-geometry.json`,
+`body-probes-final.json`, `open-probes-final.json`, `aperture-geometry-final.json`,
+`final-scene-benchmark.json`, `final-gpu-saved.json`, `final-gpu-open.json`,
+`final-gpu-benchmark.json`과 `.npz`에 입력과 결과가 있다. `final-*.log`와
+`final-*.txt`는 native 실행 원본이다. 느렸던 후보는 `moveit-cache/`,
+`world-cache/`, `gpu-benchmark.json`으로 보존했다. 전후 그림은
+`moveit-before-after.png`, `curobo-before-after.png`, `gripper-preserved.png`다.
+소스 해시와 환경은 `verification-summary.json`에 기록했다. 커밋, 푸시,
+운영 모델 전환과 미확인 보정값 추가는 수행하지 않았다.
+
+## 2026-11-05 그리퍼 캠과 링크 추가 단순화
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 미커밋 변경에서 집게 입구와
+접촉면을 유지하며 캠, 가동 링크와 비접촉 팁을 추가 감면했다. 비교 입력은
+직전 `freecad-tool-camera-20261105/moveit-cache-final/`이며 재생성 입력은
+`freecad-reduction-20261104/surface-cache-verified/`와 원본 CAD STL이다.
+원본 30개를 닫힌 외피 24개로 바꿨다. 캠과 혼, 팁 쉘과 삽입부는 각각 같은
+관절 링크 안에서 묶었다. 캠과 링크의 볼록 외피 확장 상한은 기존 팔과 같은
+1mm, 팁 뒤쪽은 0.25mm다. 이는 원본 볼록 외피 기준의 메시 근사 상한이며,
+오목한 표면과의 거리 상한이나 물리적 보정값이 아니다. 나사 구멍과 내부
+빈 공간은 채워졌다. 0.25mm 후보는 전체 36,580개 삼각형으로 별도 보존했다.
+
+| 항목 | 직전 모델 | 최종 모델 |
+|---|---:|---:|
+| 양쪽 그리퍼와 구동부 삼각형 | 61,744 | 20,560 |
+| 전체 MoveIt 메시 삼각형 | 74,556 | 33,372 |
+| MoveIt 충돌 형상 | 227 | 221 |
+| cuRobo 메시 삼각형 | 75,580 | 34,396 |
+| cuRobo 메시 객체와 기본 박스 | 192 + 21 | 198 + 21 |
+| 자체 필터 형상 준비 평균 | 0.5092초 | 0.2367초 |
+| 시작부터 첫 OctoMap 조회 평균 | 7.3665초 | 7.4325초 |
+| GPU 4,096개 쿼리 배치 중앙값 | 44.6933ms | 38.1804ms |
+
+접촉 패드 4개와 광학 부품 5개는 직전 캐시와 같은 해시다. 그리퍼 외 자산,
+단순 입체, 비충돌 XML, 관절축과 링크 관계도 유지했다. CAD 캠 변화량 0°부터
+-25°까지 11개 비교 자세에서 패드 삼각형과 관절 변환이 일치했고, 패드 사이
+입구 직육면체와 새 외피의 교차가 없었다. -25°에서 양쪽 입구 폭은 전후 모두
+12.0137mm다. 이 자세 범위는 실물 영점이나 허용 동작 범위가 아니다.
+전체 외피 187개의 직렬화된 닫힘, 원본 삼각형 포함과 근사 상한을 확인했다.
+
+로컬 Python 검사 26개가 통과했다. NumPy 2.5 관련 VTK deprecation 경고 2개가
+있었다. 생성 알고리즘과 native 코드는 바꾸지 않고 기존 검사 overlay를
+사용했다. Jetson Orin ROS Humble의 localhost domain 227~230에서 전후를
+두 번씩 교차 실행했다. 64점 OctoMap 해시는 네 번 모두 같고 계획과 실행
+인터페이스는 없었다. 최종 저장 자세에서 점군 454개 중 347개를 제거하고
+107개를 유지했으며, 장애물 접촉 374곳이 두 번 모두 예상과 일치했다.
+열린 자세의 점군 122개 중 입구 90개를 유지하고 접촉부 내부 32개를 제거했다.
+접촉 62곳도 전후 각각 두 번 모두 통과했다. GPU 저장 자세 4,419개와 열린
+자세 184개 쿼리가 통과했다. 동일한 난수 입력 4,096개를 CUDA graph로 50회씩
+재생하여 교차 순서 7회 측정한 배치 시간은 약 14.6% 줄었고, 이 입력의 충돌
+판정 변경은 없었다. 궤적 계획 시간이나 전체 시작 시간의 개선은 확인하지 않았다.
+
+자기 접촉은 별도 localhost domain 231에서 저장 자세와 열린 자세를 전후
+대조했다. 두 자세 모두 distal–external, distal–internal, driving–internal
+결합부에서 양손 합계 12쌍이 추가 검출됐다. 원본부터 자기 접촉이 있었으며
+전후 모두 유효한 무충돌 계획 상태로 판정되지 않았다. 접촉 허용 규칙은
+임의 추가하지 않았다. 이 결과는 검사 캐시의 감면과 외부 장애물 판정에 대한
+근거이며, 실제 계획에 연결하기 전 결합부 형상 또는 허용 접촉 정책의 검토가
+필요하다. 실물 동작, 영점이나 집게 구동 보정값은 검증하거나 변경하지 않았다.
+
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-gripper-simple-20261105/`에
+있다. `config-before.json`, `config-after.json`, `moveit-cache-final/`과
+`world-cache-final/`이 전후 설정과 최종 형상이다. `moveit-cache-final-geometry.json`,
+`aperture-sweep.json`, `final-scene-benchmark.json`, `final-gpu-*.json`과 `.npz`,
+`self-contacts.json`, `added-self-contacts.json`에 입력과 결과를 보존했다.
+`gripper-before-after.png`와 `moveit-curobo-before-after.png`는 실제 캐시의
+전후 렌더링이다. 환경과 소스 해시는 `verification-summary.json`에 있다.
+커밋, 푸시와 운영 모델 전환은 하지 않았다.
+
+## 2026-11-05 그리퍼 결합부 형상 복원과 자기 접촉 회귀 검사
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 미커밋 변경에서 직전 그리퍼
+감면으로 추가된 자기 접촉 12쌍을 형상 변경으로 제거했다. 비교 대상은 감면 전
+`freecad-tool-camera-20261105/moveit-cache-final/`, 문제 외피를 가진
+`freecad-gripper-simple-20261105/moveit-cache-final/`과 이번 최종 캐시다.
+단일 볼록 외피가 운반 링크와 내측 링크의 포크 틈과 축 구멍을 채운 것이
+원인이었다. 축 구멍까지 유지하기 위해 해당 8개 부품을 기존 표면 감면 메시로
+복원했다. 단순 평면 분할로 구멍을 보존했다고 주장하거나 새 여유를 추정하지
+않았다. 복원 메시의 해시는 감면 전 캐시와 같고, 입력의 양방향 표면 거리
+상한은 0.1mm다. 캠, 구동 로드, 외측 링크와 비접촉 팁의 단순화는 유지했다.
+
+| 항목 | 수정 전 | 수정 후 |
+|---|---:|---:|
+| 추가 자기 접촉 쌍 | 12 | 0 |
+| 양쪽 그리퍼와 구동부 삼각형 | 20,560 | 32,854 |
+| 전체 MoveIt 메시 삼각형 | 33,372 | 45,666 |
+| 전체 cuRobo 메시 삼각형 | 34,396 | 46,690 |
+| GPU 4,096개 쿼리 배치 중앙값 | 38.2349ms | 41.1975ms |
+
+결합부 상세 형상을 유지하면서 메시와 쿼리 비용이 늘었다. 그리퍼 감면 전
+기준은 MoveIt 74,556개, cuRobo 75,580개 삼각형이며 같은 실행에서 측정한
+GPU 배치 중앙값은 44.6468ms다. 수정 후에도 이 기준보다 작고 빠르지만,
+직전의 틈을 채운 모델보다 빠르다고 해석하지 않는다. GPU 측정은 같은 난수
+입력 4,096개를 CUDA graph로 50회씩 재생하고 세 모델을 교차 순서로 7회
+측정했다. 이 입력에서는 수정 전후 충돌 분류가 같았다.
+
+Jetson Orin ROS Humble의 localhost domain 232에서 세 모델을 각각 28개
+자세로 조회했다. 양쪽 CAD 캠 변화량을 0°부터 -25°까지 1° 간격으로 준 26개
+자세와 한쪽만 -25°인 두 자세다. 종속 관절은 기존 명목 해석기로 계산했다.
+각 자세에서 수정 전에는 감면 전 기준보다 12쌍이 많았고, 수정 후에는 전체
+자기 접촉 쌍 집합이 기준과 완전히 일치했다. 실제 MoveIt 충돌 허용 행렬은
+세 모델 모두 빈 행렬이며 해시도 같았다. 로컬 python-fcl 0.7.0.11로 수행한
+28 × 12개 링크 거리 검사도 모두 양수였고 최소 CAD 간격은
+0.3373784517mm였다. 이는 실물 유격이나 허용 가동 범위의 측정값이 아니다.
+감면 전부터 있던 CAD 자기 접촉을 제거하거나 실물 계획을 승인한 결과는 아니다.
+
+28개 자세에서 접촉 패드의 삼각형과 관절 변환은 수정 전과 같았다. 복원한
+부품의 경계상자와 집게 입구 영역은 겹치지 않았다. -25° 자세의 양쪽 개구 폭은
+12.0137mm를 유지했다. 변경 자산은 해당 8개 메시뿐이며, 다른 메시와 단순
+입체, 비충돌 XML은 같았다. 나머지 닫힌 외피 179개의 원본 포함과 근사 상한,
+보호 메시 17개의 감면 전 해시 일치를 확인했다.
+
+localhost domain 227~230에서 전후 MoveIt과 OctoMap을 두 번씩 교차 검사했다.
+64점 OctoMap 해시는 네 번 모두 같았고 계획과 실행 인터페이스는 없었다.
+수정 후 저장 자세의 점군 446개 중 339개를 제거하고 107개를 유지했으며,
+장애물 접촉 366곳도 두 번 모두 예상과 일치했다. 열린 자세에서는 점군
+122개 중 입구의 90개를 유지하고 접촉부 내부 32개를 제거했다. 장애물 접촉
+62곳도 전후 각각 두 번 모두 통과했다. GPU 저장 자세 4,411개와 열린 자세
+184개 쿼리가 통과했다. 캐시 관련 Python 검사 18개가 통과했다. 생성 도구와
+native 코드는 수정하지 않아 기존 검사 overlay를 사용했다. 로컬 자세 검사
+스크립트에서 종속 좌표를 독립 입력 API로 다시 전달한 초기 오류가 있었으며,
+독립 캠 좌표만 전달하도록 고친 뒤 전체 28개 자세 검사를 통과했다.
+
+원본은 로컬과 Jetson의 `cleany-data/runs/freecad-gripper-joints-20261105/`에
+있다. `config-before.json`, `config-after.json`, `moveit-cache-final/`과
+`world-cache-final/`이 입력과 최종 형상이다. `self-sweep.json`에는 모든 접촉과
+실제 충돌 허용 행렬, `self-sweep-summary.json`에는 세 모델 대조 결과가 있다.
+`pair-clearance.json`, `scope-aperture-verification.json`,
+`moveit-cache-final-geometry.json`, `final-scene-benchmark.json`, `final-gpu-*.json`과
+`.npz`에 형상, 점군, 접촉과 성능 검사 근거를 보존했다.
+`gripper-joints-before-after.png`와 `moveit-curobo-before-after.png`는 실제
+캐시 렌더링이며, `verification-summary.json`에는 환경과 소스 해시가 있다.
+커밋, 푸시, 충돌 허용 규칙 변경, 운영 모델 전환과 보정값 추가는 하지 않았다.
+
+## 2026-11-05 손목 외피 접촉 수정과 원본 솔리드 대조
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 작업 트리의 충돌 설정을
+수정했다. 입력은 `Cleany-final.FCStd`와 `surface-cache-verified`이며,
+비교 기준은 `freecad-gripper-joints-20261105/moveit-cache-final/`이다.
+원본 BREP의 배치와 자세별 링크 변환을 적용한 뒤 최소 거리와 교집합 부피를
+계산했다. 저장 자세에서 검출된 26쌍 중 원본 체적 겹침이 9쌍, 부피 겹침
+없는 조립 접촉이 5쌍, 원본에 0.212~0.800mm 틈이 있는 메시 근사 접촉이
+12쌍이었다. 원본 겹침에는 헤드 고정 브래킷과 팬 지지 혼의 343.81mm³
+겹침, 양팔의 서보와 혼 결합부가 포함된다. 원본 서보 솔리드 8개에 OCCT
+유효성 경고가 있었으며, 각 체적 겹침 판정은 같은 링크 쌍의 유효한
+솔리드 조합으로도 확인했다. 실물에서의 조립 의도와 공차는 별도 항목이다.
+
+양쪽 손목 본체, 서보, 집게 상하판과 캠 조립부 22개를 틈이 있는 표면
+메시로 바꿨다. 입력 표면을 그대로 복원한 후보는 138,896개 삼각형이었다.
+양방향 표면 거리 상한 0.15mm, 0.25mm, 0.5mm 후보는 각각 119,262개,
+114,926개, 98,444개였다. 네 후보의 30개 MoveIt 자세별 접촉 쌍이 같아
+0.5mm 후보를 적용했다. 이전의 45,666개보다 삼각형은 늘었으며, 충돌
+형상은 221개에서 177개로 줄었다. cuRobo 메시 객체는 198개에서 136개로
+줄었다. Jetson의 동일한 4,096개 CUDA graph 쿼리 배치에서 중앙값은
+41.2331ms에서 38.0825ms로 줄었으며 판정 변경은 없었다.
+
+Jetson Orin ROS Humble의 localhost domain 232에서 30개 비교 자세의 최종
+MoveIt 접촉 쌍이 원본 BREP의 체적 겹침과 조립 접촉 쌍에 일치했다. 추가
+손목 회전 4개 자세도 원본 메시와 최종 모델의 쌍이 같았고, 남은 쌍의 상대
+변환은 저장 자세와 같았다. 전체 34개 자세에는 원본 접촉이 남아 MoveIt
+유효 자세가 0개였다. 충돌 허용 행렬은 빈 상태였다. 접촉 패드 삼각형,
+관절 변환, 몸통과 단순 입체를 보존했고, 바꾼 형상은 검증 자세의 입구
+공간을 침범하지 않았다. -25° 비교 자세의 개구 폭은 양쪽 12.0137mm였다.
+
+외부 장애물 336건, OctoMap 점군 476점, cuRobo 구 쿼리 3,263건과 자동 검사
+53개가 통과했다. 변경한 외피의 내부점 92개는 이전 채움 형상에 대한 검사
+입력이므로 새 표면 검사에서 제외했다. 로그에 VTK deprecation 경고가
+2개 있다. 검증 원본은 로컬 및 Jetson의
+`cleany-data/runs/freecad-wrist-contact-fix-20261105/`에 보존했다.
+`brep-contacts.json`에는 솔리드별 거리와 부피, `verification-summary.json`에는
+자세별 판정과 재검사 결과, `moveit-coarse/`와 `world-cache-final/`에는 최종
+형상이 있다. 운영 모델이나 충돌 허용 정책은 변경하지 않았다.
+
+## 2026-11-05 헤드 팬 소유 수정과 서보 조립 접촉 분리
+
+`2178772352ea293d926b80849d0878c3c0a15ed3` 기반 작업 트리에서 원본
+`Cleany-final.FCStd`의 솔리드와 회전축을 대조했다. 팬 아래 지지 혼은 고정
+브래킷 안에 343.81mm³ 들어가고 고정 서보 케이스에 닿는다. 저장 자세에서
+팬 구동 혼과는 29.4mm, 회전 브래킷과는 33.36mm 떨어진다. CAD 검사용
+URDF와 MJCF에서는 이 증거에 따라 지지 혼을 고정 링크로 옮겼다. 실물
+체결은 별도 확인 항목이다. 팬 축은 기존 중심선을 사용한다.
+
+소유만 바꾼 후보에는 헤드 브래킷 박스와 서보 외피 접촉이 남았다. 고정 및
+회전 브래킷, 팬 서보 3부품과 구동 혼을 틈이 있는 표면 메시로 복원했다.
+원본 고정 부품과 팬 회전 부품의 저장 자세 최소 간격은 0.250mm다.
+MoveIt 캐시는 삼각형 127,139개와 충돌 형상 179개를 사용한다.
+초기 캐시 재연결은 시각 XML 불일치로 거부됐다. 새 URDF에 같은 입력 메시
+파일을 연결한 뒤 생성 검사를 통과했다. 이전 시험 노드가 같은 ROS domain에
+남아 있던 실행은 폐기하고, 해당 프로세스를 종료한 뒤 별도 domain으로
+재검증했다.
+
+양팔 서보와 혼 8개 링크 쌍의 원본 겹침은 동축 결합부에 국한됐다. 구동과
+지지 접합에서 축 방향 중첩은 0.15~0.50mm이며 CAD ±15° 비교에서 교집합
+부피가 유지됐다. 조립면 접촉은 부피가 0인 별도 범주로 기록했다. 실물
+조립 공차와 가동 범위는 이 CAD 비교로 확인되지 않는다.
+
+Jetson ROS Humble localhost domain 231의 최종 캐시로 34개 자세를 검증했다.
+엄격 검사에서는 조립 접촉 13~14쌍이 남아 유효 자세가 0개였다. 해당 자세에
+대해 CAD로 분류한 조립 접촉만 임시 행렬에 넣은 별도 scene은 34개 모두
+유효했다. 같은 scene에 외부 장애물을 넣자 무효로 판정했다. 이 임시 행렬은
+제품 설정에 포함하지 않았다. 접촉 패드 4개는 같은 메시를 사용했고 열린
+자세의 점군 122점과 접촉 62건이 통과했다. 기존 합성 OctoMap 해시가
+일치했다. 격리된 `cleany_description` 빌드와 Python 검사 53개가 통과했다.
+
+양쪽 손목 카메라의 광축 투영에서 렌즈 앞 유리 끝부터 PCB 앞면은 22.7mm,
+PCB 뒤면은 24.3mm, 마운트 최후단은 40.3mm다. 사용자 실측은 카메라
+돌출부부터 보드까지 9.5mm, 마운트를 포함하면 26.7mm다. 비교값은 보드
+뒤면과 마운트 최후단을 실측 기준으로 해석했을 때 각각 14.8mm와 13.6mm
+차이가 난다. 카메라 장착점과 광학 보정은 이 비교에서 변경하지 않았다.
+
+원본은 `cleany-data/runs/freecad-head-servo-check-20261105/`에 있다.
+`measurements.json`과 `interface-solids.log`는 치수와 원본 솔리드 근거,
+`head-after-exact.json`은 고정과 회전 부품 간 간격, `assembly-results.json`은
+자세별 대조, `verification-summary.json`은 최종 결과다. 커밋과 푸시는
+수행하지 않았다.
+
+## 2026-11 Jetson 보정 근거
+
+2026-11-09 머리 모터 13번과 14번의 허용 범위 측정과 적용 검증은
+`/home/cleany/cleany-data/reports/head-motor-14-live-20261109.a9jadfz7/`에 있다.
+
+2026-11-08 카메라와 관절 프로파일의 입력 해시 및 설치 확인은
+`/home/cleany/cleany-data/reports/calibration-sync-20261108.sk5ejqmt/`에 있다.
+
+2026-11-10 손목 영상 기반 기구학 보정 후보는
+`CLEANY_DATA_ROOT/kinematics_calibration/20261110-calibration/`에 있다. 입력,
+학습 표본 내부 교차 검증과 동결 검증 결과는 각 결과 JSON에 기록한다.
+이 후보는 review_only이며 독립 실물 검증과 운영 모델 반영은 미완료다.
+
+## CAD와 Jetson 보정 PR 검증 (2026-11-11)
+
+`3fca97bb`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 검증했다.
+`make test-freecad-model`의 51개와 운동학 보정 및 로봇 인터페이스 관련 57개 검사가
+통과했고 `cleany_description` 한 패키지를 별도 경로에 빌드했다. 새 그리퍼 보정값을
+현재 `test_hardware_execution.py`에 반영한 뒤 실행기 보정 연동 450개도 통과했다.
+입력은 저장소 CAD,
+보정 프로필과 합성 관절 및 카메라 데이터이며 실물 구동은 수행하지 않았다.
+초기 import 및 ament 환경 누락은 ROS underlay와 격리 설치 경로를 지정해 해결했다.
+FreeCAD 모델은 reference-only이며 운동학 후보 보정은 review-only다.
+원본 로그와 최종 commit 식별자는
+`/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
+
+### PR 77 CI 실패의 로컬 재검증 (2026-11-12)
+
+`14eeaf68`에 미커밋 패치를 적용해 Pillow 호환성, 보정 테스트 입력과 BT 수트 제한을
+수정했다. Jetson Ubuntu 22.04 ARM64와 ROS 2 Humble의 격리 작업트리에서 CI와 같은
+Pillow 9.0.1, pytest 6.2.5, NumPy 1.26.1과 SciPy 1.13.1을 사용했다.
+입력은 합성 RGB와 관절 피드백, 가짜 Action 및 Service이며 실물 구동은 하지 않았다.
+
+수정 전 집중 검사에서 기존 실패 34개를 재현했다. 수정 후 집중 검사 126개,
+macOS Python 3.12의 순수 검사 98개, Pillow 11.3.0의 이미지 및 결과 검사 25개가 통과했다.
+검사 묶음은 서로 겹친다. 중간 검사에서 남은 요약 이미지의 구형 API 참조도 수정했다.
+
+선택한 두 패키지를 `make test`로 재빌드하고 검사했다. 실행기 pytest는 2,421개 통과와
+CUDA 및 명시 runtime 조건 미지정 26개 제외, BT pytest는 785개 모두 통과했다.
+BT의 CTest 실행은 300초 제한에서 86.10초에 완료됐고 개별 응답 및 종료 대기 제한은 유지했다.
+colcon 집계는 CTest 항목을 포함해 3,233개, 오류 0개와 실패 0개다.
+Jetson의 BT.CPP는 4.10.0이며 amd64 CI의 4.9.1 환경은 재실행하지 않았다.
+
+기준 commit, 최종 패치와 hash, 환경, 초기 실패 및 최종 원본은
+`/Users/hyeon/.codex/reports/cleany-pr77-local-20261112/`에 보관한다.
+Jetson 원본은 `/home/cleany/cleany-data/reports/pr77-local-fix-20261112/`에 있다.
+해당 결과는 커밋과 푸시 전의 로컬 검증이며 GitHub CI 결과와 구분한다.

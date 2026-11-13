@@ -54,7 +54,7 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
 
     arm_path, arm = read(config['arm_config'])
     head_path, head = read(config['head_config'])
-    mapping_path, _ = read(config['head_joint_mapping'])
+    mapping_path, head_mapping = read(config['head_joint_mapping'])
     _, calibration = read(config['head_rgb_extrinsics'])
     calibrated_bounds = {}
     selected = config.get('calibrated_joint_position_bounds', [])
@@ -67,6 +67,11 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
             _, values = read(str(directory / settings['calibration']))
             calibrations[side] = values
         calibrated_bounds = calibrated_joint_bounds(mappings(arm, calibrations), selected)
+    head_bounds = head_mapping.get('joint_position_bounds', {})
+    if (not isinstance(head_bounds, dict)
+            or not set(head_bounds) <= {'head_pan_joint', 'head_tilt_joint'}):
+        raise ValueError('Head joint position bounds must name head pan or tilt joints')
+    calibrated_bounds.update(head_bounds)
     model_path = resolve(config['robot_model']).resolve()
     sources.add(model_path)
     args = dict(config['xacro_args'])
@@ -83,6 +88,22 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
     if calibrated_bounds:
         xml = apply_joint_bounds(xml, calibrated_bounds)
     tree = ET.fromstring(xml)
+    if 'grasp_tcp_y_m' in config:
+        y = config['grasp_tcp_y_m']
+        if type(y) not in (int, float) or not math.isfinite(y) or y >= 0:
+            raise ValueError('grasp_tcp_y_m must be a finite negative number in metres')
+        for side in ('left', 'right'):
+            tcp = f'{side}_grasp_tcp'
+            joint = tree.find(f"joint[@name='{tcp}_joint']")
+            if (joint is None or joint.get('type') != 'fixed'
+                    or joint.find('parent').get('link') != f'{side}_gripper_frame'
+                    or joint.find('child').get('link') != tcp):
+                raise ValueError(f'Grasp TCP frame contract mismatch: {tcp}')
+            origin = joint.find('origin')
+            if origin is None:
+                raise ValueError(f'Missing grasp TCP origin: {tcp}')
+            origin.set('xyz', f'0 {y} 0')
+        xml = ET.tostring(tree, encoding='unicode')
     movable = {joint.get('name') for joint in tree.findall('joint')
                if joint.get('type') != 'fixed'}
     expected = {f'{side}_{suffix}_joint' for side in ('left', 'right')

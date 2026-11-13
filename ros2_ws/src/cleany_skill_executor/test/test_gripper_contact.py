@@ -62,7 +62,8 @@ def criteria(arm='left'):
 
 
 def samples(c, **changes):
-    sample = ContactSample(1_000_000_000, c.motor_id, c.closed_goal_raw+340,
+    sample = ContactSample(1_000_000_000, c.motor_id,
+                           c.closed_goal_raw+c.opening_direction*340,
                            c.closed_goal_raw, 18, 200, 1, 0, 0, 0,
                            c.output_limit_raw, 120, 40)
     return [replace(sample, stamp_ns=sample.stamp_ns+n*10_000_000, **changes)
@@ -76,21 +77,21 @@ def decide(w, c, **changes):
 
 
 @pytest.mark.parametrize('arm,goal,empty_residual,current,load', [
-    ('left', 1358, 6, 1, 36), ('right', 1372, 12, 2, 60),
+    ('left', 2676, 6, 1, 36), ('right', 2838, 12, 2, 60),
 ])
-def test_bilateral_zero_offsets_and_observed_empty_signatures(arm, goal, empty_residual, current, load):
+def test_bilateral_close_goals_and_synthetic_empty_signatures(arm, goal, empty_residual, current, load):
     c = criteria(arm)
     assert c.closed_goal_raw == goal
     result = decide(samples(c), c)
     assert result.state == ContactState.CONTACT and result.window_sec >= .4
-    w = samples(c, position_raw=goal+empty_residual,
+    w = samples(c, position_raw=goal+c.opening_direction*empty_residual,
                 current_raw=current, load_magnitude_raw=load)
     assert decide(w, c).state == ContactState.EMPTY
 
 
 @pytest.mark.parametrize('field,value,expected', [
-    ('position_raw', 1386, ContactState.UNKNOWN),  # left goal +28: strict >
-    ('position_raw', 1387, ContactState.CONTACT),
+    ('position_raw', 28, ContactState.UNKNOWN),  # Signed residual must be strictly greater.
+    ('position_raw', 29, ContactState.CONTACT),
     ('current_raw', 8, ContactState.UNKNOWN),
     ('current_raw', 9, ContactState.CONTACT),
     ('load_magnitude_raw', 129, ContactState.UNKNOWN),
@@ -98,6 +99,8 @@ def test_bilateral_zero_offsets_and_observed_empty_signatures(arm, goal, empty_r
 ])
 def test_contact_threshold_boundaries(field, value, expected):
     c = criteria()
+    if field == 'position_raw':
+        value = c.closed_goal_raw+c.opening_direction*value
     assert decide(samples(c, **{field: value}), c).state == expected
 
 
@@ -145,7 +148,7 @@ def test_explicit_lower_temperature_limit_remains_enforced():
 def test_loaded_position_changes_are_diagnostic_only(arm, span, direction):
     c = criteria(arm)
     w = samples(c)
-    w = [replace(s, position_raw=c.closed_goal_raw+340+
+    w = [replace(s, position_raw=s.position_raw+
                  direction*round(span*max(0, i-10)/40)) for i, s in enumerate(w)]
     result = decide(w, c)
     assert result.state == ContactState.CONTACT
@@ -156,7 +159,7 @@ def test_loaded_position_changes_are_diagnostic_only(arm, span, direction):
 def test_empty_decision_also_ignores_position_span(arm):
     c = criteria(arm)
     w = samples(c, current_raw=2, load_magnitude_raw=36)
-    w = [replace(s, position_raw=c.closed_goal_raw+round(28*max(0, i-10)/40))
+    w = [replace(s, position_raw=c.closed_goal_raw+c.opening_direction*round(28*max(0, i-10)/40))
          for i, s in enumerate(w)]
     result = decide(w, c)
     assert result.state == ContactState.EMPTY and result.position_span_ticks == 28
@@ -174,7 +177,8 @@ def test_current_spike_or_one_low_load_sample_cannot_create_contact():
 
 def test_empty_requires_all_three_low_signals():
     c = criteria()
-    w = samples(c, position_raw=c.closed_goal_raw+28, current_raw=8, load_magnitude_raw=129)
+    w = samples(c, position_raw=c.closed_goal_raw+c.opening_direction*28,
+                current_raw=8, load_magnitude_raw=129)
     assert decide(w, c).state == ContactState.EMPTY
     w[-1] = replace(w[-1], load_magnitude_raw=130)
     assert decide(w, c).state == ContactState.UNKNOWN
@@ -193,9 +197,12 @@ def test_window_duration_gap_freshness_request_epoch_and_replay_are_explicit():
     assert evaluate_contact([], c, now_ns=2_000_000_000, after_ns=0).state == ContactState.UNKNOWN
 
 
-def test_closing_direction_is_explicit():
-    c = replace(criteria(), opening_direction=-1)
-    assert decide(samples(c, position_raw=c.closed_goal_raw-340), c).state == ContactState.CONTACT
+@pytest.mark.parametrize('direction', [-1, 1])
+def test_closing_direction_is_explicit(direction):
+    c = replace(criteria(), opening_direction=direction)
+    assert decide(samples(c), c).state == ContactState.CONTACT
+    mirrored = samples(c, position_raw=c.closed_goal_raw-direction*340)
+    assert decide(mirrored, c).state == ContactState.UNKNOWN
 
 
 @pytest.mark.parametrize('changes', [

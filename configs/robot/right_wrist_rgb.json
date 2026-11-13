@@ -1,6 +1,7 @@
 {
   "arm": "right",
   "camera_config": "configs/robot/right_wristcam_charuco.json",
+  "camera_device_override": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2.3:1.0-video-index0",
   "calibration_config": "configs/robot/right_wristcam_handeye.json",
   "publish_rate_hz": 15.0,
   "frame_id": "right_wrist_rgb_optical_frame"

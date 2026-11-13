@@ -1,0 +1,186 @@
+{
+  "prepared_utc": "2026-11-07T19:22:36.953906+00:00",
+  "repository_commit": "94c0fcd3ff04ceae243392b2b55d394ab45ad775",
+  "status": "user_specified_camera_reference",
+  "source_reference": "/home/cleany/cleany-data/runs/camera-review-20261108-djv19zc_/camera_tf_reference.json",
+  "source_reference_sha256": "3a066aec97430b4f543cb2af9d5f122afe8b40467c2205f649a0b399e5aeff40",
+  "legacy_reference_urdf_sha256": "2ee7f4fa35f6c93923b0a0348f9eb6e24c3895166efe7e3a511c9d9881ddda69",
+  "cad_urdf_sha256": "6ce867960a8e231fc1af8fc4aeccd8fa5fe1943ad46170f7119a5ab958990716",
+  "camera_local_offsets_m": {
+    "head": [
+      -0.03,
+      0.0,
+      -0.005
+    ],
+    "left": [
+      0.0,
+      0.0,
+      -0.008
+    ],
+    "right": [
+      0.0,
+      0.0,
+      -0.008
+    ]
+  },
+  "camera_transforms": {
+    "head": {
+      "cad_parent": "cad_head_tilt",
+      "runtime_parent": "head_camera_rgb_frame",
+      "xyz": [
+        0.0055172928967598955,
+        0.03203727174407158,
+        0.003494152380300441
+      ],
+      "rpy": [
+        -1.5705128373857966,
+        -2.19999965547224e-05,
+        -1.5707806725740987
+      ],
+      "runtime_parent_T_cad_parent": [
+        [
+          0.9999999596942531,
+          -1.5654220791527174e-05,
+          -0.0002834897496590326,
+          -0.0249887809587572
+        ],
+        [
+          1.5660456932178823e-05,
+          0.9999999996354729,
+          2.1995557860608784e-05,
+          -0.015296890998960942
+        ],
+        [
+          0.0002834894052324695,
+          -2.199999655304335e-05,
+          0.9999999595748783,
+          -0.028909534002258767
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "intrinsic_sha256": "d33dcf46cb4adb435125f52a75e9a605fc1fc8281b84544fac6393bf1ff39b2f",
+      "cad_fit_sha256": "b876c10634b59525df3bc481996f75e90da7b76c6499889b48800a7fbe849efb",
+      "runtime_fit_sha256": "924a9da309bd6b085b0d48e6c72b73b7a8bd2606e216245cf2cfcbc972168839"
+    },
+    "left": {
+      "cad_parent": "cad_left_wrist_roll",
+      "runtime_parent": "left_gripper_frame",
+      "xyz": [
+        0.002644182617414616,
+        -0.04540080784573959,
+        0.08428680966086555
+      ],
+      "rpy": [
+        -2.4437976002220267,
+        -0.02201387016242884,
+        3.1403647963712316
+      ],
+      "runtime_parent_T_cad_parent": [
+        [
+          -0.99975695091145,
+          -0.0012352671489924264,
+          0.022011660984872197,
+          0.0008476943557439208
+        ],
+        [
+          0.0012275594058869957,
+          -0.9999991804189127,
+          -0.0003636748677933075,
+          0.0005180147789630649
+        ],
+        [
+          0.022012092180148234,
+          -0.00033656585546683137,
+          0.9997576478933676,
+          0.00013216891413818377
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "intrinsic_sha256": "6e03959a2820b604fd2cbceebe584bdbd096de15ff3effd56e0291638d0148b4",
+      "cad_fit_sha256": "d1170b325d708318fca054a15a8382c40d391dfd0fcc59a15b10ff85cefc9631",
+      "runtime_fit_sha256": "10af397272e57f165ec79c18cb07bfc0e0156390f4ea8131a6c98a95657795b5",
+      "device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2.4:1.0-video-index0"
+    },
+    "right": {
+      "cad_parent": "cad_right_wrist_roll",
+      "runtime_parent": "right_gripper_frame",
+      "xyz": [
+        -0.0002744611650092998,
+        -0.04973908389982366,
+        0.0843714709493644
+      ],
+      "rpy": [
+        -2.4575292018817185,
+        -0.026430984459187457,
+        -3.1335407327676337
+      ],
+      "runtime_parent_T_cad_parent": [
+        [
+          0.9996183166477548,
+          -0.0076792669733816415,
+          0.026537706778490794,
+          -0.002861071736372192
+        ],
+        [
+          0.00804902148733398,
+          0.9998716240121864,
+          -0.013854556951776762,
+          -0.0026903106560106846
+        ],
+        [
+          -0.026427907132538172,
+          0.014062871470120258,
+          0.9995518002437941,
+          0.000864036654396716
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "intrinsic_sha256": "2e010ae39f57f6bbb7dea4fe2af3a2f51df1eb489e0427506e1303fc254605ac",
+      "cad_fit_sha256": "31394459dda5b7e67f0c5d0eaf713e85072c24eb7365409137da55c017b480d1",
+      "runtime_fit_sha256": "d017779f4bc91874566a44b33f674d9c55be05aada13ce0d06b439f706bd5188",
+      "device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2.3:1.0-video-index0"
+    }
+  },
+  "motor_calibration": {
+    "left": {
+      "sha256": "84fb8ee1ae841c5e72602ea518851d517b2ec22ec13bfca026fd3c1a39251794",
+      "gripper": {
+        "id": 6,
+        "drive_mode": 0,
+        "homing_offset": 1715,
+        "range_min": 1007,
+        "range_max": 2689
+      }
+    },
+    "right": {
+      "sha256": "bbbfc6d9a422ec955594ab18a42a769193a17224cd898d500d51ac0dc8703d1a",
+      "gripper": {
+        "id": 12,
+        "drive_mode": 0,
+        "homing_offset": -664,
+        "range_min": 1064,
+        "range_max": 2913
+      },
+      "closed_tick": 2851,
+      "contact_goal_tick": 2838,
+      "transported_ticks": -36,
+      "source": "/home/cleany/cleany-data/runs/camera-review-20261108-djv19zc_/right-gripper-display.json"
+    }
+  },
+  "motor_writes": false
+}

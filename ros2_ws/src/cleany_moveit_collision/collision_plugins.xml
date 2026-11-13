@@ -3,4 +3,8 @@
          base_class_type="collision_detection::CollisionPlugin">
     <description>FCL with closed convex robot mesh components treated as solids.</description>
   </class>
+  <class name="cleany/CADInspectionFCL" type="cleany::CADInspectionCollisionPlugin"
+         base_class_type="collision_detection::CollisionPlugin">
+    <description>CAD inspection with declared convex enclosures and retained FCL surfaces.</description>
+  </class>
 </library>

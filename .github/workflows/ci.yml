@@ -78,11 +78,18 @@ jobs:
         id: image
         env:
           IMAGE: ${{ steps.dependencies.outputs.image }}
+          COMPATIBLE_IMAGE: ${{ steps.dependencies.outputs.compatible_image }}
           DEPENDENCY_KEY: ${{ steps.dependencies.outputs.key }}
         run: |
           set -euo pipefail
           if docker pull "${IMAGE}"; then
             echo 'hit=true' >> "${GITHUB_OUTPUT}"
+          elif [[ -n "${COMPATIBLE_IMAGE}" ]] && tools/ci/reuse-dependencies \
+            "${COMPATIBLE_IMAGE}" "${IMAGE}" "${RUNNER_TEMP}/ci-context" \
+            "${DEPENDENCY_KEY}" "${GITHUB_REPOSITORY}"; then
+            echo 'hit=false' >> "${GITHUB_OUTPUT}"
+            echo "Reused dependency image after current manifest and version checks: ${COMPATIBLE_IMAGE}" \
+              >> "${GITHUB_STEP_SUMMARY}"
           else
             echo 'hit=false' >> "${GITHUB_OUTPUT}"
             timeout --signal=TERM --kill-after=30s 15m docker build --pull --platform linux/amd64 \
@@ -142,6 +149,11 @@ jobs:
           IMAGE: ${{ steps.dependencies.outputs.image }}
         run: |
           docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
+
+      - name: Prepare geometry test dependencies
+        run: |
+          tools/ci/run python3 -m pip install --no-deps --requirement tests/requirements-geometry.txt
+          tools/ci/run bash -c 'python3 -m pip freeze > /opt/cleany-ci/pip-packages.txt'
 
       - name: Test host camera initialization
         run: tools/ci/run make test-camera-orientation

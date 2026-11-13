@@ -1,0 +1,430 @@
+{
+  "schema": "cleany.freecad_moveit_primitives/v1",
+  "surface_error_by_group_m": {
+    "RightTool": 0.0005,
+    "LeftTool": 0.0005,
+    "RightWrist": 0.0005,
+    "LeftWrist": 0.0005
+  },
+  "surface_preserve_parts": [
+    "HeadCameraWindow"
+  ],
+  "body_enclosure": {
+    "name": "torso",
+    "groups": [
+      "FrameStructure",
+      "FramePanels",
+      "PanelMounting",
+      "FrontBranding",
+      "VirtualDisplay",
+      "LidarRig"
+    ],
+    "opening_parts": [
+      "FomexTopFrontMountCut",
+      "FomexTopRearBacking"
+    ],
+    "floor_part": "InstalledProfile20"
+  },
+  "box_each_groups": [
+    "DriveBase",
+    "InstalledMounts"
+  ],
+  "box_together_groups": [
+    "IMURig"
+  ],
+  "box_sets": [
+    {
+      "name": "head_tilt_mount",
+      "parts": [
+        "HeadTiltBracket"
+      ]
+    }
+  ],
+  "wheel_parts": [
+    "Drive_rear_left_wheel",
+    "Drive_rear_right_wheel",
+    "Drive_front_left_wheel",
+    "Drive_front_right_wheel"
+  ],
+  "require_groups": [
+    "FrameStructure",
+    "LidarRig",
+    "DriveBase",
+    "VirtualDisplay",
+    "IMURig",
+    "FramePanels",
+    "PanelMounting",
+    "FrontBranding",
+    "InstalledMounts"
+  ],
+  "require_parts": [
+    "HeadTiltBracket"
+  ],
+  "component_enclosures": {
+    "groups": [
+      "RightBase",
+      "RightYaw",
+      "RightUpper",
+      "RightLower",
+      "LeftBase",
+      "LeftYaw",
+      "LeftUpper",
+      "LeftLower"
+    ],
+    "max_hull_expansion_m": 0.001,
+    "enclosure_margin_m": 1e-06,
+    "max_iterations": 1024,
+    "planes_per_iteration": 1,
+    "parts": {
+      "InstalledMast": {
+        "slabs": {
+          "axis": 2,
+          "count": 8
+        },
+        "max_hull_expansion_m": 0.00025
+      },
+      "BasePrint": {
+        "planes": [
+          {
+            "axis": 2,
+            "offset_m": 0.3562999963760376
+          }
+        ]
+      },
+      "YawPrint": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": -0.21410439908504486
+          }
+        ]
+      },
+      "AssembledShoulderSocket": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": -0.20029383897781372
+          }
+        ]
+      },
+      "Aligned_AssembledElbowBSocket": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": -0.09113235212862492
+          }
+        ]
+      },
+      "BasePrint001": {
+        "planes": [
+          {
+            "axis": 2,
+            "offset_m": 0.3562999963760376
+          }
+        ]
+      },
+      "YawPrint001": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": 0.21410439908504486
+          }
+        ]
+      },
+      "AssembledShoulderSocket001": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": 0.20029383897781372
+          }
+        ]
+      },
+      "Aligned_AssembledElbowBSocket001": {
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": 0.09113235212862492
+          }
+        ]
+      },
+      "RightKinematic_CameraTool180_Pinc_Interface_ARM100": {
+        "max_hull_expansion_m": 0.00025,
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": -0.31479179859161377
+          }
+        ]
+      },
+      "LeftKinematic_CameraTool180_Pinc_Interface_ARM100": {
+        "max_hull_expansion_m": 0.00025,
+        "planes": [
+          {
+            "axis": 1,
+            "offset_m": 0.31479179859161377
+          }
+        ]
+      },
+      "RightCamera_BaseScrew0": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "RightCamera_BaseScrew1": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "RightCamera_BaseScrew2": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "RightCamera_BaseScrew3": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "LeftCamera_BaseScrew0": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "LeftCamera_BaseScrew1": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "LeftCamera_BaseScrew2": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "LeftCamera_BaseScrew3": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "HeadPanIdlerHorn": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "HeadTiltDriveHorn": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "HeadTiltIdlerHorn": {
+        "max_hull_expansion_m": 0.00025
+      },
+      "RightKinematic_CameraTool180_ToolDriveHorn": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "RightKinematic_CameraTool180_Pinc_Driving_Rod_L": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "RightKinematic_CameraTool180_Pinc_Driving_Rod_R": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "RightKinematic_CameraTool180_Pinc_External_Rod_L": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "RightKinematic_CameraTool180_Pinc_External_Rod_R": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "LeftKinematic_CameraTool180_ToolDriveHorn": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "LeftKinematic_CameraTool180_Pinc_Driving_Rod_L": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "LeftKinematic_CameraTool180_Pinc_Driving_Rod_R": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "LeftKinematic_CameraTool180_Pinc_External_Rod_L": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "LeftKinematic_CameraTool180_Pinc_External_Rod_R": {
+        "max_hull_expansion_m": 0.001,
+        "combine_components": true
+      },
+      "WristDriveHorn": {},
+      "WristIdlerHorn": {},
+      "WristDriveHorn001": {},
+      "WristIdlerHorn001": {}
+    },
+    "sets": [
+      {
+        "name": "rigid_Aligned_Lower_servo",
+        "parts": [
+          "Aligned_Lower_servo",
+          "Aligned_Lower_servo_middle",
+          "Aligned_Lower_servo_other"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Aligned_Lower_servo001",
+        "parts": [
+          "Aligned_Lower_servo001",
+          "Aligned_Lower_servo_middle001",
+          "Aligned_Lower_servo_other001"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Base_servo",
+        "parts": [
+          "Base_servo",
+          "Base_servo_middle",
+          "Base_servo_other"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Base_servo001",
+        "parts": [
+          "Base_servo001",
+          "Base_servo_middle001",
+          "Base_servo_other001"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Upper_servo",
+        "parts": [
+          "Upper_servo",
+          "Upper_servo_middle",
+          "Upper_servo_other"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Upper_servo001",
+        "parts": [
+          "Upper_servo001",
+          "Upper_servo_middle001",
+          "Upper_servo_other001"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Yaw_servo",
+        "parts": [
+          "Yaw_servo",
+          "Yaw_servo_middle",
+          "Yaw_servo_other"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_Yaw_servo001",
+        "parts": [
+          "Yaw_servo001",
+          "Yaw_servo_middle001",
+          "Yaw_servo_other001"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_head_tilt_servo",
+        "parts": [
+          "HeadTiltServoCase",
+          "HeadTiltServoFront",
+          "HeadTiltServoMiddle"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_right_camera_board",
+        "parts": [
+          "RightCamera_Connector",
+          "RightCamera_PCB",
+          "RightCamera_PCBNut0",
+          "RightCamera_PCBNut1",
+          "RightCamera_PCBNut2",
+          "RightCamera_PCBNut3",
+          "RightCamera_PCBScrew0",
+          "RightCamera_PCBScrew1",
+          "RightCamera_PCBScrew2",
+          "RightCamera_PCBScrew3"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_left_camera_board",
+        "parts": [
+          "LeftCamera_Connector",
+          "LeftCamera_PCB",
+          "LeftCamera_PCBNut0",
+          "LeftCamera_PCBNut1",
+          "LeftCamera_PCBNut2",
+          "LeftCamera_PCBNut3",
+          "LeftCamera_PCBScrew0",
+          "LeftCamera_PCBScrew1",
+          "LeftCamera_PCBScrew2",
+          "LeftCamera_PCBScrew3"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_head_camera",
+        "parts": [
+          "HeadCamera",
+          "HeadCameraScrewRight",
+          "HeadCameraScrewLeft"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_right_gripper_tip_L",
+        "parts": [
+          "RightKinematic_CameraTool180_Pinc_Distal_Shell_L",
+          "RightKinematic_CameraTool180_Pinc_Removable_Tip_L"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_right_gripper_tip_R",
+        "parts": [
+          "RightKinematic_CameraTool180_Pinc_Distal_Shell_R",
+          "RightKinematic_CameraTool180_Pinc_Removable_Tip_R"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_left_gripper_tip_L",
+        "parts": [
+          "LeftKinematic_CameraTool180_Pinc_Distal_Shell_L",
+          "LeftKinematic_CameraTool180_Pinc_Removable_Tip_L"
+        ],
+        "max_hull_expansion_m": 0.00025
+      },
+      {
+        "name": "rigid_left_gripper_tip_R",
+        "parts": [
+          "LeftKinematic_CameraTool180_Pinc_Distal_Shell_R",
+          "LeftKinematic_CameraTool180_Pinc_Removable_Tip_R"
+        ],
+        "max_hull_expansion_m": 0.00025
+      }
+    ]
+  },
+  "preserve_collision_parts": [
+    "RightKinematic_CameraTool180_Pinc_Tip_Support_L",
+    "RightKinematic_CameraTool180_Pinc_Tip_Support_R",
+    "RightCamera_Lens",
+    "RightCamera_Glass",
+    "LeftKinematic_CameraTool180_Pinc_Tip_Support_L",
+    "LeftKinematic_CameraTool180_Pinc_Tip_Support_R",
+    "LeftCamera_Lens",
+    "LeftCamera_Glass",
+    "HeadCameraWindow",
+    "RightKinematic_CameraTool180_Pinc_Distal_Rod_L",
+    "RightKinematic_CameraTool180_Pinc_Distal_Rod_R",
+    "RightKinematic_CameraTool180_Pinc_Internal_Rod_L",
+    "RightKinematic_CameraTool180_Pinc_Internal_Rod_R",
+    "LeftKinematic_CameraTool180_Pinc_Distal_Rod_L",
+    "LeftKinematic_CameraTool180_Pinc_Distal_Rod_R",
+    "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L",
+    "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R",
+    "HeadFixedBracket",
+    "HeadPanBracket",
+    "HeadPanDriveHorn",
+    "HeadPanServoCase",
+    "HeadPanServoFront",
+    "HeadPanServoMiddle",
+    "LeftCamera_FixedMount",
+    "RightCamera_FixedMount"
+  ]
+}

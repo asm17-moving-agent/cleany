@@ -1,0 +1,25 @@
+status: user_specified_reference_transported_via_paired_camera_fits
+parent_frame: head_camera_rgb_frame
+child_frame: head_camera_rgb_optical_frame
+xyz: 0.0055172928967598955 0.032037271744071581 0.0034941523803004408
+rpy: -1.5705128373857966 -2.1999996554722401e-05 -1.5707806725740987
+parent_T_child:
+- - 1.565422079358107e-05
+  - 0.0002834897496610865
+  - 0.9999999596942531
+  - 0.0055172928967598955
+- - -0.9999999996354729
+  - -2.1995557860664264e-05
+  - 1.566045693423278e-05
+  - 0.03203727174407158
+- - 2.1999996553099445e-05
+  - -0.9999999595748783
+  - 0.00028348940523452334
+  - 0.003494152380300441
+- - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+source_reference_sha256: 3a066aec97430b4f543cb2af9d5f122afe8b40467c2205f649a0b399e5aeff40
+intrinsics_file: /home/cleany/cleany/ros2_ws/src/cleany_description/config/calibration/jetson_20261107/intrinsics/head/intrinsics.json
+intrinsic_held_out_rms_px: 0.3034462450707293
