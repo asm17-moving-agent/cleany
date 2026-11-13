@@ -249,10 +249,13 @@ def test_mission_client_waits_for_stopped_feedback_and_clears_journal(graph, tmp
     lease = SimpleNamespace(mission_id='test-mission', lease_id='test-lease', lease_epoch='test-epoch', version=1)
     port = DeskApproachPort(world, journal, lambda: stopped_feedback[0], .75, lease)
     try:
-        until(lambda: port.ready()[0])
+        # 서비스 발견만으로 센서와 권한 입력의 서버 수신이 완료되지는 않습니다.
+        until(lambda: port.ready()[0] and world.desk_ready())
         operation = port.start('seat-12')
         assert journal.value('desk_goal_uuid') == operation
         assert port.poll(operation) is None
+        until(lambda: port.handle is not None)
+        assert port.handle.accepted
         until(lambda: world.selected[-1].linear.x > 0)
         stopped_feedback[0] = False
         world.distance = .75

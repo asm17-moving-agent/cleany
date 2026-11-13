@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import time
 import rclpy
@@ -13,7 +14,7 @@ from std_msgs.msg import String
 from cleany_skill_executor.manipulation_evidence_node import ManipulationEvidenceNode
 
 def test_ros_evidence_service_fuses_fresh_identity_load_and_tracking():
-    context=Context();rclpy.init(context=context,domain_id=176)
+    context=Context();rclpy.init(context=context,domain_id=int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 176)))
     node=ManipulationEvidenceNode(context=context)
     source=Node('synthetic_evidence_test',context=context)
     executor=MultiThreadedExecutor(num_threads=4,context=context)
@@ -104,7 +105,7 @@ def test_independent_outcome_service_binds_object_destination_and_new_sensor_tim
     from cleany_skill_executor.core.collection import check_evidence
     import pytest
     context = Context()
-    rclpy.init(context=context, domain_id=178)
+    rclpy.init(context=context, domain_id=int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 178)))
     node = ManipulationEvidenceNode(context=context,
         parameter_overrides=[Parameter('request_timeout_sec', value=.1)])
     source = Node('synthetic_outcome_sensor', context=context)

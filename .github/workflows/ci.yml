@@ -44,12 +44,24 @@ jobs:
           cache-dependency-path: ros2_ws/src/cleany_teleop/ui/package-lock.json
 
       - name: Build and test phone UI
+        id: ui
+        continue-on-error: true
         run: |
-          make build-teleop-ui
-          node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
+          python3 tools/ci/check.py --root "${RUNNER_TEMP}/cleany-builds/checks" run ui --kind contract --timeout 180 -- \
+            bash -c 'make build-teleop-ui && node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs'
 
       - name: Test CI tools
         run: make test-ci-tools
+
+      - name: Prepare isolated debugger
+        run: |
+          if ! command -v gdb >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends gdb
+          fi
+          /usr/bin/python3 tools/ci/prepare_debugger.py "${RUNNER_TEMP}/ci-debugger"
+          mkdir -p "${RUNNER_TEMP}/cleany-builds"
+          cp "${RUNNER_TEMP}/ci-debugger/version.txt" "${RUNNER_TEMP}/cleany-builds/debugger-version.txt"
 
       - name: Identify dependency image
         id: dependencies
@@ -113,20 +125,23 @@ jobs:
             --workdir "${GITHUB_WORKSPACE}" \
             --volume "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
             --volume "${RUNNER_TEMP}/cleany-builds:/ci-builds" \
+            --volume "${RUNNER_TEMP}/ci-debugger:/ci-debugger:ro" \
             --volume "${RUNNER_TEMP}/cleany-ccache:/ci-ccache" \
             --env CLEANY_BUILD_ROOT=/ci-builds \
             --env CCACHE_DIR=/ci-ccache --env CCACHE_MAXSIZE=2G \
             --env CCACHE_COMPILERCHECK=content --env "CCACHE_BASEDIR=${GITHUB_WORKSPACE}" \
             --env "CMAKE_BUILD_PARALLEL_LEVEL=${compile_jobs}" \
             --env "MAKEFLAGS=-j${compile_jobs} -l${compile_jobs}" \
+            --cap-add SYS_PTRACE --security-opt seccomp=unconfined \
             --env LIBGL_ALWAYS_SOFTWARE=1 --env ROS_DOMAIN_ID=42 \
             --env ROS_HOME=/tmp/cleany-ros "${IMAGE}" infinity
           docker exec cleany-ci git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           tools/ci/run ccache --zero-stats
 
       - name: Verify CI environment
+        id: environment
         run: |
-          tools/ci/run bash -c '
+          tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run environment --kind environment --timeout 120 -- bash -c '
             set -eo pipefail
             source /etc/os-release
             test "${VERSION_ID}" = "22.04"
@@ -137,11 +152,10 @@ jobs:
             done
             python3 -m pytest --version
             git rev-parse HEAD
+            python3 tools/ci/preflight.py
+            env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
+            python3 containers/ci/verify-versions.py
           '
-          # Image construction populated rosdep metadata under root's ROS_HOME.
-          tools/ci/run env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
-          tools/ci/run python3 containers/ci/verify-versions.py
-          tools/ci/run make check-gazebo-env
 
       - name: Publish dependency image
         if: success() && steps.image.outputs.hit == 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -156,23 +170,35 @@ jobs:
           tools/ci/run bash -c 'python3 -m pip freeze > /opt/cleany-ci/pip-packages.txt'
 
       - name: Test host camera initialization
-        run: tools/ci/run make test-camera-orientation
+        continue-on-error: true
+        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run camera --kind contract --timeout 120 -- make test-camera-orientation
 
-      - name: Build and test workspace
-        run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
+      - name: Build workspace
+        id: build
+        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200 -- make build COLCON_BUILD_ARGS=--cmake-force-configure
+
+      - name: Test workspace contracts in parallel
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace --kind contract --timeout 1200 --diagnostic-after 1200 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py all'
 
       - name: Test motor core
-        run: tools/ci/run make test-motor-core
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run motor --kind contract --timeout 180 -- make test-motor-core
 
-      - name: Test common navigation runtime without Gazebo
+      - name: Test common navigation runtime
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
-          tools/ci/run make -o build-navigation test-navigation-runtime \
+          tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run ros-runtime --kind integration --timeout 600 -- \
+            make -o build-navigation test-navigation-runtime \
             NAVIGATION_BUILD_BASE=/ci-builds/build \
             NAVIGATION_INSTALL_BASE=/ci-builds/install \
             NAVIGATION_LOG_BASE=/ci-builds/log
 
-      - name: Test Gazebo navigation runtime
-        run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make -o build-gazebo test-gazebo-nav-runtime
+      - name: Require all checks and summarize failures
+        if: always()
+        run: |
+          python3 tools/ci/check.py --root "${RUNNER_TEMP}/cleany-builds/checks" summary \
+            ui environment camera build workspace navigation manipulation workspace-rest motor ros-runtime
 
       - name: Collect diagnostics and compiler cache statistics
         id: diagnostics
@@ -201,7 +227,9 @@ jobs:
           path: |
             ${{ runner.temp }}/cleany-builds/build/**/test_results/**/*.xml
             ${{ runner.temp }}/cleany-builds/build/**/pytest.xml
-            ${{ runner.temp }}/cleany-builds/log/latest_test/**/stdout_stderr.log
+            ${{ runner.temp }}/cleany-builds/log/**/stdout_stderr.log
+            ${{ runner.temp }}/cleany-builds/build/**/Testing/**
+            ${{ runner.temp }}/cleany-builds/checks/**
             ${{ runner.temp }}/cleany-builds/*.txt
           if-no-files-found: warn
           retention-days: 7

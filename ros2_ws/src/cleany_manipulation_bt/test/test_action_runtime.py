@@ -54,8 +54,12 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
     rclpy.init(context=context)
     namespace = '/bt_test_' + uuid.uuid4().hex
     observed = []
+    release_grasp = threading.Event()
     def operation(node, execution):
         observed.append(node)
+        if cancel and node == 'GraspObject':
+            # DDS 수신 지연과 무관하게 취소 요청을 이 동작 중에 처리합니다.
+            assert release_grasp.wait(8.)
         time.sleep(.03)  # Intentionally outlasts some BT ticks.
         values = {
             'SelectArmAndPath': dict(selected_arm='right'),
@@ -108,6 +112,9 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
             deadline = time.monotonic() + 5.
             while not any(f.substage == 'GraspObject' for f in feedback) and time.monotonic() < deadline:
                 time.sleep(.01)
+            assert any(f.substage == 'GraspObject' for f in feedback)
+            # 늦은 관찰자도 30ms 모의 동작의 완료 시점에 의존하지 않아야 합니다.
+            time.sleep(.1)
             if mode is None:
                 assert wait(handle.cancel_goal_async()).goals_canceling
             else:
@@ -115,6 +122,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
                 requested = wait(cancel_service.call_async(
                     CancelManipulation.Request(execution_id=goal.execution_id, mode=mode)))
                 assert requested.accepted, requested.message
+            release_grasp.set()
         wrapped = wait(handle.get_result_async())
         assert wrapped.status == (GoalStatus.STATUS_CANCELED if cancel else GoalStatus.STATUS_SUCCEEDED)
         result = wrapped.result
@@ -143,8 +151,10 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
             assert result.arm_recovered
             assert server.core.tree.snapshot()['nodes'][0]['status'] != 'RUNNING'
     finally:
+        release_grasp.set()
         executor.shutdown(timeout_sec=5.)
         thread.join(timeout=5.)
+        client.destroy()
         server.destroy_node()
         client_node.destroy_node()
         context.shutdown()

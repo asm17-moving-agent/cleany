@@ -145,7 +145,10 @@ class ValidatePickNode(Node):
         )
 
     def destroy_node(self) -> None:
+        # Node의 일반 client 정리는 Action client를 포함하지 않습니다.
         self._server.destroy()
+        self._inspection.destroy()
+        self._selection.destroy()
         super().destroy_node()
 
     def _on_perception_debug(self, message: Image) -> None:

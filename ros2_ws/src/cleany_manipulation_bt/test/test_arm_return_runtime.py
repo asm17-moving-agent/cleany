@@ -39,6 +39,11 @@ def runtime(tmp_path):
     thread = threading.Thread(target=executor.spin, daemon=True)
     thread.start()
     assert client.wait_for_server(timeout_sec=5.)
+    feedback_topic = namespace + '/manipulation/return_arm/_action/feedback'
+    deadline = time.monotonic() + 5.
+    while server.count_subscribers(feedback_topic) == 0 and time.monotonic() < deadline:
+        time.sleep(.01)
+    assert server.count_subscribers(feedback_topic) > 0
     try:
         yield server, operations, node, client
     finally:
@@ -62,13 +67,22 @@ def wait(future):
     return future.result()
 
 
-def test_return_remains_available_after_failure_without_clearing_inhibition(runtime):
+@pytest.mark.parametrize('feedback_delay', [0., .05])
+def test_return_remains_available_after_failure_without_clearing_inhibition(runtime, feedback_delay):
     server, ops, _, client = runtime
     server.core.inhibited = True
     feedback = []
+    def receive_feedback(msg):
+        time.sleep(feedback_delay)
+        feedback.append(msg.feedback.stage)
     handle = wait(client.send_goal_async(ReturnArm.Goal(arm='both'),
-        feedback_callback=lambda msg: feedback.append(msg.feedback.stage)))
+        feedback_callback=receive_feedback))
     assert handle.accepted
+    # Result 수신 시 rclpy가 feedback callback을 제거하므로 관찰을 먼저 마칩니다.
+    deadline = time.monotonic() + 5.
+    while 'returning_left' not in feedback and time.monotonic() < deadline:
+        time.sleep(.01)
+    assert 'returning_left' in feedback
     reply = wait(handle.get_result_async())
     assert reply.status == GoalStatus.STATUS_SUCCEEDED
     assert reply.result.success and reply.result.stop_confirmed

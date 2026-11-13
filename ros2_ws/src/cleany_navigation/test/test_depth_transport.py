@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 
 import numpy as np
+import os
 import pytest
 
 rclpy = pytest.importorskip('rclpy')
@@ -14,7 +15,7 @@ from cleany_navigation.body_geometry import BodyBox
 
 @pytest.mark.parametrize('encoding,dtype,scale', [('32FC1', '<f4', 1.), ('16UC1', '<u2', 1000.)])
 def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch, encoding, dtype, scale):
-    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', '223'))
     rclpy.init(args=['--ros-args', '-p', 'pixel_stride:=1'])
     node = None
     try:
@@ -85,7 +86,7 @@ def test_self_filter_includes_fixed_frame_and_pole_but_excludes_moving_head(monk
              'top_base_link/visual/1', 'head_pan_link/visual/1', 'front_left_wheel_link/visual/1']
     boxes = [BodyBox(name, np.zeros(3), np.eye(3), np.ones(3)*.1) for name in names]
     monkeypatch.setattr(module, 'load_body_boxes', lambda *args, **kwargs: boxes)
-    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', '223'))
     rclpy.init(args=['--ros-args', '-p', 'self_filter_profile:=test_profile.yaml'])
     node = None
     try:

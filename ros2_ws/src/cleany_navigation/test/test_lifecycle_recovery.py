@@ -2,6 +2,7 @@
 from threading import Thread
 from time import monotonic, sleep
 
+import os
 import pytest
 
 rclpy = pytest.importorskip('rclpy')
@@ -23,7 +24,7 @@ def wait(predicate, timeout=5.):
 
 @pytest.fixture
 def graph():
-    rclpy.init(domain_id=231)
+    rclpy.init(domain_id=int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 231)))
     peer = rclpy.create_node('lifecycle_manager_peer')
     group = ReentrantCallbackGroup()
     commands, outcome = [], {'success': True}
