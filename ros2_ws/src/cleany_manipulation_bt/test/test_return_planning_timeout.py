@@ -42,6 +42,7 @@ def test_deployed_return_profile_accepts_logged_delay_and_still_bounds_wait(
         pipeline_factory, response_sec, accepted):
     config = yaml.safe_load((Path(__file__).resolve().parents[1] /
                              'config/manipulation_jetson.yaml').read_text())['/**']['ros__parameters']
+    assert config['hardware_trajectory_limit_scale'] == 1.
     node = pipeline_factory([Parameter(name, value=config[name]) for name in (
         'planning_timeout_sec', 'planning_response_margin_sec')])
     adapter = node.motion

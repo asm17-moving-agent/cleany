@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from cleany_skill_executor.core.urdf_fk import UrdfChain
+from cleany_skill_executor.core.alignment import rotation_from_quaternion
 
 
 def test_runtime_urdf_chain_composes_origin_rotation_and_joint_motion():
@@ -49,3 +50,32 @@ def test_chain_handles_prismatic_continuous_fixed_origins_and_invalid_positions(
         chain.pose({'slide': np.nan, 'turn': 0.})
     with pytest.raises(ValueError, match='Nonfinite'):
         chain.pose({'slide': 0., 'turn': np.inf})
+
+
+@pytest.mark.parametrize('kind', ['revolute', 'continuous', 'prismatic'])
+def test_runtime_fk_reuses_unit_axes_and_matches_quaternion_reference(monkeypatch, kind):
+    import cleany_skill_executor.core.urdf_fk as module
+    xml = f'''<robot name="test"><joint name="q" type="{kind}">
+      <parent link="base"/><child link="arm"/><origin xyz=".3 .1 -.2" rpy="0 0 .4"/>
+      <axis xyz="1 2 3"/></joint><joint name="tool" type="fixed">
+      <parent link="arm"/><child link="tcp"/><origin xyz=".05 .07 .09"/></joint></robot>'''
+    chain = UrdfChain(xml, 'base', 'tcp')
+    axis = np.array((1., 2., 3.)) / np.sqrt(14.)
+    origin_rotation = rotation_from_quaternion((0., 0., np.sin(.2), np.cos(.2)))
+    def unexpected_normalization(*args):
+        pytest.fail('Pose evaluation must reuse the fixed URDF unit axes')
+    monkeypatch.setattr(module, 'axis_rotation', unexpected_normalization)
+    for value in (-2., 0., 1.3, -2.):
+        position, rotation = chain.pose({'q': value})
+        translation = np.array((.3, .1, -.2))
+        expected_rotation = origin_rotation
+        if kind == 'prismatic':
+            translation = translation+origin_rotation@axis*value
+        else:
+            motion = rotation_from_quaternion((*axis*np.sin(value/2), np.cos(value/2)))
+            expected_rotation = origin_rotation@motion
+        expected_position = translation+expected_rotation@np.array((.05, .07, .09))
+        np.testing.assert_allclose(position, expected_position, atol=2e-15, rtol=0.)
+        np.testing.assert_allclose(rotation, expected_rotation, atol=2e-15, rtol=0.)
+    with pytest.raises(ValueError, match='Nonfinite'):
+        chain.pose({'q': float('nan')})

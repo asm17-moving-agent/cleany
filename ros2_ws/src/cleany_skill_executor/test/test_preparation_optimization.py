@@ -4,7 +4,9 @@ from types import SimpleNamespace as NS
 import pytest
 
 from cleany_skill_executor.core.joint_stability import JointStabilityHistory
-from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit, bounded_path
+from cleany_skill_executor.core.hardware_execution import (
+    PhysicalJointLimit, bounded_path, joint_rate_limits, prepare_bounded_path,
+)
 
 
 def stable_history():
@@ -12,6 +14,28 @@ def stable_history():
     for i in range(1, 8):
         history.observe(i*100_000_000, {'a': .1, 'b': .2}, 0)
     return history
+
+
+@pytest.mark.parametrize('scale', [.8, 1.])
+def test_requested_rate_scale_is_bounded_by_current_hardware_caps(scale):
+    from cleany_skill_executor.core.joint_path import executable_joint_path
+    limits = {'q': PhysicalJointLimit(-3., 3., 2., 8., 2048., 1., 0., 0., 4095.)}
+    rates = joint_rate_limits(('q',), limits, velocity=20., acceleration=80., limit_scale=scale)
+    assert rates == ([2.*scale], [8.*scale])
+    points = [(-1.,), (1.4,)]
+    prepared = prepare_bounded_path(('q',), points, limits, velocity=2., acceleration=8.,
+                                    limit_scale=scale)
+    velocity, acceleration = executable_joint_path(points).derivative_bounds()
+    assert max(velocity/prepared.duration) <= 2.*scale
+    assert max(acceleration/prepared.duration**2) <= 8.*scale
+
+
+@pytest.mark.parametrize('scale', [0., 1.01, True, float('nan'), float('inf')])
+def test_invalid_rate_scale_fails_before_sampling(scale):
+    limits = {'q': PhysicalJointLimit(-3., 3., 2., 8., 2048., 1., 0., 0., 4095.)}
+    with pytest.raises(ValueError, match='scale'):
+        prepare_bounded_path(('q',), [(0.,), (1.,)], limits, velocity=2., acceleration=8.,
+                             limit_scale=scale)
 
 
 def settled(history, now=700_000_000, duration=.5, q=None):

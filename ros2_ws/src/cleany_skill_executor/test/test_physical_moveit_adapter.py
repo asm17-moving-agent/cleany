@@ -320,7 +320,8 @@ def test_optional_cubic_deadline_is_checked_between_full_state_batches():
         return SimpleNamespace(first_invalid_index=-1)
     adapter = SimpleNamespace(_config=MoveItAdapterConfig(), _monotonic=lambda: clock[0],
         _verify_local_fk=lambda *_: None, _check_active=lambda: None,
-        _merged_state=lambda _: RobotState(),
+        _merged_state=lambda _: RobotState(joint_state=JointState(
+            name=list(names), position=[0.]*len(names))),
         _batch_validity=SimpleNamespace(batch_size=1, check=batch),
         _joint_limits={name: (-2., 2., 1.) for name in names})
     path = PlannedPath(names, ((0.,)*5, (.2, 0., 0., 0., 0.)))

@@ -125,6 +125,56 @@ TEST_F(BatchValidityTest, ConstraintsAndMalformedRequestsFailClosed)
   cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
   EXPECT_FALSE(response.success);
   EXPECT_TRUE(response.valid.empty());
+  request.robot_states[1].joint_state.name = {"missing"};
+  request.robot_states[1].joint_state.position = {0.5};
+  cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
+  EXPECT_FALSE(response.success);
+  request.robot_states[1].joint_state.name = {"slide", "slide"};
+  request.robot_states[1].joint_state.position = {0.5, 0.5};
+  cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
+  EXPECT_FALSE(response.success);
+}
+
+TEST_F(BatchValidityTest, MixedJointLayoutsStartFromSceneState)
+{
+  cleany::BatchValidity::Request request;
+  request.robot_states = {state(0.7), moveit_msgs::msg::RobotState()};
+  request.robot_states.back().is_diff = true;
+  moveit_msgs::msg::JointConstraint limit;
+  limit.joint_name = "slide";
+  limit.position = 0.7;
+  limit.tolerance_above = limit.tolerance_below = 0.01;
+  limit.weight = 1.;
+  request.constraints.joint_constraints.push_back(limit);
+  cleany::BatchValidity::Response response;
+  cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
+  ASSERT_TRUE(response.success) << response.message;
+  EXPECT_EQ(response.first_invalid_index, 1);
+}
+
+TEST_F(BatchValidityTest, AttachmentChangesDoNotLeakBetweenSamples)
+{
+  moveit_msgs::msg::AttachedCollisionObject attached;
+  attached.link_name = "tool";
+  attached.touch_links = {"tool"};
+  attached.object = obstacle;
+  attached.object.id = "payload";
+  attached.object.header.frame_id = "tool";
+  attached.object.primitive_poses.front().position.x = 0.3;
+  cleany::BatchValidity::Request request;
+  request.robot_states = {state(0.), state(0.7)};
+  request.robot_states.front().attached_collision_objects.push_back(attached);
+  cleany::BatchValidity::Response response;
+  cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
+  ASSERT_TRUE(response.success) << response.message;
+  EXPECT_EQ(response.first_invalid_index, -1);
+
+  ASSERT_TRUE(scene->processAttachedCollisionObjectMsg(attached));
+  request.robot_states.front().is_diff = false;
+  request.robot_states.front().attached_collision_objects.clear();
+  cleany::check_state_batch(*scene, request, response, builtin_interfaces::msg::Time());
+  ASSERT_TRUE(response.success) << response.message;
+  EXPECT_EQ(response.first_invalid_index, 1);
 }
 
 TEST_F(BatchValidityTest, PayloadOctomapPermissionKeepsRobotAndNamedObstacleChecks)

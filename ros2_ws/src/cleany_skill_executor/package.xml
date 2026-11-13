@@ -27,6 +27,8 @@
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>cleany_grasping</exec_depend>
   <exec_depend>cleany_perception</exec_depend>
+  <exec_depend>cleany_robot_interface</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>
   <exec_depend>python3-yaml</exec_depend>

@@ -445,9 +445,7 @@ def generate_launch_description() -> LaunchDescription:
                     PythonExpression(["'", sorting_mode, "' == 'true' and '",
                                       LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool
                 ),
-                'geometric.include_reverse_closing_axis': ParameterValue(
-                    sorting_mode, value_type=bool
-                ),
+                'geometric.include_reverse_closing_axis': False,
                 'nms_rotation_threshold_degrees': ParameterValue(
                     PythonExpression([
                         "5.0 if '", sorting_mode, "' == 'true' else 20.0",
@@ -460,15 +458,11 @@ def generate_launch_description() -> LaunchDescription:
                     "'", LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool),
                 'geometric.robot_reference_position': [0.0, 0.0, 0.0],
                 'geometric.yaw_offsets_degrees': [
-                    -80.0,
-                    -60.0,
                     -40.0,
                     -20.0,
                     0.0,
                     20.0,
                     40.0,
-                    60.0,
-                    80.0,
                 ],
                 'geometric.maximum_candidates': ParameterValue(PythonExpression([
                     "96 if '", sorting_mode, "' == 'true' else 24"]), value_type=int),

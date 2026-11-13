@@ -12,6 +12,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PlannedPath
 from cleany_skill_executor.core.joint_path import executable_joint_path
+from cleany_skill_executor.core.hardware_execution import joint_rate_limits
 from cleany_skill_executor.trajectory_io import path_to_message
 
 
@@ -193,10 +194,10 @@ def move_arm_return(operations, arm: str, home: tuple[float, ...], gripper_close
             raise RuntimeError('No collision-free arm return path')
         route, input_points = 'rrt', len(path.points)
         limits = operations.real.verify(arm)
-        velocity = tuple(min(operations.real.value('hardware_velocity_rad_s'), limits[n].velocity * .8)
-                         for n in names)
-        acceleration = tuple(min(operations.real.value('hardware_acceleration_rad_s2'),
-                                 limits[n].acceleration * .8) for n in names)
+        velocity, acceleration = joint_rate_limits(
+            names, limits, velocity=operations.real.value('hardware_velocity_rad_s'),
+            acceleration=operations.real.value('hardware_acceleration_rad_s2'),
+            limit_scale=getattr(operations.real, 'trajectory_limit_scale', .8))
         original = path
         budget = float(operations.value('bt_arm_return_optimization_budget_sec'))
         if not math.isfinite(budget) or budget <= 0:

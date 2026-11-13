@@ -158,22 +158,39 @@ class CubicJointPath:
             raise ValueError('invalid joint path sampling limits')
         # Bound each segment separately: one difficult segment must not force
         # every near-stationary segment to use the same dense sampling rate.
-        counts = []
-        for a, b, c, _ in self._coefficients:
-            maximum = np.maximum(np.abs(c), np.abs(3*a+2*b+c))
-            for j in range(len(a)):
-                if abs(a[j]) > 1e-14:
-                    u = -b[j]/(3*a[j])
-                    if 0 < u < 1:
-                        maximum[j] = max(maximum[j], abs(3*a[j]*u*u+2*b[j]*u+c[j]))
-            counts.append(max(minimum_subdivisions,
-                              math.ceil(float(np.max(maximum))/maximum_joint_step)))
+        single_segment = len(self._coefficients) == 1
+        if single_segment:
+            distance = float(np.max(np.abs(self.positions[1]-self.positions[0])))
+            counts = [max(minimum_subdivisions, math.ceil(distance/maximum_joint_step))]
+        else:
+            counts = []
+            for a, b, c, _ in self._coefficients:
+                maximum = np.maximum(np.abs(c), np.abs(3*a+2*b+c))
+                for j in range(len(a)):
+                    if abs(a[j]) > 1e-14:
+                        u = -b[j]/(3*a[j])
+                        if 0 < u < 1:
+                            maximum[j] = max(maximum[j], abs(3*a[j]*u*u+2*b[j]*u+c[j]))
+                counts.append(max(minimum_subdivisions,
+                                  math.ceil(float(np.max(maximum))/maximum_joint_step)))
         if sum(counts)+1 > maximum_points:
             raise ValueError('joint path exceeds sample budget')
         result = [self.sample(0, 0.)]
         for segment, subdivisions in enumerate(counts):
-            result.extend(self.sample(segment, step/subdivisions)
-                          for step in range(1, subdivisions+1))
+            fractions = np.arange(1, subdivisions+1, dtype=float)/subdivisions
+            if single_segment:
+                # All joints share smoothstep. Its inverse spaces checks in
+                # joint angle while retaining the same cubic and timing.
+                fractions = .5-np.sin(np.arcsin(1.-2.*fractions)/3.)
+                fractions[-1] = 1.
+            u = fractions[:, None]
+            a, b, c, d = self._coefficients[segment]
+            positions = ((a*u+b)*u+c)*u+d
+            positions[-1] = self.positions[segment+1]
+            derivatives = (3*a*u*u+2*b*u+c)/self._steps[segment]
+            progress = self._knots[segment]+fractions*self._steps[segment]
+            result.extend(JointPathSample(float(s), tuple(q), tuple(v))
+                          for s, q, v in zip(progress, positions, derivatives, strict=True))
         return result
 
 

@@ -6,16 +6,37 @@ import pytest
 from cleany_skill_executor.core.joint_path import CubicJointPath, executable_joint_path
 
 
-def test_samples_preserve_boundary_goals_exactly():
+@pytest.mark.parametrize('step_rad,count', [(.01, 184), (.02, 93)])
+def test_samples_preserve_boundary_goals_exactly(step_rad, count):
     # Measured left-gripper release start and configured upper limit from the
     # 2026-10-16 failure: Horner evaluation added 4.44e-16 rad at sample 274.
     positions = [(-0.07694070477797149,), (1.74532919957,)]
     path = executable_joint_path(positions)
-    samples = path.samples(.01, 2)
-    assert len(samples) == 275
+    samples = path.samples(step_rad, 2)
+    assert len(samples) == count
     assert samples[0].positions == positions[0]
     assert samples[-1].positions == positions[-1]
     assert all(positions[0][0] <= sample.positions[0] <= positions[-1][0] for sample in samples)
+    increments = np.diff([sample.positions[0] for sample in samples])
+    np.testing.assert_allclose(increments, (positions[-1][0]-positions[0][0])/(count-1), atol=1e-14)
+
+
+@pytest.mark.parametrize('joints', [1, 5])
+@pytest.mark.parametrize('retime', [False, True])
+def test_batched_samples_match_each_scalar_sample_exactly(joints, retime):
+    positions = [tuple(value*(joint+1) for joint in range(joints))
+                 for value in (0., .1, -.02, .3)]
+    path = CubicJointPath(positions, (0., .02, .3, 1.))
+    if retime:
+        path = path.retimed([2.]*joints, [8.]*joints)
+    actual = path.samples(.01, 2, maximum_points=10000)
+    velocity, _ = path._segment_derivative_bounds()
+    counts = [max(2, math.ceil(float(np.max(row))/.01)) for row in velocity]
+    expected = [path.sample(0, 0.)]
+    for segment, subdivisions in enumerate(counts):
+        expected.extend(path.sample(segment, step/subdivisions)
+                        for step in range(1, subdivisions+1))
+    assert actual == expected
 
 
 @pytest.mark.parametrize('positions', [[], [(0.,)], [(0.,), (math.nan,)], [(0.,), (1., 2.)]])
@@ -56,17 +77,21 @@ def test_analytical_velocity_and_acceleration_bounds_cover_dense_samples():
             previous = sample
 
 
-def test_dense_samples_reconstruct_same_cubic_used_by_jtc():
-    path = CubicJointPath([(0.,), (.2,), (.4,)])
-    samples = path.samples(.01, 10)
+@pytest.mark.parametrize('step_rad', [.01, .02])
+@pytest.mark.parametrize('positions', [[(0.,), (.4,)], [(0.,), (.2,), (.4,)]])
+def test_dense_samples_reconstruct_same_cubic_used_by_jtc(step_rad, positions):
+    path = CubicJointPath(positions)
+    samples = path.samples(step_rad, 10)
     for first, second in zip(samples, samples[1:]):
         # Hermite midpoint reconstructed from emitted positions and velocities.
         h = second.progress-first.progress
         midpoint = .5*(first.positions[0]+second.positions[0]) + h/8*(first.derivatives[0]-second.derivatives[0])
         progress = (first.progress+second.progress)/2
-        segment = min(int(progress*2), 1)
-        assert midpoint == pytest.approx(path.sample(segment, progress*2-segment).positions[0], abs=1e-12)
-        assert abs(second.positions[0]-first.positions[0]) <= .01+1e-12
+        segment = np.searchsorted(path.progressions, progress, side='right')-1
+        fraction = ((progress-path.progressions[segment]) /
+                    (path.progressions[segment+1]-path.progressions[segment]))
+        assert midpoint == pytest.approx(path.sample(segment, fraction).positions[0], abs=1e-12)
+        assert abs(second.positions[0]-first.positions[0]) <= step_rad+1e-12
 
 
 def test_sampling_and_timing_limits_fail_closed():

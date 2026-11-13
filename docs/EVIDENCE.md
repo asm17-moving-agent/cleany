@@ -287,6 +287,45 @@ Gazebo 센서/TF 실행 검사 1건과 motor core 검사도 통과했다.
 
 원본 로그는 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-combined/`에 보관한다.
 
+## 모션 최적화 PR 검증 (2026-11-11)
+
+`bfbf0929`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 별도 설치에서 검증했다.
+`make test-collection-regression`은 curobo-venv Python과 독립 ROS domain 231에서
+4,219개가 통과했고 RealSense 장치 검사 1개는 실행 조건 미지정으로 제외했다.
+MoveIt 배치 충돌 C++ 검사 7개와 실제 CUDA의 손목 평가 기준 일치 검사 4개도 통과했다.
+변경 패키지 3개와 interfaces 2개를 격리 경로에 빌드했다.
+입력은 저장소 모델, 합성 관절과 센서 데이터, 가짜 모션 포트다. 실물 구동은 하지 않았다.
+
+초기 구형 interfaces, Python geometry 의존성 및 native BT 모듈 누락은 올바른 설치와
+검증 venv를 지정해 해결했다. 원본 브랜치에서 main으로 옮겨진 테스트가 중복 유입된
+문제는 현재 파일 위치에 필요한 변경만 반영해 해결했다. 구형 clamp 전용 검사는
+가져오지 않았다. 기존 275개를 기대한 검사는 새 샘플링의 184개로 갱신했다.
+첫 전체 실행의 ROS 재시작 응답 timeout도 최종 독립 domain 실행에서는 발생하지 않았다.
+원본 실패와 최종 로그, 환경 및 commit 식별자는
+`/home/cleany/cleany-data/reports/pr-publication-20261111/`에 보관한다.
+
+충돌 계산 비교의 원본은
+`/home/cleany/cleany-data/reports/collision-batch-cubic-20261110.pfrpg66d/benchmark/comparison.json`이다.
+기록 관절 경로, 제공 URDF/SRDF, 232개 충돌 형상과 합성 장애물로 30회 계산했다.
+중앙값은 변경 전 84.725126 ms, 상태 재사용만 적용 시 82.2486445 ms,
+샘플링과 재사용을 함께 적용하면 54.625374 ms였다. 세 장애물 위치의 차단 결과는 같았다.
+11월 10일 서버 내부 재생 계산이며 RPC 전송 시간과 실물 수거 전체 주기를 포함하지 않는다.
+
+### PR 79 공통 CI 오류 수정 검증 (2026-11-12)
+
+`bf447b2e`에 이 변경의 Pillow 호환 코드와 BT CTest 300초 제한을 적용했다.
+CI에서 Pillow 9.0.1의 `Image.Resampling` 부재로 증거 이미지 생성이 실패했고,
+BT 전체 수트는 기본 60초 제한에 걸렸다. 개별 Action 응답과 종료 제한은 유지했다.
+Jetson Ubuntu 22.04 ARM64, Humble, Python 3.10, pytest 6.2.5와 Pillow 9.0.1에서
+관련 3개 패키지의 colcon 검사 3,320 reported tests가 실패 없이 끝났다(skip 30).
+skill 2,484개, BT 785개와 C++ 18개가 통과했고 BT 전체는 약 90초가 걸렸다.
+관련 도구 65개와 별도 curobo-venv에서 실제 CUDA 손목 평가 검사 4개도 통과했다.
+초기 도구 검사의 Python 및 ROS import 누락은 올바른 source 환경으로 재실행해 해결했다.
+입력은 저장소 모델, 합성 관절과 센서 데이터, 가짜 모션 포트다. 실물 구동은 하지 않았다.
+로컬 BehaviorTree.CPP 4.10.0과 CI의 4.9.1, ARM64와 amd64 환경 차이는 남아 있다.
+환경, 소스 패치, 초기 실패와 최종 로그, JUnit 원본은
+`/home/cleany/cleany-data/reports/pr79-local-validation-20261112/`에 보관한다.
+
 ## CI 의존성의 Jetson 버전 기준
 
 PR #73의 `20dae9af760e3212fbec8c0b5476ab73ff928d90`에서 실행한

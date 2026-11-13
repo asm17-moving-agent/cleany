@@ -15,6 +15,7 @@ from cleany_skill_executor.core.alignment import (
     sampled_indices,
     tcp_axes,
 )
+from cleany_skill_executor.core.ik_diagnostics import ScoredAlignments, merge_alignments
 from cleany_skill_executor.core.physical_grasp_selection import (
     ARM_JOINT_NAMES,
     InfrastructureError,
@@ -162,13 +163,14 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
                 state,
                 world,
             )
-            evaluated += self._score(arm, target, aims + projected, state)
+            evaluated = merge_alignments(evaluated, self._score(arm, target, aims + projected, state))
         chosen = self._choose_valid(arm, evaluated)
         if chosen is not None:
             return chosen
         # Return an out-of-tolerance result for the existing selector's error
         # classification, but never return a feasible, collision-invalid one.
-        rejected = [item for item in evaluated if not self._feasible_alignment(item)]
+        items = evaluated.candidates if isinstance(evaluated, ScoredAlignments) else evaluated
+        rejected = [item for item in items if not self._feasible_alignment(item)]
         return self._best_alignment(rejected) if rejected else None
 
     def _score(self, arm, target, solutions, state):
@@ -196,7 +198,8 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
         return tuple(variants)
 
     def _choose_valid(self, arm, evaluated):
-        feasible = [item for item in evaluated if self._feasible_alignment(item)]
+        items = evaluated.candidates if isinstance(evaluated, ScoredAlignments) else evaluated
+        feasible = [item for item in items if self._feasible_alignment(item)]
         valid = self._valid_batch(arm, [item.solution for item in feasible])
         accepted = [item for item, ok in zip(feasible, valid) if ok]
         return self._best_alignment(accepted) if accepted else None

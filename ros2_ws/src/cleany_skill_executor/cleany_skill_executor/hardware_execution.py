@@ -20,6 +20,7 @@ from control_msgs.msg import DynamicJointState, JointTolerance
 from controller_manager_msgs.srv import ListControllers, ListHardwareComponents
 from moveit_msgs.srv import GetStateValidity
 from moveit_msgs.msg import RobotState
+from rcl_interfaces.msg import ParameterDescriptor
 from rcl_interfaces.srv import GetParameters
 from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
@@ -42,7 +43,7 @@ from .core.joint_path import executable_joint_path
 from .core.joint_stability import JointStabilityHistory
 from .core.recorded_trajectory import (
     ArmCommandRecording, CommandPoint, RecordedTrajectory, validate_recorded_trajectory,
-    stopped_recorded_window,
+    stopped_recorded_window, retime_recorded_trajectory,
 )
 from .core.motion_monitor import MotionMonitor, MotionMonitorConfig
 from .core.gripper_contact import ContactState, LiveContactHistory, load_contact_criteria
@@ -128,9 +129,17 @@ class HardwareExecution:
         self.communication_recovery_count = 0
         self.complete_feedback_stamp_ns: int | None = None
         self._active_recovery_generation: int | None = None
+        node.declare_parameter('hardware_trajectory_limit_scale', .8,
+            descriptor=ParameterDescriptor(read_only=True))
+        scale = node.get_parameter('hardware_trajectory_limit_scale').value
+        if (type(scale) not in (int, float) or not math.isfinite(scale)
+                or not 0 < scale <= 1):
+            raise ValueError('hardware_trajectory_limit_scale must be in (0, 1]')
+        self.trajectory_limit_scale = float(scale)
         node.declare_parameter('hardware_reuse_settle_history', True)
         node.declare_parameter('hardware_reuse_scene_barrier', False)
-        for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation'):
+        for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation',
+                     'retime_retreat'):
             parameter = 'hardware_'+name
             node.declare_parameter(parameter, False)
             enabled = node.get_parameter(parameter).value
@@ -183,7 +192,7 @@ class HardwareExecution:
             str(node.get_parameter('sensor_scene_update_service').value),
         )
         for name, value in {'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
-                            'hardware_path_step_rad': .01,
+                            'hardware_path_step_rad': .02,
                             'hardware_pickup_height_search_tolerance_m': 0.,
                             'hardware_path_simplification_tolerance_rad': .002,
                             'hardware_start_delay_sec': .8,
@@ -196,6 +205,8 @@ class HardwareExecution:
                             'hardware_uncommanded_tolerance_rad': .03,
                             'hardware_settle_time_sec': .5,
                             'hardware_height_correction_min_duration_sec': 1.,
+                            'hardware_lift_min_duration_sec': 1.,
+                            'hardware_retreat_min_duration_sec': 1.,
                             'hardware_release_retreat_min_duration_sec': 1.,
                             'hardware_release_retreat_position_tolerance_m': 1e-9,
                             'hardware_release_retreat_orientation_tolerance_deg': 1e-9,
@@ -379,7 +390,22 @@ class HardwareExecution:
     def _wait_before_execution(self, names):
         began = time.monotonic()
         try:
-            if getattr(self, '_stability_history', None) is not None:
+            history = getattr(self, '_stability_history', None)
+            preparation = getattr(self, '_return_preparation', None)
+            if (history is not None and preparation is not None and preparation.phase == 'home'
+                    and preparation.endpoint is not None):
+                state = self.monitor()
+                receipt = HardwareExecution._current_return_endpoint(self, state)
+                combined = (*ARM_JOINT_NAMES[preparation.arm], f'{preparation.arm}_gripper_joint')
+                if receipt is not None and tuple(names) == combined and history.stable(
+                        names, dict(zip(state.name, state.position, strict=True)),
+                        now_ns=self.node.get_clock().now().nanoseconds,
+                        duration_sec=self.value('hardware_endpoint_settle_duration_sec'),
+                        maximum_age_sec=self.value('hardware_guard_max_age_sec'),
+                        velocity_rad_s=self.value('hardware_endpoint_settle_velocity_rad_s')):
+                    self.node.event('return_start_settle_handoff', arm=preparation.arm, reused=True)
+                    return state
+            if history is not None:
                 return self.wait_for_settle(names, duration_sec=self.value('hardware_settle_time_sec'))
             time.sleep(self.value('hardware_settle_time_sec'))
             return self.monitor()
@@ -592,9 +618,12 @@ class HardwareExecution:
             if use_guard:
                 phase = 'hold_bridge' if index < hold_bridge_samples else 'command_path'
                 guard({**baseline, **dict(zip(expected, sample.positions))}, index, phase)
-            state = JointState(header=deepcopy(measured.header), name=list(names),
+            state = JointState(name=list(names),
                                position=values, velocity=list(measured.velocity),
                                effort=list(measured.effort))
+            state.header.frame_id = measured.header.frame_id
+            state.header.stamp.sec = measured.header.stamp.sec
+            state.header.stamp.nanosec = measured.header.stamp.nanosec
             states.append(RobotState(joint_state=state, is_diff=True))
         self.monitor()
         return states
@@ -770,19 +799,26 @@ class HardwareExecution:
         preparation.batch = ReadOnlyBatch(self.node, calls, availability_timeout=0.)
         self.node.event('return_model_prefetch', outcome='started', arm=arm)
 
+    def _current_return_endpoint(self, state):
+        """Match one fresh, fully verified retreat receipt to live robot state."""
+        preparation = getattr(self, '_return_preparation', None)
+        if preparation is None or preparation.endpoint is None:
+            return None
+        receipt = preparation.endpoint
+        current = tuple(sorted(zip(state.name, map(float, state.position), strict=True)))
+        valid = (current == receipt.positions and receipt.models == self._verified_models
+                 and receipt.submissions == self.motion_submissions
+                 and receipt.generation == self.communication_recovery_count
+                 and time.monotonic()-receipt.checked_at <= self.value('hardware_guard_max_age_sec'))
+        return receipt if valid else None
+
     def reuse_release_retreat_endpoint(self, arm, target):
         """Reuse FK only when the entire measured robot still matches the receipt."""
         preparation = getattr(self, '_return_preparation', None)
         if preparation is None or preparation.arm != arm or preparation.endpoint is None:
             return None
-        receipt = preparation.endpoint
-        state = self.monitor()
-        current = tuple(sorted(zip(state.name, map(float, state.position), strict=True)))
-        valid = (not preparation.endpoint_reused and receipt.target == target
-                 and current == receipt.positions and receipt.models == self._verified_models
-                 and receipt.submissions == self.motion_submissions
-                 and receipt.generation == self.communication_recovery_count
-                 and time.monotonic()-receipt.checked_at <= self.value('hardware_guard_max_age_sec'))
+        receipt = HardwareExecution._current_return_endpoint(self, self.monitor())
+        valid = (receipt is not None and not preparation.endpoint_reused and receipt.target == target)
         self.node.event('return_endpoint_handoff', arm=arm, reused=valid)
         if not valid:
             return None
@@ -1017,6 +1053,7 @@ class HardwareExecution:
         command_path_validator=None,
         recorded_trajectory=None,
         recorded_window: tuple[int, int] | None = None,
+        retime_recorded: bool = False,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
         start_from_measured: bool = False,
@@ -1027,6 +1064,10 @@ class HardwareExecution:
         height_options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
         if recorded_window is not None:
             height_options['recorded_window'] = recorded_window
+        if type(retime_recorded) is not bool:
+            raise ValueError('retime_recorded must be boolean')
+        if retime_recorded:
+            height_options['retime_recorded'] = True
         if minimum_duration_sec != 1.:
             height_options['minimum_duration_sec'] = minimum_duration_sec
         if type(start_from_measured) is not bool:
@@ -1082,6 +1123,7 @@ class HardwareExecution:
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
                                    recorded_window: tuple[int, int] | None = None,
+                                   retime: bool = False,
                                    endpoint_pose: CartesianPose | None = None,
                                    check_arrival: bool = True):
         if type(check_arrival) is not bool:
@@ -1096,6 +1138,10 @@ class HardwareExecution:
         options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
         if recorded_window is not None:
             options['recorded_window'] = recorded_window
+        if type(retime) is not bool:
+            raise ValueError('retime must be boolean')
+        if retime:
+            options['retime_recorded'] = True
         if not check_arrival:
             options.update(terminal_check=False, allow_endpoint_error=True)
         if endpoint_pose is not None:
@@ -1199,6 +1245,7 @@ class HardwareExecution:
         command_path_validator=None,
         recorded_trajectory=None,
         recorded_window: tuple[int, int] | None = None,
+        retime_recorded: bool = False,
         _refresh_attempt=0,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
@@ -1224,7 +1271,23 @@ class HardwareExecution:
             raise ValueError('Relaxed arrival is only allowed for an arm trajectory')
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
+        if type(retime_recorded) is not bool:
+            raise ValueError('retime_recorded must be boolean')
+        if retime_recorded and (controller != 'arm' or recorded_trajectory is None
+                                or recorded_window is not None):
+            raise ValueError('Retiming requires one complete recorded arm trajectory')
         limits = self.verify(arm)
+        if retime_recorded:
+            recorded_trajectory.validate()
+            source_duration = recorded_trajectory.points[-1].time_ns/1e9
+            recorded_trajectory = retime_recorded_trajectory(
+                recorded_trajectory, limits, velocity=self.value('hardware_velocity_rad_s'),
+                acceleration=self.value('hardware_acceleration_rad_s2'),
+                minimum_duration_sec=self.value('hardware_retreat_min_duration_sec'),
+                limit_scale=getattr(self, 'trajectory_limit_scale', .8))
+            self.node.event('retreat_replay_timing', source_duration_sec=source_duration,
+                            command_duration_sec=recorded_trajectory.points[-1].time_ns/1e9,
+                            command_points=len(recorded_trajectory.points))
         if recorded_window is not None:
             if controller != 'arm' or recorded_trajectory is None:
                 raise ValueError('A recorded window requires an arm command history')
@@ -1232,7 +1295,8 @@ class HardwareExecution:
             recorded_trajectory = stopped_recorded_window(
                 recorded_trajectory, start_ns, end_ns, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
-                acceleration=self.value('hardware_acceleration_rad_s2'))
+                acceleration=self.value('hardware_acceleration_rad_s2'),
+                limit_scale=getattr(self, 'trajectory_limit_scale', .8))
             trajectory = JointTrajectory(joint_names=list(recorded_trajectory.joint_names), points=[
                 JointTrajectoryPoint(positions=list(point.positions))
                 for point in recorded_trajectory.points])
@@ -1269,7 +1333,8 @@ class HardwareExecution:
                 recorded_trajectory, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
-                step=self.value('hardware_path_step_rad'))
+                step=self.value('hardware_path_step_rad'),
+                limit_scale=getattr(self, 'trajectory_limit_scale', .8))
             samples = recorded_trajectory.command_samples()
             duration = recorded_trajectory.points[-1].time_ns/1e9
         elif (controller == 'arm' and held_command is None and arm in self.arm_holds
@@ -1291,7 +1356,8 @@ class HardwareExecution:
                 simplification_tolerance=self.value(
                     'hardware_path_simplification_tolerance_rad'),
                 position_range_exemptions=range_exemptions,
-                minimum_duration_sec=minimum_duration_sec)
+                minimum_duration_sec=minimum_duration_sec,
+                limit_scale=getattr(self, 'trajectory_limit_scale', .8))
             samples, duration = prepared.samples, prepared.duration
             if range_exemptions:
                 self.node.event('gripper_opening_position_range_check_disabled', arm=arm,
@@ -1327,7 +1393,8 @@ class HardwareExecution:
                     acceleration=self.value('hardware_acceleration_rad_s2'),
                     step=self.value('hardware_path_step_rad'),
                     simplification_tolerance=self.value(
-                        'hardware_path_simplification_tolerance_rad'))
+                        'hardware_path_simplification_tolerance_rad'),
+                    limit_scale=getattr(self, 'trajectory_limit_scale', .8))
                 collision_samples = [*bridge[:-1], *collision_samples]
                 # Include the junction: samples[0] is the held setpoint and
                 # remains mandatory for every later waypoint candidate.
@@ -1410,6 +1477,7 @@ class HardwareExecution:
             command.points.append(point)
         self.node.get_logger().info(json.dumps({
             'stage': 'hardware_trajectory_prepared',
+            'trajectory_limit_scale': getattr(self, 'trajectory_limit_scale', .8),
             'controller_points': len(command.points),
             'two_point_gripper_command': compact_gripper,
             'sparse_cubic_command': compact_cubic,
@@ -1645,7 +1713,8 @@ class HardwareExecution:
             acceleration=self.value('hardware_acceleration_rad_s2'),
             step=self.value('hardware_path_step_rad'),
             simplification_tolerance=simplification_tolerance,
-            position_range_exemptions=range_exemptions)
+            position_range_exemptions=range_exemptions,
+            limit_scale=getattr(self, 'trajectory_limit_scale', .8))
         samples, duration = prepared.samples, prepared.duration
         if range_exemptions:
             self.node.event('gripper_opening_position_range_check_disabled', arm=arm,
@@ -1660,7 +1729,8 @@ class HardwareExecution:
                 acceleration=self.value('hardware_acceleration_rad_s2'),
                 step=self.value('hardware_path_step_rad'),
                 simplification_tolerance=simplification_tolerance,
-                position_range_exemptions=range_exemptions)
+                position_range_exemptions=range_exemptions,
+                limit_scale=getattr(self, 'trajectory_limit_scale', .8))
             hold_bridge_samples = len(bridge)-1
             collision_samples = [*bridge[:-1], *samples]
         path_preparation_sec = time.monotonic()-path_preparation_began
@@ -1714,6 +1784,7 @@ class HardwareExecution:
         }
         self.node.get_logger().info(json.dumps({
             'stage': stage_prefix + '_trajectory_prepared',
+            'trajectory_limit_scale': getattr(self, 'trajectory_limit_scale', .8),
             'controller_points': {key: len(value.points) for key, value in commands.items()},
             'sparse_cubic_command': compact_cubic,
             'collision_checks_enabled': check_collisions,
