@@ -1,0 +1,6 @@
+(version 1)
+# JLCPCB 2-layer, 1 oz conservative rules; routed edges.
+(rule "JLCPCB PTH annular ring"
+  (constraint annular_width (min 0.25mm)))
+(rule "JLCPCB silk to exposed copper"
+  (constraint silk_clearance (min 0.15mm)))

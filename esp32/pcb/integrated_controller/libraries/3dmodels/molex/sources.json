@@ -1,0 +1,33 @@
+{
+  "manufacturer": "Molex",
+  "retrieval": "Farnell CAD ZIP downloads using Playwright Firefox; STEP bytes preserved, extension renamed from .stp to .step",
+  "units": "mm",
+  "terms_url": "https://www.molex.com/en-us/about/legal",
+  "usage_notice": "Manufacturer CAD, not covered by the KiCad library license. Archives contain no license file. Molex's website notice permits product evaluation in an application; no public redistribution grant was verified.",
+  "models": [
+    {
+      "mpn": "0022057035",
+      "aliases": ["22-05-7035", "5268-03A"],
+      "catalog_url": "https://www.newark.com/molex/22-05-7035/connector-header-3pos-1row-2-5mm/dp/57R9151",
+      "archive_url": "https://www.farnell.com/cad/1990352.zip",
+      "archive_member": "022057035.stp",
+      "file": "022057035.step",
+      "sha256": "1bbe946ff785cb41046c2d70118d96b5da942eb1b685f29f07ea6325e03b1394",
+      "references": ["J7", "J8", "J9", "J10"],
+      "offset_mm": [2.5, -3.65, 2.45],
+      "rotation_deg": [0, 0, 180]
+    },
+    {
+      "mpn": "0022057045",
+      "aliases": ["22-05-7045", "5268-04A"],
+      "catalog_url": "https://canada.newark.com/molex/22-05-7045/connector-header-4pos-1row-2-54mm/dp/07P8724",
+      "archive_url": "https://www.farnell.com/cad/1976541.zip",
+      "archive_member": "022057045.stp",
+      "file": "022057045.step",
+      "sha256": "63e56522bfa1365b9248115dbd4b57c12f173074a73d3bb3aebc5b6b331a176d",
+      "references": ["J11", "J12", "J13", "J14"],
+      "offset_mm": [3.75, -3.65, 2.45],
+      "rotation_deg": [0, 0, 180]
+    }
+  ]
+}

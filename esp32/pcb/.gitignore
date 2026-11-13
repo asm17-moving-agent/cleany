@@ -1,0 +1,4 @@
+.memory/
+*.zip
+# Optional manufacturer CAD; public redistribution permission is unverified.
+/integrated_controller/libraries/3dmodels/molex/*.step

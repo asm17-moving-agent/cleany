@@ -2,6 +2,29 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## 통합 컨트롤러 PCB 검증
+
+PCB 검사는 [KiCad 호스트 환경](DEVELOPMENT_SETUP.md#kicad-pcb-검증-환경)에서 실행합니다.
+
+```bash
+make test-pcb
+```
+
+`esp32/pcb/integrated_controller/tests/`의 보드 전용 검사는 BOM, 핀맵, 회로도와 PCB의 일치,
+제조 규칙의 경계값, 패드와 비아 간격, 3D 모델의 출처와 배치를 확인합니다.
+이어서 저장된 설계의 ERC와 회로도 일치 검사를 포함한 DRC를 실행합니다.
+오류, 경고와 제외 항목을 모두 보고하며 KiCad가 위반 종료 코드를 반환하면 target도 실패합니다.
+KiCad 실행 파일이나 `pcbnew`가 없으면 테스트 전에 실패합니다.
+
+`PCB_PYTHON`으로 KiCad Python 실행 파일을 선택합니다. `PCB_TEST_OUTPUT`의 기본값은
+`CLEANY_BUILD_ROOT/pcb-validation`이며 `erc.json`, `drc.json`을 기록합니다.
+별도 실행의 근거를 보존할 때는 `make test-pcb PCB_TEST_OUTPUT=/path/to/run`으로 경로를 지정합니다.
+[Molex 모델](../esp32/pcb/integrated_controller/libraries/3dmodels/README.md)은 로컬 설치 항목이므로
+새 checkout에서는 원본 해시 검사 1건만 건너뛰며 메타데이터와 PCB 배치 검사는 수행합니다.
+
+이 검사는 통합 보드의 저장된 설계를 대상으로 합니다. 별도 `sensor_controller`는 배치와 배선이
+없는 초안입니다. 제조사 DFM, 실물 전원 부하, USB 신호 품질과 펌웨어 이식 검증은 포함하지 않습니다.
+
 
 ## 인식과 파지 후보 검증
 
