@@ -4,6 +4,34 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## Phone 주행, 문서와 telemetry 통합 검증 (2026-11-15)
+
+`main`의 `22c2956b`와 `refactor/docs-and-navigation`의 `66c3b913`을
+`268b298a`로 통합하고, 집기 데모 검사에 실행 모델 프로파일을 명시했다.
+DDS 취소 검사는 가짜 집기 작업을 취소 응답까지 유지해 전달 지연에 따른
+경합을 없앴다. 취소 후 들어 올리기 금지와 복구 결과 검사는 유지했다.
+
+Ubuntu 22.04 ARM64, ROS 2 Humble, Python 3.10.12의 격리 컨테이너에서
+31개 패키지를 빌드했다. 전체 workspace 검사와 수정한 두 패키지의 재검사 후
+colcon 최종 집계는 6,023 tests, 0 errors, 0 failures, 70 skipped였다.
+MoveIt/Pilz는 모두 2.5.10, BehaviorTree.CPP는 4.10.0, MuJoCo는 3.11.0이다.
+Phone UI 빌드와 입력 검사 17개, CI 도구/vision preflight 50개와
+17 subtests도 통과했다. Docker 환경 의존 도구 검사 2개는 skip했다.
+
+Jetson Ubuntu 22.04 ARM64의 별도 설치에 관련 27개 패키지와 BT 패키지를
+빌드하고, 격리 ROS 도메인에서 telemetry, bridge, logger, monitor와
+좌석 catalog 검사 257개를 통과했다. 입력은 합성 영상·관측, 가짜 ROS 서버와
+저장소 설정이다. 실물 모터, 카메라 영상과 현장 주행·수거 성공은 검증하지 않았다.
+
+초기 Distrobox에서는 MoveIt/Pilz 버전 불일치, GLX 초기화와 공유 PID namespace의
+시리얼 소유권 검사 권한 때문에 실패했다. 버전이 일치하고 PID가 격리된 컨테이너로
+재검증했다. Jetson의 첫 관측 검사에서 누락된 BT 테스트 의존성은 빌드 후 해결했다.
+검사를 제외하거나 통과 기준을 낮추지 않았다.
+
+입력 브랜치, 소스 hash, 환경, 실패와 최종 로그 및 JUnit 원본은
+`CLEANY_DATA_ROOT/runs/platform/2026-11-15_docs-navigation-integration/validation/`에
+보관한다. GitHub CI와 사람 승인 상태는 [통합 PR #83](https://github.com/asm17-moving-agent/cleany/pull/83)에서 확인한다.
+
 ## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
 
 `aab901be`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 격리 설치에서 검증했다.
