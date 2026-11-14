@@ -20,14 +20,15 @@ def test_sorting_startup_wrist_camera_mounts_have_matching_orientation():
         r"'(left|right)_(\w+)_initial': '(-?[0-9.]+)'", launch)}
     assert initial['left_wrist_roll_joint'] == initial['right_wrist_roll_joint'] == 1.58
     path = materialize_control_scene(package / 'scenes/study_cafe_grasp_execution.xml.in',
-                                     initial_joint_positions=initial)
+                                     initial_joint_positions=initial,
+                                     model_profile="jetson_20261009")
     model = mujoco.MjModel.from_xml_path(str(path))
     data = mujoco.MjData(model)
     mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
     mujoco.mj_forward(model, data)
     left = data.cam_xmat[model.camera('left_wrist_rgb').id].reshape(3, 3)
     right = data.cam_xmat[model.camera('right_wrist_rgb').id].reshape(3, 3)
-    # Shoulder yaw differs; compare vertical components of all camera axes.
+    # 어깨 yaw가 다르므로 모든 카메라 축의 수직 성분을 비교합니다.
     assert left[2] == pytest.approx(right[2], abs=1e-4)
     for arm in ('left', 'right'):
         assert data.ctrl[model.actuator(f'{arm}_wrist_roll_joint').id] == pytest.approx(1.58)
@@ -138,13 +139,13 @@ def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
     'left_elbow_pitch_joint': 3.12,
     'left_wrist_pitch_joint': -1.63,
     'left_wrist_roll_joint': 1.58,
-    'left_gripper_joint': -0.35,
+    'left_gripper_joint': 0.0,
     'right_shoulder_yaw_joint': 1.58,
     'right_shoulder_pitch_joint': 3.35,
     'right_elbow_pitch_joint': 3.12,
     'right_wrist_pitch_joint': -1.63,
     'right_wrist_roll_joint': 1.58,
-    'right_gripper_joint': -0.35,
+    'right_gripper_joint': 0.0,
 }])
 def test_control_scene_keyframe_preserves_joint_and_dynamic_object_pose(initial):
     package_root = Path(__file__).parents[1]
@@ -254,7 +255,7 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
     )
     rear_left_dof_id = model.jnt_dofadr[rear_left_joint_id]
 
-    # The 10 percent derated rated point remains on the motor curve.
+    # 10% 낮춘 정격점이 여전히 모터 곡선 위에 있는지 확인합니다.
     data.ctrl[rear_left_drive_id] = 10.8
     data.qvel[rear_left_dof_id] = 0.9 * 103.0 * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
@@ -262,7 +263,7 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
         2.646, rel=1e-6
     )
 
-    # At 90 percent voltage, the no-load equilibrium speed also scales by 0.9.
+    # 전압 90%에서는 무부하 평형 속도도 0.9배가 됩니다.
     data.qvel[rear_left_dof_id] = 0.9 * (7000.0 / 61.0) * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
     assert data.actuator_force[rear_left_drive_id] == pytest.approx(
@@ -336,3 +337,23 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             assert modeled_no_load_speed == pytest.approx(
                 no_load_speed, rel=1e-6
             )
+
+
+def test_legacy_control_scene_keeps_commanded_jaws_and_latest_cad_stays_default():
+    template = Path(__file__).parents[1] / 'scenes/study_cafe_grasp_execution.xml.in'
+    for profile, opening in [('jetson_20261009', -.35), ('cad_final', 0.)]:
+        scene = materialize_control_scene(template, model_profile=profile,
+            initial_joint_positions={'left_gripper_joint': opening, 'right_gripper_joint': opening})
+        model = mujoco.MjModel.from_xml_path(str(scene))
+        data = mujoco.MjData(model)
+        mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+        for side in ('left', 'right'):
+            joint = model.joint(f'{side}_gripper_joint')
+            assert data.qpos[joint.qposadr[0]] == pytest.approx(opening)
+            if profile == 'jetson_20261009':
+                assert joint.range[0] < opening < joint.range[1]
+            else:
+                assert abs(joint.range[0]) <= 1e-9
+                assert abs(joint.range[1]) <= 1e-9
+    with pytest.raises(ValueError, match='Unknown model_profile'):
+        materialize_control_scene(template, model_profile='unknown')

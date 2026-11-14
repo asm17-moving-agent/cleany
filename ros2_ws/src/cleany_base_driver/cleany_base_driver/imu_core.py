@@ -1,4 +1,4 @@
-"""Receipt-anchored timestamp mapping and IMU transport checks."""
+"""수신 시점을 기준으로 MCU 측정 시각을 변환하고 IMU 통신 계약을 검증합니다."""
 from __future__ import annotations
 
 from collections import deque
@@ -6,10 +6,17 @@ from math import isfinite
 
 
 class ImuValidationError(ValueError):
-    """An IMU sample violates the transport or sensor contract."""
+    """IMU 표본이 통신 또는 센서 계약을 위반한 경우 발생합니다."""
 
 
 class ImuAdapter:
+    """MCU 표본을 검증하고 첫 수신 시각에 고정한 ROS 타임스탬프를 계산합니다.
+
+    MCU 시각은 μs, ROS 및 단조 수신 시각은 ns입니다. 장치 시계의 절대 동기화를
+    추정하지 않으며 첫 수신 후 MCU 경과 시간을 ROS 기준점에 더합니다.
+    재부팅은 기준점을 다시 잡고 최근 32개의 폐기 boot ID를 거부합니다.
+    """
+
     def __init__(self, expected_device_mac: str = '', max_transport_delay_s: float = 0.1,
                  max_clock_jump_s: float = 0.05) -> None:
         if any(not isfinite(value) or not 0 < value <= 60
@@ -34,6 +41,15 @@ class ImuAdapter:
         self.retired: deque[int] = deque(maxlen=32)
 
     def stamp(self, message, receipt_ros_ns: int, receipt_steady_ns: int) -> int:
+        """표본 순서와 전송 지연을 검사한 뒤 ROS 시각(ns)을 반환합니다.
+
+        성공하면 장치, boot, 순서와 시각 상태를 갱신합니다. 시계 도약을 검출한 경우에는
+        예외를 던지기 전에 기준점을 지워 다음 유효 표본에서 다시 고정합니다.
+
+        Raises:
+            ImuValidationError: 프로토콜, 장치, 순서 또는 시간 계약을 위반한 경우.
+        """
+
         if (message.protocol_version != 2 or message.who_am_i != 0x68
                 or message.fault_bits or not message.boot_id or not message.timestamp_us):
             raise ImuValidationError("invalid protocol, sensor identity, fault, or time")

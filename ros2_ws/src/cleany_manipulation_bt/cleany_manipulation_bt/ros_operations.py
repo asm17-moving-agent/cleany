@@ -1,4 +1,4 @@
-"""Sensor/MoveIt operations for one approved object, on a dedicated ROS worker node."""
+"""전용 ROS worker 노드에서 승인된 물체 하나의 센서 및 MoveIt 작업을 수행합니다."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -12,16 +12,17 @@ from cleany_interfaces.srv import GetSceneSnapshot, ObserveWristTarget, Register
 from controller_manager_msgs.srv import ListControllers
 from cleany_skill_executor.core.grasp_selection import InfrastructureError, REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
-from cleany_skill_executor.core.sorting import COLLECTION_SKILLS, bin_release_region, normalize_label
+from cleany_skill_executor.core.sorting import (
+    COLLECTION_SKILLS, bin_release_region, normalize_label, validate_release_point,
+)
 from cleany_skill_executor.collision_geometry_cache import candidate_bounding_radius
 from cleany_skill_executor.manipulation.models import Error, ObjectState, Placement
-from cleany_skill_executor.nearest_pregrasp_coordinator import LiftRedetectionError
+from cleany_skill_executor.gripper_operations import LiftRedetectionError
 from cleany_skill_executor.pick_operations import GraspProgress
 from cleany_skill_executor.seeded_cartesian import CartesianPlanningError
-from cleany_skill_executor.sorting_coordinator import (
-    HeldObject, SortTarget, SortingCoordinator, held_bounding_radius, rotation,
+from cleany_skill_executor.sorting_operations import (
+    SortTarget, SortingOperations,
 )
-import numpy as np
 import rclpy
 
 from .backend import ExecutionContext, Observation, OperationError
@@ -30,7 +31,7 @@ from .target_identity import LOST_ITEM_LABELS, TRASH_LABELS, VERIFICATION_LABELS
 
 
 class TrackedClient:
-    """Track both pending acceptance and terminal responses, including late goals."""
+    """늦게 수락되는 목표까지 포함해 수락 대기와 종료 응답을 모두 추적합니다."""
     def __init__(self, node: MujocoOperations, client: Any) -> None:
         self.node, self.client = node, client
 
@@ -56,8 +57,8 @@ class TrackedClient:
         return future
 
 
-class MujocoOperations(SortingCoordinator):
-    """Reuse calibrated sorting motion without invoking run(), pick() or execute_sort()."""
+class MujocoOperations(SortingOperations):
+    """분류 공통 연산을 사용하며 실행 순서는 BT에 위임합니다."""
     def __init__(self) -> None:
         self._joint_feedback = JointFeedback(REQUIRED_JOINT_NAMES)
         super().__init__()
@@ -69,9 +70,6 @@ class MujocoOperations(SortingCoordinator):
         self.deadline = math.inf
         self._clock_value = 0
         self._clock_progress_wall = time.monotonic()
-        self.declare_parameter('sorting_release_clearance_m', 0.06)
-        self.declare_parameter('sorting_release_maximum_clearance_m', 0.21)
-        self.declare_parameter('sorting_release_edge_margin_m', 0.005)
         self.declare_parameter('bt_feedback_max_age_sec', 2.0)
         self.declare_parameter('bt_operation_timeout_sec', 180.0)
         self.declare_parameter('bt_verification_timeout_sec', 10.0)
@@ -98,8 +96,8 @@ class MujocoOperations(SortingCoordinator):
                      message.header.frame_id, tuple(message.name), tuple(message.position),
                      tuple(message.velocity), tuple(message.effort))
         if signature == getattr(self, '_previous_joint_message', None):
-            # Repeated delivery is not new feedback or a new stationary sample.
-            # Keep the original receipt time so frozen streams still expire.
+            # 반복 전달은 새 피드백이나 새 정지 표본이 아닙니다.
+            # 멈춘 스트림이 만료되도록 원래 수신 시각을 유지합니다.
             return
         self._previous_joint_message = signature
         super()._on_joints(message)
@@ -110,9 +108,9 @@ class MujocoOperations(SortingCoordinator):
         def valid(future):
             return future.done() and not future.cancelled() and future.exception() is None
         terminals = {GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED, GoalStatus.STATUS_ABORTED}
-        # A response Future can become done before its acceptance callback is
-        # dispatched. Until its accepted handle is tracked, there is no stop
-        # evidence for that action and no permission to begin a new context.
+        # 응답 Future가 완료되어도 수락 콜백은 아직 실행 전일 수 있습니다.
+        # 수락된 handle을 추적하기 전에는 해당 action의 정지 근거가 없으며
+        # 새 컨텍스트를 시작할 수 없습니다.
         return (all(valid(future) and future.result() is not None
                     and (not future.result().accepted
                          or any(handle is future.result() for handle, _ in self.handles))
@@ -145,9 +143,9 @@ class MujocoOperations(SortingCoordinator):
             reasons = self._joint_feedback.invalid_reasons(wall, now, maximum)
             clock_stopped = wall - self._clock_progress_wall > maximum
             if reasons or clock_stopped:
-                # /clock and /joint_states arrive independently. A small newer
-                # joint stamp is possible before the next clock callback; large
-                # skew, a stopped clock or stale receipt still fails closed.
+                # /clock과 /joint_states는 독립적으로 도착하므로 다음 clock 콜백보다
+                # 조금 앞선 관절 stamp가 가능하지만, 큰 시간차, 멈춘 시계나 오래된 수신은
+                # 안전한 거부 상태로 처리합니다.
                 raise OperationError(Error.HARDWARE_ERROR,
                     'Joint feedback or simulation clock is stale or invalid: '
                     f'invalid_joints={list(reasons)} invalid_reasons={reasons} '
@@ -169,7 +167,7 @@ class MujocoOperations(SortingCoordinator):
         self._guard()
 
     def _future(self, future, timeout: float, label: str):
-        # Keep late action acceptance observable so StopAndAssess can cancel it.
+        # StopAndAssess가 취소할 수 있도록 늦은 action 수락도 계속 관측합니다.
         deadline = min(self.deadline, time.monotonic() + timeout)
         while not future.done() and time.monotonic() < deadline:
             self._spin_once(timeout_sec=0.02)
@@ -211,9 +209,9 @@ class MujocoOperations(SortingCoordinator):
         except OperationError:
             raise
         except Exception as error:
-            # Legacy operations report expected failures with these types.
-            # RuntimeError subclasses such as NotImplementedError and
-            # RecursionError must not become ordinary motion/grasp failures.
+            # 기존 연산은 이 타입들로 예상 가능한 실패를 보고합니다.
+            # NotImplementedError와 RecursionError 같은 RuntimeError 하위 타입을
+            # 일반 이동 또는 파지 실패로 바꾸지 않습니다.
             expected = (type(error) in (RuntimeError, ValueError)
                         or isinstance(error, (InfrastructureError, CartesianPlanningError, LiftRedetectionError)))
             if not expected:
@@ -244,9 +242,9 @@ class MujocoOperations(SortingCoordinator):
         active = {controller.name for controller in response.controller if controller.state == 'active'}
         if not required <= active:
             raise OperationError(Error.BACKEND_NOT_READY, 'Required controllers are not active')
-        # Only a quiescent, non-inhibited prior execution can reach this node.
-        # Remove a temporary world target left by a failure before gripper
-        # closure. Held/unknown records require confirmation and cannot restart.
+        # 이전 실행이 완전히 쉬고 있으며 금지 상태가 아닐 때만 여기 도달합니다.
+        # 그리퍼를 닫기 전 실패로 남은 임시 월드 타깃을 제거합니다.
+        # held/unknown 기록은 확인이 필요하므로 재시작할 수 없습니다.
         self._execution_scene.restore()
         if bool(self.get_parameter('require_sensor_scene').value):
             self._wait_for_sensor_scene(5.)
@@ -316,7 +314,7 @@ class MujocoOperations(SortingCoordinator):
             if ((array.tracking_session_id, array.tracking_epoch, obj.track_id) != self._approved_tracking
                     or obj.tracking_state != 'TRACKED'):
                 raise OperationError(Error.STALE_TARGET, 'Reconstructed tracking identity mismatch')
-        # Pin the independent evaluator before pregrasp or any other motion.
+        # pregrasp나 다른 이동 전에 독립 평가기를 개체에 고정합니다.
         verification_target = deepcopy(obj)
         verification_target.label = label_key(obj.label)
         response = self._future(self._placement_registration.call_async(RegisterPlacementTarget.Request(
@@ -358,23 +356,22 @@ class MujocoOperations(SortingCoordinator):
                 float(self.get_parameter('sorting_release_maximum_clearance_m').value),
                 float(self.get_parameter('sorting_release_edge_margin_m').value))
             point = self._fixed_release_points[context.goal.destination_id]
-            if any(point - .001 < low) or any(point + .001 > high):
-                raise ValueError('Configured release point does not fit observed payload')
+            validate_release_point(point, low, high)
         except ValueError as error:
             raise OperationError(Error.DESTINATION_UNAVAILABLE, str(error)) from error
 
     def pregrasp(self, context: ExecutionContext) -> Observation:
-        # Revalidate before the first arm motion and again before the approach.
+        # 첫 팔 이동 전과 접근 직전에 다시 검증합니다.
         MujocoOperations.refresh_approved(self, context)
-        # Refresh prepares a contact-enabled scene for the later approach.
-        # Pregrasp registers its own target and forbids contact during motion.
+        # refresh는 이후 접근을 위해 접촉 가능한 장면을 준비합니다.
+        # pregrasp는 자체 타깃을 등록하며 이동 중 접촉을 금지합니다.
         self._execution_scene.restore()
         self._execute_pregrasp(context.selected, context.attempt)
         return Observation()
 
     def refresh_approved(self, context: ExecutionContext) -> None:
-        # Reobserve ONLY the approved label, with existing geometric continuity
-        # and ambiguity gates; never use geometry-only automatic reassignment.
+        # 승인된 label만 재관측하며 기존 기하 연속성 및 모호성 판정을 적용합니다.
+        # 기하만으로 대상을 자동 재할당하지 않습니다.
         self._switch_camera('head') if self._wrist_enabled else None
         selected, attempt = self._refresh_selected_grasp(context.selected, context.attempt, match_label=True)
         old = self._policy.classify_model(context.attempt.label, context.attempt.confidence,
@@ -422,34 +419,6 @@ class MujocoOperations(SortingCoordinator):
         if self._wrist_enabled:
             self._set_head_depth_boost(False)
         return Observation(object_state=ObjectState.HELD, message='Post-lift observation and contact confirmed')
-
-    def transport(self, held: HeldObject, destination: str) -> None:
-        # The single-object Action validates payload fit before any carry motion.
-        bin_ = self._bins[destination]
-        radius = held_bounding_radius(self, held)
-        low, high = bin_release_region(
-            bin_.center_xy, bin_.outside_size, bin_.wall, bin_.top_z, radius,
-            float(self.get_parameter('sorting_release_clearance_m').value),
-            float(self.get_parameter('sorting_release_maximum_clearance_m').value),
-            float(self.get_parameter('sorting_release_edge_margin_m').value))
-        point = self._fixed_release_points[destination]
-        if np.any(point - .001 < low) or np.any(point + .001 > high):
-            raise RuntimeError(f'Fixed release point does not fit payload in {destination}: {point.tolist()}')
-        super().transport(held, destination)
-
-    def check_release_target(self, held: HeldObject, destination: str) -> None:
-        super().check_release_target(held, destination)
-        pose = self._tcp_pose(held.selected.selected_arm)
-        center = (np.array(self._pose_position(pose))
-                  + rotation(pose) @ held.offset_in_tcp)
-        bin_ = self._bins[destination]
-        radius = held_bounding_radius(self, held)
-        if not math.isfinite(radius) or radius <= 0:
-            raise RuntimeError('Release payload radius must be positive and finite')
-        if (any(abs(center[i] - bin_.center_xy[i]) + radius
-                >= bin_.outside_size[i] / 2 - bin_.wall for i in range(2))
-                or center[2] - radius <= bin_.top_z):
-            raise RuntimeError('Object is not safely above the bin opening')
 
     def carry(self, context: ExecutionContext) -> Observation:
         self.transport(context.held, context.goal.destination_id)
@@ -499,7 +468,7 @@ class MujocoOperations(SortingCoordinator):
         return Observation(arm_recovered=True)
 
     def release_in_place(self, context: ExecutionContext) -> Observation:
-        """Initial RETURN_ARM policy: open where stopped, without bin verification."""
+        """초기 RETURN_ARM 정책은 멈춘 위치에서 그리퍼를 열며 수거함 검증을 수행하지 않습니다."""
         arm = context.selected.selected_arm
         engaged = context.gripper_engaged or context.held is not None or self._held_object is not None
         if engaged:
@@ -516,8 +485,8 @@ class MujocoOperations(SortingCoordinator):
                            message='Released at cancellation position' if engaged else 'No held object to release')
 
     def return_after_cancel(self, context: ExecutionContext) -> Observation:
-        # Destination release/verification belongs to the normal path. Recovery
-        # plans from current feedback to the arm posture captured at startup.
+        # 목적지에서 놓기와 검증은 정상 경로가 담당합니다. 복구는 현재 피드백에서
+        # 시작 시 기록한 팔 자세까지 계획합니다.
         arm = context.selected.selected_arm
         joints = deepcopy(self._home[arm])
         self._move_to(arm, joints, 'return from cancellation')
@@ -551,7 +520,7 @@ class MujocoOperations(SortingCoordinator):
             minimum_duration_sec=float(self.get_parameter('bt_stationary_duration_sec').value))
         canceled: set[int] = set()
         while time.monotonic() < deadline:
-            # Assessment bypasses the abort guard, but still has its own deadline.
+            # 평가는 abort 보호를 우회하지만 자체 마감 시각은 적용합니다.
             rclpy.spin_once(self, timeout_sec=0.02)
             if cancel:
                 for handle, terminal in self.handles:

@@ -1,9 +1,9 @@
-"""Compose existing navigation and a separately stopped desk approach operation."""
+"""기존 주행과 별도로 정지 확인하는 책상 접근 작업을 결합합니다."""
 from .result import ModuleResult, ResultStatus, FailureCode
 
 
 class StagedNavigator:
-    """Preserve the navigation port contract through staging and fine approach."""
+    """대기 위치 이동과 정밀 접근 전반에서 주행 포트 계약을 유지합니다."""
     def __init__(self, navigation, approach):
         self.navigation, self.approach = navigation, approach
         self.operation = self.approach_operation = None

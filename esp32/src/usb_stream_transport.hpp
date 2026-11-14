@@ -6,8 +6,8 @@
 
 namespace cleany {
 
-/// Port operations are non-blocking or bounded by the supplied timeout. Return
-/// positive byte count, zero on timeout, and negative on I/O error.
+/// 포트 연산은 즉시 반환하거나 지정된 제한 시간 안에 끝납니다.
+/// 양수는 처리한 바이트 수, 0은 시간 초과, 음수는 I/O 오류입니다.
 class UsbStreamPort {
  public:
   virtual ~UsbStreamPort() = default;
@@ -19,9 +19,9 @@ class UsbStreamPort {
 };
 
 /**
- * @brief Bound partial USB transfers for XRCE stream framing.
- * The referenced port must outlive this transport and provide monotonic nowMs().
- * A failed write may already have sent a prefix; callers must handle framing recovery.
+ * @brief XRCE 스트림 프레임의 부분 USB 전송 시간을 제한합니다.
+ * 참조하는 포트는 이 객체보다 오래 유지되어야 하며 단조 증가 nowMs()를 제공해야 합니다.
+ * 쓰기 실패 전에 일부 바이트가 전송될 수 있으므로 호출자가 프레임 복구를 처리해야 합니다.
  */
 class UsbStreamTransport {
  public:
@@ -38,7 +38,7 @@ class UsbStreamTransport {
   }
   bool isOpen() const { return opened_; }
 
-  /// Returns partial data on timeout, 0 if no bytes arrived, and -1 on error.
+  /// 시간 초과 시 이미 받은 데이터를 반환하며, 수신이 없으면 0, 오류이면 -1입니다.
   int read(uint8_t* data, size_t size, int timeoutMs) {
     if (!opened_ || data == nullptr || timeoutMs < 0) return -1;
     if (size == 0) return 0;
@@ -58,7 +58,7 @@ class UsbStreamTransport {
     return static_cast<int>(received);
   }
 
-  /// XRCE's reliable framing needs the complete payload; failure is explicit.
+  /// XRCE의 신뢰성 프레임에는 전체 payload가 필요하므로 불완전한 쓰기는 실패로 반환합니다.
   int write(const uint8_t* data, size_t size, int timeoutMs) {
     if (!opened_ || (data == nullptr && size != 0) || timeoutMs < 0) return -1;
     const uint64_t deadline = port_.nowMs() + static_cast<uint32_t>(timeoutMs);

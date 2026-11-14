@@ -1,4 +1,4 @@
-"""Shared URDF transforms and optional fixed-joint conversion."""
+"""공통 URDF 변환과 선택적 고정 관절 변환입니다."""
 from __future__ import annotations
 from copy import deepcopy
 from xml.etree import ElementTree as ET
@@ -14,6 +14,12 @@ def rotation(rpy: list[float]) -> np.ndarray:
 
 
 def rpy(matrix: np.ndarray) -> list[float]:
+    # pitch가 +/-pi/2이면 yaw +/- roll만 관측할 수 있습니다. 0에 가까운
+    # 행렬 성분으로 두 각도에 방향을 나눠 담지 않습니다.
+    horizontal = np.hypot(matrix[0, 0], matrix[1, 0])
+    if horizontal < 1e-10:
+        return [0., float(np.arctan2(-matrix[2, 0], horizontal)),
+                float(np.arctan2(-matrix[0, 1], matrix[1, 1]))]
     return [float(np.arctan2(matrix[2, 1], matrix[2, 2])),
             float(np.arctan2(-matrix[2, 0], np.hypot(matrix[0, 0], matrix[1, 0]))),
             float(np.arctan2(matrix[1, 0], matrix[0, 0]))]
@@ -28,7 +34,7 @@ def origin(element: ET.Element | None) -> np.ndarray:
 
 
 def apply_simulation_geometry(urdf: ET.Element, profile: dict, *, allowed: bool) -> dict:
-    """Remove explicitly selected simulation subtrees and their park entries."""
+    """명시적으로 선택한 시뮬레이션 하위 트리와 대응하는 주차 항목을 제거합니다."""
     result = deepcopy(profile)
     roots = result.get('simulation_excluded_link_roots', [])
     if not roots:
@@ -60,7 +66,7 @@ def apply_simulation_geometry(urdf: ET.Element, profile: dict, *, allowed: bool)
 def freeze(urdf: ET.Element, joints: dict[str, float],
            simulation_limits: dict[str, list[float]] | None = None,
            keep_pan: bool = False) -> dict[str, np.ndarray]:
-    """Bake joint positions before sdformat merges fixed-body mass and geometry."""
+    """sdformat이 고정 body 질량과 형상을 합치기 전에 관절 위치를 반영합니다."""
     simulation_limits = simulation_limits or {}
     if not set(simulation_limits) <= set(joints):
         raise ValueError("Simulation limit override must name a parked joint")

@@ -92,15 +92,15 @@ void testAsymmetricDecelSlew() {
   config.decelSlewStepPercent = 3;
   cleany::MotorCommandFilter filter(config);
 
-  // Accel: steps by 1
+  // 가속 시 1씩 증가합니다.
   filter.setTargetSpeed(10);
   assert(filter.step(0.0F, 0) == 1);
   assert(filter.step(0.0F, 0) == 2);
   assert(filter.step(0.0F, 0) == 3);
 
-  // Decel to 0: steps down by 3
+  // 0으로 감속할 때 3씩 감소합니다.
   filter.setTargetSpeed(0);
-  assert(filter.step(0.0F, 0) == 0);  // 3 -> 0 directly (3 step)
+  assert(filter.step(0.0F, 0) == 0);  // 한 번에 3만큼 감소해 3에서 0이 됩니다.
 }
 
 }  // namespace

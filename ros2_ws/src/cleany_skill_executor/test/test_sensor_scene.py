@@ -14,7 +14,7 @@ def test_populated_fresh_scene_passes():
 
 
 def test_attachment_barrier_waits_for_a_new_processed_capture(monkeypatch):
-    import cleany_skill_executor.nearest_pregrasp_coordinator as module
+    import cleany_skill_executor.grasp_motion as module
     node = SimpleNamespace(_scene_cloud_stamp_ns=10,
                            _check_sensor_scene=lambda: None,
                            get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
@@ -22,7 +22,8 @@ def test_attachment_barrier_waits_for_a_new_processed_capture(monkeypatch):
     def update(*_, **__):
         spins.append(True)
         node._scene_cloud_stamp_ns = 21
-    monkeypatch.setattr(module.rclpy, 'spin_once', update)
+    import rclpy
+    monkeypatch.setattr(rclpy, 'spin_once', update)
     node._spin_once = lambda timeout_sec: module.GraspExecutionNode._spin_once(node, timeout_sec)
     NearestPregraspCoordinator._wait_for_sensor_scene(node, 1., after_stamp_ns=20)
     assert len(spins) == 1
@@ -44,7 +45,7 @@ def test_receipt_preserves_capture_age_and_missing_receipt_does_not_refresh_it()
     assert node._scene_cloud_stamp_ns == 7_000_000_000
     received = node._scene_commit_received_at
     NearestPregraspCoordinator._on_scene_cloud_receipt(node, message)
-    assert node._scene_commit_received_at == received  # replay cannot renew it
+    assert node._scene_commit_received_at == received  # 재생으로 최신성을 갱신할 수 없습니다.
     NearestPregraspCoordinator._on_scene_cloud_receipt(node, Header())
     assert node._scene_cloud_stamp_ns == 7_000_000_000
     with pytest.raises(RuntimeError, match='fresh'):
@@ -148,7 +149,7 @@ def test_scene_diffs_do_not_refresh_old_map_and_full_empty_scene_clears_it():
 
 @pytest.mark.parametrize('map_age', [0.1, 3.0])
 def test_fresh_cloud_cannot_hide_stale_map(map_age, monkeypatch):
-    import cleany_skill_executor.nearest_pregrasp_coordinator as module
+    import cleany_skill_executor.grasp_motion as module
     monkeypatch.setattr(module.time, 'monotonic', lambda: 10.)
     node = SimpleNamespace(
         _scene_cloud_stamp_ns=1_000_000_000,
@@ -166,7 +167,7 @@ def test_fresh_cloud_cannot_hide_stale_map(map_age, monkeypatch):
 
 
 def test_new_post_integration_receipt_renews_static_populated_map_only(monkeypatch):
-    import cleany_skill_executor.nearest_pregrasp_coordinator as module
+    import cleany_skill_executor.grasp_motion as module
     monkeypatch.setattr(module.time, 'monotonic', lambda: 10.)
     node = SimpleNamespace(_scene_cloud_stamp_ns=None,
         get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=1_100_000_000)),

@@ -1,4 +1,4 @@
-# RGB-only wrist verification. No inferred depth or fresh 3D measurement.
+# RGB 전용 손목 확인입니다. 깊이를 추론하거나 새 3D 측정을 제공하지 않습니다.
 uint8 HANDOFF=0
 uint8 CHECK=1
 uint8 CLEAR=2
@@ -11,13 +11,13 @@ string label
 string detector_label
 float32 source_confidence
 string reference_id
-# Expected pose from head RGB-D or held-object kinematics, not a measurement.
+# 헤드 RGB-D 또는 잡은 물체의 운동학으로 예측한 자세이며 측정값이 아닙니다.
 geometry_msgs/PoseStamped expected_pose
 geometry_msgs/Vector3 size
 int64 after_stamp_ns
 ---
-# NOT_DETECTED means a valid, fresh observation had no associated target.
-# ERROR covers unavailable sensors, invalid contracts and ambiguous observations.
+# NOT_DETECTED는 유효하고 최신인 관측에서 대응 대상을 찾지 못했다는 뜻입니다.
+# ERROR는 센서 사용 불가, 계약 위반과 모호한 관측을 포함합니다.
 uint8 ERROR=0
 uint8 OK=1
 uint8 NOT_DETECTED=2

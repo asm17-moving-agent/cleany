@@ -1,4 +1,4 @@
-"""ROS-independent contracts. All deadlines use the injected monotonic clock."""
+"""ROS 독립 계약입니다. 모든 마감 시각은 주입된 단조 시계를 사용합니다."""
 from dataclasses import dataclass
 from enum import Enum
 
@@ -30,6 +30,7 @@ class HealthReport:
     status: Availability
     observed_at: float
     detail: str = ''
+    cause: str = ''
 
 
 @dataclass
@@ -47,6 +48,7 @@ class Fault:
     locks_operation: bool = False
     cleared_at: float | None = None
     restored: bool = False
+    cause: str = ''
 
 
 @dataclass
@@ -96,7 +98,7 @@ class PermissionDecision:
 
 @dataclass
 class SupervisorEvent:
-    """Structured audit record; monotonic_s belongs to the emitting process epoch."""
+    """구조화된 감사 기록이며 monotonic_s는 발행 프로세스 epoch에 속합니다."""
     sequence: int
     kind: str
     monotonic_s: float

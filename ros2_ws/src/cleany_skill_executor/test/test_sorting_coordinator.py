@@ -1,3 +1,4 @@
+from cleany_skill_executor.grasp_motion import GraspMotionOperations
 from pathlib import Path
 from types import SimpleNamespace, MethodType
 
@@ -41,7 +42,7 @@ def test_grasp_depth_boost_is_scoped_and_restored(monkeypatch, wrist, fails):
         events.append('grasp-and-lift')
         if fails:
             raise RuntimeError('stale depth')
-    monkeypatch.setattr(NearestPregraspCoordinator, '_execute_grasp_and_lift', execute)
+    monkeypatch.setattr(GraspMotionOperations, '_execute_grasp_and_lift', execute)
     if fails:
         with pytest.raises(RuntimeError, match='stale depth'):
             node._execute_grasp_and_lift(None, None)
@@ -76,7 +77,7 @@ def test_grasp_does_not_start_if_depth_boost_is_rejected(monkeypatch):
         raise RuntimeError('Head depth refresh request rejected')
     node._set_head_depth_boost = rejected
     calls = []
-    monkeypatch.setattr(NearestPregraspCoordinator, '_execute_grasp_and_lift',
+    monkeypatch.setattr(GraspMotionOperations, '_execute_grasp_and_lift',
                         lambda *args: calls.append(True))
     with pytest.raises(RuntimeError, match='rejected'):
         node._execute_grasp_and_lift(None, None)
@@ -97,7 +98,7 @@ def test_depth_cleanup_failure_preserves_original_motion_error(monkeypatch):
         raise RuntimeError('payload contact lost')
 
     node._set_head_depth_boost = boost
-    monkeypatch.setattr(NearestPregraspCoordinator, '_execute_grasp_and_lift', execute)
+    monkeypatch.setattr(GraspMotionOperations, '_execute_grasp_and_lift', execute)
     with pytest.raises(RuntimeError, match='payload contact lost'):
         node._execute_grasp_and_lift(None, None)
     assert len(errors) == 1 and 'camera service lost' in errors[0]
@@ -139,7 +140,7 @@ def test_direct_vertical_lift_uses_verified_joint_endpoint(monkeypatch, angle, v
     values = {'lin_position_tolerance_m': .001, 'corridor_orientation_tolerance_deg': 5.}
     node.get_parameter = lambda name: SimpleNamespace(value=values[name])
     calls = []
-    monkeypatch.setattr(NearestPregraspCoordinator, '_execute_linear',
+    monkeypatch.setattr(GraspMotionOperations, '_execute_linear',
         lambda self, arm, pose, label, **kwargs: calls.append((pose, kwargs)) or False)
     if valid:
         node._execute_linear('left', target, 'vertical grasp lift', velocity_scaling=.4)
@@ -297,7 +298,7 @@ def test_pregrasp_opens_only_selected_gripper_in_same_checked_motion(monkeypatch
         _execution_scene=SimpleNamespace(begin=lambda *_: events.append('scene'),
             disallow_target_contacts=lambda: events.append('forbid_contact'), restore=lambda: events.append('restore')),
         _move_to=move, _verify_feedback=lambda state: events.append(('feedback', len(state.name))))
-    # Use a real subclass instance so the super() scene transaction is exercised.
+    # super()의 장면 트랜잭션을 검사하도록 실제 하위 클래스 인스턴스를 사용합니다.
     actual = object.__new__(SortingCoordinator)
     actual.__dict__.update(node.__dict__)
     actual._execute_pregrasp(selected, SimpleNamespace(object_id=1))
@@ -306,7 +307,7 @@ def test_pregrasp_opens_only_selected_gripper_in_same_checked_motion(monkeypatch
 
 
 def sorting_loop(attempts=(), *, maximum=2, stage=None, **overrides):
-    """One loop harness; each scenario supplies only its observations and effects."""
+    """루프 harness 하나를 사용하며 각 시나리오는 관측과 효과만 제공합니다."""
     root = Path(__file__).parents[2]
     values = dict(sorting_maximum_objects=maximum,
                   sorting_required_categories=[], sorting_empty_confirmations=2)
@@ -663,7 +664,7 @@ def test_carry_replans_endpoint_and_retries_only_plan_failures(monkeypatch, fail
         if len(calls) == 1 or failure == 'exhausted':
             raise CartesianPlanningError('no constrained path')
         return 'validated trajectory'
-    monkeypatch.setattr(NearestPregraspCoordinator, '_plan_linear_motion', plan)
+    monkeypatch.setattr(GraspMotionOperations, '_plan_linear_motion', plan)
     node = object.__new__(SortingCoordinator)
     node._held_object = object()
     node._carry_wrist_reference = {'right_wrist_pitch_joint': .3}
@@ -694,7 +695,7 @@ def test_carry_replans_endpoint_and_retries_only_plan_failures(monkeypatch, fail
     else:
         assert node._plan_linear_motion('right', pose, 'reverse grasp retreat', **kwargs) == 'validated trajectory'
         assert [a for a, _ in calls] == pytest.approx(np.deg2rad([2.,5.]))
-        assert all(list(q) == [.3] for _, q in calls)  # old 1-radian goal is never reused
+        assert all(list(q) == [.3] for _, q in calls)  # 이전 1rad 목표를 재사용하지 않습니다.
 
 
 def test_carry_execution_error_is_never_retried(monkeypatch):
@@ -702,7 +703,7 @@ def test_carry_execution_error_is_never_retried(monkeypatch):
     def execute(*args, **kwargs):
         calls.append(True)
         raise RuntimeError('controller failed')
-    monkeypatch.setattr(NearestPregraspCoordinator, '_execute_linear', execute)
+    monkeypatch.setattr(GraspMotionOperations, '_execute_linear', execute)
     node = object.__new__(SortingCoordinator)
     node._held_object = object()
     node._carry_wrist_reference = {'right_wrist_pitch_joint': .3}
@@ -777,12 +778,13 @@ def test_fixed_release_goal_holds_post_lift_wrist_without_relaxation(monkeypatch
 
 
 @pytest.mark.parametrize('size', [(.04, .04, .04), (.1117, .0701, .0684), (.2, .2, .2)])
-def test_fixed_transfer_goes_directly_to_classified_bin_regardless_of_opening_fit(size):
+def test_fixed_transfer_checks_opening_fit_before_ik_or_motion(size):
     arm = 'right'
     names = [f'{arm}_wrist_pitch_joint', f'{arm}_wrist_roll_joint']
     drop = SimpleNamespace(names=names, positions=(.3, .4))
     params = {'sorting_carry_wrist_tolerances_deg': [2.,5.],
-              'sorting_release_ik_attempts': 16, 'sorting_release_ik_iterations': 80}
+              'sorting_release_ik_attempts': 16, 'sorting_release_ik_iterations': 80, 'sorting_release_clearance_m': .06,
+              'sorting_release_maximum_clearance_m': .21, 'sorting_release_edge_margin_m': .005}
     events = []
     def solve(*args, **kwargs):
         pytest.fail('Must not solve shared waypoint IK')
@@ -808,8 +810,13 @@ def test_fixed_transfer_goes_directly_to_classified_bin_regardless_of_opening_fi
     held = SimpleNamespace(selected=SimpleNamespace(selected_arm=arm, selected_candidate=candidate), offset_in_tcp=np.zeros(3))
     node._transport_fixed_release = lambda held, destination: SortingCoordinator._transport_fixed_release(
         node, held, destination)
-    SortingCoordinator.transport(node, held, 'lost')
-    assert events == ['measured wrist recheck', 'transport to lost']
+    if size != (.04, .04, .04):
+        with pytest.raises(ValueError, match='does not fit'):
+            SortingCoordinator.transport(node, held, 'lost')
+        assert events == []
+    else:
+        SortingCoordinator.transport(node, held, 'lost')
+        assert events == ['measured wrist recheck', 'transport to lost']
 
 
 @pytest.mark.parametrize('label,acceleration', [('refreshed grasp approach', 1.), ('refreshed retreat', .4)])
@@ -818,7 +825,7 @@ def test_acceleration_increase_is_only_for_empty_grasp_approach(monkeypatch, lab
         goal = MoveGroup.Goal()
         goal.request.max_acceleration_scaling_factor = .4
         return goal
-    monkeypatch.setattr(NearestPregraspCoordinator, '_joint_corridor_goal', base)
+    monkeypatch.setattr(GraspMotionOperations, '_joint_corridor_goal', base)
     node = object.__new__(SortingCoordinator)
     node.get_parameter = lambda _: SimpleNamespace(value=1.)
     goal = node._joint_corridor_goal('left', None, None, None, label, .7)
@@ -834,7 +841,7 @@ def test_return_cannot_close_jaw_before_release_completed():
 
 @pytest.mark.parametrize('size', [(.04, .04, .04), (.1117, .0701, .0684), (.2, .2, .2)])
 @pytest.mark.parametrize('feedback_error', [None, 'position', 'wrist'])
-def test_release_uses_fixed_point_and_wrist_feedback_regardless_of_opening_fit(size, feedback_error):
+def test_release_requires_fixed_point_wrist_feedback_and_opening_fit(size, feedback_error):
     events = []
     pose = Pose()
     pose.orientation.w = 1.
@@ -865,13 +872,18 @@ def test_release_uses_fixed_point_and_wrist_feedback_regardless_of_opening_fit(s
             SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
         assert events == []
         assert node._held_object is held
+    elif size == (.2, .2, .2):
+        with pytest.raises(RuntimeError, match='not safely above'):
+            SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
+        assert events == []
+        assert node._held_object is held
     else:
         SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
         assert events == ['open', 'settle', 'detach']
         assert node._held_object is None
 
 
-# The same vector-wide finite check covers every axis and nonfinite kind.
+# 벡터 전체의 같은 유한성 검사가 모든 축과 비유한 값 종류를 처리합니다.
 @pytest.mark.parametrize('axis,value', [('x', float('nan')), ('y', float('inf')), ('z', -float('inf'))])
 def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, value):
     pose = Pose()
@@ -924,7 +936,7 @@ def test_missing_detection_gets_one_move_then_same_height_verification(monkeypat
         if len(events) == 1:
             raise LiftRedetectionError('missing')
         return inspected
-    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', verify)
+    monkeypatch.setattr(GraspMotionOperations, '_verify_lift_height', verify)
     node._reobserve_held_object = lambda minimum: events.append(('move', minimum))
     assert node._verify_lift_height(object(), minimum_center_z_m=.46) is inspected
     assert events == [('verify', .46), ('move', .46), ('verify', .46)]
@@ -936,7 +948,7 @@ def test_recovery_does_not_swallow_non_detection_failures(monkeypatch, failure):
     moves = []
     def verify(*_, **kwargs):
         raise failure
-    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', verify)
+    monkeypatch.setattr(GraspMotionOperations, '_verify_lift_height', verify)
     node._reobserve_held_object = moves.append
     with pytest.raises(type(failure), match=str(failure)):
         node._verify_lift_height(object(), minimum_center_z_m=.46)
@@ -950,7 +962,7 @@ def test_failed_reobservation_cannot_retry_forever_or_claim_lift(monkeypatch, en
     moves = []
     def verify(*_, **kwargs):
         raise LiftRedetectionError('missing')
-    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', verify)
+    monkeypatch.setattr(GraspMotionOperations, '_verify_lift_height', verify)
     node._reobserve_held_object = moves.append
     with pytest.raises(LiftRedetectionError):
         node._verify_lift_height(object(), minimum_center_z_m=.46)
@@ -960,12 +972,12 @@ def test_failed_reobservation_cannot_retry_forever_or_claim_lift(monkeypatch, en
 def test_distant_same_label_observation_is_not_proof_of_held_object(monkeypatch):
     node, _, inspected = recovery_node()
     node._held_object.offset_in_tcp = np.array((.1, 0., 0.))
-    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', lambda *a, **k: inspected)
+    monkeypatch.setattr(GraspMotionOperations, '_verify_lift_height', lambda *a, **k: inspected)
     with pytest.raises(RuntimeError, match='does not match held geometry'):
         node._verify_lift_height(object(), minimum_center_z_m=.46)
 
 
-# Failed IK stops before the second contact check.
+# IK 실패 시 두 번째 접촉 검사 전에 멈춥니다.
 @pytest.mark.parametrize('valid_ik,contact_after', [(True, True), (True, False), (False, True)])
 def test_reobservation_checks_scene_ik_execution_and_contact(valid_ik, contact_after):
     node, values, _ = recovery_node()

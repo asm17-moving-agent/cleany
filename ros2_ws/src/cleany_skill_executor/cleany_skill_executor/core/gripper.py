@@ -1,4 +1,4 @@
-"""Pure gripper aperture and physical-contact helpers."""
+"""순수 그리퍼 벌림과 물리 접촉 보조 함수입니다."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 
 
 def approach_offset_for_label(label: str, base: float, labels: list[str], extra: float | list[float]) -> float:
-    """Apply an explicitly configured object-class insertion correction."""
+    """명시적으로 설정한 물체 유형별 삽입 보정을 적용합니다."""
     offsets = extra if isinstance(extra, list) else [extra] * len(labels)
     if (len(offsets) != len(labels) or not math.isfinite(base)
             or any(not math.isfinite(value) or not 0 <= value <= .02 for value in offsets)):
@@ -19,8 +19,8 @@ def approach_offset_for_label(label: str, base: float, labels: list[str], extra:
     corrections = dict(zip(normalized, offsets))
     if detailed_label in corrections:
         return base + corrections[detailed_label]
-    # A Gemini detail label may contain the configured YOLOE class phrase.
-    # Use the longest whole phrase so "computer mouse" wins over "mouse".
+    # Gemini 상세 label에 설정된 YOLOE 분류 구절이 포함될 수 있습니다.
+    # 가장 긴 전체 구절을 사용해 mouse보다 computer mouse를 우선합니다.
     matches = [name for name in normalized if name and re.search(
         rf'(?<!\w){re.escape(name)}(?!\w)', detailed_label)]
     if not matches:
@@ -30,7 +30,7 @@ def approach_offset_for_label(label: str, base: float, labels: list[str], extra:
 
 def aperture_centering_offset(required_opening_m: float, margin_m: float,
                               fixed_inner_x_m: float, clearance_m: float = 0.0) -> float:
-    """Fixed-jaw tool correction: put the physical width between the jaws."""
+    """고정 손가락 도구 보정으로 실제 폭을 양 손가락 사이에 놓습니다."""
     if (not all(math.isfinite(v) for v in (required_opening_m,margin_m,fixed_inner_x_m,clearance_m))
             or required_opening_m <= 0 or not 0 <= margin_m < required_opening_m
             or not 0 <= clearance_m <= margin_m/2):
@@ -42,7 +42,7 @@ def aligned_wrist_rolls(*, approach: tuple[float, float, float],
                        closing: tuple[float, float, float],
                        desired: tuple[float, float, float], current: float,
                        lower: float, upper: float, sign_invariant: bool) -> tuple[float, ...]:
-    """Rotate a collinear-roll/TCP tool; caller must recheck FK and collisions."""
+    """roll과 TCP 축이 일직선인 도구를 회전하며 호출자가 FK와 충돌을 다시 검사해야 합니다."""
     if not all(math.isfinite(x) for x in (*approach, *closing, *desired, current, lower, upper)) or lower >= upper:
         raise ValueError('wrist alignment needs finite vectors and ordered limits')
     norm = math.sqrt(sum(x*x for x in approach))
@@ -116,12 +116,12 @@ def is_gripper_contact_stall(
     maximum_velocity: float,
     allow_closing_motion: bool = False,
 ) -> bool:
-    """Classify contact from closing motion and residual position error.
+    """닫힘 움직임과 남은 위치 오차로 접촉을 분류합니다.
 
-    Positions and motion thresholds use radians; velocity uses radians per
-    second. Closing decreases position. Invalid or non-finite inputs return
-    False. allow_closing_motion relaxes the stall test for an established grasp;
-    the caller must enforce feedback freshness and persistence over time.
+    위치와 이동 임계값은 라디안, 속도는 rad/s입니다. 닫히면 위치가 감소합니다.
+    무효하거나 유한하지 않은 입력에는 False를 반환합니다. allow_closing_motion은
+    이미 잡힌 물체의 정지 판정을 완화하므로 호출자가 피드백 최신성과 시간상
+    지속성을 별도로 확인해야 합니다.
     """
     values = (
         start,
@@ -143,9 +143,9 @@ def is_gripper_contact_stall(
     return (
         motion >= minimum_motion
         and residual >= minimum_residual
-        # After an established grasp, tightening may continue during transport.
-        # Residual collapse still rejects an empty closed jaw; opening motion
-        # remains bounded. Initial acquisition always requires a true stall.
+        # 파지가 확인된 뒤에는 운반 중에도 계속 조일 수 있습니다. 남은 오차가 사라지면
+        # 빈 채 닫힌 그리퍼로 거부하며 열리는 움직임도 계속 제한합니다.
+        # 최초 파지에는 반드시 실제 정지가 필요합니다.
         and (velocity <= maximum_velocity if allow_closing_motion
              else abs(velocity) <= maximum_velocity)
     )

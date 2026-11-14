@@ -50,7 +50,7 @@ URDF 의존관계를 해석할 수 없거나 관절 정보가 불완전하면 �
 
 ## 명시 실행
 
-1. [개발환경](../../../../docs/DEVELOPMENT_SETUP.md)과 [실행 안내](../../../../docs/RUNNING.md)에 따라 설치를 준비한다.
+1. [개발환경](../../../../docs/implementation/development-setup.md)과 [실행 안내](../../../../docs/RUNNING.md)에 따라 설치를 준비한다.
 2. 로봇별 프로필 경로를 지정한다.
 
    ```bash

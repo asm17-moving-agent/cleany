@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(cleany_navigation)
-# An unspecified single-config build otherwise compiles hot trajectory/sweep
-# and lattice-template code without optimization. Keep symbols for diagnosis;
-# explicit Debug/Release settings and multi-config generators remain intact.
+# 단일 설정 빌드에서 종류를 지정하지 않으면 자주 실행되는 궤적, sweep과
+# lattice template 코드가 최적화 없이 컴파일됩니다. 진단 심볼은 유지하며
+# 명시적인 Debug/Release와 다중 설정 생성기는 변경하지 않습니다.
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
@@ -17,6 +17,7 @@ target_compile_features(_cleany_depth_filter PRIVATE cxx_std_17)
 set_target_properties(_cleany_depth_filter PROPERTIES PREFIX "")
 install(TARGETS _cleany_depth_filter LIBRARY DESTINATION "${PYTHON_INSTALL_DIR}")
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(dwb_msgs REQUIRED)
 find_package(dwb_core REQUIRED)
 find_package(dwb_plugins REQUIRED)
@@ -26,37 +27,48 @@ find_package(nav2_core REQUIRED)
 find_package(nav2_smac_planner REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
+find_package(nav2_collision_monitor REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nav_2d_msgs REQUIRED)
 find_package(nav_2d_utils REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav2_behavior_tree REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
-add_library(axis_generator SHARED src/axis_generator.cpp src/path_heading.cpp src/path_orientation.cpp src/path_progress.cpp src/holonomic_generator.cpp src/goal_directed_controller.cpp src/observed_footprint.cpp src/command_bearing.cpp src/precise_goal_dist.cpp src/swept_footprint.cpp)
-target_link_libraries(axis_generator nlohmann_json::nlohmann_json)
+add_executable(cleany_collision_monitor src/cleany_collision_monitor.cpp)
+target_compile_features(cleany_collision_monitor PRIVATE cxx_std_17)
+target_include_directories(cleany_collision_monitor PRIVATE include)
+ament_target_dependencies(cleany_collision_monitor nav2_collision_monitor nav2_util nav2_msgs rclcpp geometry_msgs sensor_msgs tf2_ros)
+install(TARGETS cleany_collision_monitor DESTINATION lib/${PROJECT_NAME})
+add_library(axis_generator SHARED src/axis_generator.cpp src/path_heading.cpp)
+add_library(footprint_sweep SHARED src/swept_footprint.cpp)
+target_compile_features(footprint_sweep PUBLIC cxx_std_17)
+target_include_directories(footprint_sweep PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(footprint_sweep geometry_msgs nav2_costmap_2d)
+install(TARGETS footprint_sweep EXPORT axis_generatorTargets ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 target_compile_features(axis_generator PUBLIC cxx_std_17)
 target_include_directories(axis_generator PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(axis_generator geometry_msgs dwb_msgs dwb_core dwb_plugins dwb_critics nav2_core nav2_costmap_2d nav2_util nav_2d_msgs nav_2d_utils pluginlib rclcpp)
 add_library(straight_first_planner SHARED src/straight_first_planner.cpp src/fixed_heading_search.cpp src/body_heading_search.cpp)
 target_compile_features(straight_first_planner PUBLIC cxx_std_17)
-target_link_libraries(straight_first_planner axis_generator nlohmann_json::nlohmann_json)
+target_link_libraries(straight_first_planner footprint_sweep nlohmann_json::nlohmann_json)
 target_include_directories(straight_first_planner PUBLIC include)
 if(nav2_core_VERSION VERSION_GREATER_EQUAL "1.2")
   target_compile_definitions(straight_first_planner PUBLIC CLEANY_NAV2_CANCEL_CHECKER=1)
 endif()
-# Humble exports hybrid, 2D and lattice libraries together. Each contains the
-# same NodeLattice static heuristic tables; loading hybrid+lattice interposes
-# those objects but registers both destructors, causing a double free at exit.
-# This adapter subclasses only SmacPlannerLattice. Retain exported headers and
-# link that single implementation instead of all package-exported plugins.
+# Humble은 hybrid, 2D와 lattice 라이브러리를 함께 내보냅니다. 각 라이브러리에
+# 같은 NodeLattice 정적 휴리스틱 표가 있어 hybrid와 lattice를 함께 로드하면
+# 객체 심볼이 겹치지만 소멸자는 둘 다 등록되어 종료 시 이중 해제가 발생합니다.
+# 이 어댑터는 SmacPlannerLattice만 상속하므로 내보낸 헤더는 유지하고
+# 패키지가 내보내는 전체 plugin 대신 해당 구현 하나만 링크합니다.
 find_library(CLEANY_NAV2_LATTICE_LIBRARY NAMES nav2_smac_planner_lattice REQUIRED)
 target_include_directories(straight_first_planner SYSTEM PUBLIC ${nav2_smac_planner_INCLUDE_DIRS})
 target_link_libraries(straight_first_planner ${CLEANY_NAV2_LATTICE_LIBRARY})
 ament_target_dependencies(straight_first_planner nav2_core nav2_costmap_2d nav_msgs geometry_msgs pluginlib)
 pluginlib_export_plugin_description_file(nav2_core planner_plugins.xml)
-pluginlib_export_plugin_description_file(nav2_core controller_plugins.xml)
 install(TARGETS straight_first_planner LIBRARY DESTINATION lib)
 add_library(cleany_yield_wait_bt_node SHARED src/yield_wait.cpp)
 target_include_directories(cleany_yield_wait_bt_node PRIVATE include)
@@ -64,19 +76,30 @@ target_compile_features(cleany_yield_wait_bt_node PUBLIC cxx_std_17)
 target_compile_definitions(cleany_yield_wait_bt_node PRIVATE BT_PLUGIN_EXPORT)
 ament_target_dependencies(cleany_yield_wait_bt_node nav2_behavior_tree nav2_msgs rclcpp)
 install(TARGETS cleany_yield_wait_bt_node LIBRARY DESTINATION lib)
+add_library(cleany_slip_recovery_bt_node SHARED src/slip_recovery_bt.cpp)
+target_include_directories(cleany_slip_recovery_bt_node PRIVATE include)
+target_compile_features(cleany_slip_recovery_bt_node PUBLIC cxx_std_17)
+target_compile_definitions(cleany_slip_recovery_bt_node PRIVATE BT_PLUGIN_EXPORT)
+target_link_libraries(cleany_slip_recovery_bt_node nlohmann_json::nlohmann_json)
+ament_target_dependencies(cleany_slip_recovery_bt_node nav2_behavior_tree nav_msgs std_msgs geometry_msgs rclcpp)
+install(TARGETS cleany_slip_recovery_bt_node LIBRARY DESTINATION lib)
 pluginlib_export_plugin_description_file(dwb_core plugins.xml)
 install(TARGETS axis_generator EXPORT axis_generatorTargets LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(PROGRAMS
+  scripts/phone_collision_monitor
   scripts/mapping_scan_filter scripts/mapping_session
   scripts/pan_motion_gate scripts/depth_clearance scripts/depth_coverage
+  scripts/depth_obstacles_preview
   scripts/obstacle_memory scripts/voxel_guard scripts/reactive_guard scripts/nav2_bt_trace
   scripts/nav2_lifecycle_recovery
+  scripts/slip_monitor scripts/traction_brake
+  scripts/localization_guard
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
 
-# The tuned MPPI implementation is part of this ROS package.
+# 조정된 MPPI 구현은 이 ROS 패키지에 포함됩니다.
 add_subdirectory(mppi)
 pluginlib_export_plugin_description_file(nav2_core mppi/controller_plugins.xml)
 pluginlib_export_plugin_description_file(cleany_navigation mppi/critics.xml)
@@ -89,8 +112,8 @@ if(BUILD_TESTING)
   ament_find_gtest()
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads REQUIRED)
-  # Regular dependency include roots can shadow ament's SYSTEM GTest headers
-  # with an incompatible version. Keep the linked GTest headers first instead.
+  # 일반 의존성 include 경로가 호환되지 않는 버전으로 ament의 SYSTEM GTest
+  # 헤더를 가릴 수 있으므로 링크하는 GTest 헤더를 먼저 찾게 합니다.
   foreach(gtest_target IN ITEMS ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
     if(TARGET ${gtest_target})
       set_property(TARGET ${gtest_target} PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "")
@@ -102,26 +125,27 @@ if(BUILD_TESTING)
     target_link_libraries(${target} ${GTEST_MAIN_LIBRARIES} ${GTEST_LIBRARIES} Threads::Threads)
     ament_add_gtest_test(${target})
   endfunction()
-  ament_add_pytest_test(navigation_runtime_core test)
+  # 검사에는 격리된 lifecycle과 센서 최신성 통합 검사를 포함합니다.
+  ament_add_pytest_test(navigation_runtime_core test TIMEOUT 300)
+  add_navigation_gtest(test_wheel_speed_limit test/test_wheel_speed_limit.cpp)
+  add_navigation_gtest(test_slip_recovery_policy test/test_slip_recovery_policy.cpp)
+  target_include_directories(test_slip_recovery_policy PRIVATE include)
+  add_navigation_gtest(test_slip_recovery_bt test/test_slip_recovery_bt.cpp)
+  target_compile_features(test_slip_recovery_bt PUBLIC cxx_std_17)
+  target_compile_definitions(test_slip_recovery_bt PRIVATE CLEANY_SLIP_BT_LIBRARY="$<TARGET_FILE:cleany_slip_recovery_bt_node>")
+  ament_target_dependencies(test_slip_recovery_bt nav2_behavior_tree rclcpp nav_msgs std_msgs geometry_msgs)
+  target_link_libraries(test_slip_recovery_bt nlohmann_json::nlohmann_json)
+  add_dependencies(test_slip_recovery_bt cleany_slip_recovery_bt_node)
+  target_include_directories(test_wheel_speed_limit PRIVATE include)
   add_navigation_gtest(test_axis_generator test/test_axis_generator.cpp)
-  add_navigation_gtest(test_observed_footprint test/test_observed_footprint.cpp)
-  add_navigation_gtest(test_precise_goal_dist test/test_precise_goal_dist.cpp)
   add_navigation_gtest(test_swept_footprint test/test_swept_footprint.cpp)
-  target_link_libraries(test_swept_footprint axis_generator nlohmann_json::nlohmann_json)
-  ament_target_dependencies(test_swept_footprint dwb_critics nav2_costmap_2d nav2_util rclcpp)
+  target_link_libraries(test_swept_footprint footprint_sweep nlohmann_json::nlohmann_json)
+  ament_target_dependencies(test_swept_footprint dwb_plugins dwb_critics nav2_costmap_2d nav2_util rclcpp)
   target_compile_definitions(test_swept_footprint PRIVATE
     CLEANY_SWEPT_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/test/data/return_sweep_alias.json"
     CLEANY_HOLD_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/test/data/command_hold_alias.json")
-  target_link_libraries(test_precise_goal_dist axis_generator)
-  ament_target_dependencies(test_precise_goal_dist dwb_critics nav2_costmap_2d nav2_util rclcpp)
-  target_link_libraries(test_observed_footprint axis_generator nlohmann_json::nlohmann_json)
-  ament_target_dependencies(test_observed_footprint dwb_critics nav2_costmap_2d nav2_util rclcpp)
   target_link_libraries(test_axis_generator axis_generator nlohmann_json::nlohmann_json)
   ament_target_dependencies(test_axis_generator dwb_plugins nav2_util rclcpp)
-  add_navigation_gtest(test_path_progress test/test_path_progress.cpp)
-  target_include_directories(test_path_progress PRIVATE include)
-  target_link_libraries(test_path_progress axis_generator)
-  ament_target_dependencies(test_path_progress dwb_core nav_2d_msgs dwb_msgs)
   add_navigation_gtest(test_straight_first_planner test/test_straight_first_planner.cpp)
   target_include_directories(test_straight_first_planner PRIVATE include)
   target_link_libraries(test_straight_first_planner straight_first_planner)

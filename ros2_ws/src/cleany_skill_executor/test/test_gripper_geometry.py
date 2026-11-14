@@ -7,7 +7,9 @@ from cleany_skill_executor.core.gripper import (
     is_gripper_contact_stall,
     opening_to_gripper_position,
 )
-import cleany_skill_executor.nearest_pregrasp_coordinator as module
+import cleany_skill_executor.gripper_operations as module
+from cleany_skill_executor.grasp_execution import GraspExecutionNode
+import rclpy
 
 
 def test_carry_can_tighten_but_initial_grasp_requires_stall():
@@ -85,9 +87,9 @@ def run(monkeypatch, readings):
             node._joint_positions['left_gripper_joint'] = position
             node._joint_velocities['left_gripper_joint'] = velocity
     monkeypatch.setattr(module.time, 'monotonic', lambda: now[0])
-    monkeypatch.setattr(module.rclpy, 'spin_once', spin)
-    node._spin_once = lambda timeout_sec: module.GraspExecutionNode._spin_once(node, timeout_sec)
-    return module.NearestPregraspCoordinator._wait_for_gripper_contact(node, 'left', 1.2, -.3)
+    monkeypatch.setattr(rclpy, 'spin_once', spin)
+    node._spin_once = lambda timeout_sec: GraspExecutionNode._spin_once(node, timeout_sec)
+    return module.GripperOperations._wait_for_gripper_contact(node, 'left', 1.2, -.3)
 
 
 def test_transient_velocity_settles_without_reclosing(monkeypatch):

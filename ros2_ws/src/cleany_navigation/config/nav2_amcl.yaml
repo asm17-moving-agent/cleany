@@ -173,7 +173,7 @@ local_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        # Full runtime requires backend-specific obstacle height in robot_params_file.
+        # 전체 런타임은 robot_params_file의 백엔드별 장애물 높이가 필요합니다.
         min_obstacle_height: 0.0
         observation_sources: scan
         scan:
@@ -246,7 +246,7 @@ planner_server:
       allow_reverse_expansion: true
       max_planning_time: 80.0
       cache_obstacle_heuristic: false
-      # Launch resolves the bundled official Omni 5cm-grid / 10cm-radius file.
+      # launch에서 동봉된 공식 Omni 5cm 격자, 10cm 반경 파일을 찾습니다.
       lattice_filepath: ""
       analytic_expansion_max_length: 0.0
       cost_penalty: 2.0

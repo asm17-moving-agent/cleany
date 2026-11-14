@@ -1,4 +1,4 @@
-"""Backend-independent launch assembly for localization, Nav2 and safety."""
+"""백엔드에 독립적인 위치 추정, Nav2와 안전 launch 구성입니다."""
 from __future__ import annotations
 
 import os
@@ -16,8 +16,10 @@ import yaml
 import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    configure_tof_route, load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice, resolve_default_lattice)
+    configure_tof_route, load_navigation_profile, load_motion_profile, load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice, resolve_default_lattice)
 from cleany_navigation.bt_trace import describe_tree
+from cleany_navigation.motion_profile import resolve_motion_profile, motion_profile_arguments
+from cleany_navigation.traction_config import configure_retry
 from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
 
@@ -39,7 +41,7 @@ def nav2_nodes(parameters: str, map_yaml: str, use_sim_time: bool, autostart: bo
     return nodes
 
 
-def _launch(context: LaunchContext, *, safety: bool) -> list:
+def _launch(context: LaunchContext, *, safety: bool, lidar_only: bool = False) -> list:
     share = Path(get_package_share_directory('cleany_navigation'))
     directory = Path(mkdtemp(prefix='cleany-navigation-'))
     def argument(name: str) -> str:
@@ -62,7 +64,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         for filename in ('safety_params_file', 'pan_params_file', 'voxel_params_file', 'memory_params_file'):
             merge_parameters(parameters, load_parameters(Path(argument(filename))))
         motion_file = 'axis_params_file' if flag('axis_motion') else 'omni_params_file'
-        merge_parameters(parameters, load_parameters(Path(argument(motion_file))))
+        motion = (load_parameters(Path(argument(motion_file))) if flag('axis_motion') else
+                  load_navigation_profile(share/'config/nav2_omni.yaml', Path(argument(motion_file))))
+        merge_parameters(parameters, motion)
         if not robot_path:
             raise ValueError('robot_params_file is required for navigation safety')
     if robot_path:
@@ -78,6 +82,61 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             forward_kinematics(urdf, body['park_joints'],
                 body.get('simulation_park_limits') if guard.get('allow_simulation_limits', False) else None)
         merge_parameters(parameters, robot)
+    motion_profile = resolve_motion_profile(context.launch_configurations.get('motion_profile'),
+        context.launch_configurations.get('phone_motion_profile'))
+    if motion_profile:
+        if motion_profile not in ('longitudinal', 'omni'):
+            raise ValueError('Invalid motion profile')
+        merge_parameters(parameters, load_motion_profile(share/'config', motion_profile))
+        if motion_profile == 'longitudinal':
+            primitive = Path(get_package_share_directory('nav2_smac_planner'))/'sample_primitives/5cm_resolution/0.5m_turning_radius/diff/output.json'
+            lattice = directory/'longitudinal_lattice.json'
+            lattice.write_text(json.dumps(longitudinal_lattice(json.loads(primitive.read_text()))))
+            parameters['planner_server']['ros__parameters']['GridBased']['lattice_filepath'] = str(lattice)
+        else:
+            resolve_default_lattice(parameters, share/'config/lattice/omni-r10cm-balanced.json')
+    slip_monitor_enabled = lidar_only and motion_profile == 'omni'
+    depth_overlay = None
+    if lidar_only and context.launch_configurations.get('depth_params_file', ''):
+        depth_overlay = load_parameters(Path(argument('depth_params_file')))
+        if set(depth_overlay) != {'local_costmap', 'depth_clearance', 'collision_monitor'}:
+            raise ValueError('Depth overlay must only configure local costmap, depth and collision monitor')
+        merge_parameters(parameters, {'local_costmap': depth_overlay['local_costmap']})
+        projection = depth_overlay['depth_clearance']['ros__parameters']
+        if projection.get('positive_infinity_is_free', False):
+            raise ValueError('Physical depth cannot infer free space from invalid pixels')
+        for key in ('spatial_filter_file', 'self_filter_boxes_file'):
+            path = Path(projection[key])
+            if not path.is_absolute():
+                path = share/'config'/path
+            if not path.is_file():
+                raise ValueError(f'Missing physical depth configuration: {path}')
+            projection[key] = str(path)
+    slip_enabled = slip_monitor_enabled and flag('slip_recovery')
+    traction_nodes = []
+    if slip_monitor_enabled:
+        settings = load_parameters(share/'config/slip_recovery.yaml')
+        traction_nodes.append(Node(package='cleany_navigation', executable='slip_monitor', name='slip_monitor',
+            parameters=[settings['slip_monitor']['ros__parameters'], {'use_sim_time':sim_time}], output='screen'))
+    if slip_enabled:
+        primitive = Path(get_package_share_directory('nav2_smac_planner'))/'sample_primitives/5cm_resolution/0.5m_turning_radius/diff/output.json'
+        lattice = directory/'traction_longitudinal_lattice.json'
+        lattice.write_text(json.dumps(longitudinal_lattice(json.loads(primitive.read_text()))))
+        retry_parameters = configure_retry(parameters, load_parameters(share/'config/nav2_longitudinal.yaml'), str(lattice))
+        retry_file = directory/'retry_parameters.yaml'
+        retry_file.write_text(yaml.safe_dump(adapt_nav2_parameters(retry_parameters, os.environ.get('ROS_DISTRO', ''))))
+        traction_nodes.extend([
+            Node(package='nav2_planner', executable='planner_server', name='planner_server', namespace='traction_retry',
+                 parameters=[str(retry_file)], output='screen'),
+            Node(package='nav2_lifecycle_manager', executable='lifecycle_manager', name='lifecycle_manager', namespace='traction_retry',
+                 parameters=[{'use_sim_time':sim_time,'autostart':autostart,'node_names':['planner_server']}], output='screen')])
+        tree_root = ET.fromstring((share/'config/behavior_trees/slip_recovery.xml').read_text())
+        tree_root.find('.//SlipRecovery').attrib.update({k:str(v) for k,v in settings['recovery'].items()})
+        slip_tree = directory/'slip_recovery.xml'
+        slip_tree.write_text(adapt_behavior_tree(ET.tostring(tree_root, encoding='unicode'), os.environ.get('ROS_DISTRO', '')))
+        parameters['bt_navigator']['ros__parameters']['default_nav_to_pose_bt_xml'] = str(slip_tree)
+        traction_nodes.append(Node(package='cleany_navigation', executable='traction_brake', name='traction_brake',
+            parameters=[settings['traction_brake']['ros__parameters'], {'use_sim_time':sim_time}], output='screen'))
     if safety:
         pan, memory, voxel = flag('pan_enabled'), flag('memory_enabled'), flag('voxel_enabled')
         safety_mode = argument('safety_mode')
@@ -100,7 +159,7 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             coverage['source_timeout_s'] = parameters['pan_motion_gate']['ros__parameters']['source_timeout_s']
         if (voxel or safety_mode == 'reactive') and not projection.get('self_filter_profile'):
             projection['self_filter_profile'] = guard['profile']
-        # All consumers agree on the backend's canonical odometry and depth.
+        # 모든 소비자가 백엔드의 기준 odometry와 깊이를 사용합니다.
         for name in ('controller_server', 'bt_navigator', 'pan_motion_gate', 'voxel_guard'):
             parameters[name]['ros__parameters']['odom_topic'] = 'odom'
         parameters['pan_motion_gate']['ros__parameters'].update(
@@ -137,12 +196,19 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
                 lattice.write_text(json.dumps(primitives))
             planner['lattice_filepath'] = str(lattice)
     resolve_default_lattice(parameters, share/'config/lattice/omni-r10cm.json')
-    # Lifecycle children and costmaps read the same clock settings from YAML.
+    # lifecycle 자식과 costmap은 YAML에서 같은 시계 설정을 읽습니다.
     for name in ('bt_navigator_navigate_to_pose_rclcpp_node', 'bt_navigator_navigate_through_poses_rclcpp_node'):
         parameters.setdefault(name, {'ros__parameters': {}})
     tof_enabled = safety and flag('tof_enabled')
     if tof_enabled:
         parameters = configure_tof_route(parameters)
+    if motion_profile:
+        for name in ('pan_motion_gate', 'reactive_guard'):
+            settings = parameters.get(name, {}).get('ros__parameters', {})
+            for key in ('command_topic', 'raw_command_topic'):
+                if settings.get(key) == 'nav2/cmd_vel': settings[key] = 'motion/cmd_vel'
+        monitor = parameters.get('collision_monitor', {}).get('ros__parameters', {})
+        if monitor.get('cmd_vel_in_topic') == 'nav2/cmd_vel': monitor['cmd_vel_in_topic'] = 'motion/cmd_vel'
     set_sim_time(parameters, sim_time)
     parameters = adapt_nav2_parameters(parameters, os.environ.get('ROS_DISTRO', ''))
     if safety:
@@ -157,6 +223,27 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     merged = directory/'parameters.yaml'
     merged.write_text(yaml.safe_dump(parameters, sort_keys=False))
     nodes = nav2_nodes(str(merged), str(map_yaml), sim_time, autostart)
+    if lidar_only:
+        collision = load_parameters(share/'config/lidar_safety.yaml')
+        if depth_overlay:
+            merge_parameters(collision, {'collision_monitor': depth_overlay['collision_monitor']})
+            traction_nodes.append(Node(package='cleany_navigation', executable='depth_clearance',
+                name='depth_clearance', parameters=[depth_overlay['depth_clearance']['ros__parameters'],
+                                                  {'use_sim_time': sim_time}], output='screen'))
+        set_sim_time(collision, sim_time)
+        collision = adapt_nav2_parameters(collision, os.environ.get('ROS_DISTRO', ''))
+        if slip_enabled:
+            collision['collision_monitor']['ros__parameters']['cmd_vel_in_topic'] = 'motion/traction_cmd_vel'
+        localization_parameters = load_parameters(share/'config/localization_guard.yaml')['localization_guard']['ros__parameters']
+        localization_parameters.update(use_sim_time=sim_time,
+            evidence_directory=argument('localization_evidence_directory'))
+        return [*traction_nodes, GroupAction([SetRemap(src='cmd_vel', dst='nav2/cmd_vel'), *nodes]),
+            Node(package='cleany_navigation', executable='localization_guard', name='localization_guard',
+                 parameters=[localization_parameters], output='screen'),
+            Node(package='cleany_navigation', executable='cleany_collision_monitor', name='collision_monitor',
+                 parameters=[collision['collision_monitor']['ros__parameters']], output='screen'),
+            Node(package='nav2_lifecycle_manager', executable='lifecycle_manager', name='lifecycle_manager_safety',
+                 parameters=[{'use_sim_time':sim_time,'autostart':autostart,'node_names':['collision_monitor']}])]
     if not safety:
         return nodes
     result = [GroupAction([SetRemap(src='cmd_vel', dst='nav2/cmd_vel'), *nodes]),
@@ -186,10 +273,13 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     return result
 
 
-def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
+def navigation_launch_description(*, safety: bool = True, motion_profile: str = "", lidar_only: bool = False) -> LaunchDescription:
     share = Path(get_package_share_directory('cleany_navigation'))
-    arguments = [DeclareLaunchArgument('map', description='Prebuilt map YAML for the active backend.'),
-        DeclareLaunchArgument('robot_params_file', default_value='', description='Robot geometry, frames and braking parameters.'),
+    arguments = [DeclareLaunchArgument('slip_recovery', default_value='true' if lidar_only else 'false'),
+        DeclareLaunchArgument('depth_params_file', default_value='', description='Optional physical depth local-costmap/monitor overlay.'),
+        DeclareLaunchArgument('localization_evidence_directory', default_value=''),
+        *motion_profile_arguments(motion_profile), DeclareLaunchArgument('map', description='Prebuilt map YAML for the active backend.'),
+        DeclareLaunchArgument('robot_params_file', default_value=str(share/'config/lidar_robot.yaml') if lidar_only else '', description='Robot geometry, frames and braking parameters.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('autostart', default_value='true'),
         DeclareLaunchArgument('params_file', default_value=str(share/'config/nav2_amcl.yaml')),
@@ -201,10 +291,10 @@ def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
             Path(get_package_share_directory('cleany_tof'))/'config/tof.yaml')))
         for name, filename in [('safety_params_file', 'nav2_safety.yaml'), ('axis_params_file', 'nav2_axis_motion.yaml'),
             ('pan_params_file', 'pan_motion_gate.yaml'), ('voxel_params_file', 'voxel_guard.yaml'),
-            ('memory_params_file', 'obstacle_memory.yaml'), ('omni_params_file', 'nav2_omni_motion.yaml')]:
+            ('memory_params_file', 'obstacle_memory.yaml'), ('omni_params_file', 'nav2_omni_low_speed.yaml')]:
             arguments.append(DeclareLaunchArgument(name, default_value=str(share/'config'/filename)))
         for name in ('axis_motion', 'pan_enabled', 'memory_enabled', 'voxel_enabled'):
             arguments.append(DeclareLaunchArgument(name, default_value='false' if name == 'axis_motion' else 'true'))
         arguments.append(DeclareLaunchArgument('output_directory', default_value=''))
         arguments.append(DeclareLaunchArgument('safety_mode', default_value='serial', choices=['serial', 'reactive']))
-    return LaunchDescription([*arguments, OpaqueFunction(function=lambda context: _launch(context, safety=safety))])
+    return LaunchDescription([*arguments, OpaqueFunction(function=lambda context: _launch(context, safety=safety, lidar_only=lidar_only))])

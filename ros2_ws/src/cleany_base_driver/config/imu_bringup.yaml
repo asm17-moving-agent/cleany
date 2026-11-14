@@ -1,4 +1,4 @@
-# PC receives the calibration performed once at MCU boot.
+# PC는 MCU 부팅 시 한 번 수행한 보정 결과를 수신합니다.
 cleany_imu:
   ros__parameters:
     frame_id: imu_link

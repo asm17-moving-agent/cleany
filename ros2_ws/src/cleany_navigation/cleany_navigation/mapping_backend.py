@@ -1,4 +1,4 @@
-"""Installed-workspace mapping lifecycle; permanent hardware is owned by bringup."""
+"""설치 workspace의 mapping 생명주기이며 상시 하드웨어는 bringup이 소유합니다."""
 
 from __future__ import annotations
 import hashlib
@@ -13,8 +13,41 @@ from .mapping_process import identity, descendants, live_recorded
 from .mapping_storage import atomic_json, planar_origin, save_grid
 
 
+def mapping_recording_settings(settings: dict, profile: dict) -> dict:
+    """지도 reset 전후로 저장된 기록 정책을 보존하고 첫 실행에는 기본값을 넣습니다."""
+    from copy import deepcopy
+
+    settings = deepcopy(settings)
+    if (Path(profile["recordings_directory"]) / "recording-settings.json").is_file():
+        return settings
+    settings["enabled"].update(
+        motion=True, slam=True, costmaps=True, lidar=True
+    )
+    settings["topics"]["lidar"] = "/scan"
+    settings["limit_mib"] = min(
+        10240, int(profile.get("recording_limit_mib", 1024))
+    )
+    settings["hz"]["lidar"] = 10.0
+    for source in (
+        "wheel_state_topic",
+        "wheel_command_topic",
+        "joint_state_topic",
+        "canonical_odometry_topic",
+        "odometry_topic",
+        "raw_scan_topic",
+        "map_topic",
+        "slam_submaps_topic",
+        "slam_trajectory_topic",
+        "slam_constraints_topic",
+        "slam_matched_points_topic",
+    ):
+        settings["source_enabled"][source] = True
+        settings["source_hz"][source] = None
+    return settings
+
+
 class LoggerPort:
-    """Use the mapping executor's ROS clients; no nested contexts or executors."""
+    """중첩 컨텍스트나 executor 없이 mapping executor의 ROS client를 사용합니다."""
 
     def __init__(self, backend):
         self.backend = backend
@@ -157,7 +190,7 @@ class MappingBackend:
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired as error:
-            # Leave ownership and artifacts intact; never start a replacement over it.
+            # 소유권과 결과물을 유지하며 기존 실행 위에 대체 실행을 시작하지 않습니다.
             raise RuntimeError(
                 "Owned mapping child did not exit; restart blocked"
             ) from error
@@ -252,7 +285,7 @@ class MappingBackend:
         if self.output is None:
             return
         if self.process is not None:
-            # Save errors retain SLAM and logger for an explicit retry.
+            # 저장 오류가 나면 명시적으로 재시도할 수 있도록 SLAM과 logger를 유지합니다.
             if (
                 self.ready_once
                 and self.grid_at >= self.started
@@ -395,29 +428,7 @@ class MappingBackend:
                     "Logger already active; refusing to replace its session"
                 )
             settings = state["settings"]
-            settings["enabled"].update(
-                motion=True, slam=True, costmaps=True, lidar=True
-            )
-            settings["topics"]["lidar"] = "/scan"
-            settings["limit_mib"] = min(
-                1024, int(self.profile.get("recording_limit_mib", 1024))
-            )
-            settings["hz"]["lidar"] = 10.0
-            for source in (
-                "wheel_state_topic",
-                "wheel_command_topic",
-                "joint_state_topic",
-                "canonical_odometry_topic",
-                "odometry_topic",
-                "raw_scan_topic",
-                "map_topic",
-                "slam_submaps_topic",
-                "slam_trajectory_topic",
-                "slam_constraints_topic",
-                "slam_matched_points_topic",
-            ):
-                settings["source_enabled"][source] = True
-                settings["source_hz"][source] = None
+            settings = mapping_recording_settings(settings, self.profile)
             self.logger.call("configure", settings=settings, revision=state["revision"])
             state = self.logger.call("start")
             self.logger_session = state["session_id"]
@@ -472,7 +483,7 @@ class MappingBackend:
                 "SLAM readiness timed out: fresh scan-time TF, odom and new map required"
             )
         except Exception as startup_error:
-            # Retain both tracebacks if cleanup itself fails.
+            # 정리 자체도 실패하면 두 traceback을 모두 보존합니다.
             try:
                 self.stop()
             except Exception as cleanup_error:

@@ -1,4 +1,4 @@
-"""15 Hz detector scenarios; synthetic geometry plus unmodified bench frames."""
+"""15Hz 검출기 시나리오이며 합성 기하와 수정하지 않은 벤치 프레임을 사용합니다."""
 from dataclasses import replace
 import math
 import json
@@ -11,7 +11,7 @@ from cleany_tof.proximity import ProximityDetector, limit_velocity
 
 
 def empty(settings=None):
-    # Real no-target slots can retain 338 mm; these are not measured obstacles.
+    # 실제 타깃 없음 칸에 338mm가 남을 수 있지만 측정 장애물이 아닙니다.
     return observe([.338]*64, [.030]*64, [255]*64, [0]*64, [False]*64, settings or Settings())
 
 
@@ -110,7 +110,7 @@ def test_repeated_frame_cannot_advance_filter_and_long_gap_resets_it():
     assert not len(detector.update(returns(), .3).points)
     assert not len(detector.update(returns(), .3+1/15).points)
     assert len(detector.update(returns(), .3+2/15).points) == 2
-    assert not len(detector.update(returns(), .1).points)  # Clock reset.
+    assert not len(detector.update(returns(), .1).points)  # 시계 reset입니다.
 
 
 def test_emergency_single_return_stops_without_confirmation_and_has_hysteresis():
@@ -119,7 +119,7 @@ def test_emergency_single_return_stops_without_confirmation_and_has_hysteresis()
     d = detector.update(returns((27,), x=.66), 0.)
     assert d.emergency
     assert limit_velocity((.1, 0., 0.), (0., 0., 0.), d, .01, s)[1] == 'PROXIMITY_STOP'
-    # Just outside the entry threshold still holds the emergency latch.
+    # 진입 임계값 바로 밖에서도 비상 latch를 유지합니다.
     for now in (1/15, 2/15, 3/15, 4/15):
         assert detector.update(returns((27,), x=.70), now).emergency
     for now in (5/15, 6/15):
@@ -135,7 +135,7 @@ def test_roi_excludes_returns_and_proximity_distance_hysteresis_releases():
     confirmed(detector, returns())
     edge = s.half_length+s.margin+3*s.max_sigma_m+s.obstacle_clearance_m
     d = detector.update(returns(x=edge+.02), 3/15)
-    assert len(d.points) == 2  # Within the active track's exit threshold.
+    assert len(d.points) == 2  # 활성 추적의 이탈 임계값 안입니다.
     d = detector.update(returns(x=edge+.06), 4/15)
     assert d.held and limit_velocity((.1, 0., 0.), (0., 0., 0.), d, .01, s)[1] == 'OBSTACLE_HOLD'
     detector.update(empty(), 5/15)
@@ -179,7 +179,7 @@ def test_desk_plane_uses_distributed_valid_subset_ignoring_bad_or_missing_zones(
             points[i], states[i] = rays[i]/rays[i, 0], Z.RANGE
     states[3*8+3] = Z.UNRELIABLE
     assert desk_plane(Observation(points, states), s).distance == pytest.approx(1.)
-    # Too few columns, one row only or a narrow patch cannot justify a desk.
+    # 열이 너무 적거나 한 행뿐이거나 좁은 패치로는 책상임을 뒷받침할 수 없습니다.
     for mask in (np.arange(64) % 8 == 1, np.arange(64)//8 != 2):
         sparse = states.copy()
         sparse[mask] = Z.NO_RETURN

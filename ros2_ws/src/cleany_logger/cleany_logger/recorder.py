@@ -1,10 +1,11 @@
-"""Durable observation sessions, storage quotas and historical replay.
+"""영속 관측 session, 저장소 할당량과 과거 기록 재생을 담당합니다.
 
-The embedding application owns the worker/thread and supplies snapshots. This
-module does not import ROS, HTTP, browser or mission execution components.
+포함하는 애플리케이션이 worker와 스레드를 소유하며 snapshot을 제공합니다.
+이 모듈은 ROS, HTTP, 브라우저나 임무 실행 컴포넌트를 import하지 않습니다.
 """
 
 import hashlib
+import fnmatch
 import json
 import os
 import sqlite3
@@ -18,8 +19,24 @@ from .sources import resolved, validate_sources
 from .archive import ArchiveReader, decode_record
 
 
+def _tree_bytes(directory):
+    """Path/stat 할당을 반복하지 않고 rglob과 동일한 파일 수를 셉니다."""
+    try:
+        entries = os.scandir(directory)
+    except FileNotFoundError:
+        return 0
+    total = 0
+    with entries:
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                total += _tree_bytes(entry.path)
+            elif entry.is_file():
+                total += entry.stat().st_size
+    return total
+
+
 class Recorder(ArchiveReader):
-    """Single-worker storage owner. Never touches MissionJournal or deletes evidence."""
+    """단일 worker의 저장소 소유자입니다. MissionJournal을 변경하거나 근거를 삭제하지 않습니다."""
 
     def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3, controls=None, bag_factory=RosbagWriter, *, open_session=True):
         self.controls = controls
@@ -72,7 +89,7 @@ class Recorder(ArchiveReader):
                 self.db = None
 
     def restore_settings(self, config: dict) -> None:
-        """Restore valid saved policy; keep defaults when absent or unreadable."""
+        """유효한 저장 정책을 복구하며 없거나 읽을 수 없으면 기본값을 유지합니다."""
         if self.controls is None:
             return
         self.controls.source_config = dict(config)
@@ -86,7 +103,7 @@ class Recorder(ArchiveReader):
             pass
 
     def persist_settings(self, settings: dict) -> None:
-        """Atomically persist a policy validated against the producer's sources."""
+        """생성자의 입력 소스와 대조해 검증한 정책을 원자적으로 저장합니다."""
         path = self.directory / "recording-settings.json"
         temporary = path.with_suffix(".tmp")
         with temporary.open("w") as handle:
@@ -96,10 +113,10 @@ class Recorder(ArchiveReader):
         temporary.replace(path)
 
     def start_session(self) -> None:
-        """Finalize the previous session and open a fresh UUID with current limits.
+        """이전 session을 마무리하고 현재 제한값으로 새 UUID session을 엽니다.
 
-        The producer must seal callback tickets and drain its previous snapshot
-        before calling this method, then provide the new session's initial state.
+        생성자는 호출 전에 콜백 ticket을 봉인하고 이전 snapshot을 비워야 하며,
+        호출 후에는 새 session의 초기 상태를 제공해야 합니다.
         """
         directory, session_limit, total_limit = self.directory, self.session_limit, self.total_limit
         controls, bag_factory = self.controls, self.bag_factory
@@ -109,12 +126,18 @@ class Recorder(ArchiveReader):
             controls.writer_error = self.reason
 
     def disk_bytes(self):
-        return (sum(p.stat().st_size for p in self.directory.glob("*.sqlite3*"))
-                + sum(p.stat().st_size for p in (self.directory / 'bags').rglob('*') if p.is_file()))
+        try:
+            entries = os.scandir(self.directory)
+        except FileNotFoundError:
+            return 0
+        with entries:
+            processed = sum(entry.stat().st_size for entry in entries
+                if fnmatch.fnmatchcase(entry.name, '*.sqlite3*'))
+        return processed + _tree_bytes(self.directory / 'bags')
 
     def session_bytes(self):
         return ((self.path.stat().st_size if self.path.exists() else 0)
-                + sum(p.stat().st_size for p in self.bag_path.rglob('*') if p.is_file()))
+                + _tree_bytes(self.bag_path))
 
     def limit_reached(self, size):
         return (max(self.session_bytes(), self.bytes) + size + 65536 > self.session_limit

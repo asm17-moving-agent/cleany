@@ -23,8 +23,7 @@ def test_profile_mock_is_explicit_and_synthetic_never_real():
 
 def test_confirmed_real_geometry_and_initial_lifted_wheel_limits():
     profile, required = module.load_profile(CONFIG / 'base_hardware.yaml', False)
-    # Physical measured wheel separation is 0.610 m (center-to-center),
-    # but effective kinematic wheel separation is calibrated to 0.590 m for floor driving.
+    # 실측 휠 중심 간격은 0.610 m이며, 바닥 주행용 유효 기구학 간격은 0.590 m입니다.
     assert profile['geometry'] == {
         'wheel_radius_m': 0.0635,
         'wheelbase_m': 0.350,

@@ -1,4 +1,4 @@
-"""Publishes /safety/status from configured hardware evidence. It never fabricates readiness."""
+"""설정된 하드웨어 근거에서 /safety/status를 발행하며 준비 상태를 만들어 내지 않습니다."""
 from time import monotonic
 
 import rclpy
@@ -15,9 +15,28 @@ from .evidence import SafetyEvidence
 
 
 class SafetyAdapter(Node):
+    """독립 하드웨어 입력과 움직임 피드백을 안전 상태 근거로 변환합니다.
+
+    Subscriptions:
+        estop_released_topic, protection_ready_topic (std_msgs/msg/Bool): 설정한 경우에만
+            구독하는 하드웨어 해제 및 보호 준비 근거. 기본값은 빈 문자열입니다.
+        odom (nav_msgs/msg/Odometry), joint_states (sensor_msgs/msg/JointState):
+            정지 판정용 속도 피드백. 토픽 파라미터 기본값이며 sensor_data QoS입니다.
+
+    Publishers:
+        safety/status (cleany_interfaces/msg/SafetyStatus): 해제, 보호 준비와 정지 근거.
+            reliable, depth 10이며 ROS 발행 시각을 기록합니다.
+
+    Notes:
+        입력 최신성과 timer는 단조 시계를 사용합니다. 설정된 하드웨어의 최초 근거를
+        기다리는 동안 발행을 보류해 Supervisor의 부팅 유예를 사용합니다. 구성되지
+        않거나 오래된 근거를 안전한 값으로 대체하지 않습니다. E-stop을 구동하거나
+        물리 해제를 수행하는 노드는 아닙니다.
+    """
+
     def __init__(self, **kwargs):
         super().__init__('safety_adapter', **kwargs)
-        # Empty topic = the evidence does not exist on this robot; reported as unsafe.
+        # 빈 토픽은 이 로봇에 해당 근거가 없음을 뜻하며 안전하지 않은 값으로 보고합니다.
         estop_topic = self.declare_parameter('estop_released_topic', '').value
         protection_topic = self.declare_parameter('protection_ready_topic', '').value
         self.evidence = SafetyEvidence(

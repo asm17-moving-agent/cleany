@@ -51,17 +51,17 @@ def fit_plane_ransac(
     minimum_inlier_ratio: float,
     random_seed: int = 0,
 ) -> Plane:
-    """Fit a support plane and orient its normal toward the camera origin.
+    """지지 평면을 맞추고 법선을 카메라 원점 쪽으로 향하게 합니다.
 
     Args:
-        points: Finite Nx3 camera-frame coordinates in metres.
-        distance_threshold_m: Maximum point-to-plane distance for an inlier.
+        points: 유한한 Nx3 카메라 좌표이며 미터 단위입니다.
+        distance_threshold_m: inlier로 인정하는 점과 평면 사이 최대 거리.
 
     Returns:
-        The SVD-refined plane after RANSAC consensus selection.
+        RANSAC 합의 집합 선택 이후 SVD로 정밀화한 평면.
 
     Raises:
-        ValueError: Samples or the resulting consensus fail the configured limits.
+        ValueError: 표본이나 합의 집합이 설정 한계를 만족하지 않는 경우.
     """
     cloud = np.asarray(points, dtype=np.float64)
     if cloud.ndim != 2 or cloud.shape[1] != 3:
@@ -111,8 +111,8 @@ def fit_plane_ransac(
     normal /= np.linalg.norm(normal)
     offset = -float(normal @ centroid)
 
-    # The support surface normal points toward the camera origin. Objects on
-    # the table then have positive signed height above the plane.
+    # 지지 표면 법선은 카메라 원점 쪽을 향하므로 테이블 위 물체의
+    # 평면 상대 부호 있는 높이는 양수입니다.
     point_on_plane = -offset * normal
     if float(normal @ (-point_on_plane)) < 0.0:
         normal = -normal
@@ -136,17 +136,17 @@ def reconstruct_supported_obb(
     minimum_extent_m: float,
     minimum_points: int,
 ) -> OrientedBox3D:
-    """Fit an oriented box with its bottom constrained to the support plane.
+    """바닥을 지지 평면에 고정한 방향성 경계 상자를 맞춥니다.
 
-    Project above-plane points onto the support plane and use their principal
-    axes for the footprint. Coordinates and distance limits are in metres.
+    평면 위 점들을 지지 평면에 투영하고 주축으로 footprint를 구합니다.
+    좌표와 거리 한계는 미터 단위입니다.
 
     Returns:
-        A box in the input frame, with its third rotation axis along the plane
-        normal and height spanning the retained points above the plane.
+        입력 좌표계의 상자입니다. 세 번째 회전축은 평면 법선을 따르며
+        높이는 평면 위에 남긴 점들의 범위를 덮습니다.
 
     Raises:
-        ValueError: Too few valid points or a degenerate extent prevents a box.
+        ValueError: 유효점이 부족하거나 퇴화한 크기 때문에 상자를 만들 수 없는 경우.
     """
     cloud = np.asarray(points, dtype=np.float64)
     if cloud.ndim != 2 or cloud.shape[1] != 3:

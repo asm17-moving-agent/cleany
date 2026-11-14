@@ -26,7 +26,7 @@ def test_noise_profile_materializes_expected_gaussian_noise(
         WORLD_PATH,
         profile,
         target_path=tmp_path / f'{name}.sdf',
-    )
+     robot_model='legacy')
     root = ElementTree.parse(world_path).getroot()
     noise = root.find(
         ".//sensor[@name='rplidar_a1']/lidar/noise"
@@ -38,8 +38,8 @@ def test_noise_profile_materializes_expected_gaussian_noise(
 
 
 def test_default_runtime_world_paths_are_unique() -> None:
-    first = materialize_study_cafe_world(WORLD_PATH)
-    second = materialize_study_cafe_world(WORLD_PATH)
+    first = materialize_study_cafe_world(WORLD_PATH, robot_model='legacy')
+    second = materialize_study_cafe_world(WORLD_PATH, robot_model='legacy')
     try:
         assert first != second
         assert first.parent != second.parent
@@ -62,7 +62,7 @@ def test_study_cafe_world_keeps_selected_noise_profile(tmp_path: Path) -> None:
         WORLD_PATH,
         tmp_path / 'study_cafe.sdf',
         lidar_noise=profile,
-    )
+     robot_model='legacy')
     root = ElementTree.parse(world_path).getroot()
     noise = root.find(
         ".//sensor[@name='rplidar_a1']/lidar/noise"

@@ -20,8 +20,8 @@ struct ControlCycle
   }
 };
 
-// A delayed read must not change the timestamp passed to update/write.
-// A paused clock or a catch-up iteration cannot produce another state sample.
+// read가 지연되어도 update/write에 전달하는 타임스탬프가 바뀌면 안 됩니다.
+// 멈춘 시계나 지연을 따라잡는 반복에서 새 상태 표본을 만들 수 없습니다.
 class ControlCycleGate
 {
 public:

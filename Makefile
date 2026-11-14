@@ -8,9 +8,9 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 GEOMETRY_PYTHON ?= python3
 SORTING_ARGS ?=
-# Keep data and generated outputs outside the source worktree.
-CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
-CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
+# 데이터와 생성물은 소스 worktree 밖에 보관합니다.
+CLEANY_DATA_ROOT ?= $(if $(wildcard $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../cleany-data))
+CLEANY_BUILD_ROOT ?= $(if $(XDG_CACHE_HOME),$(XDG_CACHE_HOME),$(HOME)/.cache)/cleany/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
 CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
 export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT CLEANY_INSTALL_BASE
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
@@ -19,17 +19,18 @@ LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
-MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
+MISSION_PACKAGES := cleany_interfaces cleany_telemetry cleany_mission_manager cleany_control_bridge
 MISSION_MOCK_PACKAGES := $(MISSION_PACKAGES) cleany_skill_executor
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
-HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
+HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/datasets/reference/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
-HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/handeye
-HANDEYE_RUN_ID ?= mujoco_seed_20260810
+CLEANY_RUN_DATE ?= $(shell TZ=Asia/Seoul date +%F)
+HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/manipulation
+HANDEYE_RUN_ID ?= $(CLEANY_RUN_DATE)_handeye-mujoco-seed-20260810
 HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
 HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
 HANDEYE_MAX_TRANSLATION_NORM_M ?= 1.0
@@ -41,7 +42,7 @@ BASE_TEST_ROS_DOMAIN_ID ?= 173
 IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
 IMU_CALIBRATION_TIMEOUT ?= 60
 IMU_CALIBRATION_ARGS ?=
-# Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
+# Ubuntu Distrobox 안에서는 직접 실행하고 호스트에서 호출하면 컨테이너로 진입합니다.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
@@ -209,6 +210,14 @@ test-base: build-base
 
 test-imu-runtime: build-base
 	$(BASE_EXEC) bash -lc 'set -e; source /opt/ros/humble/setup.bash; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q ros2_ws/src/cleany_base_interfaces/test/test_contract.py ros2_ws/src/cleany_base_driver/test/test_imu_core.py ros2_ws/src/cleany_base_driver/test/test_imu_graph.py tools/test_imu_runtime_config.py'
+
+.PHONY: test-slip-detection
+test-slip-detection:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 OPENBLAS_NUM_THREADS=1 /usr/bin/python3 -m pytest -q tests/tools/test_slip_detection.py tools/odometry_evaluation/test_icp_convergence.py tools/odometry_evaluation/test_planar_extrinsic.py'
+
+.PHONY: test-slip-recovery
+test-slip-recovery:
+	$(BASE_EXEC) bash -lc 'set -e; source "$(ROS_SETUP)"; source "$(INSTALL_BASE)/setup.bash"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); OPENBLAS_NUM_THREADS=1 ctest --test-dir "$(BUILD_BASE)/cleany_navigation" --output-on-failure'
 
 test-odometry-evaluation:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'
@@ -383,7 +392,7 @@ test: build
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_mission_manager/tests" \
 		"$(ROS2_WS)/src/cleany_control_bridge/test"
 
@@ -414,8 +423,8 @@ test-mission: test-mission-core
 .PHONY: build-supervision test-supervision-core test-supervision
 SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
 SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
-SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/supervision/latency.json
-# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/platform/$(CLEANY_RUN_DATE)_supervision/latency.json
+# E2E 그래프는 별도 Navigation 빌드의 Nav2 lifecycle 복구 노드를 사용합니다.
 build-supervision: build-navigation
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
@@ -429,6 +438,7 @@ test-supervision-core:
 	python3 -m pytest -p no:cacheprovider \
 		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_core.py" \
 		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_scenarios.py" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_startup_reconnect.py" \
 		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
 		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_runtime_supervision.py" \
 		"$(ROS2_WS)/src/cleany_skill_executor/test/test_arm_health.py"
@@ -614,7 +624,7 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-up-to cleany_dev_monitor cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
+		--packages-up-to cleany_dev_monitor cleany_telemetry cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
@@ -628,7 +638,7 @@ test-logger:
 	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(LOGGER_TEST_PATHS) $(LOGGER_PYTEST_ARGS)
 
 test-dev-monitor: test-logger
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
 	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(DEV_MONITOR_TEST_PATHS) $(DEV_MONITOR_PYTEST_ARGS)
 
 DEV_MONITOR_E2E_ARGS ?=
@@ -685,7 +695,7 @@ build-hardware-mapping: build-teleop-ui
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_bringup'
 
 test-hardware-mapping-core:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONPATH=ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
+	$(BASE_EXEC) bash -lc 'set -e; source "$(ROS_SETUP)"; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTHONPATH="ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
 	node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
 
 .PHONY: test-hardware-mapping-runtime
@@ -732,6 +742,7 @@ test-description-models:
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
 	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
 	python3 -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_cad_final.py \
 		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
 		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
 		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \
@@ -854,3 +865,31 @@ DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
 .PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
 $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
 	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)
+
+.PHONY: print-data-root print-build-root
+print-data-root:
+	@printf '%s\n' "$(CLEANY_DATA_ROOT)"
+print-build-root:
+	@printf '%s\n' "$(CLEANY_BUILD_ROOT)"
+
+.PHONY: run-camera-preview test-camera-preview-core
+run-camera-preview:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	ros2 run cleany_telemetry camera_preview $(CAMERA_PREVIEW_ROS_ARGS)
+
+test-camera-preview-core:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_telemetry/test/test_camera.py"
+
+.PHONY: build-pose-observation test-pose-observation
+build-pose-observation:
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-select cleany_telemetry cleany_control_bridge cleany_bringup
+
+test-pose-observation:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_telemetry:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_telemetry/test/test_pose.py" \
+		"$(ROS2_WS)/src/cleany_telemetry/test/test_pose_node.py" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test/test_pose_relay.py" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test/test_pose_backend_node.py"

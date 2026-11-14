@@ -83,13 +83,13 @@ def test_rear_bearing_uses_short_equivalent_position_within_actual_joint_limits(
     assert target == pytest.approx(math.atan2(command[1], command[0])+2*math.pi)
     assert reason == 'WAIT_FRESH_DEPTH' and output == (0., 0., 0.)
     assert step(1.1, math.pi, 1.1)[1] == command
-    # An actual 0.1 rad pointing error still stops; choosing a representation
-    # cannot authorize stale data or relax the alignment tolerance.
+    # 실제 0.1rad 방향 오차는 여전히 정지를 유발합니다. 표현을 바꿔도
+    # 오래된 데이터를 허용하거나 정렬 오차 한계를 완화할 수 없습니다.
     assert step(1.2, target-.1, 1.2)[2] == 'TURNING_PAN'
     assert step(1.3, target, 1.2)[2] == 'WAIT_FRESH_DEPTH'
     assert step(1.4, target, 1.4)[2] == 'PASS'
-    # The equivalent positive target is outside the finite mechanical range.
-    # A real long rotation is then necessary; never wrap through the stop.
+    # 동등한 양의 목표는 유한한 기계 범위 밖에 있습니다. 이 경우 실제로 긴
+    # 회전이 필요하며 기계적 끝을 넘어 각도를 감아 돌아서는 안 됩니다.
     wide = (-.1, -.02, 0.)
     target, output, reason = gate.step(2., wide, (0., 0., 0.), math.pi, 0., 2., 2., 2.)
     assert target == math.atan2(wide[1], wide[0])

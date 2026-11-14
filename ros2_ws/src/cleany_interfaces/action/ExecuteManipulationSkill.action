@@ -1,8 +1,8 @@
-# One approved object, one attempt. execution_id is issued by the client.
+# 승인된 물체 하나를 한 번 시도합니다. execution_id는 client가 발급합니다.
 string mission_id
 string task_id
 string execution_id
-# collect_trash or collect_lost_item; executor checks model category and destination.
+# collect_trash 또는 collect_lost_item이며 실행기가 모델 분류와 목적지를 검사합니다.
 string skill_name
 string snapshot_id
 uint32 object_id

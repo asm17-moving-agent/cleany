@@ -14,8 +14,10 @@
 // limitations under the License.
 
 #include "cleany_navigation/mppi/critics/path_angle_critic.hpp"
+#include "cleany_navigation/mppi/path_rotation.hpp"
 
 #include <math.h>
+#include <stdexcept>
 
 namespace cleany_navigation::mppi::critics
 {
@@ -44,6 +46,13 @@ void PathAngleCritic::initialize()
   getParam(
     forward_preference_,
     "forward_preference", true);
+  getParam(respect_in_place_rotations_, "respect_in_place_rotations", false);
+  getParam(rotation_only_, "rotation_only", false);
+  getParam(follow_segment_heading_, "follow_segment_heading", false);
+  getParam(rotation_position_tolerance_, "rotation_position_tolerance", 0.075f);
+  if (!std::isfinite(rotation_position_tolerance_) || rotation_position_tolerance_ <= 0.0f) {
+    throw std::runtime_error("rotation_position_tolerance must be finite and positive");
+  }
 
   if (!reversing_allowed_) {
     forward_preference_ = true;
@@ -59,6 +68,40 @@ void PathAngleCritic::score(CriticData & data)
 {
   using xt::evaluation_strategy::immediate;
   if (!enabled_) {
+    return;
+  }
+
+  // lattice의 제자리 회전은 XY가 같고 yaw만 변하므로 점을 향하는 방위각만으로는
+  // 회전을 표현할 수 없습니다. 시작 회전 구간의 마지막 방향을 평가합니다.
+  // 목표 위치에 도달한 뒤의 방향 정렬은 최종 목표 각도 critic이 담당합니다.
+  if (respect_in_place_rotations_ && data.path.x.size() > 0 &&
+    utils::withinPositionGoalTolerance(data.goal_checker, data.state.pose.pose, data.path))
+  {
+    return;
+  }
+  if (respect_in_place_rotations_) {
+    const auto target = leadingRotationYaw(data.path, data.state.pose.pose,
+      rotation_position_tolerance_);
+    if (target) {
+      auto errors = xt::abs(utils::shortest_angular_distance(
+          data.trajectories.yaws, *target));
+      data.costs += xt::pow(xt::mean(errors, {1}, immediate) * weight_, power_);
+      return;
+    }
+  }
+
+  // 현재 병진 구간의 차체 yaw를 따릅니다. 이후 도착 회전이나 이동 방위각을
+  // 미리 따르지 않으므로 차체 방향을 유지한 횡이동도 가능합니다.
+  if (rotation_only_) {
+    if(!follow_segment_heading_)return;
+    for(size_t i=1;i<data.path.x.size();++i) {
+      if(std::hypot(data.path.x(i)-data.path.x(i-1),data.path.y(i)-data.path.y(i-1))<1e-4f)continue;
+      const auto horizon=std::min(size_t(data.trajectories.yaws.shape(1)),size_t(10));
+      auto errors=xt::abs(utils::shortest_angular_distance(
+        xt::view(data.trajectories.yaws,xt::all(),xt::range(size_t(0),horizon)),data.path.yaws(i)));
+      data.costs+=xt::pow(xt::mean(errors,{1},immediate)*weight_,power_);
+      break;
+    }
     return;
   }
 

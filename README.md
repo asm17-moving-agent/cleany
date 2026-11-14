@@ -1,36 +1,26 @@
-# Cleany 로봇 런타임
+# Cleany 로봇 소프트웨어
 
-Cleany 로봇의 ROS 2 runtime, Gazebo/MuJoCo 시뮬레이션, ESP32 펌웨어를 관리하는 저장소입니다. 제품 목표와 설계 결정은 [KB](docs/cleany-docs/README.md)에서 확인합니다. 각 구현과 시험의 상태는 제품 전체의 완료 여부와 구분합니다.
+ROS 2 주행과 매핑, 센서 관측, 물체 조작 시뮬레이션, ESP32 구동을 개발합니다.
 
-## 문서 지도
+**[문서 홈](docs/index.md) · [브라우저로 문서 읽기](docs/index.html) · [개발환경 설치](docs/implementation/development-setup.md) · [팀 KB](docs/cleany-docs/README.md)**
 
-```mermaid
-flowchart TB
-    KB["KB / 제품 목표와 설계 결정"]
-    Entry["README / 작업 선택"]
-    Setup["DEVELOPMENT_SETUP / 환경과 빌드"]
-    Run["RUNNING / 실행"]
-    Test["TESTING / 검증"]
-    Cal["CALIBRATION / 수집과 평가"]
-    Contract["INTEGRATION / 연결과 계약 위치"]
-    Ref["코드 옆 docs / 단위와 안전 규약"]
-    API["ROS_INTERFACES / 노드별 통신 목록"]
-    Evidence["EVIDENCE / 과거 원본 위치"]
-    KB -. "제품 기준" .-> Entry
-    Entry --> Setup
-    Setup --> Run
-    Run --> Test
-    Run --> Cal
-    Entry --> Contract
-    Contract --> Ref
-    Entry --> API
-    API --> Ref
-    Test --> Evidence
-```
 
-## 개발 시작
+## 바로 시작하기
 
-기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress 6입니다. 새 환경은 [개발환경 설치](docs/DEVELOPMENT_SETUP.md)를 먼저 따릅니다. 아래 명령은 저장소 루트의 Humble 터미널에서 실행합니다.
+| 목표 | 안내 |
+|---|---|
+| 처음 빌드·실행 | [개발환경](docs/implementation/development-setup.md) |
+| 센서 입력과 인식 확인 | [센서 가이드](docs/implementation/how-to/sensors.md) |
+| 물체 관찰·계획·조작 | [조작 가이드](docs/implementation/how-to/manipulation.md) |
+| MCU와 휠 구동 확인 | [베이스 가이드](docs/implementation/how-to/base.md) |
+| 휴대폰 목표 주행 | [화면으로 따라 하기](docs/implementation/how-to/phone-navigation.md) |
+| 하드웨어로 지도 만들기 | [매핑 실행](ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
+| 시스템과 ROS 연결 이해 | [연동 구조](docs/implementation/integration.md), [Navigation 구성](ros2_ws/src/cleany_navigation/README.md) |
+| 시뮬레이터 실행 | [시뮬레이션](docs/implementation/how-to/simulation.md) |
+| 기록과 상태 관측 | [Logger·Monitor](docs/implementation/how-to/monitoring.md) |
+| 코드 변경 검증 | [검증 안내](docs/implementation/testing.md) |
+
+기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress입니다. 저장소 루트의 Humble 터미널에서 시뮬레이션을 시작합니다.
 
 ```bash
 git submodule update --init --recursive docs/cleany-docs
@@ -40,32 +30,18 @@ make test-gazebo
 make sim-gazebo
 ```
 
-전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 각 검사의 범위와 시뮬레이션, 실물 검증의 차이는 [테스트 가이드](docs/TESTING.md)에서 확인합니다.
+전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 명령의 범위와 준비 조건은 [개발환경](docs/implementation/development-setup.md)과 [검증 안내](docs/implementation/testing.md)를 따릅니다. 시뮬레이션과 실물 동작은 구분해서 확인합니다.
 
-## 필요한 문서
+## 코드와 문서
 
-| 작업 | 문서 |
+| 위치 | 역할 |
 |---|---|
-| 환경 설치, 의존성, 빌드 경로 | [개발환경](docs/DEVELOPMENT_SETUP.md) |
-| 시뮬레이션, Mission Runtime, Monitor 실행 | [실행](docs/RUNNING.md) |
-| 변경 검증, runtime 시험, 결과 저장 | [테스트](docs/TESTING.md) |
-| hand-eye 데이터 수집과 검토 | [Calibration](docs/CALIBRATION.md) |
-| 노드별 토픽, 서비스, 액션 찾기 | [ROS 인터페이스 색인](docs/ROS_INTERFACES.md) |
-| Backend, ROS, MCU 연동 | [연동과 계약](docs/INTEGRATION.md) |
-| 펌웨어 빌드, 업로드, 장치 확인 | [ESP32](esp32/README.md), [배선](esp32/PINMAP.md) |
-| 과거 보고서와 실행 원본 찾기 | [근거 색인](docs/EVIDENCE.md) |
-| 코드 구조와 구현 학습 | [학습 가이드와 HTML 생성 안내](docs/guide/README.md) |
-| 인식과 sorting 실행 | [Perception](ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
-| 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md), [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md) |
-| 제품, 설계, 미해결 질문 | [KB](docs/cleany-docs/README.md) |
+| `ros2_ws/src/` | ROS 패키지, core, launch와 설정 |
+| `esp32/` | MCU 펌웨어, 빌드·업로드, 배선 |
+| `tests/`, `tools/` | 통합 검사와 개발·분석 도구 |
+| `docs/implementation/` | 현재 설계, 구현과 실행 절차 |
+| `docs/guide/` | 신입용 개념 학습과 실습 |
+| 각 패키지 `docs/` | 인터페이스, 설정, 단위와 동작 조건 |
+| `docs/cleany-docs/` | 제품 범위와 설계 결정을 관리하는 별도 KB |
 
-## 코드 위치
-
-| 위치 | 책임 |
-|---|---|
-| `ros2_ws/src/` | ROS 패키지, 순수 core, launch와 package 설정 |
-| `esp32/` | micro-ROS 펌웨어, 빌드 보조 도구, 장치 없는 검사와 PCB |
-| `tests/` | 패키지 경계를 넘는 통합 검사 |
-| `tools/` | 빌드 출력 정리와 vision 환경 준비 도구 |
-
-생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둡니다. 사용 가능한 명령은 `make help`, 실제 옵션은 Makefile, launch, config에서 확인합니다. 문서 변경은 기존 설명에 반영하며, README에는 날짜별 구현 일지를 추가하지 않습니다.
+문서 사이트는 `docs/index.html`을 브라우저에서 열면 됩니다. Markdown을 수정한 뒤 `python3 tools/docs/build_site.py`로 갱신하며, `--check`로 원본과 일치하는지 확인합니다. 빌드·실행 원본의 로컬 경로는 팀 공유 위치를 의미하지 않습니다.

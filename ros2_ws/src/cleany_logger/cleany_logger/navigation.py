@@ -1,4 +1,4 @@
-"""Bounded navigation observations and metrics. No driving or safety authority."""
+"""범위가 제한된 주행 관측과 지표이며 주행 또는 안전 권한을 갖지 않습니다."""
 
 from collections import deque
 from dataclasses import dataclass
@@ -17,7 +17,7 @@ def vector(message: Any) -> list[float]:
 
 
 def cloud_points(message: Any, limit: int) -> tuple[list[list[float]], int]:
-    """Read a bounded sample directly, including organized clouds and endian order."""
+    """행렬형 점군과 바이트 순서를 고려해 제한된 표본을 직접 읽습니다."""
     count = message.width * message.height
     if (message.point_step <= 0 or message.row_step < message.width * message.point_step
             or len(message.data) < message.row_step * message.height):
@@ -44,7 +44,7 @@ def cloud_points(message: Any, limit: int) -> tuple[list[list[float]], int]:
 
 
 def transform_xyz(points: list[list[float]], translation: list[float], quaternion: list[float]) -> list[list[float]]:
-    """Keep pitch/roll and height when projecting sensor surfaces into map XY."""
+    """센서 표면을 map XY로 투영할 때 pitch/roll과 높이를 유지합니다."""
     if not all(math.isfinite(v) for v in translation + quaternion):
         raise ValueError("Non-finite transform")
     length = math.sqrt(sum(v*v for v in quaternion))
@@ -67,7 +67,7 @@ class Observation:
 
 
 class NavigationObserver:
-    """Metrics use fresh measured motion, never commanded motion as ground truth."""
+    """지표는 최신 측정 움직임을 사용하며 명령된 움직임을 참값으로 삼지 않습니다."""
 
     def __init__(self, velocity_topics: list[str], freshness: float = .75,
                  stationary_speed: float = .005, creep_speed: float = .03, map_frame: str = "map"):
@@ -109,7 +109,7 @@ class NavigationObserver:
             self.bt_status[change["node"]] = change["status"]
             if "ComputePath" in change["node"] and change["status"] == "RUNNING":
                 self.bt_replans += 1
-        # Names reflect observed events, not an inferred tree topology.
+        # 이름은 관측 이벤트를 반영하며 트리 구조를 추론하지 않습니다.
         self.bt_status = dict(list(self.bt_status.items())[-128:])
 
     def finish(self, result: str, wall: float) -> None:
@@ -190,7 +190,7 @@ class NavigationObserver:
                 self.active["measured_source"] = measured_key if previous_source is None else previous_source if previous_source == measured_key else "MIXED"
             self.active["wall_s"] = max(0., wall-self.active["start"])
             if dt > 0:
-                # A delayed observer cannot certify what happened inside the gap.
+                # 지연된 관측기는 관측 공백 동안의 동작을 보증할 수 없습니다.
                 observed = dt <= .5 and measured_key is not None and motion == self.previous_motion
                 bucket = {"STATIONARY": "stationary_s", "CREEPING": "creep_s", "MOVING": "moving_s"}.get(motion)
                 self.active[bucket if observed and bucket else "unobserved_s"] += dt
@@ -200,7 +200,7 @@ class NavigationObserver:
                 self.active["stationary_episodes"] += 1
             if pose and self.previous_pose and 0 < dt <= .5:
                 distance = math.dist(pose[:2], self.previous_pose[:2])
-                if distance < .5:  # Localization jumps are not traveled distance.
+                if distance < .5:  # 위치 추정의 도약은 실제 이동 거리가 아닙니다.
                     self.active["distance_m"] += distance
             self.active["replan_starts"] = max(0, self.bt_replans-self.active["bt_start_count"]-1) if self.bt_seen else None
             self.active["rtf"] = self.active["sim_s"]/self.active["wall_s"] if ros is not None and self.active["wall_s"] > 0 else None

@@ -30,7 +30,7 @@ def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
     defaults = _preview_defaults()
     model = package.parent / 'cleany_description/urdf/cleany.urdf.xacro'
     root = ET.fromstring(subprocess.check_output([
-        'xacro', str(model),
+        'xacro', str(model), 'model_profile:=' + defaults['model_profile'],
         'include_head_camera:=' + defaults['include_head_camera'],
         'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ], text=True))
@@ -57,9 +57,9 @@ def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
 def test_default_preview_keeps_head_on_repositioned_mast():
     defaults = _preview_defaults()
     model = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
-    nominal = ET.fromstring(subprocess.check_output(['xacro', str(model)]))
+    nominal = ET.fromstring(subprocess.check_output(['xacro', str(model), 'model_profile:=' + defaults['model_profile']]))
     preview = ET.fromstring(subprocess.check_output([
-        'xacro', str(model),
+        'xacro', str(model), 'model_profile:=' + defaults['model_profile'],
         'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ]))
     for name in ('top_base_joint', 'head_pan_joint'):

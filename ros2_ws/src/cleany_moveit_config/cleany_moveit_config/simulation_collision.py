@@ -1,4 +1,4 @@
-"""Explicit simulation-only SRDF overrides; keep URDF geometry for self filtering."""
+"""명시적 시뮬레이션 전용 SRDF 재정의입니다. 자체 필터링용 URDF 형상은 유지합니다."""
 import xml.etree.ElementTree as ET
 
 

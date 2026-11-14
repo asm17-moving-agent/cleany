@@ -37,7 +37,7 @@ static void validationAndReplay() {
   assert(gate.accept(enable, 100));
   const auto deadline = enable.validUntilUs;
   const auto targetBefore = gate.target();
-  assert(!gate.accept(enable, 101));  // Duplicate cannot refresh.
+  assert(!gate.accept(enable, 101));  // 중복 명령으로 유효 시간을 갱신할 수 없습니다.
   assert(!gate.accept(command(WheelMode::kEnable, 11, 400), 101));
   auto velocity = command(WheelMode::kVelocity, 11, 350);
   velocity.velocity = {1, 2, 3, 4};
@@ -62,12 +62,12 @@ static void validationAndReplay() {
   assert(gate.expire(350));
   assert(!gate.enabled() && gate.target()[0] == 0 && gate.timedOut() &&
          gate.lastAcceptedUs() == 0);
-  assert(!gate.accept(velocity, 350));  // Permission is not renewed by motion.
+  assert(!gate.accept(velocity, 350));  // 이동 명령은 구동 허가를 연장하지 않습니다.
   auto replay = command(WheelMode::kEnable, 10, 600);
-  assert(!gate.accept(replay, 351));  // Replaying sequence with a new deadline is stale.
+  assert(!gate.accept(replay, 351));  // 같은 sequence에 새 마감 시각을 붙여 재전송해도 오래된 명령입니다.
   auto freshVelocity = command(WheelMode::kVelocity, 12, 600);
   freshVelocity.velocity = {1, 2, 3, 4};
-  assert(!gate.accept(freshVelocity, 351));  // Must explicitly enable again.
+  assert(!gate.accept(freshVelocity, 351));  // 구동 허가를 명시적으로 다시 받아야 합니다.
   auto fresh = command(WheelMode::kEnable, 12, 600);
   assert(gate.accept(fresh, 351));
   assert(!gate.timedOut());
@@ -90,7 +90,7 @@ static void stopSequenceAndReconnect() {
   auto oldStop = command(WheelMode::kStop, 0, 0);
   oldStop.protocolVersion = 99;
   oldStop.velocity[0] = std::numeric_limits<float>::quiet_NaN();
-  assert(gate.accept(oldStop, 1004));  // Output stop unconditional, sequence stays high.
+  assert(gate.accept(oldStop, 1004));  // 출력을 무조건 정지시키되 높은 sequence 값은 유지합니다.
   assert(gate.lastSequence() == 1);
 
   WheelCommandGate wrap({250000, 10.0F});

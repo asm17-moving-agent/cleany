@@ -1,4 +1,4 @@
-"""Evaluate the deployed YOLOE adapter on held-out synthetic RGB/mask pairs."""
+"""보류한 합성 RGB/mask 쌍으로 배포 YOLOE 어댑터를 평가합니다."""
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,4 @@
-"""Command-line entry point for offline candidate evaluation artifacts."""
+"""오프라인 후보 평가 결과물을 만드는 명령행 진입점입니다."""
 
 from __future__ import annotations
 

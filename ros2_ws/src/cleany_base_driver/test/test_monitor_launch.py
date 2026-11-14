@@ -1,4 +1,4 @@
-"""Contract tests for the observation-only rqt launch."""
+"""읽기 전용 rqt launch 계약을 검사합니다."""
 import ast
 import importlib.util
 import json
@@ -116,7 +116,7 @@ def test_perspective_has_only_two_matplots_and_robot_monitor():
     assert set(manager['groups']) == {
         'plugin__rqt_plot__Plot__1', 'plugin__rqt_plot__Plot__2',
         'plugin__rqt_robot_monitor__RobotMonitor__1'}
-    # Store the internal dock layout, not machine-specific window placement.
+    # 머신별 창 위치 대신 내부 dock 배치를 저장합니다.
     assert set(data['groups']['mainwindow']['keys']) == {'state'}
     for serial, expected_fields, limits in (
         (1, ('target_rad_s', 'commanded_rad_s', 'velocity_rad_s'), [-15, 15]),
@@ -125,7 +125,7 @@ def test_perspective_has_only_two_matplots_and_robot_monitor():
         settings = manager['groups'][f'plugin__rqt_plot__Plot__{serial}'][
             'groups']['plugin']['keys']
         values = {key: ast.literal_eval(value['repr']) for key, value in settings.items()}
-        assert values['plot_type'] == 1  # rqt_plot MatPlot backend.
+        assert values['plot_type'] == 1  # rqt_plot의 MatPlot backend입니다.
         assert values['autoscroll'] is True
         assert list(map(float, values['x_limits'])) == [0, 10]
         assert list(map(float, values['y_limits'])) == limits

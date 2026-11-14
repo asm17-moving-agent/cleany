@@ -5,7 +5,7 @@
 #include <pybind11/stl.h>
 namespace py = pybind11;
 
-// Python start/poll/cancel must return promptly. ROS waits live in a worker.
+// Python start/poll/cancel은 신속히 반환해야 합니다. ROS 대기는 worker가 담당합니다.
 class Operation final : public BT::StatefulActionNode {
 public:
   Operation(const std::string& name, const BT::NodeConfig& config,
@@ -50,7 +50,7 @@ public:
     auto board = BT::Blackboard::create();
     board->set("execution_id", execution);
     tree_ = factory_.createTreeFromFile(xml, board);
-    // Structure and UIDs stay fixed for this execution; statuses are sampled below.
+    // 이번 실행의 구조와 UID는 고정하며 아래에서 상태를 표본 추출합니다.
     tree_xml_ = BT::WriteTreeToXML(tree_, true, true);
     tree_.applyVisitor([this](BT::TreeNode* node) {
       subscriptions_.push_back(node->subscribeToStatusChange(

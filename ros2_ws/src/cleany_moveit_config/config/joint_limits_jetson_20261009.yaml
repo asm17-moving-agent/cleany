@@ -1,0 +1,85 @@
+joint_limits:
+  left_shoulder_yaw_joint:
+    has_position_limits: true
+    min_position: -2.16
+    max_position: 2.16
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  left_shoulder_pitch_joint:
+    has_position_limits: true
+    min_position: -0.22
+    max_position: 3.37
+    has_velocity_limits: true
+    max_velocity: 7.086
+    has_acceleration_limits: false
+  left_elbow_pitch_joint:
+    has_position_limits: true
+    min_position: -0.22
+    max_position: 3.14
+    has_velocity_limits: true
+    max_velocity: 7.086
+    has_acceleration_limits: false
+  left_wrist_pitch_joint:
+    has_position_limits: true
+    min_position: -1.65806284946
+    max_position: 1.65806272933
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  left_wrist_roll_joint:
+    has_position_limits: true
+    min_position: -2.743847297
+    max_position: 2.84120630938
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  left_gripper_joint:
+    has_position_limits: true
+    min_position: -0.374532977628
+    max_position: 1.74532919957
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  right_shoulder_yaw_joint:
+    has_position_limits: true
+    min_position: -2.16
+    max_position: 2.16
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  right_shoulder_pitch_joint:
+    has_position_limits: true
+    min_position: -0.22
+    max_position: 3.37
+    has_velocity_limits: true
+    max_velocity: 7.086
+    has_acceleration_limits: false
+  right_elbow_pitch_joint:
+    has_position_limits: true
+    min_position: -0.22
+    max_position: 3.14
+    has_velocity_limits: true
+    max_velocity: 7.086
+    has_acceleration_limits: false
+  right_wrist_pitch_joint:
+    has_position_limits: true
+    min_position: -1.65806284946
+    max_position: 1.65806272933
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  right_wrist_roll_joint:
+    has_position_limits: true
+    min_position: -2.743847297
+    max_position: 2.84120630938
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false
+  right_gripper_joint:
+    has_position_limits: true
+    min_position: -0.374532977628
+    max_position: 1.74532919957
+    has_velocity_limits: true
+    max_velocity: 4.245
+    has_acceleration_limits: false

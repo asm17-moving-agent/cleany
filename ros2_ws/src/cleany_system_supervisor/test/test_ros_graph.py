@@ -1,4 +1,4 @@
-"""Supervisor-only ROS graph with synthetic peers; mission integration is in test_e2e.py."""
+"""합성 상대 노드를 쓰는 Supervisor 전용 ROS graph입니다. 임무 통합은 test_e2e.py에 있습니다."""
 import os
 from pathlib import Path
 from threading import Thread
@@ -112,7 +112,7 @@ def graph():
     config['ros']['localization_nodes'] = ['synthetic_amcl']
     config['ros']['lifecycle_poll_s'] = .1
     config['lease_s'], config['heartbeat_timeout_s'], config['stop_timeout_s'] = .5, .3, .7
-    config['persistence']['state_file'] = ''  # Never touch the operator's real latch state.
+    config['persistence']['state_file'] = ''  # 운영자의 실제 latch 상태를 건드리지 않습니다.
     config['ros']['trusted_publishers'] = {topic: ['/synthetic_supervisor_peers']
                                            for topic in config['ros']['trusted_publishers']}
     for entry in config['sources'].values():
@@ -185,3 +185,15 @@ def test_sensor_validation_rejects_publish_only_health():
     assert guard.accept('scan', scan.header.stamp, 10 * 10**9)
     assert not guard.accept('scan', scan.header.stamp, 10 * 10**9)
     assert not guard.accept('scan', scan.header.stamp, 12 * 10**9)
+
+
+@pytest.mark.parametrize('index', [0, 7, 35])
+def test_pose_covariance_allows_roundoff_but_rejects_invalid_variance(index):
+    pose = PoseWithCovarianceStamped()
+    pose.header.frame_id, pose.pose.pose.orientation.w = 'map', 1.
+    for value in (-5.712387661765637e-16, -1.4016105994451956e-11, -1e-9):
+        pose.pose.covariance[index] = value
+        assert valid_pose(pose, .5)
+    for value in (-1e-8, .50001, float('nan'), float('inf')):
+        pose.pose.covariance[index] = value
+        assert not valid_pose(pose, .5)

@@ -23,8 +23,8 @@ public:
 private:Counts &counts_;
 };
 static void registerMocks(BT::BehaviorTreeFactory &factory,Counts &counts) {
-  // Exercise the installed Nav2 RecoveryNode and the actual shipped XML.
-  // Only external planner, controller and wait actions are replaced here.
+  // 설치된 Nav2 RecoveryNode와 실제 배포 XML을 검사합니다.
+  // 외부 planner, controller와 wait action만 대체합니다.
   factory.registerFromPlugin(CLEANY_TEST_RECOVERY_LIBRARY);
   factory.registerSimpleAction("ComputePathToPose",[&](BT::TreeNode &node) {
     if(++counts.plan<=counts.failures)return BT::NodeStatus::FAILURE;

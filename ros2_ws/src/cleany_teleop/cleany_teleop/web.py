@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LAN web remote for the existing USB micro-ROS firmware."""
+"""기존 USB micro-ROS 펌웨어의 LAN 웹 원격 제어입니다."""
 
 from __future__ import annotations
 
@@ -24,12 +24,17 @@ from cleany_teleop.core import newer
 from cleany_teleop.web_control import Control
 
 
+def ui_index(ui_root: Path) -> bytes:
+    """재빌드한 asset 해시가 일치하도록 현재 진입점을 읽습니다."""
+    return (ui_root / "index.html").read_bytes()
+
+
 def ui_asset(ui_root: Path, request_path: str) -> tuple[bytes, str] | None:
-    """Serve only existing compiled assets inside the UI asset directory."""
+    """UI asset 디렉터리 안의 기존 컴파일된 asset만 제공합니다."""
     path = unquote(urlsplit(request_path).path)
     if not path.startswith("/assets/"):
         return None
-    # colcon --symlink-install links each asset through the trusted entrypoint's tree.
+    # colcon --symlink-install은 신뢰한 진입점 트리를 통해 각 asset을 연결합니다.
     asset_root = (ui_root / "index.html").resolve().parent / "assets"
     asset = (ui_root / path.lstrip("/")).resolve()
     if not asset.is_relative_to(asset_root) or not asset.is_file():
@@ -40,6 +45,7 @@ def ui_asset(ui_root: Path, request_path: str) -> tuple[bytes, str] | None:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--navigation", action="store_true", help="Use guarded Nav2 mode with motion/cmd_vel safety routing")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument(
@@ -111,7 +117,6 @@ def main():
         parser.error(
             "조종 UI 빌드가 필요합니다: cd tools/esp32_motion/ui && npm ci && npm run build"
         )
-    html = (ui_root / "index.html").read_bytes()
     from cleany_teleop.event_journal import EventJournal
 
     journal = EventJournal(
@@ -158,6 +163,7 @@ def main():
             lock,
             event_sink=journal.emit,
             mapping_status_timeout_s=args.mapping_status_timeout,
+            command_topic="motion/cmd_vel" if args.navigation else "cmd_vel",
         )
     else:
         started = time.monotonic()
@@ -198,9 +204,22 @@ def main():
 
     control.MAX_WEB_VELOCITY = args.max_speed
     control.paused = args.paused
+    # 로컬 유지보수 정책은 재실행 후에도 유지하며 베이스 형상은 바꾸지 않습니다.
+    if args.token_file:
+        policy_path = args.token_file.parent / "teleop-motion.json"
+        if policy_path.exists():
+            policy = json.loads(policy_path.read_text())
+            if not isinstance(policy, dict) or set(policy) != {"forward_only"} or type(policy["forward_only"]) is not bool:
+                parser.error("teleop-motion.json must contain a boolean forward_only")
+            control.forward_only = policy["forward_only"]
+
+    navigation = None
+    if args.navigation and node is not None:
+        from cleany_teleop.navigation_bridge import NavigationBridge
+        navigation = NavigationBridge(node, control, lock)
 
     class RemoteServer(ThreadingHTTPServer):
-        # Multiple phones/tabs can reconnect together. The stdlib default is 5.
+        # 여러 핸드폰이나 탭이 동시에 재접속할 수 있습니다. 표준 라이브러리 기본값은 5입니다.
         request_queue_size = 128
 
     class Handler(BaseHTTPRequestHandler):
@@ -237,13 +256,23 @@ def main():
 
         def do_GET(self):
             if urlsplit(self.path).path == "/":
-                self.respond(200, html, "text/html; charset=utf-8")
+                try:
+                    self.respond(200, ui_index(ui_root), "text/html; charset=utf-8")
+                except OSError:
+                    self.respond(503, {"error": "조종 화면 갱신 중입니다. 잠시 후 새로고침해주세요."})
             elif urlsplit(self.path).path.startswith("/assets/"):
                 asset = ui_asset(ui_root, self.path)
                 if asset is None:
                     self.respond(404, {"error": "not found"})
                 else:
                     self.respond(200, *asset)
+            elif self.path in ("/api/navigation/status", "/api/navigation/map"):
+                if not self.authorized():
+                    self.respond(403, {"error": "접속 키가 필요합니다"})
+                    return
+                with lock:
+                    value = (navigation.map.snapshot() if navigation and navigation.map else None) if self.path.endswith('/map') else (navigation.status() if navigation else {"phase":"unavailable","ready":False,"reason":"주행 모드 대기"})
+                self.respond(200, value)
             elif self.path == "/api/mapping/status":
                 if not self.authorized():
                     self.respond(403, {"error": "접속 링크의 조종 키가 필요합니다"})
@@ -267,7 +296,7 @@ def main():
                 self.respond(404, {"error": "not found"})
 
         def do_POST(self):
-            if self.path not in ("/api/control", "/api/reset"):
+            if self.path not in ("/api/control", "/api/reset", "/api/navigation/goal", "/api/navigation/preview", "/api/navigation/cancel", "/api/navigation/heartbeat", "/api/navigation/initial-pose"):
                 self.respond(404, {"error": "not found"})
                 return
             if not self.authorized() or self.headers.get(
@@ -287,6 +316,14 @@ def main():
                 data = json.loads(self.rfile.read(length))
                 if not isinstance(data, dict):
                     raise ValueError("잘못된 요청")
+                if self.path.startswith('/api/navigation/'):
+                    if navigation is None: raise ValueError('주행 모드가 준비되지 않았습니다')
+                    with lock:
+                        self.respond(202,navigation.request(self.path.rsplit('/',1)[-1],data))
+                    return
+                if navigation and navigation.phase in ('active','preparing','stopping'):
+                    with lock: navigation.cancel('수동 조작 또는 지도 초기화')
+                    if data.get('action') != 'stop': raise ValueError('자동 이동 정지 후 다시 조작하세요')
                 if self.path == "/api/reset":
                     if mapping is None:
                         raise ValueError("매핑 관리자가 연결되지 않았습니다.")
@@ -347,9 +384,11 @@ def main():
                         control.feedback(mock)
                     tick_status()
                     control.tick()
+                    if navigation is not None: navigation.tick()
                 next_tick = time.monotonic() + 0.02
     finally:
         with lock:
+            if navigation is not None: navigation.cancel("웹 서버 종료")
             control.stop("웹 서버 종료")
         end = time.monotonic() + 0.6
         while time.monotonic() < end:

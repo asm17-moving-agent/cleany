@@ -1,0 +1,81 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cleany_arm" params="side side_sign base_xyz base_yaw">
+    <link name="${side}_shoulder_yaw_link">
+      <xacro:cleany_link_properties link_name="${side}_shoulder_yaw_link" />
+    </link>
+    <joint name="${side}_shoulder_yaw_joint" type="revolute">
+      <parent link="base_link" />
+      <child link="${side}_shoulder_yaw_link" />
+      <origin xyz="${base_xyz}" rpy="1.57079632679 0 ${base_yaw}" />
+      <axis xyz="0 1 0" />
+      <limit lower="-2.16" upper="2.16" effort="2.6477955" velocity="4.245" />
+    </joint>
+    <link name="${side}_upper_arm_link">
+      <xacro:cleany_link_properties link_name="${side}_upper_arm_link" />
+    </link>
+    <joint name="${side}_shoulder_pitch_joint" type="revolute">
+      <parent link="${side}_shoulder_yaw_link" />
+      <child link="${side}_upper_arm_link" />
+      <origin xyz="0 0.1025 0.0306" rpy="1.57079632679 0 0" />
+      <axis xyz="-1 0 0" />
+      <limit lower="-0.22" upper="3.37" effort="4.4129925" velocity="7.086" />
+    </joint>
+    <link name="${side}_lower_arm_link">
+      <xacro:cleany_link_properties link_name="${side}_lower_arm_link" />
+    </link>
+    <joint name="${side}_elbow_pitch_joint" type="revolute">
+      <parent link="${side}_upper_arm_link" />
+      <child link="${side}_lower_arm_link" />
+      <origin xyz="0 0.16257 0.028" rpy="-1.57079632679 0 0" />
+      <axis xyz="1 0 0" />
+      <limit lower="-0.22" upper="3.14" effort="4.4129925" velocity="7.086" />
+    </joint>
+    <link name="${side}_wrist_pitch_link">
+      <xacro:cleany_link_properties link_name="${side}_wrist_pitch_link" />
+    </link>
+    <joint name="${side}_wrist_pitch_joint" type="revolute">
+      <parent link="${side}_lower_arm_link" />
+      <child link="${side}_wrist_pitch_link" />
+      <origin xyz="0 0.0052 0.1849" rpy="-1.57079632679 0 0" />
+      <axis xyz="1 0 0" />
+      <limit lower="-1.65806284946" upper="1.65806272933" effort="2.6477955" velocity="4.245" />
+    </joint>
+    <link name="${side}_gripper_frame">
+      <xacro:cleany_link_properties link_name="${side}_gripper_frame" />
+    </link>
+    <joint name="${side}_wrist_roll_joint" type="revolute">
+      <parent link="${side}_wrist_pitch_link" />
+      <child link="${side}_gripper_frame" />
+      <origin xyz="0 -0.0601 0" rpy="0 1.57079632679 0" />
+      <axis xyz="0 -1 0" />
+      <limit lower="-2.743847297" upper="2.84120630938" effort="2.6477955" velocity="4.245" />
+    </joint>
+    <link name="${side}_moving_jaw_link">
+      <xacro:cleany_link_properties link_name="${side}_moving_jaw_link" />
+    </link>
+    <joint name="${side}_gripper_joint" type="revolute">
+      <parent link="${side}_gripper_frame" />
+      <child link="${side}_moving_jaw_link" />
+      <origin xyz="-0.0202 -0.0244 0" rpy="3.14159265359 0 3.33" />
+      <axis xyz="0 0 1" />
+      <limit lower="-0.374532977628" upper="1.74532919957" effort="2.6477955" velocity="4.245" />
+    </joint>
+    <link name="${side}_grasp_tcp">
+      <xacro:cleany_link_properties link_name="${side}_grasp_tcp" />
+    </link>
+    <joint name="${side}_grasp_tcp_joint" type="fixed">
+      <parent link="${side}_gripper_frame" />
+      <child link="${side}_grasp_tcp" />
+      <origin xyz="0 -0.100 0" rpy="0 0 0" />
+    </joint>
+    <link name="${side}_pregrasp_aim_tip">
+      <xacro:cleany_link_properties link_name="${side}_pregrasp_aim_tip" />
+    </link>
+    <joint name="${side}_pregrasp_aim_tip_joint" type="fixed">
+      <parent link="${side}_grasp_tcp" />
+      <child link="${side}_pregrasp_aim_tip" />
+      <origin xyz="0 -0.140 0" rpy="0 0 0" />
+    </joint>
+    <!-- 실측 손목 optical 좌표계는 선택한 보정 프로필이 추가합니다. MJCF의 정답 카메라 좌표계는 실행 TF와 분리합니다. -->
+  </xacro:macro>
+</robot>

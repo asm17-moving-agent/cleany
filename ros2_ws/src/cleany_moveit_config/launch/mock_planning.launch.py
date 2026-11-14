@@ -15,12 +15,13 @@ def _mock_moveit_config(include_head_camera='false', head_tilt_initial='0.405'):
             'cleany', package_name='cleany_moveit_config'
         )
         .robot_description(file_path='config/cleany_mock.urdf.xacro',
-                           mappings={'include_head_camera': include_head_camera,
+                           mappings={'model_profile': 'jetson_20261009',
+                                     'include_head_camera': include_head_camera,
                                      'head_tilt_initial': head_tilt_initial})
         .robot_description_semantic(file_path='config/cleany.srdf.xacro',
                                     mappings={'include_head_camera': include_head_camera})
         .robot_description_kinematics(file_path='config/kinematics.yaml')
-        .joint_limits(file_path='config/joint_limits.yaml')
+        .joint_limits(file_path='config/joint_limits_jetson_20261009.yaml')
         .trajectory_execution(
             file_path='config/moveit_controllers.yaml',
             moveit_manage_controllers=False,

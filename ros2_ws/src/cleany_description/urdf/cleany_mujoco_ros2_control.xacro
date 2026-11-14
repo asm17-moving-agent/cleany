@@ -25,6 +25,9 @@
             left_shoulder_yaw_initial left_shoulder_pitch_initial left_elbow_pitch_initial left_wrist_pitch_initial left_wrist_roll_initial left_gripper_initial
             right_shoulder_yaw_initial right_shoulder_pitch_initial right_elbow_pitch_initial right_wrist_pitch_initial right_wrist_roll_initial right_gripper_initial
             hardware_plugin:=mujoco_ros2_control/MujocoSystemInterface scheduled_cameras:=false efficient_viewer:=false">
+    <xacro:if value="${enable_gripper_command and '$(arg model_profile)' == 'cad_final'}">
+      ${xacro.fatal('cad_final pincer linkage is locked: gripper commands require a validated linkage model')}
+    </xacro:if>
     <ros2_control name="MujocoSystem" type="system">
       <hardware>
         <plugin>${hardware_plugin}</plugin>
@@ -39,8 +42,7 @@
         <param name="initial_keyframe">handeye_ros2_control_home</param>
       </hardware>
 
-      <!-- Humble mujoco_ros2_control 0.0.3 discovers MJCF cameras through
-           hardware_info.sensors; that release has no CameraPlugin. -->
+      <!-- Humble mujoco_ros2_control 0.0.3은 hardware_info.sensors로 MJCF 카메라를 찾습니다. 이 버전에는 CameraPlugin이 없습니다. -->
       <sensor name="${camera_name}">
         <param name="frame_name">${camera_frame_name}</param>
         <param name="info_topic">/${camera_name}/camera_info</param>

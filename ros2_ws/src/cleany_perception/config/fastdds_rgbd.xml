@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ROS 2 Humble / Fast DDS 2.6: same-host RGB-D and PointCloud2 samples.
-     Per-participant bounded 16 MiB SHM, plus UDP for remote participants.
-     This does not change endpoint QoS or freshness/geometry acceptance gates. -->
+<!-- ROS 2 Humble / Fast DDS 2.6의 같은 호스트 RGB-D 및 PointCloud2 표본용입니다.
+participant별 SHM을 16MiB로 제한하고 원격 participant에는 UDP를 사용합니다.
+endpoint QoS나 최신성 및 기하 수락 조건은 바꾸지 않습니다. -->
 <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
   <transport_descriptors>
     <transport_descriptor>

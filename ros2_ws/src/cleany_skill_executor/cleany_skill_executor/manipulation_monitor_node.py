@@ -1,4 +1,4 @@
-"""Local-only ROS event to BehaviorTree Viewer monitor bridge."""
+"""로컬 전용 ROS 이벤트를 BehaviorTree Viewer monitor로 연결합니다."""
 
 from dataclasses import fields
 from pathlib import Path

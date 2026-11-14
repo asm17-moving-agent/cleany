@@ -1,6 +1,7 @@
 from .models import Availability, Fault
 
 STATE_FAULT = 'SUPERVISOR_STATE_UNVERIFIED'
+BASE_FEEDBACK_LOST = 'base_feedback_lost'
 
 
 class FaultManager:
@@ -16,9 +17,8 @@ class FaultManager:
             status = health.status(source, now)
             fault = self.faults.get(policy['fault_code'])
             if status != Availability.AVAILABLE:
-                # A never-verified source during the boot grace is not yet a failure. The
-                # capability stays UNKNOWN meanwhile. Explicit bad evidence, or losing a
-                # source that was verified, is not delayed.
+                # 부팅 유예 중 아직 검증되지 않은 소스는 실패가 아니며 capability는 UNKNOWN을
+                # 유지합니다. 명시적인 불량 근거나 검증됐던 소스의 유실은 지연하지 않습니다.
                 grace = policy.get('startup_grace_s', self.config['startup_grace_s'])
                 if (status == Availability.UNKNOWN and source not in health.verified
                         and now - self.started_at < grace):
@@ -34,6 +34,10 @@ class FaultManager:
                                       now, now, True, policy['latched'], policy.get('recovery', ''),
                                       detail, policy['locks_operation'])
                         self.faults[fault.code] = fault
+                        if source == 'base' and not fresh and report is not None and report.status == Availability.AVAILABLE:
+                            fault.cause = BASE_FEEDBACK_LOST
+                        elif report is not None:
+                            fault.cause = report.cause
                     fault.last_seen = now
                     if not fault.restored:
                         fault.detail = detail
@@ -49,7 +53,7 @@ class FaultManager:
         if fault is None or not fault.active:
             return False, 'no active fault'
         if code == STATE_FAULT:
-            # No sensor can prove persisted latches; the operator request is the confirmation.
+            # 센서로 저장된 latch 해제를 입증할 수 없으므로 운영자 요청을 확인으로 사용합니다.
             self._clear(fault, now)
             return True, 'operator acknowledged unverifiable supervisor latch state'
         if not health.healthy(fault.source, now):
@@ -64,7 +68,7 @@ class FaultManager:
                                       True, True, '', detail, True)
 
     def confirm_stop(self, lease_id: str, now: float) -> None:
-        # Only confirmed completion, never Action acceptance, resolves stop escalation.
+        # Action 수락이 아닌 확인된 완료만 정지 실패의 상향 처리를 해소합니다.
         fault = self.faults.get('MISSION_STOP_FAILED:' + lease_id)
         if fault and fault.active:
             self._clear(fault, now)
@@ -78,9 +82,10 @@ class FaultManager:
             fault.last_seen, fault.detail = now, detail
 
     def persisted(self) -> list[dict]:
-        """Active latched faults survive restart; nonlatched ones are re-derived from health."""
+        """활성 latched fault는 재시작 후에도 유지하며 나머지는 상태 근거에서 다시 계산합니다."""
         return [{'code': f.code, 'source': f.source, 'severity': f.severity, 'capabilities': f.capabilities,
-                 'recovery_policy': f.recovery_policy, 'locks_operation': f.locks_operation, 'detail': f.detail}
+                 'recovery_policy': f.recovery_policy, 'locks_operation': f.locks_operation,
+                 'detail': f.detail, 'cause': f.cause}
                 for f in self.faults.values() if f.active and f.latched]
 
     def restore(self, entries: list[dict], now: float) -> None:
@@ -88,8 +93,8 @@ class FaultManager:
             self.faults[entry['code']] = Fault(
                 entry['code'], entry['source'], entry['severity'], list(entry['capabilities']), now, now,
                 True, True, entry['recovery_policy'],
-                'restored after supervisor restart; operator reset required: ' + entry['detail'],
-                bool(entry['locks_operation']), restored=True)
+                'restored after supervisor restart: ' + entry['detail'],
+                bool(entry['locks_operation']), restored=True, cause=entry.get('cause', ''))
 
     def prune(self, now: float, retention_s: float, referenced: set[str]) -> None:
         for code in [code for code, fault in self.faults.items()

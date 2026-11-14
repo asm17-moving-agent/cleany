@@ -1,4 +1,4 @@
-"""Exercise bounded retries against real child-process exit codes."""
+"""실제 자식 프로세스 종료 코드로 제한된 재시도를 검사합니다."""
 
 from pathlib import Path
 import os

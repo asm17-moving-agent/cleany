@@ -1,4 +1,4 @@
-"""Pure planar LiDAR-to-base extrinsic and relative-motion conversions."""
+"""순수 평면 LiDAR-to-base 외부 변환과 상대 움직임 변환입니다."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class PlanarExtrinsic:
-    """Planar LiDAR pose relative to the base, with lever arm in base axes."""
+    """베이스 상대 평면 LiDAR 자세이며 lever arm은 베이스 축으로 표현합니다."""
 
     yaw_deg: float = -7.85
     lever_arm_x_m: float = 0.029
@@ -47,7 +47,7 @@ class PlanarExtrinsic:
         }
 
     def lidar_to_base(self, dx: float, dy: float, dyaw: float) -> tuple[float, float, float]:
-        """Convert LiDAR relative motion to base motion (extrinsic conjugation)."""
+        """외부 변환의 켤레 연산으로 LiDAR 상대 움직임을 베이스 움직임으로 변환합니다."""
         angle = math.radians(self.yaw_deg)
         c, s = math.cos(angle), math.sin(angle)
         cy, sy = math.cos(dyaw), math.sin(dyaw)
@@ -56,7 +56,7 @@ class PlanarExtrinsic:
         return x, y, dyaw
 
     def base_to_lidar(self, dx: float, dy: float, dyaw: float) -> tuple[float, float, float]:
-        """Convert base relative motion to LiDAR motion; inverse of lidar_to_base."""
+        """베이스 상대 움직임을 LiDAR 움직임으로 변환하며 lidar_to_base의 역연산입니다."""
         angle = math.radians(self.yaw_deg)
         c, s = math.cos(angle), math.sin(angle)
         cy, sy = math.cos(dyaw), math.sin(dyaw)

@@ -1,4 +1,4 @@
-"""Start orchestration beside an already-running localization/navigation stack."""
+"""이미 실행 중인 위치 추정 및 주행 스택과 함께 임무 조율을 시작합니다."""
 
 from pathlib import Path
 
@@ -28,7 +28,7 @@ def generate_launch_description():
         DeclareLaunchArgument("bridge_journal_path", default_value="~/.local/state/cleany/control-bridge.db"),
         DeclareLaunchArgument("gateway_url", default_value="ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws"),
         DeclareLaunchArgument("enable_bridge", default_value="true"),
-        # required: needs the System Supervisor (cleany_system_supervisor supervision.launch.py).
+        # required는 System Supervisor(cleany_system_supervisor supervision.launch.py)가 필요합니다.
         DeclareLaunchArgument("supervision_mode", default_value="required", choices=["required", "disabled"]),
         Node(package="cleany_mission_manager", executable="mission_runtime", output="screen",
              parameters=[arg("runtime_config"), {

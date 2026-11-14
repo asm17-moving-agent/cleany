@@ -1,7 +1,7 @@
-# Verification port. Simulation uses an independent physics oracle; a real
-# robot needs a sensor-based implementation of the same outcome contract.
+# 검증 포트입니다. 시뮬레이션은 독립적인 물리 판정기를 사용하며 실물 로봇에는
+# 같은 결과 계약을 따르는 센서 기반 구현이 필요합니다.
 string label
-# Nonempty pins a registered individual; unknown IDs never fall back to label.
+# 비어 있지 않으면 등록된 개체를 고정합니다. 알 수 없는 ID를 label로 대체하지 않습니다.
 string verification_id
 string destination_id
 int64 after_stamp_ns

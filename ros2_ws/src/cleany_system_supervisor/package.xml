@@ -16,8 +16,8 @@
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <!-- supervision.launch.py; cleany_navigation and cleany_skill_executor provide the
-       optional lifecycle recovery owner and arm reporter and are resolved only when enabled. -->
+  <!-- supervision.launch.py용입니다. cleany_navigation과 cleany_skill_executor는
+선택적 lifecycle 복구 소유자와 팔 보고자를 제공하며 활성화할 때만 찾습니다. -->
   <exec_depend>cleany_safety_adapter</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <test_depend>cleany_mission_manager</test_depend>

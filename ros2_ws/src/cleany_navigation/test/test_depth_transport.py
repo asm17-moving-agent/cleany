@@ -1,4 +1,4 @@
-"""Exercise ROS depth messages and optical TF, without a simulator."""
+"""시뮬레이터 없이 ROS 깊이 메시지와 optical TF를 검사합니다."""
 from types import SimpleNamespace
 
 import numpy as np
@@ -34,7 +34,7 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         image.step = 2*np.dtype(dtype).itemsize
         image.data = (np.array([2., 2.])*scale).astype(dtype).tobytes()
         node.on_depth(image)
-        assert not outputs  # Never guess the optical transform.
+        assert not outputs  # 광학 변환을 추측하지 않습니다.
         tf = TransformStamped()
         tf.header.frame_id, tf.child_frame_id = 'head_camera_depth_frame', info.header.frame_id
         tf.transform.rotation.x, tf.transform.rotation.y = -.5, .5
@@ -46,14 +46,14 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         body.transform.rotation.w = 1.
         node.buffer.set_transform_static(body, 'test_backend')
         assert node.pending is image
-        node.retry_depth()  # Original frame survives while matching TF arrives.
+        node.retry_depth()  # 대응 TF가 도착할 때까지 원래 프레임을 유지합니다.
         assert len(outputs) == 1
         np.testing.assert_allclose(cloud_xyz(outputs[-1]), [[2.1, 0., 0.], [2.1, -1., 0.]])
         assert outputs[-1].header.frame_id == 'head_camera_depth_frame'
         assert outputs[-1].header.stamp == image.header.stamp
-        assert image.header.frame_id == info.header.frame_id  # Input message is not mutated.
-        # A raycast surface 0.15 mm outside the CAD box must be recognized as
-        # self geometry; a separate point one meter to the side stays observed.
+        assert image.header.frame_id == info.header.frame_id  # 입력 메시지는 변경하지 않습니다.
+        # CAD 상자보다 0.15mm 바깥의 raycast 표면도 자체 형상으로 인식해야 하며
+        # 옆으로 1m 떨어진 별도 점은 관측으로 남아야 합니다.
         node.self_boxes = [BodyBox('left_arm/visual', np.array([2., 0., 0.]),
                                    np.eye(3), np.array([.09985, .1, .1]))]
         base = TransformStamped()
@@ -91,6 +91,65 @@ def test_self_filter_includes_fixed_frame_and_pole_but_excludes_moving_head(monk
     try:
         node = DepthClearanceNode()
         assert [box.name for box in node.self_boxes] == names[:4]
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_physical_filter_retains_floor_clearing_and_rejects_invalid_or_old_images(monkeypatch, tmp_path):
+    import json
+    config = tmp_path/'filter.json'
+    config.write_text(json.dumps({'floor_normal': [0, 0, 1], 'floor_offset': 0,
+                                 'min_base_z': .192, 'max_height': 2., 'min_neighbors': 1}))
+    boxes = tmp_path/'boxes.json'
+    boxes.write_text(json.dumps({'frame': 'base_link', 'boxes': []}))
+    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    rclpy.init(args=['--ros-args', '-p', 'pixel_stride:=1', '-p', 'max_image_age_s:=0.5',
+                    '-p', 'min_valid_fraction:=0.05', '-p', f'spatial_filter_file:={config}',
+                    '-p', f'self_filter_boxes_file:={boxes}'])
+    node = None
+    try:
+        node = DepthClearanceNode()
+        rays, hits = [], []
+        node.publisher = SimpleNamespace(publish=rays.append)
+        node.obstacles = SimpleNamespace(publish=hits.append)
+        info = CameraInfo()
+        info.header.frame_id = 'head_camera_depth_optical_frame'
+        info.width = info.height = 2
+        info.k = [1., 0., 0., 0., 1., 0., 0., 0., 1.]
+        node.on_info(info)
+        optical = TransformStamped()
+        optical.header.frame_id, optical.child_frame_id = 'head_camera_depth_frame', info.header.frame_id
+        optical.transform.rotation.x, optical.transform.rotation.y = -.5, .5
+        optical.transform.rotation.z, optical.transform.rotation.w = -.5, .5
+        body = TransformStamped()
+        body.header.frame_id, body.child_frame_id = 'base_link', 'head_camera_depth_frame'
+        body.transform.rotation.w = 1.
+        body.transform.translation.z = 1.
+        node.buffer.set_transform_static(optical, 'test')
+        node.buffer.set_transform_static(body, 'test')
+        image = Image()
+        image.header.frame_id = info.header.frame_id
+        image.header.stamp = node.get_clock().now().to_msg()
+        image.width, image.height, image.step, image.encoding = 2, 2, 4, '16UC1'
+        image.data = np.full((2, 2), 1000, dtype='<u2').tobytes()
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
+        assert len(cloud_xyz(rays[0])) == 4
+        assert len(cloud_xyz(hits[0])) == 2
+        assert rays[0].header.frame_id == 'head_camera_depth_frame'
+        assert hits[0].header.frame_id == 'base_link'
+        np.testing.assert_allclose(cloud_xyz(hits[0])[:, 2], 1.)
+        assert np.any(cloud_xyz(rays[0])[:, 2] == -1.)
+        assert rays[0].header.stamp == hits[0].header.stamp == image.header.stamp
+        image.data = bytes(8)
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
+        image.data = np.full((2, 2), 1000, dtype='<u2').tobytes()
+        image.header.stamp.sec -= 2
+        node.on_depth(image)
+        assert len(rays) == len(hits) == 1
     finally:
         if node is not None:
             node.destroy_node()

@@ -346,8 +346,8 @@ def _assert_pilz_lin_is_cartesian(
     process: subprocess.Popen[bytes],
     log_path: Path,
 ) -> None:
-    # The grasp TCP differs from gripper_frame only by a fixed transform, so
-    # query its exact start orientation for the LIN pose constraint.
+    # grasp TCP와 gripper_frame은 고정 변환만 다르므로 LIN 자세 제약을 위해
+    # 정확한 시작 방향을 조회합니다.
     request = GetPositionFK.Request()
     request.header.frame_id = 'base_link'
     request.fk_link_names = ['left_grasp_tcp']
@@ -418,7 +418,9 @@ def _assert_pilz_lin_is_cartesian(
         log_path=log_path,
         description='Pilz LIN plan-only result',
     )
-    assert wrapped.status == GoalStatus.STATUS_SUCCEEDED
+    assert wrapped.status == GoalStatus.STATUS_SUCCEEDED, (
+        f"MoveGroup status={wrapped.status}, error={wrapped.result.error_code.val}\n"
+        + _log_tail(log_path))
     assert wrapped.result.error_code.val == MoveItErrorCodes.SUCCESS
     trajectory = wrapped.result.planned_trajectory.joint_trajectory
     assert trajectory.points

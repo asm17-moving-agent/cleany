@@ -1,4 +1,4 @@
-"""Validate a completed stationary dataset and write a review artifact."""
+"""완료된 정지 상태 데이터셋을 검사하고 검토용 결과물을 저장합니다."""
 
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ def validate_rendered_samples(
     detector=None,
     pnp_solver: PnpSolver = solve_planar_pnp,
 ) -> RenderedSampleValidation:
-    """Decode every committed PNG and reproduce detection and clean PnP."""
+    """저장 확정된 모든 PNG를 디코딩하고 검출 및 잡음 없는 PnP를 재현합니다."""
 
     values = tuple(records)
     if not values:

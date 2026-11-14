@@ -1,7 +1,5 @@
 #include "cleany_navigation/swept_footprint.hpp"
-#include "dwb_core/exceptions.hpp"
 #include "nav2_costmap_2d/cost_values.hpp"
-#include "pluginlib/class_list_macros.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -33,10 +31,9 @@ std::vector<Point> hull(std::vector<Point> points) {
   result.pop_back();return result;
 }
 }
-static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
+bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &map,
   const std::vector<geometry_msgs::msg::Point> &footprint,
-  const geometry_msgs::msg::Pose2D &a,const geometry_msgs::msg::Pose2D &b,
-  const std::vector<uint32_t> *prefix) {
+  const geometry_msgs::msg::Pose2D &a,const geometry_msgs::msg::Pose2D &b) {
   if(footprint.size()<3 || !std::isfinite(a.x) || !std::isfinite(a.y) ||
     !std::isfinite(a.theta) || !std::isfinite(b.x) || !std::isfinite(b.y) ||
     !std::isfinite(b.theta) || !std::isfinite(map.getResolution()) ||
@@ -57,13 +54,13 @@ static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
     }
   }
   if(!std::isfinite(area) || std::abs(area)<1e-12)return false;
-  // Linear interpolation error of each rotating vertex is bounded by
-  // max|p''(t)|/8 = radius * delta_yaw^2/8. The endpoint hull expanded by this
-  // bound therefore contains every intermediate footprint, not just samples.
+  // 회전 정점 각각의 선형 보간 오차는
+  // max|p''(t)|/8 = radius * delta_yaw^2/8로 제한됩니다. 끝점의 볼록 껍질을
+  // 이 한계만큼 확장하면 표본뿐 아니라 모든 중간 footprint를 포함합니다.
   const double angle=b.theta-a.theta;
-  // An issued body-frame twist also curves the center while yaw changes.
-  // Relative to the Euler center segment, its deviation is bounded by
-  // segment_length * |delta_yaw|/2 for a constant twist over that interval.
+  // body 좌표계 twist를 내보내면 yaw 변화 중 중심도 곡선을 그립니다.
+  // 해당 구간에서 twist가 일정할 때 Euler 중심 선분과의 편차는
+  // segment_length * |delta_yaw|/2로 제한됩니다.
   const double padding=radius*angle*angle/8.+
     std::hypot(b.x-a.x,b.y-a.y)*std::abs(angle)/2.+
     1e-10*(1.+std::max({std::abs(min_x),std::abs(max_x),std::abs(min_y),std::abs(max_y)}));
@@ -76,16 +73,6 @@ static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
     max_y+padding>=map.getOriginY()+map.getSizeInCellsY()*map.getResolution())return false;
   if(!map.worldToMap(min_x-padding,min_y-padding,x0,y0) ||
     !map.worldToMap(max_x+padding,max_y+padding,x1,y1))return false;
-  if(prefix) {
-    const size_t stride=static_cast<size_t>(map.getSizeInCellsX())+1;
-    const auto &sum=*prefix;
-    if(sum.size()!=stride*(static_cast<size_t>(map.getSizeInCellsY())+1))return false;
-    // Exact empty-region certificate for this same locked scoring map. Only
-    // nonempty swept boxes need hull construction or per-cell SAT tests.
-    const auto occupied=sum[(y1+1)*stride+x1+1]+sum[y0*stride+x0]-
-      sum[y0*stride+x1+1]-sum[(y1+1)*stride+x0];
-    if(occupied==0)return true;
-  }
   std::vector<Point> points;points.reserve(footprint.size()*2);
   for(const auto &p:footprint) {
     points.push_back({a.x+ca*p.x-sa*p.y,a.y+sa*p.x+ca*p.y});
@@ -118,85 +105,4 @@ static bool sweepFree(const nav2_costmap_2d::Costmap2D &map,
   }
   return true;
 }
-bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &map,
-  const std::vector<geometry_msgs::msg::Point> &footprint,
-  const geometry_msgs::msg::Pose2D &a,const geometry_msgs::msg::Pose2D &b) {
-  return sweepFree(map,footprint,a,b,nullptr);
 }
-void SweptFootprintCritic::onInit() {
-  ObservedFootprintCritic::onInit();
-  auto node=node_.lock();
-  const auto prefix=dwb_plugin_name_+"."+name_+".";
-  if(!node->has_parameter(prefix+"command_hold_time"))
-    node->declare_parameter(prefix+"command_hold_time",0.);
-  if(!node->has_parameter(prefix+"command_hold_step"))
-    node->declare_parameter(prefix+"command_hold_step",.01);
-  node->get_parameter(prefix+"command_hold_time",command_hold_time_);
-  node->get_parameter(prefix+"command_hold_step",command_hold_step_);
-  if(!std::isfinite(command_hold_time_) || command_hold_time_<0. ||
-     !std::isfinite(command_hold_step_) || command_hold_step_<=0. ||
-     command_hold_time_/command_hold_step_>10000.)
-    throw std::invalid_argument(prefix+"command_hold_time/command_hold_step");
-}
-bool SweptFootprintCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
-  const nav_2d_msgs::msg::Twist2D &velocity,const geometry_msgs::msg::Pose2D &goal,
-  const nav_2d_msgs::msg::Path2D &path) {
-  if(!ObservedFootprintCritic::prepare(pose,velocity,goal,path))return false;
-  const size_t width=costmap_->getSizeInCellsX(),height=costmap_->getSizeInCellsY(),stride=width+1;
-  occupancy_prefix_.assign(stride*(height+1),0);
-  for(size_t y=0;y<height;++y) {
-    uint32_t row=0;
-    for(size_t x=0;x<width;++x) {
-      const auto cost=costmap_->getCost(x,y);
-      row+=cost==nav2_costmap_2d::LETHAL_OBSTACLE || cost==nav2_costmap_2d::NO_INFORMATION;
-      occupancy_prefix_[(y+1)*stride+x+1]=occupancy_prefix_[y*stride+x+1]+row;
-    }
-  }
-  return true;
-}
-double SweptFootprintCritic::scoreFootprintTrajectory(const dwb_msgs::msg::Trajectory2D &trajectory) {
-  if(trajectory.poses.empty())throw dwb_core::IllegalTrajectoryException(name_,"Empty trajectory");
-  for(const auto &p:trajectory.poses) {
-    if(!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.theta))
-      throw dwb_core::IllegalTrajectoryException(name_,"Non-finite trajectory pose");
-  }
-  const auto score=ObservedFootprintCritic::scoreFootprintTrajectory(trajectory);
-  if(!sweepFree(*costmap_,footprint_spec_,trajectory.poses.front(),trajectory.poses.front(),&occupancy_prefix_))
-    throw dwb_core::IllegalTrajectoryException(name_,"Swept footprint intersects obstacle, unknown or map boundary");
-  for(size_t i=1;i<trajectory.poses.size();++i) {
-    if(!sweepFree(*costmap_,footprint_spec_,trajectory.poses[i-1],trajectory.poses[i],&occupancy_prefix_))
-      throw dwb_core::IllegalTrajectoryException(name_,"Swept footprint intersects obstacle, unknown or map boundary");
-  }
-  if(command_hold_time_>0.) {
-    const auto &v=trajectory.velocity;
-    if(!std::isfinite(v.x) || !std::isfinite(v.y) || !std::isfinite(v.theta))
-      throw dwb_core::IllegalTrajectoryException(name_,"Non-finite issued command");
-    // The nominal rollout continues accelerating toward its sampled target.
-    // Only its first velocity is published. Check that velocity independently
-    // during a bounded hold, without assuming the next control update arrives.
-    const auto &start=trajectory.poses.front();
-    dwb_msgs::msg::Trajectory2D held;held.velocity=v;held.poses.push_back(start);
-    const auto count=static_cast<size_t>(std::ceil(command_hold_time_/command_hold_step_));
-    held.poses.reserve(count+1);
-    for(size_t i=1;i<=count;++i) {
-      const double t=command_hold_time_*static_cast<double>(i)/count;
-      const double half=v.theta*t/2.,mid=start.theta+half;
-      const double distance=std::abs(half)<1e-9 ? t : t*std::sin(half)/half;
-      auto pose=start;pose.theta+=v.theta*t;
-      pose.x+=distance*(v.x*std::cos(mid)-v.y*std::sin(mid));
-      pose.y+=distance*(v.x*std::sin(mid)+v.y*std::cos(mid));
-      held.poses.push_back(pose);
-    }
-    // Retain stock raster-cell checks as well as full-cell continuous geometry.
-    // The additional hold check changes admissibility, not the soft score.
-    try {ObservedFootprintCritic::scoreFootprintTrajectory(held);}
-    catch(const dwb_core::IllegalTrajectoryException &error) {
-      throw dwb_core::IllegalTrajectoryException(name_,std::string("Held command: ")+error.what());
-    }
-    if(!sweepFree(*costmap_,footprint_spec_,start,held.poses.back(),&occupancy_prefix_))
-      throw dwb_core::IllegalTrajectoryException(name_,"Held command sweep intersects obstacle, unknown or map boundary");
-  }
-  return score;
-}
-}
-PLUGINLIB_EXPORT_CLASS(cleany_navigation::SweptFootprintCritic,dwb_core::TrajectoryCritic)

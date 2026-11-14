@@ -1,4 +1,4 @@
-"""MoveIt service/action adapter for plan-only grasp reachability checks."""
+"""계획 전용 파지 도달 가능성 검사의 MoveIt 서비스 및 action 어댑터입니다."""
 
 from __future__ import annotations
 
@@ -31,8 +31,8 @@ from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.urdf_fk import UrdfChain
 
 
-# Canonical limits from cleany_description/urdf/dual_arm.xacro.  The wrist
-# roll entries are replaced by the configured bounds when seeds are built.
+# cad_final과 jetson_20261009 모델 프로파일이 공유하는 팔 한계입니다.
+# seed 생성 시 손목 roll 항목은 설정된 범위로 교체합니다.
 _ARM_JOINT_LIMITS = (
     (-2.16, 2.16),
     (-0.22, 3.37),
@@ -41,8 +41,8 @@ _ARM_JOINT_LIMITS = (
     (-2.743847297, 2.84120630938),
 )
 
-# Low-discrepancy, deterministic coverage of all five joints.  The first two
-# attempts remain the candidate-specific position seed and current state.
+# 다섯 관절 전체를 결정적인 저불일치 표본으로 덮습니다. 첫 두 시도는
+# 후보별 위치 seed와 현재 상태를 유지합니다.
 _DISTRIBUTED_SEED_FRACTIONS = (
     (0.5000, 0.4533, 0.7102, 0.2008, 0.3975),
     (0.1394, 0.4803, 0.4708, 0.9252, 0.1901),
@@ -72,8 +72,8 @@ class MoveItAdapterConfig:
     pregrasp_approach_tolerance_deg: float = 15.0
     pregrasp_closing_tolerance_deg: float = 30.0
     grasp_closing_tolerance_deg: float = 30.0
-    # Applies to both pregrasp and grasp: a fixed/moving-jaw tool cannot flip
-    # its lateral correction by 180 degrees during the final approach.
+    # pregrasp와 grasp 모두에 적용합니다. 고정 및 가동 손가락 도구는
+    # 최종 접근 중 횡방향 보정을 180도 뒤집을 수 없습니다.
     grasp_closing_sign_invariant: bool = True
     pregrasp_aim_attempts: int = 8
     grasp_pose_seed_attempts: int = 0
@@ -143,7 +143,7 @@ class MoveItAdapterConfig:
 
 
 class MoveItGraspAdapter:
-    """Preserve a complete feedback state in IK, validity, and plan requests."""
+    """IK, 유효성 검사와 계획 요청에서 완전한 피드백 상태를 보존합니다."""
 
     def __init__(
         self,
@@ -199,8 +199,8 @@ class MoveItGraspAdapter:
         if solution is not None:
             positions.update(zip(solution.names, solution.positions, strict=True))
         result = RobotState()
-        # Complete joint feedback is still supplied. A carry request must
-        # retain scene attachments rather than replace them with an empty list.
+        # 전체 관절 피드백을 계속 제공합니다. 운반 요청은 장면 부착물을
+        # 빈 목록으로 바꾸지 않고 보존해야 합니다.
         result.is_diff = self._config.preserve_scene_attachments
         result.joint_state.header = self._current_state.header
         result.joint_state.name = list(REQUIRED_JOINT_NAMES)
@@ -263,10 +263,9 @@ class MoveItGraspAdapter:
         seconds = int(self._config.ik_timeout_sec)
         ik.timeout.sec = seconds
         ik.timeout.nanosec = int((self._config.ik_timeout_sec - seconds) * 1e9)
-        # MoveIt may legitimately consume the full solver timeout before
-        # returning NO_IK_SOLUTION. Keep transport overhead outside that
-        # algorithm budget so an unreachable pair remains a fallback result,
-        # not an infrastructure timeout.
+        # MoveIt은 solver 시간 제한을 모두 사용한 뒤 정상적으로 NO_IK_SOLUTION을
+        # 반환할 수 있습니다. 전송 비용을 알고리즘 예산 밖에 두어 도달 불가 쌍이
+        # 기반 서비스 시간 초과가 아닌 대체 시도 결과로 남게 합니다.
         response = self._call(
             self._ik_client,
             request,
@@ -303,7 +302,7 @@ class MoveItGraspAdapter:
         pregrasp_position: tuple[float, float, float],
         seed: JointSolution | None,
     ) -> tuple[JointSolution, ...]:
-        """Return pose-compatible pregrasp solutions in increasing error order."""
+        """자세 조건을 만족하는 pregrasp 해를 오차가 작은 순서로 반환합니다."""
         if self._config.pose_refinement_iterations:
             return self._refined_pose_candidates(arm, pregrasp_position,
                 approach_direction, closing_direction, seed or self._current_arm_solution(arm),
@@ -398,9 +397,8 @@ class MoveItGraspAdapter:
                 seen.add(key)
                 unique.append(item)
 
-        # The position-only seed already reflects this object's location.
-        # Keep its shoulder/elbow solution and vary wrist roll before using
-        # target-independent whole-joint samples.
+        # 위치 전용 seed는 이미 물체 위치를 반영합니다. 목표와 무관한 전체 관절
+        # 표본을 쓰기 전에 어깨 및 팔꿈치 해를 유지하고 손목 roll을 바꿔 봅니다.
         for location_seed in self._location_biased_seeds(
             candidate_seed,
             limits,
@@ -492,7 +490,7 @@ class MoveItGraspAdapter:
         closing_direction: tuple[float, float, float],
         seed: JointSolution,
     ) -> tuple[JointSolution, ...]:
-        """Project the desired grasp pose onto feasible 5-axis joint states."""
+        """원하는 파지 자세를 가능한 5축 관절 상태로 투영합니다."""
         if self._config.pose_refinement_iterations:
             return self._refined_pose_candidates(arm, grasp_position,
                 approach_direction, closing_direction, seed)
@@ -564,8 +562,8 @@ class MoveItGraspAdapter:
         chain = self._local_fk.get(arm)
         if chain is None:
             raise InfrastructureError('Runtime URDF required for local pose refinement')
-        # Independently compare the local model against MoveIt before using it
-        # for numerical iterations. Final candidates still use MoveIt checks.
+        # 수치 반복에 사용하기 전에 로컬 모델을 MoveIt과 독립 비교합니다.
+        # 최종 후보에는 여전히 MoveIt 검사를 적용합니다.
         reference = self._grasp_pose(arm, seed)
         local_p, local_r = chain.pose(dict(zip(seed.names, seed.positions)))
         q = reference.orientation
@@ -613,7 +611,7 @@ class MoveItGraspAdapter:
         fixed_joints: dict[str, float] | None = None,
         accept_solution: Callable[[JointSolution], bool] | None = None,
     ) -> JointSolution | None:
-        """Search a bounded object-center region; independently validate with MoveIt."""
+        """제한된 물체 중심 영역을 탐색하고 MoveIt으로 독립 검증합니다."""
         low, high, offset = (np.asarray(v, dtype=float) for v in (lower, upper, offset_in_tcp))
         if (any(v.shape != (3,) or not np.isfinite(v).all() for v in (low, high, offset))
                 or np.any(low > high) or not 1 <= attempts <= 64 or not 1 <= iterations <= 200):
@@ -690,10 +688,9 @@ class MoveItGraspAdapter:
 
     def _aligned_grasp_solution(self, arm: str, solution: JointSolution,
                                  closing_direction: tuple[float, float, float]) -> JointSolution | None:
-        # Cleany's wrist-roll axis and TCP offset are both local -Y. Rotating
-        # this joint changes closing direction without translating the TCP.
-        # A model-parity test guards that assumption. Never bypass collision
-        # or subsequent FK pose gates after changing the candidate joint.
+        # Cleany 손목 roll 축과 TCP 오프셋은 모두 로컬 -Y입니다. 이 관절을 회전하면
+        # TCP 병진 없이 닫힘 방향이 바뀝니다. 모델 일치 테스트로 이 가정을 검사하며
+        # 후보 관절을 바꾼 뒤에도 충돌 또는 후속 FK 자세 검사를 우회하지 않습니다.
         pose = self._grasp_pose(arm, solution)
         q = pose.orientation
         quaternion = (q.x, q.y, q.z, q.w)
@@ -732,7 +729,7 @@ class MoveItGraspAdapter:
         self,
         results: list[tuple[float, float, float, JointSolution, float, float]],
     ) -> tuple[JointSolution, ...]:
-        """Prefer minimum normalized motion; pose error only breaks ties."""
+        """정규화된 움직임이 가장 작은 해를 우선하며 같은 경우에만 자세 오차를 비교합니다."""
         unique: list[JointSolution] = []
         seen: set[tuple[int, ...]] = set()
         current_by_name: dict[str, float] = {}
@@ -777,7 +774,7 @@ class MoveItGraspAdapter:
     def _has_joint_limit_margin(self, solution: JointSolution) -> bool:
         margin = self._config.joint_limit_margin_rad
         if margin == 0.:
-            return True  # Existing generic mode delegates bounds to MoveIt.
+            return True  # 기존 일반 모드에서는 한계를 MoveIt에 위임합니다.
         limits = (*_ARM_JOINT_LIMITS[:-1],
                   (self._config.wrist_roll_lower_rad, self._config.wrist_roll_upper_rad))
         by_name = {name: bound for names in ARM_JOINT_NAMES.values()
@@ -1012,8 +1009,8 @@ class MoveItGraspAdapter:
         if not self._has_joint_limit_margin(solution):
             return False
         request = GetStateValidity.Request()
-        # Full-robot query includes the actuated moving jaw even if it is not
-        # a member of the five-joint arm planning group.
+        # 구동되는 가동 손가락이 다섯 관절 팔 계획 그룹에 속하지 않아도
+        # 전체 로봇 조회에는 포함합니다.
         request.group_name = ''
         request.robot_state = self._merged_state(solution)
         state = request.robot_state.joint_state
@@ -1046,8 +1043,8 @@ class MoveItGraspAdapter:
         response = self._call(
             self._validity_client, request, self._config.state_validity_timeout_sec
         )
-        # MoveIt can ignore an invalid/disabled constraint. Never treat that
-        # empty result as proof of visibility.
+        # MoveIt이 무효하거나 비활성화된 제약을 무시할 수 있습니다.
+        # 빈 결과를 가시성의 근거로 삼지 않습니다.
         if len(response.constraint_result) != 1:
             raise InfrastructureError('MoveIt did not evaluate the visibility constraint')
         return bool(response.valid and response.constraint_result[0].result)

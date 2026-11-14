@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the MCU boot-calibration configuration from the robot JSON."""
+"""로봇 JSON에서 MCU 부팅 보정 설정을 생성합니다."""
 from __future__ import annotations
 
 import argparse
@@ -37,7 +37,7 @@ def render(config: dict) -> str:
         raise ValueError("fallback covariance must be symmetric positive definite")
     bias = ", ".join(format(x, ".17g") for x in config["fallback_bias_rad_s"])
     cov = ", ".join(format(x, ".17g") for x in config["fallback_covariance_rad2_s2"])
-    return f"""// Generated from ros2_ws/src/cleany_base_driver/config/imu_calibration.json; do not edit.
+    return f"""// ros2_ws/src/cleany_base_driver/config/imu_calibration.json에서 생성합니다. 직접 수정하지 마세요.
 #pragma once
 #include "imu_startup_calibration.hpp"
 namespace cleany {{

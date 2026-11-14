@@ -1,0 +1,39 @@
+<!-- 루트는 일반 복구 전에 미끄럼을 처리하며 목표당 한 번의 재시도를 관리합니다. -->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <SlipRecovery>
+      <RecoveryNode number_of_retries="6" name="NormalNavigation">
+        <PipelineSequence>
+          <RateController hz="1.0">
+            <RecoveryNode number_of_retries="1">
+              <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+              <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+            </RecoveryNode>
+          </RateController>
+          <RecoveryNode number_of_retries="1">
+            <FollowPath path="{path}" controller_id="FollowPath"/>
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+          </RecoveryNode>
+        </PipelineSequence>
+        <ReactiveFallback>
+          <GoalUpdated/>
+          <RoundRobin>
+            <Sequence>
+              <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+            <Spin spin_dist="1.57"/>
+            <Wait wait_duration="5"/>
+            <BackUp backup_dist="0.30" backup_speed="0.05"/>
+          </RoundRobin>
+        </ReactiveFallback>
+      </RecoveryNode>
+      <PipelineSequence name="LongitudinalRetry">
+        <RateController hz="1.0">
+          <ComputePathToPose goal="{goal}" path="{path}" planner_id="Longitudinal" server_name="/traction_retry/compute_path_to_pose"/>
+        </RateController>
+        <FollowPath path="{path}" controller_id="Longitudinal"/>
+      </PipelineSequence>
+    </SlipRecovery>
+  </BehaviorTree>
+</root>

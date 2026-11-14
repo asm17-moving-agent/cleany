@@ -1,4 +1,4 @@
-"""Bounded, read-only host metrics. No ROS imports or process control."""
+"""범위가 제한된 읽기 전용 호스트 지표이며 ROS import나 프로세스 제어가 없습니다."""
 
 from collections import deque
 import os
@@ -121,7 +121,7 @@ class ResourceSampler:
                 else None
             )
 
-            # guest time is already included in user/nice on Linux.
+            # Linux의 guest 시간은 이미 user/nice에 포함되어 있습니다.
             def total(t):
                 return sum(t) - getattr(t, "guest", 0) - getattr(t, "guest_nice", 0)
 
@@ -138,7 +138,7 @@ class ResourceSampler:
         swap = read("swap", psutil.swap_memory)
         disk = read("disk capacity", lambda: psutil.disk_usage("/"))
         io = read("disk io", lambda: psutil.disk_io_counters(perdisk=True), {})
-        # Exclude partitions and virtual devices to avoid double-counting stacked IO.
+        # 계층화된 IO를 중복 집계하지 않도록 파티션과 가상 장치를 제외합니다.
         devices = {
             name: value
             for name, value in io.items()

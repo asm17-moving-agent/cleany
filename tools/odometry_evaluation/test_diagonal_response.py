@@ -1,4 +1,4 @@
-"""Offline regression checks for diagonal tuning, geometry and reference validity."""
+"""대각선 조정, 기하와 기준 유효성의 오프라인 회귀 검사입니다."""
 from copy import deepcopy
 import json
 import math
@@ -58,7 +58,8 @@ def test_diagonal_candidate_uses_fallback_and_preserves_axial_gains(axis):
 
 
 @pytest.mark.parametrize("axis", ["diagonal_left", "diagonal_right"])
-def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis):
+@pytest.mark.parametrize("reference_key", ["calibrated_base_reference", "calibrated_base_ground_truth"])
+def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis, reference_key):
     ux, uy = translation_direction(axis)
     result = {"nominal_displacement": .5}
     for leg, sign in (("outbound", 1), ("inbound", -1)):
@@ -66,7 +67,7 @@ def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis):
             return {"dx_m": sign*(ux*along - uy*cross), "dy_m": sign*(uy*along + ux*cross),
                     "dyaw_deg": 1.}
         result[leg] = {"is_valid": True, "odom_reported": pose(.496, .003),
-                       "calibrated_base_ground_truth": pose(.510, .008),
+                       reference_key: pose(.510, .008),
                        "one_way_error": {"error_norm_mm": math.hypot(14, 5)}}
     errors = endpoint_errors(result, axis)
     for leg in ("outbound", "inbound"):
@@ -83,7 +84,7 @@ def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis):
 
 
 def test_diagonal_plot_single_column(tmp_path):
-    # Aborted trials still have a valid named axis, but no fabricated trace.
+    # 중단된 시험에도 유효한 축 이름은 있지만 가짜 기록을 만들지 않습니다.
     output = tmp_path / "response.png"
     plot_responses([{"axis": "diagonal_left", "result": None}], output)
     assert output.is_file()

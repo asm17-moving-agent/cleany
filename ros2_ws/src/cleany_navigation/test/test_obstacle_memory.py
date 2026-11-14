@@ -133,7 +133,7 @@ def test_expiry_is_per_voxel_and_another_sensor_cannot_clear_unknown(memory):
     observe(memory)
     memory.observe('depth', np.array([.05, .05, .35]), np.array([[1.05, .05, .35]]), np.array([True]), 108)
     assert memory.expire(111, 10) == 1
-    assert memory.grid()[20, 30] == 100  # fresh lower voxel survives
+    assert memory.grid()[20, 30] == 100  # 최신 하단 voxel은 유지됩니다.
     assert memory.grid(min_z=1., max_z=1.5)[20, 30] == -1
     assert memory.grid(min_z=1., max_z=1.5, block_expired=True)[20, 30] == 100
     np.testing.assert_allclose(np.sort(memory.occupied_centers(include_expired=True)[:, 2]), [.35, 1.05])

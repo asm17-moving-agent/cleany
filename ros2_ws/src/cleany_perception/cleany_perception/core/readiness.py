@@ -1,13 +1,13 @@
-"""Semantic Perception readiness reported to the System Supervisor."""
+"""System Supervisor에 보고하는 의미상 인식 준비 상태입니다."""
 
 AVAILABLE, UNAVAILABLE, UNKNOWN = 'AVAILABLE', 'UNAVAILABLE', 'UNKNOWN'
 
 
 def perception_readiness(models_ready: bool, latest_stamp_ns: int | None, now_ns: int,
                          maximum_age_s: float) -> tuple[str, str]:
-    """Camera frames alone do not prove readiness; loaded models and fresh RGB-D both do.
+    """카메라 프레임만으로는 준비 완료가 아니며 모델 로드와 최신 RGB-D가 모두 필요합니다.
 
-    Remote classifier reachability is not probed here; it is reported per request.
+    원격 분류기 연결은 여기서 검사하지 않고 요청별로 보고합니다.
     """
     if not models_ready:
         return UNKNOWN, 'local models not loaded (enable preload_models for readiness reporting)'

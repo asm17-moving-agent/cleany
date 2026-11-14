@@ -1,4 +1,4 @@
-"""XYZ PointCloud2 transport shared by voxel mapping and the body guard."""
+"""voxel mapping과 body guard가 공유하는 XYZ PointCloud2 전송입니다."""
 from __future__ import annotations
 from array import array
 import numpy as np

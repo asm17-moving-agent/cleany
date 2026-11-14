@@ -81,9 +81,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
-  # google-genai can install a newer anyio pytest plugin than the pytest
-  # version bundled with ROS 2 Humble. Interface tests need no third-party
-  # plugins, so keep discovery deterministic during configure and execution.
+  # google-genai가 설치하는 anyio pytest 플러그인이 ROS 2 Humble의 pytest보다
+  # 새 버전일 수 있습니다. 인터페이스 테스트에는 외부 플러그인이 필요 없으므로
+  # configure와 실행 중 플러그인 탐색을 결정적으로 유지합니다.
   set(ENV{PYTEST_DISABLE_PLUGIN_AUTOLOAD} "1")
   ament_add_pytest_test(
     interface_contract

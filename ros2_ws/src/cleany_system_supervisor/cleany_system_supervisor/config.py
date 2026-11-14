@@ -1,4 +1,4 @@
-"""Load and reject ambiguous or fail-open policy graphs at startup."""
+"""시작 시 정책 graph를 읽고 모호하거나 실패 시 허용되는 구성을 거부합니다."""
 from math import isfinite
 from pathlib import Path
 
@@ -38,6 +38,14 @@ def validate(config: dict) -> dict:
             raise ValueError('unknown recovery policy')
         if not isinstance(entry['latched'], bool) or not isinstance(entry['locks_operation'], bool):
             raise ValueError('fault latch and lock settings must be booleans')
+    reconnect = config.get('startup_base_reconnect', {})
+    if not isinstance(reconnect.get('enabled', False), bool):
+        raise ValueError('startup_base_reconnect.enabled must be a boolean')
+    if reconnect.get('enabled', False):
+        positive(reconnect.get('stable_s'), 'startup_base_reconnect.stable_s')
+        if ('base' not in sources or not sources['base']['latched'] or
+                'base_disarmed' not in sources or not sources['base_disarmed'].get('monitor_only')):
+            raise ValueError('startup base reconnect requires latched base and monitor-only base_disarmed')
     codes = [entry['fault_code'] for entry in sources.values()]
     if len(codes) != len(set(codes)):
         raise ValueError('fault codes must be unique')
@@ -76,7 +84,7 @@ def load(path: str | Path) -> dict:
 
 
 def with_tof(config: dict) -> dict:
-    """Require the independently enforced ToF guard for base availability."""
+    """베이스 가용성에 독립적으로 강제되는 ToF guard를 요구합니다."""
     from copy import deepcopy
     result = deepcopy(config)
     result['sources']['tof_proximity'] = dict(

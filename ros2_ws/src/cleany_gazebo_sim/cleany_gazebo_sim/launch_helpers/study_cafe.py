@@ -1,4 +1,4 @@
-"""Launch construction for Fortress study-cafe and facility worlds."""
+"""Fortress study-cafe 및 전체 시설 world의 launch 구성입니다."""
 
 from pathlib import Path
 
@@ -145,7 +145,7 @@ def _launch_simulation(
 
 
 def study_cafe_launch_description(*, facility: bool = False) -> LaunchDescription:
-    """Build a Fortress study-cafe or full-facility launch description."""
+    """Fortress study-cafe 또는 전체 시설의 launch description을 만듭니다."""
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     odometry_share = Path(
         get_package_share_directory('cleany_base_odometry')
@@ -258,7 +258,7 @@ def study_cafe_launch_description(*, facility: bool = False) -> LaunchDescriptio
             headless_arg,
             DeclareLaunchArgument('headless_rendering', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('server_gallium_thread', default_value=EnvironmentVariable('GALLIUM_THREAD', default_value='0')),
-            DeclareLaunchArgument('robot_model', default_value='cad_frame' if facility else 'legacy', choices=['legacy', 'cad_frame']),
+            DeclareLaunchArgument('robot_model', default_value='cad_frame', choices=['legacy', 'cad_frame']),
             DeclareLaunchArgument('chair_model', default_value='roly' if facility else 'legacy', choices=['legacy', 'roly']),
             DeclareLaunchArgument('chair_config', default_value=str(package_share / 'config/furniture/roly_p1g210m.yaml')),
             DeclareLaunchArgument('world_output', default_value='/tmp/cleany_facility_18f/world.sdf' if facility else ''),

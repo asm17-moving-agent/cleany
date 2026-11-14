@@ -16,7 +16,7 @@ from cleany_skill_executor.core.automatic_goal import select_automatic_target
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from sensor_msgs.msg import Image
 
-from .camera import encode_image
+from cleany_telemetry.camera import encode_image
 from .operator_ros import OperatorROS
 from .proposals import ProposalStore, fingerprint, scene_context, validate_fresh_target, write_json
 

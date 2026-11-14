@@ -1,0 +1,32 @@
+{
+  "cad_final": {
+    "mjcf": "cleany.xml",
+    "contact_geoms": {
+      "LEFT_FIXED_1": "cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_L_collision",
+      "LEFT_FIXED_2": "cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+      "LEFT_MOVING_1": "cad_LeftKinematic_CameraTool180_Pinc_Removable_Tip_R_collision",
+      "LEFT_MOVING_2": "cad_LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+      "LEFT_MOVING_3": "cad_LeftKinematic_CameraTool180_Pinc_Distal_Shell_R_collision",
+      "RIGHT_FIXED_1": "cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_L_collision",
+      "RIGHT_FIXED_2": "cad_RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+      "RIGHT_MOVING_1": "cad_RightKinematic_CameraTool180_Pinc_Removable_Tip_R_collision",
+      "RIGHT_MOVING_2": "cad_RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+      "RIGHT_MOVING_3": "cad_RightKinematic_CameraTool180_Pinc_Distal_Shell_R_collision"
+    }
+  },
+  "jetson_20261009": {
+    "mjcf": "cleany_jetson_20261009.xml",
+    "contact_geoms": {
+      "LEFT_FIXED_1": "left_fixed_jaw_contact_1",
+      "LEFT_FIXED_2": "left_fixed_jaw_contact_2",
+      "LEFT_MOVING_1": "left_moving_jaw_contact_1",
+      "LEFT_MOVING_2": "left_moving_jaw_contact_2",
+      "LEFT_MOVING_3": "left_moving_jaw_contact_3",
+      "RIGHT_FIXED_1": "right_fixed_jaw_contact_1",
+      "RIGHT_FIXED_2": "right_fixed_jaw_contact_2",
+      "RIGHT_MOVING_1": "right_moving_jaw_contact_1",
+      "RIGHT_MOVING_2": "right_moving_jaw_contact_2",
+      "RIGHT_MOVING_3": "right_moving_jaw_contact_3"
+    }
+  }
+}

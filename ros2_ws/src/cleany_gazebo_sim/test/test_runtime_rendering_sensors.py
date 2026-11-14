@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import math
 import os
 from pathlib import Path
@@ -106,6 +107,7 @@ def _launch_command(sensor_profile: str, world_path: Path) -> list[str]:
         'cleany_gazebo_sim',
         'gazebo_fortress.launch.py',
         'headless:=true',
+        'headless_rendering:=true',
         f'sensor_profile:={sensor_profile}',
         f'world:={world_path}',
     ]
@@ -166,11 +168,11 @@ def _validation_scene_sdf() -> str:
     return '\n'.join(walls)
 
 
-def _write_validation_world(output_path: Path) -> None:
+def _write_validation_world(output_path: Path, robot_model: str) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     world_name = 'cleany_mecanum_fortress.sdf'
     materialized_world = materialize_mecanum_wheel_world(
-        package_share / 'worlds' / world_name
+        package_share / 'worlds' / world_name, robot_model=robot_model,
     ).read_text(encoding='utf-8')
     if materialized_world.count('</world>') != 1:
         pytest.fail('runtime validation world must contain exactly one world')
@@ -427,11 +429,15 @@ def _assert_thresholds(
         )
 
 
+@pytest.mark.parametrize('robot_model', ['legacy', 'cad_frame'])
 def test_sensor_profile_and_rtf(
     runtime_test_options: RuntimeTestOptions,
+    robot_model: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    options = runtime_test_options
+    # CAD 주행 프로파일은 의도적으로 팔과 손목 센서를 제외합니다.
+    options = (replace(runtime_test_options, sensor_profile="head_rgbd")
+               if robot_model == "cad_frame" else runtime_test_options)
     _assert_environment()
     expected_topics = PROFILE_TOPICS[options.sensor_profile]
     expected_topic_set = set(expected_topics)
@@ -469,7 +475,7 @@ def test_sensor_profile_and_rtf(
     with tempfile.TemporaryDirectory(prefix=temp_prefix) as temp_dir:
         log_path = Path(temp_dir) / 'launch.log'
         world_path = Path(temp_dir) / 'runtime_validation_world.sdf'
-        _write_validation_world(world_path)
+        _write_validation_world(world_path, robot_model)
         with log_path.open('wb') as launch_log:
             process = subprocess.Popen(
                 _launch_command(

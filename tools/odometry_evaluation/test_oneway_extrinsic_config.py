@@ -1,4 +1,4 @@
-"""Current-mount evaluation settings and laser-frame ICP seeds."""
+"""현재 장착 평가 설정과 laser 좌표계 ICP seed를 검사합니다."""
 import json
 import math
 from pathlib import Path

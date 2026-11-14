@@ -109,8 +109,8 @@ struct ScheduledCameras::Impl {
     mjvScene scene; mjv_defaultScene(&scene);
     mjrContext context; mjr_defaultContext(&context);
     try {
-      // Sensors and the bounded-rate viewer share one context and worker.
-      // A visible window does not add a second native renderer/physics lock.
+      // 센서와 속도가 제한된 viewer가 컨텍스트와 worker 하나를 공유합니다.
+      // 창을 표시해도 두 번째 native 렌더러나 physics 잠금을 추가하지 않습니다.
       glfwWindowHint(GLFW_VISIBLE, show_viewer ? GLFW_TRUE : GLFW_FALSE);
       window=glfwCreateWindow(show_viewer ? viewer_width : 640,
                              show_viewer ? viewer_height : 480,
@@ -121,7 +121,7 @@ struct ScheduledCameras::Impl {
       mjv_makeScene(model,&scene,10000); mjr_makeContext(model,&context,mjFONTSCALE_100);
       mjr_setBuffer(mjFB_OFFSCREEN,&context);
       mjvOption opt; mjv_defaultOption(&opt);
-      // Visual groups 0..2 only; collision group 3 is not a sensor image.
+      // 렌더링 그룹 0..2만 사용하며 충돌 그룹 3은 센서 영상에 포함하지 않습니다.
       opt.geomgroup[3]=opt.geomgroup[4]=opt.geomgroup[5]=0;
       mjvCamera view; mjv_defaultCamera(&view); view.type=mjCAMERA_FIXED;
       auto viewer = show_viewer ? std::make_unique<EfficientViewer>(window, model, &scene, node) : nullptr;
@@ -147,9 +147,9 @@ struct ScheduledCameras::Impl {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
           continue;
         }
-        // get_data() copies the full mjData while holding the physics mutex.
-        // Only copy when a sensor or GUI frame is due; all frames drawn in
-        // this pass share the same consistent snapshot.
+        // get_data()는 physics mutex를 잡은 채 전체 mjData를 복사합니다.
+        // 센서 또는 GUI 프레임 시점에만 복사하며 이번 반복에서 그리는 모든 프레임은
+        // 동일하고 일관된 snapshot을 공유합니다.
         snapshot(data);
         if(!data) throw std::runtime_error("camera snapshot unavailable");
         for(auto& c:cameras) {
@@ -194,7 +194,7 @@ struct ScheduledCameras::Impl {
             mjr_render(mjrRect{0,0,width,height},&scene,&context);
             glfwSwapBuffers(window);
           }
-          // Schedule from completion: never chase missed frames in a burst.
+          // 완료 시점부터 예약하며 누락된 프레임을 한꺼번에 따라잡지 않습니다.
           next_view = std::chrono::steady_clock::now() +
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(
               std::chrono::duration<double>(1.0 / viewer_rate));

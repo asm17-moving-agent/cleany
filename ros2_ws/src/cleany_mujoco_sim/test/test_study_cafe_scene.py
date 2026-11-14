@@ -95,7 +95,7 @@ def test_tabletop_asset_files_match_provenance_manifest() -> None:
 @pytest.mark.parametrize('template', [SCENE_TEMPLATE, GRASP_SCENE_TEMPLATE])
 def test_study_cafe_uses_scoped_non_saturating_shadow_lights(template: Path) -> None:
     model = mujoco.MjModel.from_xml_path(str(materialize_scene(template)))
-    assert model.nlight == 2  # The canonical robot's generic light is replaced.
+    assert model.nlight == 2  # 기준 로봇의 일반 조명은 교체됩니다.
     key = model.light('study_cafe_work_area_key').id
     fill = model.light('study_cafe_room_fill').id
     assert model.light_castshadow[key]
@@ -108,7 +108,7 @@ def test_study_cafe_uses_scoped_non_saturating_shadow_lights(template: Path) -> 
     np.testing.assert_allclose(model.light_pos[key], (-4.33, -3.17, 3.30))
     assert model.light_cutoff[key] == pytest.approx(40.0)
     assert model.light_exponent[key] == pytest.approx(0.0)
-    # Farthest corner of the 3-by-2 desk block remains inside the cone.
+    # 3×2 책상 블록의 가장 먼 모서리도 조명 원뿔 안에 남습니다.
     radius = (3.30 - .72) * math.tan(math.radians(40))
     assert math.hypot(1.2 + .60, .385 + .385) < radius
 
@@ -250,7 +250,7 @@ def test_tabletop_objects_settle_on_robot_desk(
             f'{body_name}_collision',
         )
         if name == 'mouse':
-            # Its non-flat mesh base can tilt; check actual support, not body origin.
+            # 평평하지 않은 메시 바닥이 기울 수 있으므로 body 원점 대신 실제 지지를 확인합니다.
             mesh = study_cafe_model.geom_dataid[collision]
             first = study_cafe_model.mesh_vertadr[mesh]
             vertices = study_cafe_model.mesh_vert[first:first+study_cafe_model.mesh_vertnum[mesh]]
@@ -279,7 +279,7 @@ def test_mouse_collision_reuses_visible_mesh_without_hidden_box(
     assert model.geom_friction[collision] == pytest.approx((1.5, .08, .02))
 
 
-def test_tabletop_objects_fit_head_camera_at_one_radian() -> None:
+def test_tabletop_objects_fit_head_camera_at_preview_tilt() -> None:
     scene_path = materialize_control_scene(GRASP_SCENE_TEMPLATE)
     model = mujoco.MjModel.from_xml_path(str(scene_path))
     data = mujoco.MjData(model)
@@ -288,7 +288,7 @@ def test_tabletop_objects_fit_head_camera_at_one_radian() -> None:
         mujoco.mjtObj.mjOBJ_JOINT,
         'head_tilt_joint',
     )
-    data.qpos[model.jnt_qposadr[head_tilt]] = 1.0
+    data.qpos[model.jnt_qposadr[head_tilt]] = 0.8
     mujoco.mj_forward(model, data)
 
     camera = mujoco.mj_name2id(
@@ -491,7 +491,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         mujoco.mjtObj.mjOBJ_EQUALITY,
         'study_cafe_grasp_chassis_world_weld',
     ) >= 0
-    assert model.npair == 10*(33+9+2)  # Cup shell, LEGO body+studs, tissue, mouse.
+    assert model.npair == 10*(33+9+2)  # 컵 껍질, LEGO 본체와 돌기, 티슈, 마우스입니다.
     cup = _geom_id(model, 'study_cafe_cup_collision')
     cup_pairs = [i for i in range(model.npair)
                  if cup in (model.pair_geom1[i], model.pair_geom2[i])]
@@ -500,7 +500,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         assert model.pair_dim[pair] == 6
         assert model.pair_friction[pair] == pytest.approx((6, 6, 0.2, 0.1, 0.1))
         jaw = model.pair_geom2[pair] if model.pair_geom1[pair] == cup else model.pair_geom1[pair]
-        assert 'jaw_contact' in mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, jaw)
+        assert 'Kinematic_CameraTool180_Pinc_' in mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, jaw)
         assert model.geom_friction[jaw] == pytest.approx((3, 0.2, 0.1))
         assert model.geom_priority[jaw] == model.geom_priority[cup] == 0
         assert model.geom_solmix[jaw] == model.geom_solmix[cup] == 1
@@ -523,7 +523,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         assert len(pairs) == 10
         for pair in pairs:
             assert model.pair_dim[pair] == 6
-            # Preserve the original max-combined object/jaw friction.
+            # 원래 물체/그리퍼 마찰의 최댓값 결합을 유지합니다.
             assert model.pair_friction[pair] == pytest.approx((3, 3, .2, .1, .1))
             assert model.pair_solref[pair] == pytest.approx((.002, 1))
             assert model.pair_solimp[pair] == pytest.approx((.99, .9999, .0001, .5, 2))

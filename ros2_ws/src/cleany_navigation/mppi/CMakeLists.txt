@@ -1,4 +1,4 @@
-# Tuned Humble MPPI implementation owned by cleany_navigation.
+# cleany_navigation에서 관리하는 Humble MPPI 구현입니다.
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
 set(mppi_dependencies
@@ -18,7 +18,8 @@ add_library(cleany_mppi_critics SHARED
   src/critics/path_align_critic.cpp src/critics/path_align_legacy_critic.cpp
   src/critics/path_follow_critic.cpp src/critics/path_angle_critic.cpp
   src/critics/prefer_forward_critic.cpp src/critics/twirling_critic.cpp
-  src/critics/constraint_critic.cpp src/critics/velocity_deadband_critic.cpp)
+  src/critics/constraint_critic.cpp src/critics/velocity_deadband_critic.cpp
+  src/critics/directional_motion_critic.cpp)
 foreach(target cleany_mppi_controller cleany_mppi_critics)
   target_compile_features(${target} PUBLIC cxx_std_17)
   target_compile_definitions(${target} PUBLIC XTENSOR_ENABLE_XSIMD XTENSOR_USE_XSIMD)

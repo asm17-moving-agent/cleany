@@ -1,7 +1,7 @@
-# Approach an already staged, front-facing desk. No lateral centering is claimed.
-# Distance is from base_link origin to fitted front plane at y=0, in metres.
+# 이미 정렬되어 정면을 향하는 책상에 접근합니다. 좌우 중앙 정렬은 보장하지 않습니다.
+# 거리는 base_link 원점에서 y=0의 적합된 전면 평면까지이며 단위는 미터입니다.
 float32 distance_m
-# Identity of the existing Mission lease; the server never acquires authority.
+# 기존 Mission 임대의 식별자입니다. 서버가 제어 권한을 취득하지 않습니다.
 string mission_id
 string lease_id
 string lease_epoch

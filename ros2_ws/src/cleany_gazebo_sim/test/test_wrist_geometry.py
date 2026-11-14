@@ -1,4 +1,4 @@
-"""Check the rendered wrist pose against the shared lens registration."""
+"""렌더링된 손목 자세를 공통 렌즈 등록 정보와 비교합니다."""
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -29,12 +29,12 @@ def _transform(pose: ET.Element) -> np.ndarray:
 def legacy_model(tmp_path_factory: pytest.TempPathFactory) -> ET.Element:
     directory = tmp_path_factory.mktemp('wrist-world')
     world = materialize_mecanum_wheel_world(
-        PACKAGE / 'worlds/cleany_mecanum_fortress.sdf', target_path=directory/'world.sdf')
+        PACKAGE / 'worlds/cleany_mecanum_fortress.sdf', target_path=directory/'world.sdf', robot_model='legacy')
     return ET.parse(world).find("world/model[@name='cleany_mecanum']")
 
 
 @pytest.mark.parametrize('model_name', ('legacy', 'cad_frame_with_arms'))
-def test_wrist_sensors_and_optical_frames_follow_v8_lens(
+def test_wrist_sensors_follow_selected_assembly_lens(
     tmp_path: Path, legacy_model: ET.Element, model_name: str,
 ) -> None:
     model = deepcopy(legacy_model)
@@ -49,13 +49,16 @@ def test_wrist_sensors_and_optical_frames_follow_v8_lens(
     registration = json.loads((DESCRIPTION / 'config/geometry/wrist_mount_v8.json').read_text())
     expected = np.asarray(registration['legacy_jaw_from_camera_cv_approximate'])
     for side in ('left', 'right'):
+        if model_name == 'cad_frame_with_arms':
+            cad = json.loads((DESCRIPTION / 'config/geometry/cad_final.json').read_text())
+            expected = np.asarray(cad['wrist_cameras'][side])
         parent = f'{side}_{jaw_suffix}'
         sensor = model.find(f".//sensor[@name='{side}_wrist_rgb']")
         pose = sensor.find('pose')
         assert pose.get('relative_to') == parent
         actual = _transform(pose)
         np.testing.assert_allclose(actual[:3, 3], expected[:3, 3], atol=1e-12)
-        # Compare viewing, image-right and image-down directions independently.
+        # 시선, 영상 오른쪽과 영상 아래쪽 방향을 각각 비교합니다.
         np.testing.assert_allclose(actual[:3, 0], expected[:3, 2], atol=1e-12)
         np.testing.assert_allclose(-actual[:3, 1], expected[:3, 0], atol=1e-12)
         np.testing.assert_allclose(-actual[:3, 2], expected[:3, 1], atol=1e-12)
@@ -66,7 +69,11 @@ def test_wrist_sensors_and_optical_frames_follow_v8_lens(
         np.testing.assert_allclose(_transform(frames[0].find('pose')), expected, atol=1e-12)
         visuals = [v for v in model.findall('.//visual')
                    if f'{side}_wrist_mount_v8_' in v.get('name', '')]
-        assert len(visuals) == 6
+        if model_name == 'legacy':
+            assert len(visuals) == 6
+        else:
+            assert not visuals
+            assert any(f'{side.title()}Camera_Lens.stl' in uri.text for uri in model.findall('.//visual/geometry/mesh/uri'))
         assert not any('XLeRobot_camera' in uri.text
                        for uri in model.findall('.//visual/geometry/mesh/uri'))
         for visual in visuals:

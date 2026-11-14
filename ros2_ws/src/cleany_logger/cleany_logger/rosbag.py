@@ -1,4 +1,4 @@
-"""Standard rosbag2 CDR storage, owned exclusively by the recording worker."""
+"""기록 worker만 독점 소유하는 표준 rosbag2 CDR 저장소입니다."""
 
 import json
 import sqlite3
@@ -8,29 +8,48 @@ from .recording import RawMessage
 
 
 class RosbagWriter:
-    """Load the ROS dependency only when raw recording is requested; never fall back."""
+    """원시 기록을 요청할 때만 ROS 의존성을 로드하며 다른 방식으로 대체하지 않습니다."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, split_diagnostics: bool = True):
         import rosbag2_py
 
         self.api = rosbag2_py
+        self.path = Path(path)
+        self.split_diagnostics = split_diagnostics
+        self.diagnostics = None
+        self.message_types: dict[str, str] = {}
         self.writer = rosbag2_py.SequentialWriter()
         self.topics: dict[str, str] = {}
         self.writer.open(
             rosbag2_py.StorageOptions(
-                uri=str(path), storage_id="sqlite3", max_cache_size=0
+                uri=str(path), storage_id="sqlite3", max_cache_size=0,
+                storage_preset_profile="resilient",
             ),
             rosbag2_py.ConverterOptions("", ""),
         )
 
     def write(self, message: RawMessage) -> None:
+        previous_type = self.message_types.get(message.topic)
+        if previous_type and previous_type != message.message_type:
+            raise ValueError(f"ROS type changed on {message.topic}; start a new recording")
+        self.message_types[message.topic] = message.message_type
+        diagnostic = (
+            message.message_type.startswith(('visualization_msgs/', 'cartographer_ros_msgs/'))
+            or message.message_type == 'nav_msgs/msg/OccupancyGrid'
+            or (message.category == 'slam' and message.message_type == 'sensor_msgs/msg/PointCloud2')
+        )
+        if self.split_diagnostics and diagnostic:
+            if self.diagnostics is None:
+                self.diagnostics = RosbagWriter(self.path / 'diagnostics', split_diagnostics=False)
+            self.diagnostics.write(message)
+            return
         previous = self.topics.get(message.topic)
         if previous and previous != message.message_type:
             raise ValueError(
                 f"ROS type changed on {message.topic}; start a new recording"
             )
         if not previous:
-            # rosbag2 uses this profile when replaying transient-local context.
+            # rosbag2는 transient_local 컨텍스트를 재생할 때 이 프로파일을 사용합니다.
             qos = json.dumps(
                 [
                     {
@@ -61,19 +80,24 @@ class RosbagWriter:
         self.writer.write(message.topic, message.payload, message.timestamp_ns)
 
     def close(self) -> None:
+        diagnostics, self.diagnostics = self.diagnostics, None
         writer, self.writer = self.writer, None
-        if writer is not None:
-            # Recent Humble has close(); older builds finalize in the destructor.
-            if hasattr(writer, "close"):
-                writer.close()
-            del writer
+        try:
+            if diagnostics is not None:
+                diagnostics.close()
+        finally:
+            if writer is not None:
+                # 최근 Humble에는 close()가 있으며 이전 빌드는 소멸자에서 마무리합니다.
+                if hasattr(writer, "close"):
+                    writer.close()
+                del writer
 
 
 def read_cdr(
     directory: Path, topic: str, timestamp_ns: int, occurrence: int = 0
 ) -> bytes:
-    """Indexed lookup in our fixed sqlite3 rosbag2 backend, without loading a bag."""
-    for path in sorted(directory.glob("*.db3")):
+    """bag을 전체 로드하지 않고 고정 sqlite3 rosbag2 백엔드의 인덱스로 조회합니다."""
+    for path in sorted(directory.rglob("*.db3")):
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as db:
             row = db.execute(
                 "SELECT data FROM messages WHERE timestamp=? AND topic_id IN "

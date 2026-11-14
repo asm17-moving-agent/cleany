@@ -11,8 +11,8 @@ from launch.actions import DeclareLaunchArgument
 
 @pytest.fixture
 def runtime(monkeypatch):
-    # LaunchContext.environment is os.environ in Humble. Register both keys
-    # with monkeypatch before any SetEnvironmentVariable action executes.
+    # Humble의 LaunchContext.environment는 os.environ입니다. SetEnvironmentVariable
+    # action 전에 두 키를 모두 monkeypatch에 등록합니다.
     monkeypatch.setenv('FASTRTPS_DEFAULT_PROFILES_FILE', '')
     monkeypatch.delenv('FASTRTPS_DEFAULT_PROFILES_FILE')
     monkeypatch.setenv('MUJOCO_GL', os.environ.get('MUJOCO_GL', 'egl'))
@@ -190,7 +190,7 @@ def test_preflight_rejects_missing_models_before_backend(runtime, tmp_path):
 
 def test_gemini_preflight_rejects_missing_credentials(runtime, tmp_path, monkeypatch):
     module, context = runtime
-    # Model validation runs before credential validation; use only test assets.
+    # 자격 증명보다 모델을 먼저 검사하므로 테스트 asset만 사용합니다.
     model_dir = tmp_path / 'yoloe'
     model_dir.mkdir()
     (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
@@ -280,7 +280,7 @@ def test_deeper_base_grasp_is_simulation_sorting_only(runtime, simulator, sortin
                     and action.name == 'grasp_approach_offset_m')
     argument.execute(context)
     assert context.launch_configurations['grasp_approach_offset_m'] == expected
-    # A caller can restore the previous value without changing other offsets.
+    # 호출자는 다른 오프셋을 바꾸지 않고 이전 값을 복구할 수 있습니다.
     context.launch_configurations['grasp_approach_offset_m'] = '0.016'
     argument.execute(context)
     assert context.launch_configurations['grasp_approach_offset_m'] == '0.016'

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import html
+import json
 import math
 import shutil
 import tempfile
@@ -74,18 +75,17 @@ def materialize_control_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'cad_final',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
-    """Materialize a MuJoCo 3.4-compatible arm-control scene.
+    """MuJoCo 3.4와 호환되는 팔 제어 장면을 구체화합니다.
 
-    The canonical model uses MuJoCo 3.7 ``dcmotor`` actuators for the mobile
-    base.  The Humble ``mujoco_ros2_control`` binary vendors MuJoCo 3.4, and
-    the stationary tabletop backend does not command those actuators.
-    Only the temporary model copy used by this function drops them.  It also
-    adds a zero-state keyframe so that the 0.0.3 hardware plugin initializes
-    every remaining actuator command, including MJCF-only head actuators, to a
-    finite value.  The canonical model and the default custom simulator path
-    remain unchanged.
+    기준 모델은 이동 베이스에 MuJoCo 3.7 dcmotor 구동기를 사용합니다.
+    Humble mujoco_ros2_control 바이너리는 MuJoCo 3.4를 포함하며 고정된 탁상
+    백엔드는 이 구동기를 명령하지 않습니다. 이 함수의 임시 모델 복사본에서만
+    해당 구동기를 제거합니다. 또한 0.0.3 하드웨어 plugin이 MJCF 전용 헤드 구동기를
+    포함한 나머지 명령을 유한값으로 초기화하도록 0 상태 keyframe을 추가합니다.
+    기준 모델과 기본 자체 시뮬레이터 경로는 바꾸지 않습니다.
     """
     return _materialize_scene(
         template_path,
@@ -93,6 +93,7 @@ def materialize_control_scene(
         initial_joint_positions=initial_joint_positions,
         sorting_bins_config=sorting_bins_config,
         performance_profile=performance_profile,
+        model_profile=model_profile,
         study_cafe_layout_config=study_cafe_layout_config,
     )
 
@@ -103,6 +104,7 @@ def resolve_control_scene_path(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'cad_final',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if scene_path.suffix == '.in':
@@ -111,6 +113,7 @@ def resolve_control_scene_path(
             initial_joint_positions=initial_joint_positions,
             sorting_bins_config=sorting_bins_config,
             performance_profile=performance_profile,
+            model_profile=model_profile,
             study_cafe_layout_config=study_cafe_layout_config,
         )
     if study_cafe_layout_config is not None:
@@ -134,6 +137,7 @@ def _materialize_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'cad_final',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if not template_path.is_file():
@@ -142,7 +146,13 @@ def _materialize_scene(
         )
 
     description_share = _package_share('cleany_description')
-    description_model = description_share / 'mjcf' / 'cleany.xml'
+    profiles = json.loads(
+        (_package_share('cleany_mujoco_sim') / 'config/model_profiles.json').read_text()
+    )
+    if model_profile not in profiles:
+        raise ValueError(f'Unknown model_profile: {model_profile}')
+    profile = profiles[model_profile]
+    description_model = description_share / 'mjcf' / profile['mjcf']
     description_meshes = description_share / 'meshes'
     if not description_model.is_file():
         raise FileNotFoundError(
@@ -154,6 +164,10 @@ def _materialize_scene(
         )
 
     scene_text = template_path.read_text(encoding='utf-8')
+    for role, geom in profile['contact_geoms'].items():
+        scene_text = scene_text.replace(f'@CLEANY_CONTACT_{role}@', geom)
+    if '@CLEANY_CONTACT_' in scene_text:
+        raise ValueError('Unresolved model-specific contact geometry')
     if _SCENE_MODEL_TOKEN not in scene_text:
         raise ValueError(
             f'MuJoCo scene template is missing {_SCENE_MODEL_TOKEN}'
@@ -268,14 +282,12 @@ def _expand_control_keyframe_for_scene(
     model_path: Path,
     positions: dict[str, float],
 ) -> None:
-    """Preserve workflow free joints when applying robot spawn positions.
+    """로봇 시작 위치를 적용할 때 작업 장면의 자유 관절을 보존합니다.
 
-    The control keyframe lives in the included canonical model, while a
-    workflow scene may append free joints for dynamic objects. A keyframe
-    containing only the canonical qpos count is padded with zeros by MuJoCo,
-    which would move those objects to the world origin. Compile the complete
-    scene once, start from its qpos0, overlay the requested robot joints, and
-    write the complete qpos vector back to the temporary keyframe.
+    제어 keyframe은 포함된 기준 모델에 있지만 작업 장면은 동적 물체의 자유 관절을
+    추가할 수 있습니다. keyframe에 기준 모델의 qpos만 있으면 MuJoCo가 0으로 채워
+    해당 물체를 월드 원점으로 옮깁니다. 전체 장면을 한 번 컴파일하고 qpos0에서
+    시작해 요청된 로봇 관절값을 덮은 뒤 전체 qpos를 임시 keyframe에 기록합니다.
     """
     model = mujoco.MjModel.from_xml_path(str(scene_path))
     qpos = model.qpos0.copy()
@@ -321,7 +333,7 @@ def _camera_resolution_model_text(
     height: int,
     expected_fovy: float,
 ) -> str:
-    """Add an explicit resolution to one camera in a temporary include."""
+    """임시 include의 카메라 하나에 해상도를 명시합니다."""
 
     root = ET.fromstring(model_text)
     cameras = root.findall(f".//camera[@name='{camera_name}']")
@@ -457,9 +469,9 @@ def _initial_control_keyframe(
         )
         if actuator in _WHEEL_DCMOTOR_ACTUATORS:
             continue
-        # Position actuator names need not equal their driven joint names
-        # (head_tilt drives head_tilt_joint). Match the transmission so the
-        # initial camera pose is held instead of being driven back to zero.
+        # 위치 구동기 이름이 관절 이름과 같을 필요는 없습니다. head_tilt는
+        # head_tilt_joint를 구동합니다. transmission을 맞춰 카메라가 0으로 돌아가지
+        # 않고 초기 자세를 유지하게 합니다.
         joint_name = None
         if model.actuator_trntype[actuator_id] == mujoco.mjtTrn.mjTRN_JOINT:
             joint_name = mujoco.mj_id2name(

@@ -1,6 +1,6 @@
 import "../hold_input.cjs";
 
-export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
+export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed, onForwardOnly }) {
   const { HoldInput, HeldUpdates, stickAxes } = window.CleanyInput;
   const listeners = new AbortController();
   const listen = (target, event, handler, options = {}) =>
@@ -9,6 +9,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       signal: listeners.signal,
     });
   let disposed = false;
+  let forwardOnly = false;
   const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
   const client = Array.from(crypto.getRandomValues(new Uint8Array(16)), (x) =>
     x.toString(16).padStart(2, "0"),
@@ -69,7 +70,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
         clearTimeout(timeout);
       }
     };
-    // Request sequences reject reordered traffic. STOP is never queued behind updates.
+    // 요청 순서 번호로 뒤바뀐 통신을 거부하며 STOP은 갱신 뒤에 대기시키지 않습니다.
     return perform();
   }
   const pointers = new Map(),
@@ -116,7 +117,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
     const move = axes.get(sticks[0]),
       turn = axes.get(sticks[1]);
     return {
-      vector: [move?.forward || 0, move?.left || 0, turn?.ccw || 0],
+      vector: [move?.forward || 0, forwardOnly ? 0 : move?.left || 0, turn?.ccw || 0],
       speed: getSpeed(),
     };
   }
@@ -137,7 +138,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
         await send("press", value);
         lastSignalAt = performance.now();
         if (current !== generation) return;
-        // Renew immediately after press, then every 70 ms without waiting for replies.
+        // 누른 직후 갱신하고 응답을 기다리지 않은 채 이후 70ms마다 갱신합니다.
         updates = new HeldUpdates({
           send: () =>
             input.active ? send("update", input.active) : Promise.resolve(null),
@@ -223,6 +224,11 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       radius,
       rotation,
     );
+    if (forwardOnly && !rotation) {
+      a.x = 0;
+      a.left = 0;
+      a.ccw = 0;
+    }
     axes.set(stick, a);
     stick.dataset.active = "true";
     stick.querySelector(".knob").style.transform =
@@ -266,7 +272,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
     });
     listen(stick, "contextmenu", (event) => event.preventDefault());
   }
-  // Catch release outside the stick even if pointer capture is lost.
+  // pointer capture를 잃어도 stick 밖에서 놓는 동작을 감지합니다.
   listen(
     window,
     "pointerup",
@@ -310,7 +316,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
     const vector = [0, 0, 0];
     for (const key of heldKeys) keys[key].forEach((v, i) => (vector[i] += v));
     return {
-      vector: vector.map((v) => Math.max(-1, Math.min(1, v))),
+      vector: vector.map((v, i) => forwardOnly && i === 1 ? 0 : Math.max(-1, Math.min(1, v))),
       speed: getSpeed(),
     };
   }
@@ -320,6 +326,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       input.cancel(true);
     } else if (
       keys[event.key] &&
+      (!forwardOnly || event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "a" || event.key === "d") &&
       !event.target.closest?.('[data-slot="slider"]') &&
       !pointers.size
     ) {
@@ -350,6 +357,8 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
       if (!response.ok) throw new Error(status.error);
       if (current !== generation) return;
       ready = status.ready;
+      forwardOnly = status.forward_only === true;
+      onForwardOnly?.(forwardOnly);
       if (
         input.active &&
         !input.suspended &&

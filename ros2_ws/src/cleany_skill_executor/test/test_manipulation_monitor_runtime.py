@@ -1,4 +1,4 @@
-"""A real ROS Action, durable event subscription and a ZMQ viewer client."""
+"""실제 ROS Action, 영속 이벤트 구독과 ZMQ viewer client를 검사합니다."""
 
 import struct
 import xml.etree.ElementTree as ET
@@ -13,7 +13,7 @@ from test_manipulation_runtime import RosHarness, eventually, goal, response
 
 @pytest.mark.parametrize('scenario, expected', [('success', 'SUCCESS'), ('grasp_failure', 'FAILED')])
 def test_ros_execution_reaches_zmq_viewer(tmp_path, scenario, expected):
-    # Let the OS allocate an available loopback port before constructing the node.
+    # 노드 생성 전에 OS가 사용 가능한 loopback 포트를 할당하게 합니다.
     import socket
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0))

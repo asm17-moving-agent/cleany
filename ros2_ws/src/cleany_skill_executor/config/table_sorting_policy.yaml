@@ -1,7 +1,7 @@
-# Simulation safety veto list; Gemini, not these label groups, decides category.
+# 시뮬레이션 안전 거부 목록이며 분류는 label 그룹이 아닌 Gemini가 결정합니다.
 schema_version: 1
-# YOLOE already applies per-class thresholds before Gemini: 0.25 for cup,
-# mouse and tissue; 0.08 for the small LEGO brick in this simulation.
+# YOLOE는 Gemini 호출 전에 이미 분류별 임계값을 적용합니다. 이 시뮬레이션에서는
+# 컵, 마우스와 티슈는 0.25, 작은 LEGO 블록은 0.08입니다.
 minimum_confidence: 0.08
 rules:
   trash: [cup, crumpled tissue]

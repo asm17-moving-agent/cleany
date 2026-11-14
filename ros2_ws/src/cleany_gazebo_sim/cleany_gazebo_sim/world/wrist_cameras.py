@@ -1,4 +1,4 @@
-"""Attach Gazebo wrist optics to the shared v8 simulation geometry."""
+"""선택한 조립체의 등록 정보에 따라 손목 카메라 광학계를 부착합니다."""
 from __future__ import annotations
 
 import json
@@ -18,9 +18,9 @@ def _pose(transform: np.ndarray, parent: str) -> ET.Element:
 
 
 def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
-    """Reuse canonical visuals; legacy navigation retains its collision envelope."""
+    """기준 렌더링 형상을 재사용하며, 기존 주행 모델은 충돌 외곽을 유지합니다."""
     urdf = ET.fromstring(xacro.process_file(
-        str(description / 'urdf/cleany.urdf.xacro')).toxml())
+        str(description / 'urdf/cleany.urdf.xacro'), mappings={'model_profile':'jetson_20261009'}).toxml())
     base = model.find("link[@name='base_link']")
     for side in ('left', 'right'):
         for visual in base.findall('visual'):
@@ -56,17 +56,19 @@ def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
 def apply_wrist_cameras(
     model: ET.Element, description: Path, *, legacy_visuals: bool = False,
 ) -> None:
-    """Align present sensors and optical frames; do not add excluded CAD arms."""
+    """존재하는 센서와 광학 좌표계를 맞추고 제외된 CAD 팔은 추가하지 않습니다."""
     registration = json.loads(
         (description / 'config/geometry/wrist_mount_v8.json').read_text())
-    jaw_from_cv = np.asarray(registration['legacy_jaw_from_camera_cv_approximate'])
-    jaw_from_geometry = np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
-    # Gazebo +X forward / +Y left / +Z up, optical +Z forward / +X right / +Y down.
+    latest = json.loads((description / 'config/geometry/cad_final.json').read_text()) if not legacy_visuals else None
+    # Gazebo는 +X 전방, +Y 왼쪽, +Z 위쪽이며 광학 좌표계는 +Z 전방, +X 오른쪽, +Y 아래쪽입니다.
     cv_from_sensor = np.array([[0., -1., 0.], [0., 0., -1.], [1., 0., 0.]])
-    jaw_from_sensor = jaw_from_cv.copy()
-    jaw_from_sensor[:3, :3] = jaw_from_cv[:3, :3] @ cv_from_sensor
     names = {element.get('name') for element in model if element.tag in ('link', 'frame')}
     for side in ('left', 'right'):
+        jaw_from_cv = np.asarray(latest['wrist_cameras'][side] if latest else
+                                 registration['legacy_jaw_from_camera_cv_approximate'])
+        jaw_from_geometry = jaw_from_cv if latest else np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
+        jaw_from_sensor = jaw_from_cv.copy()
+        jaw_from_sensor[:3, :3] = jaw_from_cv[:3, :3] @ cv_from_sensor
         sensor = model.find(f".//sensor[@name='{side}_wrist_rgb']")
         if sensor is None:
             continue

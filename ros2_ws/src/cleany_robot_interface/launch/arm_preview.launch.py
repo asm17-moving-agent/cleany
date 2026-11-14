@@ -16,6 +16,8 @@ def generate_launch_description():
                   ('/tf_static', '/arm_preview/tf_static')]
     return LaunchDescription([
         DeclareLaunchArgument('model_file', default_value=model),
+        DeclareLaunchArgument('model_profile', default_value='jetson_20261009',
+                              choices=['jetson_20261009']),
         DeclareLaunchArgument('config_file', default_value=PathJoinSubstitution([
             share, 'config', 'arm_preview.yaml',
         ])),
@@ -30,6 +32,7 @@ def generate_launch_description():
              namespace='arm_preview', output='screen', parameters=[{
                  'robot_description': ParameterValue(
                      Command(['xacro ', LaunchConfiguration('model_file'),
+                              ' model_profile:=', LaunchConfiguration('model_profile'),
                               ' include_head_camera:=', LaunchConfiguration('include_head_camera'),
                               ' head_mast_rear_gap_m:=', LaunchConfiguration('head_mast_rear_gap_m')]),
                      value_type=str),

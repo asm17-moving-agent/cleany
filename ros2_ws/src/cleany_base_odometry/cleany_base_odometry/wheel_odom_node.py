@@ -18,29 +18,29 @@ from cleany_base_odometry.mecanum_odometry import (
 
 
 class WheelOdometryNode(Node):
-    """Estimate planar odometry from cumulative wheel angles.
+    """누적 휠 회전량으로 평면 odometry를 추정합니다.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): All four wheel positions in
-            radians; configurable with input_topic.
+        joint_states (sensor_msgs/msg/JointState): 네 휠의 위치(rad).
+            input_topic으로 입력 이름을 바꿀 수 있습니다.
 
     Publishers:
-        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
-            base_link; topic and frame names are parameter defaults.
+        wheel/odom (nav_msgs/msg/Odometry): odom 좌표계의 위치와 base_link의 속도.
+            토픽과 좌표계 이름은 파라미터 기본값입니다.
 
     Services:
-        ~/reset (std_srvs/srv/Trigger): Reset pose and encoder baseline after the
-            mapping owner confirms STOP and terminates the previous SLAM.
+        ~/reset (std_srvs/srv/Trigger): 매핑 담당자가 STOP을 확인하고 이전 SLAM을
+            종료한 뒤 위치와 encoder 기준점을 초기화합니다.
 
     TF:
-        Does not broadcast; the odometry relay owns odom -> base_link.
+        직접 발행하지 않으며 odometry relay가 odom → base_link를 담당합니다.
 
     QoS:
-        Input uses sensor_data; output is reliable with depth 10.
+        입력은 sensor_data, 출력은 reliable과 depth 10을 사용합니다.
 
     Notes:
-        The first sample, non-increasing time and velocity-window warm-up
-        produce no message. Invalid wheel values raise a validation error.
+        첫 표본, 증가하지 않은 시각과 속도 창 초기화 구간에는 발행하지 않습니다.
+        무효한 휠 값은 검증 오류를 발생시킵니다.
     """
 
     def __init__(self) -> None:
@@ -98,7 +98,7 @@ class WheelOdometryNode(Node):
         )
 
     def _on_reset(self, request, response):
-        """Reset pose and encoder baseline; the session manager confirms STOP first."""
+        """위치와 encoder 기준점을 초기화합니다. 세션 관리자가 먼저 STOP을 확인해야 합니다."""
         self._odometry = MecanumOdometry(
             self._geometry,
             velocity_window_s=float(self.get_parameter('velocity_window_s').value),
@@ -108,10 +108,10 @@ class WheelOdometryNode(Node):
         return response
 
     def _on_joint_state(self, message: JointState) -> None:
-        """Integrate complete wheel samples, using node time for a zero stamp.
+        """네 휠의 완전한 표본을 적분하며 stamp가 0이면 노드 시각을 사용합니다.
 
-        Missing positions or wheel names are ignored. Non-finite wheel values
-        raise during validation; they are not converted into zero motion.
+        위치나 휠 이름이 부족하면 무시합니다. 유한하지 않은 휠 값은 검증에서
+        오류가 발생하며 정지 상태로 치환하지 않습니다.
         """
         if len(message.position) < len(message.name):
             self.get_logger().warning(

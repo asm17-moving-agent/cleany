@@ -30,3 +30,7 @@
 
 선택한 팔의 토크는 `tools/{left,right}-arm-torque-on --control-config /absolute/path/to/limits.yaml`
 및 `tools/{left,right}-arm-torque-off`로 제어합니다. 상태 조회기나 컨트롤러가 같은 포트를 점유한 동안 실행하지 않습니다.
+
+실물 팔 미리보기와 `configs/robot/camera_preview.json`은 보정 형상인
+`model_profile:=jetson_20261009`를 명시합니다. 최신 CAD의 링크형 집게와 다른 관절
+영점에 기존 모터 보정을 적용하지 않습니다.

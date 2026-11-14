@@ -1,8 +1,10 @@
-"""Adapt the shared CAD description to the existing Gazebo navigation contract."""
+"""공유 CAD 모델을 기존 Gazebo Navigation 계약에 맞게 변환합니다."""
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from itertools import product
+import json
 from pathlib import Path
 import subprocess
 import shutil
@@ -15,6 +17,28 @@ import yaml
 
 from cleany_navigation.urdf_geometry import rotation, rpy, origin, freeze, apply_simulation_geometry
 from cleany_gazebo_sim.world.wrist_cameras import apply_wrist_cameras
+
+
+def description_identity(urdf: ET.Element, description: Path) -> dict:
+    """변환에 사용한 펼친 모델과 실제 메시 바이트를 식별합니다."""
+    meshes = {}
+    for element in urdf.findall('.//mesh'):
+        uri = element.get('filename', '')
+        prefix = 'package://cleany_description/'
+        if not uri.startswith(prefix):
+            raise ValueError(f'Unexpected mesh URI: {uri}')
+        relative = uri.removeprefix(prefix)
+        if Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise ValueError(f'Mesh escapes description package: {uri}')
+        # colcon symlink-install은 의도적으로 패키지 자산을 소스에 연결합니다.
+        path = description / relative
+        meshes[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    identity = dict(package='cleany_description', entrypoint='urdf/cleany.urdf.xacro',
+                    expanded_urdf_sha256=hashlib.sha256(ET.tostring(urdf)).hexdigest(),
+                    mesh_sha256=dict(sorted(meshes.items())))
+    identity['sha256'] = hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return identity
 
 
 def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> list[list[float]]:
@@ -61,6 +85,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
     import xacro
     profile = yaml.safe_load(config.read_text())
     urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro')).toxml())
+    identity = description_identity(urdf, description)
     for mesh in urdf.findall('.//mesh'):
         filename = mesh.get('filename')
         if not filename.startswith('package://cleany_description/'):
@@ -73,7 +98,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
     pan_enabled = profile.get('dynamic_pan', False)
     transforms = freeze(urdf, profile['park_joints'], profile.get('simulation_park_limits'), keep_pan=pan_enabled)
     bounds = collision_bounds(urdf, transforms)
-    # Include rendered geometry too: convex collision meshes may be smaller.
+    # 충돌 메시만으로 형상 범위를 제한하지 않고 렌더링 형상도 포함합니다.
     visual_urdf = deepcopy(urdf)
     for link in visual_urdf.findall('link'):
         for element in list(link):
@@ -109,7 +134,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
         ET.SubElement(cylinder, 'length').text = str(profile['wheel_width'])
         ET.SubElement(contact, 'pose').text = '0 0 0 1.5707963267948966 0 0'
         wheel.append(contact)
-    # Keep the established evaluation LiDAR/IMU mounts; head frames come from CAD.
+    # 기존 평가용 LiDAR·IMU 장착을 유지하고 헤드 좌표계는 CAD에서 가져옵니다.
     for frame in legacy.findall('frame'):
         name = frame.get('name')
         if name.startswith(('lidar_', 'imu_', 'left_wrist_camera_', 'right_wrist_camera_')):
@@ -149,7 +174,10 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():
             ET.SubElement(plugin, key).text = value
     camera = transforms['head_camera_depth_frame']
-    metadata = dict(simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []), source_commit=profile['source_commit'], collision_bounds=bounds,
+    metadata = dict(simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []),
+                    description=identity, profile_sha256=hashlib.sha256(config.read_bytes()).hexdigest(),
+                    adapter_origin_commit=profile.get('adapter_origin_commit', profile.get('source_commit')),
+                    collision_bounds=bounds,
                     navigation_margins=profile['navigation_margins'],
                     depth_camera_tf=dict(translation=camera[:3, 3].tolist(), rotation_rpy=rpy(camera[:3, :3])),
                     wheelbase=profile['wheelbase'], wheel_separation=profile['wheel_separation'],
@@ -161,7 +189,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
 
 
 def navigation_geometry(model: dict) -> dict:
-    """Derive offset polygons from the complete parked robot, not a centered proxy."""
+    """중앙 대체 형상 대신 주차 자세의 전체 로봇에서 여유 polygon을 구합니다."""
     low, high = np.asarray(model['collision_bounds'], dtype=float)
     if not np.all(np.isfinite([low, high])) or np.any(high <= low):
         raise ValueError('Invalid model bounds')

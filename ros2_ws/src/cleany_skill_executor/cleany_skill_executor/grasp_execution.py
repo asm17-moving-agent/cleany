@@ -1,4 +1,4 @@
-"""Shared MoveIt execution and joint-feedback helpers for study-cafe skills."""
+"""스터디카페 skill의 공통 MoveIt 실행과 관절 피드백 보조 기능입니다."""
 
 from __future__ import annotations
 
@@ -19,20 +19,20 @@ from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
 
 
 class GraspExecutionNode(Node):
-    """Provide guarded MoveIt execution to manipulation coordinators.
+    """조작 coordinator에 보호 조건을 적용한 MoveIt 실행을 제공합니다.
 
     Subscriptions:
-        /joint_states (sensor_msgs/msg/JointState): Motion feedback, depth 20.
+        /joint_states (sensor_msgs/msg/JointState): 움직임 피드백, depth 20.
 
     Actions:
         /grasp/select_reachable (cleany_interfaces/action/SelectReachableGrasp):
-            Selection client; selection_action default.
-        /move_action (moveit_msgs/action/MoveGroup): Motion client;
-            move_group_action default.
+            선택 Client이며 selection_action 기본값입니다.
+        /move_action (moveit_msgs/action/MoveGroup): 이동 Client이며
+            move_group_action 기본값입니다.
 
     Notes:
-        Execution waits for joint feedback and checks the final tracking error.
-        This base class provides clients and helpers; subclasses own the sequence.
+        실행은 관절 피드백을 기다리고 최종 추종 오차를 확인합니다.
+        이 기본 클래스는 client와 보조 기능을 제공하고 하위 클래스가 순서를 관리합니다.
     """
 
     def __init__(self, node_name: str = 'grasp_execution') -> None:

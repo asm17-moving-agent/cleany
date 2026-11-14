@@ -1,4 +1,4 @@
-"""ROS-independent candidate/arm fallback orchestration."""
+"""ROS에 독립적인 후보와 팔의 대체 시도 조율입니다."""
 
 from __future__ import annotations
 
@@ -38,11 +38,18 @@ class EvaluationStage(str, Enum):
 
 
 class InfrastructureError(RuntimeError):
-    """A transport or MoveIt failure for which pair fallback is unsafe."""
+    """후보/팔 대체 시도가 안전하지 않은 전송 또는 MoveIt 실패입니다."""
 
 
 @dataclass(frozen=True, slots=True)
 class Candidate:
+    """공통 계획 좌표계의 미터 단위 파지 후보입니다.
+
+    orientation은 xyzw quaternion이며 로컬 -Y가 접근, +X가 닫힘 방향입니다.
+    생성 시 방향을 정규화하고 quaternion과 접근 축이 0.1도 안에서 맞는지
+    검사합니다. 좌표계 변환은 호출자가 완료해야 합니다.
+    """
+
     position: tuple[float, float, float]
     approach_direction: tuple[float, float, float]
     score: float
@@ -95,10 +102,10 @@ def quaternion_axis(
     quaternion: tuple[float, float, float, float],
     local_axis: tuple[float, float, float],
 ) -> tuple[float, float, float]:
-    """Rotate a local unit axis by an xyzw quaternion."""
+    """xyzw quaternion으로 로컬 단위 축을 회전합니다."""
     x, y, z, w = _normalize_quaternion(quaternion)
     vx, vy, vz = local_axis
-    # Expanded q * v * q^-1.
+    # q * v * q^-1을 전개한 식입니다.
     return (
         (1 - 2 * (y * y + z * z)) * vx
         + 2 * (x * y - z * w) * vy
@@ -124,7 +131,7 @@ def directed_axis_error_deg(
 def unsigned_axis_error_deg(
     actual: tuple[float, float, float], expected: tuple[float, float, float]
 ) -> float:
-    """Parallel-jaw closing axes are equivalent after a 180 degree flip."""
+    """평행 그리퍼 닫힘 축은 180도 뒤집어도 동등합니다."""
     return min(
         directed_axis_error_deg(actual, expected),
         directed_axis_error_deg(actual, tuple(-value for value in expected)),
@@ -134,7 +141,7 @@ def unsigned_axis_error_deg(
 def _quaternion_with_local_minus_y(
     approach: tuple[float, float, float],
 ) -> tuple[float, float, float, float]:
-    """Compatibility orientation for core-only callers without a wire pose."""
+    """전송 자세가 없는 core 전용 호출자를 위한 호환 방향입니다."""
     ay = tuple(-value for value in approach)
     reference = (0.0, 0.0, 1.0) if abs(ay[2]) < 0.9 else (1.0, 0.0, 0.0)
     x_axis = _normalize(
@@ -150,7 +157,7 @@ def _quaternion_with_local_minus_y(
         x_axis[2] * ay[0] - x_axis[0] * ay[2],
         x_axis[0] * ay[1] - x_axis[1] * ay[0],
     )
-    # Rotation matrix columns are local +X, +Y, +Z.
+    # 회전 행렬의 열은 로컬 +X, +Y, +Z입니다.
     m00, m10, m20 = x_axis
     m01, m11, m21 = ay
     m02, m12, m22 = z_axis
@@ -185,6 +192,8 @@ class JointSolution:
 
 @dataclass(frozen=True, slots=True)
 class Selection:
+    """검사를 통과한 후보와 팔 및 두 관절 해이며 실행 궤적은 포함하지 않습니다."""
+
     candidate_index: int
     arm: str
     candidate: Candidate
@@ -316,6 +325,11 @@ class GraspSelector:
         offset_m: float = 0.14,
         lateral_offset_m: float = 0.0,
     ) -> tuple[float, float, float]:
+        """접근 반대 방향으로 offset_m만큼 물러나고 닫힘 방향 오프셋을 더합니다.
+
+        후보와 같은 좌표계의 미터 단위 위치이며 IK나 충돌 검사는 수행하지 않습니다.
+        """
+
         norm = math.sqrt(sum(value * value for value in candidate.approach_direction))
         if not math.isfinite(norm) or norm <= 1e-9:
             raise ValueError('approach_direction must be non-zero')
@@ -341,7 +355,14 @@ class GraspSelector:
         approach_offset_m: float = 0.0,
         lateral_offset_m: float = 0.0,
     ) -> tuple[float, float, float]:
-        """Map a symmetric candidate centre to a calibrated robot TCP."""
+        """후보 중심에 설정된 접근 및 닫힘 방향 오프셋을 더해 TCP 위치를 구합니다.
+
+        두 오프셋과 반환 좌표의 단위는 미터이며 후보와 같은 좌표계를 사용합니다.
+        설정값을 적용할 뿐 실물 보정 여부를 검증하지 않습니다.
+
+        Raises:
+            ValueError: 오프셋이 유한하지 않은 경우.
+        """
         if not all(
             math.isfinite(value)
             for value in (approach_offset_m, lateral_offset_m)
@@ -367,20 +388,20 @@ class GraspSelector:
         cancel_requested: Callable[[], bool] = lambda: False,
         feedback: Feedback = lambda *_: None,
     ) -> Selection | None:
-        """Return the first candidate/arm pair that passes the configured checks.
+        """설정된 검사를 통과한 첫 후보/팔 쌍을 반환합니다.
 
-        Candidates are tried by score, with pre-grasp and grasp IK, state validity
-        and planning checks. This method changes allowed target contacts through
-        the port; the caller owns scene restoration and any later execution.
+        후보를 점수순으로 시도하며 pregrasp 및 grasp IK, 상태 유효성과 계획을 검사합니다.
+        포트를 통해 타깃 접촉 허용 상태를 바꾸므로 장면 복구와 이후 실행은 호출자가
+        담당합니다.
 
         Returns:
-            A selection with planned trajectories, or None if every attempted pair
-            is rejected.
+            선택한 후보와 팔, pregrasp 및 grasp 관절 해를 담은 Selection입니다.
+            검사에 사용한 계획 궤적은 포함하지 않습니다. 시도한 쌍이 모두 거부되면 None입니다.
 
         Raises:
-            ValueError: required_arm is neither empty, left nor right.
-            InterruptedError: Cancellation is observed between port calls.
-            InfrastructureError: A required planning service cannot provide a result.
+            ValueError: required_arm이 빈 값, left, right 중 하나가 아닌 경우.
+            InterruptedError: 포트 호출 사이에서 취소를 확인한 경우.
+            InfrastructureError: 필수 계획 서비스에서 결과를 얻을 수 없는 경우.
         """
         if required_arm not in ('', 'left', 'right'):
             raise ValueError("required_arm must be '', 'left', or 'right'")

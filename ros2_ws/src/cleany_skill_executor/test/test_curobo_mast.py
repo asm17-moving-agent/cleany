@@ -41,7 +41,7 @@ def test_installed_mast_boxes_cover_every_triangle_with_padding():
     import xml.etree.ElementTree as ET
 
     package = Path(get_package_share_directory('cleany_description'))
-    xml = xacro.process_file(str(package/'urdf/cleany.urdf.xacro'), mappings={
+    xml = xacro.process_file(str(package/'urdf/cleany.urdf.xacro'), mappings={'model_profile': 'jetson_20261009',
         'include_head_camera': 'true', 'include_wheel_joints': 'false'}).toxml()
     boxes = mast_cuboids(xml, .0005)
     assert len(boxes) == 5

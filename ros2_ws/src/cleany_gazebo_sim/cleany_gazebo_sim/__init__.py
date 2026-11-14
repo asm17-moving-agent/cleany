@@ -1,1 +1,1 @@
-"""Gazebo Fortress ROS adapters for Cleany."""
+"""Cleany의 Gazebo Fortress ROS 어댑터입니다."""

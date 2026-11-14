@@ -4,7 +4,7 @@ ROS 그래프, 카메라, 조작 단계와 호스트 리소스를 웹으로 관�
 기본값은 관측 전용이며, 명시적으로 켜는 운영 제어는 인증 후 기존 실물 실행기에
 작업을 요청한다. 녹화와 재생 데이터는 독립 `cleany_logger`가 관리한다.
 
-- [빌드 환경](../../../docs/DEVELOPMENT_SETUP.md#monitor-웹)
+- [빌드 환경](../../../docs/implementation/development-setup.md#monitor-웹)
 - [실행과 운영 제어](../../../docs/RUNNING.md#개발-monitor)
 - [검증 절차](../../../docs/TESTING.md#운영-ui와-승인-흐름-검증)
 - [ROS, HTTP와 승인 계약](docs/interfaces.md)

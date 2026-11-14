@@ -39,7 +39,7 @@ def test_memory_node_initial_map_publishes_3d_metadata(tmp_path, monkeypatch):
         status = json.loads((tmp_path/'voxel_status.json').read_text())
         assert status['enabled'] and status['occupied_voxels'] == 0
         np.testing.assert_allclose(status['voxel_size'], [.05, .05, .1])
-        assert status['source_stamps'] == {}  # Initial empty map must not imply fresh sensors.
+        assert status['source_stamps'] == {}  # 초기 빈 지도가 최신 센서를 의미해서는 안 됩니다.
         assert node.values['mark_all_depth_points']
     finally:
         if node is not None:
@@ -90,7 +90,7 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
         transported = deserialize_message(serialize_message(outputs[-1]), OccupancyGrid)
         np.testing.assert_array_equal(transported.data, node.memory.grid().ravel())
         assert set(transported.data) == {-1, 0, 100}
-        scan.header.stamp.sec -= 2  # An available older TF must not admit stale data.
+        scan.header.stamp.sec -= 2  # 사용 가능한 이전 TF로 오래된 데이터를 수락해서는 안 됩니다.
         tf.header.stamp = scan.header.stamp
         node.buffer.set_transform(tf, 'stale_sensor_tf')
         node.update()

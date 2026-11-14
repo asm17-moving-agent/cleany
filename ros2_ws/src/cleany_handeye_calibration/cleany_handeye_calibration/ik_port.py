@@ -1,4 +1,4 @@
-"""MoveIt position-IK and state-validity ROS adapters."""
+"""MoveIt 위치 IK와 상태 유효성 검사를 연결하는 ROS 어댑터입니다."""
 
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def _full_state_vectors(
 
 
 class IkFailure(str, Enum):
-    """Stable ``InverseKinematicsPort`` failure reasons."""
+    """InverseKinematicsPort에서 사용하는 고정 실패 사유입니다."""
 
     SERVICE_UNAVAILABLE = 'service_unavailable'
     TIMEOUT = 'timeout'
@@ -140,7 +140,7 @@ class IkFailure(str, Enum):
 
 
 class StateValidityStatus(str, Enum):
-    """Result categories for joint-limit and collision validation."""
+    """관절 한계와 충돌 검사의 결과 분류입니다."""
 
     VALID = 'valid'
     COLLISION = 'collision'
@@ -154,7 +154,7 @@ class StateValidityStatus(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class StateValidityResult:
-    """A checked validity outcome with collision provenance when present."""
+    """충돌 근거가 있으면 함께 보관하는 유효성 검사 결과입니다."""
 
     status: StateValidityStatus
     contact_pairs: tuple[tuple[str, str], ...] = ()
@@ -192,7 +192,7 @@ class StateValidityResult:
 
 @dataclass(frozen=True, slots=True)
 class ValidatedJointGoal:
-    """A left joint goal proven valid against one full feedback state."""
+    """하나의 전체 피드백 상태를 기준으로 유효성을 확인한 왼팔 관절 목표입니다."""
 
     pose: JointPose
     checked_state_stamp_ns: int
@@ -302,7 +302,7 @@ class _MoveItServiceAdapter:
 
 
 class MoveItPositionIKAdapter(_MoveItServiceAdapter):
-    """Resolve a left position target from a full feedback RobotState seed."""
+    """전체 피드백 RobotState를 seed로 왼팔 위치 목표를 풉니다."""
 
     def __init__(
         self,
@@ -319,7 +319,7 @@ class MoveItPositionIKAdapter(_MoveItServiceAdapter):
             DEFAULT_DUAL_ARM_JOINT_CONTRACT
         ),
     ) -> None:
-        # Scope validation intentionally precedes client creation.
+        # 의도적으로 client를 만들기 전에 범위를 검증합니다.
         validate_calibration_scope(planning_group, tip_link)
         if node is None:
             raise ValueError('node is required')
@@ -351,7 +351,7 @@ class MoveItPositionIKAdapter(_MoveItServiceAdapter):
         *,
         current_state: ValidatedCurrentState,
     ) -> IkResult:
-        """Call ``/compute_ik`` after all local safety checks pass."""
+        """모든 로컬 안전 검사를 통과한 뒤 /compute_ik를 호출합니다."""
 
         if not isinstance(target, PositionTarget):
             raise ValueError('target must be a PositionTarget')
@@ -434,8 +434,8 @@ class MoveItPositionIKAdapter(_MoveItServiceAdapter):
             pose_stamped.pose.position.y,
             pose_stamped.pose.position.z,
         ) = target.position_m
-        # KDL position-only IK ignores orientation; keep a valid identity
-        # quaternion instead of smuggling an orientation constraint.
+        # 위치 전용 KDL IK는 방향을 무시하므로 방향 제약을 암묵적으로 넣지 않고
+        # 유효한 단위 quaternion을 사용합니다.
         pose_stamped.pose.orientation.x = 0.0
         pose_stamped.pose.orientation.y = 0.0
         pose_stamped.pose.orientation.z = 0.0
@@ -516,7 +516,7 @@ class MoveItPositionIKAdapter(_MoveItServiceAdapter):
 
 
 class MoveItStateValidityAdapter(_MoveItServiceAdapter):
-    """Check resolved left joints against MoveIt limits and collision scene."""
+    """계산된 왼팔 관절값을 MoveIt 한계 및 충돌 장면과 대조합니다."""
 
     def __init__(
         self,
@@ -565,7 +565,7 @@ class MoveItStateValidityAdapter(_MoveItServiceAdapter):
         *,
         current_state: ValidatedCurrentState,
     ) -> StateValidityResult:
-        """Evaluate the full feedback state with resolved left joints."""
+        """계산된 왼팔 관절값을 포함한 전체 피드백 상태를 검사합니다."""
 
         _left_pose_positions(resolved_pose)
         feedback = _validated_feedback(

@@ -1,4 +1,4 @@
-"""Read-only serial-chain FK from the runtime URDF, not simulation geometry."""
+"""시뮬레이션 형상이 아닌 런타임 URDF의 읽기 전용 직렬 체인 FK입니다."""
 from dataclasses import dataclass
 import math
 import xml.etree.ElementTree as ET

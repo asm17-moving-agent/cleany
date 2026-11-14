@@ -1,4 +1,4 @@
-"""Pure result construction: rejected observations never become error estimates."""
+"""순수 결과 구성입니다. 거부된 관측을 오차 추정값으로 바꾸지 않습니다."""
 
 from dataclasses import asdict
 import math
@@ -10,6 +10,11 @@ import tempfile
 from typing import Any, Callable
 
 from lidar_scan_matcher import ScanMatchResult
+
+
+def reference_error(result: dict[str, Any]) -> dict[str, Any]:
+    """새 기준 오차 키를 우선 사용하고 과거 평가 JSON도 읽습니다."""
+    return result["reference_error"] if "reference_error" in result else result["physical_ground_truth"]
 
 
 def json_finite(value: Any) -> Any:
@@ -33,7 +38,7 @@ def match_metadata(match: ScanMatchResult) -> dict[str, Any]:
 
 
 def write_data_json(path: Path, value: Any) -> None:
-    """Publish complete standard JSON atomically, without replacing an existing run."""
+    """기존 실행을 덮어쓰지 않고 완전한 표준 JSON을 원자적으로 저장합니다."""
     encoded = json.dumps(json_finite(value), indent=2, allow_nan=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -68,6 +73,7 @@ def build_leg_result(
         "is_valid": match.is_valid,
         "odom_reported": reported,
         "raw_lidar_icp": match_metadata(match),
+        "calibrated_base_reference": None,
         "calibrated_base_ground_truth": None,
         "one_way_error": None,
     }
@@ -80,6 +86,7 @@ def build_leg_result(
     data["calibrated_base_ground_truth"] = {
         "dx_m": dx, "dy_m": dy, "dyaw_deg": math.degrees(yaw),
     }
+    data["calibrated_base_reference"] = data["calibrated_base_ground_truth"]
     data["one_way_error"] = {
         "error_x_mm": error_x, "error_y_mm": error_y,
         "error_yaw_deg": error_yaw, "error_norm_mm": norm,

@@ -68,6 +68,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         sorting_bins_config=Path(bins_path) if bins_path else None,
         study_cafe_layout_config=Path(layout_path) if layout_path else None,
         performance_profile=LaunchConfiguration('sim_performance_profile').perform(context),
+        model_profile=LaunchConfiguration('model_profile').perform(context),
     )
     camera_config = Path(LaunchConfiguration('camera_config').perform(context))
     camera = load_camera_contract(camera_config)
@@ -89,6 +90,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         str(control_xacro),
         mappings={
             'mujoco_model': str(control_scene),
+            'model_profile': LaunchConfiguration('model_profile').perform(context),
             'mujoco_hardware_plugin': hardware_plugin,
             'headless': 'true' if headless or efficient_viewer else 'false',
             'sim_speed_factor': LaunchConfiguration(
@@ -129,9 +131,9 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         package='cleany_mujoco_observer',
         executable='ros2_control_node',
         ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
-        # Keep the simulator's GLFW contexts out of the desktop IBus/XIM
-        # protocol: concurrent GUI/camera creation can stall in XCreateIC.
-        # This override is process-local; other applications retain their IM.
+        # 시뮬레이터 GLFW 컨텍스트를 데스크톱 IBus/XIM 프로토콜에서 제외합니다.
+        # GUI와 카메라를 동시에 만들면 XCreateIC에서 멈출 수 있습니다.
+        # 이 재정의는 해당 프로세스에만 적용하며 다른 앱의 입력기는 유지합니다.
         additional_env={
             'XMODIFIERS': LaunchConfiguration('sim_xmodifiers').perform(context),
         },
@@ -208,6 +210,8 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
 def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
+            DeclareLaunchArgument('model_profile', default_value='cad_final',
+                                  choices=['cad_final', 'jetson_20261009']),
             DeclareLaunchArgument('log_level', default_value='info',
                                  choices=['debug', 'info', 'warn', 'error', 'fatal']),
             DeclareLaunchArgument('backend_log_level', default_value='warn',

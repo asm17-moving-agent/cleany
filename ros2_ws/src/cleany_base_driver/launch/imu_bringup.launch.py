@@ -1,4 +1,4 @@
-"""Relay MCU-calibrated gyro and status."""
+"""MCU가 보정한 자이로와 상태를 전달합니다."""
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory

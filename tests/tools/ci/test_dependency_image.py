@@ -1,4 +1,4 @@
-"""Exercise image invalidation and the dependency-only build boundary."""
+"""이미지 무효화와 의존성 전용 빌드 경계를 검사합니다."""
 from __future__ import annotations
 
 import importlib.util

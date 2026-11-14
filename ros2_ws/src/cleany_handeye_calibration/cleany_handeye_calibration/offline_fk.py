@@ -1,4 +1,4 @@
-"""Small URDF chain evaluator used by offline noise experiments."""
+"""오프라인 잡음 실험용 소형 URDF 체인 계산기입니다."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from cleany_handeye_calibration.transforms import RigidTransform
 
 
 class FeedbackFkPort(Protocol):
-    """Compute feedback FK after a caller has perturbed joint positions."""
+    """호출자가 관절 위치에 잡음을 적용한 뒤 피드백 FK를 계산합니다."""
 
     def compute(
         self,
@@ -86,7 +86,7 @@ def _origin_matrix(element: ET.Element | None, joint_name: str) -> np.ndarray:
             field_name=f'{joint_name} origin rpy',
         )
     result = np.eye(4, dtype=np.float64)
-    # URDF fixed-axis roll, pitch, yaw: Rz(yaw) Ry(pitch) Rx(roll).
+    # URDF의 고정 축 roll, pitch, yaw는 Rz(yaw) Ry(pitch) Rx(roll) 순서입니다.
     result[:3, :3] = (
         _rotation_z(float(rpy[2]))
         @ _rotation_y(float(rpy[1]))
@@ -135,7 +135,7 @@ class _UrdfJoint:
 
 
 class UrdfOfflineFk:
-    """Evaluate one serial URDF chain without ROS or planned-state inputs."""
+    """ROS나 계획 상태 입력 없이 단일 직렬 URDF 체인을 계산합니다."""
 
     def __init__(
         self,

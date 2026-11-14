@@ -1,4 +1,4 @@
-"""Receive MCU power-on calibration and publish live gyro and status."""
+"""MCU 전원 인가 시 수행한 보정 결과를 받아 실시간 자이로와 상태를 발행합니다."""
 from __future__ import annotations
 
 import math
@@ -18,7 +18,27 @@ from .imu_core import ImuAdapter, ImuValidationError
 
 
 class ImuDriver(Node):
-    """Relay MCU-calibrated gyro without starting or repeating calibration."""
+    """MCU 부팅 보정 결과를 검증해 원시 및 보정 자이로를 전달합니다.
+
+    Subscriptions:
+        base/imu_state (cleany_base_interfaces/msg/ImuState): MCU 측정 및 보정 상태.
+
+    Publishers:
+        imu/data_raw, imu/data (sensor_msgs/msg/Imu): 각각 원시 및 보정 각속도(rad/s).
+            보정값은 RUNNING 또는 FALLBACK 상태에서만 발행합니다.
+        imu/status, diagnostics (diagnostic_msgs/msg/DiagnosticArray): 보정 및 수신 상태.
+
+    QoS:
+        IMU 입력과 각속도 출력은 best_effort, volatile, depth 1입니다.
+        imu/status는 reliable, transient_local, depth 1입니다.
+
+    TF:
+        발행하지 않습니다. 메시지 좌표계는 frame_id의 기본값 imu_link입니다.
+
+    Notes:
+        호스트에서 보정을 시작하거나 반복하지 않습니다. 자세와 선가속도는 제공하지
+        않으며 covariance[0]=-1로 표시합니다. steady timer로 입력 유실을 진단합니다.
+    """
 
     def __init__(self, parameter_overrides=None) -> None:
         super().__init__('cleany_imu', parameter_overrides=parameter_overrides or [])

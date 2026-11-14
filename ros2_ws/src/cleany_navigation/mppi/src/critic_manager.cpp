@@ -70,7 +70,7 @@ std::string CriticManager::getFullName(const std::string & name)
 void CriticManager::evalTrajectoriesScores(
   CriticData & data) const
 {
-  // Optional experiment telemetry; never changes scores or rollout selection.
+  // 선택적인 실험 계측이며 점수나 후보 궤적 선택에는 영향을 주지 않습니다.
   static std::ofstream trace;
   static double previous_stamp = -1e9;
   static size_t snapshot = 0;

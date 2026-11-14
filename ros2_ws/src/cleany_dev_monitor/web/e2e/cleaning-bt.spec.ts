@@ -3,8 +3,8 @@ import { type Data, type Row } from "../src/lib/monitor";
 import { applyRuntimeEvents } from "../src/lib/runtime-observation";
 import { cleaningNodes } from "./fixtures/manipulation";
 
-// Actual Mission cleaning-tree topology, supplied through a UI transport fixture.
-// This does not execute ROS actions or certify physical manipulation.
+// 실제 Mission 청소 트리의 구조를 UI 통신 fixture로 제공합니다.
+// ROS action을 실행하거나 실물 조작을 검증하는 시험은 아닙니다.
 function snapshot(): Row {
   return {
     seq: 100,
@@ -50,7 +50,7 @@ test("Runtime sequence handles cross-topic delivery order without reverting a sn
   const base = snapshot();
   const older = tick(49, "ExecuteOne", "SUCCESS");
   const newer = tick(51, "Reobserve", "RUNNING");
-  // The older event arrived after the snapshot, the newer one before it.
+  // 이전 이벤트는 snapshot 뒤에, 다음 이벤트는 snapshot 앞에 도착했습니다.
   newer.seq = 99;
   const data = state([newer, base, older]);
   expect(data.bt_stage).toBe("Reobserve");

@@ -1,4 +1,4 @@
-"""Arm execution-layer availability for the System Supervisor; no ROS dependency."""
+"""System Supervisor용 팔 실행 계층 가용성이며 ROS 의존성이 없습니다."""
 from dataclasses import dataclass
 from math import isfinite
 
@@ -14,11 +14,11 @@ class ArmHealthConfig:
 
 
 class ArmHealth:
-    """Report whether the arm controllers can execute, not whether a motion is safe.
+    """팔 제어기의 실행 가능 여부를 보고하며 이동의 안전성을 판단하지 않습니다.
 
-    Permission to drive with the arm in a given state stays with the manipulation
-    outcome (`safe_to_drive`) that the Mission Runtime checks before every drive.
-    A joint never observed is UNKNOWN; one that stopped reporting is UNAVAILABLE.
+    특정 팔 상태에서의 베이스 이동 허가는 Mission Runtime이 이동마다 확인하는
+    조작 결과 safe_to_drive가 담당합니다. 한 번도 관측하지 않은 관절은 UNKNOWN,
+    보고가 끊긴 관절은 UNAVAILABLE입니다.
     """
 
     def __init__(self, config: ArmHealthConfig):

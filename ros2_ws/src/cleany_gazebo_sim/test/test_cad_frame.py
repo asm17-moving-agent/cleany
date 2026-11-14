@@ -11,6 +11,32 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 from cleany_navigation.urdf_geometry import rotation
 
 
+def test_description_identity_tracks_geometry_bytes_and_expanded_origins(tmp_path):
+    from cleany_gazebo_sim.world.cad_frame import description_identity
+    mesh = tmp_path / 'meshes' / 'part.stl'
+    mesh.parent.mkdir()
+    mesh.write_bytes(b'first mesh revision')
+    robot = ET.fromstring('''<robot><link name="base_link"><visual>
+      <origin xyz="0 0 0"/><geometry>
+      <mesh filename="package://cleany_description/meshes/part.stl"/>
+      </geometry></visual></link></robot>''')
+    first = description_identity(robot, tmp_path)
+    assert description_identity(robot, tmp_path) == first
+    mesh.write_bytes(b'second mesh revision')
+    second = description_identity(robot, tmp_path)
+    assert first['sha256'] != second['sha256']
+    assert first['expanded_urdf_sha256'] == second['expanded_urdf_sha256']
+    robot.find('.//origin').set('xyz', '0 0 1')
+    third = description_identity(robot, tmp_path)
+    assert third['sha256'] != second['sha256']
+    assert third['mesh_sha256'] == second['mesh_sha256']
+
+    installed = tmp_path / 'install'
+    installed.mkdir()
+    (installed / 'meshes').symlink_to(mesh.parent, target_is_directory=True)
+    assert description_identity(robot, installed) == third
+
+
 def test_park_rotation_follows_joint_axis_and_preserves_translation():
     robot = ET.fromstring('''<robot><joint name="arm" type="revolute">
       <parent link="base_link"/><child link="arm_link"/>
@@ -62,20 +88,19 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     assert max(abs(low[0]), abs(high[0])) < 0.48
     assert max(abs(low[1]), abs(high[1])) < 0.40
     assert high[1]-low[1] > 0.60
-    assert high[1]-low[1] == pytest.approx(.6548, abs=1e-6)
+    assert high[1]-low[1] == pytest.approx(.65480175, abs=1e-6)
     angle = np.deg2rad(20)
     np.testing.assert_allclose(meta['depth_camera_tf']['rotation_rpy'], [0, angle, 0], atol=1e-9)
-    # Jetson mast origin: (0.1172, 0, 0.35); reversed pan: (-0.103, 0, 0.3505).
-    pan_pivot = np.array([0.0142, 0.0, 0.7005])
-    tilt_pivot = pan_pivot + [-0.001, -0.002, 0.09815]
-    expected = tilt_pivot + [
-        0.025*np.cos(angle)+0.03*np.sin(angle), 0,
-        -0.025*np.sin(angle)+0.03*np.cos(angle)]
+    # 독립적으로 지정한 CAD 혼 축과 유지되는 차체 원점입니다.
+    pan_pivot = np.array([.0874177404372793-.000025, -.0000074623620002+.000027, .9893865235624802-.284497])
+    tilt_pivot = pan_pivot + [.00001, 0, 0]
+    camera_offset = np.array([.03125, .0169, .0323960780542311])
+    expected = tilt_pivot + rotation([0,angle,0]) @ camera_offset
     np.testing.assert_allclose(meta['depth_camera_tf']['pan_pivot'], pan_pivot, atol=1e-9)
     np.testing.assert_allclose(meta['depth_camera_tf']['translation'], expected, atol=1e-9)
-    assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + 0.03
+    assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + camera_offset[2]
 
-    # Resolve the converted SDF independently of the URDF-derived TF metadata.
+    # URDF에서 얻은 TF 메타데이터와 별도로 변환된 SDF를 해석합니다.
     entities = {e.get('name'): e for e in model if e.tag in ('link', 'joint', 'frame')}
 
     def local_pose(pose):
@@ -98,7 +123,7 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     for name in ('head_realsense_rgb', 'head_realsense_depth'):
         pose = model.find(f".//sensor[@name='{name}']/pose")
         camera = base_pose(pose.get('relative_to')) @ local_pose(pose)
-        # SDFormat rounds some fixed-frame RPY values during URDF conversion.
+        # SDFormat은 URDF 변환 중 일부 고정 좌표계 RPY 값을 반올림합니다.
         np.testing.assert_allclose(camera[:3, 3], expected, atol=1e-6)
         np.testing.assert_allclose(camera[:3, :3], rotation([0, angle, 0]), atol=1e-5)
 
@@ -137,3 +162,10 @@ def test_simulation_limit_override_is_explicit_and_bounded():
         freeze(ET.fromstring(source), {'wrist': -2.1}, {'wrist': [-2, 1]})
     with pytest.raises(ValueError, match='parked joint'):
         freeze(ET.fromstring(source), {'wrist': 0}, {'typo': [-2, 1]})
+
+
+@pytest.mark.parametrize('pitch', [np.pi/2, -np.pi/2, np.pi/2-1e-12])
+def test_rpy_round_trip_at_optical_axis_gimbal_lock(pitch):
+    from cleany_navigation.urdf_geometry import rpy
+    expected = rotation([.3, pitch, -.7])
+    np.testing.assert_allclose(rotation(rpy(expected)), expected, atol=2e-12)
