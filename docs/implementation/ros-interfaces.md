@@ -156,7 +156,8 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/obstacle_memory/navigation_grid` | `nav_msgs/msg/OccupancyGrid` | [`obstacle_memory`][ros-obstacle-memory] | — | — |
 | `/obstacle_memory/voxel_status` | `std_msgs/msg/String` | [`obstacle_memory`][ros-obstacle-memory] | [`voxel_guard`][ros-voxel-guard] | — |
 | `/obstacle_memory/voxels` | `sensor_msgs/msg/PointCloud2` | [`obstacle_memory`][ros-obstacle-memory] | [`voxel_guard`][ros-voxel-guard] | — |
-| `/odom` | `nav_msgs/msg/Odometry` | [`base_odom_relay`][ros-base-odom-relay], [`gazebo_odom_tf_publisher`][ros-gazebo-odom-tf-publisher], [`mujoco_sim`][ros-mujoco-sim] | [`mission_runtime`][ros-mission-runtime], [`depth_coverage`][ros-depth-coverage], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard], [`cleany_telemetry`][ros-cleany-telemetry], [`safety_adapter`][ros-safety-adapter] | — |
+| `/telemetry/pose` | `geometry_msgs/msg/PoseStamped` | [`pose_observer`][ros-pose-observer] | [`pose_backend_bridge`][ros-pose-backend-bridge] | — |
+| `/odom` | `nav_msgs/msg/Odometry` | [`base_odom_relay`][ros-base-odom-relay], [`gazebo_odom_tf_publisher`][ros-gazebo-odom-tf-publisher], [`mujoco_sim`][ros-mujoco-sim] | [`mission_runtime`][ros-mission-runtime], [`depth_coverage`][ros-depth-coverage], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard], [`pose_observer`][ros-pose-observer], [`safety_adapter`][ros-safety-adapter] | — |
 | `/pan_ready/cmd_vel` | `geometry_msgs/msg/Twist` | [`pan_motion_gate`][ros-pan-motion-gate] | — | — |
 | `/perception/debug_image_latched` | `sensor_msgs/msg/Image` | [`perception_inspector`][ros-perception-inspector] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/perception/debug_image` | `sensor_msgs/msg/Image` | [`perception_inspector`][ros-perception-inspector] | — | — |
@@ -261,7 +262,8 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 [ros-cleany-dev-monitor]: ../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor
 [ros-cleany-imu]: ../../ros2_ws/src/cleany_base_driver/docs/interfaces.md#cleany_imu
 [ros-cleany-motor-controller]: ../../esp32/README.md#ros-인터페이스
-[ros-cleany-telemetry]: ../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#cleany_telemetry
+[ros-pose-observer]: ../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#pose_observer
+[ros-pose-backend-bridge]: ../../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#pose_backend_bridge
 [ros-collision-scene-applier]: ../../ros2_ws/src/cleany_moveit_config/cleany_moveit_config/apply_collision_scene.py
 [ros-control-bridge]: ../../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#control_bridge
 [ros-depth-clearance]: ../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance
@@ -333,7 +335,9 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `grasp_server` | `cleany_grasping` | `grasp_server` | [표](../../ros2_ws/src/cleany_grasping/docs/interfaces.md#grasp_server) |
 | `grasp_selection_server` | `cleany_skill_executor` | `grasp_selection_server` | [표](../../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#grasp_selection_server) |
 | `collision_scene_applier` | `cleany_moveit_config` | `apply_collision_scene` | [구현](../../ros2_ws/src/cleany_moveit_config/cleany_moveit_config/apply_collision_scene.py) |
-| `cleany_telemetry` | `cleany_telemetry` | `telemetry_node` | [표](../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#cleany_telemetry) |
+| `camera_preview` | `cleany_telemetry` | `camera_preview` | [표](../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#camera_preview) |
+| `pose_observer` | `cleany_telemetry` | `pose_observer` | [표](../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#pose_observer) |
+| `pose_backend_bridge` | `cleany_control_bridge` | `pose_backend_bridge` | [표](../../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#pose_backend_bridge) |
 | `depth_clearance` | `cleany_navigation` | `depth_clearance` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_clearance) |
 | `depth_coverage` | `cleany_navigation` | `depth_coverage` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#depth_coverage) |
 | `pan_motion_gate` | `cleany_navigation` | `pan_motion_gate` | [표](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#pan_motion_gate) |

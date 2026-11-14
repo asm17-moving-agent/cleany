@@ -48,7 +48,9 @@ Telemetry는 종류/토픽별 최신값으로 합칩니다. Runtime/Monitor boot
 ## 기록과 시간
 
 Logger가 ROS 수집, 가공, 정책, 설정 파일, 세션과 단일 writer를 소유합니다.
-Monitor는 ROS 상태와 카메라의 실시간 표시, HTTP와 녹화 제어 client를 소유하며
+Monitor는 ROS 상태와 카메라의 실시간 표시, HTTP와 녹화 제어 client를 소유합니다.
+카메라 구독, 변환과 최신 프레임 캐시는 독립 telemetry camera_preview가 소유합니다.
+Monitor는
 `ArchiveReader`로 공유 디렉터리의 과거 자료만 읽습니다. 생성자는 저장 경로나 파일을
 만들지 않습니다. Monitor 종료는 logger에 정지 요청을 보내지 않습니다. 두 프로세스의
 메모리 Hub와 구독 수명은 독립적이며 `MissionJournal`은 Mission Runtime에 남습니다.

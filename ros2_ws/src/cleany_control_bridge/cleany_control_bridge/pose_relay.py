@@ -1,4 +1,4 @@
-"""외부 의존성 없는 소형 자세 relay core와 WebSocket worker입니다."""
+"""Latest-value Backend pose transport with bounded input lifetime."""
 
 from __future__ import annotations
 
@@ -7,22 +7,13 @@ import logging
 import math
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional, Protocol
+from pathlib import Path
+from typing import Protocol
 from urllib.parse import urlparse
 
 LOGGER = logging.getLogger(__name__)
-
-
-def quaternion_yaw(x: float, y: float, z: float, w: float) -> Optional[float]:
-    """월드 +X 기준 라디안 방향이며 반시계가 양수입니다. 무효 회전에는 yaw가 없습니다."""
-    if not all(math.isfinite(v) for v in (x, y, z, w)):
-        return None
-    norm = math.hypot(x, y, z, w)
-    if not math.isfinite(norm) or norm < 1e-12:
-        return None
-    x, y, z, w = (v / norm for v in (x, y, z, w))
-    return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
 class Transport(Protocol):
@@ -35,49 +26,55 @@ class Pose:
     x: float
     y: float
     received_at: float
-    sim_stamp: Optional[float]
-    yaw: Optional[float] = None
+    source_stamp: float | None
+    yaw: float | None = None
+    frame_id: str | None = None
+    map_id: str | None = None
 
 
 class PoseCache:
-    """최신값만 보관하는 캐시이며 received_at은 항상 단조 시각입니다."""
+    """Keep only the latest pose; received_at uses monotonic time."""
 
     def __init__(self, input_timeout: float) -> None:
         self.input_timeout = input_timeout
-        self._pose: Optional[Pose] = None
-        self._last_sim_stamp: Optional[float] = None
+        self._pose: Pose | None = None
+        self._last_source_stamp: float | None = None
         self._lock = threading.Lock()
 
     def update(
         self, x: float, y: float, received_at: float,
-        sim_stamp: Optional[float], yaw: Optional[float] = None,
+        source_stamp: float | None, yaw: float | None = None,
+        frame_id: str | None = None, map_id: str | None = None,
     ) -> bool:
         if not (math.isfinite(x) and math.isfinite(y)):
             return False
+        if source_stamp is not None and not math.isfinite(source_stamp):
+            return False
         with self._lock:
-            # 시계 reset 후 이전 자세가 새어나오지 않게 합니다. reset 메시지 자체는
-            # 버리며 다음 메시지를 첫 최신 표본으로 사용합니다.
+            if self._pose is not None and self._pose.frame_id != frame_id:
+                self._last_source_stamp = None
+            # Drop the reset sample and old pose; the next source sample starts a new epoch.
             if (
-                sim_stamp is not None
-                and self._last_sim_stamp is not None
-                and sim_stamp < self._last_sim_stamp
+                source_stamp is not None
+                and self._last_source_stamp is not None
+                and source_stamp < self._last_source_stamp
             ):
                 self._pose = None
-                self._last_sim_stamp = None
+                self._last_source_stamp = None
                 return False
             if (
-                sim_stamp is not None
-                and self._last_sim_stamp is not None
-                and sim_stamp == self._last_sim_stamp
+                source_stamp is not None
+                and self._last_source_stamp is not None
+                and source_stamp == self._last_source_stamp
             ):
-                # 멈춘 시뮬레이터의 반복 메시지는 최신 입력이 아닙니다.
+                # Repeated source timestamps must not renew the input lifetime.
                 return False
-            self._last_sim_stamp = sim_stamp
+            self._last_source_stamp = source_stamp
             valid_yaw = yaw if yaw is not None and math.isfinite(yaw) else None
-            self._pose = Pose(x, y, received_at, sim_stamp, valid_yaw)
+            self._pose = Pose(x, y, received_at, source_stamp, valid_yaw, frame_id, map_id)
             return True
 
-    def fresh(self, now: float) -> Optional[Pose]:
+    def fresh(self, now: float) -> Pose | None:
         with self._lock:
             if self._pose is None or now - self._pose.received_at > self.input_timeout:
                 return None
@@ -85,7 +82,7 @@ class PoseCache:
 
 
 class PoseRelay:
-    """경과 시간 기반 worker이며 콜백은 PoseCache만 갱신합니다."""
+    """Run network delivery independently from callbacks updating the latest pose."""
 
     def __init__(
         self,
@@ -94,8 +91,9 @@ class PoseRelay:
         input_timeout: float = 1.5,
         reconnect_initial: float = 1.0,
         reconnect_max: float = 30.0,
-        transport_factory: Optional[Callable[[str], Transport]] = None,
+        transport_factory: Callable[[str], Transport] | None = None,
         monotonic: Callable[[], float] = time.monotonic,
+        *, device_token_file: str = "",
     ) -> None:
         parsed = urlparse(url)
         if parsed.scheme not in ("ws", "wss") or not parsed.netloc:
@@ -108,17 +106,24 @@ class PoseRelay:
             raise ValueError("invalid relay timing parameters")
         self.url, self.period = url, 1.0 / rate
         self.cache = PoseCache(input_timeout)
-        self._connect = transport_factory or _websocket_transport
+        self._connect = transport_factory or (
+            lambda address: _websocket_transport(address, device_token_file)
+        )
         self._clock = monotonic
         self._initial, self._maximum = reconnect_initial, reconnect_max
         self._stop = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
 
     def update_pose(
-        self, x: float, y: float, sim_stamp: Optional[float] = None,
-        *, yaw: Optional[float] = None,
+        self, x: float, y: float, source_stamp: float | None = None,
+        *, yaw: float | None = None, frame_id: str | None = None,
+        map_id: str | None = None, source_age: float = 0.0,
     ) -> bool:
-        return self.cache.update(x, y, self._clock(), sim_stamp, yaw)
+        if not math.isfinite(source_age) or source_age < 0 or source_age > self.cache.input_timeout:
+            return False
+        return self.cache.update(
+            x, y, self._clock() - source_age, source_stamp, yaw, frame_id, map_id
+        )
 
     def start(self) -> None:
         if self._thread is None:
@@ -131,7 +136,7 @@ class PoseRelay:
             self._thread.join(timeout=5.0)
 
     def _run(self) -> None:
-        transport: Optional[Transport] = None
+        transport: Transport | None = None
         backoff = self._initial
         next_send = self._clock()
         next_connect = next_send
@@ -143,7 +148,7 @@ class PoseRelay:
                     transport = self._connect(self.url)
                     backoff = self._initial
                     next_send = self._clock()
-                except Exception as error:
+                except Exception as error:  # noqa: BLE001 - isolate external transport failures
                     LOGGER.warning(
                         "Pose WebSocket connect failed (%s); retrying in %.1fs",
                         type(error).__name__, backoff,
@@ -158,18 +163,22 @@ class PoseRelay:
                 if pose is not None:
                     try:
                         payload = {"x": pose.x, "y": pose.y}
+                        if pose.frame_id is not None:
+                            payload["frame_id"] = pose.frame_id
+                        if pose.map_id is not None:
+                            payload["map_id"] = pose.map_id
                         if pose.yaw is not None:
                             payload["yaw"] = pose.yaw
                         transport.send(json.dumps(payload, separators=(",", ":"), allow_nan=False))
-                    except Exception as error:
+                    except Exception as error:  # noqa: BLE001 - isolate external transport failures
                         LOGGER.warning(
                             "Pose WebSocket send failed (%s); reconnecting",
                             type(error).__name__,
                         )
                         try:
                             transport.close()
-                        except Exception:
-                            pass
+                        except Exception as error:  # noqa: BLE001 - best-effort socket cleanup
+                            LOGGER.debug("Pose socket close failed (%s)", type(error).__name__)
                         transport = None
                         next_connect = self._clock() + backoff
                         backoff = min(backoff * 2.0, self._maximum)
@@ -179,20 +188,27 @@ class PoseRelay:
         if transport is not None:
             try:
                 transport.close()
-            except Exception:
-                pass
+            except Exception as error:  # noqa: BLE001 - best-effort socket cleanup
+                LOGGER.debug("Pose socket close failed (%s)", type(error).__name__)
 
 
-def _websocket_transport(url: str) -> Transport:
+def _websocket_transport(url: str, device_token_file: str = "") -> Transport:
     import websocket  # type: ignore[import-not-found]
 
+    headers = {}
+    if device_token_file:
+        # Read on each connection so rotating credentials does not require a ROS restart.
+        token = Path(device_token_file).expanduser().read_text().strip()
+        if not token or any(c.isspace() for c in token):
+            raise ValueError("invalid device token file")
+        headers["Authorization"] = "Bearer " + token
     return _WebsocketTransport(
-        websocket.create_connection(url, timeout=5, suppress_origin=True), websocket
+        websocket.create_connection(url, timeout=5, suppress_origin=True, header=headers), websocket
     )
 
 
 class _WebsocketTransport:
-    """websocket-client가 ping에 응답하고 종료를 감지하도록 프레임을 읽습니다."""
+    """Read frames so websocket-client answers pings and detects disconnects."""
 
     def __init__(self, socket: object, module: object) -> None:
         self._socket = socket
@@ -210,7 +226,7 @@ class _WebsocketTransport:
                     self._socket.recv()  # type: ignore[attr-defined]
                 except self._module.WebSocketTimeoutException:
                     continue
-                except Exception:
+                except Exception:  # noqa: BLE001 - reader failure closes the transport
                     break
         finally:
             self._closed.set()

@@ -51,7 +51,7 @@
 | 서비스 요청 | `/submap_query` | `cartographer_ros_msgs/srv/SubmapQuery` | allowlist된 읽기 전용 요청; `slam_submap_query_service` |
 | 토픽 구독 | `<action>/_action/status` | `action_msgs/msg/GoalStatusArray` | Discovery된 최대 32개 status/feedback 토픽 내에서 선택 |
 | 토픽 구독 | `<action>/_action/feedback` | `<action package>/action/<Action>_FeedbackMessage` | Discovery 타입과 publisher QoS |
-| 토픽 구독 | `<사용자 선택 / camera 토픽>` | `discovery 타입` | 설정과 웹 선택에 따라 구독 생성 / 해제 |
+| 토픽 구독 | `<사용자 선택 토픽>` | `discovery 타입` | 설정과 웹 선택에 따라 구독 생성 / 해제 |
 
 응용 ROS publisher, service server와 action server/client는 없습니다. SubmapQuery client는 서브맵을 읽고, 녹화 제어 client는 독립 logger에 요청합니다. Discovery에서 해당 이름과 타입이 확인돼야 실제 구독을 생성합니다. 표의 타입은 기본 입력의 기대 타입이며 구독은 discovery 타입을 사용합니다. `runtime_namespace`가 비어 있으면 prefix는 없습니다. TF listener 구독은 별도로 생성됩니다.
 
@@ -74,3 +74,9 @@ Monitor와 logger의 `state_directory`는 같은 호스트의 같은 디렉터�
 HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성 녹화를 정지합니다.
 `POST /api/recording/session`은 정지 후 새 세션을 시작하고, 이미 녹화 중이면 같은
 세션을 반환합니다. Monitor 종료는 logger 서비스 호출 없이 자체 HTTP와 구독만 닫습니다.
+
+카메라 미리보기는 `camera_preview_url`(기본 `http://127.0.0.1:8769`)의
+[telemetry camera_preview](../../cleany_telemetry/docs/interfaces.md#camera_preview)를
+조회합니다. Monitor의 `/api/camera`는 응답을 중계하며 영상 구독, 변환과 캐시를
+소유하지 않습니다. 제공자 연결 실패는 HTTP 503이며 로컬 영상 처리로 대체하지 않습니다.
+기존 `camera_max_streams`, `camera_fps`는 camera_preview 노드에 설정합니다.

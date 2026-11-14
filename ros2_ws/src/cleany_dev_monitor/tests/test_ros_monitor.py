@@ -128,44 +128,6 @@ def test_qos_discovery_missing_transform_and_read_only_topics(tmp_path, monkeypa
         rclpy.shutdown()
 
 
-def test_camera_best_effort_subscription_and_expiry(tmp_path, monkeypatch):
-    import rclpy
-    from cleany_dev_monitor.node import MonitorNode
-    from rclpy.executors import SingleThreadedExecutor
-    from rclpy.qos import qos_profile_sensor_data
-    from sensor_msgs.msg import Image
-
-    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda *args: None)
-    rclpy.init()
-    monitor = MonitorNode()
-    source = rclpy.create_node("camera_test_source")
-    pub = source.create_publisher(Image, "/test_camera/image", qos_profile_sensor_data)
-    executor = SingleThreadedExecutor()
-    executor.add_node(monitor)
-    executor.add_node(source)
-    message = Image(height=2, width=2, encoding="rgb8", step=6, data=[255, 0, 0] * 4)
-    try:
-        deadline = time.monotonic() + 6
-        frame = None
-        while time.monotonic() < deadline:
-            monitor.hub.cameras.request("/test_camera/image")
-            pub.publish(message)
-            executor.spin_once(timeout_sec=0.05)
-            frame = monitor.hub.cameras.request("/test_camera/image")[0]
-            if frame:
-                break
-        assert frame and frame.width == 2 and frame.jpeg.startswith(b"\xff\xd8")
-        # 로봇 이동이나 제어 호출 없이 관측 lease를 만료시킵니다.
-        monitor.hub.cameras.clock = lambda: time.monotonic() + 5
-        monitor.discover()
-        assert "/test_camera/image" not in monitor.subs
-    finally:
-        monitor.destroy_node()
-        source.destroy_node()
-        executor.shutdown()
-        rclpy.shutdown()
-
-
 def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, monkeypatch):
     import json
     import rclpy
@@ -369,7 +331,7 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
             if found:
                 break
         assert found and deserialize_message(recorder.raw_message(recorder.session_id, key, found[0])[0], type(message)) == message
-        assert not monitor.hub.selections() and not monitor.hub.cameras.selected()
+        assert not monitor.hub.selections() and not hasattr(monitor.hub, "cameras")
         monitor.hub.recording.configure(defaults())
         monitor.discover()
         assert topic not in monitor.subs

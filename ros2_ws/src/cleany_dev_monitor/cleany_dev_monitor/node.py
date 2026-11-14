@@ -1,10 +1,12 @@
 """실시간 ROS·웹 관측과 독립 기록 노드의 client를 담당합니다."""
 import threading
+
 import rclpy
 from cleany_logger.observer import ObservationNode
+
 from .core import Hub
-from .slam_reader import SlamReader
 from .server import serve
+from .slam_reader import SlamReader
 
 
 class MonitorNode(ObservationNode):
@@ -26,7 +28,8 @@ class MonitorNode(ObservationNode):
     def __init__(self, **kwargs):
         super().__init__(node_name="cleany_dev_monitor", hub_factory=Hub,
                          slam_factory=SlamReader, record=False,
-                         extra_defaults={"logger_namespace": "/cleany_logger", "logger_timeout_s": 3.0}, **kwargs)
+                         extra_defaults={"logger_namespace": "/cleany_logger", "logger_timeout_s": 3.0,
+                                         "camera_preview_url": "http://127.0.0.1:8769"}, **kwargs)
         from .logger_client import LoggerClient
         self.logger_client = LoggerClient(self, self.config)
         self.stop_event = threading.Event()
