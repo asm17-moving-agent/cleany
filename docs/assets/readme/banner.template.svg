@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="title desc">
+  <title id="title">Cleany — a mobile manipulator for study cafés</title>
+  <desc id="desc">A ROS 2 project for clearing desks in unattended study cafés. The robot is a render of the original FreeCAD assembly.</desc>
+  <rect width="1200" height="460" rx="16" fill="#eff6f2"/>
+  <g font-family="Arial, sans-serif">
+    <text x="72" y="201" fill="#163e35" font-size="116" font-weight="700" letter-spacing="-5">cleany</text>
+    <text x="77" y="274" fill="#244d41" font-size="32" font-weight="600">A mobile manipulator for study cafés</text>
+    <text x="78" y="324" fill="#587267" font-size="23">Built with ROS 2</text>
+  </g>
+  <ellipse cx="941" cy="421" rx="151" ry="18" fill="#d5e4da"/>
+  <image x="785" y="23" width="300" height="407" xlink:href="{{CAD_IMAGE}}"/>
+</svg>

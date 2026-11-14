@@ -1,47 +1,171 @@
-# Cleany 로봇 소프트웨어
+<p align="center">
+  <img src="docs/assets/readme/banner.svg" width="100%" alt="Cleany — a mobile manipulator for study cafés. Render of the original CAD assembly.">
+</p>
 
-ROS 2 주행과 매핑, 센서 관측, 물체 조작 시뮬레이션, ESP32 구동을 개발합니다.
+<p align="center"><strong>English</strong> | <a href="README.ko.md">한국어</a></p>
 
-**[문서 홈](docs/index.md) · [브라우저로 문서 읽기](docs/index.html) · [개발환경 설치](docs/implementation/development-setup.md) · [팀 KB](docs/cleany-docs/README.md)**
+# Cleany
 
+[![ROS 2 Humble](https://img.shields.io/badge/ROS_2-Humble-22314E?style=flat-square&logo=ros&logoColor=white)](docs/implementation/development-setup.md)
+[![Ubuntu 22.04](https://img.shields.io/badge/Ubuntu-22.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)](docs/implementation/development-setup.md)
+[![Jetson Orin](https://img.shields.io/badge/NVIDIA-Jetson_Orin-76B900?style=flat-square&logo=nvidia&logoColor=white)](docs/implementation/how-to/control-plane-integration.md)
 
-## 바로 시작하기
+Cleany is a **mobile manipulator project for clearing desks in unattended study cafés**. The goal is to let an operator select a seat, then have the robot navigate to the desk, inspect the objects on it, and collect waste.
 
-| 목표 | 안내 |
+The robot combines XLeRobot-based dual arms, a Mecanum drive base, RGB-D cameras, and LiDAR. This repository contains the ROS 2 navigation, perception, and manipulation code, along with MCU firmware. The dashboard and backend are developed in [cleany-control-plane](https://github.com/asm17-moving-agent/cleany-control-plane).
+
+[Features](#features) · [Demos](#demos) · [Tech stack](#tech-stack) · [Architecture](#architecture) · [Getting started](#getting-started) · [Team](#team)
+
+## Features
+
+- **Navigation**: Build indoor maps with LiDAR and plan routes with Nav2. The Mecanum base supports forward, lateral, and rotational motion.
+- **Perception and manipulation**: Detect objects in RGB-D images, estimate their 3D positions, and generate grasp candidates. MoveIt 2 plans arm motion, and a Behavior Tree coordinates execution.
+- **Mission management**: Track work requested by the backend and report progress and results. Handle cancellation, duplicate requests, and recovery after faults.
+- **Manual control**: Drive the robot with a browser joystick or select a goal on the map. View robot position and camera previews.
+
+## Demos
+
+### Desk work and mapping
+
+<table>
+  <tr>
+    <th width="50%">Physical desk work</th>
+    <th width="50%">SLAM mapping</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/readme/table-work.gif" width="320" alt="Physical robot manipulation experiment with human assistance"></td>
+    <td align="center"><img src="docs/assets/readme/map-growth.gif" width="480" alt="Map growth from recorded maps and Cartographer sensor-replay snapshots"></td>
+  </tr>
+</table>
+
+### Perception and mobility
+
+![YOLOE detection, segmentation mask and depth-based 3D target](docs/assets/readme/perception-pipeline.png)
+
+![Mecanum kinematics: CAD animation of forward, lateral and rotational commands](docs/assets/readme/mecanum-motion.gif)
+
+### Simulation
+
+<table>
+  <tr>
+    <th width="50%">Gazebo study café</th>
+    <th width="50%">Isaac Sim parallel environments</th>
+  </tr>
+  <tr>
+    <td align="center" valign="middle"><img src="docs/assets/readme/gazebo-study-cafe.png" width="100%" alt="Cleany in the Gazebo study café environment"></td>
+    <td align="center" valign="middle"><img src="docs/assets/readme/isaac-parallel.png" width="100%" alt="Sixteen independent robot environments in Isaac Sim"></td>
+  </tr>
+  <tr>
+    <th width="50%">MuJoCo</th>
+    <th width="50%">RViz</th>
+  </tr>
+  <tr>
+    <td align="center" valign="middle"><img src="docs/assets/readme/mujoco-work.gif" width="100%" alt="Recorded MuJoCo grasp motion"></td>
+    <td align="center" valign="middle"><img src="docs/assets/readme/rviz-motion.gif" width="100%" alt="Recorded arm motion in RViz"></td>
+  </tr>
+</table>
+
+### Dashboard and CAD
+
+<table>
+  <tr>
+    <th width="50%">Dashboard (example data)</th>
+    <th width="50%">FreeCAD</th>
+  </tr>
+  <tr>
+    <td align="center" valign="middle"><a href="https://github.com/asm17-moving-agent/cleany-control-plane"><img src="docs/assets/readme/dashboard.png" width="100%" alt="Dashboard showing the seat layout and robot status"></a></td>
+    <td align="center" valign="middle"><img src="docs/assets/readme/freecad-workspace.png" width="100%" alt="Cleany assembly open in the FreeCAD workspace"></td>
+  </tr>
+</table>
+
+## Tech stack
+
+| Area | Technologies |
 |---|---|
-| 처음 빌드·실행 | [개발환경](docs/implementation/development-setup.md) |
-| 센서 입력과 인식 확인 | [센서 가이드](docs/implementation/how-to/sensors.md) |
-| 물체 관찰·계획·조작 | [조작 가이드](docs/implementation/how-to/manipulation.md) |
-| MCU와 휠 구동 확인 | [베이스 가이드](docs/implementation/how-to/base.md) |
-| 휴대폰 목표 주행 | [화면으로 따라 하기](docs/implementation/how-to/phone-navigation.md) |
-| 하드웨어로 지도 만들기 | [매핑 실행](ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
-| 시스템과 ROS 연결 이해 | [연동 구조](docs/implementation/integration.md), [Navigation 구성](ros2_ws/src/cleany_navigation/README.md) |
-| 시뮬레이터 실행 | [시뮬레이션](docs/implementation/how-to/simulation.md) |
-| 기록과 상태 관측 | [Logger·Monitor](docs/implementation/how-to/monitoring.md) |
-| 코드 변경 검증 | [검증 안내](docs/implementation/testing.md) |
+| Development | Ubuntu 22.04, ROS 2 Humble, Python 3.10, C++ |
+| Hardware | NVIDIA Jetson Orin, ESP32, micro-ROS |
+| Navigation | Cartographer, Nav2, AMCL, Smac Lattice, MPPI |
+| Perception | RGB-D, YOLOE, OpenCV |
+| Manipulation | MoveIt 2, ros2_control, BehaviorTree.CPP, Feetech Servo |
+| Modeling and simulation | FreeCAD, URDF/Xacro, MJCF, Gazebo Fortress, MuJoCo, Isaac Sim (experiments) |
 
-기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress입니다. 저장소 루트의 Humble 터미널에서 시뮬레이션을 시작합니다.
+## Architecture
+
+Control Bridge forwards backend requests to Mission Runtime, which coordinates navigation and manipulation. Supervisor checks robot availability and manages execution permission and recovery.
+
+```mermaid
+flowchart TB
+    CP["Dashboard<br/>Backend"]
+    Bridge["Control Bridge<br/>Backend ↔ ROS"]
+    Mission["Mission Runtime<br/>State / results"]
+    Supervisor["Supervisor<br/>Permission / recovery"]
+    Nav["Navigation<br/>Nav2 Adapter"]
+    Desk["Desk Adapter<br/>Mock / Action"]
+    Telemetry["Telemetry<br/>Robot pose"]
+
+    CP <-->|WebSocket| Bridge
+    Bridge <--> Mission
+    Supervisor -.-> Mission
+    Mission --> Nav
+    Mission --> Desk
+    Telemetry -->|Pose| Bridge
+
+    classDef web fill:#edf4fa,stroke:#6e89a2,color:#21384b
+    classDef edge fill:#edf7f3,stroke:#6a9b8c,color:#214a40
+    classDef control fill:#fff6e8,stroke:#b89b66,color:#5d4827
+    class CP web
+    class Bridge,Mission,Nav,Desk,Telemetry edge
+    class Supervisor control
+```
+
+`cleany_teleop` handles manual commands. `cleany_telemetry` provides read-only pose and camera observations and runs without the backend. Control Bridge and the camera proxy handle backend communication.
+
+Depending on the launch configuration, desk tasks use a mock or a manipulation Action server. See the [integration guide](docs/implementation/integration.md) and [package interfaces](docs/implementation/ros-interfaces.md) for details.
+
+## Development status
+
+Navigation, manipulation, and dashboard integration are in progress. **The full physical workflow still needs field validation.**
+
+- [ ] Verify desk approach coordinates and robot calibration at the deployment site.
+- [ ] Validate the complete request → navigation → desk clearing → return → result sequence on Jetson.
+
+[Validation records](docs/EVIDENCE.md)
+
+## Getting started
+
+The reference environment is Ubuntu 22.04 with ROS 2 Humble. Follow the [development setup guide](docs/implementation/development-setup.md) first. The commands below assume ROS is installed, rosdep is initialized, and the project rosdep rules are registered.
 
 ```bash
-git submodule update --init --recursive docs/cleany-docs
+git clone --recurse-submodules https://github.com/asm17-moving-agent/cleany.git
+cd cleany
 source /opt/ros/humble/setup.bash
-make deps-gazebo
-make test-gazebo
+
+make deps
+make build
+source "$(make -s print-install-base)/setup.bash"
+```
+
+Run tests and start Gazebo:
+
+```bash
+make test
 make sim-gazebo
 ```
 
-전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 명령의 범위와 준비 조건은 [개발환경](docs/implementation/development-setup.md)과 [검증 안내](docs/implementation/testing.md)를 따릅니다. 시뮬레이션과 실물 동작은 구분해서 확인합니다.
+`make sim-gazebo` starts Gazebo in headless mode. For Nav2, missions, and physical hardware setup, see the guides below. The implementation guides are currently written in Korean.
 
-## 코드와 문서
+- [SLAM mapping](docs/implementation/how-to/mapping.md) / [Phone navigation](docs/implementation/how-to/phone-navigation.md)
+- [Perception and arm manipulation](docs/implementation/how-to/manipulation.md)
+- [Backend and mission integration](docs/implementation/how-to/mission.md) / [Jetson deployment](docs/implementation/how-to/control-plane-integration.md)
 
-| 위치 | 역할 |
-|---|---|
-| `ros2_ws/src/` | ROS 패키지, core, launch와 설정 |
-| `esp32/` | MCU 펌웨어, 빌드·업로드, 배선 |
-| `tests/`, `tools/` | 통합 검사와 개발·분석 도구 |
-| `docs/implementation/` | 현재 설계, 구현과 실행 절차 |
-| `docs/guide/` | 신입용 개념 학습과 실습 |
-| 각 패키지 `docs/` | 인터페이스, 설정, 단위와 동작 조건 |
-| `docs/cleany-docs/` | 제품 범위와 설계 결정을 관리하는 별도 KB |
+## Team
 
-문서 사이트는 `docs/index.html`을 브라우저에서 열면 됩니다. Markdown을 수정한 뒤 `python3 tools/docs/build_site.py`로 갱신하며, `--check`로 원본과 일치하는지 확인합니다. 빌드·실행 원본의 로컬 경로는 팀 공유 위치를 의미하지 않습니다.
+**AI·SW Maestro, 17th cohort | AI 에이전트는 움직이고 싶어**
+
+이동근, 박창수, 이정현
+
+[GitHub](https://github.com/asm17-moving-agent) · [Control plane repository](https://github.com/asm17-moving-agent/cleany-control-plane)
+
+---
+
+[Documentation](docs/index.md) · [Learning guide](docs/guide/README.md) · [Project planning](docs/cleany-docs/README.md) · [Image and video sources](docs/assets/readme/sources.json)

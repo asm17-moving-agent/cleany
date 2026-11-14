@@ -13,7 +13,7 @@ OUTPUT = ROOT / "docs/index.html"
 def build() -> str:
     """GitHub Markdown viewer에서도 링크가 작동하도록 소스 경로를 유지합니다."""
     patterns = (
-        "README.md", "docs/*.md", "docs/implementation/*.md",
+        "README.md", "README.ko.md", "docs/*.md", "docs/implementation/*.md",
         "docs/implementation/how-to/*.md", "docs/implementation/reference/*.md",
         "esp32/README.md",
         "esp32/*/README.md", "containers/*/README.md",
