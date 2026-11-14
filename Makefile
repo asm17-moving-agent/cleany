@@ -17,7 +17,7 @@ LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
-MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
+MISSION_PACKAGES := cleany_interfaces cleany_telemetry cleany_mission_manager cleany_control_bridge
 MISSION_MOCK_PACKAGES := $(MISSION_PACKAGES) cleany_skill_executor
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
@@ -321,7 +321,7 @@ test: build
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_mission_manager/tests" \
 		"$(ROS2_WS)/src/cleany_control_bridge/test"
 
@@ -553,7 +553,7 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_logger cleany_dev_monitor
+		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_logger cleany_telemetry cleany_dev_monitor
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
@@ -562,7 +562,7 @@ test-logger:
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_logger/tests"
 
 test-dev-monitor: test-logger
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
 
 run-dev-monitor:
@@ -672,3 +672,25 @@ print-data-root:
 	@printf '%s\n' "$(CLEANY_DATA_ROOT)"
 print-build-root:
 	@printf '%s\n' "$(CLEANY_BUILD_ROOT)"
+
+.PHONY: run-camera-preview test-camera-preview-core
+run-camera-preview:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	ros2 run cleany_telemetry camera_preview $(CAMERA_PREVIEW_ROS_ARGS)
+
+test-camera-preview-core:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_telemetry:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_telemetry/test/test_camera.py"
+
+.PHONY: build-pose-observation test-pose-observation
+build-pose-observation:
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-select cleany_telemetry cleany_control_bridge cleany_bringup
+
+test-pose-observation:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_telemetry:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_telemetry/test/test_pose.py" \
+		"$(ROS2_WS)/src/cleany_telemetry/test/test_pose_node.py" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test/test_pose_relay.py" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test/test_pose_backend_node.py"

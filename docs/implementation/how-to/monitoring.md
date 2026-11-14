@@ -19,12 +19,35 @@ flowchart TD
   Logger --> Bag["rosbag2 / 원본"]
   Logger --> DB["SQLite / 가공 관측과 색인"]
   ROS --> Monitor["Monitor / live 관측"]
+  ROS --> Camera["telemetry camera_preview"]
+  Camera --> Monitor
+  Camera --> Backend["Dashboard Backend"]
   DB --> Monitor
   CLI["CLI"] -->|"시작 / 종료 / 설정"| Logger
   Monitor -->|"서비스로 기록 제어"| Logger
 ```
 
 화면에서 보이는 카메라 preview와 원본 녹화 정책은 별개입니다. 기록 시작·종료는 Logger 상태로 확인하고, 과거 자료는 읽기 전용 조회 경로를 사용합니다.
+
+## 카메라 미리보기
+
+카메라 드라이버가 영상을 발행하는 ROS 환경에서 별도 터미널로 실행합니다.
+Backend와 위치 relay는 필요하지 않습니다.
+
+```bash
+make build-telemetry
+make run-camera-preview
+```
+
+미리보기 노드는 `127.0.0.1:8769`에서 요청된 영상 토픽만 구독합니다. 예를 들어
+`curl 'http://127.0.0.1:8769/api/cameras'`로 목록을 확인하고
+`curl 'http://127.0.0.1:8769/api/camera?topic=/camera/color/image_raw/compressed' -o /tmp/head.jpg`로
+조회합니다. 첫 응답은 구독 준비 중인 202일 수 있으므로 상태와 Content-Type을 확인합니다.
+화면을 닫으면 조회 lease가 만료되어 구독을 해제합니다. 녹화는 시작하지 않습니다.
+
+Monitor는 같은 주소를 기본으로 사용합니다. 변경 시 `camera_preview_url`을 지정합니다.
+드라이버와 camera_preview의 DDS domain과 네트워크 설정이 같아야 합니다.
+해상도, 처리 빈도, 상태 코드는 [카메라 계약](../../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#camera_preview)을 따릅니다.
 
 ## 개발 Monitor
 
@@ -135,3 +158,36 @@ Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해�
 ## Jetson 얼굴 디스플레이
 
 전용 앱은 `/home/cleany/cleany-display`에 독립 설치합니다. 자동 로그인 후 로컬 Chromium 키오스크를 실행하고 ROS 상태를 구독합니다. 설치, 서비스 재시작과 자동 시작 해제는 [디스플레이 운영](../../../ros2_ws/src/cleany_display/README.md)을 따릅니다. 기존 `/home/cleany/cleany` checkout과 그 실행 프로세스를 변경하지 않습니다.
+
+## 읽기 전용 위치 관측과 Backend 전송
+
+SLAM 지도 위치를 관측할 때는 localization이 제공하는 `map -> base_link` TF를 사용합니다.
+아래 관측 노드는 Nav2나 센서 드라이버를 시작하지 않습니다.
+
+```bash
+ros2 run cleany_telemetry pose_observer --ros-args -p source:=tf
+ros2 topic echo /telemetry/pose --qos-reliability best_effort
+```
+
+Backend에 연결할 때만 별도 터미널에서 adapter를 실행합니다. 지도 ID와 토큰 파일은
+현재 Backend에 등록한 값을 지정합니다.
+
+```bash
+ros2 run cleany_control_bridge pose_backend_bridge --ros-args \
+  -p map_id:="$CLEANY_MAP_ID" -p device_token_file:="$CLEANY_DEVICE_TOKEN_FILE"
+```
+
+로컬 odometry만 확인하려면 관측 노드의 `source:=odom`과 `odom_topic:=/odom`을
+사용합니다. 이 좌표는 map 위치로 표시하지 않습니다. 시뮬레이션은 두 노드에 모두
+`use_sim_time:=true`를 설정합니다. 위치가 멈추면 원본 TF/odom의 좌표계와 시각을 먼저
+확인하고, ROS 위치는 정상인데 Dashboard만 끊기면 bridge의 장치 인증과 URL을 확인합니다.
+자세한 계약은 [관측 제공자](../../../ros2_ws/src/cleany_telemetry/docs/interfaces.md#pose_observer)와
+[Backend adapter](../../../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#pose_backend_bridge)를 따릅니다.
+
+두 노드는 다음 launch로 함께 실행할 수도 있습니다. 기본 `enable_backend=false`는
+관측만 실행합니다. 이 launch는 주행이나 localization을 시작하지 않습니다.
+
+```bash
+ros2 launch cleany_bringup pose_observation.launch.py enable_backend:=true \
+  map_id:="$CLEANY_MAP_ID" device_token_file:="$CLEANY_DEVICE_TOKEN_FILE"
+```

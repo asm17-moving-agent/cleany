@@ -1,1 +1,1 @@
-"""ROS telemetry 어댑터입니다."""
+"""Read-only robot observations, independent of external consumers."""

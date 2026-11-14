@@ -64,19 +64,10 @@ def grid_origin(origin: list[float], transform: list[float]) -> list[float]:
     return [*transform_point(origin[0], origin[1], transform), origin[2] + transform[2]]
 
 
-class NoCameraPreview:
-    """기록 과정에서는 영상을 디코딩하거나 브라우저 카메라 임대를 만들지 않습니다."""
-    def selected(self):
-        return set()
-    def receive(self, topic, message):
-        pass
-
-
 class ObservationBuffer:
     """생성자는 브라우저나 디스크를 기다리지 않습니다. telemetry는 최신값으로 합치고 이벤트는 ring에 보관합니다."""
 
     def __init__(self, event_limit=2048):
-        self.cameras = NoCameraPreview()
         self.recording = RecordingControls()
         self.lock = threading.Lock()
         self.latest = {}

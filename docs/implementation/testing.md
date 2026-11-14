@@ -34,6 +34,7 @@ flowchart TD
 | Base / ESP32 | `make test-base`, `make test-motor-core` |
 | 매핑 / 슬립 분석 | `make test-hardware-mapping-core`, `make test-slip-detection` |
 | Logger / Monitor | `make test-logger`, `make test-dev-monitor` |
+| Telemetry 카메라 | `make test-camera-preview-core`, ROS 환경의 `make test-telemetry` |
 
 환경과 선택 실행 조건, 전체 명령표는 [상세 참조](reference/testing.md#검사-선택)를 따릅니다. 장치가 없는 검사와 실물 실행 검사는 같은 성공으로 합산하지 않습니다.
 
@@ -65,3 +66,22 @@ python3 tools/docs/check_reader.py --endpoint http://localhost:9228
 | 실물 매핑 / ToF / 화면 / 모델 | [기능별 조건](reference/testing.md#실물-매핑-패키지-경계) |
 | 기록 분석과 주행 모델 비교 | [오프라인 분석](reference/testing.md#기록-분석-도구) |
 | 결과의 해석 | [결과와 증거](reference/testing.md#결과와-증거) |
+
+### 위치 관측과 Backend adapter 분리 검증
+
+`make build-pose-observation`으로 telemetry, control bridge와 bringup을 빌드한 뒤 해당
+install의 `setup.bash`를 적용합니다. `make test-pose-observation`은 원본 시각과 좌표계,
+오래된 입력, TF와 odom 관측, Backend payload와 인증 파일 갱신을 확인합니다. ROS 테스트는
+합성 입력을 사용하므로 실물 위치 정확도를 증명하지 않습니다.
+
+`tools/validation/telemetry_pose_pipeline.py`는 별도 ROS domain에서 메모리 DB를 사용하는
+실제 Backend 서버와 합성 위치 입력을 연결합니다. 관측 유지, 인증 전송, 입력 만료와
+Backend 재연결을 확인하며 운영 DB와 주행 명령은 사용하지 않습니다.
+
+```bash
+ROS_DOMAIN_ID=181 ROS_LOCALHOST_ONLY=1 RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+python3 tools/validation/telemetry_pose_pipeline.py \
+  --backend-root "$CLEANY_CONTROL_PLANE_ROOT" \
+  --backend-python "$CLEANY_CONTROL_PLANE_ROOT/apps/backend/.venv/bin/python" \
+  --output "$CLEANY_DATA_ROOT/runs/platform/$(date +%F)_telemetry-pose-separation"
+```

@@ -51,7 +51,7 @@ flowchart LR
 | Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
 | 매핑 원본 bag 도구 | `python3 -m pytest tests/tools/test_mapping_bag_recorder.py` | 센서 토픽 선택, 기존 bag 보존, native recorder 종료와 flush |
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
-| Telemetry | `make test-telemetry` | odom relay |
+| Telemetry | `make test-telemetry`, `make test-pose-observation` | 위치 관측, 카메라 미리보기와 Backend 위치 adapter |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
 
 | 실행 환경 | 규칙 |

@@ -8,5 +8,6 @@ setup(
     tests_require=["pytest"],
     maintainer="Cleany Team", maintainer_email="team@example.com", license="MIT",
     description="Durable Backend gateway to Mission Runtime ROS adapter.",
-    entry_points={"console_scripts": ["control_bridge = cleany_control_bridge.node:main"]},
+    entry_points={"console_scripts": ["control_bridge = cleany_control_bridge.node:main",
+                                      "pose_backend_bridge = cleany_control_bridge.pose_node:main"]},
 )

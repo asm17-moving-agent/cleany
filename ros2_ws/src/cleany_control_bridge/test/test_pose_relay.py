@@ -6,7 +6,7 @@ import struct
 import threading
 import time
 
-from cleany_telemetry.relay import PoseCache, PoseRelay
+from cleany_control_bridge.pose_relay import PoseCache, PoseRelay
 
 
 def test_cache_rejects_nonfinite_and_clock_reset():
@@ -206,7 +206,7 @@ def test_send_failure_reconnects_with_backoff():
 def test_quaternion_yaw_cardinal_scaled_and_invalid():
     import math
     import pytest
-    from cleany_telemetry.relay import quaternion_yaw
+    from cleany_telemetry.pose import quaternion_yaw
 
     for angle in (0, math.pi / 2, -math.pi / 2, math.pi - 0.001, -math.pi + 0.001):
         for scale in (1, 2, -1):
@@ -240,5 +240,51 @@ def test_worker_optional_yaw_and_invalid_orientation_clear_heading():
             while received[-1]['x'] != stamp and time.monotonic() < deadline:
                 time.sleep(.01)
             assert received[-1] == {'x': stamp, 'y': 2}
+    finally:
+        relay.stop()
+
+
+def test_source_age_consumes_delivery_budget_and_frame_switch_resets_order():
+    cache = PoseCache(1.0)
+    assert cache.update(1, 2, 0, 10, frame_id='odom')
+    assert cache.update(3, 4, .1, 9, frame_id='map', map_id='slam-fixture')
+    assert cache.fresh(.1).frame_id == 'map'
+    relay = PoseRelay('ws://fixture', input_timeout=1, monotonic=lambda: 100)
+    assert relay.update_pose(1, 2, 10, source_age=.8)
+    assert relay.cache.fresh(100.1) is not None
+    assert relay.cache.fresh(100.21) is None
+    assert not relay.update_pose(1, 2, 11, source_age=1.1)
+
+
+def test_backend_metadata_and_rotating_authentication(tmp_path, monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from cleany_control_bridge import pose_relay
+
+    connections = []
+    socket = SimpleNamespace(close=lambda: None)
+    module = SimpleNamespace(create_connection=lambda url, **kwargs: connections.append(kwargs) or socket)
+    monkeypatch.setitem(sys.modules, 'websocket', module)
+    monkeypatch.setattr(pose_relay, '_WebsocketTransport', lambda socket, module: socket)
+    token = tmp_path / 'device-token'
+    token.write_text('fixture-token-one\n')
+    pose_relay._websocket_transport('ws://fixture', str(token))
+    token.write_text('fixture-token-two\n')
+    pose_relay._websocket_transport('ws://fixture', str(token))
+    assert [c['header']['Authorization'] for c in connections] == [
+        'Bearer fixture-token-one', 'Bearer fixture-token-two']
+
+    messages = []
+    ready = threading.Event()
+    def send(payload):
+        messages.append(json.loads(payload))
+        ready.set()
+    transport = SimpleNamespace(send=send, close=lambda: None)
+    relay = PoseRelay('ws://fixture', transport_factory=lambda _: transport)
+    relay.update_pose(1, 2, 10, yaw=0, frame_id='map', map_id='slam-fixture')
+    relay.start()
+    try:
+        assert ready.wait(1)
+        assert messages[-1] == dict(x=1, y=2, yaw=0, frame_id='map', map_id='slam-fixture')
     finally:
         relay.stop()

@@ -120,8 +120,6 @@ class ObservationNode(Node):
             "max_grid_cells": 524288,
             "bt_event_repeat_interval_s": 1.0,
             "max_selected_topics": 16,
-            "camera_max_streams": 2,
-            "camera_fps": 5.0,
             "session_limit_bytes": 104857600,
             "total_limit_bytes": 1073741824,
         }
@@ -166,16 +164,9 @@ class ObservationNode(Node):
             raise ValueError("max_selected_topics must be 1..64")
         if not 1 <= self.config["max_grid_cells"] <= 1048576:
             raise ValueError("max_grid_cells must be 1..1048576")
-        if (
-            not 1 <= self.config["camera_max_streams"] <= 4
-            or not 1 <= self.config["camera_fps"] <= 10
-        ):
-            raise ValueError("Camera limits: streams 1..4, fps 1..10")
         self.hub = hub_factory()
         if not record:
             self.hub.recording.configure({**self.hub.recording.settings, "active": False})
-        self.hub.cameras.limit = self.config["camera_max_streams"]
-        self.hub.cameras.fps = self.config["camera_fps"]
         self.buffer = Buffer()
         self.listener = TransformListener(self.buffer, self)
         self.config, self.fixed, self.layers, self.navigation_keys = routes(self.config)
@@ -257,7 +248,7 @@ class ObservationNode(Node):
                 if name in self.subs and self.subs[name][1][2]:
                     self.destroy_subscription(self.subs.pop(name)[0])
             self.raw_recording_revision = revision
-        wanted = self.fixed | selected | self.hub.cameras.selected() | self.hub.recording.topics()
+        wanted = self.fixed | selected | self.hub.recording.topics()
         # Action status/feedback은 읽기 전용 공개 토픽이며 goal/result 서비스가 아닙니다.
         wanted.update(
             sorted(
@@ -423,10 +414,6 @@ class ObservationNode(Node):
                 self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time,
                                          timestamp_ns=self.get_clock().now().nanoseconds,
                                          reliable=signature[1], latched=signature[2])
-            if hasattr(message, "encoding") or (
-                hasattr(message, "format") and hasattr(message, "data")
-            ):
-                self.hub.cameras.receive(topic, message)
             if topic in self.slam.topics:
                 if now-self.last_ui.get(topic, 0) >= .5:
                     self.last_ui[topic] = now
