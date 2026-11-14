@@ -11,6 +11,8 @@ import time
 
 import numpy as np
 
+from cleany_skill_executor.core.ik_diagnostics import ScoredAlignments, merge_alignments
+
 from cleany_skill_executor.core.alignment import tcp_axes
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PoseValue
 from cleany_skill_executor.curobo_adapter import CuRoboGraspAdapter
@@ -44,6 +46,20 @@ class CuRoboBatchEngine(CuRoboEngine):
                     seeds: Sequence[Sequence[JointSolution]], state: dict,
                     world: dict, *, continue_work: Callable[[], bool] | None = None
                     ) -> list[list[JointSolution]]:
+        return self._solve_batch(arm, tip, positions, seeds, state, world,
+                                 continue_work=continue_work)
+
+    def solve_scored_batch(self, arm, targets, seeds, state, world, config, preferred_rolls,
+                           *, score_fallback=None, continue_work=None):
+        """Keep primary IK joint tensors on the GPU through pose scoring."""
+        return self._solve_batch(arm, f'{arm}_grasp_tcp', [t.position for t in targets],
+                                 seeds, state, world, score_targets=targets,
+                                 score_config=config, preferred_rolls=preferred_rolls,
+                                 score_fallback=score_fallback, continue_work=continue_work)
+
+    def _solve_batch(self, arm, tip, positions, seeds, state, world, *,
+                     continue_work=None, score_targets=None, score_config=None,
+                     preferred_rolls=None, score_fallback=None):
         from curobo.types.math import Pose
 
         if not positions:
@@ -100,8 +116,14 @@ class CuRoboBatchEngine(CuRoboEngine):
                 newton_iters=None,
             )
             self.torch.cuda.synchronize()
-        joints = result.solution.detach().cpu().numpy().reshape(len(positions), -1, len(names))
-        successes = result.success.detach().cpu().numpy().reshape(len(positions), -1)
+        if score_targets is not None and continue_work is not None and not continue_work():
+            raise InterruptedError('IK warmup window ended before pose scoring')
+        if score_targets is None:
+            joints = result.solution.detach().cpu().numpy().reshape(len(positions), -1, len(names))
+            successes = result.success.detach().cpu().numpy().reshape(len(positions), -1)
+        else:
+            joints = result.solution.detach().reshape(len(positions), -1, len(names))
+            successes = result.success.detach().reshape(len(positions), -1)
         if hasattr(self, 'timings'):
             self.timings.setdefault('ik_batch_calls', []).append({
                 'arm': arm, 'tip': tip, 'targets': target_count,
@@ -119,6 +141,23 @@ class CuRoboBatchEngine(CuRoboEngine):
             # Diagnostics must stay bounded across a long-lived selector.
             del self.timings['ik_batch_calls'][:-128]
         order = [names.index(n) for n in ARM_JOINT_NAMES[arm]]
+        if score_targets is not None:
+            from cleany_skill_executor.curobo_alignment import score_wrist_batch
+
+            joints = joints[:target_count, :, order]
+            valid = successes[:target_count].bool() & self.torch.isfinite(joints).all(dim=-1)
+            owners = self.torch.arange(target_count, device=joints.device)[:, None].expand_as(valid)
+            valid_joints, valid_owners = joints[valid], owners[valid]
+            if score_fallback is not None and len(valid_joints) < self.config.device_alignment_min_solutions:
+                packed = self.torch.cat((valid_owners[:, None], valid_joints), dim=1).cpu().tolist()
+                groups = [[] for _ in score_targets]
+                for row in packed:
+                    groups[int(row[0])].append(JointSolution(ARM_JOINT_NAMES[arm], tuple(row[1:])))
+                return score_fallback(groups)
+            detail = f'arm={arm} targets={target_count} solutions={len(valid_joints)}'
+            with self._progress_stage('GPU_FK_ALIGNMENT', detail), self.torch.no_grad():
+                return score_wrist_batch(self, arm, score_targets, valid_joints, valid_owners,
+                                         state, score_config, preferred_rolls)
         return [[JointSolution(ARM_JOINT_NAMES[arm], tuple(float(v) for v in q[order]))
                  for q, ok in zip(group, mask) if ok and np.isfinite(q).all()]
                 for group, mask in zip(joints[:target_count], successes[:target_count])]
@@ -180,9 +219,18 @@ class CuRoboBatchAdapter(CuRoboGraspAdapter):
             preferred = [(dict(zip(seed.names, seed.positions))[ARM_JOINT_NAMES[arm][-1]]
                           if seed is not None else state.get(ARM_JOINT_NAMES[arm][-1]))
                          for seed in seeds]
-            direct = self._compute(self._engine.solve_batch, arm, f'{arm}_grasp_tcp',
-                                   [t.position for t in targets], bases, state, world)
-            evaluated = self._score_batch(arm, targets, direct, state, preferred)
+            solve_scored = getattr(self._engine, 'solve_scored_batch', None)
+            if solve_scored is not None:
+                def score_fallback(solutions):
+                    return self._score_batch(arm, targets, solutions, state, preferred)
+
+                evaluated = self._compute(
+                    lambda: solve_scored(arm, targets, bases, state, world, self._config,
+                                         preferred, score_fallback=score_fallback))
+            else:
+                direct = self._compute(self._engine.solve_batch, arm, f'{arm}_grasp_tcp',
+                                       [t.position for t in targets], bases, state, world)
+                evaluated = self._score_batch(arm, targets, direct, state, preferred)
             chosen = self._choose_batch(arm, evaluated, preferred)
             refinement_targets = self._alignment_refinement_targets(len(targets))
             pending = [i for i, item in enumerate(chosen)
@@ -206,15 +254,23 @@ class CuRoboBatchAdapter(CuRoboGraspAdapter):
                                       [a + p for a, p in zip(aims, projected)][:len(pending)],
                                       state, [preferred[i] for i in pending])
             for index, added in zip(pending, extra):
-                evaluated[index].extend(added)
+                evaluated[index] = merge_alignments(evaluated[index], added)
             chosen = self._choose_batch(arm, evaluated, preferred)
             for i, item in enumerate(chosen):
                 if item is None:
-                    rejected = [q for q in evaluated[i] if not self._feasible_alignment(q)]
+                    group = evaluated[i]
+                    items = group.candidates if isinstance(group, ScoredAlignments) else group
+                    rejected = [q for q in items if not self._feasible_alignment(q)]
                     chosen[i] = self._best_alignment(rejected, preferred[i]) if rejected else None
             return chosen
 
     def _score_batch(self, arm, targets, solutions, state, preferred_rolls=None):
+        if preferred_rolls is None:
+            preferred_rolls = [state.get(ARM_JOINT_NAMES[arm][-1])] * len(targets)
+        score = getattr(self._engine, 'score_batch', None)
+        minimum = getattr(getattr(self, '_gpu_config', None), 'device_alignment_min_solutions', 32)
+        if score is not None and sum(map(len, solutions)) >= minimum:
+            return self._compute(score, arm, targets, solutions, state, self._config, preferred_rolls)
         # One FK batch derives exact roll angles, then a second scores all
         # bounded variants. Keep candidate ownership through both expansions.
         originals = list(dict.fromkeys(q for group in solutions for q in group))

@@ -128,7 +128,8 @@ class ReadinessProbe(Node):
         else:
             result = self.controllers_future.result()
             active = {c.name for c in result.controller if c.state == 'active'} if result else set()
-            if not {'left_arm_controller', 'left_gripper_controller'} <= active:
+            required = {'left_arm_controller', 'left_gripper_controller'}
+            if not required <= active:
                 # Controllers can still be activating; never accept an old inactive response.
                 self.controllers_future = None
                 pending.append('Active arm/gripper controllers')

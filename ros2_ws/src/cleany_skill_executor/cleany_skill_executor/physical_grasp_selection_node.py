@@ -118,6 +118,7 @@ class GraspSelectionNode(Node):
             'curobo_collision_margin_m': 0.0001,
             'curobo_collision_hull_max_expansion_m': 0.001,
             'curobo_moveit_shadow_validation': False,
+            'curobo_device_alignment_min_solutions': 32,
             'joint_state_topic': 'joint_states',
             'planning_frame': 'base_link',
             'joint_state_max_age_sec': 0.5,
@@ -235,6 +236,11 @@ class GraspSelectionNode(Node):
         def wait(duration: float) -> None:
             time.sleep(min(duration, 0.01))
 
+        def response_waiter(future):
+            completed = threading.Event()
+            future.add_done_callback(lambda _: completed.set())
+            return completed.wait
+
         backend = str(self.get_parameter('motion_backend').value)
         adapter_class = MoveItGraspAdapter
         adapter_options = {}
@@ -317,6 +323,7 @@ class GraspSelectionNode(Node):
                 ),
             ),
             spin_once=wait,
+            response_wait_factory=response_waiter,
             **adapter_options,
         )
         self.get_logger().info(f'Motion backend: {self._adapter.planner_id}')
@@ -342,7 +349,7 @@ class GraspSelectionNode(Node):
         self._geometry_cache = CollisionGeometryCache()
         use_mesh = self.get_parameter('use_observed_collision_geometry').value
         self._geometry_subscription = subscribe_collision_geometry(self, self._geometry_cache) if use_mesh else None
-        self._scene = TargetSceneTransaction(self, spin_once=wait,
+        self._scene = TargetSceneTransaction(self, spin_once=wait, response_wait_factory=response_waiter,
             timeout_sec=float(self.get_parameter('planning_scene_timeout_sec').value),
             support_patch_margin_m=float(self.get_parameter('support_patch_margin_m').value),
             geometry_lookup=self._geometry_cache.get if use_mesh else None)

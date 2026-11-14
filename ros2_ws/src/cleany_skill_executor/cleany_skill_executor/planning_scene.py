@@ -73,6 +73,7 @@ class TargetSceneTransaction:
         spin_once: Callable[[float], None] | None = None,
         support_patch_margin_m: float = 0.0,
         geometry_lookup: Callable[[Any], Any] | None = None,
+        response_wait_factory: Callable[[Any], Callable[[float], Any]] | None = None,
     ) -> None:
         if not math.isfinite(timeout_sec) or timeout_sec <= 0:
             raise ValueError('Planning scene timeout must be positive and finite')
@@ -90,6 +91,7 @@ class TargetSceneTransaction:
         )
         self._timeout = timeout_sec
         self._spin_once = spin_once or (lambda duration: time.sleep(duration))
+        self._response_wait_factory = response_wait_factory
         self._object_id = ''
         self._saved_acm = None
         self._collision_object: CollisionObject | None = None
@@ -103,13 +105,15 @@ class TargetSceneTransaction:
         if not client.wait_for_service(timeout_sec=self._timeout):
             raise InfrastructureError('planning-scene service unavailable')
         future = client.call_async(request)
+        wait = (self._response_wait_factory(future)
+                if self._response_wait_factory is not None else self._spin_once)
         deadline = time.monotonic() + self._timeout
         while not future.done():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 future.cancel()
                 raise InfrastructureError('planning-scene service timed out')
-            self._spin_once(min(0.01, remaining))
+            wait(min(0.01, remaining))
         response = future.result()
         if response is None:
             raise InfrastructureError('planning-scene service failed')

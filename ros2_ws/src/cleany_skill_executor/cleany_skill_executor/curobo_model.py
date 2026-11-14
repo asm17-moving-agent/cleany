@@ -41,9 +41,12 @@ class CuRoboConfig:
     use_cuda_graph: bool = True
     collision_margin_m: float = 0.0001
     moveit_shadow_validation: bool = False
+    device_alignment_min_solutions: int = 32
     geometry_cache_directory: str = ''
 
     def __post_init__(self) -> None:
+        if type(self.device_alignment_min_solutions) is not int or self.device_alignment_min_solutions < 0:
+            raise ValueError('Device alignment minimum must be a nonnegative integer')
         if self.sphere_model not in ('joint_simplified', 'generated'):
             raise ValueError('Unknown collision sphere model')
         if (not math.isfinite(self.collision_hull_max_expansion_m)

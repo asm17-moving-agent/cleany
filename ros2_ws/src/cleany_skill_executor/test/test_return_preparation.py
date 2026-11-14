@@ -154,6 +154,35 @@ def test_return_preparation_model_change_blocks_home_even_when_both_models_agree
             real.verify('right')
 
 
+@pytest.mark.parametrize('change', ['', 'state', 'jaw_moving'])
+def test_return_preparation_reuses_only_current_stationary_start(preparation, change):
+    f, real = preparation, preparation.real
+    names = (*ARM_JOINT_NAMES['right'], 'right_gripper_joint')
+    f.state.name.append(names[-1])
+    f.state.position.append(.4)
+    real.node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=10**9))
+    values = {'hardware_endpoint_settle_duration_sec': .3,
+              'hardware_endpoint_settle_velocity_rad_s': .02, 'hardware_settle_time_sec': .5,
+              'hardware_guard_max_age_sec': .25}
+    real.value = values.__getitem__
+    histories, waits = [], []
+    def stable(checked, positions, **kwargs):
+        histories.append((checked, kwargs['duration_sec']))
+        return change != 'jaw_moving'
+    real._stability_history = NS(stable=stable)
+    real.wait_for_settle = lambda checked, **kwargs: (waits.append(checked) or real.monitor())
+    with real.return_preparation('right'):
+        save_endpoint(f)
+        real._return_preparation.phase = 'home'
+        if change == 'state': f.state.position[0] += .001
+        result = real._wait_before_execution(names)
+        assert result.position == f.state.position
+        assert bool(waits) == bool(change)
+        assert bool(histories) == (change != 'state')
+        if not change:
+            assert histories == [(names, .3)]
+
+
 @pytest.mark.parametrize('mode', ['strict', 'outside', 'ignored', 'no_orientation'])
 def test_return_preparation_receipt_only_after_strict_measured_endpoint(preparation, mode):
     f, real = preparation, preparation.real

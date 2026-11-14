@@ -207,12 +207,13 @@ def test_physical_action_monitor_accepts_a_deliberately_frozen_scene(
 
     node = SimpleNamespace(
         scene_monitor=SimpleNamespace(check=lambda: checks.append(True)),
-        real=SimpleNamespace(
-            sensor_scene_frozen=frozen,
-            monitor=lambda: guard_checks.append(True),
-        ),
+        real=SimpleNamespace(sensor_scene_frozen=frozen),
         measured=lambda: measurements.append(True),
     )
+    def monitor():
+        guard_checks.append(True)
+        node.measured()
+    node.real.monitor = monitor
 
     assert PregraspPipeline.wait(
         node, Future(), 1., monitor=True) == 'complete'
@@ -259,14 +260,27 @@ def test_pipeline_response_wait_keeps_timeout_and_cancellation(monkeypatch, canc
 def test_measured_simulation_state_waits_for_clock_without_accepting_future(monkeypatch):
     import threading
     from cleany_skill_executor import pregrasp_pipeline as module
-    state = JointState(name=list(REQUIRED_JOINT_NAMES), position=[0.]*12)
+    state = JointState(name=list(REQUIRED_JOINT_NAMES), position=[0.]*12,
+                       velocity=[.1]*12, effort=[.2]*12)
     state.header.stamp.sec = 10
+    state.header.stamp.nanosec = 1
+    state.header.frame_id = 'base_link'
     clock = [9_999_000_000]
     node = SimpleNamespace(mode='mujoco', lock=threading.Lock(), state=state,
         get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=clock[0])),
         get_parameter=lambda _: SimpleNamespace(value=.5))
-    monkeypatch.setattr(module.time, 'sleep', lambda _: clock.__setitem__(0, 10_000_000_000))
-    assert PregraspPipeline.measured(node) == state
+    monkeypatch.setattr(module.time, 'sleep', lambda _: clock.__setitem__(0, 10_000_000_001))
+    snapshot = PregraspPipeline.measured(node)
+    assert snapshot == state
+    snapshot.header.frame_id = 'changed'
+    snapshot.header.stamp.nanosec = 2
+    snapshot.name[0] = 'changed'
+    snapshot.position[0] = 9.
+    snapshot.velocity[0] = 9.
+    snapshot.effort[0] = 9.
+    assert state.header.frame_id == 'base_link' and state.header.stamp.nanosec == 1
+    assert state.name[0] != 'changed'
+    assert (state.position[0], state.velocity[0], state.effort[0]) == (0., .1, .2)
     clock[0] = 9_000_000_000
     with pytest.raises(RuntimeError, match='age=-1.000'):
         PregraspPipeline.measured(node)

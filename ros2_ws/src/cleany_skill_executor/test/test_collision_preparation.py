@@ -18,6 +18,7 @@ def fixture():
                           velocity=[.2]*len(names), effort=[.3]*len(names))
     measured.header.frame_id = 'base_link'
     measured.header.stamp.sec = 100
+    measured.header.stamp.nanosec = 123456789
     expected = ARM_JOINT_NAMES['right']
     baseline = dict(zip(names, measured.position))
     samples = [NS(positions=(index*.001,)*5) for index in range(515)]
@@ -43,8 +44,10 @@ def test_prepared_states_preserve_metadata_independence_and_every_clearance_chec
     assert [row[1] for row in guards] == list(range(515))
     assert [row[2] for row in guards[:4]] == ['hold_bridge']*3+['command_path']
     actual[0].joint_state.header.stamp.sec = 200
+    actual[0].joint_state.header.frame_id = 'changed'
     actual[0].joint_state.name[0] = 'changed'
     actual[0].joint_state.velocity[0] = 99.
+    actual[0].joint_state.effort[0] = 99.
     assert actual[1:] == reference[1:]
     assert measured.header.stamp.sec == 100 and measured.name[0] != 'changed'
 

@@ -637,6 +637,8 @@ class CollectionPipeline(PregraspPipeline):
                        physical_target_position_m=endpoint.position,
                        physical_target_orientation_xyzw=endpoint.orientation,
                        orientation_target_source='measured_start_fixed_roll_replay')
+            if getattr(self.real, 'retime_retreat', False):
+                endpoint_options['retime'] = True
             actual = self.real.execute_recorded_trajectory(
                 arm, path, check_collisions=check_collisions, endpoint_pose=endpoint, **endpoint_options)
         try:
@@ -872,7 +874,10 @@ class CollectionPipeline(PregraspPipeline):
             execution_options['start_from_measured'] = True
         else:
             execution_options['held_command'] = hold.command
-        if stage == 'lift_height_correction':
+        if stage == 'lift':
+            execution_options['minimum_duration_sec'] = self.real.value(
+                'hardware_lift_min_duration_sec')
+        elif stage == 'lift_height_correction':
             execution_options['minimum_duration_sec'] = self.real.value(
                 'hardware_height_correction_min_duration_sec')
         elif stage == 'retreat_after_release':

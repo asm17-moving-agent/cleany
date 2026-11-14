@@ -30,6 +30,32 @@ def test_sphere_fitting_requires_valid_configuration():
         CuRoboConfig(sphere_surface_radius_m=float("nan"))
 
 
+@pytest.mark.parametrize('offset, wrist_kind, tip_kind, reusable', [
+    (0., 'revolute', 'fixed', True), (.01, 'revolute', 'fixed', False),
+    (0., 'prismatic', 'fixed', False), (0., 'revolute', 'revolute', False),
+])
+def test_wrist_rotation_reuse_requires_fixed_coaxial_tcp(offset, wrist_kind, tip_kind, reusable):
+    import numpy as np
+    from cleany_skill_executor.curobo_engine import CuRoboEngine
+
+    joints = ''.join(f'''
+      <joint name="{arm}_wrist_roll_joint" type="{wrist_kind}">
+        <parent link="base_link"/><child link="{arm}_wrist"/><axis xyz="1 0 0"/>
+      </joint>
+      <joint name="{arm}_tcp_fixed" type="{tip_kind}">
+        <parent link="{arm}_wrist"/><child link="{arm}_grasp_tcp"/>
+        <origin xyz=".1 {offset} 0" rpy="0 0 1.5707963267948966"/>
+      </joint>''' for arm in ('left', 'right'))
+    engine = CuRoboEngine.__new__(CuRoboEngine)
+    engine.model = SimpleNamespace(xml='<robot>'+joints+'</robot>')
+    axes = engine._coaxial_wrist_axes
+    assert engine._coaxial_wrist_axes is axes
+    assert bool(axes) is reusable
+    if reusable:
+        for arm in ('left', 'right'):
+            np.testing.assert_allclose(axes[arm], (0., -1., 0.), atol=1e-12)
+
+
 def test_collision_validation_includes_segment_interior_and_caps_work():
     states = validation_states([(0.0, 0.0), (0.1, -0.04)], 0.025, 10)
     assert len(states) == 5

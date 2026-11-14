@@ -23,6 +23,8 @@ grasp_selection_server:
     action_timeout_sec: 480.0
     robot_description_startup_timeout_sec: 30.0
     validate_motion_paths: true
+    # Keep every collision sample while reducing service round trips.
+    state_validity_batch_size: 64
     # Validate a direct joint cubic first; keep RRT for obstructed connections.
     pregrasp_joint_shortcut_enabled: true
     cartesian_approach_first: true
