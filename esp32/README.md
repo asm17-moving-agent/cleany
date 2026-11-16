@@ -22,7 +22,7 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 |---|---|---|---|
 | 토픽 구독 | `base/wheel_command` | `cleany_base_interfaces/msg/WheelCommand` | Best-effort, volatile, keep-last 1 |
 | 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
-| 토픽 발행 | `base/imu_state` | `cleany_base_interfaces/msg/ImuState` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
+| 토픽 발행 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
 
 MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/ROS_INTERFACES.md)에서 찾습니다.
 
@@ -86,47 +86,31 @@ not take `motorMutex`. The priority-6 motor and priority-4 communication tasks
 remain separate. A one-entry overwrite queue drops intermediate data if
 communication stalls; reconnect does not drain a sample backlog.
 
-The communication task publishes fixed-size `ImuState` on `base/imu_state`,
-best effort / volatile / keep last 1, driven by newly acquired samples up to
-the sensor rate. WheelState remains at 50 Hz. Actual rates and motor timing
-under combined USB/I2C load require robot measurements.
+통신 task는 `sensor_msgs/msg/Imu`를 `imu_uncalibrated/data_raw`에 best effort, volatile,
+keep last 1로 최대 100 Hz 발행한다. Gyro와 중력 포함 acceleration은 센서 축의
+보정 전 SI 값이다. Frame은 `imu_link`, orientation covariance 첫 원소는 -1,
+나머지 covariance는 unknown(0)이다. 오류, 포화, 비유한 값, 중복/역행 취득 시각과
+100 ms 초과 sample은 발행하지 않는다. 초기화와 읽기 오류는 250 ms에서 5초까지
+backoff하며 재시도한다. 원인 log는 firmware가, 입력 단절 진단은 host가 제공한다.
 
-Packets carry uncalibrated sensor-frame SI vectors, temperature, MCU MAC,
-WHO_AM_I, boot ID, packet sequence, MCU acquisition timestamp and fault bits.
-ImuState v2 also carries MCU-corrected gyro, the selected bias/covariance,
-and calibration state/reason. Build the ROS interfaces and firmware together.
-Acquisitions older than 100 ms and duplicate/backward timestamps are not sent
-as new measurements. Missing/error data produces a sensor-fault heartbeat
-at most 10 Hz; saturation has its own fault bit. Initialization/read errors
-retry with 250 ms to 5 s backoff. IMU I2C failure does not authorize motors.
+Agent 연결마다 session 시각을 동기화한 뒤 현재 epoch에서 sample age를 빼
+ROS 취득 stamp를 만든다. 실패 시 1초 간격으로 재시도하고 동기화 전에는 IMU를
+발행하지 않는다. 시간 동기화와 IMU 처리는 독립 motor task에서 수행하지 않는다.
+WheelState는 50 Hz를 유지하며 USB/I2C 부하에서의 실제 주기와 시각 오차는 실측한다.
 
-### Power-on calibration
+### Host factory calibration
 
-The acquisition task calibrates once per MCU boot, independently of the Agent.
-Defaults are 5 s settling, 1,000 training samples and 500 holdout samples, with
-a 25 s deadline. It reuses the existing online gyro statistics. Noise/residual
-failure, sensor/sample errors or timeout select the saved bench coefficients.
-The selection remains fixed until MCU reboot, including across Agent reconnects.
+MCU는 부팅 보정과 bias 차감을 수행하지 않는다. Jetson이
+[`imu_bringup.yaml`](../ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml)의
+고정 gyro bias와 covariance를 적용해 `imu/data_raw`로 발행한다.
+계수 변경에는 host bringup 재시작이 필요하다.
 
-During calibration, motor PWM stays zero, PID updates are skipped and non-STOP
-commands are discarded. Completion only releases this inhibit; a fresh ENABLE
-is still required. STOP, watchdog and disconnect handling remain active.
-Fallback can release the calibration inhibit even if the sensor is unavailable;
-sensor errors are still reported, and no angular-rate samples are fabricated.
+부팅 시 모터는 disabled이며 정상 zero ENABLE 이후에만 속도 명령을 허용한다.
+IMU 보정 대기로 모터를 추가 차단하지 않는다. STOP, watchdog과 단절 규칙은
+위 Runtime 계약을 따른다.
 
-Edit [`ros2_ws/src/cleany_base_driver/config/imu_calibration.json`](../ros2_ws/src/cleany_base_driver/config/imu_calibration.json)
-to configure timing, windows, checks and measured fallback bias/covariance.
-`make firmware-build` validates it and generates `cleany_config/imu_startup_config.hpp`
-inside the PlatformIO build directory. The configuration is compiled into the
-image; changes require rebuilding and uploading. Runtime checks samples and
-observed statistics. A single acquisition-side enqueue helper attaches calibration
-metadata and releases the boot inhibit on completion. The IMU task uses 6144 bytes
-of stack for online statistics.
-
-ROS topics and status are documented under
-[IMU 실시간 수신](../ros2_ws/src/cleany_base_driver/docs/imu.md#imu-실시간-수신).
-The standalone [diagnostic](imu_calibration/README.md) provides bench reports;
-normal startup calibration is part of the motor image.
+Host 실행과 상태는 [IMU 실시간 수신](../ros2_ws/src/cleany_base_driver/docs/imu.md),
+새 bench 측정은 독립 [진단 펌웨어](imu_calibration/README.md)를 따른다.
 
 ## 휠별 초기 PI와 FF
 

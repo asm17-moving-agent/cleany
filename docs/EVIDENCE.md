@@ -4,6 +4,23 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 고정 IMU 보정 PR 분리 검증 (2026-11-16)
+
+`22c2956b` 기반 `08263ff4`의 IMU 변경을 Ubuntu 22.04 amd64 Distrobox,
+ROS 2 Humble에서 검사했다. 입력은 합성 IMU와 mock wheel이며 localhost 전용
+domain 181을 사용했다. EKF 연결을 제외한 독립 IMU 변경의 검증이다.
+
+`make test-imu-runtime test-motor-core test-micro-ros-setup test-base`에서 관련
+패키지 3개 빌드, IMU 검사 39개, C++ host 프로그램 9개와 준비 도구 15개가
+통과했다. Colcon은 Python 패키지 검사를 0개 수집하여 같은 설치의 전체 base
+pytest를 별도로 실행했고 129개가 통과했다. IMU 검사는 이 전체 검사와 중복된다.
+`make firmware-build`도 통과했다. 빌드에 `tests_require` 경고가 있었으며
+실물 업로드, 센서 수집과 주행은 실행하지 않았다.
+
+소스 사본, 분리 patch, 환경, 펌웨어 hash와 검사 로그는
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+`imu-validation.log`, `imu-base-pytest.log`, `firmware-build.log`가 실행 원본이다.
+
 ## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
 
 `aab901be`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 격리 설치에서 검증했다.

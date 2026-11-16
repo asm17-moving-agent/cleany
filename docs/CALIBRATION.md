@@ -55,6 +55,26 @@ RViz에서 방향을 확인한 뒤 보완했다. 현재 영점은 이 미리보�
 읽기 전용 상태 조회 또는 제어 프로세스가 다음에 시작할 때 읽는다.
 원본 측정과 적용 근거는 [실행 근거](EVIDENCE.md)를 따른다.
 
+## IMU factory gyro bias
+
+Jetson은 [`imu_bringup.yaml`](../ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml)의
+고정 gyro bias와 covariance를 사용한다. 부팅 시 자동 보정은 수행하지 않는다.
+
+기본값은 기존 `bench_20261014T142933Z/run06_persistent` 결과다. 기존 값을
+재사용할 때는 새 측정 없이 이 설정으로 실행한다. 다음 절차는 계수를 새로
+산출하기로 한 경우에만 수행한다.
+
+1. [독립 IMU 진단 절차](../esp32/imu_calibration/README.md)에 따라 센서를 정지시키고
+   새 bench 측정과 검증 결과를 저장한다.
+2. 센서 축과 rad/s 단위를 확인하고 YAML의 `gyro_bias_rad_s`,
+   `gyro_covariance_rad2_s2`, `calibration_source`를 함께 갱신한다.
+3. 모터 runtime 펌웨어를 복원하고 host `imu_bringup.launch.py`를 재시작한다.
+4. `imu_uncalibrated/data_raw`, `imu/data_raw`, `imu/status`에서 정지 잔차, 계수 출처와
+   covariance를 확인한다. 측정 환경, code commit와 원본 위치를 결과에 남긴다.
+
+측정 결과는 런타임에 자동 적용되지 않는다. 데이터와 filter 계약은
+[IMU reference](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
 ## Jetson 실물 모델과 2026-10-09 보정 프로파일
 
 `cleany_description/config/calibration/jetson_20261009/`는 Jetson에서 사용한

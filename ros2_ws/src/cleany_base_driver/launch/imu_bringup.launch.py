@@ -1,4 +1,4 @@
-"""Relay MCU-calibrated gyro and status."""
+"""Publish fixed-bias IMU measurements for wheel/gyro fusion."""
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
