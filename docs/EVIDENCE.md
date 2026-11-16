@@ -4,6 +4,30 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-11-16 LiDAR 평면 extrinsic
+
+`be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업트리에서 RPLIDAR A1M8
+(firmware 1.29, hardware 7)을 SDK 2.1.0 Sensitivity 모드로 측정했다.
+Fedora 44 호스트에서 수집하고 Ubuntu 22.04 Humble Distrobox에서 분석했다.
+새 180.0316초의 1,374회전, 원시점 1,408,222개 중 15~50 cm 유효점은
+43,533개다. 스캔 timeout은 0회였다.
+
+현재 `Cleany.FCStd`의 여섯 수직 프로파일 외곽과 0.02° 구간 중앙값 541개를
+정합했다. 적용값은 X 143.429742 mm, Y −1.191569 mm, yaw 179.997034°다.
+CAD 표면 잔차 RMSE는 4.7165 mm, 앞뒤 90초의 거리 차이 P95는 1.0 mm다.
+CAD SHA-256과 원시 CSV SHA-256은
+[`보정 파일`](../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)의
+`measurement`에 기록했다.
+
+원본은 `CLEANY_DATA_ROOT/runs/lidar-profile-180s-20261116-214104/`의
+`capture/raw_samples.csv`, `result.json`, `section_summary.json`,
+`extrinsic_comparison.json`과 분석 스크립트다. 분석 환경의 SciPy 1.8.0은
+NumPy 1.26.4 버전 경고를 출력했으며 좌표 변환, 선분 교차 검사와 분석은 완료됐다.
+
+`22c2956b` 기반 변경에서 `make test-odometry-evaluation` 268개와
+`run_wheel_only_eval.sh --dry-run`이 통과했다. 검증 로그는 같은 원본 경로의
+`pr-validation/`에 보존한다.
+
 ## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
 
 `aab901be`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 격리 설치에서 검증했다.

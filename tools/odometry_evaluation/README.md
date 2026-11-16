@@ -205,8 +205,12 @@ Enter physical Yaw error relative to tape mark in deg (CCW + / CW -):
 
 주행 도구들은 `/tmp/cleany_odom_eval.lock`으로 중복 실행을 막습니다.
 실제 이동 전 다른 `/cmd_vel` publisher가 있는지도 검사합니다.
-기존 평가의 기본 LiDAR → base 변환은 yaw `-7.85°`, x lever arm `0.029 m`입니다.
-변경된 장착 상태의 편도 평가는 아래처럼 새 보정 파일을 명시적으로 선택합니다.
+현재 휠 평가 config는
+[`lidar_extrinsic_20261116.json`](../../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)의
+LiDAR → base 변환을 사용합니다. X `0.143429742 m`, Y `-0.001191569 m`,
+yaw `179.997034°`이며 전진 +X는 CAD −Y, 좌측 +Y는 CAD +X입니다.
+ICP 초기 추정과 결과 변환에 같은 값을 적용합니다.
+보정 파일을 생략한 평가기의 기본값은 yaw `-7.85°`, x lever arm `0.029 m`입니다.
 `run_eval.sh`와 `run_multi_speed_eval.py`에는 이 선택 옵션이 없으므로,
 아래 재측정에는 config 기반 전용 launcher를 사용합니다.
 측정 결과는 Git 제외 경로인 `artifacts/odometry_evaluation/`에 저장됩니다.
