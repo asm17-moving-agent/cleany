@@ -1,0 +1,32 @@
+wheel_odometry:
+  ros__parameters:
+    # Initial tuning, not measured accuracy: sigma(vx/vy) = 0.05 m/s,
+    # sigma(wz) = 0.05 rad/s. Order: vx, vy, vz, wx, wy, wz.
+    twist_covariance_diagonal: [0.0025, 0.0025, 0.0, 0.0, 0.0, 0.0025]
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    sensor_timeout: 0.25
+    two_d_mode: true
+    publish_tf: false
+    print_diagnostics: true
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+    # Order: x,y,z, roll,pitch,yaw, vx,vy,vz, wx,wy,wz, ax,ay,az.
+    odom0: wheel/odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_queue_size: 5
+    # Fixed-bias gyro yaw rate in the sensor frame.
+    imu0: imu/data_raw
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_queue_size: 10

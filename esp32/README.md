@@ -103,6 +103,7 @@ WheelState는 50 Hz를 유지하며 USB/I2C 부하에서의 실제 주기와 시
 MCU는 부팅 보정과 bias 차감을 수행하지 않는다. Jetson이
 [`imu_bringup.yaml`](../ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml)의
 고정 gyro bias와 covariance를 적용해 `imu/data_raw`로 발행한다.
+EKF는 이 메시지의 각속도와 wheel odometry의 평면 속도를 융합한다.
 계수 변경에는 host bringup 재시작이 필요하다.
 
 부팅 시 모터는 disabled이며 정상 zero ENABLE 이후에만 속도 명령을 허용한다.

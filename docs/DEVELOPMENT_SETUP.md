@@ -171,6 +171,7 @@ make deps
 | Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
 | 단일 물체 MuJoCo/Jetson Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
 | Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
+| 실물 IMU와 wheel 융합 | `robot_localization`; 공식 rosdep 키로 설치 |
 
 `cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
 `behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.

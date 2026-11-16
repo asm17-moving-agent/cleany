@@ -4,6 +4,21 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## Wheel/IMU EKF PR 분리 검증 (2026-11-16)
+
+고정 IMU 보정 `aa666358` 위에 EKF 연결을 적용한 작업 트리를 Ubuntu 22.04.5
+amd64 Distrobox, ROS 2 Humble과 `robot_localization` 3.5.4에서 검사했다.
+합성 IMU와 mock wheel을 localhost 전용 domain 182에서 연결했다.
+
+`make test-base-ekf test-base`에서 관련 패키지 3개 빌드, EKF와 공분산 검사
+10개가 통과했다. 센서 장착 회전, 공분산별 입력 기여와 shadow/canonical 모드의
+odom 및 TF 소유권을 확인했다. Colcon의 Python 검사 0개 수집을 보완한 전체
+base pytest는 139개가 통과했으며 전용 10개를 포함한다. 실물 주행, 시간 정렬과
+정확도 튜닝은 이 검사의 범위가 아니다.
+
+소스 patch, 환경, `ekf-validation.log`, `ekf-base-pytest.log`와 검증 JSON은
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+
 ## 고정 IMU 보정 PR 분리 검증 (2026-11-16)
 
 `22c2956b` 기반 `08263ff4`의 IMU 변경을 Ubuntu 22.04 amd64 Distrobox,
@@ -50,6 +65,48 @@ macOS의 타입 검사와 웹 빌드, Playwright 46개도 통과했고 외부 �
 환경, 소스 패치, 초기 빌드 실패와 최종 로그, JUnit 원본은
 `/home/cleany/cleany-data/reports/pr78-local-validation-20261112/`에 보관한다.
 웹 검사 원본은 `/Users/hyeon/.codex/reports/cleany-pr78-local-20261112/`에 있다.
+
+## IMU 각속도 보정과 EKF 연동 검증 (2026-11-13)
+
+`feat/imu-wheel-odom`의 `6fba958b24cfe28fa68efa52983e56692de02574` 작업 트리에서
+host 고정 bias 보정과 wheel/gyro EKF 경로를 검사했다. Ubuntu 22.04 Distrobox의
+ROS 2 Humble, localhost 전용 domain 183에서 합성 IMU와 mock wheel을 사용했다.
+기존 gyro bias와 전체 공분산은 실행 전 설정과 동일하다.
+
+`make test-imu-runtime test-base-ekf BASE_TEST_ROS_DOMAIN_ID=183`으로 관련 패키지
+3개를 빌드하고 IMU 검사 39개, EKF 및 공분산 검사 10개를 통과했다. 앞서 실행한
+core 검사 29개는 IMU 검사에 포함된다. 영 가속도에서 각속도 보정과 전달,
+입력 오류 및 회복, 센서 축 변환과 두 실행 모드의 odom/TF 발행을 확인했다.
+최초 호스트 Python 실행은 pytest가 없어 종료했고 Distrobox에서 검사했다.
+실물 센서 수집과 주행은 실행하지 않았다.
+
+환경, 변경 전 사본, 패치와 로그는
+`CLEANY_DATA_ROOT/runs/imu-gyro-ekf-20261113-5af7dcev/`에 보존한다.
+
+## 고정 IMU 보정과 wheel EKF, ESP32 업로드 (2026-11-13)
+
+`feat/imu-wheel-odom`의 main 기반 `6fba958b24cfe28fa68efa52983e56692de02574`에
+작업 트리 패치를 적용했다. Fedora 호스트의 Ubuntu 22.04 Distrobox와 ROS 2
+Humble을 사용했으며, ROS 검사는 localhost 전용 domain 181의 합성 IMU와 mock
+wheel 입력으로 수행했다. 기존 `bench_20261014T142933Z/run06_persistent`의
+bias와 validation covariance가 설정값과 수치상 동일함을 확인했다.
+
+ROS 패키지 3개 빌드, IMU 전용 39개, EKF와 covariance 10개, driver/odometry
+전체 pytest 137개 및 C++ host 프로그램 9개가 통과했다. 전용 검사는 전체
+검사와 일부 중복된다. 이 환경의 colcon은 Python 패키지 검사를 0개로 수집해
+전체 pytest를 별도로 실행했다. 초기 domain 234 실행의 조기 종료, TF endpoint와
+실제 발행의 혼동, Humble callback API와 단일 wheel 표본 시각 jitter에 관한
+검사 실패를 보존하고 수정 후 전체 검사를 재실행했다.
+
+`make firmware-build` 후 모터 전원이 분리됐다는 사용자 확인 상태에서
+`make firmware-upload`를 실행했다. ESP32-S3 MAC `90:e5:b1:d5:3f:34`에
+bootloader, partition과 application을 기록했으며 esptool의 세 write hash 검증이
+통과했다. Application SHA-256은
+`e77d7143d7b952ea7ef0fdb44e128bfdee359a7f5fdd70b518e726b6863ac009`다.
+새 보정 측정, 실제 구동 명령과 실기기 ROS/EKF 실행은 수행하지 않았다.
+
+설정 사본, working-tree patch, 환경과 검증 JSON, 성공 및 실패 로그와 업로드
+이미지는 `CLEANY_DATA_ROOT/runs/imu-wheel-offline-20261113-c9ei25gh/`에 보존한다.
 
 ## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
 

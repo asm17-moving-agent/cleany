@@ -198,6 +198,7 @@ flowchart TB
 | Hand-eye 경계 | `make test-handeye` | description, MuJoCo, MoveIt, calibration |
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | IMU 고정 보정 | `make test-imu-runtime` | 기존 계수 적용 core, 합성 IMU 각속도와 가속도 전달, 오류와 수신 회복 |
+| Wheel/IMU EKF | `make test-base-ekf` | mock wheel, 합성 IMU, covariance에 따른 융합, 장착 회전 변환과 실제 TF 발행자 |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
