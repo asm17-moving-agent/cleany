@@ -2,6 +2,8 @@
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <algorithm>
+#include <cstdlib>
+#include <string_view>
 #include <filesystem>
 #include <set>
 #include <stdexcept>
@@ -13,6 +15,12 @@ namespace
 {
 constexpr double scale = 6.2831853071795864769 / 4096.0;
 constexpr int recovery_goal_tolerance_ticks = 32;
+// Used for recovery of an already powered hold without posture correction.
+bool require_powered_hold()
+{
+  const char * value = std::getenv("CLEANY_REQUIRE_POWERED_HOLD_RECOVERY");
+  return value && std::string_view(value) == "1";
+}
 const auto logger = rclcpp::get_logger("cleany_feetech_hardware");
 double number(const std::unordered_map<std::string, std::string> & values, const std::string & key)
 {
@@ -250,6 +258,11 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
         }
       }
     }
+    if (require_powered_hold() && !read_only_ &&
+      (enabled_count == 0 || powered_count != enabled_count))
+    {
+      throw std::runtime_error("Hold-only recovery requires every commanded motor to remain powered");
+    }
     if (powered_count != 0 && powered_count != enabled_count) {
       throw std::runtime_error("Torque-on recovery requires every commanded motor to be powered");
     }
@@ -270,6 +283,9 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
     RCLCPP_INFO(logger, "14 motors verified; register writes %s", read_only_ ? "DISABLED" : "enabled by explicit launch option");
     return CallbackReturn::SUCCESS;
   } catch (const std::exception & e) {
+    if (require_powered_hold()) {
+      for (auto & j : joints_) {j.powered = false;}
+    }
     fail(e.what()); arm_.close(); head_.close(); return CallbackReturn::ERROR;
   }
 }
@@ -385,6 +401,11 @@ void FeetechSystem::hold_for_read_recovery(int id, int address)
 {
   RCLCPP_WARN(logger, "Bounded READ recovery: ID %d address %d; preserving torque", id, address);
   if (!active_ || read_only_) {return;}
+  if (require_powered_hold() && std::all_of(joints_.begin(), joints_.end(),
+      [](const Joint & j) {return !j.enabled || j.stopped_goal_raw.has_value();}))
+  {
+    return;  // The powered goals already hold the arms.
+  }
   if (std::chrono::duration<double>(std::chrono::steady_clock::now() - last_read_).count() > max_state_age_) {
     throw std::runtime_error("READ recovery cannot hold stale motor feedback");
   }
@@ -421,6 +442,11 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
         int goal = arm_.read_value(j.id, 42, 2);
+        if (require_powered_hold() &&
+          (j.raw < j.raw_min || j.raw > j.raw_max || j.position < j.lower || j.position > j.upper))
+        {
+          throw std::runtime_error(j.name + ": hold-only recovery requires an in-range measured pose");
+        }
         if (j.raw < j.raw_min || j.raw > j.raw_max) {
           goal = std::clamp(j.raw, j.raw_min, j.raw_max);
           recovery_targets.emplace_back(j.id, goal);
@@ -495,7 +521,12 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
     }
     active_ = true;
     return CallbackReturn::SUCCESS;
-  } catch (const std::exception & e) {fail(e.what()); return CallbackReturn::ERROR;}
+  } catch (const std::exception & e) {
+    if (require_powered_hold()) {
+      for (auto & j : joints_) {j.powered = false;}
+    }
+    fail(e.what()); return CallbackReturn::ERROR;
+  }
 }
 
 void FeetechSystem::hold(const std::vector<std::string> & interfaces) noexcept
@@ -576,6 +607,13 @@ hardware_interface::return_type FeetechSystem::write(const rclcpp::Time &, const
       const auto & j = joints_[index];
       if (j.enabled && claimed_.count(j.name + "/position")) {
         const int target = j.ticks(j.command);
+        // An idle position controller may initialize from the encoder. Preserve
+        // the loaded hold until it requests a distinct target.
+        if (require_powered_hold() && j.stopped_goal_raw &&
+          (target == *j.stopped_goal_raw || std::abs(target - j.raw) <= 2))
+        {
+          continue;
+        }
         targets.emplace_back(j.id, target);
         sent.emplace_back(index, target);
       }
