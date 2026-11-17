@@ -7,7 +7,7 @@
 port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
 baudrate: 1000000
 rate_hz: 20.0
-calibration_dir: ~/.cache/huggingface/lerobot/calibration/robots/so_follower
+calibration_dir: calibration/jetson_20261115_open160/motors
 arms:
   left: {first_id: 1, calibration: cleany_so101_left.json}
   right: {first_id: 7, calibration: cleany_so101_right.json}

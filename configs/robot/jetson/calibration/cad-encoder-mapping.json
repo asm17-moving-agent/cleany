@@ -1,0 +1,177 @@
+{
+  "schema": "cleany.cad_endpoint_mapping/v1",
+  "scope": "read_only_cad_visualization",
+  "coordinate": "delta_radians_from_saved_CAD_assembly",
+  "cad_source_sha256": "91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0",
+  "kinematics_sha256": "a666890bd4a8293cdee4e8bf9256091ae2fed28f11962b262e7e03597ecea820",
+  "method": "latest_motor_endpoints_to_established_CAD_display_endpoints_with_operator_wrist_roll_centers",
+  "direction_source": "Retained encoder-to-CAD rotation directions from the active all-camera review; no legacy URDF limit or reference angle used.",
+  "limitations": [
+    "Read-only display correspondence; controller coordinates, native encoder scale, EEPROM and torque remain unchanged.",
+    "Endpoint correspondence is not an independent physical intermediate-angle accuracy measurement.",
+    "Gripper model uses manually confirmed closed/open references; out-of-range feedback cannot establish physical aperture."
+  ],
+  "arms": {
+    "left": {
+      "calibration_sha256": "8a172dad6fc29806efe821f88d369eb87dc4ff20fb4097edbaaaf3278c439ccd",
+      "joints": {
+        "shoulder_pan": {
+          "cad_joint": "cad_delta_left_shoulder_yaw",
+          "motor_id": 1,
+          "raw_min": 763,
+          "raw_max": 3482,
+          "cad_at_min_rad": 2.0088330628911297,
+          "cad_at_max_rad": -2.1641699229532714,
+          "cad_span_deg": 239.09545898437497,
+          "encoder_span_deg": 238.974609375,
+          "cad_to_encoder_span_ratio": 1.0005057006252298,
+          "measurement_file": "cad_delta_left_shoulder_yaw.json",
+          "measurement_sha256": "c85a17b90bfdc86b2ef7a056b1b3a7b5ab288f1656810c29419bd7245c41c080",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "shoulder_lift": {
+          "cad_joint": "cad_delta_left_shoulder_pitch",
+          "motor_id": 2,
+          "raw_min": 835,
+          "raw_max": 3230,
+          "cad_at_min_rad": 0.21109280064404073,
+          "cad_at_max_rad": -3.3420967257396788,
+          "cad_span_deg": 203.582763671875,
+          "encoder_span_deg": 210.498046875,
+          "cad_to_encoder_span_ratio": 0.9671479935049873,
+          "measurement_file": "cad_delta_left_shoulder_pitch.json",
+          "measurement_sha256": "a32b12768750755eb00866fc616a60d6d48b7cb3a683090f35dd24de1460ab58",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "elbow_flex": {
+          "cad_joint": "cad_delta_left_elbow_pitch",
+          "motor_id": 3,
+          "raw_min": 863,
+          "raw_max": 3066,
+          "cad_at_min_rad": 3.3426293579576947,
+          "cad_at_max_rad": -0.010737865515199488,
+          "cad_span_deg": 192.1337890625,
+          "encoder_span_deg": 193.623046875,
+          "cad_to_encoder_span_ratio": 0.9923084682503656,
+          "measurement_file": "cad_delta_left_elbow_pitch.json",
+          "measurement_sha256": "fc586d8a66fab99c9c111dc6aab708970a0de3d99d20af3e592934acb59075f9",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "wrist_flex": {
+          "cad_joint": "cad_delta_left_wrist_pitch",
+          "motor_id": 4,
+          "raw_min": 855,
+          "raw_max": 3261,
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints",
+          "cad_at_min_rad": 1.8167374976537831,
+          "cad_at_max_rad": -1.820330950423072,
+          "cad_span_deg": 208.388671875,
+          "encoder_span_deg": 211.46484375,
+          "cad_to_encoder_span_ratio": 0.9854530340814629,
+          "note": "Read-only endpoint display correspondence; native 4096-tick physical motor scale and controller coordinates are unchanged.",
+          "superseded_native_reference": {
+            "reference_tick": 2051.0,
+            "reference_cad_rad": 1.598912225774022,
+            "reference_forearm_tool_angle_deg": 90.0,
+            "cad_radians_per_tick": -0.001533980787885641,
+            "reference_record": "output/wrist-cad-recheck-20261113/reference-samples.json",
+            "assembly_zero_pose_revalidated": false
+          }
+        }
+      },
+      "retained": {
+        "wrist_roll": "no_adjacent_stop_in_full_turn"
+      },
+      "wrist_roll_reference": {
+        "motor_id": 5,
+        "cad_joint": "cad_delta_left_wrist_roll",
+        "center_tick": 1983,
+        "cad_at_center_rad": 0.0,
+        "encoder_direction": -1,
+        "cad_radians_per_tick": -0.0015339807878856412,
+        "source": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_5_center.json"
+      }
+    },
+    "right": {
+      "calibration_sha256": "91e9283fe732355306d2f86d59d7a1519c07598aa7be283cc469ca67bd42154b",
+      "joints": {
+        "shoulder_pan": {
+          "cad_joint": "cad_delta_right_shoulder_yaw",
+          "motor_id": 7,
+          "raw_min": 718,
+          "raw_max": 3434,
+          "cad_at_min_rad": 2.0088330628911297,
+          "cad_at_max_rad": -2.1641699229532714,
+          "cad_span_deg": 239.09545898437497,
+          "encoder_span_deg": 238.7109375,
+          "cad_to_encoder_span_ratio": 1.001610824742268,
+          "measurement_file": "cad_delta_right_shoulder_yaw.json",
+          "measurement_sha256": "3041c34b566bb9ac9db7f36519643add96eafc35c5e44e1a2702e62217589014",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "shoulder_lift": {
+          "cad_joint": "cad_delta_right_shoulder_pitch",
+          "motor_id": 8,
+          "raw_min": 827,
+          "raw_max": 3215,
+          "cad_at_min_rad": -0.21109280064404073,
+          "cad_at_max_rad": 3.3420967257396788,
+          "cad_span_deg": 203.582763671875,
+          "encoder_span_deg": 209.8828125,
+          "cad_to_encoder_span_ratio": 0.9699830169365344,
+          "measurement_file": "cad_delta_right_shoulder_pitch.json",
+          "measurement_sha256": "5feac8883e00573078bde0e36dd3765778910b0c26b823bd1282b61ab2255ce6",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "elbow_flex": {
+          "cad_joint": "cad_delta_right_elbow_pitch",
+          "motor_id": 9,
+          "raw_min": 913,
+          "raw_max": 3100,
+          "cad_at_min_rad": -3.3426293579576947,
+          "cad_at_max_rad": 0.010737865515199488,
+          "cad_span_deg": 192.1337890625,
+          "encoder_span_deg": 192.216796875,
+          "cad_to_encoder_span_ratio": 0.999568155260885,
+          "measurement_file": "cad_delta_right_elbow_pitch.json",
+          "measurement_sha256": "8eaf303439628ab129e3beee74c3bf22acdad0821b644cf4207c9da6460711cc",
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints"
+        },
+        "wrist_flex": {
+          "cad_joint": "cad_delta_right_wrist_pitch",
+          "motor_id": 10,
+          "raw_min": 826,
+          "raw_max": 3227,
+          "method": "operator_requested_latest_motor_endpoints_to_established_CAD_display_endpoints",
+          "cad_at_min_rad": -1.8719608060176662,
+          "cad_at_max_rad": 1.8280008543625001,
+          "cad_span_deg": 211.99218750000003,
+          "encoder_span_deg": 211.025390625,
+          "cad_to_encoder_span_ratio": 1.0045814244064974,
+          "note": "Read-only endpoint display correspondence; native 4096-tick physical motor scale and controller coordinates are unchanged.",
+          "superseded_native_reference": {
+            "reference_tick": 2017.0000000000002,
+            "reference_cad_rad": -1.598912225774022,
+            "reference_forearm_tool_angle_deg": 90.0,
+            "cad_radians_per_tick": 0.0015339807878856412,
+            "reference_record": "output/wrist-cad-recheck-20261113/reference-samples.json",
+            "assembly_zero_pose_revalidated": false
+          }
+        }
+      },
+      "retained": {
+        "wrist_roll": "no_adjacent_stop_in_full_turn"
+      },
+      "wrist_roll_reference": {
+        "motor_id": 11,
+        "cad_joint": "cad_delta_right_wrist_roll",
+        "center_tick": 1967,
+        "cad_at_center_rad": 0.0,
+        "encoder_direction": -1,
+        "cad_radians_per_tick": -0.0015339807878856412,
+        "source": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_11_center.json"
+      }
+    }
+  },
+  "source_calibration_snapshot": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115"
+}

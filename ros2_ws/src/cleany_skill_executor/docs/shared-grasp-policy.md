@@ -3,7 +3,7 @@
 dev-monitor의 `물체 1개 실행`은 `make manipulation-run`에서 자동 대상을 고른 뒤
 `/manipulation/execute_skill`로 실행한다. 일반 물체 선택과 양팔 후보 검사를 유지한다.
 운영 수거 파일은 `CLEANY_MANIPULATION_COLLECTION_CONFIG`로 지정하며 Jetson 기본 파일은
-`~/.config/cleany/collection_hardware.json`이다. CLI와 웹은 같은 선택기와 수거 실행기를 사용한다.
+`configs/robot/jetson/collection.json`이다. CLI와 웹은 같은 선택기와 수거 실행기를 사용한다.
 
 | 항목 | 계약 |
 |---|---|

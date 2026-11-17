@@ -2,7 +2,6 @@
 
 from launch import LaunchDescription
 from pathlib import Path
-import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -16,12 +15,10 @@ def setup(context):
     selected = LaunchConfiguration('rgb_intrinsics_file').perform(context)
     if not selected:
         selection = Path(get_package_share_directory('cleany_perception')) / 'config/head_rgb_intrinsics.yaml'
-        selected = yaml.safe_load(selection.read_text())['intrinsics_file']
-        if not selected:
-            config_home = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
-            device_model = config_home / 'cleany/head-rgb-intrinsics.json'
-            if device_model.exists() or device_model.is_symlink():
-                selected = str(device_model)
+        settings = yaml.safe_load(selection.read_text())
+        serial = LaunchConfiguration('serial_no').perform(context)
+        if settings['intrinsics_file'] and settings.get('serial_no', serial) == serial:
+            selected = str(selection.parent / Path(settings['intrinsics_file']).expanduser())
     remaps = [('/tf', LaunchConfiguration('tf_topic')),
               ('/tf_static', LaunchConfiguration('tf_static_topic')),
               ('~/depth/image_rect_raw', '/camera/raw_depth/image_raw'),

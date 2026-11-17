@@ -1,0 +1,533 @@
+{
+  "kind": "head_intrinsics_candidate",
+  "K": [
+    [
+      593.3050368616384,
+      0.0,
+      324.3586765239189
+    ],
+    [
+      0.0,
+      597.5993396648436,
+      264.2178674675939
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "D": [
+    0.09113289023616937,
+    -0.1324275751743899,
+    0.00512523448732854,
+    -0.0021341068730654587,
+    0.0
+  ],
+  "width": 640,
+  "height": 480,
+  "fit_model": "brown_k3_fixed_zero",
+  "training_rms_px": 0.18813573935215788,
+  "training_cross_validation": {
+    "pinhole": {
+      "fold_rms_px": [
+        0.4218849680213998,
+        0.43846534995485476,
+        0.44075569660072755,
+        0.43061225586416185,
+        0.4489681088761867
+      ],
+      "mean_fold_rms_px": 0.4361372758634661,
+      "standard_error_px": 0.004609957373444029,
+      "fold_focal_px": [
+        [
+          610.0046814958497,
+          581.8196981886778
+        ],
+        [
+          644.1299302725639,
+          590.343995634863
+        ],
+        [
+          616.0304030398321,
+          585.0703426220573
+        ],
+        [
+          610.1613079068774,
+          582.5152163091411
+        ],
+        [
+          622.2043554936652,
+          585.7602596658501
+        ]
+      ],
+      "roundtrip_max_px": 2.8441188594426556e-14
+    },
+    "radial1": {
+      "fold_rms_px": [
+        0.18251842638982713,
+        0.19323888345014315,
+        0.20744166069638703,
+        0.20085613915623213,
+        0.20429728890860913
+      ],
+      "mean_fold_rms_px": 0.1976704797202397,
+      "standard_error_px": 0.004465214268983119,
+      "fold_focal_px": [
+        [
+          627.2240586003446,
+          615.5585990249424
+        ],
+        [
+          628.1570395238618,
+          616.7393028298519
+        ],
+        [
+          628.4709856813835,
+          616.9524341934316
+        ],
+        [
+          626.9914388126051,
+          615.5171479260316
+        ],
+        [
+          625.270671946247,
+          614.2236343951067
+        ]
+      ],
+      "roundtrip_max_px": 8.64353072884929e-06
+    },
+    "radial2": {
+      "fold_rms_px": [
+        0.18312064675881734,
+        0.18844739615635853,
+        0.20116378697484483,
+        0.19239041958897946,
+        0.21393234043076487
+      ],
+      "mean_fold_rms_px": 0.19581091798195302,
+      "standard_error_px": 0.005403718185992175,
+      "fold_focal_px": [
+        [
+          622.7235212180382,
+          613.4903645413602
+        ],
+        [
+          625.2561018447536,
+          615.7855665292635
+        ],
+        [
+          623.8078060106071,
+          614.7797476993014
+        ],
+        [
+          624.6396203464078,
+          614.5878657352347
+        ],
+        [
+          619.3974387479963,
+          611.373920312413
+        ]
+      ],
+      "roundtrip_max_px": 1.566540663960676e-08
+    },
+    "brown_k3_fixed_zero": {
+      "fold_rms_px": [
+        0.18013227716405364,
+        0.18288184553407835,
+        0.19781640655828744,
+        0.1836689876804061,
+        0.20654794779301447
+      ],
+      "mean_fold_rms_px": 0.19020949294596798,
+      "standard_error_px": 0.005112891281512579,
+      "fold_focal_px": [
+        [
+          594.3078209670743,
+          597.8297846190867
+        ],
+        [
+          588.9121336583066,
+          596.7473309732243
+        ],
+        [
+          593.688014509101,
+          598.3859424791184
+        ],
+        [
+          586.7014447503293,
+          592.8842111220708
+        ],
+        [
+          598.0151287440161,
+          599.8717828271303
+        ]
+      ],
+      "roundtrip_max_px": 5.819712743111592e-07
+    }
+  },
+  "failed_models": {
+    "brown5": "distortion roundtrip exceeds 0.1px: 8617446560570.345"
+  },
+  "selection": "five training-only folds, simplest within best one standard error",
+  "held_out_new": {
+    "rms_px": 0.1602118027423226,
+    "views": [
+      {
+        "sample": "sample_1794592480861413898",
+        "rms_px": 0.13619434511596992,
+        "corners": 24
+      },
+      {
+        "sample": "sample_1794592451207005978",
+        "rms_px": 0.17841546481158296,
+        "corners": 22
+      },
+      {
+        "sample": "sample_1794592498907888067",
+        "rms_px": 0.1709917531830343,
+        "corners": 20
+      },
+      {
+        "sample": "sample_1794592465982149626",
+        "rms_px": 0.14260727018390934,
+        "corners": 19
+      },
+      {
+        "sample": "sample_1794592493299014192",
+        "rms_px": 0.1691978651953984,
+        "corners": 22
+      }
+    ]
+  },
+  "intrinsic_standard_deviation": [
+    6.927547030386669,
+    4.9529499420303384,
+    1.1328443360814757,
+    8.439918245316868,
+    0.006088252732832767,
+    0.025772744944878998,
+    0.0009069280737524372,
+    0.0008337329537851521,
+    0.0
+  ],
+  "input_files": [
+    {
+      "sample": "sample_1794589471965015230",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "f95df8729171f45c75c7145b176a9d274dea15972fc47381a69249e80ec0896d",
+      "record_sha256": "ee4ee12cec06b296dd9c4ac67df61e2110a2e7cbdc12d5e2b8810c575f71fa38",
+      "hull_fraction": 0.14117272265932948
+    },
+    {
+      "sample": "sample_1794589484440913449",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "ca1dfe60f99a5b8782110fca9429ea925bd20d2f1a22e486ee7f02cdf1fbee44",
+      "record_sha256": "393feaa83e3812dbd361cd4da5bbc14124bd541e2121d878fb455c4b928cfd68",
+      "hull_fraction": 0.21403330352737063
+    },
+    {
+      "sample": "sample_1794589400179640368",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "87adfe65a4055b85b467f429d819b0b57c6669150f1a37ddeb92e453d6cba431",
+      "record_sha256": "56fb1c5e11a94f1fd5c3ec3b17450870c072f7891261e2ceb2732b2273166236",
+      "hull_fraction": 0.20602017323309685
+    },
+    {
+      "sample": "sample_1794589435700977629",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "6ef52ebb202932087a6810bd8f6a298d5da505445be676fb051d502493fc5bde",
+      "record_sha256": "e7fa6ee7c877b621362d62a1485974e45cd5331ddca605ac117de275f3634b4a",
+      "hull_fraction": 0.1165226277405418
+    },
+    {
+      "sample": "sample_1794589329763215974",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "0ddec6f884cdc526e940e15ec8c6d036fcdb931bfbd81985bbd7bed51bcc2566",
+      "record_sha256": "ae2e79cd19f70b1c7696d0113e0500ff320c2c2fc86063cecf9babfbceb1bf11",
+      "hull_fraction": 0.20475768249036946
+    },
+    {
+      "sample": "sample_1794589395677094039",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "e17b5546136384118803771f44e08c39e08d78c448a391bc2e865efbc79f444a",
+      "record_sha256": "98d72cf68410fbe7cda41065bc3dd553ce8f35761d253b733d30c5c73fda8f44",
+      "hull_fraction": 0.18946611891637644
+    },
+    {
+      "sample": "sample_1794589452314404418",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "88fb0f76dc03028d4c83a90e0976f102cbc9c8750071bf72ccc1df89a3733f39",
+      "record_sha256": "879476435daa8ae57b53ea1800466f41d2e5beb7f850c66c81d44d9db6b2709f",
+      "hull_fraction": 0.21389101606701236
+    },
+    {
+      "sample": "sample_1794589492916834868",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "2a0c18b27c2d623b46bf3232b8ca675eb592c41051d45df147e5b2ac8508097a",
+      "record_sha256": "091033846215eff26048748d5f9dad485e2658b2305a05a88173266167e0d49f",
+      "hull_fraction": 0.21187530809533542
+    },
+    {
+      "sample": "sample_1794589442478040885",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "7132cbafa0479dfe144c3c62dd34016d7add0e1b6d6764190cb41496a31b38cc",
+      "record_sha256": "30aeb77cc69d9cad1f627d79c56647098613df21f8be1bafc63e871f81f59d2e",
+      "hull_fraction": 0.19254332088908674
+    },
+    {
+      "sample": "sample_1794589372993482037",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "440eb0f7ad5af0db46b5dd5508c968b053f025cbad8e6d3549aa1343975e1302",
+      "record_sha256": "fa16a6ec43cf44579b93eaf6dc14518453cb5f94c3d7d5fd9439393419df238f",
+      "hull_fraction": 0.1898250537797571
+    },
+    {
+      "sample": "sample_1794589504289175182",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "7425e656c6e4503a562769a6170c4266a87794875e79c5409f19fa9a81fb6184",
+      "record_sha256": "9df312d03ad9f19ec1182b7f2ceb4e56dc6490dd86c7bd9239efccd6e7d2270c",
+      "hull_fraction": 0.15397214214826666
+    },
+    {
+      "sample": "sample_1794589426432591465",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "8975db1bdb61207a8c3e496f19001fa05776120aa0e9b2f87695cf071cb78e0f",
+      "record_sha256": "7e2c5a5539ea893b64be71e3895f5d40ae99859b96261d903853b76c62fe152f",
+      "hull_fraction": 0.15616438475339503
+    },
+    {
+      "sample": "sample_1794589346007820512",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "c81f5904e9857ca2f81b10efe7f2697835548fd74ea53aff0e83b85c5670462a",
+      "record_sha256": "7af727bd6922901098fbc60bc7a017e7b9d173864beb013300c7895fba2b6df0",
+      "hull_fraction": 0.18895647033846746
+    },
+    {
+      "sample": "sample_1794589364452967407",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "285e5db8eb20a286e96e7e49192aeeb365280eb9c44922c7bbf0cff322f29a24",
+      "record_sha256": "a6c1cdec7be48834d3f4d15c180978bb9d9f3891a75c389bb27f211468445d5c",
+      "hull_fraction": 0.2102798697631812
+    },
+    {
+      "sample": "sample_1794589477168966468",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "885473e0eb84bb239f8bd8bccc6b127362ce6b89c0054ec47e19cffd6b6add6b",
+      "record_sha256": "6d409ec195015f299781dae1b0d0fe3c63ac16b9eb44f9072c8347bc074f421a",
+      "hull_fraction": 0.1553045582395551
+    },
+    {
+      "sample": "sample_1794589509424496124",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "fc269f86afd333ba5894141fdde2d03591edec1973146dd7acf5677917dba996",
+      "record_sha256": "a293df699d3efa2ee321407fe8a475496566070da3f0a0e45549dfc4b0efc9f6",
+      "hull_fraction": 0.11434592320949681
+    },
+    {
+      "sample": "sample_1794589376630759074",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "91c100198cf56637fabf99186bc36e1ab93e394f1613b6fe0d6fca11ea58b53b",
+      "record_sha256": "33f9e2704bd9301555bcfa6f62e43c3ab1c241fad515742c351fe60f85bac2b7",
+      "hull_fraction": 0.20698293077746485
+    },
+    {
+      "sample": "sample_1794589334999993965",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "ac42beed1fb8accc1b8c53af7e21eda41d22a1e6ff812402e9c5fb1c76d157e6",
+      "record_sha256": "243e0d72fc63639e5a7691727b1ae91353492fe2fa252803fb1b0b1f71dd0c01",
+      "hull_fraction": 0.18753993165335336
+    },
+    {
+      "sample": "sample_1794589515364438903",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "531df2abcbcb6538688b4cd844172e70f6ca227211508e2ccf094a15b11b394f",
+      "record_sha256": "056356b8820e2b1c89263574164489be301458ad777283a1b01426921d22bade",
+      "hull_fraction": 0.20448649969015795
+    },
+    {
+      "sample": "sample_1794589413323926438",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head/samples/20261113T165702_733605Z",
+      "origin": "initial_fit20",
+      "split": "fit",
+      "rgb_sha256": "b9774e074f206d590732845a921d3229c108fa0bfdb90e5bc2a6feb990982fa4",
+      "record_sha256": "b5551aa19b22e7fea2b6d03bb8f80d25900304bb730135cf87b9bd4c2cecf3f8",
+      "hull_fraction": 0.1885615659349954
+    },
+    {
+      "sample": "sample_1794592476817955623",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "e3ecc06c410f9b9ba3f3f19bd389d64e12322d411bd5620b38babec52ef0e770",
+      "record_sha256": "dc00a51367df0edf03ca81d8e643df7a2f77dec50ce53379ef1be3ff2a774441",
+      "hull_fraction": 0.1928301137817052
+    },
+    {
+      "sample": "sample_1794592456175092530",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "2886dd1cbc9702e09248c6393b42ccca50f604ba03e29fdaaba9f45dad6596fe",
+      "record_sha256": "db0c8d3b6d57e45296d3a636e8a8270ed1b5ee769e3eac0ca895be387eaa6e41",
+      "hull_fraction": 0.11582640244294756
+    },
+    {
+      "sample": "sample_1794592509583887385",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "6dd1310f4c701c4902ea2372c409dd2a7b737e97a1a0156fae88bb5aa2ee26df",
+      "record_sha256": "328d8fc5ebef030781736dbc3bb3b3bfc6cef65ca731261432795e205ca5badd",
+      "hull_fraction": 0.18722043748557743
+    },
+    {
+      "sample": "sample_1794592441267182320",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "fdc4612edeada25f7a511caa52ef86ff8a15e49869365f256211a234b8f0204a",
+      "record_sha256": "a42d01c9db1bcfdb9ea52c7e92e98bcf6e3f3c195d9497375f7cca72447c659b",
+      "hull_fraction": 0.20873009869672302
+    },
+    {
+      "sample": "sample_1794592435924903963",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "7ff6faca1114ebb0a51745f9009bf835d91b4e30e539e5261da4335f38a8d044",
+      "record_sha256": "a4c749f4ce1e3f20961700a7a7eee8b49d996d12559a7475f3a45c401af4a1eb",
+      "hull_fraction": 0.2037947015909928
+    },
+    {
+      "sample": "sample_1794592524893256041",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "1693df7a8248dea63fc6f84edb76e9332a798fcb0663d57f1c13c1afa0ab634a",
+      "record_sha256": "df1489f08ea8bdf62169dc15b928faedf675dfd34b8406a55a105ebfbee4f4bc",
+      "hull_fraction": 0.12743017855293773
+    },
+    {
+      "sample": "sample_1794592484964129778",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "35f8a6f3ddff912d06bca51feeed99736104d31646eadba0bfef83b408acb3de",
+      "record_sha256": "e236b253773eb8e3b0bdf078ec1c42cc854e167a7d7cbf3fe08dd569ca15600a",
+      "hull_fraction": 0.21723310006628102
+    },
+    {
+      "sample": "sample_1794592470620500773",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "6c0e4267051ee556e70dcf7b9c3910e1a8f8b6f57bd0d45655b741bf1a3ec7c7",
+      "record_sha256": "1a9741552f86737ac982e9a73d138435d8de4098fc409d35bc8cc96849c4d154",
+      "hull_fraction": 0.21039920206415655
+    },
+    {
+      "sample": "sample_1794592489367259597",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "1c305d374c6bc800033e9e1609a58458e379e1061adb556ef4d1608b5ef4fb16",
+      "record_sha256": "4d5a13858d7e926f73f7ef15c047e3ccb12d386b59a6d68dcad700551c3191cc",
+      "hull_fraction": 0.1747240060164586
+    },
+    {
+      "sample": "sample_1794592446705768359",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "fit",
+      "rgb_sha256": "4557fd27dee8d8f6fd0f6115de984827e517d8363b52210a5fe8fb11000dbef8",
+      "record_sha256": "8db8eb569b559ea0d58a1ff8aa03b44045314af597cbe8a42e99f648f13bda3a",
+      "hull_fraction": 0.18832330618973211
+    },
+    {
+      "sample": "sample_1794592480861413898",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "held_out",
+      "rgb_sha256": "a867e2185e836440a3479d68a69d7bd51a5407a24458eeffecc97e5fc5a738ce",
+      "record_sha256": "cd79a0fc6a5fbd3d4b750a06c87606094470b703b02276d07658cddc1a923d2f",
+      "hull_fraction": 0.21235663836578594
+    },
+    {
+      "sample": "sample_1794592451207005978",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "held_out",
+      "rgb_sha256": "f0d3a2b672b235e937a650a9d279b1395d0069147c7f9e4f1333576813dbdf1b",
+      "record_sha256": "9024a0d22fbbe8b73ac4e76d1be5394cccef1d6e8fb70de0b7af49dbe6992ab8",
+      "hull_fraction": 0.18706663359678033
+    },
+    {
+      "sample": "sample_1794592498907888067",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "held_out",
+      "rgb_sha256": "0bce5abc64e828619211ca803855627d5eaa2c478775cc079f886e4fc20b926a",
+      "record_sha256": "5c575e99cbfe41d1576816642a30bf06a7ad5b95f044e8525ed91f3781f026c8",
+      "hull_fraction": 0.16278867261391156
+    },
+    {
+      "sample": "sample_1794592465982149626",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "held_out",
+      "rgb_sha256": "167332e08a94d2af8af954ed0580194a596d04e276d904cea634054f54db3ff4",
+      "record_sha256": "15da93d49870465b4215419c7e8560da3c2c4bc27ae93775d80ad8f976721766",
+      "hull_fraction": 0.16046944557612353
+    },
+    {
+      "sample": "sample_1794592493299014192",
+      "dataset": "/home/cleany/cleany-data/runs/camera-capture-20261114/head-extra-intrinsics/samples/20261113T175301_599309Z",
+      "origin": "extra15",
+      "split": "held_out",
+      "rgb_sha256": "595f91d60c2c9e1b18d0efa5865cc26dab05dc726833d434a24525a3aa5dbf5f",
+      "record_sha256": "458addd9a8307027f6bf05c975e18873b9b120f6315a3e7525a74c32d203643e",
+      "hull_fraction": 0.18614396729201152
+    }
+  ],
+  "split_sha256": "d48a94ce4deceb195a9d6c28f0d2c80f8b1084d718c2c79626899edb7a6583d3",
+  "sdk_used_as_prior": false
+}

@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import yaml
 
 from cleany_robot_interface.cad_joint_bounds import apply_cad_joint_bounds
+from cleany_robot_interface.core import motor_calibration_directory
 from cleany_robot_interface.control_profile import prepare_control_profile
 from cleany_robot_interface.core import mappings
 
@@ -25,7 +26,7 @@ def main() -> None:
     state_tree = ET.fromstring(state)
     control = ET.parse(profile.model).getroot()
     arm = yaml.safe_load(profile.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(profile.state.arm_config, arm)
     calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                     for side, cfg in arm['arms'].items()}
     coordinates = json.loads(args.pose_config.read_text())['joint_coordinates']

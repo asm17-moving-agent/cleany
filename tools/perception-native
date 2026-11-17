@@ -28,8 +28,12 @@ if [[ -z "${GEMINI_API_KEY:-}" && -f "${HOME}/.config/cleany/gemini.env" ]]; the
 fi
 # Read semantic settings from the selected detector profile.
 semantic_model="${GEMINI_MODEL:-$("${venv}/bin/python" -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["perception_inspector"]["ros__parameters"]["gemini_model"])' "${profile}")}"
+observation_args=()
+if [[ -f /etc/nv_tegra_release && -z "${YOLOE_CONFIG_FILE:-}" ]]; then
+  mapfile -t observation_args < "${repo_root}/configs/robot/jetson/perception.args"
+fi
 exec ros2 launch cleany_perception inspect_scene.launch.py \
   detector_type:=yoloe_gemini segmenter_type:=yoloe_seg \
   yoloe_config_file:="${profile}" yoloe_model_path:="${engine}" \
   yoloe_text_encoder_directory:="${model_root}" yoloe_device:=cuda \
-  gemini_model:="${semantic_model}" rgbd_qos_reliability:=best_effort "$@"
+  gemini_model:="${semantic_model}" rgbd_qos_reliability:=best_effort "${observation_args[@]}" "$@"

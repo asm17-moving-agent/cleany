@@ -3,7 +3,7 @@
   "output_root": "~/.local/share/cleany/camera_preview",
   "robot_model": "configs/robot/cad_grasp_source.urdf",
   "grasp_tcp_y_m": -0.119775,
-  "arm_config": "~/.config/cleany/camera-calibration/20261114-main-head-wrists/arm-mapping.yaml",
+  "arm_config": "ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml",
   "calibrated_joint_position_bounds": [
     "left_shoulder_yaw_joint",
     "right_shoulder_yaw_joint",
@@ -28,7 +28,7 @@
     "calibration_profile": ""
   },
   "rgbd_bridge": "configs/robot/head_rgbd_bridge.json",
-  "camera_pose_config": "~/.config/cleany/camera-calibration/20261114-main-head-wrists/camera_pose-gripper-open-ref-160-20261115T044436Z.json",
+  "camera_pose_config": "configs/robot/jetson/calibration/camera_pose.json",
   "model_variant": "freecad_calibrated",
   "cad_binding_file": "configs/robot/cad_grasp_binding.json"
 }

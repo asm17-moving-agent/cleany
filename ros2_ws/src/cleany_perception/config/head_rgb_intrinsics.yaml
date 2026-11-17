@@ -1,2 +1,3 @@
-# Optional head RGB calibration; empty keeps the SDK alignment.
-intrinsics_file: ''
+# Commissioned head camera. Other serial numbers use SDK calibration by default.
+serial_no: '261822075013'
+intrinsics_file: jetson_head_intrinsics.json
