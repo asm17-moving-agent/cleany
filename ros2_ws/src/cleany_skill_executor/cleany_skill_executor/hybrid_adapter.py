@@ -10,6 +10,7 @@ from collections import defaultdict
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
 import math
+from pathlib import Path
 import time
 from xml.etree import ElementTree as ET
 from typing import Callable, Sequence
@@ -17,6 +18,7 @@ from typing import Callable, Sequence
 import numpy as np
 
 from cleany_skill_executor.core.alignment import axis_errors_degrees, quaternion_from_rotation, tcp_axes
+from cleany_skill_executor.core.grasp_approach_bounds import GraspApproachYawBounds
 from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.ik_diagnostics import (
     AlignmentLimits, ScoredAlignments, alignment_errors, summarize_alignments,
@@ -46,8 +48,11 @@ class HybridConfig:
     group_gripper_openings: bool = False
     defer_candidate_ik_retries: bool = False
     seeded_local_ik: bool = False
+    endpoint_margin_rad: float = 0.0
 
     def __post_init__(self) -> None:
+        if not math.isfinite(self.endpoint_margin_rad) or self.endpoint_margin_rad < 0:
+            raise ValueError('GPU IK endpoint margin must be finite and nonnegative')
         if any(type(v) is not int or v < 1 for v in (
                 self.batch_size, self.ik_iterations, self.fallback_seeds)):
             raise ValueError('Hybrid batch, iterations and fallback seeds must be positive integers')
@@ -63,9 +68,12 @@ class HybridConfig:
 
 
 class _CandidateRobotModel(RobotModel):
-    def __init__(self, description, srdf, config, *, exclude_opposite_arm_cost):
+    def __init__(self, description, srdf, config, *, exclude_opposite_arm_cost,
+                 endpoint_margin_rad=0.0, grasp_approach_yaw: GraspApproachYawBounds | None = None):
         super().__init__(description, srdf, config)
         self._exclude_opposite_arm_cost = exclude_opposite_arm_cost
+        self._endpoint_margin_rad = endpoint_margin_rad
+        self._grasp_approach_yaw = grasp_approach_yaw
         required = set(self.limits)
         self._joint_links = [joint.find('child').get('link')
             for joint in ET.fromstring(description).findall('joint')
@@ -73,6 +81,26 @@ class _CandidateRobotModel(RobotModel):
 
     def robot_config(self, path, arm, state, tip):
         robot = super().robot_config(path, arm, state, tip)
+        names = ARM_JOINT_NAMES[arm]
+        approach_yaw = getattr(self, '_grasp_approach_yaw', None)
+        margin = getattr(self, '_endpoint_margin_rad', 0.0)
+        bounds = {name: self.limits[name] for name in names}
+        if approach_yaw is not None:
+            yaw = names[0]
+            bounds[yaw] = approach_yaw.intersect(yaw, *bounds[yaw])
+            if bounds[yaw] != self.limits[yaw]:
+                robot['kinematics']['urdf_path'] = self._proposal_urdf(path, arm, yaw, bounds[yaw])
+        if margin:
+            if any(lower + margin >= upper - margin for lower, upper in bounds.values()):
+                raise ValueError('GPU IK endpoint margin leaves no joint range')
+            # cuRobo clips after removing locked joints. Keep the authoritative
+            # physical model/state and MoveIt path limits unchanged.
+            cspace = robot['kinematics']['cspace']
+            cspace['position_limit_clip'] = margin
+            cspace['retract_config'] = [
+                min(max(value, bounds[name][0]+margin), bounds[name][1]-margin)
+                if name in bounds else value
+                for name, value in zip(cspace['joint_names'], cspace['retract_config'])]
         if not self._exclude_opposite_arm_cost:
             return robot
         # Preserve both joint chains and measured locked joints, while the GPU
@@ -80,13 +108,27 @@ class _CandidateRobotModel(RobotModel):
         opposite = 'right' if arm == 'left' else 'left'
         kin = robot['kinematics']
         spheres = {name:value for name,value in kin['collision_spheres'].items()
-                   if not name.startswith(opposite+'_')}
+                   if not name.startswith((opposite+'_', 'cad_'+opposite+'_'))}
         kin.update(collision_link_names=list(spheres), collision_spheres=spheres,
             self_collision_ignore={name:[other for other in others if other in spheres]
                 for name,others in kin['self_collision_ignore'].items() if name in spheres},
             self_collision_buffer={name:0. for name in spheres},
-            link_names=list(dict.fromkeys([tip,*self._joint_links])))
+            link_names=list(dict.fromkeys([tip,*kin['link_names'],*self._joint_links])))
         return robot
+
+    def _proposal_urdf(self, path: str, arm: str, yaw: str, bounds: tuple[float, float]) -> str:
+        # cuRobo reads asymmetric position limits from the URDF. Keep the
+        # opposite arm's measured locks and the physical model intact.
+        original = Path(path)
+        proposal = original.with_name(f'{original.stem}-{arm}-approach.urdf')
+        if not proposal.exists():
+            root = ET.fromstring(self.xml)
+            limit = root.find(f"joint[@name='{yaw}']/limit")
+            if limit is None:
+                raise ValueError(f'GPU IK shoulder yaw limits are missing for {arm}')
+            limit.attrib.update(lower=str(bounds[0]), upper=str(bounds[1]))
+            proposal.write_text(ET.tostring(root, encoding='unicode'), encoding='utf-8')
+        return str(proposal)
 
 
 class _CandidateGpuAdapter(CuRoboBatchAdapter):
@@ -109,6 +151,14 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
 
     def _call(self, client, request, timeout):
         return self._owner._call(client, request, timeout)
+
+    def _seed_bases(self, arm, seed):
+        bounds = {name: self._owner._endpoint_position_bounds(name) for name in ARM_JOINT_NAMES[arm]}
+        return tuple(JointSolution(base.names, tuple(
+            min(max(value, lower), upper)
+            for name, value in zip(base.names, base.positions, strict=True)
+            for lower, upper in [bounds[name]]))
+            for base in super()._seed_bases(arm, seed))
 
     def _progress_stage(self, phase, detail):
         progress = getattr(self._owner, '_progress', None)
@@ -171,8 +221,9 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
             ordered = sorted(good, key=self._alignment_sort_key(good, roll)) if good else []
             checked, rejected, selected = 0, [], None
             final_diagnostic = None
-            if proposal_only and ordered:
-                selected = ordered[0]
+            if proposal_only:
+                selected = next((item for item in ordered
+                                 if self._owner._within_endpoint_bounds(item.solution)), None)
             for item in ordered:
                 if proposal_only:
                     break
@@ -458,7 +509,6 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             self._cpu_ik.cancel_active()
 
     def _create_gpu(self, description: str, config: CuRoboConfig):
-        from pathlib import Path
         from ament_index_python.packages import get_package_share_directory
         import xacro
 
@@ -473,7 +523,9 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                     f'sphere_model={config.sphere_model} mesh_fit_spheres={config.spheres_per_link} '
                     f'link_sphere_budget={config.sphere_budget_per_link}'):
                 self._robot_model = _CandidateRobotModel(description, semantic, config,
-                    exclude_opposite_arm_cost=self._hybrid_config.exclude_opposite_arm_cost)
+                    exclude_opposite_arm_cost=self._hybrid_config.exclude_opposite_arm_cost,
+                    endpoint_margin_rad=self._hybrid_config.endpoint_margin_rad,
+                    grasp_approach_yaw=self._config.grasp_approach_yaw)
         model = self._robot_model.with_config(config)
         engine = CuRoboBatchEngine(model, config,
             ik_iterations=self._hybrid_config.ik_iterations,
@@ -516,6 +568,16 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         gpu.set_deadline(self._deadline)
         return gpu
 
+    def _endpoint_position_bounds(self, name: str) -> tuple[float, float]:
+        lower, upper = self._planning_position_bounds(name)
+        margin = self._hybrid_config.endpoint_margin_rad
+        return lower + margin, upper - margin
+
+    def _within_endpoint_bounds(self, solution: JointSolution) -> bool:
+        return all(lower - 1e-9 <= value <= upper + 1e-9
+                   for name, value in zip(solution.names, solution.positions, strict=True)
+                   for lower, upper in [self._endpoint_position_bounds(name)])
+
     def _accept_alignment(self, arm: str, target: PoseValue,
                           result: PoseAlignment | None,
                           diagnostic: dict | None = None) -> PoseAlignment | None:
@@ -532,6 +594,11 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             return None
         if result.solution.names != ARM_JOINT_NAMES[arm]:
             raise InfrastructureError('Candidate IK joint ownership mismatch')
+        margin = self._hybrid_config.endpoint_margin_rad
+        if margin and not self._within_endpoint_bounds(result.solution):
+            if diagnostic is not None:
+                diagnostic.update(outcome='endpoint_margin_rejected', failure_phase='FINAL_FK_CHECK')
+            return None
         with self._progress.stage('FINAL_FK_CHECK', f'arm={arm}'):
             pose = self.forward_kinematics(arm, result.solution)
         approach, closing = axis_errors_degrees(target.orientation_xyzw, pose.orientation_xyzw)
@@ -661,12 +728,14 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                 if validation_targets is not None and index not in validation_targets:
                     accepted.append(result if result is not None
                                     and self._feasible_alignment(result) else None)
-                    diagnostic.update(outcome='deferred_proposal' if accepted[-1] is not None
-                                      else 'pose_rejected' if diagnostic['evaluated_variants']
-                                      else 'no_ik_solution',
-                                      failure_phase=None if accepted[-1] is not None
-                                      else 'GPU_FK_ALIGNMENT' if diagnostic['evaluated_variants']
-                                      else 'GPU_IK')
+                    if accepted[-1] is not None:
+                        diagnostic.update(outcome='deferred_proposal', failure_phase=None)
+                    elif diagnostic['pose_feasible']:
+                        diagnostic.update(outcome='endpoint_margin_rejected', failure_phase='FINAL_FK_CHECK')
+                    elif diagnostic['evaluated_variants']:
+                        diagnostic.update(outcome='pose_rejected', failure_phase='GPU_FK_ALIGNMENT')
+                    else:
+                        diagnostic.update(outcome='no_ik_solution', failure_phase='GPU_IK')
                     self._record_ik_diagnostic(diagnostic)
                     continue
                 self.set_gripper_position(arm, actual_opening)
@@ -793,7 +862,7 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         state = self._merged_state(seed).joint_state
         positions = dict(zip(state.name, state.position, strict=True))
         approach, closing = tcp_axes(target.orientation_xyzw)
-        bounds = [self._joint_limits[name][:2] for name in seed.names]
+        bounds = [self._endpoint_position_bounds(name) for name in seed.names]
 
         def residual(values):
             self._check_active()

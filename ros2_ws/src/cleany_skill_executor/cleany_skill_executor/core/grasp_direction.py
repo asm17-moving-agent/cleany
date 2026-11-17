@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class GraspDirectionConfig:
     enabled: bool = False
-    movement_tie_degrees: float = 5.0
     pair_position_tolerance_m: float = 1e-5
     pair_axis_tolerance_degrees: float = 1.0
     pair_score_tolerance: float = 1e-6
@@ -23,8 +22,6 @@ class GraspDirectionConfig:
     def __post_init__(self) -> None:
         if type(self.enabled) is not bool:
             raise ValueError('Grasp direction preference must be boolean')
-        if not math.isfinite(self.movement_tie_degrees) or not 0 <= self.movement_tie_degrees < 90:
-            raise ValueError('Wrist direction tie tolerance must be in [0, 90) degrees')
         if not math.isfinite(self.pair_position_tolerance_m) or self.pair_position_tolerance_m <= 0:
             raise ValueError('Grasp direction pair position tolerance must be positive')
         if not math.isfinite(self.pair_axis_tolerance_degrees) or not 0 < self.pair_axis_tolerance_degrees < 90:
@@ -83,18 +80,17 @@ def grasp_direction_pairs(
 
 def order_grasp_directions(
     pair: tuple[Candidate, ...], current_orientation_xyzw: tuple[float, float, float, float],
-    config: GraspDirectionConfig, fixed_jaw_sign: float,
 ) -> tuple[Candidate, ...]:
     """Estimate roll by projecting current closing onto the requested approach plane.
 
     This is an ordering heuristic, not an IK solution or a reachability check.
-    If the projection is degenerate, retain the incoming order.
+    Prefer the smaller rotation. Equal rotations or a degenerate projection
+    retain the incoming quality order, without a world-axis preference.
     """
     if len(pair) != 2:
         return pair
     current_closing = quaternion_axis(current_orientation_xyzw, (1., 0., 0.))
     movement = []
-    leftness = []
     for item in pair:
         approach = quaternion_axis(item.orientation_xyzw, (0., -1., 0.))
         closing = quaternion_axis(item.orientation_xyzw, (1., 0., 0.))
@@ -106,10 +102,7 @@ def order_grasp_directions(
             return pair
         cosine = max(-1., min(1., _dot(projection, closing) / norm))
         movement.append(math.degrees(math.acos(cosine)))
-        # Candidate and current pose are expressed in base_link: +Y is left.
-        leftness.append(fixed_jaw_sign * closing[1])
-    if abs(movement[0] - movement[1]) <= config.movement_tie_degrees:
-        first = 1 if leftness[1] - leftness[0] > 1e-9 else 0
-    else:
-        first = 1 if movement[1] < movement[0] else 0
+    if math.isclose(movement[0], movement[1], rel_tol=0.0, abs_tol=1e-9):
+        return pair
+    first = 1 if movement[1] < movement[0] else 0
     return pair if first == 0 else (pair[1], pair[0])

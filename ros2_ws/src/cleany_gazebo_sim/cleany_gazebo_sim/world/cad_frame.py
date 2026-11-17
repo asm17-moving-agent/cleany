@@ -60,7 +60,7 @@ def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> lis
 def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tuple[ET.Element, dict]:
     import xacro
     profile = yaml.safe_load(config.read_text())
-    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro')).toxml())
+    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf')).toxml())
     for mesh in urdf.findall('.//mesh'):
         filename = mesh.get('filename')
         if not filename.startswith('package://cleany_description/'):

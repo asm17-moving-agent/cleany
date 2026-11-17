@@ -1,0 +1,25 @@
+{
+  "schema": "cleany.runtime_cad/v1",
+  "model": "urdf/cleany.urdf",
+  "sha256": "695317fe6f3b4132a840beabe9328bff522e985b7fbc5b36a1dc572ee8024308",
+  "state_profile": "configs/robot/cad_grasp.json",
+  "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
+  "gripper_endpoint_sha256": "a5f425bd27a0c3618a3ad20f1e88491c5189d029388c12b10c169d9d570613d4",
+  "actuator_names": [
+    "right_shoulder_yaw_joint",
+    "right_shoulder_pitch_joint",
+    "right_elbow_pitch_joint",
+    "right_wrist_pitch_joint",
+    "right_wrist_roll_joint",
+    "left_shoulder_yaw_joint",
+    "left_shoulder_pitch_joint",
+    "left_elbow_pitch_joint",
+    "left_wrist_pitch_joint",
+    "left_wrist_roll_joint",
+    "head_pan_joint",
+    "head_tilt_joint",
+    "right_gripper_joint",
+    "left_gripper_joint"
+  ],
+  "motor_commands_sent": 0
+}

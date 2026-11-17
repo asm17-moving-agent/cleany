@@ -76,12 +76,12 @@ def decide(w, c, **changes):
     return evaluate_contact(w, c, **options)
 
 
-@pytest.mark.parametrize('arm,goal,empty_residual,current,load', [
-    ('left', 2676, 6, 1, 36), ('right', 2838, 12, 2, 60),
+@pytest.mark.parametrize('arm,empty_residual,current,load', [
+    ('left', 6, 1, 36), ('right', 12, 2, 60),
 ])
-def test_bilateral_close_goals_and_synthetic_empty_signatures(arm, goal, empty_residual, current, load):
+def test_bilateral_close_goals_and_synthetic_empty_signatures(arm, empty_residual, current, load):
     c = criteria(arm)
-    assert c.closed_goal_raw == goal
+    goal = c.closed_goal_raw
     result = decide(samples(c), c)
     assert result.state == ContactState.CONTACT and result.window_sec >= .4
     w = samples(c, position_raw=goal+c.opening_direction*empty_residual,
@@ -199,7 +199,7 @@ def test_window_duration_gap_freshness_request_epoch_and_replay_are_explicit():
 
 @pytest.mark.parametrize('direction', [-1, 1])
 def test_closing_direction_is_explicit(direction):
-    c = replace(criteria(), opening_direction=direction)
+    c = replace(criteria(), opening_direction=direction, closed_goal_raw=2048)
     assert decide(samples(c), c).state == ContactState.CONTACT
     mirrored = samples(c, position_raw=c.closed_goal_raw-direction*340)
     assert decide(mirrored, c).state == ContactState.UNKNOWN

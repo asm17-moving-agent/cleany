@@ -39,6 +39,24 @@ def test_batched_samples_match_each_scalar_sample_exactly(joints, retime):
     assert actual == expected
 
 
+@pytest.mark.parametrize('joints', [1, 5])
+@pytest.mark.parametrize('retime', [False, True])
+def test_batched_samples_match_each_scalar_sample_exactly(joints, retime):
+    positions = [tuple(value*(joint+1) for joint in range(joints))
+                 for value in (0., .1, -.02, .3)]
+    path = CubicJointPath(positions, (0., .02, .3, 1.))
+    if retime:
+        path = path.retimed([2.]*joints, [8.]*joints)
+    actual = path.samples(.01, 2, maximum_points=10000)
+    velocity, _ = path._segment_derivative_bounds()
+    counts = [max(2, math.ceil(float(np.max(row))/.01)) for row in velocity]
+    expected = [path.sample(0, 0.)]
+    for segment, subdivisions in enumerate(counts):
+        expected.extend(path.sample(segment, step/subdivisions)
+                        for step in range(1, subdivisions+1))
+    assert actual == expected
+
+
 @pytest.mark.parametrize('positions', [[], [(0.,)], [(0.,), (math.nan,)], [(0.,), (1., 2.)]])
 def test_invalid_path_rejected(positions):
     with pytest.raises(ValueError):

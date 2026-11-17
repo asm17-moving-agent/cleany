@@ -120,8 +120,10 @@ class StationaryWindow:
         self.stationary_since: float | None = None
         self._consumed: dict[str, int] = {}
         self._previous_receipts: dict[str, float] = {}
+        self._confirmed = False
 
-    def observe(self, feedback: JointFeedback, *, now: float, clock_ns: int, terminal: bool) -> bool:
+    def observe(self, feedback: JointFeedback, *, now: float, clock_ns: int, terminal: bool,
+                reuse_confirmed: bool = False) -> bool:
         gap = self.stationary_since is not None and any(
             sample.received_at - self._previous_receipts.get(name, sample.received_at) >= self.max_age_sec
             for name, sample in feedback.samples.items())
@@ -134,14 +136,19 @@ class StationaryWindow:
                 or any(abs(feedback.samples[name].velocity) > self.maximum_velocity
                        for name in feedback.required_names)):
             self.samples, self.stationary_since = 0, None
+            self._confirmed = False
             self._consumed = {name: sample.stamp_ns for name, sample in feedback.samples.items()}
             return False
         if any(feedback.samples[name].stamp_ns <= self._consumed.get(name, self.barrier_ns)
                for name in feedback.required_names):
-            return False
+            # Re-reading a completed round cannot increase its duration or count.
+            return (reuse_confirmed and self._confirmed and all(
+                feedback.samples[name].stamp_ns == self._consumed.get(name)
+                for name in feedback.required_names))
         self._consumed = {name: feedback.samples[name].stamp_ns for name in feedback.required_names}
         self.samples += 1
         if self.stationary_since is None:
             self.stationary_since = now
-        return (self.samples >= self.required_samples
-                and now - self.stationary_since >= self.minimum_duration_sec)
+        self._confirmed = (self.samples >= self.required_samples
+                           and now - self.stationary_since >= self.minimum_duration_sec)
+        return self._confirmed

@@ -1,0 +1,191 @@
+{
+  "source_model_sha256": "c8b298267b2d9aa0a020497bbc894f4b2f99b1ad8240af40167f49ae337c9536",
+  "method": "separate convex hull of each connected rigid CAD component",
+  "limitation": "Convex hulls conservatively fill concavities within each component; no hull spans separate parts.",
+  "meshes": [
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl",
+      "source_sha256": "15e8fcf64cc6e4439d1489f016d735d4ea8c54dae4e542f73f299eff00c94622",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.convex.stl",
+      "output_sha256": "8dadaf620141a74fced2733fd0e6913aa3d93cf340c9721c93e85b5996ed8b4f",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl",
+      "source_sha256": "844c979a55081b43533b5236f3c0f661e75b39fd41e9c8b36d43ec7811773b17",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_Top_Plate.convex.stl",
+      "output_sha256": "e16e50b8084bd9be02f8f2375623b31e102a9a14f295acb98fe05a4598cea25f",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl",
+      "source_sha256": "d5a8eea8827f990f81da48b664453348477fd9df1d3635424a7f48397fd38b3f",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.convex.stl",
+      "output_sha256": "377180ef71e5eeef57497257b656eb56ae7d502bef636516b69c3a078b834629",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo.stl",
+      "source_sha256": "446a003686d2c658741688a8b102c7891e8c4580dbc14551aca80f75db48d942",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_servo.convex.stl",
+      "output_sha256": "1644bb6abc58a273e3c5fdd32393fd08ab165d98e294ef796d8edfbe0564ddc5",
+      "components": 8,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_middle.stl",
+      "source_sha256": "a43b95a89d56b587113cf4418ff7b934c742f223f261c8aae122fae718b0c361",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_servo_middle.convex.stl",
+      "output_sha256": "532bb8aa77512053ed9273ce013cc36ccb43b52c896cc14c4cfffa984cb8d269",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_other.stl",
+      "source_sha256": "cfde5b76edae32dee39892f3bab29994bebc1e2fa906d65e8fa57b17855f5e58",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftKinematic_CameraTool180_Pinc_servo_other.convex.stl",
+      "output_sha256": "a0aa45ae6af730d0995384b91f8191aa7b5a4fbf543ef75706ebf3a716e8723e",
+      "components": 4,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_FixedMount.stl",
+      "source_sha256": "2b0e5a8f9c4e0be419aec2e88549b7d8f716c261a4524b14cbe611bf9cf19766",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_FixedMount.convex.stl",
+      "output_sha256": "ee8ef4279ccd9ba97973f81a387edffee0c345ffd0c326d5432b37d606601193",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCB.stl",
+      "source_sha256": "71eb42d2b66a81fcde22df6461dc0192af36864d6772acc997449fdc11a47687",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCB.convex.stl",
+      "output_sha256": "1ba759b4024a7267d53d2262651d2b913f3ad26959c9829ca0d1107a63ac5afb",
+      "components": 1,
+      "maximum_source_plane_violation_m": 2.7755575615628914e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_Lens.stl",
+      "source_sha256": "30caefaa73ffd2eec21c6c9576ef9db42b1c67a9c3d0bf7d2969db1f4466e55b",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_Lens.convex.stl",
+      "output_sha256": "656659bdb4d17264d4d2e03e5897b2874713c7578582ae6ef5730267ae16cc46",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_Glass.stl",
+      "source_sha256": "58f7840537580b96d1c3c249bea1208deaf2b02e54687d17576ffc9c3887ca05",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_Glass.convex.stl",
+      "output_sha256": "f4584d3f67ec18a38795cb6792daf86b00c79602b06b57d8a0acba12278f6473",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_Connector.stl",
+      "source_sha256": "9fddf4442b5a88cbe7623dc5632b27c11bebc1c55a1b9119539a2b618ebf2fa0",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_Connector.convex.stl",
+      "output_sha256": "3cc7ce75096b7637a1d6b9f2319752e4ee08a4bff54215fefe70ac7c03992887",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew0.stl",
+      "source_sha256": "1dd7ebf134d74e88ea67ad4efd2d6e977e888fec699b6dbc295b3f27b366da18",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBScrew0.convex.stl",
+      "output_sha256": "81684f98254e4b71a8022f224008cad5ff4b55216b8394df16770759bf81ae71",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut0.stl",
+      "source_sha256": "539c60c6902732b12062361b6f5d8a81e1a850721b3cd7401b040212f01b767b",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBNut0.convex.stl",
+      "output_sha256": "d1ec130c3a65ff36117b3776867f594aceee74b8357c5180844001e6ab493700",
+      "components": 1,
+      "maximum_source_plane_violation_m": 2.7755575615628914e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew1.stl",
+      "source_sha256": "413c42e21d2a09b5091e26ee1a018fcdb9f696a91b0134c9493998864bfc7518",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBScrew1.convex.stl",
+      "output_sha256": "2496515b6d78b45329bc30ca59c7d5cfa376a985265a7704732bb9431c5522a1",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut1.stl",
+      "source_sha256": "a4b926627c4c26196bb1d6cd5236e7cadd724ac041acfb210a53055b31cc6872",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBNut1.convex.stl",
+      "output_sha256": "9af8f040f38b8af06f7fc2df31d337e470e90aceb46855270444260eb8a03dc7",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew2.stl",
+      "source_sha256": "b6b6ce4321c1541e2d27615412372a33f54f8ddee5781fa52d879977b8ba670d",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBScrew2.convex.stl",
+      "output_sha256": "2571010c6be715cd0f0b0da6048291be9edbb593b7167f1dc7f7df9fbd7bafb5",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut2.stl",
+      "source_sha256": "fd766e3801502912c5c8b7b346ad0cdec947809334a3d7a3330dd7c90bab16e9",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBNut2.convex.stl",
+      "output_sha256": "7d9d2d2dba90bea80f5623b1aee2c0b1713f6bdaf4a03265c0e24db7bd00311d",
+      "components": 1,
+      "maximum_source_plane_violation_m": 2.7755575615628914e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew3.stl",
+      "source_sha256": "48df3efb0390014596463f639849f47a73fb18c44f3e15f5ef66b8791732b386",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBScrew3.convex.stl",
+      "output_sha256": "24aafa722c76c608855aa1de05125910c633dacd00329857ef6b711d8ace0de1",
+      "components": 1,
+      "maximum_source_plane_violation_m": 1.1102230246251565e-16
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut3.stl",
+      "source_sha256": "d8cba3234e9dd601c80d585ca31fa609f228ac8cff4a1f84fe2e20e428851112",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_PCBNut3.convex.stl",
+      "output_sha256": "7124a31fe8b67d07565aff642fc97b4555a0c3b5402b5d773a50b90c73bd2974",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew0.stl",
+      "source_sha256": "d80263b2690e93198722bb5eb26944ea4550466cecc3b8187e7b709f37200c99",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_BaseScrew0.convex.stl",
+      "output_sha256": "54c05c3ee8c56e32eaea4d5dea2e9c28243eefc30f88fb43cd88d6f8fda693ba",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew1.stl",
+      "source_sha256": "51ec09640a822b704204901c7215cd848b7f6f22f6dd07a639fabc03b9b0d73b",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_BaseScrew1.convex.stl",
+      "output_sha256": "b61171e32f33796f4a07c4e8bd31c1e94187db2358d3156cb96f2bd8c0e03047",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew2.stl",
+      "source_sha256": "374dde2eacaf292f8877a03754bbed55880176b4f57ee29dc963da9197fe1188",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_BaseScrew2.convex.stl",
+      "output_sha256": "39104f6a705c10466fb3d9fe2b3a1bc4ebf82f2dde2b75617000b884f22a207b",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    },
+    {
+      "source": "ros2_ws/src/cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew3.stl",
+      "source_sha256": "f0546c21c07c9f3afd29cfc2c25d658986969c22b6c083965678214328771a38",
+      "output": "ros2_ws/src/cleany_description/meshes/collision/rigid_wrist/LeftCamera_BaseScrew3.convex.stl",
+      "output_sha256": "d2a12ed2c0d260876c54aba033de899f62154905d2ee50457b411f8f3d0167a8",
+      "components": 1,
+      "maximum_source_plane_violation_m": 5.551115123125783e-17
+    }
+  ]
+}

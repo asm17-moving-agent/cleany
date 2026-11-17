@@ -96,6 +96,16 @@ class TargetSceneTransaction:
         self._saved_acm = None
         self._collision_object: CollisionObject | None = None
         self._attached = False
+        self._touch_links = {side:[f'{side}_gripper_frame',f'{side}_moving_jaw_link']
+                             for side in ('left','right')}
+
+    def set_robot_description(self, description: str) -> None:
+        from cleany_description.cad_coordinates import gripper_touch_links
+
+        links = {side:gripper_touch_links(description,side) for side in ('left','right')}
+        if self.active and links != self._touch_links:
+            raise InfrastructureError('Robot hand geometry changed during a target scene transaction')
+        self._touch_links = links
 
     @property
     def active(self) -> bool:
@@ -186,10 +196,7 @@ class TargetSceneTransaction:
             raise InfrastructureError('target scene transaction is not active')
         attached = AttachedCollisionObject()
         attached.link_name = f'{arm}_gripper_frame'
-        attached.touch_links = [
-            f'{arm}_gripper_frame',
-            f'{arm}_moving_jaw_link',
-        ]
+        attached.touch_links = list(self._touch_links[arm])
         attached.object = deepcopy(self._collision_object)
         attached.object.operation = CollisionObject.ADD
         scene = PlanningScene()
@@ -248,9 +255,9 @@ class TargetSceneTransaction:
         scene = PlanningScene()
         scene.is_diff = True
         scene.robot_state.is_diff = True
-        scene.allowed_collision_matrix = self._with_target_permissions(
+        scene.allowed_collision_matrix = self._with_allowed_links(
             self._support_acm if self._support_acm is not None else self._saved_acm,
-            self._object_id, arm
+            self._object_id, set(self._touch_links[arm])
         )
         if not self._apply(scene).success:
             raise InfrastructureError('failed to update target collision permissions')

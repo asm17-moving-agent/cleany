@@ -36,30 +36,30 @@ grasp_selection_server:
     maximum_candidates: 12
     grasp_ik_first: false
     prefer_near_wrist_grasp_direction: false
-    wrist_direction_tie_tolerance_degrees: 5.0
     grasp_direction_pair_position_tolerance_m: 0.00001
     grasp_direction_pair_axis_tolerance_degrees: 1.0
     grasp_direction_pair_score_tolerance: 0.000001
     action_timeout_sec: 120.0
+    pregrasp_z_offset_m: 0.0
     pregrasp_offset_m: 0.08
     planner_id: RRTConnectkConfigDefault
     aim_tip_offset_m: 0.14
     ik_seed_wrist_offsets_degrees: [0.0, -45.0, 45.0, -90.0, 90.0]
     # Flattened 5-joint elbow-up seeds; wrist offsets above are applied to each.
     ik_seed_nominal_postures_rad: [0.0, 0.65, 0.80, -0.40, 0.0, 0.0, 1.10, 1.70, -0.90, 0.0]
-    maximum_gripper_width_m: 0.10  # Simulation mapping; not hardware calibration.
+    maximum_gripper_width_m: 0.10  # Nominal width; the jaw-width curve remains unmeasured.
     gripper_safety_margin_m: 0.0  # Plan-only profile: accept openings up to 100 mm.
-    gripper_closed_joint_rad: -0.374532977628
-    gripper_open_joint_rad: 1.74532919957
-    # One fixed jaw at local +X and one moving jaw. The signed CAD value is the
-    # fixed-jaw distal reference relative to left/right_grasp_tcp along local X.
-    # It is an initial CAD estimate, not a force/contact calibration.
-    asymmetric_gripper_enabled: true
+    # Confirmed maximum-open reference and clockwise 160-degree closing stroke.
+    # Hardware collection profiles override these endpoints and nominal width together.
+    gripper_closed_joint_rad: -0.3745329776277857
+    gripper_open_joint_rad: 2.4173120563240813
+    # Symmetric jaws use the predicted contact center without fixed-jaw translation.
+    asymmetric_gripper_enabled: false
     fixed_jaw_closing_axis_sign: 1.0
-    fixed_jaw_tcp_offset_m: 0.009849299681842694
-    # Empirical translation farther toward the fixed jaw. Kept separate from
-    # the CAD offset so calibration intent remains explicit.
-    fixed_jaw_additional_bias_m: 0.020
+    fixed_jaw_tcp_offset_m: 0.0
+    fixed_jaw_additional_bias_m: 0.0
+    grasp_lateral_offset_m: 0.0
+    grasp_use_aperture_centering: false
     approach_tolerance_degrees: 15.0
     closing_tolerance_degrees: 30.0
     position_tolerance_m: 0.002

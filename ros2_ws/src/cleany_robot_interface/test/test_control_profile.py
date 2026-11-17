@@ -408,3 +408,19 @@ def test_control_rejects_policy_disjoint_from_motor_range(prepared):
         add_control_model(prepared.state.model.read_text(), arm, calibrations,
             yaml.safe_load(prepared.state.head_config.read_text()),
             json.loads(prepared.state.head_mapping.read_text()), limits, True)
+
+
+def test_control_model_supplies_the_host_executor_limit_contract(prepared):
+    from cleany_skill_executor.core.hardware_execution import physical_limits
+
+    model = ET.parse(prepared.model).getroot()
+    model.find("ros2_control/hardware/param[@name='read_only']").text = 'false'
+    xml = ET.tostring(model, encoding='unicode')
+    for arm in ('left', 'right'):
+        actual = physical_limits(xml, arm)
+        assert len(actual) == 6
+        for name, bounds in actual.items():
+            limit = model.find(f"joint[@name='{name}']/limit")
+            assert (bounds.lower, bounds.upper) == tuple(
+                float(limit.get(key)) for key in ('lower', 'upper'))
+            assert bounds.velocity > 0 and bounds.acceleration > 0

@@ -1,0 +1,312 @@
+{
+  "config": {
+    "schema": "cleany.calibrated_cad/v1",
+    "grippers": [
+      {
+        "side": "right",
+        "source_joint": "right_gripper_joint",
+        "scale": -0.9983516483516484,
+        "offset_rad": -0.3739156155767509,
+        "linkage": {
+          "cam_joint": "cad_delta_right_gripper_cam",
+          "numerical_tolerance_m": 1e-09,
+          "fingers": {
+            "L": {
+              "points_m": {
+                "P": [
+                  -0.010414246938801497,
+                  0.0035416748435820877
+                ],
+                "D": [
+                  -0.04291940122199871,
+                  0.0004944178789622056
+                ],
+                "A": [
+                  -0.03249999999999997,
+                  -0.018042401764531812
+                ],
+                "B": [
+                  -0.043999999999999984,
+                  -0.018042401764531812
+                ],
+                "C": [
+                  -0.012499999999999983,
+                  -0.0526834179159093
+                ],
+                "E": [
+                  -0.02399999999999998,
+                  -0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.021264468117505653,
+                "PD": 0.032647677252491916,
+                "AC": 0.039999999999999945,
+                "BE": 0.03999999999999995,
+                "CE": 0.011499999999999996,
+                "AB": 0.01150000000000001
+              },
+              "branch_drive": 1,
+              "branch_distal": 1,
+              "joints": {
+                "internal": "cad_delta_right_gripper_internal_L",
+                "external": "cad_delta_right_gripper_external_L",
+                "driving": "cad_delta_right_gripper_driving_L",
+                "distal": "cad_delta_right_gripper_distal_L"
+              }
+            },
+            "R": {
+              "points_m": {
+                "P": [
+                  0.010493070413308173,
+                  -0.003300829183910614
+                ],
+                "D": [
+                  0.042919401218671674,
+                  0.0004944178792264942
+                ],
+                "A": [
+                  0.03249999999999999,
+                  -0.018042401764531812
+                ],
+                "B": [
+                  0.04399999999999997,
+                  -0.018042401764531812
+                ],
+                "C": [
+                  0.01249999999999997,
+                  -0.0526834179159093
+                ],
+                "E": [
+                  0.02399999999999998,
+                  -0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.021264468116105818,
+                "PD": 0.03264767724921815,
+                "AC": 0.03999999999999996,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.011499999999999982
+              },
+              "branch_drive": -1,
+              "branch_distal": -1,
+              "joints": {
+                "internal": "cad_delta_right_gripper_internal_R",
+                "external": "cad_delta_right_gripper_external_R",
+                "driving": "cad_delta_right_gripper_driving_R",
+                "distal": "cad_delta_right_gripper_distal_R"
+              }
+            }
+          }
+        },
+        "basis": "Existing right live-CAD endpoint correspondence; intermediate aperture remains nominal."
+      },
+      {
+        "side": "left",
+        "source_joint": "left_gripper_joint",
+        "scale": -1.0,
+        "offset_rad": -0.3745329776277857,
+        "linkage": {
+          "cam_joint": "cad_delta_left_gripper_cam",
+          "numerical_tolerance_m": 1e-09,
+          "fingers": {
+            "L": {
+              "points_m": {
+                "P": [
+                  0.010414246938801497,
+                  -0.0035416748435820877
+                ],
+                "D": [
+                  0.04291940122199872,
+                  -0.0004944178789622056
+                ],
+                "A": [
+                  0.03249999999999997,
+                  0.018042401764531812
+                ],
+                "B": [
+                  0.043999999999999984,
+                  0.018042401764531812
+                ],
+                "C": [
+                  0.012499999999999983,
+                  0.0526834179159093
+                ],
+                "E": [
+                  0.023999999999999994,
+                  0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.02126446811750566,
+                "PD": 0.03264767725249193,
+                "AC": 0.039999999999999945,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.01150000000000001
+              },
+              "branch_drive": 1,
+              "branch_distal": 1,
+              "joints": {
+                "internal": "cad_delta_left_gripper_internal_L",
+                "external": "cad_delta_left_gripper_external_L",
+                "driving": "cad_delta_left_gripper_driving_L",
+                "distal": "cad_delta_left_gripper_distal_L"
+              }
+            },
+            "R": {
+              "points_m": {
+                "P": [
+                  -0.0104930704133082,
+                  0.003300829183910614
+                ],
+                "D": [
+                  -0.0429194012186717,
+                  -0.0004944178792264942
+                ],
+                "A": [
+                  -0.03249999999999999,
+                  0.018042401764531812
+                ],
+                "B": [
+                  -0.043999999999999984,
+                  0.018042401764531812
+                ],
+                "C": [
+                  -0.012499999999999983,
+                  0.0526834179159093
+                ],
+                "E": [
+                  -0.023999999999999994,
+                  0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.02126446811610583,
+                "PD": 0.03264767724921815,
+                "AC": 0.03999999999999995,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.011499999999999996
+              },
+              "branch_drive": -1,
+              "branch_distal": -1,
+              "joints": {
+                "internal": "cad_delta_left_gripper_internal_R",
+                "external": "cad_delta_left_gripper_external_R",
+                "driving": "cad_delta_left_gripper_driving_R",
+                "distal": "cad_delta_left_gripper_distal_R"
+              }
+            }
+          }
+        },
+        "basis": "Operator-confirmed CAD closed pose and rigid 1:1 motor/cam mapping; aperture control remains unchanged."
+      }
+    ],
+    "source_kinematics_sha256": "a666890bd4a8293cdee4e8bf9256091ae2fed28f11962b262e7e03597ecea820"
+  },
+  "cases": [
+    {
+      "cam_degrees": 0.0,
+      "actuator_positions": {
+        "right_gripper_joint": -0.3745329776277857,
+        "left_gripper_joint": -0.3745329776277857
+      },
+      "expected_dependent": {
+        "cad_delta_right_gripper_internal_L": -3.5966028462919037e-16,
+        "cad_delta_right_gripper_external_L": -3.388131789017209e-16,
+        "cad_delta_right_gripper_distal_L": 3.5966028462919037e-16,
+        "cad_delta_right_gripper_driving_L": -8.900486571530021e-17,
+        "cad_delta_right_gripper_internal_R": 3.5966028467654317e-16,
+        "cad_delta_right_gripper_external_R": 4.0657581468206525e-16,
+        "cad_delta_right_gripper_distal_R": -3.5966028467654317e-16,
+        "cad_delta_right_gripper_driving_R": 1.271498081902146e-16,
+        "cad_delta_left_gripper_internal_L": 0.0,
+        "cad_delta_left_gripper_external_L": 0.0,
+        "cad_delta_left_gripper_distal_L": 0.0,
+        "cad_delta_left_gripper_driving_L": 0.0,
+        "cad_delta_left_gripper_internal_R": 2.3977352311769515e-16,
+        "cad_delta_left_gripper_external_R": 2.710505431213768e-16,
+        "cad_delta_left_gripper_distal_R": -2.3977352311769515e-16,
+        "cad_delta_left_gripper_driving_R": 2.542996163804292e-17
+      }
+    },
+    {
+      "cam_degrees": -25.0,
+      "actuator_positions": {
+        "right_gripper_joint": 0.06251975195802603,
+        "left_gripper_joint": 0.06179933537079668
+      },
+      "expected_dependent": {
+        "cad_delta_right_gripper_internal_L": -0.14794720308937712,
+        "cad_delta_right_gripper_external_L": -0.14794720308937723,
+        "cad_delta_right_gripper_distal_L": 0.14794720308937773,
+        "cad_delta_right_gripper_driving_L": 0.5209404608175762,
+        "cad_delta_right_gripper_internal_R": 0.18435088840948127,
+        "cad_delta_right_gripper_external_R": 0.18435088840948136,
+        "cad_delta_right_gripper_distal_R": -0.18435088840948066,
+        "cad_delta_right_gripper_driving_R": 0.6156025608779014,
+        "cad_delta_left_gripper_internal_L": -0.14794720308937698,
+        "cad_delta_left_gripper_external_L": -0.147947203089377,
+        "cad_delta_left_gripper_distal_L": 0.14794720308937698,
+        "cad_delta_left_gripper_driving_L": 0.5209404608175763,
+        "cad_delta_left_gripper_internal_R": 0.184350888409482,
+        "cad_delta_left_gripper_external_R": 0.18435088840948194,
+        "cad_delta_left_gripper_distal_R": -0.184350888409482,
+        "cad_delta_left_gripper_driving_R": 0.6156025608779021
+      }
+    },
+    {
+      "cam_degrees": -90.0,
+      "actuator_positions": {
+        "right_gripper_joint": 1.1988568488811366,
+        "left_gripper_joint": 1.1962633491671109
+      },
+      "expected_dependent": {
+        "cad_delta_right_gripper_internal_L": -0.7156214686612294,
+        "cad_delta_right_gripper_external_L": -0.7156214686612293,
+        "cad_delta_right_gripper_distal_L": 0.71562146866123,
+        "cad_delta_right_gripper_driving_L": 1.7132476147835798,
+        "cad_delta_right_gripper_internal_R": 0.7889292700518431,
+        "cad_delta_right_gripper_external_R": 0.7889292700518434,
+        "cad_delta_right_gripper_distal_R": -0.7889292700518413,
+        "cad_delta_right_gripper_driving_R": 1.8606715876212585,
+        "cad_delta_left_gripper_internal_L": -0.7156214686612292,
+        "cad_delta_left_gripper_external_L": -0.7156214686612291,
+        "cad_delta_left_gripper_distal_L": 0.7156214686612287,
+        "cad_delta_left_gripper_driving_L": 1.7132476147835796,
+        "cad_delta_left_gripper_internal_R": 0.7889292700518451,
+        "cad_delta_left_gripper_external_R": 0.7889292700518453,
+        "cad_delta_left_gripper_distal_R": -0.7889292700518439,
+        "cad_delta_left_gripper_driving_R": 1.8606715876212596
+      }
+    },
+    {
+      "cam_degrees": -160.0,
+      "actuator_positions": {
+        "right_gripper_joint": 2.422604491721409,
+        "left_gripper_joint": 2.4179938255631415
+      },
+      "expected_dependent": {
+        "cad_delta_right_gripper_internal_L": -1.04753565801591,
+        "cad_delta_right_gripper_external_L": -1.04753565801591,
+        "cad_delta_right_gripper_distal_L": 1.0475356580159108,
+        "cad_delta_right_gripper_driving_L": 2.698685232646729,
+        "cad_delta_right_gripper_internal_R": 1.0475313722869009,
+        "cad_delta_right_gripper_external_R": 1.0475313722869013,
+        "cad_delta_right_gripper_distal_R": -1.0475313722868973,
+        "cad_delta_right_gripper_driving_R": 2.698466331549556,
+        "cad_delta_left_gripper_internal_L": -1.0475356580159096,
+        "cad_delta_left_gripper_external_L": -1.0475356580159099,
+        "cad_delta_left_gripper_distal_L": 1.0475356580159096,
+        "cad_delta_left_gripper_driving_L": 2.698685232646729,
+        "cad_delta_left_gripper_internal_R": 1.0475313722869026,
+        "cad_delta_left_gripper_external_R": 1.0475313722869029,
+        "cad_delta_left_gripper_distal_R": -1.0475313722869009,
+        "cad_delta_left_gripper_driving_R": 2.698466331549557
+      }
+    }
+  ]
+}

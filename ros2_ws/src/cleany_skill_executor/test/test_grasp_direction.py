@@ -85,8 +85,6 @@ class DirectionPort:
 def selection_config(**kwargs):
     return GraspSelectionConfig(
         stop_after_first_feasible=True, require_gripper_closure_clearance=True,
-        asymmetric_gripper_enabled=True, fixed_jaw_tcp_offset_m=.0098,
-        fixed_jaw_additional_bias_m=.01,
         direction_preference=GraspDirectionConfig(enabled=True), **kwargs)
 
 
@@ -107,7 +105,7 @@ def test_near_direction_uses_each_arms_measured_pose_without_extra_ik_or_plan(pr
         assert [request.candidate_index for request in port.requests] == [index, 1 - index]
     else:
         assert port.requests == []
-    # The selected orientation still gets its own asymmetric TCP translation.
+    # The symmetric TCP target is unchanged by direction ordering.
     expected = GraspSelector(port, config).grasp_tcp_position(candidates()[index])
     assert selected.grasp_alignment.pose.position == pytest.approx(expected)
 
@@ -121,17 +119,22 @@ def test_preferred_direction_failure_checks_reverse_on_same_arm_before_other_arm
     assert all(call[1] == 'left' for call in port.calls if call[0].endswith('_ik'))
 
 
-@pytest.mark.parametrize('angle,expected', [(92., 0), (93., 1), (90., 0), (179., 1)])
-def test_left_fixed_jaw_breaks_only_estimated_movement_ties(angle, expected):
+@pytest.mark.parametrize('angle,expected', [(88., 0), (89.5, 0), (90.5, 1),
+                                          (92., 1), (93., 1), (179., 1)])
+@pytest.mark.parametrize('legacy_side', [-1., 1.])
+def test_symmetric_gripper_uses_smaller_rotation_without_fixed_jaw_bias(angle, expected, legacy_side):
     port = DirectionPort({'left': angle})
-    selected = GraspSelector(port, selection_config()).select(candidates(), required_arm='left')
+    config = selection_config(fixed_jaw_closing_axis_sign=legacy_side)
+    selected = GraspSelector(port, config).select(candidates(), required_arm='left')
     assert selected.candidate_index == expected
+    assert selected.grasp_alignment.pose.position == candidates()[expected].position
 
 
-def test_left_preference_uses_the_configured_physical_fixed_jaw_side():
-    pair = candidates()
-    ordered = order_grasp_directions(pair, orientation(90.), GraspDirectionConfig(), -1.)
-    assert ordered[0].source_index == 1
+@pytest.mark.parametrize('reverse', [False, True])
+def test_equal_rotation_preserves_incoming_order_independent_of_world_side(reverse):
+    pair = tuple(reversed(candidates())) if reverse else candidates()
+    assert order_grasp_directions(pair, orientation(90.)) == pair
+    assert order_grasp_directions(pair, orientation(270.)) == pair
 
 
 def test_direction_pair_is_ordered_before_candidate_budget_is_applied():
@@ -173,7 +176,7 @@ def test_grasp_quality_and_original_source_indices_survive_pairing():
 def test_degenerate_current_closing_projection_keeps_original_order():
     current = tcp_quaternion_for_approach((0., -1., 0.), (1., 0., 0.))
     pair = candidates()  # Their approach is +X, parallel to current closing.
-    assert order_grasp_directions(pair, current, GraspDirectionConfig(), 1.) == pair
+    assert order_grasp_directions(pair, current) == pair
 
 
 def test_pairing_obeys_small_transport_rounding_tolerances():
@@ -197,8 +200,7 @@ def test_scene_port_forwards_current_pose_without_changing_target_contacts():
 
 
 @pytest.mark.parametrize('values', [
-    {'enabled': 1}, {'movement_tie_degrees': -1.}, {'movement_tie_degrees': 90.},
-    {'movement_tie_degrees': math.nan}, {'pair_position_tolerance_m': 0.},
+    {'enabled': 1}, {'pair_position_tolerance_m': 0.},
     {'pair_position_tolerance_m': math.inf}, {'pair_axis_tolerance_degrees': 90.},
     {'pair_axis_tolerance_degrees': 0.}, {'pair_score_tolerance': -1.},
     {'pair_score_tolerance': math.nan},

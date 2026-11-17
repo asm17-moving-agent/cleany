@@ -1,0 +1,1268 @@
+{
+  "schema": "cleany.cad_grasp_binding/v1",
+  "pose_config_sha256": "320729ff1589c07059b70b52ce9bb9e8616dfce382724f80c0c60ae460356643",
+  "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
+  "joint_coordinates": {
+    "cad_delta_left_shoulder_yaw": {
+      "source_joint": "left_shoulder_yaw_joint",
+      "scale": 1.0005057006252298,
+      "offset_rad": 0.004441043945639933
+    },
+    "cad_delta_left_shoulder_pitch": {
+      "source_joint": "left_shoulder_pitch_joint",
+      "scale": 0.9671479935049873,
+      "offset_rad": -3.1388453833118835
+    },
+    "cad_delta_left_elbow_pitch": {
+      "source_joint": "left_elbow_pitch_joint",
+      "scale": -0.9923084682503656,
+      "offset_rad": 3.094513671427472
+    },
+    "cad_delta_left_wrist_pitch": {
+      "source_joint": "left_wrist_pitch_joint",
+      "scale": -0.9854530340814629,
+      "offset_rad": -1.472647765444819
+    },
+    "cad_delta_left_wrist_roll": {
+      "source_joint": "left_wrist_roll_joint",
+      "scale": 1.0,
+      "offset_rad": -1.588437105855581
+    },
+    "cad_delta_right_shoulder_yaw": {
+      "source_joint": "right_shoulder_yaw_joint",
+      "scale": 1.001610824742268,
+      "offset_rad": -0.03618423245456137
+    },
+    "cad_delta_right_shoulder_pitch": {
+      "source_joint": "right_shoulder_pitch_joint",
+      "scale": -0.9699830169365344,
+      "offset_rad": 2.6427671288383605
+    },
+    "cad_delta_right_elbow_pitch": {
+      "source_joint": "right_elbow_pitch_joint",
+      "scale": 0.999568155260885,
+      "offset_rad": -3.1540312013563385
+    },
+    "cad_delta_right_wrist_pitch": {
+      "source_joint": "right_wrist_pitch_joint",
+      "scale": 1.0045814244064974,
+      "offset_rad": 1.530586193615573
+    },
+    "cad_delta_right_wrist_roll": {
+      "source_joint": "right_wrist_roll_joint",
+      "scale": 1.0,
+      "offset_rad": -1.6313885679163795
+    },
+    "cad_delta_head_pan": {
+      "source_joint": "head_pan_joint",
+      "scale": 1.0,
+      "offset_rad": 0.0
+    },
+    "cad_delta_head_tilt": {
+      "source_joint": "head_tilt_joint",
+      "scale": 1.0,
+      "offset_rad": 0.0
+    }
+  },
+  "cad_metadata": {
+    "schema": "cleany.calibrated_cad/v1",
+    "grippers": [
+      {
+        "side": "right",
+        "source_joint": "right_gripper_joint",
+        "scale": -0.893968253968254,
+        "offset_rad": -0.3348205920634427,
+        "linkage": {
+          "cam_joint": "cad_delta_right_gripper_cam",
+          "numerical_tolerance_m": 1e-09,
+          "fingers": {
+            "L": {
+              "points_m": {
+                "P": [
+                  -0.010414246938801497,
+                  0.0035416748435820877
+                ],
+                "D": [
+                  -0.04291940122199871,
+                  0.0004944178789622056
+                ],
+                "A": [
+                  -0.03249999999999997,
+                  -0.018042401764531812
+                ],
+                "B": [
+                  -0.043999999999999984,
+                  -0.018042401764531812
+                ],
+                "C": [
+                  -0.012499999999999983,
+                  -0.0526834179159093
+                ],
+                "E": [
+                  -0.02399999999999998,
+                  -0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.021264468117505653,
+                "PD": 0.032647677252491916,
+                "AC": 0.039999999999999945,
+                "BE": 0.03999999999999995,
+                "CE": 0.011499999999999996,
+                "AB": 0.01150000000000001
+              },
+              "branch_drive": 1,
+              "branch_distal": 1,
+              "joints": {
+                "internal": "cad_delta_right_gripper_internal_L",
+                "external": "cad_delta_right_gripper_external_L",
+                "driving": "cad_delta_right_gripper_driving_L",
+                "distal": "cad_delta_right_gripper_distal_L"
+              }
+            },
+            "R": {
+              "points_m": {
+                "P": [
+                  0.010493070413308173,
+                  -0.003300829183910614
+                ],
+                "D": [
+                  0.042919401218671674,
+                  0.0004944178792264942
+                ],
+                "A": [
+                  0.03249999999999999,
+                  -0.018042401764531812
+                ],
+                "B": [
+                  0.04399999999999997,
+                  -0.018042401764531812
+                ],
+                "C": [
+                  0.01249999999999997,
+                  -0.0526834179159093
+                ],
+                "E": [
+                  0.02399999999999998,
+                  -0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.021264468116105818,
+                "PD": 0.03264767724921815,
+                "AC": 0.03999999999999996,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.011499999999999982
+              },
+              "branch_drive": -1,
+              "branch_distal": -1,
+              "joints": {
+                "internal": "cad_delta_right_gripper_internal_R",
+                "external": "cad_delta_right_gripper_external_R",
+                "driving": "cad_delta_right_gripper_driving_R",
+                "distal": "cad_delta_right_gripper_distal_R"
+              }
+            }
+          }
+        },
+        "basis": "Operator-selected endpoint correspondence; intermediate CAD geometry is nominal, not a measured transmission ratio.",
+        "endpoint_mapping": {
+          "motor_open_rad": 2.4173120563240813,
+          "motor_closed_rad": -0.3745329776277857,
+          "cad_open_rad": -2.4958208303518914,
+          "cad_closed_rad": 0.0
+        }
+      },
+      {
+        "side": "left",
+        "source_joint": "left_gripper_joint",
+        "scale": -0.893968253968254,
+        "offset_rad": -0.3348205920634427,
+        "linkage": {
+          "cam_joint": "cad_delta_left_gripper_cam",
+          "numerical_tolerance_m": 1e-09,
+          "fingers": {
+            "L": {
+              "points_m": {
+                "P": [
+                  0.010414246938801497,
+                  -0.0035416748435820877
+                ],
+                "D": [
+                  0.04291940122199872,
+                  -0.0004944178789622056
+                ],
+                "A": [
+                  0.03249999999999997,
+                  0.018042401764531812
+                ],
+                "B": [
+                  0.043999999999999984,
+                  0.018042401764531812
+                ],
+                "C": [
+                  0.012499999999999983,
+                  0.0526834179159093
+                ],
+                "E": [
+                  0.023999999999999994,
+                  0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.02126446811750566,
+                "PD": 0.03264767725249193,
+                "AC": 0.039999999999999945,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.01150000000000001
+              },
+              "branch_drive": 1,
+              "branch_distal": 1,
+              "joints": {
+                "internal": "cad_delta_left_gripper_internal_L",
+                "external": "cad_delta_left_gripper_external_L",
+                "driving": "cad_delta_left_gripper_driving_L",
+                "distal": "cad_delta_left_gripper_distal_L"
+              }
+            },
+            "R": {
+              "points_m": {
+                "P": [
+                  -0.0104930704133082,
+                  0.003300829183910614
+                ],
+                "D": [
+                  -0.0429194012186717,
+                  -0.0004944178792264942
+                ],
+                "A": [
+                  -0.03249999999999999,
+                  0.018042401764531812
+                ],
+                "B": [
+                  -0.043999999999999984,
+                  0.018042401764531812
+                ],
+                "C": [
+                  -0.012499999999999983,
+                  0.0526834179159093
+                ],
+                "E": [
+                  -0.023999999999999994,
+                  0.0526834179159093
+                ]
+              },
+              "lengths_m": {
+                "AD": 0.02126446811610583,
+                "PD": 0.03264767724921815,
+                "AC": 0.03999999999999995,
+                "BE": 0.039999999999999945,
+                "CE": 0.01150000000000001,
+                "AB": 0.011499999999999996
+              },
+              "branch_drive": -1,
+              "branch_distal": -1,
+              "joints": {
+                "internal": "cad_delta_left_gripper_internal_R",
+                "external": "cad_delta_left_gripper_external_R",
+                "driving": "cad_delta_left_gripper_driving_R",
+                "distal": "cad_delta_left_gripper_distal_R"
+              }
+            }
+          }
+        },
+        "basis": "Operator-selected endpoint correspondence; intermediate CAD geometry is nominal, not a measured transmission ratio.",
+        "endpoint_mapping": {
+          "motor_open_rad": 2.4173120563240813,
+          "motor_closed_rad": -0.3745329776277857,
+          "cad_open_rad": -2.4958208303518914,
+          "cad_closed_rad": 0.0
+        }
+      }
+    ],
+    "source_kinematics_sha256": "a666890bd4a8293cdee4e8bf9256091ae2fed28f11962b262e7e03597ecea820",
+    "gpu_primitives_uri": "package://cleany_description/config/geometry/cad_runtime_gpu_primitives.json",
+    "gpu_primitives_sha256": "9db8a2ff3edb431034486e0474af35952c6740517234ff8ea0b724c6c7e051b6",
+    "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b"
+  },
+  "joint_dynamics": {
+    "left_shoulder_yaw_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "left_shoulder_pitch_joint": {
+      "effort": 4.4129925,
+      "velocity": 7.086
+    },
+    "left_elbow_pitch_joint": {
+      "effort": 4.4129925,
+      "velocity": 7.086
+    },
+    "left_wrist_pitch_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "left_wrist_roll_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "left_gripper_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "right_shoulder_yaw_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "right_shoulder_pitch_joint": {
+      "effort": 4.4129925,
+      "velocity": 7.086
+    },
+    "right_elbow_pitch_joint": {
+      "effort": 4.4129925,
+      "velocity": 7.086
+    },
+    "right_wrist_pitch_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "right_wrist_roll_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "right_gripper_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "head_pan_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    },
+    "head_tilt_joint": {
+      "effort": 2.6477955,
+      "velocity": 4.245
+    }
+  },
+  "reused_release": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description",
+  "source_artifacts": {
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/manifest.json": "8b2ec613f456784d9979d6f981b8165416b9c517d8990d2ebf007e6a6c7e6e6b",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/curobo-source-cache/manifest.json": "805eda61bf0b5f4e759d887b18419f5e4d18a093340547cf3340dcb56778d461",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/curobo-primitives.json": "9db8a2ff3edb431034486e0474af35952c6740517234ff8ea0b724c6c7e051b6",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/urdf/cleany_freecad_kinematic.urdf": "6ce867960a8e231fc1af8fc4aeccd8fa5fe1943ad46170f7119a5ab958990716",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/urdf/cleany_freecad_final.urdf": "39aae4eabf0aa142aa7f2f9854f537fc66f8691dbbe9569969c2b8c35536fafa",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/config/geometry/freecad_kinematics.json": "a666890bd4a8293cdee4e8bf9256091ae2fed28f11962b262e7e03597ecea820",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/config/geometry/freecad_wrist_camera_depth.json": "530f0a48a310125b3c39b6d6affcefba76f91493340ee0ed2743ed3ab8c7fdf1",
+    "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/config/geometry/freecad_camera_frames.json": "86c6b91e17f07bac7a212b4c2b25db96f40214d46f9b8da565b9705b770adae5"
+  },
+  "calibrated_geometry_model": "~/.config/cleany/camera-calibration/20261114-main-head-wrists/cad-review.urdf",
+  "calibrated_geometry_model_sha256": "80f349780083ca0a0b9708e28746c57ee25d6acb4aa019484d944596fab0d4ef",
+  "reused_calibrated_origins": {
+    "cad_delta_head_pan": {
+      "cached": {
+        "xyz": "0.0874177404373 -7.4623620002e-06 0.679611523562",
+        "rpy": "0 0 0"
+      },
+      "calibrated": {
+        "xyz": "0.0874177404373 -7.4623620002e-06 0.67555875312",
+        "rpy": "0 0 0"
+      }
+    }
+  },
+  "collision_assets": {
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/fe2367ede7f2f07966516f4476935cb35a7363117607d7ca4f1b078e3bb593bd.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/179-HeadFixedBracket.glb",
+      "sha256": "fe2367ede7f2f07966516f4476935cb35a7363117607d7ca4f1b078e3bb593bd"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c2f34f484a1c68d6cba1dd5e8171ec76211e32880ce531f51e3101352f50c593.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/184-HeadPanServoCase.glb",
+      "sha256": "c2f34f484a1c68d6cba1dd5e8171ec76211e32880ce531f51e3101352f50c593"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6318c527ad9f29d55666b7036ffc2f872fc73b444c3a6bf642c1b6ed368f67ab.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/185-HeadPanServoFront.glb",
+      "sha256": "6318c527ad9f29d55666b7036ffc2f872fc73b444c3a6bf642c1b6ed368f67ab"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/00cf372d8236aa1b3abad78d8c86732b5791eaf8da16c25da7ae1eae148fe6ce.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/186-HeadPanServoMiddle.glb",
+      "sha256": "00cf372d8236aa1b3abad78d8c86732b5791eaf8da16c25da7ae1eae148fe6ce"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/805998599bed580293eb595eed0f9581c136ac6728b5f00d0228243fff2f3bc8.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-00.glb",
+      "sha256": "805998599bed580293eb595eed0f9581c136ac6728b5f00d0228243fff2f3bc8"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/ff1fc7ed416906ba0f23736934ff5a7e97429535267bf689d9293c4b2c4b5f9c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-01.glb",
+      "sha256": "ff1fc7ed416906ba0f23736934ff5a7e97429535267bf689d9293c4b2c4b5f9c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/aa4e0bfe1e478bb5d4da0a961a956ca5b6b78bb165618fc7b26f6d840c022b01.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-02.glb",
+      "sha256": "aa4e0bfe1e478bb5d4da0a961a956ca5b6b78bb165618fc7b26f6d840c022b01"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5d23715e8b993f5301c5c372a2b1a8fe05c65572d438173493fa7a61816662d9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-03.glb",
+      "sha256": "5d23715e8b993f5301c5c372a2b1a8fe05c65572d438173493fa7a61816662d9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4de7596af7bafb9171b568e8bbc6a2fcd80159c79741ee5f54305beea75aa327.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-04.glb",
+      "sha256": "4de7596af7bafb9171b568e8bbc6a2fcd80159c79741ee5f54305beea75aa327"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/b4f61955301ce1cc141bf349497268b721118d0ffc20c1b6f0d76b8f5f6a52bd.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-05.glb",
+      "sha256": "b4f61955301ce1cc141bf349497268b721118d0ffc20c1b6f0d76b8f5f6a52bd"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2ab6d66f0af0eff5616143b711893e2dac5c13c322c4b9edc0461e2896b7de8b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-06.glb",
+      "sha256": "2ab6d66f0af0eff5616143b711893e2dac5c13c322c4b9edc0461e2896b7de8b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/63bffd6b0265da408f831b399f1e37238ca6ea37da0cf36c39584cdcbcd0b7b8.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/InstalledMast/piece-07.glb",
+      "sha256": "63bffd6b0265da408f831b399f1e37238ca6ea37da0cf36c39584cdcbcd0b7b8"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/775abd518dfbab271560ac6e0f64c3f5d2ccb7b5a398b0d230b275219249cba2.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint/piece-00.glb",
+      "sha256": "775abd518dfbab271560ac6e0f64c3f5d2ccb7b5a398b0d230b275219249cba2"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/1dbb98b739d15486c1b6268283e51f1362ac0f31232f767cb9a2cc9629451901.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint/piece-01.glb",
+      "sha256": "1dbb98b739d15486c1b6268283e51f1362ac0f31232f767cb9a2cc9629451901"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5701aaaeb2785f0b35e58056810b314b46868c51658063f41a35dc7415339aa6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint/piece-02.glb",
+      "sha256": "5701aaaeb2785f0b35e58056810b314b46868c51658063f41a35dc7415339aa6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6b857ba65dc22508c77d2c1dc7ceca078e23f2a1347b85001a789b71b1032a37.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BaseCover/piece-00.glb",
+      "sha256": "6b857ba65dc22508c77d2c1dc7ceca078e23f2a1347b85001a789b71b1032a37"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/328eb2dd2a7e1d60b09e005bc59f34aa5099b512b3474f1fcd0f895af67b5add.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint001/piece-00.glb",
+      "sha256": "328eb2dd2a7e1d60b09e005bc59f34aa5099b512b3474f1fcd0f895af67b5add"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/45cf41a3fc4f21a06972bda640a986722cb1f3e4df60aa0134d1bfe526eb3cc4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint001/piece-01.glb",
+      "sha256": "45cf41a3fc4f21a06972bda640a986722cb1f3e4df60aa0134d1bfe526eb3cc4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/b0bfdad0329d7ba013dba62e7a8fab24fec1da51fc7a3575ea04d104d236b950.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BasePrint001/piece-02.glb",
+      "sha256": "b0bfdad0329d7ba013dba62e7a8fab24fec1da51fc7a3575ea04d104d236b950"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/bad4b59454a1ea57965873cc6a5c9c8ee903346f48000d0d924e3ffee13e32c5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/BaseCover001/piece-00.glb",
+      "sha256": "bad4b59454a1ea57965873cc6a5c9c8ee903346f48000d0d924e3ffee13e32c5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8a813b4f2a4383b95f6b8080e6765d73965411e6258b3aa0cba4d7e53f7b6c0a.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/HeadPanIdlerHorn/piece-00.glb",
+      "sha256": "8a813b4f2a4383b95f6b8080e6765d73965411e6258b3aa0cba4d7e53f7b6c0a"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4beddbca946d51a127ae7a5051c936ce308165b323ade1a2a159b5abbe9a8c82.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Base_servo/piece-00.glb",
+      "sha256": "4beddbca946d51a127ae7a5051c936ce308165b323ade1a2a159b5abbe9a8c82"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/9977da4f0b7eae1b05751fb48d2d2f2b40dc454a616d2b004343cd7f1398c4ce.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Base_servo001/piece-00.glb",
+      "sha256": "9977da4f0b7eae1b05751fb48d2d2f2b40dc454a616d2b004343cd7f1398c4ce"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/70c4ce14a435677aa04ec08bec01a4987c3dbb9414f5fea5138b504f27dbae85.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/BaseCover.glb",
+      "sha256": "70c4ce14a435677aa04ec08bec01a4987c3dbb9414f5fea5138b504f27dbae85"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0e02657a5bb4ca871b4aa841085e9c1032adc7f2e478aa4f77fdcf7946f73be5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/BaseCover001.glb",
+      "sha256": "0e02657a5bb4ca871b4aa841085e9c1032adc7f2e478aa4f77fdcf7946f73be5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/082b3d2715f8c155e0ecfb2402b1390a3d7f0fcfa9856d3a9d1a44b65eb78ca3.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/BasePrint.glb",
+      "sha256": "082b3d2715f8c155e0ecfb2402b1390a3d7f0fcfa9856d3a9d1a44b65eb78ca3"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/d64ef2e5f4a75354fa60c8dcf73b5166ae74dd2810ccc0f072b30a4f4d4b0b67.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/BasePrint001.glb",
+      "sha256": "d64ef2e5f4a75354fa60c8dcf73b5166ae74dd2810ccc0f072b30a4f4d4b0b67"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8c2c636ba80588c95598daab14186f7a9a27341548159db6e0e8bfc9d1da4873.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo.glb",
+      "sha256": "8c2c636ba80588c95598daab14186f7a9a27341548159db6e0e8bfc9d1da4873"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/401d49274f7b7123d169a144738228c5c75578674b58bde64c96323813eda664.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo001.glb",
+      "sha256": "401d49274f7b7123d169a144738228c5c75578674b58bde64c96323813eda664"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3c306368d406bdcabe2a1f18dfc7b8b8b824a72b10870b2ecd22d30ecb2e7671.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo_middle.glb",
+      "sha256": "3c306368d406bdcabe2a1f18dfc7b8b8b824a72b10870b2ecd22d30ecb2e7671"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a11a208fc792b9b3911a17e06e2e650fad5d9579ae20522e7c83a4904f6e75cc.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo_middle001.glb",
+      "sha256": "a11a208fc792b9b3911a17e06e2e650fad5d9579ae20522e7c83a4904f6e75cc"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7a1c437d5a8009b033d9d6c8824763feb950910747bf3c498fe72cf0c76727d4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo_other.glb",
+      "sha256": "7a1c437d5a8009b033d9d6c8824763feb950910747bf3c498fe72cf0c76727d4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2003807a12e3f73e0ac10b4e01d1539b44b434f1e195a956d76a1b09c091168e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Base_servo_other001.glb",
+      "sha256": "2003807a12e3f73e0ac10b4e01d1539b44b434f1e195a956d76a1b09c091168e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/42a4d9487b8f6f41de80259a41158aa4ed2eca4f4f1cc002fdf63071fd9fe67c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint/piece-00.glb",
+      "sha256": "42a4d9487b8f6f41de80259a41158aa4ed2eca4f4f1cc002fdf63071fd9fe67c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/ed82980bd2defa18d046426e580aa767e45455ef2c976577cc066d0e3a3e62e4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint/piece-01.glb",
+      "sha256": "ed82980bd2defa18d046426e580aa767e45455ef2c976577cc066d0e3a3e62e4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0630ace1a33bfc0e98114ef8f0fe4bbdc1ce0fbff4c9416e43e43ddf3c9948ed.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint/piece-02.glb",
+      "sha256": "0630ace1a33bfc0e98114ef8f0fe4bbdc1ce0fbff4c9416e43e43ddf3c9948ed"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/95ff5b1587ed6523a8e111d926222f407f4f987eb78e946911bfe62bbe70f18d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/ShoulderMotorHolder/piece-00.glb",
+      "sha256": "95ff5b1587ed6523a8e111d926222f407f4f987eb78e946911bfe62bbe70f18d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/48fbc4c84de75f89d3f697c95a647c4023793d4877e444203da5b73efa629f41.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawDriveHorn/piece-00.glb",
+      "sha256": "48fbc4c84de75f89d3f697c95a647c4023793d4877e444203da5b73efa629f41"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a382bd1aaa659213efd83304792be891352a065b8cab66bf89ccb0ac46164d75.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawIdlerHorn/piece-00.glb",
+      "sha256": "a382bd1aaa659213efd83304792be891352a065b8cab66bf89ccb0ac46164d75"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c4e6055b27160186824e0c11531b1d9cb1125a483a51763dcde71d62545136f1.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Yaw_servo/piece-00.glb",
+      "sha256": "c4e6055b27160186824e0c11531b1d9cb1125a483a51763dcde71d62545136f1"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/e7f0b0bd195ac76427e3c50dc65179f5cf4ebf154170a16063703f82104369ef.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/ShoulderMotorHolder.glb",
+      "sha256": "e7f0b0bd195ac76427e3c50dc65179f5cf4ebf154170a16063703f82104369ef"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/fe8b8dc6fa55cd9f56a6bc7ac8812a9cbedd5bbf3c44b589bcd904e9fbd095b8.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawDriveHorn.glb",
+      "sha256": "fe8b8dc6fa55cd9f56a6bc7ac8812a9cbedd5bbf3c44b589bcd904e9fbd095b8"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/25aeb002da36742a8613bbfcdaca9ed55b0bb4da1e6aefc904ea63af69dc9a7b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawIdlerHorn.glb",
+      "sha256": "25aeb002da36742a8613bbfcdaca9ed55b0bb4da1e6aefc904ea63af69dc9a7b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/abc733c4133c24b77bae47c7175045f6919fa6e617402aa3aba0210b21156ef1.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawPrint.glb",
+      "sha256": "abc733c4133c24b77bae47c7175045f6919fa6e617402aa3aba0210b21156ef1"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8aba1b508227b4da818f10f9143cd75008e637fa008984b2ab9fd82a17fd130d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo.glb",
+      "sha256": "8aba1b508227b4da818f10f9143cd75008e637fa008984b2ab9fd82a17fd130d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c5efe356caacd5892b9ac437b192f93f4eaa25cd6d842d52829d9a742f87f383.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo_middle.glb",
+      "sha256": "c5efe356caacd5892b9ac437b192f93f4eaa25cd6d842d52829d9a742f87f383"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5a664ec888849aa78610809fb0ecef7e72dc39433e9e2e5690ea8a7ba21135ed.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo_other.glb",
+      "sha256": "5a664ec888849aa78610809fb0ecef7e72dc39433e9e2e5690ea8a7ba21135ed"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/88d93ae7fc3d4d0ea418bc5b4f255b9f2f4ba028a4366caf11bb30fdaa5bac6d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket/piece-00.glb",
+      "sha256": "88d93ae7fc3d4d0ea418bc5b4f255b9f2f4ba028a4366caf11bb30fdaa5bac6d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/716e4e600a6ea12a73b731b45a3049fa3c6bde133a318fb84413fb51a998a79c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket/piece-01.glb",
+      "sha256": "716e4e600a6ea12a73b731b45a3049fa3c6bde133a318fb84413fb51a998a79c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/89704f9b8cdcc2d299e21caa3a8ad71c5a86e46d0d223273e7cbdce6fbe4f8e2.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket/piece-02.glb",
+      "sha256": "89704f9b8cdcc2d299e21caa3a8ad71c5a86e46d0d223273e7cbdce6fbe4f8e2"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/ef323bfd07d05cffb74fd455ea44d6a1dcaa7ef0c8f3c605862f04f08ea932eb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledUpperTube/piece-00.glb",
+      "sha256": "ef323bfd07d05cffb74fd455ea44d6a1dcaa7ef0c8f3c605862f04f08ea932eb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/764dd1b6996b6ae597ab4e71673ec0c81979dbcc1e627ed5df7f5198fd29da02.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledElbowASocket/piece-00.glb",
+      "sha256": "764dd1b6996b6ae597ab4e71673ec0c81979dbcc1e627ed5df7f5198fd29da02"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/eb2f16af4fb07fb20c4c44ac313b632605d9ebd1b17758b200035fb0d0b337ce.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/UpperDriveHorn/piece-00.glb",
+      "sha256": "eb2f16af4fb07fb20c4c44ac313b632605d9ebd1b17758b200035fb0d0b337ce"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7593e289039ca4fb37ae52de263166638ea64d9117cf970fd560a607c9e3bb79.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/UpperIdlerHorn/piece-00.glb",
+      "sha256": "7593e289039ca4fb37ae52de263166638ea64d9117cf970fd560a607c9e3bb79"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/961a61732678d679c4a2da4410f237dc11ca7a5ad03f279ec18ad96dda3d2114.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Upper_servo/piece-00.glb",
+      "sha256": "961a61732678d679c4a2da4410f237dc11ca7a5ad03f279ec18ad96dda3d2114"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/29e99bd91e48d60ee11f7641f08ca12466fc4f3d8905ac1eeeb40b1a09a21f1d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledElbowASocket.glb",
+      "sha256": "29e99bd91e48d60ee11f7641f08ca12466fc4f3d8905ac1eeeb40b1a09a21f1d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/94255665570d504abcac78fae5221dcfad78d19345509c376a23b27356ef91f0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledShoulderSocket.glb",
+      "sha256": "94255665570d504abcac78fae5221dcfad78d19345509c376a23b27356ef91f0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f967bbc2ec67149a1d84f117ed84484620248d5cfd3ac7b8b6d6e1ddcdf12173.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledUpperTube.glb",
+      "sha256": "f967bbc2ec67149a1d84f117ed84484620248d5cfd3ac7b8b6d6e1ddcdf12173"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/dc23707bf875b5e605192db63b3b842f2a9a6059534fd6fe58c73cdbe49d30af.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/UpperDriveHorn.glb",
+      "sha256": "dc23707bf875b5e605192db63b3b842f2a9a6059534fd6fe58c73cdbe49d30af"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/9b7d1378b1707b303e82f3fbcef7ef5c25ab23d2e0a08cb6de367816cac2d86f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/UpperIdlerHorn.glb",
+      "sha256": "9b7d1378b1707b303e82f3fbcef7ef5c25ab23d2e0a08cb6de367816cac2d86f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6616bae01034f93b9cadb2f93375558d3726b1ec0793ab3f9a9534687d58357b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo.glb",
+      "sha256": "6616bae01034f93b9cadb2f93375558d3726b1ec0793ab3f9a9534687d58357b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/edf631ebff020ce64fba341aaa8c96f48e5ec1e05257ea2f398924aaa2767f99.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo_middle.glb",
+      "sha256": "edf631ebff020ce64fba341aaa8c96f48e5ec1e05257ea2f398924aaa2767f99"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0df2c1a0e2ac44bdf4128ce48efc5ee0d78302fd740f760cd719bb773e7f8218.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo_other.glb",
+      "sha256": "0df2c1a0e2ac44bdf4128ce48efc5ee0d78302fd740f760cd719bb773e7f8218"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3af78e4b1f4dfdd7a5e5690d89fa098aa12b754b7d5810a88d8752014bdc5493.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_WristMotorHolder/piece-00.glb",
+      "sha256": "3af78e4b1f4dfdd7a5e5690d89fa098aa12b754b7d5810a88d8752014bdc5493"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8020b08f1453bb1b905010a075803d2bd6d6bf4080c19a14eaa87593681463c0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket/piece-00.glb",
+      "sha256": "8020b08f1453bb1b905010a075803d2bd6d6bf4080c19a14eaa87593681463c0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2bf3ac66b620b0c0c19fdb5c5678519d2e0dfcd35a06e10206c8aa0f357fd99b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket/piece-01.glb",
+      "sha256": "2bf3ac66b620b0c0c19fdb5c5678519d2e0dfcd35a06e10206c8aa0f357fd99b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/1b862630cda3e776125c63863fe95dc4f7a3e493b43fd0054a3431bdb5379cb0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket/piece-02.glb",
+      "sha256": "1b862630cda3e776125c63863fe95dc4f7a3e493b43fd0054a3431bdb5379cb0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/22829863944db2a1e611d771d883061e90c975d330899f7b849fe143d1cffd6b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledLowerTube/piece-00.glb",
+      "sha256": "22829863944db2a1e611d771d883061e90c975d330899f7b849fe143d1cffd6b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/89acdef66912bc22b9d50f9b637b239c7cf4e1db2f7bc99ba4271053cd1a25b3.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledWristSocket/piece-00.glb",
+      "sha256": "89acdef66912bc22b9d50f9b637b239c7cf4e1db2f7bc99ba4271053cd1a25b3"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/911fa2cf0d0f2c0d2bf7536a79d8d02ee81ddb2a649449cf7fa4cc125038a2f4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_LowerDriveHorn/piece-00.glb",
+      "sha256": "911fa2cf0d0f2c0d2bf7536a79d8d02ee81ddb2a649449cf7fa4cc125038a2f4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7357f15d0a82de32014f4d8304e066b124377225de3339d7ba10cd66f3216684.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_LowerIdlerHorn/piece-00.glb",
+      "sha256": "7357f15d0a82de32014f4d8304e066b124377225de3339d7ba10cd66f3216684"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/29e238f0da0f7c060832ad801b4157edba99891cda5783eac688ab7a58bda498.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Aligned_Lower_servo/piece-00.glb",
+      "sha256": "29e238f0da0f7c060832ad801b4157edba99891cda5783eac688ab7a58bda498"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/34972e18dc07c1349a6a13e3349de4eec406f39842e226d9b5c9a6faa75c8521.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledElbowBSocket.glb",
+      "sha256": "34972e18dc07c1349a6a13e3349de4eec406f39842e226d9b5c9a6faa75c8521"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/ab26666e19c31acae5002190f5ae2a80090891add3fa5d12d6c5ce9334b8cf91.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledLowerTube.glb",
+      "sha256": "ab26666e19c31acae5002190f5ae2a80090891add3fa5d12d6c5ce9334b8cf91"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6ab09088b2fdfb4ffbe10469611667b02fc98dea83f1c0255c11d24fb64ab193.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledWristSocket.glb",
+      "sha256": "6ab09088b2fdfb4ffbe10469611667b02fc98dea83f1c0255c11d24fb64ab193"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c5d31f61bc2de84d5b9d8ffcd8ca7b3cf05f68bee55bff9286544ba8f7de32d6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_LowerDriveHorn.glb",
+      "sha256": "c5d31f61bc2de84d5b9d8ffcd8ca7b3cf05f68bee55bff9286544ba8f7de32d6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/452ec9655a15856ca14d803211378ca400b828f5f029035089239872c8921f11.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_LowerIdlerHorn.glb",
+      "sha256": "452ec9655a15856ca14d803211378ca400b828f5f029035089239872c8921f11"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/73948f1e84f7b040a6fd7c7c032ee0508600b4d297d8c9246021c57025c30e1b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo.glb",
+      "sha256": "73948f1e84f7b040a6fd7c7c032ee0508600b4d297d8c9246021c57025c30e1b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/450c6ac8b1d146127ae0ffe7d3260dd2a3a03fa8f825ec2c9d975101ddfb56ff.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo_middle.glb",
+      "sha256": "450c6ac8b1d146127ae0ffe7d3260dd2a3a03fa8f825ec2c9d975101ddfb56ff"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a0bd9425d43a4ea45fb103a5bff91a5e89d46bd9f3b07f1baff94bf066b69608.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo_other.glb",
+      "sha256": "a0bd9425d43a4ea45fb103a5bff91a5e89d46bd9f3b07f1baff94bf066b69608"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/d16c770b59dbb47814b2dddf4ac4e29fa8cde071aa3772d8cf759fce5c921b78.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_WristMotorHolder.glb",
+      "sha256": "d16c770b59dbb47814b2dddf4ac4e29fa8cde071aa3772d8cf759fce5c921b78"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4e21bc7ddaec08527e09693fceaba07950b9de0df1370ef927c53f74f51a118b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/058-WristPrint.glb",
+      "sha256": "4e21bc7ddaec08527e09693fceaba07950b9de0df1370ef927c53f74f51a118b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/be653b4d936ee85b5ff02db78336e058ebac1ff5eabbab4a8c67d10277397d63.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/059-Wrist_servo.glb",
+      "sha256": "be653b4d936ee85b5ff02db78336e058ebac1ff5eabbab4a8c67d10277397d63"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/98c9161ad620098a93c2cd976084fb90d9b0edb19cf031728aabd6e43394f32e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/060-Wrist_servo_middle.glb",
+      "sha256": "98c9161ad620098a93c2cd976084fb90d9b0edb19cf031728aabd6e43394f32e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/75c2dbc3b58a91651978b2b1e04366b7a66edc3a6681d1c57163ff8a4e9f8af5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/061-Wrist_servo_other.glb",
+      "sha256": "75c2dbc3b58a91651978b2b1e04366b7a66edc3a6681d1c57163ff8a4e9f8af5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4a732728e8fa32cae50a8b9291005fbfd385ccd357e7f22c1f9e7628a7a2f6f0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/WristDriveHorn/piece-00.glb",
+      "sha256": "4a732728e8fa32cae50a8b9291005fbfd385ccd357e7f22c1f9e7628a7a2f6f0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2d01f695185b9c26152149d60f20fc32caa43f1e4ac53d1c3ccea74395a9d055.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/WristIdlerHorn/piece-00.glb",
+      "sha256": "2d01f695185b9c26152149d60f20fc32caa43f1e4ac53d1c3ccea74395a9d055"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/798eaf64800e6af773b27b0567bbefd82cd929f8f0ffa2549d7fed39b29e2b56.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/WristDriveHorn.glb",
+      "sha256": "798eaf64800e6af773b27b0567bbefd82cd929f8f0ffa2549d7fed39b29e2b56"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/367b40acff9b5a02875e1b3252623b94405ddfa0ee1f7edc7705419c273a49fb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/WristIdlerHorn.glb",
+      "sha256": "367b40acff9b5a02875e1b3252623b94405ddfa0ee1f7edc7705419c273a49fb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/b04953308b40ee60f1b3a1c129eae58f2886c76a9685ac5124046ea94682f5a5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/065-RightKinematic_CameraTool180_Pinc_Bottom_Plate.glb",
+      "sha256": "b04953308b40ee60f1b3a1c129eae58f2886c76a9685ac5124046ea94682f5a5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/32d6abdaa2afe08ce1fbc2a64066e0f6b56fc187ed1e2970729d68d45cc28288.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/066-RightKinematic_CameraTool180_Pinc_Top_Plate.glb",
+      "sha256": "32d6abdaa2afe08ce1fbc2a64066e0f6b56fc187ed1e2970729d68d45cc28288"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c2481da09233469107304a78c45ea5689f3e207bbd398721cb30658665098943.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/083-RightKinematic_CameraTool180_Pinc_servo.glb",
+      "sha256": "c2481da09233469107304a78c45ea5689f3e207bbd398721cb30658665098943"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a6c17f3a0d3ff3f5b1dd29c29a9c55b8e429783985b884c1a864d5075461355d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/084-RightKinematic_CameraTool180_Pinc_servo_middle.glb",
+      "sha256": "a6c17f3a0d3ff3f5b1dd29c29a9c55b8e429783985b884c1a864d5075461355d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/611721597d91eeac5a2aa0a1ea613258dd902f1e4f2ce40c3d69f32839ac81e0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/085-RightKinematic_CameraTool180_Pinc_servo_other.glb",
+      "sha256": "611721597d91eeac5a2aa0a1ea613258dd902f1e4f2ce40c3d69f32839ac81e0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/9e55f2c226e6c48823933f408f8a36e3fb5ae2a7f30a208fe687f21461a4e2a6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/087-RightCamera_FixedMount.glb",
+      "sha256": "9e55f2c226e6c48823933f408f8a36e3fb5ae2a7f30a208fe687f21461a4e2a6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/567720d5255b6c027c0da09ed3ce1f97be7ecca1afb1b795eaa0b5f157cf240c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/089-RightCamera_Lens.glb",
+      "sha256": "567720d5255b6c027c0da09ed3ce1f97be7ecca1afb1b795eaa0b5f157cf240c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/b243a60e7cd2278b34628d19f204f136a3e6906af7036592b94809b4b51252ab.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/090-RightCamera_Glass.glb",
+      "sha256": "b243a60e7cd2278b34628d19f204f136a3e6906af7036592b94809b4b51252ab"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/856fa4b13ee37eba4cfc65b8a15f7cbc62704af2737771534f1251dea1f17701.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_ToolDriveHorn/piece-00.glb",
+      "sha256": "856fa4b13ee37eba4cfc65b8a15f7cbc62704af2737771534f1251dea1f17701"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4dc2559082d2a714f8313ef479aaaefc2446b323fc16b58e31b809d71ca0fa2e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_Interface_ARM100/piece-00.glb",
+      "sha256": "4dc2559082d2a714f8313ef479aaaefc2446b323fc16b58e31b809d71ca0fa2e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/325d8d0c99f9854ae6cde51da4bc1dd04fe6a354c8b58f92742958c73fa084ff.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_Interface_ARM100/piece-01.glb",
+      "sha256": "325d8d0c99f9854ae6cde51da4bc1dd04fe6a354c8b58f92742958c73fa084ff"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/af6609ddb4cbb44688fa0344a4ab34e0879ae1e31e7a7125c6ad97e4a0525a64.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightCamera_BaseScrew0/piece-00.glb",
+      "sha256": "af6609ddb4cbb44688fa0344a4ab34e0879ae1e31e7a7125c6ad97e4a0525a64"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/d45daee4bd2495e41fb70e923a8b3d164559a54ce95f132301c9ca8ebc1b9988.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightCamera_BaseScrew1/piece-00.glb",
+      "sha256": "d45daee4bd2495e41fb70e923a8b3d164559a54ce95f132301c9ca8ebc1b9988"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/84a4a16fa84f9c636a7ab52c204771a481709ac4d52225e4ebe8b0f3387226c4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightCamera_BaseScrew2/piece-00.glb",
+      "sha256": "84a4a16fa84f9c636a7ab52c204771a481709ac4d52225e4ebe8b0f3387226c4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4ad45080e4e0d4918f2b51ba1d34ca6d9910fa1dea25b6cf8d0efb4de60d9248.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightCamera_BaseScrew3/piece-00.glb",
+      "sha256": "4ad45080e4e0d4918f2b51ba1d34ca6d9910fa1dea25b6cf8d0efb4de60d9248"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/909a1932808444e145109074e663fcb0fcab883c35450fd645fbea4da9bd0da7.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_right_camera_board/piece-00.glb",
+      "sha256": "909a1932808444e145109074e663fcb0fcab883c35450fd645fbea4da9bd0da7"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/bd7b3ec131cd3340feaa38a49f6cdbd8207a1f8ffabc0c41b5bfba3f81e165a9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint001/piece-00.glb",
+      "sha256": "bd7b3ec131cd3340feaa38a49f6cdbd8207a1f8ffabc0c41b5bfba3f81e165a9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/67feaf541797ebac6581638b8d71e9fe1656b3dfe5281a423d6218361df5c4be.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint001/piece-01.glb",
+      "sha256": "67feaf541797ebac6581638b8d71e9fe1656b3dfe5281a423d6218361df5c4be"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/21d03d80e86125d1743bab5bd159a798b9f2990a5a045a0fe4ddc40769a525e0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawPrint001/piece-02.glb",
+      "sha256": "21d03d80e86125d1743bab5bd159a798b9f2990a5a045a0fe4ddc40769a525e0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/bf8d6fbeb8cbee921a21b94926a1b785f46da993c39c5978d8ca37eb7aa297e7.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/ShoulderMotorHolder001/piece-00.glb",
+      "sha256": "bf8d6fbeb8cbee921a21b94926a1b785f46da993c39c5978d8ca37eb7aa297e7"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c5b24fcb0bfed42af8097e8160b72bdc0c7b45bb3b077e342f71b67f41631ad6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawDriveHorn001/piece-00.glb",
+      "sha256": "c5b24fcb0bfed42af8097e8160b72bdc0c7b45bb3b077e342f71b67f41631ad6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0ed0e2f2c1839aad119a43e82a0588ca215541b969f1be7bd15b5c4733113a76.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/YawIdlerHorn001/piece-00.glb",
+      "sha256": "0ed0e2f2c1839aad119a43e82a0588ca215541b969f1be7bd15b5c4733113a76"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/aa6944ad0db1abd54d1fe2b949ccec9a7fdddc63fa8a074fe408ba90ae6b8284.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Yaw_servo001/piece-00.glb",
+      "sha256": "aa6944ad0db1abd54d1fe2b949ccec9a7fdddc63fa8a074fe408ba90ae6b8284"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f086159ac635e90589d2eda35aea4263c0c763c8b2da0944bac95ba88bb14421.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/ShoulderMotorHolder001.glb",
+      "sha256": "f086159ac635e90589d2eda35aea4263c0c763c8b2da0944bac95ba88bb14421"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0cbd3699d45586acbf89d98f8ff803dadd6f9df805c99b68d96bdcd901a25f6d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawDriveHorn001.glb",
+      "sha256": "0cbd3699d45586acbf89d98f8ff803dadd6f9df805c99b68d96bdcd901a25f6d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8646de315f5f1ddfd9fe03685a53b8d3494283da30c72f3a4952dfbbede73b8b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawIdlerHorn001.glb",
+      "sha256": "8646de315f5f1ddfd9fe03685a53b8d3494283da30c72f3a4952dfbbede73b8b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/1577e39f7e5d144b719a26f133bc550f0a407095936261c5a3e7be3af14f8c9f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/YawPrint001.glb",
+      "sha256": "1577e39f7e5d144b719a26f133bc550f0a407095936261c5a3e7be3af14f8c9f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/efbedb6f6805e05b76f92c3edfecff94ca40185b776be9970d9e88fee41280bd.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo001.glb",
+      "sha256": "efbedb6f6805e05b76f92c3edfecff94ca40185b776be9970d9e88fee41280bd"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/99815bbe969b19cae96902708720844d6b2332d6543e6fc2390c027f578af5ec.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo_middle001.glb",
+      "sha256": "99815bbe969b19cae96902708720844d6b2332d6543e6fc2390c027f578af5ec"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/22b45694d6e0bca23798a0ad4b6686e1d016ade702a3baaaea9b5d0f4ee69bcb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Yaw_servo_other001.glb",
+      "sha256": "22b45694d6e0bca23798a0ad4b6686e1d016ade702a3baaaea9b5d0f4ee69bcb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/36404bd0ae6e803ba08fe4aeda1f28dd7e11dc36bee83a89849e7cebb23bbdf4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket001/piece-00.glb",
+      "sha256": "36404bd0ae6e803ba08fe4aeda1f28dd7e11dc36bee83a89849e7cebb23bbdf4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3f06ada4a3affcc75cdba3cb1a91f083c7f942830a017df1b26334c77707fea4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket001/piece-01.glb",
+      "sha256": "3f06ada4a3affcc75cdba3cb1a91f083c7f942830a017df1b26334c77707fea4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/529e59c4fefa5102b8063dbe935fccfa36f931b192c6b2d810a529f5256c7d90.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledShoulderSocket001/piece-02.glb",
+      "sha256": "529e59c4fefa5102b8063dbe935fccfa36f931b192c6b2d810a529f5256c7d90"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4aeaeb3061408341ebeff79c16437cb10be634307745fc28e82096922d0419b9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledUpperTube001/piece-00.glb",
+      "sha256": "4aeaeb3061408341ebeff79c16437cb10be634307745fc28e82096922d0419b9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/28fd2abe26f261def4e1d8c8af90b9eecea7cb65034eba3153e8573d3c8a568b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/AssembledElbowASocket001/piece-00.glb",
+      "sha256": "28fd2abe26f261def4e1d8c8af90b9eecea7cb65034eba3153e8573d3c8a568b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/785945e363fa948b29560ee35918d9ade8cd15ec865868e938d471eb6994f644.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/UpperDriveHorn001/piece-00.glb",
+      "sha256": "785945e363fa948b29560ee35918d9ade8cd15ec865868e938d471eb6994f644"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/35e5c7e059c09002d525ed120409876b21a6400d5daefaf82be4366f99646e11.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/UpperIdlerHorn001/piece-00.glb",
+      "sha256": "35e5c7e059c09002d525ed120409876b21a6400d5daefaf82be4366f99646e11"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6b0dd272e3d78c017719ac6d7399053c08d62218b75f0be3c965ac23c0cd34cd.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Upper_servo001/piece-00.glb",
+      "sha256": "6b0dd272e3d78c017719ac6d7399053c08d62218b75f0be3c965ac23c0cd34cd"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0e1528180162e4247690fff95ed3bd44a6080ef030b89ff060e4b15de1bed939.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledElbowASocket001.glb",
+      "sha256": "0e1528180162e4247690fff95ed3bd44a6080ef030b89ff060e4b15de1bed939"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6cc6571262368ee8d8caae25085f654f69395af9a7269b8f24124177c8f532f0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledShoulderSocket001.glb",
+      "sha256": "6cc6571262368ee8d8caae25085f654f69395af9a7269b8f24124177c8f532f0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/75616eeb22480d099d250a16ff1781fc7a92641014d495b27869d2d8633c7308.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/AssembledUpperTube001.glb",
+      "sha256": "75616eeb22480d099d250a16ff1781fc7a92641014d495b27869d2d8633c7308"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7889c4522fca32a5f7116535ecfd87ff431974341febff2e177c796a52a127eb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/UpperDriveHorn001.glb",
+      "sha256": "7889c4522fca32a5f7116535ecfd87ff431974341febff2e177c796a52a127eb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/fd506c84711b9ac5c5d03899d20a698c9318a15e70b57dcd4a40503ada2df4c5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/UpperIdlerHorn001.glb",
+      "sha256": "fd506c84711b9ac5c5d03899d20a698c9318a15e70b57dcd4a40503ada2df4c5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/72ba19dee8616e4680e55113ea04c37233a2ee517ef44abc06b43763cb5623bb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo001.glb",
+      "sha256": "72ba19dee8616e4680e55113ea04c37233a2ee517ef44abc06b43763cb5623bb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4fe0dde3dc87d7546b121726d6aca80a85e2d79607723535e4bd413c90aad560.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo_middle001.glb",
+      "sha256": "4fe0dde3dc87d7546b121726d6aca80a85e2d79607723535e4bd413c90aad560"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6a953727b59fa5d4a098007aa98401189f82ff53aa5cbe61c8d9e49fc03065a1.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Upper_servo_other001.glb",
+      "sha256": "6a953727b59fa5d4a098007aa98401189f82ff53aa5cbe61c8d9e49fc03065a1"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0a89ebcfe5242ec8da98c010ceb26f13e1ce98547eba5bc1860dab523a595011.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_WristMotorHolder001/piece-00.glb",
+      "sha256": "0a89ebcfe5242ec8da98c010ceb26f13e1ce98547eba5bc1860dab523a595011"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/d1e74961899f2a12c65ecd0611e904d8f192d04166727b3d7844281bf5615921.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket001/piece-00.glb",
+      "sha256": "d1e74961899f2a12c65ecd0611e904d8f192d04166727b3d7844281bf5615921"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/32548d1cfe87742cec9578d4cb66871c3f65cacbfcb139baac064804b203eb51.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket001/piece-01.glb",
+      "sha256": "32548d1cfe87742cec9578d4cb66871c3f65cacbfcb139baac064804b203eb51"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a7648b40baedd56d51e07b65fb9ab88e7901f760674d48a7e0df1941478c7ca5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledElbowBSocket001/piece-02.glb",
+      "sha256": "a7648b40baedd56d51e07b65fb9ab88e7901f760674d48a7e0df1941478c7ca5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8c39fe68778b7e09aecbae0a9ffa46e7f99e2219e24b8b7f227e330b5dab5cee.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledLowerTube001/piece-00.glb",
+      "sha256": "8c39fe68778b7e09aecbae0a9ffa46e7f99e2219e24b8b7f227e330b5dab5cee"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/08bc846ea4d78569a17722cf89e0e76b79a1833b9677d056be4570f4410a9911.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_AssembledWristSocket001/piece-00.glb",
+      "sha256": "08bc846ea4d78569a17722cf89e0e76b79a1833b9677d056be4570f4410a9911"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a22c8a9549f423acf20b97487288cb8ba8ae5c4ddb2f9b89867265d0f84177f3.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_LowerDriveHorn001/piece-00.glb",
+      "sha256": "a22c8a9549f423acf20b97487288cb8ba8ae5c4ddb2f9b89867265d0f84177f3"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2fe16ca64ef8b293132d178dcf1b2c9c790e1d1698af2f2f9c259fa9be56c78e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/Aligned_LowerIdlerHorn001/piece-00.glb",
+      "sha256": "2fe16ca64ef8b293132d178dcf1b2c9c790e1d1698af2f2f9c259fa9be56c78e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2f779ecfd0633b8bba975b46fadda853c891ceb834f152546b73d2eb9687f473.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_Aligned_Lower_servo001/piece-00.glb",
+      "sha256": "2f779ecfd0633b8bba975b46fadda853c891ceb834f152546b73d2eb9687f473"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2c6812fef5e08f3cbc89f1267a3d2dbb08352210a62b36bc3631679d4109212e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledElbowBSocket001.glb",
+      "sha256": "2c6812fef5e08f3cbc89f1267a3d2dbb08352210a62b36bc3631679d4109212e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c8185c6b22c13d183efd4a488885e630fea31626971a30c6a62965f6ac56a167.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledLowerTube001.glb",
+      "sha256": "c8185c6b22c13d183efd4a488885e630fea31626971a30c6a62965f6ac56a167"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5c47fbebe9dcde4b4bd7d291e79e0b1f2b5bfafe886d067e891c52fb9ed881fb.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_AssembledWristSocket001.glb",
+      "sha256": "5c47fbebe9dcde4b4bd7d291e79e0b1f2b5bfafe886d067e891c52fb9ed881fb"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6717064c61a58cc7082a221ced8d67e2c848b37cbfbe2a42b29457927498905f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_LowerDriveHorn001.glb",
+      "sha256": "6717064c61a58cc7082a221ced8d67e2c848b37cbfbe2a42b29457927498905f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4dedd09f4bdb8d99e263c80bb367a51b75fc91d5292051e810724d19b9e18a2f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_LowerIdlerHorn001.glb",
+      "sha256": "4dedd09f4bdb8d99e263c80bb367a51b75fc91d5292051e810724d19b9e18a2f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/417d8cb47addb7b96f29d799124936aacba609ce8832c54b6ade4429dc6c463b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo001.glb",
+      "sha256": "417d8cb47addb7b96f29d799124936aacba609ce8832c54b6ade4429dc6c463b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8ca65848e413951d433b63d64543284c89bb17dbc1e7d267727e162ce5c28e90.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo_middle001.glb",
+      "sha256": "8ca65848e413951d433b63d64543284c89bb17dbc1e7d267727e162ce5c28e90"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/da33809e9780311fcfdceaa61751276ac1a2a7ef9ea00b6ffa600ef45d5a984c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_Lower_servo_other001.glb",
+      "sha256": "da33809e9780311fcfdceaa61751276ac1a2a7ef9ea00b6ffa600ef45d5a984c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0e612d16c98d281f6a57c7cef733815e5473a8d46077f2afa29989ee9eb81d57.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/Aligned_WristMotorHolder001.glb",
+      "sha256": "0e612d16c98d281f6a57c7cef733815e5473a8d46077f2afa29989ee9eb81d57"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/fa1e8e5bf5528a1bd4db137be6c714df8a74a38bcc52176df47bb3c5479d9b40.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/133-WristPrint001.glb",
+      "sha256": "fa1e8e5bf5528a1bd4db137be6c714df8a74a38bcc52176df47bb3c5479d9b40"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3077aec18943597ba04942d602b421c171cdc64d60b84adb738950c4dbdcb127.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/134-Wrist_servo001.glb",
+      "sha256": "3077aec18943597ba04942d602b421c171cdc64d60b84adb738950c4dbdcb127"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/48ffec756bc6ce3bb5c88d548c2e292e5da8e54478f33cd1985b135ea512c8dd.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/135-Wrist_servo_middle001.glb",
+      "sha256": "48ffec756bc6ce3bb5c88d548c2e292e5da8e54478f33cd1985b135ea512c8dd"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/e2df8f29b51d9e3fba9b5d8e1bdd70810783ff24bf2da225f7048f08a08bfd7d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/136-Wrist_servo_other001.glb",
+      "sha256": "e2df8f29b51d9e3fba9b5d8e1bdd70810783ff24bf2da225f7048f08a08bfd7d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7d3fee2664f53fa62091273fecaf3defe8052fbc06e616e8acb3a5613afca7b2.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/WristDriveHorn001/piece-00.glb",
+      "sha256": "7d3fee2664f53fa62091273fecaf3defe8052fbc06e616e8acb3a5613afca7b2"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/07f2e5375cc38ad9e19ba07ac0d8a08c77948638ab3ce810627d7f8452f924ee.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/WristIdlerHorn001/piece-00.glb",
+      "sha256": "07f2e5375cc38ad9e19ba07ac0d8a08c77948638ab3ce810627d7f8452f924ee"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2dc148a939e2b92ee96542c4a407836a386a8ef622914bfde6188651e1dc2686.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/WristDriveHorn001.glb",
+      "sha256": "2dc148a939e2b92ee96542c4a407836a386a8ef622914bfde6188651e1dc2686"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c42d4f6d9aa48b0a871b30a69f5d37b15a809b59eddd0d51878fd36f8204d453.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/WristIdlerHorn001.glb",
+      "sha256": "c42d4f6d9aa48b0a871b30a69f5d37b15a809b59eddd0d51878fd36f8204d453"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/a2344522408b2d9a0987b6c36e90d8d03e43e467836af25de4a1a62ef5564652.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/140-LeftKinematic_CameraTool180_Pinc_Bottom_Plate.glb",
+      "sha256": "a2344522408b2d9a0987b6c36e90d8d03e43e467836af25de4a1a62ef5564652"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/738af3661e658c311e2633af61b81e261c48803c1834f0ca6a3c03c146bceec6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/141-LeftKinematic_CameraTool180_Pinc_Top_Plate.glb",
+      "sha256": "738af3661e658c311e2633af61b81e261c48803c1834f0ca6a3c03c146bceec6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f3af21f3ee2f57f7eb15e244a680eca13f382699db19b39153d9796787b94c37.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/158-LeftKinematic_CameraTool180_Pinc_servo.glb",
+      "sha256": "f3af21f3ee2f57f7eb15e244a680eca13f382699db19b39153d9796787b94c37"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/70931f05c18d9862b65896ed851ccdb2cd4b534490eaa94ff907bc97e126eb97.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/159-LeftKinematic_CameraTool180_Pinc_servo_middle.glb",
+      "sha256": "70931f05c18d9862b65896ed851ccdb2cd4b534490eaa94ff907bc97e126eb97"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3b3556a1362110d53707091f69aa8614464420a4462994efb5a23d231e3d5ee0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/160-LeftKinematic_CameraTool180_Pinc_servo_other.glb",
+      "sha256": "3b3556a1362110d53707091f69aa8614464420a4462994efb5a23d231e3d5ee0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/9fb6d4b1e57790328b230149ec1e76db1b6989452567d81c869fc6594d3b73c1.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/162-LeftCamera_FixedMount.glb",
+      "sha256": "9fb6d4b1e57790328b230149ec1e76db1b6989452567d81c869fc6594d3b73c1"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/77e7caacf93394379ef183f7b3ced73aaa82e423fc42cadfd94f9cca213b7257.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/164-LeftCamera_Lens.glb",
+      "sha256": "77e7caacf93394379ef183f7b3ced73aaa82e423fc42cadfd94f9cca213b7257"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f7d168197c0c7fd666076c8f15a7c72668376094e540c79a47f6ea4f6b957608.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/165-LeftCamera_Glass.glb",
+      "sha256": "f7d168197c0c7fd666076c8f15a7c72668376094e540c79a47f6ea4f6b957608"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f5260c5bf4317007c2133c50784fe79c297eb9621ee7ea24ca73e5dc569e2b02.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_ToolDriveHorn/piece-00.glb",
+      "sha256": "f5260c5bf4317007c2133c50784fe79c297eb9621ee7ea24ca73e5dc569e2b02"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/cf476e1a799a66a7c17445cb2bdf8d39a13ae2a808eaeb9875a090deb27d358e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_Interface_ARM100/piece-00.glb",
+      "sha256": "cf476e1a799a66a7c17445cb2bdf8d39a13ae2a808eaeb9875a090deb27d358e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/94733c9d5cc398372a88a19e3989ba9f75e7a1e7203a1796b9657851613a24a9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_Interface_ARM100/piece-01.glb",
+      "sha256": "94733c9d5cc398372a88a19e3989ba9f75e7a1e7203a1796b9657851613a24a9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8622ef993b8672c359aef4e96de4f70b0a18fc39ee0afd2aa054e028ae74297c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftCamera_BaseScrew0/piece-00.glb",
+      "sha256": "8622ef993b8672c359aef4e96de4f70b0a18fc39ee0afd2aa054e028ae74297c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/7506381f15558258ceef8dd12c438c424e30582f434aa236ed358c47cb08d26c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftCamera_BaseScrew1/piece-00.glb",
+      "sha256": "7506381f15558258ceef8dd12c438c424e30582f434aa236ed358c47cb08d26c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/69d62582681f07355fcf123a92b75fbb9b20883ef5b6ca1206da931908bb6dc4.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftCamera_BaseScrew2/piece-00.glb",
+      "sha256": "69d62582681f07355fcf123a92b75fbb9b20883ef5b6ca1206da931908bb6dc4"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/725383ee1a8642b0b362c92592fb4157242d6a6b122c9f4338b0b05860214329.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftCamera_BaseScrew3/piece-00.glb",
+      "sha256": "725383ee1a8642b0b362c92592fb4157242d6a6b122c9f4338b0b05860214329"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2fce9c102206d319bf3b4a794c7bb56d071ef065b0bf053fb43c299ee9b9cb9f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_left_camera_board/piece-00.glb",
+      "sha256": "2fce9c102206d319bf3b4a794c7bb56d071ef065b0bf053fb43c299ee9b9cb9f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3a4923042f913e3c0667b758a073b4c72457fc0bccbfb1e0c276d6c83ba5a93a.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/180-HeadPanBracket.glb",
+      "sha256": "3a4923042f913e3c0667b758a073b4c72457fc0bccbfb1e0c276d6c83ba5a93a"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/db8b4efbf4b1b8446bf772b19a6ccbc53e3872c910b1acbc2a20389b4de3332e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/187-HeadPanDriveHorn.glb",
+      "sha256": "db8b4efbf4b1b8446bf772b19a6ccbc53e3872c910b1acbc2a20389b4de3332e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6339c9f45347757409e155c3636fe8bb12fdb6fd34c8d672817c95de2dd2c105.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_head_tilt_servo/piece-00.glb",
+      "sha256": "6339c9f45347757409e155c3636fe8bb12fdb6fd34c8d672817c95de2dd2c105"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/cf1f8e2e2a8e5672766c1aadf9bb332e56b2255d4c66a12cb292caff93460cd8.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltServoCase.glb",
+      "sha256": "cf1f8e2e2a8e5672766c1aadf9bb332e56b2255d4c66a12cb292caff93460cd8"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8f6cf5a4064da39251a19760b8e7f6015518a14dbce70d5594af38b00b0ca0ea.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltServoFront.glb",
+      "sha256": "8f6cf5a4064da39251a19760b8e7f6015518a14dbce70d5594af38b00b0ca0ea"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/06763bdbb105e43e6eb42c95c714f24b40e37568bfba99b429476f755c2f4585.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltServoMiddle.glb",
+      "sha256": "06763bdbb105e43e6eb42c95c714f24b40e37568bfba99b429476f755c2f4585"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/db2225bf2040d6d8269f60b6a7d9120a66ad415b07dc1c468e7d4af2ed373407.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/183-HeadCameraWindow.glb",
+      "sha256": "db2225bf2040d6d8269f60b6a7d9120a66ad415b07dc1c468e7d4af2ed373407"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/3e47b7510dc71ed4cc99069cd9a5bf2ff7027cafee682eab0488a7b2ea85987f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/HeadTiltDriveHorn/piece-00.glb",
+      "sha256": "3e47b7510dc71ed4cc99069cd9a5bf2ff7027cafee682eab0488a7b2ea85987f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/399201f43b9495ff18af59236182b34ee0aa108d81c6ec046e14f53c007f4989.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/HeadTiltIdlerHorn/piece-00.glb",
+      "sha256": "399201f43b9495ff18af59236182b34ee0aa108d81c6ec046e14f53c007f4989"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/660c973f025ae12429d918261d383f01cce90585752939e10fbac4fe0728e105.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_head_camera/piece-00.glb",
+      "sha256": "660c973f025ae12429d918261d383f01cce90585752939e10fbac4fe0728e105"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/21d2d59dcf8ac1e026b46349a6344d43ee05b1f8f99a15ae6dd7e05d30e82d4d.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltBracket.glb",
+      "sha256": "21d2d59dcf8ac1e026b46349a6344d43ee05b1f8f99a15ae6dd7e05d30e82d4d"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/0eb8c9d2dbe482209fc94687f95fd2b32307973208777769064b48e3ff35dc67.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltDriveHorn.glb",
+      "sha256": "0eb8c9d2dbe482209fc94687f95fd2b32307973208777769064b48e3ff35dc67"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/07b11ec1694a25a3a3eed94b3b4d668f9beb0f560a8ada6ffdfc956f5427d42f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/mating/HeadTiltIdlerHorn.glb",
+      "sha256": "07b11ec1694a25a3a3eed94b3b4d668f9beb0f560a8ada6ffdfc956f5427d42f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/9770bd8a075f6223d90b75742ab69f336af662244e46552c91506f99a6d95343.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/067-RightKinematic_CameraTool180_Pinc_Cam.glb",
+      "sha256": "9770bd8a075f6223d90b75742ab69f336af662244e46552c91506f99a6d95343"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/88c32185e0c3b21be75252282e88845e6bd28129ec9089143e8f18a76024e69f.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/086-RightKinematic_CameraTool180_Pinc_CamHorn.glb",
+      "sha256": "88c32185e0c3b21be75252282e88845e6bd28129ec9089143e8f18a76024e69f"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/6bf86c8ff0d43dc28e4237fdd706395824ebd00e60e06f3c65e0f39ea2a20cea.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/077-RightKinematic_CameraTool180_Pinc_Internal_Rod_L.glb",
+      "sha256": "6bf86c8ff0d43dc28e4237fdd706395824ebd00e60e06f3c65e0f39ea2a20cea"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/438598bc3677b7b598d86c66bf581121ac46622852f9d7c1f50eeea5c6c794a9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_External_Rod_L/piece-00.glb",
+      "sha256": "438598bc3677b7b598d86c66bf581121ac46622852f9d7c1f50eeea5c6c794a9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5787794e1f108a69a215b51a95bc8d2fdf844edcc11ce4f78ddf8ea24bd08866.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_Driving_Rod_L/piece-00.glb",
+      "sha256": "5787794e1f108a69a215b51a95bc8d2fdf844edcc11ce4f78ddf8ea24bd08866"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/1214cc45c94ae41c4064b9234abe883ecffa3379b142333a186f9f58c7e59ba6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/069-RightKinematic_CameraTool180_Pinc_Distal_Rod_L.glb",
+      "sha256": "1214cc45c94ae41c4064b9234abe883ecffa3379b142333a186f9f58c7e59ba6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5f9b801ef3b5c95a13b8a9e34fdb6f0d6402dfb6b08f6bc4429aebc39ec2e3f9.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/078-RightKinematic_CameraTool180_Pinc_Internal_Rod_R.glb",
+      "sha256": "5f9b801ef3b5c95a13b8a9e34fdb6f0d6402dfb6b08f6bc4429aebc39ec2e3f9"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8c5f2f2a9fbb9852f305344adb67e5b4f749b2e7608adc1d9de48e9a4083dbb6.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_External_Rod_R/piece-00.glb",
+      "sha256": "8c5f2f2a9fbb9852f305344adb67e5b4f749b2e7608adc1d9de48e9a4083dbb6"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/b426a16bc5ac01c18e61dec8f22018656ca084e580cbbbe3188ff142ffddd73b.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/RightKinematic_CameraTool180_Pinc_Driving_Rod_R/piece-00.glb",
+      "sha256": "b426a16bc5ac01c18e61dec8f22018656ca084e580cbbbe3188ff142ffddd73b"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/c2a840c7fa3b4c367cb891a01e53932c7c722a7d53861f4613e13da8f5f5691e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/070-RightKinematic_CameraTool180_Pinc_Distal_Rod_R.glb",
+      "sha256": "c2a840c7fa3b4c367cb891a01e53932c7c722a7d53861f4613e13da8f5f5691e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/42c719ed9fdc0798b59030e0447433b9ef29f3f2128e1634c18e64288673193a.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/142-LeftKinematic_CameraTool180_Pinc_Cam.glb",
+      "sha256": "42c719ed9fdc0798b59030e0447433b9ef29f3f2128e1634c18e64288673193a"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/fb98f1e545d72d562eb74dcfebef959195f00673ff24ba5d73a8604dfacf1616.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/161-LeftKinematic_CameraTool180_Pinc_CamHorn.glb",
+      "sha256": "fb98f1e545d72d562eb74dcfebef959195f00673ff24ba5d73a8604dfacf1616"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/cdd172621b896dc12ecc0e673793ae46498b3de1667bae56cce093c912dc41be.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/152-LeftKinematic_CameraTool180_Pinc_Internal_Rod_L.glb",
+      "sha256": "cdd172621b896dc12ecc0e673793ae46498b3de1667bae56cce093c912dc41be"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/13a2da3de735b089535dc9c0cd22c7466e38cc5a137cc65fbf898aae69198bab.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_External_Rod_L/piece-00.glb",
+      "sha256": "13a2da3de735b089535dc9c0cd22c7466e38cc5a137cc65fbf898aae69198bab"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/f9a087198393febae26a101531bca941ed1498a60135fa8f64270cb1e741adc5.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_Driving_Rod_L/piece-00.glb",
+      "sha256": "f9a087198393febae26a101531bca941ed1498a60135fa8f64270cb1e741adc5"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/15011d217432bc3116e0d7e34bf4f7ac9faf3fa5a7f50ba28c4dfbde5a95f707.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/144-LeftKinematic_CameraTool180_Pinc_Distal_Rod_L.glb",
+      "sha256": "15011d217432bc3116e0d7e34bf4f7ac9faf3fa5a7f50ba28c4dfbde5a95f707"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/2c668c22d15990edb7f7e8411f5fbafea2762680b15089fcf7c2b303f25c65ca.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/153-LeftKinematic_CameraTool180_Pinc_Internal_Rod_R.glb",
+      "sha256": "2c668c22d15990edb7f7e8411f5fbafea2762680b15089fcf7c2b303f25c65ca"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/1aff55a54971619905b980a563371face7c099b274fa014e4fff875b1b8a0044.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_External_Rod_R/piece-00.glb",
+      "sha256": "1aff55a54971619905b980a563371face7c099b274fa014e4fff875b1b8a0044"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/ee348c23785d56460a1f9011bd3b527765362769a27ce559618e3d199fcd73b0.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/LeftKinematic_CameraTool180_Pinc_Driving_Rod_R/piece-00.glb",
+      "sha256": "ee348c23785d56460a1f9011bd3b527765362769a27ce559618e3d199fcd73b0"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/4cc58770bb4800033cdd2c2d89f1b549345a79bc3d4e6469e11c1e3ee913bdb8.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/145-LeftKinematic_CameraTool180_Pinc_Distal_Rod_R.glb",
+      "sha256": "4cc58770bb4800033cdd2c2d89f1b549345a79bc3d4e6469e11c1e3ee913bdb8"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/00568854f066b534faff38717f21c26fbe7959278bbbc99feb8115a24fcf769c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/081-RightKinematic_CameraTool180_Pinc_Tip_Support_L.glb",
+      "sha256": "00568854f066b534faff38717f21c26fbe7959278bbbc99feb8115a24fcf769c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/147f9b329e28b3b7e3133d43d42b75acb8bfb25449385246c1d1e75193b1bd4c.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_right_gripper_tip_L/piece-00.glb",
+      "sha256": "147f9b329e28b3b7e3133d43d42b75acb8bfb25449385246c1d1e75193b1bd4c"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5edc320501d6c53e98bd478fba6ff195cff6de56e4d9deb09a077c338d5c5676.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/082-RightKinematic_CameraTool180_Pinc_Tip_Support_R.glb",
+      "sha256": "5edc320501d6c53e98bd478fba6ff195cff6de56e4d9deb09a077c338d5c5676"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/5fb0a43722c87a63d1a261bb5a36ce0bf8d08974febfd029d46cd1cf77cd9d7e.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_right_gripper_tip_R/piece-00.glb",
+      "sha256": "5fb0a43722c87a63d1a261bb5a36ce0bf8d08974febfd029d46cd1cf77cd9d7e"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8a3a8b352730b74af5bd891f9d7f5e6cda597bac491526a159fb80942a2abfcc.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/156-LeftKinematic_CameraTool180_Pinc_Tip_Support_L.glb",
+      "sha256": "8a3a8b352730b74af5bd891f9d7f5e6cda597bac491526a159fb80942a2abfcc"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/8a6058643dc785ed6dae49580274f9be26810bc63e38265bc8c231b4f011f8fc.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_left_gripper_tip_L/piece-00.glb",
+      "sha256": "8a6058643dc785ed6dae49580274f9be26810bc63e38265bc8c231b4f011f8fc"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/cebc26468778dda3e1e338f883204840917e42820b9211e3aa020f3dcd474ec1.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/157-LeftKinematic_CameraTool180_Pinc_Tip_Support_R.glb",
+      "sha256": "cebc26468778dda3e1e338f883204840917e42820b9211e3aa020f3dcd474ec1"
+    },
+    "ros2_ws/src/cleany_description/meshes/cad_runtime_collision/d21ea9bf4cee17dd897ecbf6396ddd0a2758c11f7baa0a36e28ffbe6d9f0f5ab.glb": {
+      "source": "~/.local/share/cleany/freecad-runtime/releases/20261106-02/moveit-cache/meshes/enclosures/rigid_left_gripper_tip_R/piece-00.glb",
+      "sha256": "d21ea9bf4cee17dd897ecbf6396ddd0a2758c11f7baa0a36e28ffbe6d9f0f5ab"
+    }
+  },
+  "new_mesh_fit_performed": false,
+  "motion_validation": {
+    "ready": true,
+    "scope": "software FK, full physical stroke collision sweep, plan-only and GPU IK; no physical execution",
+    "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
+    "gripper_endpoint_sha256": "a5f425bd27a0c3618a3ad20f1e88491c5189d029388c12b10c169d9d570613d4",
+    "evidence": [
+      "~/cleany-data/runs/cad-grasp-unification-20261118/endpoint-native-143/result.json",
+      "~/cleany-data/runs/cad-grasp-unification-20261118/endpoint-gpu-batch/result.json",
+      "~/cleany-data/runs/cad-grasp-unification-20261118/endpoint-selector/result.json"
+    ],
+    "motor_commands_sent": 0
+  },
+  "gripper_endpoint_file": "configs/robot/cad_gripper_endpoints.json",
+  "gripper_endpoint_sha256": "a5f425bd27a0c3618a3ad20f1e88491c5189d029388c12b10c169d9d570613d4",
+  "exact_self_collision_links": [
+    "cad_right_gripper_driving_L",
+    "cad_right_gripper_driving_R",
+    "cad_left_gripper_driving_L",
+    "cad_left_gripper_driving_R"
+  ]
+}

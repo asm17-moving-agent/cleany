@@ -12,11 +12,9 @@ from cleany_skill_executor.hardware_execution import collision_contact_details, 
 @pytest.mark.parametrize('arm,zero,closed', [('left',2689,2676),('right',2851,2838)])
 def test_contact_close_uses_each_motor_raw_goal_through_physical_calibration(arm, zero, closed):
     from cleany_skill_executor.hardware_execution import HardwareExecution
-    from cleany_skill_executor.core.gripper_contact import load_contact_criteria
-    root = Path(__file__).resolve().parents[4]
     limit = PhysicalJointLimit(-.374532977628,1.74532919957,1.,2.,
                                zero,-1.,-.374532977628,zero-1394,zero)
-    node = NS(contact_criteria=load_contact_criteria(root/'configs/robot/gripper_contact_decision.yaml'))
+    node = NS(contact_criteria={arm: NS(closed_goal_raw=closed)})
     target = HardwareExecution.closed_contact_position(node, arm, {f'{arm}_gripper_joint':limit})
     assert round(limit.zero+(target-limit.offset)*4096/math.tau/limit.direction) == closed
 
@@ -920,7 +918,7 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
     values = {'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
               'hardware_path_step_rad': .01,
               'hardware_path_simplification_tolerance_rad': .002,
-              'hardware_start_delay_sec': .8, 'hardware_return_start_delay_sec': .3,
+              'hardware_start_delay_sec': .2, 'hardware_return_start_delay_sec': .2,
               'hardware_start_tolerance_rad': .005, 'hardware_start_blend_max_rad': .03,
               'hardware_arrival_tolerance_rad': .03,
               'hardware_command_continuity_max_offset_rad': .06,
@@ -1027,7 +1025,7 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
     assert arm_goal.points[0].positions == arm_goal.points[1].positions
     assert arm_goal.points[0].time_from_start.sec == 0
     assert arm_goal.points[0].time_from_start.nanosec == 0
-    assert arm_goal.points[1].time_from_start.nanosec == (300_000_000 if closing else 800_000_000)
+    assert arm_goal.points[1].time_from_start.nanosec == 200_000_000
     assert tuple(arm_goal.points[-1].positions) == pytest.approx(endpoint)
     assert tuple(gripper_goal.points[-1].positions) == pytest.approx((0. if closing else .4,))
     assert fake.last_execution_metrics['gripper_goal_required'] == closing
@@ -1049,7 +1047,7 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
             tuple(a.positions+g.positions), tuple(a.velocities+g.velocities))
             for a, g in zip(arm_goal.points, gripper_goal.points, strict=True)))
         for sample in prepared_paths[0].samples:
-            ns = (300_000_000 if closing else 800_000_000)+round(
+            ns = 200_000_000+round(
                 sample.progress*prepared_paths[0].duration*1e9)
             assert encoded.sample_at(ns).positions == pytest.approx(sample.positions, abs=1e-8)
     else:

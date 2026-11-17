@@ -84,18 +84,55 @@ def validate_joint_covers(urdf: str, data: dict) -> None:
             raise ValueError('Certified joint ball is not centered on its joint: '+cover['joint'])
 
 
+def registered_link_spheres(model, name: str) -> list[dict]:
+    """Enclose every current solid on the registered rigid wrist link.
+
+    A ball enclosing all vertices encloses the complete convex body. Merging
+    these balls retains that coverage, including analytic primitive envelopes.
+    """
+    from .core.sphere_reduction import reduce_spheres, sphere_cover_error
+
+    link = ET.fromstring(model.xml).find(f"link[@name='{name}']")
+    if name != 'left_gripper_frame' or link is None or not any(
+            c.get('name', '').startswith('registered_') for c in link.findall('collision')):
+        raise ValueError('Runtime sphere cover requires the registered left wrist')
+    centers, radii = [], []
+    for body in model.bodies:
+        if body.owner != name:
+            continue
+        vertices = np.asarray(body.vertices, dtype=float)
+        if vertices.ndim != 2 or vertices.shape[1] != 3 or not len(vertices) or not np.isfinite(vertices).all():
+            raise ValueError('Invalid registered wrist envelope')
+        center = (vertices.min(axis=0)+vertices.max(axis=0))/2
+        centers.append(center)
+        radii.append(float(np.max(np.linalg.norm(vertices-center, axis=1))) +
+                     model.config.sphere_surface_radius_m)
+    if not centers:
+        raise ValueError('Registered wrist has no validation bodies')
+    centers, radii = np.asarray(centers), np.asarray(radii)
+    budget = model.config.sphere_budget_per_link
+    reduced = reduce_spheres(centers, radii, budget) if budget else (centers, radii)
+    if sphere_cover_error(centers, radii, *reduced) > 1e-10:
+        raise ValueError('Registered wrist sphere reduction lost solid coverage')
+    return [{'center': c.tolist(), 'radius': float(radius)}
+            for c, radius in zip(*reduced, strict=True)]
+
+
 def apply_sphere_model(model, *, resolve: Callable[[str], Path] = mesh_path) -> None:
     """Replace proposal spheres; preserve complete collision validation bodies.
 
     Headless profiles select the matching subset of the certified model. A
-    changed collision mesh or origin fails explicitly instead of using a stale
-    cover. Shared joint balls additionally bind the relative joint frames; their
+    changed collision mesh or origin fails instead of using a stale cover.
+    The explicit registered mode derives solid-enclosing wrist balls at runtime.
+    Shared joint balls additionally bind the relative joint frames; their
     centers stay at the joint origin for every measured revolute joint angle.
     """
     if model.config.sphere_model == 'generated':
         return
     data = json.loads(MODEL_PATH.read_text())
-    if data['schema'] != 2 or data['model'] != model.config.sphere_model:
+    expected = ('joint_simplified' if model.config.sphere_model == 'joint_simplified_registered'
+                else model.config.sphere_model)
+    if data['schema'] != 2 or data['model'] != expected:
         raise ValueError('Unsupported collision sphere asset')
     if abs(data['padding_m'] - model.config.sphere_surface_radius_m) > 1e-12:
         raise ValueError('Certified sphere padding differs from configured padding')
@@ -105,7 +142,13 @@ def apply_sphere_model(model, *, resolve: Callable[[str], Path] = mesh_path) -> 
         raise ValueError('Certified sphere asset does not cover the robot mesh links')
     signatures = collision_signatures(model.xml, names, resolve)
     replacement = {}
+    runtime_covers = {}
     for name in model.spheres:
+        if model.config.sphere_model == 'joint_simplified_registered' and name == 'left_gripper_frame':
+            replacement[name] = registered_link_spheres(model, name)
+            runtime_covers[name] = {'collision_sha256': signatures[name],
+                                   'method': 'enclosing_convex_body_balls'}
+            continue
         entry = data['links'][name]
         if signatures.get(name) != entry['collision_sha256']:
             raise ValueError('Certified sphere geometry mismatch: ' + name)
@@ -119,7 +162,9 @@ def apply_sphere_model(model, *, resolve: Callable[[str], Path] = mesh_path) -> 
         replacement[name] = spheres
     model.spheres = replacement
     reduction = model.sphere_reduction
-    reduction['method'] = data['model']
+    reduction['method'] = model.config.sphere_model
+    if runtime_covers:
+        reduction['runtime_solid_covers'] = runtime_covers
     reduction['sphere_asset_sha256'] = asset_sha256()
     reduction['coverage_certificate_sha256'] = data['coverage_certificate_sha256']
     for name, spheres in replacement.items():

@@ -128,3 +128,56 @@ def test_actual_guard_position_output_can_confirm_idle_physical_stop(tmp_path):
         if source is not None:
             source.destroy_node()
         context.shutdown()
+
+
+def test_completion_notifications_finish_native_tree_without_periodic_ticks(tmp_path):
+    from cleany_manipulation_bt.backend import Observation, WorkerBackend
+    from cleany_skill_executor.manipulation.models import ObjectState, Placement
+    from cleany_interfaces.action import ExecuteManipulationSkill
+    from rclpy.action import ActionClient
+    from rclpy.executors import MultiThreadedExecutor
+
+    values = {
+        'SelectArmAndPath': dict(selected_arm='right'),
+        'ConfirmGrasp': dict(object_state=ObjectState.HELD),
+        'ConfirmRelease': dict(object_state=ObjectState.LEFT_GRIPPER, placement_state=Placement.CONFIRMED),
+        'ReturnArm': dict(arm_recovered=True),
+        'VerifyPlacedObject': dict(placement_state=Placement.CONFIRMED, stop_confirmed=True),
+    }
+    context = Context()
+    rclpy.init(context=context)
+    backend = WorkerBackend(lambda name, _: Observation(**values.get(name, {})))
+    server = JetsonManipulationNode(context=context, backend=backend,
+        parameter_overrides=[Parameter('database_path', value=str(tmp_path/'wake.sqlite3')),
+                             Parameter('monitor_port', value=free_port())])
+    server._timer.cancel()
+    server.monitor.update = lambda *args, **kw: pytest.fail('UI updated from completion wakeup')
+    client_node = Node('completion_test', context=context)
+    client = ActionClient(client_node, ExecuteManipulationSkill, 'manipulation/execute_skill')
+    executor = MultiThreadedExecutor(num_threads=4, context=context)
+    executor.add_node(server)
+    executor.add_node(client_node)
+    thread = threading.Thread(target=executor.spin, daemon=True)
+    thread.start()
+    def wait(future):
+        deadline = time.monotonic()+5.
+        while not future.done() and time.monotonic() < deadline:
+            time.sleep(.005)
+        assert future.done()
+        return future.result()
+    try:
+        assert client.wait_for_server(timeout_sec=5.)
+        handle = wait(client.send_goal_async(ExecuteManipulationSkill.Goal(
+            mission_id='m', task_id='t', execution_id='wake', skill_name='collect_trash',
+            snapshot_id='s', object_id=1, destination_id='trash_right')))
+        assert handle.accepted
+        wrapped = wait(handle.get_result_async())
+        assert wrapped.status == GoalStatus.STATUS_SUCCEEDED
+        assert wrapped.result.stop_confirmed
+        assert server.store.get('wake').result is not None
+    finally:
+        executor.shutdown()
+        thread.join(timeout=3.)
+        server.destroy_node()
+        client_node.destroy_node()
+        context.shutdown()

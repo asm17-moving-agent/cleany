@@ -28,8 +28,8 @@ class OperatorROS:
         self.thread.start()
 
     @staticmethod
-    def call(client, request, timeout=3.):
-        if not client.wait_for_service(timeout_sec=.5):
+    def call(client, request, timeout=3., *, discovery_timeout=.5):
+        if not client.wait_for_service(timeout_sec=discovery_timeout):
             raise RuntimeError('실행기의 제어 상태 서비스가 없습니다. 실행기 준비 또는 업데이트를 확인하세요.')
         future = client.call_async(request)
         ready = threading.Event()
@@ -39,7 +39,8 @@ class OperatorROS:
         return future.result()
 
     def snapshot(self):
-        response = self.call(self.state_client, Trigger.Request())
+        # Job workers discover the executor from a new DDS participant.
+        response = self.call(self.state_client, Trigger.Request(), discovery_timeout=3.)
         if not response.success:
             raise RuntimeError(response.message)
         data = json.loads(response.message)

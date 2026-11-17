@@ -1,0 +1,115 @@
+{
+  "source_model": "configs/robot/left_rigid_wrist_collision.urdf",
+  "source_model_sha256": "d49bf0f415acbeba59fc1ded7d43475761b926e94e54bf076048e7335c94ed3b",
+  "source_link": "cad_left_wrist_roll",
+  "source_parent_from_camera": [
+    [
+      0.999290721193247,
+      -0.03691973640657464,
+      0.007415362482646703,
+      -0.0036460857403247723
+    ],
+    [
+      -0.03201470238915626,
+      -0.729246275009744,
+      0.6835019599206329,
+      0.03696572096537778
+    ],
+    [
+      -0.019827086725329793,
+      -0.6832545670890768,
+      -0.7299110104553188,
+      0.07138234231102851
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "target_link": "left_gripper_frame",
+  "replace_shape_prefixes": [
+    "left_wrist_mount_v8_"
+  ],
+  "parts": [
+    "LeftKinematic_CameraTool180_Pinc_Bottom_Plate",
+    "LeftKinematic_CameraTool180_Pinc_Top_Plate",
+    "LeftKinematic_CameraTool180_Pinc_Interface_ARM100",
+    "LeftKinematic_CameraTool180_Pinc_servo",
+    "LeftKinematic_CameraTool180_Pinc_servo_middle",
+    "LeftKinematic_CameraTool180_Pinc_servo_other",
+    "LeftCamera_FixedMount",
+    "LeftCamera_PCB",
+    "LeftCamera_Lens",
+    "LeftCamera_Glass",
+    "LeftCamera_Connector",
+    "LeftCamera_PCBScrew0",
+    "LeftCamera_PCBNut0",
+    "LeftCamera_PCBScrew1",
+    "LeftCamera_PCBNut1",
+    "LeftCamera_PCBScrew2",
+    "LeftCamera_PCBNut2",
+    "LeftCamera_PCBScrew3",
+    "LeftCamera_PCBNut3",
+    "LeftCamera_BaseScrew0",
+    "LeftCamera_BaseScrew1",
+    "LeftCamera_BaseScrew2",
+    "LeftCamera_BaseScrew3"
+  ],
+  "provenance": {
+    "source": "Existing FreeCAD rigid housing and camera parts; no articulated finger geometry",
+    "camera_extrinsics_sha256": "328d48e834c1027fc075e07725f721fb4a9defcef71f51263b5087106ef257b2",
+    "camera_extrinsics": "2026-11-11 left wrist CAD-chain full-6DoF fit",
+    "units": "metres; parent_T_child",
+    "collision_geometry": "Per-connected-component convex hulls; original CAD visuals are retained.",
+    "collision_manifest": "configs/robot/left_rigid_wrist_collision_provenance.json",
+    "registration_reference_model_sha256": "91a91c517df141245dcac43ced69934271be177be0ac9885052faf3075dad576",
+    "registration_basis": "Preserve verified 2026-11-13 CAD placement in the unchanged left_gripper_frame; optical TF remains owned by current camera calibration."
+  },
+  "target_parent_from_source": [
+    [
+      -0.9997603156232222,
+      -0.0006218319557312606,
+      0.02188434668830573,
+      0.000749347819277984
+    ],
+    [
+      0.0006078955324503625,
+      -0.9999996082057266,
+      -0.0006434682704083304,
+      0.00026299994909685957
+    ],
+    [
+      0.02188473824327706,
+      -0.0006300106445345454,
+      0.9997603019317236,
+      0.00041963984474469897
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "target_parent_joint": {
+    "name": "left_wrist_roll_joint",
+    "parent_link": "left_wrist_pitch_link",
+    "origin_xyz_m": [
+      0.0,
+      -0.0601,
+      0.0
+    ],
+    "origin_rpy_rad": [
+      0.0,
+      1.57079632679,
+      0.0
+    ],
+    "axis": [
+      0.0,
+      -1.0,
+      0.0
+    ]
+  }
+}

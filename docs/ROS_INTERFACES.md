@@ -390,6 +390,8 @@ ros2 action info /grasp/select_reachable
 | 실행 파일 | 역할과 인터페이스 |
 |---|---|
 | `arm_state_reader`, `robot_state_reader` | [실측 관절 상태 조회](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `runtime_model_state` | [공통 CAD 관절 미리보기](../ros2_ws/src/cleany_description/docs/runtime-model.md) |
+| `calibrated_camera_pose` | [보정된 카메라 TF](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md#보정된-카메라-tf) |
 | `control_state_guard` | [관절 상태 검증과 컨트롤러 정지](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `motor_telemetry_recorder` | [모터 상태 수동 기록](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |

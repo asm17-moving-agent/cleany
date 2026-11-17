@@ -48,6 +48,14 @@
 
 이 측정은 실물 이동 시간이나 전체 수거 주기 검증을 대신하지 않는다.
 
+## 공통 CAD 검증
+
+`tools/robot-model check`로 설치 CAD의 해시와 관절 구성을 확인한다.
+`cleany_description`의 `runtime_model`, `runtime_state`, `cad_coordinates`와
+`cleany_moveit_collision`의 `test_cad_linkage`는 모터 없이 실행한다.
+카메라 투영, 피드백 신선도와 소비자 간 모델 일치도도 Python 테스트로 확인한다.
+실제 카메라 정합, GPU를 사용하는 계획과 모터 구동은 별도 검증이다.
+
 ## FreeCAD 정적 기준 모델
 
 `make test-freecad-model`은 부품 해시, URDF의 시각·충돌 표면 일치, 단위와

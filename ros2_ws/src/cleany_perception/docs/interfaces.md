@@ -46,3 +46,27 @@ Gemini 재분류, 추적 이력 갱신, 참조 고정이나 모터 동작은 수
 진단 snapshot은 파지용 캐시에 저장하지 않으며 승인 실행은 원래 snapshot/object를 쓴다.
 인식과 같은 busy lock을 사용하며 실패는 BUSY, RGB-D, MASK, DEPTH, TF, REFERENCE로 구분한다.
 승인 유효 기간과 위치 변화 허용치는 [운영 제어](../../cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안)가 검사한다.
+
+## 보정된 헤드 RGB-D
+
+`calibrated_rgbd`는 선택된 `intrinsics_file`의 RGB K와 D로 원본 RGB를
+왜곡 보정한다. SDK 원본 깊이의 보정된 투영행렬과 depth-to-color TF를
+사용해 깊이를 새 RGB K의 픽셀로 투영한다. 겹친 픽셀은 가까운 광학 Z를
+선택하고 미관측 픽셀은 0으로 남긴다. 깊이 센서의 내부 보정을 덮어쓰지 않는다.
+
+| 구분 | 기본 endpoint | 타입 및 규약 |
+|---|---|---|
+| 구독 | `/camera/sdk/color/image_raw` | `sensor_msgs/msg/Image`, 원본 RGB, sensor-data QoS |
+| 구독 | `/camera/raw_depth/image_raw`, `/camera/raw_depth/camera_info` | 원본 rectified depth와 `sensor_msgs/msg/CameraInfo` |
+| TF 구독 | `/tf`, `/tf_static` | SDK의 depth optical에서 color optical로의 변환 |
+| 발행 | `/camera/color/image_raw`, `/camera/color/camera_info` | 왜곡 보정된 `rgb8`, 새 K, D=0 |
+| 발행 | `/camera/depth/image_raw`, `/camera/depth/camera_info` | RGB에 정렬된 `32FC1`, 단위 m, RGB와 같은 K 및 프레임 |
+| 발행 | `/camera/color/image_raw/compressed` | `sensor_msgs/msg/CompressedImage`, JPEG preview |
+| 발행 | `/camera_calibration/rgbd_status` | `std_msgs/msg/String`, 보정 경로, 해시, 원본 시각 차이, 유효 깊이 비율의 JSON |
+
+RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 처리한다.
+기본값은 0.025초이며 출력 네 메시지는 RGB 원본 시각을 공유한다. 원본의
+시각 차이는 상태에 남기며, 출력 시각 일치가 하드웨어 동시 촬영을 뜻하지는
+않는다. RGB 해상도가 보정값과 다르거나 깊이 투영행렬이 유효하지 않으면
+처리하지 않는다. `realsense.launch.py`에서 내부값을 선택하면 SDK RGB를
+`/camera/sdk/color/*`로 옮기고 SDK 자동 정렬 대신 이 노드를 실행한다.

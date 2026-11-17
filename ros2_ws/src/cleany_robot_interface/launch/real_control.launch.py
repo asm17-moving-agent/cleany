@@ -21,6 +21,10 @@ from cleany_robot_interface.control_profile import (
 def setup(context):
     value = lambda key: LaunchConfiguration(key).perform(context)
     read_only = value('read_only') == 'true'
+    if not read_only:
+        from cleany_robot_interface.calibrated_cad_model import require_cad_motion_ready
+        require_cad_motion_ready(Path(value('profile_file')).resolve(),
+                                 Path(value('repository_root')).resolve())
     allow_trajectory_execution = resolve_moveit_trajectory_execution(
         read_only, value('allow_trajectory_execution')
     )
@@ -49,9 +53,15 @@ def setup(context):
             return [EmitEvent(event=Shutdown(reason='Controller spawner failed'))]
         return []
 
+    cad_calibration = ET.parse(profile.model).getroot().get('cleany_cad_calibration', '')
     guard = Node(package='cleany_robot_interface', executable='control_state_guard', output='screen',
-                 parameters=[{'controller_names': list(profile.controller_names)}])
+                 parameters=[{'controller_names': list(profile.controller_names),
+                              'cad_calibration_json': cad_calibration}])
     actions = [state, manager, guard, broadcaster, controllers]
+    if profile.state.camera_pose_config:
+        actions.append(Node(package='cleany_robot_interface', executable='calibrated_camera_pose',
+                            parameters=[{'config_file': str(profile.state.camera_pose_config)}],
+                            output='screen'))
     if value('with_moveit') == 'true':
         moveit = Path(get_package_share_directory('cleany_moveit_config')) / 'launch/physical_move_group.launch.py'
         actions.append(IncludeLaunchDescription(PythonLaunchDescriptionSource(str(moveit)),

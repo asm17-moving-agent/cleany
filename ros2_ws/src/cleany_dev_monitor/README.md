@@ -20,3 +20,5 @@ HTTP 개발 화면은 로컬 네트워크, Tailscale 또는 SSH 터널에서 사
 승인을 기다린다. `물체 1개 실행`은 기존 CLI의 자동 선택 후 즉시 실행 경로다.
 소프트웨어 중단 접수와 명령 프로세스 종료는 실제 정지나 수거 성공을 의미하지 않는다.
 실측 `CONFIRMED`와 시험 모드의 `ASSUMED` 결과는 구별해서 표시한다.
+
+`물체 1개 실행`의 일반 물체 자동 선택과 공통 TCP·최대 개방·GPU 설정은 [공통 파지 설정](../cleany_skill_executor/docs/shared-grasp-policy.md)을 따른다.

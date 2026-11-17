@@ -30,6 +30,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PlannedPath, REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.cartesian import CartesianPose, execution_wall_timeout
+from cleany_skill_executor.core.grasp_approach_bounds import grasp_approach_yaw_scope
 from cleany_skill_executor.physical_moveit_adapter import MoveItAdapterConfig, MoveItGraspAdapter
 from cleany_skill_executor.execution_timing import timed_operation
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
@@ -372,6 +373,11 @@ class PregraspPipeline(Node):
             client.destroy()
 
     def execute_pregrasp(self, selected):
+        real = getattr(self, 'real', None)
+        with grasp_approach_yaw_scope(getattr(real, 'grasp_approach_yaw', None)):
+            return PregraspPipeline._execute_pregrasp(self, selected)
+
+    def _execute_pregrasp(self, selected):
         arm = selected.selected_arm
         real = getattr(self, 'real', None)
         defer = real is not None and getattr(self, '_defer_pregrasp_validation', False)
@@ -407,10 +413,8 @@ class PregraspPipeline(Node):
             minimum_opening = float(selected.gripper_joint_position)
             commanded_opening = minimum_opening
             if getattr(self, 'real', None) is not None:
-                required_width = float(selected.selected_candidate.required_opening_m)
-                margin = float(self.config['pregrasp_opening_margin_m'])
-                commanded_opening = self.arm_config.opening(
-                    min(self.arm_config.width, required_width + margin))
+                commanded_opening = self.arm_config.opened
+                minimum_opening = commanded_opening
             if not defer and not self.motion.gripper_sweep_is_valid(
                     arm, current, planned[f'{arm}_gripper_joint'], commanded_opening, .05):
                 raise RuntimeError('Opening the gripper intersects the current scene')
@@ -440,6 +444,7 @@ class PregraspPipeline(Node):
                     state = self.real.execute_pregrasp_parallel(
                         arm, arm_command, jaw, minimum_opening,
                         1 if self.arm_config.opened > self.arm_config.closed else -1,
+                        gripper_goal_required=True,
                         **({'scene_barrier': scene_barrier} if scene_barrier is not None else {}))
                 except BaseException as motion_error:
                     try:
