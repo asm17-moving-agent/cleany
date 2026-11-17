@@ -42,7 +42,9 @@ from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
 from std_srvs.srv import Trigger
 
-from cleany_perception.adapters.gemini_detector import GeminiClassifier, GeminiDetector
+from cleany_perception.adapters.gemini_detector import GeminiDetector
+from cleany_perception.adapters.decision_classifier import default_decision_prompt_file
+from cleany_perception.core.decision_semantics import load_decision_prompt, semantic_object_mappings
 from cleany_perception.object_labels import DEFAULT_OBJECT_LABEL_ALIASES
 from cleany_perception.adapters.simulation_color import (
     SimulationColorDetector,
@@ -50,7 +52,7 @@ from cleany_perception.adapters.simulation_color import (
 )
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
 from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeMaskSegmenter, YoloeModelPool
-from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
+from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector, make_semantic_classifier
 from cleany_perception.model_runtime import (
     resolve_device, resolve_model_assets,
 )
@@ -247,6 +249,7 @@ class InspectionNode(Node):
                 model_pool = YoloeModelPool()
                 def make_yoloe(
                     model_path: str, *, class_thresholds: tuple[float, ...] | None = None,
+                    scene_duplicate_mask_iou: float | None = None,
                 ) -> YoloeDetector:
                     return YoloeDetector(
                         model_pool=model_pool,
@@ -262,13 +265,16 @@ class InspectionNode(Node):
                         text_encoder_directory=str(self.get_parameter(
                             'yoloe_text_encoder_directory').value),
                         require_masks=segmenter_type == 'yoloe_seg',
+                        scene_duplicate_mask_iou=scene_duplicate_mask_iou,
                         class_confidence_thresholds=(
                             class_thresholds if class_thresholds is not None else
                             tuple(self.get_parameter_or(
                                 'yoloe_class_confidence_thresholds').value or ())),
                     )
 
-                yoloe = make_yoloe(str(self.get_parameter('yoloe_model_path').value))
+                yoloe = make_yoloe(str(self.get_parameter('yoloe_model_path').value),
+                    scene_duplicate_mask_iou=(float(self.get_parameter('yoloe_scene_duplicate_mask_iou').value)
+                                             if segmenter_type == 'yoloe_seg' else None))
                 wrist_yoloe = yoloe
                 if (segmenter_type == 'yoloe_seg'
                         and bool(self.get_parameter('enable_wrist_observation').value)):
@@ -343,8 +349,14 @@ class InspectionNode(Node):
                                 wrist_right_check_yoloe = make_yoloe(
                                     str(right_check_path))
                 if detector_type == 'yoloe_gemini':
-                    detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
+                    detector = YoloeGeminiDetector(yoloe, make_semantic_classifier(
                         model=str(self.get_parameter('gemini_model').value),
+                        object_types=self.get_parameter('decision_object_types').value,
+                        prompt_file=str(self.get_parameter('decision_prompt_file').value),
+                        audit=self._report_detector_audit,
+                        progress=self._report_detector_progress,
+                        cancelled=lambda: bool(getattr(self, '_detector_goal', None)
+                                               and self._detector_goal.is_cancel_requested),
                         label_aliases=self.get_parameter('semantic_label_aliases').value,
                         jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                         api_key_environment=str(self.get_parameter(
@@ -619,6 +631,17 @@ class InspectionNode(Node):
         if client is not None:
             client.set_active(active)
 
+    def _report_detector_progress(self, event: dict) -> None:
+        message = json.dumps(event, ensure_ascii=False)
+        self.get_logger().info(message)
+        goal = getattr(self, '_detector_goal', None)
+        if goal is not None and goal.is_active:
+            self._feedback(goal, InspectionStage.DETECTING, 0, 0, message)
+
+    def _report_detector_audit(self, event: dict) -> None:
+        """Keep full semantic probabilities out of action progress feedback."""
+        self.get_logger().info(json.dumps(event, ensure_ascii=False, allow_nan=False))
+
     def _log_inspection_timing(self, stage: str, seconds: float) -> None:
         self.get_logger().info(json.dumps({'event': 'inspection_phase_timing',
             'stage': stage, 'wall_sec': seconds}))
@@ -708,11 +731,16 @@ class InspectionNode(Node):
         self.declare_parameter('snapshot_cleanup_period_seconds', 5.0)
         self.declare_parameter(
             'gemini_model',
-            'gemini-robotics-er-2-preview',
+            'gemini-decision-1',
         )
         self.declare_parameter('gemini_api_key_environment', 'GEMINI_API_KEY')
         self.declare_parameter('gemini_jpeg_quality', 95)
         self.declare_parameter('semantic_label_aliases', list(DEFAULT_OBJECT_LABEL_ALIASES))
+        prompt_file = default_decision_prompt_file()
+        self.declare_parameter('decision_prompt_file', str(prompt_file))
+        self.declare_parameter('decision_object_types',
+                               list(load_decision_prompt(prompt_file).default_object_types))
+        self.declare_parameter('yoloe_scene_duplicate_mask_iou', 0.90)
         self.declare_parameter('detector_timeout_seconds', 30.0)
         self.declare_parameter('tf_timeout_seconds', 0.5)
         self.declare_parameter('tf_cache_seconds', 60.0)
@@ -830,6 +858,7 @@ class InspectionNode(Node):
         return CancelResponse.ACCEPT
 
     def _execute(self, goal_handle) -> InspectScene.Result:
+        self._detector_goal = goal_handle
         result = InspectScene.Result()
         result.detections = self._empty_detections()
         result.objects = self._empty_objects()
@@ -923,6 +952,12 @@ class InspectionNode(Node):
                 [item.position for item in ranked_detections],
                 detector_labels=[d.detector_label for d in detections],
             )
+            mappings = semantic_object_mappings(detections)
+            if mappings:
+                for mapping in mappings:
+                    mapping['track_id'] = tracking.detections[mapping['object_id'] - 1].track_id
+                self._report_detector_audit(dict(event='decision_object_mapping',
+                    snapshot_id=snapshot_id, source_stamp_ns=snapshot.stamp_ns, objects=mappings))
             self._snapshot_cache.put(
                 snapshot_id,
                 CachedDetectionSnapshot(
@@ -977,6 +1012,7 @@ class InspectionNode(Node):
             goal_handle.abort()
             return result
         finally:
+            self._detector_goal = None
             with self._busy_lock:
                 self._busy = False
 

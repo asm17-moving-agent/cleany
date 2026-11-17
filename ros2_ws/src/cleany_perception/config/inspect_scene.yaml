@@ -52,7 +52,7 @@ perception_inspector:
     snapshot_cache_max_entries: 2
     snapshot_cache_ttl_seconds: 120.0
     snapshot_cleanup_period_seconds: 5.0
-    gemini_model: gemini-3.5-flash-lite
+    gemini_model: gemini-decision-1
     gemini_api_key_environment: GEMINI_API_KEY
     gemini_jpeg_quality: 95
     # Exact type aliases only; this is not a detector vocabulary or disposal policy.

@@ -33,7 +33,7 @@ def test_geometry_runs_during_vlm_and_selected_reconstruction_reuses_it(syntheti
         geometry_done.set()
         return result
     monkeypatch.setattr(module, 'fit_plane_ransac', fit)
-    detector = YoloeGeminiDetector(SimpleNamespace(detect=lambda *_: [raw]),
+    detector = YoloeGeminiDetector(SimpleNamespace(detect_scene=lambda *_: [raw]),
         SimpleNamespace(classify=classify), vlm_active=notifications.append,
         timing=lambda stage, seconds: timings.append(stage))
     pipeline = InspectionPipeline(detector, YoloeMaskSegmenter(), None, 'base_link',
@@ -61,7 +61,7 @@ def test_vlm_error_closes_window_and_does_not_publish_speculative_detection(synt
     events = []
     def fail(*_):
         raise RuntimeError('remote failure')
-    detector = YoloeGeminiDetector(SimpleNamespace(detect=lambda *_: [synthetic_scene['detection']]),
+    detector = YoloeGeminiDetector(SimpleNamespace(detect_scene=lambda *_: [synthetic_scene['detection']]),
         SimpleNamespace(classify=fail), vlm_active=events.append)
     with pytest.raises(RuntimeError, match='remote failure'):
         detector.detect_with_preprocessing(synthetic_scene['snapshot'].rgb, '', lambda _: None)
@@ -69,7 +69,7 @@ def test_vlm_error_closes_window_and_does_not_publish_speculative_detection(synt
 
 
 def test_empty_scene_does_not_start_gpu_or_vlm():
-    detector = YoloeGeminiDetector(SimpleNamespace(detect=lambda *_: []),
+    detector = YoloeGeminiDetector(SimpleNamespace(detect_scene=lambda *_: []),
         SimpleNamespace(classify=lambda *_: pytest.fail('VLM called for empty scene')),
         vlm_active=lambda _: pytest.fail('Warmup called for empty scene'))
     assert detector.detect_with_preprocessing(None, '', lambda _: pytest.fail('Geometry called')) == ()

@@ -1,5 +1,20 @@
 # 테스트 가이드
 
+## Decision 실행 경로 검증
+
+`test_perception_container_model.py`는 실제 컨테이너 실행 스크립트의 ROS 명령을
+대체해 기본 real32/real53, 사용자 프로파일, 모델 override와 RGB-D QoS를 확인한다.
+Docker, 카메라, 모터와 실제 API를 사용하지 않는다. Docker Compose가 설치되어 있으면 구성 계약도 확인한다.
+
+```bash
+python3 -m pytest -q tests/tools/test_perception_container_model.py containers/vision/test/test_compose_contract.py
+```
+
+`tools/vision-container build-perception-workspace`는 인식 노드를 시작하지 않고
+설치본을 준비한다. 컨테이너 시작 검증은 별도 ROS domain, 외부 네트워크 차단,
+가짜 API 키와 USB 미전달 상태에서 수행하고 파라미터 RPC만 조회한다.
+이 검사는 실제 API 접근, 카메라 TF와 물리 집기 검증을 대신하지 않는다.
+
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
 ## FreeCAD 정적 기준 모델

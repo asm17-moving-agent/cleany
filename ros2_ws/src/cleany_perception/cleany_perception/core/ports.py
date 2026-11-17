@@ -20,6 +20,15 @@ class DetectorPort(Protocol):
         """Return validated pixel-space detections for one RGB image."""
 
 
+class SemanticClassifierPort(Protocol):
+    def prepare(self) -> None:
+        """Validate local configuration without issuing inference requests."""
+
+    def classify(self, rgb: RgbArray,
+                 detections: Sequence[Detection2D]) -> tuple[Detection2D, ...]:
+        """Preserve instance geometry and order while assigning semantics."""
+
+
 class SegmenterPort(Protocol):
     def segment(
         self,
