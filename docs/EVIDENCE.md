@@ -4,29 +4,6 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
-## 2026-11-18 MPPI 스레드 경쟁 조건 회귀 검증
-
-`bef73b74a2f25adf9dabc34a2d32ee9dd364e46f`와 수정 작업트리를 Ubuntu 22.04
-amd64, ROS 2 Humble 컨테이너에서 비교했다. Nav2 1.1.20과 rclcpp 16.0.19는
-PR #86 CI의 패키지 빌드 버전과 일치한다. 설치 목록과 수정 소스 SHA-256은
-`CLEANY_DATA_ROOT/runs/pr86-mppi-fix-istwamnn/verification.json`과
-`dpkg-packages.txt`에 보관한다.
-
-원본 노이즈 검사는 10회 중 1회 초기값 비교에 실패했다. 원본 critic 검사는 CPU 한 개로
-제한했을 때 멈췄고, 10초 뒤 확보한 스레드 스택에서 `TransformListener` 소멸자의
-`join()` 대기를 확인했다. 실패 로그와 스택은 같은 경로의 `baseline-noise.log`,
-`baseline-critics-single-cpu.log`, `baseline-critics-single-cpu-threads.txt`에 있다.
-
-수정 후 노이즈와 critic CTest 그룹은 같은 CPU 한 개 조건에서 각각 100회 통과했다.
-`make test-navigation` 전체 22개 CTest 그룹과 JUnit 292개 사례가 통과했으며 실패와
-skip은 없었다. colcon 집계 314개에는 CTest 그룹도 포함된다. 기본 제한 시간 60초를
-유지했다. 초기 격리 환경의 `moveit_msgs`, `xacro` 누락은 manifest에 선언된 패키지를
-설치해 해결했다.
-
-원본 결과는 `fixed-noise-repeat-final-ctest.log`, `fixed-repeat-ctest.log`,
-`fixed-navigation-final-ctest.log`에 있다. 이 기록은 로컬 코드 검증이며 실물 주행,
-사람 승인이나 main 병합을 의미하지 않는다.
-
 ## 2026-11-16 LiDAR 평면 extrinsic
 
 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업트리에서 RPLIDAR A1M8

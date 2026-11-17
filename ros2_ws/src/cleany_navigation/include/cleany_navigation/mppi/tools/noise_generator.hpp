@@ -73,9 +73,7 @@ public:
   void setNoisedControls(models::State & state, const models::ControlSequence & control_sequence);
 
   /**
-   * @brief Resize and regenerate noise using the supplied settings and model type.
-   * @details With background regeneration enabled, samples may remain zero until
-   * the worker processes the reset. Callers must not assume either scheduling order.
+   * @brief Reset noise generator with settings and model types
    * @param settings Settings of controller
    * @param is_holonomic If base is holonomic
    */

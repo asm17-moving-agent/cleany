@@ -17,7 +17,6 @@
 
 #include "gtest/gtest.h"
 #include "rclcpp/rclcpp.hpp"
-#include "utils/costmap.hpp"
 #include "cleany_navigation/mppi/tools/path_handler.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
@@ -108,7 +107,7 @@ TEST(PathHandlerTests, TestBounds)
   PathHandlerWrapper handler;
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
   node->declare_parameter("dummy.max_robot_pose_search_dist", rclcpp::ParameterValue(99999.9));
-  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmapROS>(
+  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
     "dummy_costmap", "", "dummy_costmap");
   auto results = costmap_ros->set_parameters_atomically(
     {rclcpp::Parameter("global_frame", "odom"),
@@ -159,7 +158,7 @@ TEST(PathHandlerTests, TestTransforms)
   PathHandlerWrapper handler;
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
   node->declare_parameter("dummy.max_robot_pose_search_dist", rclcpp::ParameterValue(99999.9));
-  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmapROS>(
+  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State state;
