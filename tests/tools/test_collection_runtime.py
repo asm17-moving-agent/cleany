@@ -73,6 +73,26 @@ action_run_once
         assert args[args.index('--execution-id') + 1] == data['execution_id']
 
 
+def test_invalid_control_profile_stops_before_gpu_or_hardware(tmp_path):
+    definitions = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')[0]
+    shell = tmp_path / 'runtime-functions.sh'
+    shell.write_text(definitions)
+    program = '''
+source "$1"
+state_dir="$2/state"
+check_dds_transport() { return 0; }
+source_ros() { return 0; }
+check_control_profile() { echo PROFILE_REJECTED; return 1; }
+prepare_motion_runtime() { echo UNEXPECTED_GPU; }
+start_real_control() { echo UNEXPECTED_MOTOR; }
+start_runtime
+'''
+    result = subprocess.run(['bash', '-c', program, 'profile-test', str(shell), str(tmp_path)],
+                            text=True, capture_output=True, timeout=5)
+    assert result.returncode == 1
+    assert result.stdout.strip() == 'PROFILE_REJECTED'
+
+
 def test_insufficient_dds_buffer_blocks_start_before_hardware_or_gpu(tmp_path):
     definitions = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')[0]
     shell = tmp_path / 'runtime-functions.sh'

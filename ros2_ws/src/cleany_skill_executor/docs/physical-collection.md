@@ -83,6 +83,9 @@ URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 
    ```
 
 3. `make collection-start`로 런타임을 시작하고 `make manipulation-start`로 대기 중인 BT 서버를 연결한다.
+   시작 시 설치된 ROS 패키지로 보정 파일과 제어 모델을 먼저 읽는다.
+   파일을 열거나 모델을 생성할 수 없으면 웹 작업 이력에 원인을 기록하고 장치 기동 전에 종료한다.
+   제어기가 첫 관절 피드백을 기다리는 `waiting` 상태에서는 기존 상태 조회 기한 안에 `ready`로 전환되는지 확인한다.
    `make collection-plan`은 계획만 확인하고 `make manipulation-run`은 실제 단일 수거를 요청한다.
 4. 진행 상태는 `make collection-status`와 `make collection-logs`로 확인한다.
    `make manipulation-recover`는 복구 상태를 조회하며 확인 인자는

@@ -135,11 +135,10 @@ class ReadinessProbe(Node):
                 pending.append('Active arm/gripper controllers')
         if self.guard is None:
             pending.append('/real_control/status')
+        elif self.guard == 'waiting':
+            pending.append('/real_control/status ready')
         elif self.guard != 'ready':
-            if pending:
-                pending.append('/real_control/status ready')
-            else:
-                raise RuntimeError(f'Real-control guard is not ready: {self.guard}')
+            raise RuntimeError(f'Real-control guard is not ready: {self.guard}')
         if pending:
             self.feedback_after = None
             if self.graph_ready_at is not None and now - self.graph_ready_at >= 10.:
