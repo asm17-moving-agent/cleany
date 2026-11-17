@@ -1,0 +1,346 @@
+<robot name="left_rigid_wrist_geometry"><link name="cad_left_wrist_roll"><visual name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Bottom_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Top_Plate_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Top_Plate_color">
+        <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Top_Plate_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_color">
+        <color rgba="0.921568627451 0.450980392157 0.160784313725 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_Interface_ARM100.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_middle_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_middle_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_middle_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_middle.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftKinematic_CameraTool180_Pinc_servo_other_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftKinematic_CameraTool180_Pinc_servo_other_color">
+        <color rgba="0.141176470588 0.16862745098 0.2 1" />
+      </material>
+    </visual>
+    <collision name="LeftKinematic_CameraTool180_Pinc_servo_other_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftKinematic_CameraTool180_Pinc_servo_other.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_FixedMount_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_FixedMount_color">
+        <color rgba="0.180392156863 0.521568627451 0.650980392157 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_FixedMount_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_FixedMount.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCB_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCB_color">
+        <color rgba="0.121568627451 0.419607843137 0.23137254902 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCB_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCB.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Lens_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Lens_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Lens_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Lens.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Glass_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Glass_color">
+        <color rgba="0.121568627451 0.321568627451 0.541176470588 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Glass_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Glass.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_Connector_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_Connector_color">
+        <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_Connector_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_Connector.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew0_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew0_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut0_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut0_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut0_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew1_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew1_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut1_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut1_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut1_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew2_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew2_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut2_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut2_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut2_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBScrew3_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBScrew3_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_PCBNut3_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_PCBNut3_color">
+        <color rgba="0.721568627451 0.549019607843 0.219607843137 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_PCBNut3_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_PCBNut3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew0_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew0_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew0_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew0.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew1_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew1_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew1_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew1.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew2_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew2_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew2_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew2.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+    <visual name="LeftCamera_BaseScrew3_visual">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+      <material name="LeftCamera_BaseScrew3_color">
+        <color rgba="0.701960784314 0.729411764706 0.76862745098 1" />
+      </material>
+    </visual>
+    <collision name="LeftCamera_BaseScrew3_collision">
+      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/rigid_wrist_source/LeftCamera_BaseScrew3.stl" scale="1 1 1" />
+      </geometry>
+    </collision>
+  </link></robot>
