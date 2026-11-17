@@ -53,8 +53,8 @@ def goal(execution_id=None, **changes):
 
 class RosHarness:
     def __init__(self, tmp_path, *, scenario='success', start=True, slow=False,
-                 action_name='manipulation/execute_skill', namespace=None):
-        self.namespace = namespace or '/manipulation_test_' + uuid.uuid4().hex
+                 action_name='manipulation/execute_skill'):
+        self.namespace = '/manipulation_test_' + uuid.uuid4().hex
         self.action_name = action_name
         self.context = Context()
         rclpy.init(context=self.context)
@@ -411,6 +411,12 @@ def test_process_kill_restart_reports_interruption_without_action_result(ros, tm
                '--ros-args', '-r', '__ns:=' + harness.namespace,
                '-p', 'database_path:=' + str(harness.database),
                '-p', 'mock_config:=' + str(harness.config)]
+    event_topic = harness.namespace + '/manipulation/execution_events'
+
+    def event_publishers():
+        return {tuple(info.endpoint_gid)
+                for info in harness.node.get_publishers_info_by_topic(event_topic)}
+
     log_path = tmp_path / 'server.log'
     process = None
     with log_path.open('w') as log:
@@ -421,23 +427,32 @@ def test_process_kill_restart_reports_interruption_without_action_result(ros, tm
             handle = harness.send(message)
             assert handle.accepted
             eventually(lambda: any(item.stage == 'LIFTING' for item in harness.feedback))
+            eventually(lambda: len(event_publishers()) == 1,
+                       description='original execution event publisher discovery')
+            old_publishers = event_publishers()
             process.kill()
             process.wait(timeout=5.0)
             process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
             eventually(lambda: 'inhibited=True' in log_path.read_text())
-            recovered = ros(start=False, namespace=harness.namespace)
             eventually(lambda: any(item.execution_id == message.execution_id
                                    and item.record_state == 'INTERRUPTED'
-                                   for item in recovered.events),
-                       description='retained interruption from the restarted process')
-            record = recovered.query(message.execution_id).record
+                                   for item in harness.events),
+                       description='interruption from the restarted process')
+
+            def restarted_publisher_only():
+                publishers = event_publishers()
+                return len(publishers) == 1 and publishers.isdisjoint(old_publishers)
+
+            # A SIGKILL leaves the original DDS participant in discovery until lease expiry.
+            eventually(restarted_publisher_only, timeout=35.0,
+                       description='replacement of the killed DDS participant')
+            record = harness.query(message.execution_id).record
             assert record.record_state == 'INTERRUPTED' and record.human_confirmation_required
             assert not record.has_result and record.status == ''
             assert record.object_state == 'HELD' and record.last_completed_stage == 'GRASPING'
             assert not record.stop_confirmed
-            assert recovered.client.wait_for_server(timeout_sec=10.0)
-            assert not recovered.send(goal()).accepted
-            assert not recovered.send(message).accepted
+            assert not harness.send(goal()).accepted
+            assert not harness.send(message).accepted
         finally:
             if process is not None and process.poll() is None:
                 process.terminate()

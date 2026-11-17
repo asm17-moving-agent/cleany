@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import signal
 import subprocess
-from statistics import median
 import time
 
 import pytest
@@ -122,15 +121,18 @@ def test_installed_fusion_and_tf_ownership(
             command = Twist()
             command.linear.x, command.linear.y, command.angular.z = .1, -.05, .2
             pump(2.5, command)
-            def stamp_seconds(message):
-                stamp = message.header.stamp
-                return stamp.sec + stamp.nanosec * 1e-9
+            velocity = fused[-1].twist.twist
+            assert velocity.linear.x == pytest.approx(.1, abs=.025)
+            assert velocity.linear.y == pytest.approx(-.05, abs=.02)
+            assert velocity.angular.z == pytest.approx(expected_yaw_rate, abs=.02)
 
-            sample = [m.twist.twist for m in fused
-                      if stamp_seconds(m) >= stamp_seconds(fused[-1]) - 1.]
-            assert median(v.linear.x for v in sample) == pytest.approx(.1, abs=.025)
-            assert median(v.linear.y for v in sample) == pytest.approx(-.05, abs=.02)
-            assert median(v.angular.z for v in sample) == pytest.approx(expected_yaw_rate, abs=.02)
+            def stamp_key(message):
+                stamp = message.header.stamp
+                return stamp.sec, stamp.nanosec
+
+            def stamp_seconds(message):
+                sec, nanosec = stamp_key(message)
+                return sec + nanosec * 1e-9
 
             # Encoder quantization and receipt-time jitter affect single samples.
             recent = [m for m in wheel if stamp_seconds(m) >= stamp_seconds(wheel[-1]) - 1.]
@@ -159,12 +161,14 @@ def test_installed_fusion_and_tf_ownership(
             while not future.done() and time.monotonic() < end:
                 pump(.02, command)
             assert future.done() and future.result().values[0].bool_value == (mode == 'canonical')
+            earliest_stamp = stamp_key(canonical[-1]) if canonical else (0, 0)
+
             def matching_transform():
-                poses = {stamp_seconds(m): m.pose.pose for m in canonical}
-                return next(((t.transform, poses[stamp_seconds(t)])
+                poses = {stamp_key(m): m.pose.pose for m in canonical if stamp_key(m) >= earliest_stamp}
+                return next(((t.transform, poses[stamp_key(t)])
                              for msg in reversed(transforms) for t in msg.transforms
                              if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link'
-                             and stamp_seconds(t) in poses), None)
+                             and stamp_key(t) in poses), None)
 
             end = time.monotonic() + 3.
             observed = matching_transform()
