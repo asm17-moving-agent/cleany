@@ -1,76 +1,113 @@
-"""Transport checks and receipt-anchored timestamp mapping."""
-from types import SimpleNamespace
+"""Fixed bias, sensor input and synchronized acquisition-time checks."""
+import math
 
 import pytest
 
-from cleany_base_driver.imu_core import ImuAdapter, ImuValidationError
+from cleany_base_driver.imu_core import FactoryCalibration, ImuAdapter, ImuValidationError
 
 
-def message(seq=1, timestamp=1000, boot=7, **changes):
-    values = dict(protocol_version=2, device_mac=[2, 3, 4, 5, 6, 7], boot_id=boot,
-                  sequence=seq, timestamp_us=timestamp, who_am_i=0x68, fault_bits=0,
-                  angular_velocity_rad_s=[1., 2., 3.], acceleration_mps2=[0., 0., 9.8],
-                  temperature_c=25., calibration_state=1, calibration_reason=0,
-                  corrected_angular_velocity_rad_s=[.9, 1.8, 2.7],
-                  gyro_bias_rad_s=[.1, .2, .3], gyro_covariance_rad2_s2=[0.] * 9)
+BIAS = (.01, -.02, .03)
+COVARIANCE = (1e-6, 1e-7, 0., 1e-7, 2e-6, 0., 0., 0., 3e-6)
+
+
+def calibration():
+    return FactoryCalibration(BIAS, COVARIANCE)
+
+
+def process(adapter, stamp=1_000_000_000, ros=None, steady=None, **changes):
+    values = dict(
+        stamp_ns=stamp, frame_id='imu_link', angular_velocity=(.11, -.22, .33),
+        linear_acceleration=(0., 0., 9.80665),
+        receipt_ros_ns=stamp + 1_000_000 if ros is None else ros,
+        receipt_steady_ns=stamp if steady is None else steady,
+    )
     values.update(changes)
-    return SimpleNamespace(**values)
+    return adapter.process(**values)
 
 
-def test_mcu_intervals_sequence_wrap_and_rejected_duplicate():
-    adapter = ImuAdapter()
-    first = adapter.stamp(message(0xffffffff), 10_000_000_000, 5_000_000_000)
-    second = adapter.stamp(message(0, 11000), 10_015_000_000, 5_015_000_000)
-    assert second - first == 10_000_000
-    with pytest.raises(ImuValidationError):
-        adapter.stamp(message(0, 11000), 10_016_000_000, 5_016_000_000)
-    assert adapter.stamp(message(1, 12000), 10_017_000_000, 5_017_000_000) == 10_011_000_000
+@pytest.mark.parametrize('acceleration', [(0., 0., 9.80665), (0., 0., 0.)])
+def test_fixed_factory_bias_does_not_learn_from_motion_or_restart(acceleration):
+    factory = calibration()
+    adapter = ImuAdapter(factory)
+    assert process(adapter, linear_acceleration=acceleration) == pytest.approx((.1, -.2, .3))
+    for i in range(1, 101):
+        assert process(adapter, stamp=1_000_000_000 + i * 10_000_000,
+                       angular_velocity=BIAS) == (0., 0., 0.)
+    assert factory.bias == BIAS
+    assert factory.covariance == COVARIANCE
+    assert process(ImuAdapter(factory)) == pytest.approx((.1, -.2, .3))
 
 
-def test_backlog_clock_jump_reanchor_and_reboot_retirement():
-    adapter = ImuAdapter()
-    adapter.stamp(message(), 1_000_000_000, 1_000_000_000)
-    with pytest.raises(ImuValidationError, match="backlog"):
-        adapter.stamp(message(2, 2000), 1_200_000_000, 1_200_000_000)
-    with pytest.raises(ImuValidationError, match="clock"):
-        adapter.stamp(message(2, 2000), 1_200_000_000, 1_001_000_000)
-    assert adapter.stamp(message(3, 3000), 1_201_000_000, 1_002_000_000) == 1_201_000_000
-    assert adapter.stamp(message(1, 100, 8), 1_210_000_000, 1_011_000_000) == 1_210_000_000
-    with pytest.raises(ImuValidationError, match="retired"):
-        adapter.stamp(message(4, 4000, 7), 1_220_000_000, 1_021_000_000)
+def test_rejected_duplicates_and_old_samples_do_not_advance_baseline():
+    adapter = ImuAdapter(calibration())
+    process(adapter)
+    with pytest.raises(ImuValidationError, match='duplicate'):
+        process(adapter)
+    with pytest.raises(ImuValidationError, match='duplicate'):
+        process(adapter, stamp=999_000_000, ros=1_002_000_000, steady=1_001_000_000)
+    process(adapter, stamp=1_010_000_000)
+    assert adapter.last_stamp == 1_010_000_000
 
 
-@pytest.mark.parametrize("changes", [
-    {"protocol_version": 1}, {"who_am_i": 0x69}, {"fault_bits": 1},
-    {"boot_id": 0}, {"timestamp_us": 0}, {"device_mac": [1, 2, 3, 4, 5, 6]},
-    {"device_mac": [0] * 6},
+@pytest.mark.parametrize('stamp,ros,pattern', [
+    (1_000_000_000, 1_101_000_000, 'backlog'),
+    (1_200_000_000, 1_099_000_000, 'ahead'),
+    (0, 1, 'timestamp'),
+    (-1, 1, 'timestamp'),
+    (2**31 * 1_000_000_000, 2**31 * 1_000_000_000, 'timestamp'),
 ])
-def test_transport_fault_rejected_without_advancing_state(changes):
-    adapter = ImuAdapter()
-    adapter.stamp(message(), 1_000_000_000, 1_000_000_000)
-    with pytest.raises(ImuValidationError):
-        adapter.stamp(message(2, 2000, **changes), 1_001_000_000, 1_001_000_000)
-    assert adapter.stamp(message(2, 2000), 1_001_000_000, 1_001_000_000) == 1_001_000_000
+def test_invalid_acquisition_time(stamp, ros, pattern):
+    adapter = ImuAdapter(calibration())
+    with pytest.raises(ImuValidationError, match=pattern):
+        process(adapter, stamp=stamp, ros=ros)
+    assert adapter.last_stamp is None
 
 
-def test_identity_expected_mac_and_timing_configuration():
-    with pytest.raises(ImuValidationError, match="unexpected"):
-        ImuAdapter(expected_device_mac="02:03:04:05:06:08").stamp(message(), 1, 1)
-    adapter = ImuAdapter()
-    adapter.stamp(message(), 1_000_000_000, 1_000_000_000)
-    with pytest.raises(ImuValidationError, match="identity changed"):
-        adapter.stamp(message(2, 2000, device_mac=[2, 4, 4, 5, 6, 7]), 1_001_000_000, 1_001_000_000)
-    for mac in ("bad", "00:00:00:00:00:00", "01:03:04:05:06:07"):
-        with pytest.raises(ValueError):
-            ImuAdapter(expected_device_mac=mac)
-    for timing in (0., -1., float("nan"), float("inf")):
-        with pytest.raises(ValueError):
-            ImuAdapter(max_transport_delay_s=timing)
+def test_clock_jump_withholds_discontinuous_time_until_adapter_restart():
+    adapter = ImuAdapter(calibration())
+    process(adapter)
+    with pytest.raises(ImuValidationError, match='clock jump'):
+        process(adapter, stamp=2_000_000_000, ros=2_001_000_000, steady=1_001_000_000)
+    assert adapter.last_stamp == 1_000_000_000
+    with pytest.raises(ImuValidationError, match='restart IMU bringup'):
+        process(adapter, stamp=2_010_000_000, ros=2_011_000_000, steady=1_011_000_000)
+    process(ImuAdapter(calibration()), stamp=2_010_000_000)
 
 
-def test_calibration_result_is_untouched_measurement_contract():
-    sample = message(gyro_covariance_rad2_s2=[0.] * 9)
-    assert ImuAdapter().stamp(sample, 1_000_000, 1_000_000) == 1_000_000
-    assert sample.corrected_angular_velocity_rad_s == [.9, 1.8, 2.7]
-    assert sample.gyro_bias_rad_s == [.1, .2, .3]
-    assert sample.gyro_covariance_rad2_s2 == [0.] * 9
+@pytest.mark.parametrize('changes,pattern', [
+    ({'frame_id': 'base_link'}, 'frame'),
+    ({'angular_velocity': (math.nan, 0., 0.)}, 'finite'),
+    ({'angular_velocity': (0., math.inf, 0.)}, 'finite'),
+    ({'angular_velocity': (0., 0.)}, '3 finite'),
+    ({'linear_acceleration': (0., 0., math.nan)}, 'finite'),
+])
+def test_invalid_sensor_data_does_not_advance_time(changes, pattern):
+    adapter = ImuAdapter(calibration())
+    process(adapter)
+    with pytest.raises(ImuValidationError, match=pattern):
+        process(adapter, stamp=1_010_000_000, **changes)
+    assert adapter.last_stamp == 1_000_000_000
+    process(adapter, stamp=1_010_000_000)
+
+
+@pytest.mark.parametrize('bias,covariance', [
+    ((0., 0.), COVARIANCE), ((math.nan, 0., 0.), COVARIANCE),
+    ((True, 0., 0.), COVARIANCE), (BIAS, (0.,) * 9),
+    (BIAS, (1e-6, 1e-3, 0., 0., 2e-6, 0., 0., 0., 3e-6)),
+    (BIAS, (1e-6, 1e-3, 0., 1e-3, 2e-6, 0., 0., 0., 3e-6)),
+    (BIAS, (1e-6, 0., 0., 0., 2e-6, 0., 0., 0., -3e-6)),
+    (BIAS, (math.inf,) * 9),
+])
+def test_invalid_factory_coefficients(bias, covariance):
+    with pytest.raises(ValueError):
+        FactoryCalibration(bias, covariance)
+
+
+@pytest.mark.parametrize('params', [
+    {'frame_id': ''}, {'frame_id': '/imu_link'}, {'frame_id': 'imu link'},
+    {'max_transport_delay_s': 0.}, {'max_transport_delay_s': math.inf},
+    {'max_clock_jump_s': -1.}, {'max_clock_jump_s': math.nan},
+])
+def test_invalid_adapter_configuration(params):
+    with pytest.raises(ValueError):
+        ImuAdapter(calibration(), **params)

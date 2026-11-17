@@ -627,7 +627,8 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 
 ## 실물 IMU
 
-MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+MCU의 표준 Imu 입력에 host 고정 gyro bias와 공분산을 적용한다.
+빌드와 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
 
 ## Jetson 실물 실행 경로
 

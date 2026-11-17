@@ -50,9 +50,8 @@
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
-| 토픽 구독 | `base/imu_state` | `cleany_base_interfaces/msg/ImuState` | B1 |
-| 토픽 발행 | `imu/data_raw` | `sensor_msgs/msg/Imu` | B1; 정상 IMU 수신 시 |
-| 토픽 발행 | `imu/data` | `sensor_msgs/msg/Imu` | B1; RUNNING 또는 FALLBACK |
+| 토픽 구독 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | B1 |
+| 토픽 발행 | `imu/data_raw` | `sensor_msgs/msg/Imu` | B1; 정상 IMU 수신 시 고정 factory gyro bias 적용 |
 | 토픽 발행 | `imu/status` | `diagnostic_msgs/msg/DiagnosticArray` | R/T1; 상태 변경 시와 1 Hz |
 | 토픽 발행 | `diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | R10; 상태 변경 시와 1 Hz |
 
