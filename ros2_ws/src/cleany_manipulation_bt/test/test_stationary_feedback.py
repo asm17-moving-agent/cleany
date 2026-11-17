@@ -330,6 +330,25 @@ def test_future_stamped_feedback_cannot_prove_physical_stop():
         assert not stopped.observe(feedback, now=now, clock_ns=int(now * 1e9), terminal=True)
 
 
+def test_confirmed_window_reuse_does_not_count_replayed_or_partial_rounds():
+    feedback, stopped = JointFeedback(('left', 'right')), window()
+    update(feedback, 10.01)
+    assert not stopped.observe(feedback, now=10.01, clock_ns=10_010_000_000, terminal=True)
+    assert not stopped.observe(feedback, now=10.04, clock_ns=10_040_000_000,
+                               terminal=True, reuse_confirmed=True)
+    for now in (10.06, 10.12):
+        update(feedback, now)
+        stopped.observe(feedback, now=now, clock_ns=round(now*1e9), terminal=True)
+    assert stopped.observe(feedback, now=10.13, clock_ns=10_130_000_000,
+                           terminal=True, reuse_confirmed=True)
+    assert stopped.samples == 3
+    update(feedback, 10.14, ('left',), (0.,))
+    assert not stopped.observe(feedback, now=10.14, clock_ns=10_140_000_000,
+                               terminal=True, reuse_confirmed=True)
+    assert not stopped.observe(feedback, now=10.4, clock_ns=10_400_000_000,
+                               terminal=True, reuse_confirmed=True)
+
+
 @pytest.mark.parametrize('velocities', [(), (float('nan'), float('nan'))])
 def test_position_only_feedback_proves_stop_after_two_post_barrier_samples(velocities):
     feedback, stopped = JointFeedback(('left', 'right')), window()

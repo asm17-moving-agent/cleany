@@ -1,0 +1,60 @@
+{
+  "motor_id": 4,
+  "units": "encoder_ticks",
+  "status": "upper_operator_confirmed_lower_load_stall_detected_applied",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "decreasing": {
+      "position_ticks": 855,
+      "commanded_target_ticks": 0,
+      "confirmation": "automatic_sustained_load_stall_contact",
+      "operator_confirmation_pending": true,
+      "stop_reason": "load_near_cap_without_progress",
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 55,
+      "max_load_raw": 300,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T155458.242421Z_rebased_wrist_sweep_lower.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T153654Z_wrist_reassembly_resweep_audit.json",
+      "homing_offset": 411
+    },
+    "increasing": {
+      "position_ticks": 3261,
+      "commanded_target_ticks": null,
+      "confirmation": "operator_reported_contact_after_reassembly",
+      "stop_reason": "load_near_cap_without_progress",
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 56,
+      "max_load_raw": 300,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T153654.581990Z_native_dlpf_4_10_sweep_upper.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T153654Z_wrist_reassembly_resweep_audit.json",
+      "confirmed_at": "2026-11-14T15:41:14.994454+00:00",
+      "user_reply": "맞아. 분해조립해서 그래",
+      "original_position_ticks": 2237,
+      "coordinate_shift_ticks": 1024,
+      "homing_offset": 411,
+      "original_commanded_target_ticks": 3256,
+      "coordinate_transfer_source": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/wrist_eeprom_rebase_verified.json"
+    }
+  },
+  "contact_range_ticks": [
+    855,
+    3261
+  ],
+  "homing_offset": 411,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "revalidation": {
+    "reason": "Changed physical assembly invalidates previous endpoint pair.",
+    "upper_contact_confirmed": true,
+    "lower_contact_confirmed": false,
+    "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T153654Z_wrist_reassembly_resweep_audit.json",
+    "lower_contact_detected": true,
+    "lower_detection_method": "load_near_cap_without_progress",
+    "assembly_zero_pose_revalidated": false
+  },
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_4_endpoints.json"
+}

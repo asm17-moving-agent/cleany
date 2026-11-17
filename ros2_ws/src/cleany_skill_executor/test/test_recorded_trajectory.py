@@ -380,3 +380,40 @@ def test_nonfinite_height_budget_and_cancellation_still_stop_search():
     with pytest.raises(InterruptedError, match='cancel'):
         descending_height_time(path, canceled, .5, height_tolerance_m=.005)
     assert len(calls) == 3
+
+
+@pytest.mark.parametrize('scale', [.8, 1.])
+def test_new_recorded_and_cropped_commands_share_the_current_rate_scale(scale):
+    limits = {'q': PhysicalJointLimit(-3., 3., 2., 8., 2048., 1., 0., 0., 4095.)}
+    prepared = prepare_bounded_path(('q',), [(-1.,), (1.4,)], limits,
+                                    velocity=2., acceleration=8., limit_scale=scale)
+    path = RecordedTrajectory(('q',), tuple(
+        CommandPoint(round(point.progress*prepared.duration*1e9), point.positions,
+                     tuple(value/prepared.duration for value in point.derivatives))
+        for point in prepared.command_knots))
+    validate_recorded_trajectory(path, limits, velocity=2., acceleration=8., step=.01,
+                                 limit_scale=scale)
+    cropped = stopped_recorded_window(path, path.points[-1].time_ns//10,
+        path.points[-1].time_ns*3//4, limits, velocity=2., acceleration=8., limit_scale=scale)
+    validate_recorded_trajectory(cropped, limits, velocity=2., acceleration=8., step=.01,
+                                 limit_scale=scale)
+    if scale == 1.:
+        with pytest.raises(CommandPathValidationError, match='rate limits'):
+            validate_recorded_trajectory(path, limits, velocity=2., acceleration=8., step=.01)
+    reduced = {'q': replace(limits['q'], velocity=.5)}
+    with pytest.raises(CommandPathValidationError, match='rate limits'):
+        validate_recorded_trajectory(path, reduced, velocity=2., acceleration=8., step=.01,
+                                     limit_scale=scale)
+
+
+@pytest.mark.parametrize('velocity,acceleration', [(2., 4.), (.1, .2)])
+def test_recorded_retiming_preserves_cubics_under_faster_and_slower_limits(velocity, acceleration):
+    source, limits = recorded_path()
+    result = retime_recorded_trajectory(source, limits, velocity=velocity,
+                                       acceleration=acceleration, minimum_duration_sec=.3)
+    validate_recorded_trajectory(result, limits, velocity=velocity, acceleration=acceleration, step=.02)
+    assert [p.positions for p in result.points] == [p.positions for p in source.points]
+    assert (result.points[-1].time_ns < source.points[-1].time_ns) == (velocity == 2.)
+    for i in range(101):
+        assert interpolate(result, round(result.points[-1].time_ns*i/100)) == pytest.approx(
+            interpolate(source, round(source.points[-1].time_ns*i/100)), abs=1e-8)

@@ -66,6 +66,16 @@ class WorkerBackend:
         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix='manipulation-ops')
         self.context: ExecutionContext | None = None
         self.pending: dict[str, tuple[Future, ExecutionContext]] = {}
+        self._completion_callback: Callable[[], None] | None = None
+
+    def set_completion_callback(self, callback: Callable[[], None] | None) -> None:
+        """Notify the executor of completion without advancing the tree here."""
+        self._completion_callback = callback
+
+    def _completed(self, _future: Future) -> None:
+        callback = self._completion_callback
+        if callback is not None:
+            callback()
 
     def ready(self) -> bool:
         return (all(future.done() for future, _ in self.pending.values()) and self.quiescent())
@@ -87,6 +97,7 @@ class WorkerBackend:
             context.abort.clear()
         token = uuid4().hex
         self.pending[token] = (self.worker.submit(self.operation, node_id, context), context)
+        self.pending[token][0].add_done_callback(self._completed)
         return token
 
     def poll(self, operation_id: str) -> Observation | None:
@@ -112,6 +123,7 @@ class WorkerBackend:
             self.context.abort.set()
 
     def close(self) -> None:
+        self.set_completion_callback(None)
         if self.context is not None:
             self.context.abort.set()
         self.worker.shutdown(wait=True, cancel_futures=True)

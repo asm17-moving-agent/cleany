@@ -1,4 +1,5 @@
 """ROS controller + real C++ wire driver tests against isolated PTYs, never USB motors."""
+from collections import deque
 import json
 import math
 import multiprocessing
@@ -42,6 +43,7 @@ class Servos:
         self.running = True
         self.read_count = 0
         self.load_offsets = {}  # encoder ticks of simulated static load error
+        self.temperature_samples = {}
         for element in elements:
             p = {v.get('name'): float(v.text) for v in element.findall('param')}
             motor = int(p['motor_id'])
@@ -108,6 +110,10 @@ class Servos:
                         continue
                     address, length = params
                     result = bytes(self.registers[motor][address:address+length])
+                    samples = self.temperature_samples.get(motor)
+                    if address == 40 and length == 31 and samples:
+                        result = bytearray(result)
+                        result[23] = samples.popleft()
                 elif instruction == 3:
                     self.update(motor, params[0], params[1:])
                 elif instruction == 131:
@@ -201,9 +207,16 @@ class Runtime:
                  serial_read_recovery_budget_ms=60, servo_type=Servos, start_controllers=True):
         self.directory, self.read_only = directory, read_only
         state = json.loads((ROOT/'configs/robot/camera_preview.json').read_text())
+        state.pop('camera_pose_config', None)  # Synthetic motors have no fitted camera model.
+        state['arm_config'] = 'ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml'
+        state['head_rgb_extrinsics'] = 'configs/robot/head_rgb_board_extrinsics.yaml'
         arm = yaml.safe_load((ROOT/state['arm_config']).read_text())
         arm['calibration_dir'] = str(
             ROOT/'ros2_ws/src/cleany_description/config/calibration/jetson_20261009/motors')
+        # Keep the historical motor fixture's jaw references together with its ranges.
+        for side, zero in (('left', 2689.), ('right', 2851.)):
+            arm['overrides'][side]['gripper'].update(
+                direction=-1, zero_tick=zero, offset_rad=-0.37453297762778586)
         arm_file = directory/'synthetic_arm.yaml'
         arm_file.write_text(yaml.safe_dump(arm))
         state['arm_config'] = str(arm_file)
@@ -346,6 +359,102 @@ class PoweredHoldServos(Servos):
                 mem[address:address+size] = value.to_bytes(size, 'little')
             if self.mismatched_ram and motor == 9:
                 mem[48:50] = (1).to_bytes(2, 'little')
+
+
+def sagged_servos(powered=False, extreme=False):
+    class SaggedServos(PoweredHoldServos if powered else Servos):
+        def __init__(self, elements):
+            super().__init__(elements)
+            self.return_goals, self.initial_positions, self.return_timers = {}, {}, []
+            for motor, lower in ((2, True), (8, False)):
+                if motor not in self.registers:
+                    continue
+                mem = self.registers[motor]
+                address = 9 if lower else 11
+                boundary = int.from_bytes(mem[address:address+2], 'little')
+                raw = (0 if lower else 4095) if extreme else boundary + (-10 if lower else 10)
+                self.return_goals[motor] = boundary
+                self.initial_positions[motor] = raw
+                mem[56:58] = raw.to_bytes(2, 'little')
+
+        def update(self, motor, address, data):
+            previous = bytes(self.registers[motor][56:58])
+            super().update(motor, address, data)
+            if (motor in self.return_goals and address in (40, 42)
+                    and self.registers[motor][40] == 1):
+                # The native goal takes time; feedback polling must not resend it.
+                self.registers[motor][56:58] = previous
+                goal = bytes(self.registers[motor][42:44])
+                timer = threading.Timer(.15, self.finish_return, args=(motor, goal))
+                self.return_timers.append(timer)
+                timer.start()
+
+        def finish_return(self, motor, goal):
+            self.registers[motor][56:58] = goal
+
+        def close(self):
+            for timer in self.return_timers:
+                timer.join()
+            super().close()
+
+    return SaggedServos
+
+
+@pytest.mark.parametrize('powered,extreme', [(False, False), (False, True), (True, False)])
+def test_startup_returns_raw_positions_without_an_extra_oob_allowance(tmp_path, powered, extreme):
+    runtime = Runtime(tmp_path, False, servo_type=sagged_servos(powered, extreme),
+                      start_controllers=False)
+    try:
+        for motor, expected in runtime.arms.return_goals.items():
+            mem = runtime.arms.registers[motor]
+            assert int.from_bytes(mem[56:58], 'little') == expected
+            assert int.from_bytes(mem[42:44], 'little') == expected
+            goals = [w for w in runtime.arms.writes if w['id'] == motor and w['address'] == 42]
+            assert len(goals) == 1
+            assert int.from_bytes(bytes(goals[0]['data']), 'little') == expected
+        assert all(runtime.arms.registers[i][40] == 1 for i in range(1, 13))
+        if powered:
+            assert {w['id'] for w in runtime.arms.writes} == {2, 8}
+            assert {w['address'] for w in runtime.arms.writes} == {42}
+        else:
+            for motor in range(1, 13):
+                writes = [w['address'] for w in runtime.arms.writes if w['id'] == motor]
+                assert writes == [41, 44, 46, 48, 42, 40]
+        assert not runtime.head.writes
+        assert 'LATCHED hardware fault' not in (tmp_path/'manager.log').read_text()
+    finally:
+        runtime.close()
+
+
+def test_startup_recovery_allows_a_following_trajectory(tmp_path):
+    runtime = Runtime(tmp_path, False, servo_type=sagged_servos())
+    try:
+        handle, _ = runtime.goal('right_arm_controller', delta=.03, duration=1)
+        assert handle.accepted
+        assert runtime.wait(handle.get_result_async()).result.error_code == 0
+    finally:
+        runtime.close()
+
+
+@pytest.mark.parametrize('read_only', [True, False])
+def test_startup_recovery_respects_readonly_and_selected_joints(tmp_path, read_only):
+    config = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    config['command_joints'] = ['left_shoulder_pitch_joint']
+    control = tmp_path/'selected.yaml'
+    control.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, read_only, control, shared_bus=True,
+                      servo_type=sagged_servos(), start_controllers=False)
+    try:
+        assert int.from_bytes(runtime.arms.registers[8][56:58], 'little') == runtime.arms.initial_positions[8]
+        if read_only:
+            assert not runtime.arms.writes
+            assert int.from_bytes(runtime.arms.registers[2][56:58], 'little') == runtime.arms.initial_positions[2]
+        else:
+            assert {w['id'] for w in runtime.arms.writes} == {2}
+            assert runtime.arms.registers[2][40] == 1
+            assert int.from_bytes(runtime.arms.registers[2][56:58], 'little') == runtime.arms.return_goals[2]
+    finally:
+        runtime.close()
 
 
 @pytest.mark.parametrize('start_controllers', [False, True])
@@ -502,6 +611,43 @@ def test_single_read_timeout_holds_and_recovers_but_persistent_loss_stops(tmp_pa
 
 
 
+@pytest.mark.parametrize('target_kind', ['inside', 'below', 'above'])
+def test_position_commands_clamp_without_driver_speed_or_tracking_limits(tmp_path, target_kind):
+    config = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    config['command_joints'] = ['left_wrist_roll_joint']
+    # A direct JTC goal bypasses MoveIt planning. Legacy tracking settings must
+    # not restore a driver fault or reshape the controller's position stream.
+    config['joint_defaults'].update(max_velocity=.001, max_acceleration=.001, tracking_error=.001)
+    config['controller'].update(trajectory_tolerance=0., goal_tolerance=.15, goal_time=1.)
+    control = tmp_path/'direct_position.yaml'
+    control.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, False, control)
+    try:
+        joint = ET.parse(runtime.profile.model).find("ros2_control/joint[@name='left_wrist_roll_joint']")
+        params = {p.get('name'): float(p.text) for p in joint.findall('param')}
+        actual = dict(zip(runtime.states[-1].name, runtime.states[-1].position))['left_wrist_roll_joint']
+        target = {'inside': actual+.2, 'below': params['lower']-.1,
+                  'above': params['upper']+.1}[target_kind]
+        handle, _ = runtime.goal('left_arm_controller', delta=target-actual, duration=1)
+        assert handle.accepted
+        assert runtime.wait(handle.get_result_async()).result.error_code == 0
+        runtime.spin(.1)
+        bounded = min(max(target, params['lower']), params['upper'])
+        expected_raw = params['zero_tick'] + params['direction']*(bounded-params['offset_rad'])*4096/math.tau
+        wire_goal = int.from_bytes(runtime.arms.registers[5][42:44], 'little')
+        assert abs(wire_goal-expected_raw) <= 1
+        message = runtime.dynamic_states[-1]
+        values = message.interface_values[list(message.joint_names).index('left_wrist_roll_joint')]
+        telemetry = dict(zip(values.interface_names, values.values))
+        assert telemetry['command_position'] == pytest.approx(target)
+        assert telemetry['sent_goal_raw'] == wire_goal
+        assert 'LATCHED hardware fault' not in (tmp_path/'manager.log').read_text()
+        assert {w['id'] for w in runtime.arms.writes} == {5}
+        assert not runtime.head.writes
+    finally:
+        runtime.close()
+
+
 def test_trajectory_success_cancel_reject_and_latched_disconnect(tmp_path):
     runtime = Runtime(tmp_path, False)
     try:
@@ -647,6 +793,57 @@ def test_left_arm_profile_holds_gripper_and_never_writes_right_or_head(tmp_path)
         runtime.close()
 
 
+
+
+@pytest.mark.parametrize('limit,baseline,spike,hot', [(80, 30, 94, 90), (55, 50, 150, 65)])
+def test_temperature_macd_preserves_raw_spike_and_latches_sustained_heat(
+        tmp_path, limit, baseline, spike, hot):
+    config = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    config['temperature_limit_c'] = limit
+    for values in config['joint_overrides'].values():
+        values['temperature_limit_c'] = limit
+    control_file = tmp_path/'temperature-control.yaml'
+    control_file.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, True, control_file=control_file, start_controllers=False)
+    try:
+        runtime.arms.registers[4][63] = baseline
+        runtime.spin(2.)
+        runtime.dynamic_states.clear()
+        runtime.arms.temperature_samples[4] = deque([spike] + [baseline] * 20)
+        runtime.spin(.7)
+        rows = []
+        for message in runtime.dynamic_states:
+            index = list(message.joint_names).index('left_wrist_pitch_joint')
+            values = message.interface_values[index]
+            rows.append(dict(zip(values.interface_names, values.values)))
+        spikes = [row for row in rows if row['temperature_raw'] == spike]
+        assert spikes, 'Raw spike must remain visible in telemetry'
+        assert all(abs(row['temperature'] - baseline) < .1 for row in spikes)
+        log = tmp_path/'manager.log'
+        assert 'LATCHED hardware fault' not in log.read_text()
+        assert f'transient temperature sample ({spike} -> {baseline})' in log.read_text()
+
+        runtime.arms.registers[4][63] = hot
+        runtime.spin(1.)
+        assert 'LATCHED hardware fault' in log.read_text()
+        assert f'temperature_raw={hot}' in log.read_text()
+        runtime.arms.registers[4][63] = 30
+        runtime.spin(.2)
+        assert runtime.arms.writes == [] and runtime.head.writes == []
+    finally:
+        runtime.close()
+
+
+def test_temperature_macd_does_not_filter_motor_status_faults(tmp_path):
+    runtime = Runtime(tmp_path, True, start_controllers=False)
+    try:
+        runtime.arms.registers[4][65] = 4
+        runtime.spin(.3)
+        log = (tmp_path/'manager.log').read_text()
+        assert 'LATCHED hardware fault' in log and 'status=4' in log
+        assert runtime.arms.writes == [] and runtime.head.writes == []
+    finally:
+        runtime.close()
 
 
 def test_readonly_gripper_telemetry_uses_existing_read_packets(tmp_path):

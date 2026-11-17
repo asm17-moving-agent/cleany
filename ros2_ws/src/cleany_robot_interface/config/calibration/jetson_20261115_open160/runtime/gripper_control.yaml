@@ -1,0 +1,20 @@
+# Gripper settings to merge into an explicit robot-specific control profile.
+temperature_limit_c: 55
+temperature_macd_fast_tau_s: 0.1
+temperature_macd_slow_tau_s: 0.5
+temperature_macd_signal_tau_s: 0.1
+joint_overrides:
+  left_gripper_joint:
+    torque_limit_raw: 400
+    temperature_limit_c: 55
+    acceleration_raw: 1
+    speed_raw: 75
+    max_velocity: 0.06
+    max_acceleration: 0.1
+  right_gripper_joint:
+    torque_limit_raw: 400
+    temperature_limit_c: 55
+    acceleration_raw: 1
+    speed_raw: 75
+    max_velocity: 0.06
+    max_acceleration: 0.1

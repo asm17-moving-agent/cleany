@@ -33,7 +33,11 @@ from .joint_feedback import JointFeedback, StationaryWindow
 class JetsonOperations(CollectionPipeline):
     def __init__(self, config: dict, **kwargs):
         self._feedback = JointFeedback(REQUIRED_JOINT_NAMES)
+        self._stationary_feedback = JointFeedback(
+            (*REQUIRED_JOINT_NAMES, 'head_pan_joint', 'head_tilt_joint'))
         self._feedback_lock = threading.Lock()
+        self._stationary_history = None
+        self._stationary_history_key = None
         self.execution_context: ExecutionContext | None = None
         self.current_node = ''
         self.deadline = math.inf
@@ -67,6 +71,10 @@ class JetsonOperations(CollectionPipeline):
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
+        self.declare_parameter('bt_reuse_final_stationary_history', True)
+        self._reuse_stationary_history_enabled = self.value('bt_reuse_final_stationary_history')
+        if type(self._reuse_stationary_history_enabled) is not bool:
+            raise ValueError('bt_reuse_final_stationary_history must be boolean')
         for name, value in defaults.items():
             actual = self.get_parameter(name).value
             if isinstance(value, bool) and type(actual) is not bool:
@@ -115,10 +123,74 @@ class JetsonOperations(CollectionPipeline):
     def on_state(self, message):
         super().on_state(message)
         with self._feedback_lock:
+            now = time.monotonic()
             self._feedback.update(message.name, message.velocity,
                 message.header.stamp.sec * 10**9 + message.header.stamp.nanosec,
-                time.monotonic(), positions=message.position,
+                now, positions=message.position,
                 maximum_position_interval_sec=float(self.value('bt_stop_feedback_max_age_sec')))
+            self._stationary_feedback.update(message.name, message.velocity,
+                message.header.stamp.sec * 10**9 + message.header.stamp.nanosec,
+                now, positions=message.position,
+                maximum_position_interval_sec=float(self.value('bt_stop_feedback_max_age_sec')))
+            self._observe_stationary_history(now, self.get_clock().now().nanoseconds)
+
+    def _stationary_signature(self):
+        real = getattr(self, 'real', None)
+        context = getattr(self, 'execution_context', None)
+        models = getattr(real, '_verified_models', None)
+        if (not getattr(self, '_reuse_stationary_history_enabled', False)
+                or real is None or real.fault or not models or context is None
+                or context.abort.is_set() or self._stopping):
+            return None
+        return (context.goal.execution_id, models, getattr(real, 'motion_submissions', 0),
+                getattr(real, 'communication_recovery_count', 0),
+                *(self.value(name) for name in ('bt_stop_feedback_max_age_sec',
+                    'bt_stationary_velocity_rad_s', 'bt_stationary_samples',
+                    'bt_stationary_duration_sec')))
+
+    def _new_stationary_window(self, now, clock_ns):
+        return StationaryWindow(barrier_ns=clock_ns, started_at=now,
+            max_age_sec=float(self.value('bt_stop_feedback_max_age_sec')),
+            maximum_velocity=float(self.value('bt_stationary_velocity_rad_s')),
+            required_samples=int(self.value('bt_stationary_samples')),
+            minimum_duration_sec=float(self.value('bt_stationary_duration_sec')))
+
+    def _observe_stationary_history(self, now, clock_ns):
+        """Accumulate all-joint evidence while controller Actions are terminal."""
+        key = self._stationary_signature()
+        if key is None:
+            self._stationary_history = self._stationary_history_key = None
+            return
+        if key != self._stationary_history_key:
+            self._stationary_history = self._new_stationary_window(now, clock_ns)
+            self._stationary_history_key = key
+        self._stationary_history.observe(self._stationary_feedback, now=now, clock_ns=clock_ns,
+                                         terminal=self.quiescent())
+
+    def _reuse_final_stationary(self, context):
+        if (context is not getattr(self, 'execution_context', None) or not context.arm_recovered
+                or self._stationary_signature() is None):
+            return False
+        # A historical interval never replaces the live hardware/freshness guard.
+        state = self.real.monitor()
+        positions = dict(zip(state.name, state.position, strict=True))
+        with self._feedback_lock:
+            key = self._stationary_signature()
+            window = self._stationary_history
+            feedback = self._stationary_feedback
+            if (key is None or key != self._stationary_history_key or window is None
+                    or any(name not in feedback.samples or
+                           positions.get(name) != feedback.samples[name].position
+                           for name in feedback.required_names)):
+                return False
+            confirmed = window.observe(feedback, now=time.monotonic(),
+                clock_ns=self.get_clock().now().nanoseconds, terminal=self.quiescent(),
+                reuse_confirmed=True)
+        if confirmed:
+            context.stop_confirmed = True
+            self.event('final_stationary_history_reused',
+                       duration_sec=window.minimum_duration_sec, samples=window.samples)
+        return confirmed
 
     def quiescent(self):
         return quiescent(list(self.submissions), list(self.handles))
@@ -660,7 +732,7 @@ class JetsonOperations(CollectionPipeline):
         placement = Placement.ASSUMED if temporary_return_mode(self.config) else Placement.CONFIRMED
         if placement == Placement.CONFIRMED:
             self._outcome(context, CheckManipulation.Request.PLACEMENT, self.get_clock().now().nanoseconds)
-        confirmed = self._assess_stationary(context, cancel=False)
+        confirmed = self._assess_stationary(context, cancel=False, reuse_final=True)
         if not confirmed:
             return Observation(False, Error.STOP_UNCONFIRMED, 'Final physical stop was not observed',
                                placement_state=placement, stop_confirmed=False)
@@ -685,14 +757,12 @@ class JetsonOperations(CollectionPipeline):
                 operation=ObserveObjectReference.Request.CLEAR, reference_id=context.verification_id))
             context.verification_id = ''
 
-    def _assess_stationary(self, context, *, cancel):
+    def _assess_stationary(self, context, *, cancel, reuse_final=False):
+        if reuse_final and not cancel and self._reuse_final_stationary(context):
+            return True
         started = time.monotonic()
         barrier = self.get_clock().now().nanoseconds
-        window = StationaryWindow(barrier_ns=barrier, started_at=started,
-            max_age_sec=float(self.value('bt_stop_feedback_max_age_sec')),
-            maximum_velocity=float(self.value('bt_stationary_velocity_rad_s')),
-            required_samples=int(self.value('bt_stationary_samples')),
-            minimum_duration_sec=float(self.value('bt_stationary_duration_sec')))
+        window = self._new_stationary_window(started, barrier)
         canceled = set()
         while time.monotonic() - started < self.value('bt_stop_timeout_sec'):
             if cancel:

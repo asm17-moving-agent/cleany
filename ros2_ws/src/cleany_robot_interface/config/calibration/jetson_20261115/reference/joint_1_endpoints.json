@@ -1,0 +1,36 @@
+{
+  "motor_id": 1,
+  "units": "encoder_ticks",
+  "status": "both_contact_endpoints_operator_confirmed",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "increasing": {
+      "position_ticks": 3482,
+      "confirmation": "operator_reported_contact",
+      "confirmed_at": "2026-11-14T21:13:58.791690+09:00",
+      "torque_cap_raw": 220,
+      "speed_raw": 30,
+      "acceleration_raw": 1,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T121038Z_joint1_positive_probe.jsonl"
+    },
+    "decreasing": {
+      "position_ticks": 763,
+      "confirmation": "operator_reported_contact",
+      "stop_reason": "no_progress",
+      "torque_cap_raw": 220,
+      "speed_raw": 30,
+      "acceleration_raw": 1,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T121744Z_joint1_negative_probe.jsonl",
+      "confirmed_at": "2026-11-14T21:22:02.077839+09:00",
+      "user_reply": "ㅇㅇ.6번진행해"
+    }
+  },
+  "contact_range_ticks": [
+    763,
+    3482
+  ],
+  "homing_offset": 527,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_1_endpoints.json"
+}

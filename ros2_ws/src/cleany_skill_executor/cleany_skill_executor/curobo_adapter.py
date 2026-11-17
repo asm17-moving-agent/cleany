@@ -10,6 +10,7 @@ from moveit_msgs.msg import PlanningSceneComponents
 from moveit_msgs.srv import GetPlanningScene
 from rosidl_runtime_py.convert import message_to_ordereddict
 
+from cleany_skill_executor.core.grasp_approach_bounds import active_grasp_approach_yaw
 from cleany_skill_executor.core.alignment import (
     axis_errors_degrees,
     sampled_indices,
@@ -51,16 +52,15 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
         if engine is None:
             from pathlib import Path
             from ament_index_python.packages import get_package_share_directory
-            import xacro
             from cleany_skill_executor.curobo_engine import CuRoboEngine
             from cleany_skill_executor.curobo_model import RobotModel
 
             description = Path(get_package_share_directory("cleany_description"))
             moveit = Path(get_package_share_directory("cleany_moveit_config"))
-            urdf = xacro.process_file(
-                str(description / "urdf/cleany.urdf.xacro"),
-                mappings={"include_head_camera": "false"},
-            ).toxml()
+            urdf = (description / "urdf/cleany.urdf").read_text()
+            from dataclasses import replace
+            gpu_config = replace(gpu_config, sphere_model="cad_cached")
+            self._gpu_config = gpu_config
             model = RobotModel(
                 urdf, (moveit / "config/cleany.srdf").read_text(), gpu_config
             )
@@ -246,6 +246,12 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
         )
         if len(valid) != len(solutions):
             raise InfrastructureError("incomplete GPU collision result")
+        policy = active_grasp_approach_yaw.get() or self._config.grasp_approach_yaw
+        if policy is not None:
+            valid = [ok and all(
+                policy.intersect(n, -math.inf, math.inf)[0] <= q <= policy.intersect(n, -math.inf, math.inf)[1]
+                for n, q in zip(solution.names, solution.positions))
+                for solution, ok in zip(solutions, valid)]
         if self._gpu_config.moveit_shadow_validation:
             for q, ok in zip(solutions, valid):
                 if ok and not MoveItGraspAdapter.state_is_valid(self, arm, q):

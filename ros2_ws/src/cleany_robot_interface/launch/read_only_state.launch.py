@@ -18,16 +18,21 @@ def setup(context):
                  name='real_robot_state_publisher', output='screen',
                  parameters=[{'robot_description': Path(value('robot_description_file')).read_text(),
                               'use_sim_time': False}])
-    return [RegisterEventHandler(OnProcessExit(
+    actions = [RegisterEventHandler(OnProcessExit(
                 target_action=reader, on_exit=[EmitEvent(event=Shutdown(reason='Live state reader exited'))])),
             RegisterEventHandler(OnProcessExit(
                 target_action=state, on_exit=[EmitEvent(event=Shutdown(reason='Robot TF publisher exited'))])),
             reader, state]
+    if value('camera_pose_config'):
+        actions.append(Node(package='cleany_robot_interface', executable='calibrated_camera_pose',
+                            parameters=[{'config_file': value('camera_pose_config')}], output='screen'))
+    return actions
 
 
 def generate_launch_description():
     return LaunchDescription([
         *(DeclareLaunchArgument(key) for key in ('robot_description_file', 'arm_config_file',
                                                 'head_config_file', 'head_mapping_file')),
+        DeclareLaunchArgument('camera_pose_config', default_value=''),
         OpaqueFunction(function=setup),
     ])

@@ -21,6 +21,7 @@ from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes, Robo
 from moveit_msgs.srv import GetCartesianPath, GetPositionFK, GetPositionIK, GetStateValidity
 from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
+from cleany_interfaces.srv import CheckStateValidityBatch
 
 from cleany_skill_executor.core.alignment import (
     axis_errors_degrees,
@@ -32,6 +33,9 @@ from cleany_skill_executor.core.alignment import (
 from cleany_skill_executor.core.wrist_alignment import aligned_wrist_rolls
 from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.urdf_fk import UrdfChain
+from cleany_skill_executor.core.grasp_approach_bounds import (
+    GraspApproachYawBounds, active_grasp_approach_yaw,
+)
 from cleany_skill_executor.core.joint_path import executable_joint_path
 from cleany_skill_executor.core.cartesian import CartesianPose, validate_corridor_samples
 from cleany_skill_executor.state_validity_batch import StateValidityBatch
@@ -49,6 +53,7 @@ from cleany_skill_executor.core.physical_grasp_selection import (
 
 @dataclass(frozen=True, slots=True)
 class MoveItAdapterConfig:
+    grasp_approach_yaw: GraspApproachYawBounds | None = None
     base_frame: str = 'base_link'
     ik_timeout_sec: float = 0.15
     ik_collision_search: bool = True
@@ -340,8 +345,22 @@ class MoveItGraspAdapter:
                 raise InfrastructureError('MoveIt service unavailable')
             self._spin_once(min(self._config.poll_interval_sec, remaining))
 
+    def set_scene_barrier(self, barrier: Callable[[], None] | None) -> None:
+        """Gate this request's scene-dependent queries after proposal computation."""
+        self._scene_barrier = barrier
+
+    def await_scene_barrier(self) -> None:
+        barrier = getattr(self, '_scene_barrier', None)
+        if barrier is not None:
+            self._check_active()
+            barrier()
+            self._scene_barrier = None
+
     def _call(self, client: Any, request: Any, timeout: float) -> Any:
         self._check_active()
+        if isinstance(request, (GetStateValidity.Request, CheckStateValidityBatch.Request,
+                                GetPositionIK.Request, GetCartesianPath.Request)):
+            MoveItGraspAdapter.await_scene_barrier(self)
         self._wait_service(client, timeout)
         future = client.call_async(request)
         wait = (self._response_wait_factory(future)
@@ -362,6 +381,21 @@ class MoveItGraspAdapter:
             raise InfrastructureError('MoveIt service returned no response')
         return response
 
+    def _planning_position_bounds(self, name: str) -> tuple[float, float]:
+        lower, upper, _ = self._joint_limits[name]
+        policy = active_grasp_approach_yaw.get() or self._config.grasp_approach_yaw
+        return policy.intersect(name, lower, upper) if policy is not None else (lower, upper)
+
+    def _grasp_approach_constraints(self, arm: str) -> Constraints | None:
+        if active_grasp_approach_yaw.get() is None and self._config.grasp_approach_yaw is None:
+            return None
+        name = ARM_JOINT_NAMES[arm][0]
+        lower, upper = self._planning_position_bounds(name)
+        center = (lower + upper) / 2
+        return Constraints(joint_constraints=[JointConstraint(
+            joint_name=name, position=center, tolerance_below=center-lower,
+            tolerance_above=upper-center, weight=1.0)])
+
     def _solve_position_ik(
         self,
         arm: str,
@@ -377,6 +411,9 @@ class MoveItGraspAdapter:
         ik.ik_link_name = link_name
         ik.avoid_collisions = self._config.ik_collision_search
         ik.robot_state = self._merged_state(seed)
+        constraints = self._grasp_approach_constraints(arm)
+        if constraints is not None:
+            ik.constraints = constraints
         ik.pose_stamped = PoseStamped()
         ik.pose_stamped.header.frame_id = self._config.base_frame
         (
@@ -418,7 +455,12 @@ class MoveItGraspAdapter:
         names = ARM_JOINT_NAMES[arm]
         if not set(names) <= positions.keys():
             raise InfrastructureError('IK response omits arm joints')
-        return JointSolution(names, tuple(float(positions[name]) for name in names))
+        solution = JointSolution(names, tuple(float(positions[name]) for name in names))
+        if self._joint_limits and any(
+                not self._planning_position_bounds(name)[0] <= q <= self._planning_position_bounds(name)[1]
+                for name, q in zip(solution.names, solution.positions)):
+            return None
+        return solution
 
     def solve_position_ik(
         self,
@@ -617,7 +659,7 @@ class MoveItGraspAdapter:
             bases = self._seed_bases(arm, seed)
             self._verify_local_fk(arm, bases[0])
             approach, closing = tcp_axes(target.orientation_xyzw)
-            bounds = [self._joint_limits[name][:2] for name in bases[0].names]
+            bounds = [self._planning_position_bounds(name) for name in bases[0].names]
 
             def residual(values):
                 self._check_active()
@@ -789,13 +831,13 @@ class MoveItGraspAdapter:
 
     def state_is_valid(self, arm: str, solution: JointSolution) -> bool:
         self.last_state_validity_rejection = None
-        violations = [
-            dict(joint=name, position_rad=value,
-                 lower_rad=self._joint_limits[name][0], upper_rad=self._joint_limits[name][1])
-            for name, value in zip(solution.names, solution.positions)
-            if self._joint_limits
-            and not self._joint_limits[name][0] <= value <= self._joint_limits[name][1]
-        ]
+        violations = []
+        if self._joint_limits:
+            for name, value in zip(solution.names, solution.positions, strict=True):
+                lower, upper = self._planning_position_bounds(name)
+                if not lower <= value <= upper:
+                    violations.append(dict(joint=name, position_rad=value,
+                                           lower_rad=lower, upper_rad=upper))
         if violations:
             self._record_state_validity_rejection(arm, solution, reason='joint_limits',
                                                   joint_limit_violations=violations)
@@ -902,6 +944,7 @@ class MoveItGraspAdapter:
         if trajectory_scaling is not None and (
                 not math.isfinite(trajectory_scaling) or not 0 < trajectory_scaling <= 1):
             raise ValueError('Planning trajectory scaling must be in (0, 1]')
+        MoveItGraspAdapter.await_scene_barrier(self)
         self.last_plan_route = 'rrt'
         if start is None and self._config.pregrasp_joint_shortcut_enabled and try_joint_shortcut:
             direct = self._direct_joint_path(arm, goal)
@@ -930,6 +973,9 @@ class MoveItGraspAdapter:
         request.max_acceleration_scaling_factor = (self._config.acceleration_scaling
             if trajectory_scaling is None else float(trajectory_scaling))
         request.start_state = self._merged_state(start)
+        approach_constraints = self._grasp_approach_constraints(arm)
+        if approach_constraints is not None:
+            request.path_constraints = approach_constraints
         constraints = Constraints()
         constraints.name = f'{arm}_grasp_joint_goal'
         for name, position in zip(goal.names, goal.positions, strict=True):
@@ -966,6 +1012,11 @@ class MoveItGraspAdapter:
             tuple(getattr(trajectory, 'joint_names', goal.names)),
             tuple(tuple(float(value) for value in point.positions) for point in trajectory.points),
         )
+        if self._grasp_approach_constraints(arm) is not None:
+            for sample in self._path_samples(path):
+                if any(not self._planning_position_bounds(n)[0] <= q <= self._planning_position_bounds(n)[1]
+                       for n, q in zip(path.joint_names, sample.positions)):
+                    return None
         if corridor is not None:
             return self._validated_cubic_path(arm, path, corridor=corridor)
         return self._validated_cubic_path(arm, path) if self._config.validate_motion_paths else path
@@ -1054,6 +1105,9 @@ class MoveItGraspAdapter:
         request.max_step = self._config.cartesian_approach_step_m
         request.jump_threshold, request.revolute_jump_threshold = 2., .15
         request.avoid_collisions = True
+        constraints = self._grasp_approach_constraints(arm)
+        if constraints is not None:
+            request.path_constraints = constraints
         response = self._call(self._cartesian_client, request,
                               self._config.planning_timeout_sec+self._config.planning_response_margin_sec)
         if not math.isfinite(response.fraction) or not 0 <= response.fraction <= 1:
@@ -1100,7 +1154,7 @@ class MoveItGraspAdapter:
             self._config.validation_step_rad, 2, self._config.maximum_validation_states)
         for sample in samples:
             for name, value in zip(path.joint_names, sample.positions):
-                lower, upper, _ = self._joint_limits[name]
+                lower, upper = MoveItGraspAdapter._planning_position_bounds(self, name)
                 if not lower <= value <= upper:
                     return None
         if corridor is not None and not MoveItGraspAdapter._corridor_samples_valid(
@@ -1144,6 +1198,12 @@ class MoveItGraspAdapter:
 
     def validate_approach_path(self, arm, path, start, target):
         samples = self._path_samples(path)
+        if self._grasp_approach_constraints(arm) is not None:
+            name = ARM_JOINT_NAMES[arm][0]
+            index = path.joint_names.index(name)
+            lower, upper = self._planning_position_bounds(name)
+            if any(not lower <= sample.positions[index] <= upper for sample in samples):
+                return False
         return (MoveItGraspAdapter._collision_samples_valid(self, arm, path.joint_names, samples)
                 and MoveItGraspAdapter._corridor_samples_valid(
                     self, arm, path.joint_names, samples, start, target))

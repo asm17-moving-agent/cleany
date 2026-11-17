@@ -385,6 +385,66 @@ def test_placement_success_without_stationary_joints_is_fatal(operation):
     assert result.placement_state == Placement.CONFIRMED and not result.stop_confirmed
 
 
+@pytest.mark.parametrize('changed', [None, 'motion', 'model', 'recovery', 'stale',
+                                    'position', 'moving', 'pending', 'abort', 'missing'])
+def test_final_stop_reuses_only_current_complete_terminal_history(operation, monkeypatch, changed):
+    from cleany_manipulation_bt.joint_feedback import JointFeedback
+    from cleany_skill_executor.core.physical_grasp_selection import REQUIRED_JOINT_NAMES
+
+    node, context, _ = operation
+    clock = [10.]
+    monkeypatch.setattr('cleany_manipulation_bt.jetson_operations.time.monotonic', lambda: clock[0])
+    node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=round(clock[0]*1e9)))
+    values = {'bt_stop_feedback_max_age_sec': .5, 'bt_stationary_velocity_rad_s': .02,
+              'bt_stationary_samples': 5, 'bt_stationary_duration_sec': .25}
+    node.value = values.__getitem__
+    node._feedback = JointFeedback(REQUIRED_JOINT_NAMES)
+    names = (*REQUIRED_JOINT_NAMES, 'head_pan_joint', 'head_tilt_joint')
+    node._stationary_feedback = JointFeedback(names)
+    node._feedback_lock = threading.Lock()
+    node._stationary_history = node._stationary_history_key = None
+    node._reuse_stationary_history_enabled = True
+    node.execution_context, node._stopping = context, False
+    node.submissions, node.handles = [], []
+    context.arm_recovered = True
+    state = NS(name=list(names), position=[.1]*len(names))
+    node.real = NS(fault='', _verified_models=('model', 'model'), motion_submissions=1,
+                   communication_recovery_count=0, monitor=lambda: state)
+    events = []
+    node.event = lambda stage, **kw: events.append(stage)
+    for i in range(9):
+        clock[0] = 10.+i*.05
+        node._feedback.update(state.name, [], round(clock[0]*1e9), clock[0], positions=state.position)
+        node._stationary_feedback.update(state.name, [], round(clock[0]*1e9), clock[0], positions=state.position)
+        node._observe_stationary_history(clock[0], round(clock[0]*1e9))
+    if changed == 'motion': node.real.motion_submissions += 1
+    elif changed == 'model': node.real._verified_models = ('new', 'new')
+    elif changed == 'recovery': node.real.communication_recovery_count += 1
+    elif changed == 'stale': clock[0] += .6
+    elif changed == 'position': state.position[0] += .01
+    elif changed == 'abort': context.abort.set()
+    elif changed == 'pending': node.submissions.append(Future())
+    elif changed == 'missing': node._stationary_feedback.samples.pop(state.name[-1])
+    elif changed == 'moving':
+        clock[0] += .05
+        state.position[-1] += .1
+        node._stationary_feedback.update(state.name, [], round(clock[0]*1e9), clock[0], positions=state.position)
+    assert node._reuse_final_stationary(context) is (changed is None)
+    assert context.stop_confirmed is (changed is None)
+    assert events == (['final_stationary_history_reused'] if changed is None else [])
+
+
+def test_cancel_stop_never_uses_final_history(operation):
+    node, context, _ = operation
+    node._reuse_final_stationary = lambda _: pytest.fail('Cancel must collect post-request evidence')
+    node._new_stationary_window = lambda *args: NS(observe=lambda *args, **kw: True)
+    node.value = lambda _: 1.
+    node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=10_000_000_000))
+    node._feedback_lock, node._feedback = threading.Lock(), object()
+    node.handles, node.submissions = [], []
+    assert node._assess_stationary(context, cancel=True, reuse_final=True)
+
+
 def test_cancel_recovery_does_not_repeat_release_after_confirmed_release(operation):
     node, context, _ = operation
     context.release_confirmed = context.gripper_engaged = True

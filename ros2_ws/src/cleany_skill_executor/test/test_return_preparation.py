@@ -305,3 +305,114 @@ def test_return_window_fresh_verification_and_invalid_path_block_dispatch(comman
             endpoint_pose=CartesianPose((0., 0., .25), (0., 0., 0., 1.)))
     assert not sent
     assert len(verified) <= 1
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+def test_release_retreat_prefetch_overlaps_planning_without_reusing_old_checks(preparation, enabled):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = enabled
+    wait = real.node.wait
+    issued_at = {}
+    for client in f.clients:
+        send = client.call_async
+        def timed_send(request, send=send):
+            future = send(request)
+            issued_at[id(future)] = f.clock[0]
+            return future
+        client.call_async = timed_send
+    def delayed_wait(future, timeout):
+        f.clock[0] = max(f.clock[0], issued_at[id(future)]+.04)
+        return wait(future, timeout)
+    real.node.wait = delayed_wait
+    with real.return_preparation('right'):
+        assert len(f.pending) == (4 if enabled else 0)
+        f.clock[0] += .06  # FK and path preparation overlap a 40 ms query batch.
+        began = f.clock[0]
+        real.verify('right')
+        assert f.clock[0]-began == pytest.approx(0. if enabled else .04)
+        assert len(f.pending) == len(f.removed) == 4
+        assert real._last_return_model_prefetch_used is enabled
+        real.motion_submissions += 1  # Retreat motion requires new reads for home.
+        save_endpoint(f)
+        real.prepare_return_phase('right')
+        assert len(f.pending) == 8
+        real.verify('right')
+        assert real._last_return_model_prefetch_used
+    assert len(f.removed) == 8
+
+
+def test_skipped_release_retreat_promotes_the_same_fresh_batch_without_extra_queries(preparation):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = True
+    with real.return_preparation('right'):
+        batch = real._return_preparation.batch
+        real.prepare_return_phase('right')
+        assert real._return_preparation.batch is batch
+        assert len(f.pending) == 4 and not f.removed
+        real.verify('right')
+        assert real._last_return_model_prefetch_used
+    assert len(f.removed) == 4
+
+
+@pytest.mark.parametrize('change', ['age', 'command', 'recovery'])
+def test_skipped_release_retreat_refreshes_invalid_batch_before_home(preparation, change):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = True
+    with real.return_preparation('right'):
+        old = [future for _, future in f.pending]
+        if change == 'age':
+            f.clock[0] += .251
+        elif change == 'command':
+            real.motion_submissions += 1
+        else:
+            real.communication_recovery_count += 1
+        real.prepare_return_phase('right')
+        assert all(future.cancelled() for future in old)
+        assert len(f.pending) == 8 and len(f.removed) == 4
+        real.verify('right')
+        assert real._last_return_model_prefetch_used
+    assert len(f.removed) == 8
+
+
+@pytest.mark.parametrize('change', ['age', 'command', 'recovery', 'model'])
+def test_release_retreat_prefetch_preserves_live_validation_and_invalidation(preparation, change):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = True
+    with real.return_preparation('right'):
+        if change == 'age':
+            f.clock[0] += .251
+        elif change == 'command':
+            real.motion_submissions += 1
+        elif change == 'recovery':
+            real.communication_recovery_count += 1
+        else:
+            f.responses[3].values[1].bool_value = True
+        if change == 'model':
+            with pytest.raises(RuntimeError, match='planning only'):
+                real.verify('right')
+        else:
+            real.verify('right')
+            assert not real._last_return_model_prefetch_used
+            assert len(f.pending) == len(f.removed) == 8
+    assert real._return_preparation is None
+
+
+def test_release_retreat_prefetch_cleans_up_when_planning_fails(preparation):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = True
+    with pytest.raises(RuntimeError, match='path rejected'):
+        with real.return_preparation('right'):
+            raise RuntimeError('path rejected')
+    assert real._return_preparation is None
+    assert len(f.pending) == len(f.removed) == 4
+    assert all(future.cancelled() for _, future in f.pending)
+
+
+def test_release_retreat_prefetch_never_waits_for_unavailable_services(preparation):
+    f, real = preparation, preparation.real
+    real.prefetch_release_retreat = True
+    f.clients[0].service_is_ready = lambda: False
+    with real.return_preparation('right'):
+        assert not f.pending
+        real.verify('right')
+        assert len(f.pending) == 4 and not real._last_return_model_prefetch_used

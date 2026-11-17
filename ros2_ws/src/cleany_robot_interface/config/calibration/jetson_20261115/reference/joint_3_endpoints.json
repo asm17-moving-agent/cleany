@@ -1,0 +1,86 @@
+{
+  "motor_id": 3,
+  "units": "encoder_ticks",
+  "status": "both_contact_endpoints_operator_confirmed",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "decreasing": {
+      "position_ticks": 863,
+      "confirmation": "operator_reported_contact",
+      "confirmed_at": "2026-11-14T14:28:00.153921+00:00",
+      "user_reply": "확인",
+      "stop_reason": "no_progress",
+      "commanded_target_ticks": 857,
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 2,
+      "max_load_raw": 36,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142341.920463Z_native_dlpf_3_9_sweep_lower.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142341Z_elbow_resweep_audit.json"
+    },
+    "increasing": {
+      "position_ticks": 3066,
+      "confirmation": "operator_reported_contact",
+      "confirmed_at": "2026-11-14T14:28:00.153921+00:00",
+      "user_reply": "확인",
+      "stop_reason": "target_reached",
+      "commanded_target_ticks": 3068,
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 2,
+      "max_load_raw": 36,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142442.013934Z_native_dlpf_3_9_sweep_upper.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142341Z_elbow_resweep_audit.json"
+    }
+  },
+  "contact_range_ticks": [
+    863,
+    3066
+  ],
+  "homing_offset": 1020,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "revalidation": {
+    "reported_at": "2026-11-14T13:56:38.173534+00:00",
+    "reason": "Operator reports shoulder/elbow interference on both arms during elbow calibration; endpoint measurements require collision-free revalidation.",
+    "affected_motor_pairs": [
+      [
+        2,
+        3
+      ],
+      [
+        8,
+        9
+      ]
+    ],
+    "measurements_preserved": true,
+    "resweep_started_at": "2026-11-14T14:24:03.397951+00:00",
+    "resweep_posture_evidence": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142307.540658Z_small_raise_hold_verified.json",
+    "resweep_lower_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142341.920463Z_native_dlpf_3_9_sweep_lower.jsonl",
+    "latest_resweep": {
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T142341Z_elbow_resweep_audit.json",
+      "observed_stop_range_ticks": [
+        863,
+        3066
+      ],
+      "physical_contact_confirmed": true,
+      "previous_endpoints_preserved": true,
+      "reason": "Operator explicitly confirmed physical end-stop contact at both ends after resweep."
+    },
+    "status": "resolved_by_resweep_and_operator_contact_confirmation",
+    "resolved_at": "2026-11-14T14:28:00.153921+00:00",
+    "confirmation": {
+      "confirmed_at": "2026-11-14T14:28:00.153921+00:00",
+      "user_reply": "확인",
+      "question_confirmed": "Both elbows made actual physical end-stop contact at both ends of the latest resweep.",
+      "motor_ids": [
+        3,
+        9
+      ],
+      "evidence_type": "operator_observation"
+    }
+  },
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_3_endpoints.json"
+}

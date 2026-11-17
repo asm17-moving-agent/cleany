@@ -80,8 +80,8 @@ checkpoint와 SDK license가 필요 없다. `GraspPredictor` port를 구현하�
 `geometric.search_approach_tilts=true`이면
 `geometric.approach_tilt_options`의 각도(기본 0/8/16/24도)를 평가한다.
 기존 단일 `approach_tilt_degrees` 경로는 기본값으로 유지한다.
-`include_reverse_closing_axis`는 비대칭 jaw 때문에 필요한 반대 closing
-방향 후보도 생성한다. 분리 수거 launch에서만 두 옵션을 활성화한다.
+`include_reverse_closing_axis`는 반대 closing 방향 후보를 추가하는 선택 옵션이다.
+실물 준비 자세 프로파일과 분리 수거 launch는 이 옵션을 끄고 yaw를 0°, ±20°, ±40°로 제한한다.
 각도 후보가 NMS에서 합쳐지지 않도록 이 launch의
 `nms_rotation_threshold_degrees`는 5도로 설정한다(기존 기본 20도).
 물리 그리퍼 최대 폭이나 충돌 검사는 완화하지 않는다.

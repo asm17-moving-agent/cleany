@@ -1,0 +1,6 @@
+<library path="cleany_calibrated_cad_collision">
+  <class name="cleany/CalibratedCADFCL" type="cleany::CalibratedCADCollisionPlugin"
+         base_class_type="collision_detection::CollisionPlugin">
+    <description>Existing CAD collision geometry with calibrated motor coordinates and nominal pin closure.</description>
+  </class>
+</library>

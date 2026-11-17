@@ -96,6 +96,26 @@ def test_fast_candidate_fallback_reuses_only_ik_and_rechecks_live_scene():
     assert sum(row[0] == 'ik' for row in port.calls) == 8  # No cross-request cache.
 
 
+def test_path_budget_preserves_deferred_rrt_for_already_counted_candidates():
+    candidates = [Candidate((.5, .2+i*.01, .8), (1., 0., 0.), 1.-i*.01, i)
+                  for i in range(6)]
+    blocked = tuple(value.position[1] for value in candidates)
+    port, selector, _ = selection_fixture(CandidatePort(blocked=blocked),
+        maximum_candidates=6, maximum_path_candidates=4)
+    selected = selector.select(candidates, required_arm='left')
+    assert selected is not None and selected.candidate_index == 0
+    paths = [row for row in port.calls if row[0] in ('approach', 'entry')]
+    assert sum(row[2] for row in paths) == 4
+    assert sum(not row[2] for row in paths) == 2
+
+
+def test_scene_collision_still_rejects_before_planning():
+    port, selector, candidates = selection_fixture(pregrasp_z_offset_m=.010)
+    port.valid = False
+    assert selector.select(candidates, required_arm='left') is None
+    assert not any(row[0] in ('approach', 'entry') for row in port.calls)
+
+
 @pytest.mark.parametrize('stop', ['collision', 'cancel'])
 def test_fast_candidate_changed_scene_and_cancellation_block_deferred_rrt(stop):
     port, selector, candidates = selection_fixture(CandidatePort(blocked=(.2, .3)))

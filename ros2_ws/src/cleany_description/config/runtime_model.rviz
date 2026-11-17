@@ -1,0 +1,48 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Enabled: true
+  Global Options:
+    Fixed Frame: base_link
+    Background Color: 48; 48; 48
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.1
+    - Class: rviz_default_plugins/RobotModel
+      Name: Calibrated CAD — preview only
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: robot_description
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz_default_plugins/Axes
+      Name: Left TCP
+      Enabled: true
+      Reference Frame: left_grasp_tcp
+      Length: 0.07
+      Radius: 0.003
+    - Class: rviz_default_plugins/Axes
+      Name: Right TCP
+      Enabled: true
+      Reference Frame: right_grasp_tcp
+      Length: 0.07
+      Radius: 0.003
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.0
+      Focal Point: {X: 0.05, Y: 0.0, Z: 0.28}
+      Pitch: 0.28
+      Yaw: 0.45
+Window Geometry:
+  Width: 1280
+  Height: 900

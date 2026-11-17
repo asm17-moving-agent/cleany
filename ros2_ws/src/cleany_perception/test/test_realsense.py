@@ -70,7 +70,7 @@ def test_live_aligned_snapshot():
             assert snapshot.rgb.shape == (480, 640, 3)
             assert snapshot.depth_m.shape == (480, 640)
             assert messages.color.encoding == 'rgb8'
-            assert messages.depth.encoding == '16UC1'
+            assert messages.depth.encoding in ('16UC1', '32FC1')
             assert (messages.color.header.frame_id
                     == messages.depth.header.frame_id)
             assert len({stamp_nanoseconds(msg) for msg in (

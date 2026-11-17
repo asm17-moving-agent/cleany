@@ -1,5 +1,6 @@
 #pragma once
 #include "cleany_feetech_hardware/serial_bus.hpp"
+#include "cleany_feetech_hardware/temperature_filter.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include <cmath>
 #include <limits>
@@ -14,9 +15,9 @@ struct Joint
   std::string name;
   int id{}, model{}, direction{}, homing{}, raw_min{}, raw_max{}, speed{}, acceleration{}, torque{};
   int temperature_limit{}, current_limit{};
-  double zero{}, offset{}, lower{}, upper{}, max_velocity{}, max_acceleration{}, tracking_error{};
+  double zero{}, offset{}, lower{}, upper{};
   double position{std::numeric_limits<double>::quiet_NaN()};
-  double command{std::numeric_limits<double>::quiet_NaN()}, previous{};
+  double command{std::numeric_limits<double>::quiet_NaN()};
   double load_raw{std::numeric_limits<double>::quiet_NaN()};
   double torque_enabled{std::numeric_limits<double>::quiet_NaN()};
   double motor_status{std::numeric_limits<double>::quiet_NaN()};
@@ -36,7 +37,7 @@ struct Joint
   double motor_status_raw{std::numeric_limits<double>::quiet_NaN()};
   double feedback_stamp_ns{std::numeric_limits<double>::quiet_NaN()};
   double communication_recovery_count{0.0};
-  int over_temperature_samples{};
+  TemperatureMacd temperature_filter;
   bool telemetry{false};
   bool command_telemetry{false};
   bool contact_telemetry{false};
@@ -46,8 +47,6 @@ struct Joint
   bool enabled{false}, powered{false};
   double radians(int ticks) const;
   int ticks(double radians) const;
-  bool measured_hold() const;
-  double limited_command(double dt) const;
 };
 
 class FeetechSystem : public hardware_interface::SystemInterface
@@ -80,7 +79,8 @@ private:
   bool shared_bus_{false};
   bool fault_{false}, active_{false};
   bool recovery_hold_pending_{false};
-  int timeout_ms_{20}, temperature_limit_{}, temperature_fault_confirmation_samples_{};
+  int timeout_ms_{20}, temperature_limit_{};
+  TemperatureMacdSettings temperature_filter_settings_;
   int read_retries_{0}, read_recovery_budget_ms_{60};
   double max_state_age_{};
   std::chrono::steady_clock::time_point last_read_{};

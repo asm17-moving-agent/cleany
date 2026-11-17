@@ -141,10 +141,11 @@ class SensorSceneMonitor:
                     f'Sensor planning scene unavailable: {error}; '
                     f'capture_age={capture_age:.3f}s map_age={map_age:.3f}s') from error
 
-    def wait(self, *, after_stamp_ns=0, canceled=lambda: False):
+    def wait(self, *, after_stamp_ns=0, canceled=lambda: False, deadline=None):
         if not self.required:
             return
-        deadline = time.monotonic() + self.timeout
+        own_deadline = time.monotonic() + self.timeout
+        deadline = min(own_deadline, deadline) if deadline is not None else own_deadline
         while True:
             if canceled():
                 raise InterruptedError('Sensor scene wait canceled')

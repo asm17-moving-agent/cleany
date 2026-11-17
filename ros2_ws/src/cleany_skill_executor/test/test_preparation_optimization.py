@@ -168,7 +168,10 @@ def test_hardware_model_cache_preserves_live_checks_and_invalidates_changes(monk
     fake = NS(node=NS(get_parameter=lambda _: NS(value=False), call=call,
                      motion=NS(set_robot_description=lambda _: None)), monitor=lambda: None,
               hardware='hardware', controllers='controllers',parameters='physical',moveit_parameters='planning')
+    module.HardwareExecution._prepare_models(fake, (physical[0], planning[0]), ('left',))
+    assert not live_calls
     for _ in range(2):assert module.HardwareExecution.verify(fake,'left') == {'arm':'left'}
+    assert fake._last_model_cache_hit
     assert len(live_calls) == 8 and len(parse_calls) == 2 and len(limit_calls) == 1
     physical[0] = planning[0] = '<robot name="b"/>'
     module.HardwareExecution.verify(fake,'left')
@@ -195,3 +198,34 @@ def test_identical_urdf_preserves_fk_structure_and_verification(monkeypatch):
     assert adapter._local_fk is chains and 'left' in adapter._verified_fk_arms and len(calls) == 2
     adapter.set_robot_description(xml.replace('upper="2"','upper="3"'))
     assert not adapter._verified_fk_arms and len(calls) == 4
+
+
+def test_startup_preparation_stops_when_execution_begins(monkeypatch):
+    import threading
+    from concurrent.futures import Future
+    from cleany_skill_executor.hardware_execution import HardwareExecution
+    calls = []
+    def query(request):
+        assert request.names == ['robot_description']
+        future = Future()
+        future.set_result(NS(values=[NS(string_value='<robot/>')]))
+        calls.append('query')
+        return future
+    fake = NS(_model_warmup_allowed=True, _model_warmup_futures=[],
+        _model_lock=threading.Lock(), _model_warmup_timer=NS(cancel=lambda: calls.append('cancel')),
+        parameters=NS(service_is_ready=lambda: True, call_async=query),
+        moveit_parameters=NS(service_is_ready=lambda: True, call_async=query),
+        _prepare_models=lambda signature, arms: calls.append(('prepare', tuple(arms))),
+        node=NS(get_logger=lambda: NS(info=lambda _: None, warning=lambda _: None)))
+    fake._stop_model_warmup=lambda: HardwareExecution._stop_model_warmup(fake)
+    HardwareExecution._warmup_models(fake)
+    HardwareExecution._warmup_models(fake)
+    assert calls == ['query', 'query', ('prepare', ('left', 'right')), 'cancel']
+    HardwareExecution._warmup_models(fake)
+    assert len(calls) == 4
+    fake._model_warmup_allowed=True
+    fake._model_warmup_futures=[]
+    HardwareExecution._warmup_models(fake)
+    HardwareExecution._stop_model_warmup(fake)
+    HardwareExecution._warmup_models(fake)
+    assert calls.count(('prepare', ('left', 'right'))) == 1

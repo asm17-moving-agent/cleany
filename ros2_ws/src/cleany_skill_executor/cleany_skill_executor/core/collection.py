@@ -91,6 +91,9 @@ def configuration_issues(config: dict) -> list[str]:
             issues.append('temporary return destination must be return_to_pick for all labels')
     if 'continuous_scene_updates' in config and type(config['continuous_scene_updates']) is not bool:
         issues.append('continuous_scene_updates must be boolean')
+    pregrasp_z = config.get('pregrasp_z_offset_m', 0.)
+    if type(pregrasp_z) not in (int, float) or not math.isfinite(pregrasp_z):
+        issues.append('pregrasp_z_offset_m must be finite meters')
     if config.get('frame') != 'base_link':
         issues.append('frame must be base_link')
     if config.get('commissioning_verified') is not True:
@@ -328,6 +331,25 @@ def load_arm(raw: dict, *, require_bins: bool = True) -> ArmCollectionConfig:
         raise ValueError('bin joint positions are missing')
     bins = {k:pose(v) for k,v in raw.get('bins', {}).items()}
     return ArmCollectionConfig(*values, home, bins)
+
+
+def selection_gripper_parameters(config: dict) -> dict[str, float]:
+    """Use execution endpoints in the selector's shared gripper model."""
+    arms = config.get('arms')
+    if not isinstance(arms, dict) or not arms or not set(arms) <= set(ARM_JOINT_NAMES):
+        raise ValueError('Collection selection requires configured left/right arms')
+    calibrations = [load_arm(raw, require_bins=False) for raw in arms.values()]
+    reference = calibrations[0]
+    expected = (reference.closed, reference.opened, reference.width)
+    if reference.opened <= reference.closed:
+        raise ValueError('Grasp selection requires opening to increase the joint angle')
+    for calibration in calibrations[1:]:
+        values = (calibration.closed, calibration.opened, calibration.width)
+        if not all(math.isclose(a, b, rel_tol=0., abs_tol=1e-9)
+                   for a, b in zip(values, expected)):
+            raise ValueError('Grasp selection requires matching gripper mappings across arms')
+    return dict(zip(('gripper_closed_joint_rad', 'gripper_open_joint_rad',
+                     'maximum_gripper_width_m'), expected))
 
 
 def check_evidence_identity(response, request, now_ns: int, max_age: float) -> None:

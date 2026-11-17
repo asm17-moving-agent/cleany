@@ -9,6 +9,21 @@ source "$(make -s print-install-base)/setup.bash"
 
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
+## 공통 CAD 미리보기와 파지 프로파일
+
+`tools/robot-model check`는 설치된 CAD와 manifest의 일치 여부를 검사한다.
+`tools/robot-model preview`는 CAD 표시와 피드백 모니터링을 시작하며,
+`tools/robot-model moveit`은 궤적 실행을 끈 상태에서 MoveIt을 시작한다.
+[공통 CAD 런타임](../ros2_ws/src/cleany_description/docs/runtime-model.md)에 모델 갱신과 상태 토픽을 설명한다.
+
+실물 파지의 CAD 바인딩은 `CLEANY_ROBOT_STATE_PROFILE`에
+`configs/robot/cad_grasp.json`을 명시하거나 `tools/left-grasp`로 선택한다.
+로봇별 보정 파일과 수거, Feetech 제어, 모션 감시 설정은 운영자가 제공한다.
+`configs/robot/collection_cad.json`은 시운전 승인 전의 설정 예시다.
+이미 실행 중인 RGB-D와 인식을 쓰는 경우에는
+`CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`와 운영 DDS 설정을 사용한다.
+자세한 조건은 [공유 인식과 CAD 파지](../ros2_ws/src/cleany_skill_executor/docs/shared-grasp-policy.md)를 따른다.
+
 ## FreeCAD 형상 미리보기
 
 `model_variant:=freecad_final`은 새 FreeCAD 파일에 저장된 정적 조립 형상입니다.
@@ -673,6 +688,11 @@ Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나
 `mode:=canonical`로 재시작한다. [입력과 TF 계약](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md#wheel과-imu-융합)을 따른다.
 
 ## Jetson 실물 실행 경로
+
+외부 제어 프로파일의 온도 설정은 [Feetech 온도 MACD 설정](../ros2_ws/src/cleany_robot_interface/docs/feetech-hardware.md#온도-macd-필터)을 따른다.
+기존 `temperature_fault_confirmation_samples`를 제거하고 세 시정수를
+명시해야 새 드라이버가 기동한다. 생성된 제어 모델은 표현 가능한 실측
+모터 범위와 운영 위치 제한의 교집합을 사용한다.
 
 `cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
 로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.

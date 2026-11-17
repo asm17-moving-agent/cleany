@@ -1,0 +1,2 @@
+# Optional head RGB calibration; empty keeps the SDK alignment.
+intrinsics_file: ''
