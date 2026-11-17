@@ -16,7 +16,9 @@ def test_shared_head_camera_keeps_gpu_selector_and_omits_duplicate_sensor_nodes(
         package/'launch/pregrasp_hardware_support.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    monkeypatch.setattr(module, 'prepare_state_profile', lambda *args: SimpleNamespace(camera_serial='TEST'))
+    model = root / 'ros2_ws/src/cleany_description/urdf/cleany.urdf'
+    monkeypatch.setattr(module, 'prepare_state_profile',
+                        lambda *args: SimpleNamespace(camera_serial='TEST', model=model))
     monkeypatch.setattr(module, 'get_package_share_directory', lambda name: str(root/'ros2_ws/src'/name))
     records, cameras = [], []
     real_node, real_include = module.Node, module.IncludeLaunchDescription
@@ -41,4 +43,5 @@ def test_shared_head_camera_keeps_gpu_selector_and_omits_duplicate_sensor_nodes(
     assert sum(r['executable']=='rgbd_frame_bridge' for r in records) == int(not shared)
     selector = next(r for r in records if r['executable']=='physical_grasp_selection_server')
     assert 'launch-motion-container' in selector['prefix'].perform(context)
+    assert {'curobo_sphere_model': 'cad_cached'} in selector['parameters']
     assert not any(r['executable']=='ros2_control_node' for r in records)
