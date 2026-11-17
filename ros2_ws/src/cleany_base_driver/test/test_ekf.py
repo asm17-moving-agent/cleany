@@ -12,6 +12,8 @@ os.environ['ROS_LOCALHOST_ONLY'] = '1'
 
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from cleany_base_interfaces.msg import WheelState
+from diagnostic_msgs.msg import DiagnosticArray
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rcl_interfaces.srv import GetParameters
@@ -71,6 +73,10 @@ def test_installed_fusion_and_tf_ownership(
         rclpy.init(args=[], domain_id=domain)
         node = rclpy.create_node('ekf_graph_probe')
         fused, wheel, transforms, mounts, corrected, canonical = [], [], [], [], [], []
+        wheel_states, diagnostics = [], []
+        node.create_subscription(WheelState, 'base/wheel_state', wheel_states.append,
+                                 qos_profile_sensor_data)
+        node.create_subscription(DiagnosticArray, 'diagnostics', diagnostics.append, 10)
         node.create_subscription(Odometry, output_topic, fused.append, 10)
         node.create_subscription(Odometry, 'wheel/odom', wheel.append, 10)
         node.create_subscription(Imu, 'imu/data_raw', corrected.append, qos_profile_sensor_data)
@@ -84,29 +90,44 @@ def test_installed_fusion_and_tf_ownership(
         enable = node.create_client(SetBool, 'base/enable')
         sensor_sign = -1. if mount_roll else 1.
 
-        def pump(duration, command=None):
+        command = None
+
+        def publish_inputs():
+            packet = Imu()
+            packet.header.stamp = node.get_clock().now().to_msg()
+            packet.header.frame_id = 'imu_link'
+            packet.orientation_covariance[0] = -1.
+            packet.angular_velocity.x, packet.angular_velocity.y = bias[:2]
+            packet.angular_velocity.z = bias[2] + sensor_sign * .4
+            packet.linear_acceleration.z = sensor_sign * 9.80665
+            imu.publish(packet)
+            if command is not None:
+                commands.publish(command)
+
+        node.create_timer(.02, publish_inputs)
+
+        def pump(duration):
             end = time.monotonic() + duration
             while time.monotonic() < end:
                 assert process.poll() is None, 'fusion launch exited'
-                packet = Imu()
-                packet.header.stamp = node.get_clock().now().to_msg()
-                packet.header.frame_id = 'imu_link'
-                packet.orientation_covariance[0] = -1.
-                packet.angular_velocity.x, packet.angular_velocity.y = bias[:2]
-                packet.angular_velocity.z = bias[2] + sensor_sign * .4
-                packet.linear_acceleration.z = sensor_sign * 9.80665
-                imu.publish(packet)
-                if command is not None:
-                    commands.publish(command)
-                rclpy.spin_once(node, timeout_sec=.01)
-                time.sleep(.005)
+                rclpy.spin_once(node, timeout_sec=.02)
 
         def owners(topic):
             return [p.node_name for p in node.get_publishers_info_by_topic(topic)]
 
         def ready():
-            return (enable.service_is_ready() and fused and wheel and corrected and mounts
-                    and owners('base/wheel_state') == ['mock_base_mcu'])
+            wheel_command_subscribers = [p.node_name for p in
+                                         node.get_subscriptions_info_by_topic('base/wheel_command')]
+            return (enable.service_is_ready() and commands.get_subscription_count() == 1
+                    and fused and wheel and corrected and mounts and wheel_states
+                    and owners('base/wheel_state') == ['mock_base_mcu']
+                    and owners('base/wheel_command') == ['cleany_base_driver']
+                    and wheel_command_subscribers == ['mock_base_mcu'])
+
+        def driver_diagnostic():
+            return next((status.message for message in reversed(diagnostics)
+                         for status in message.status if status.name == 'base_driver'),
+                        'no base driver diagnostic received')
 
         try:
             end = time.monotonic() + 15
@@ -118,9 +139,15 @@ def test_installed_fusion_and_tf_ownership(
             while not future.done() and time.monotonic() < end:
                 pump(.02)
             assert future.done() and future.result().success
+            end = time.monotonic() + 2.
+            while time.monotonic() < end and not wheel_states[-1].enabled:
+                pump(.02)
+            assert wheel_states[-1].enabled, driver_diagnostic()
+
             command = Twist()
             command.linear.x, command.linear.y, command.angular.z = .1, -.05, .2
-            pump(2.5, command)
+            pump(2.5)
+            assert wheel_states[-1].enabled, driver_diagnostic()
             velocity = fused[-1].twist.twist
             assert velocity.linear.x == pytest.approx(.1, abs=.025)
             assert velocity.linear.y == pytest.approx(-.05, abs=.02)
@@ -150,7 +177,7 @@ def test_installed_fusion_and_tf_ownership(
             end = time.monotonic() + 3.
             while time.monotonic() < end and (
                     owners(output_topic) != ['ekf_filter_node'] or owners('odom') != [tf_owner]):
-                pump(.05, command)
+                pump(.05)
             assert owners(output_topic) == ['ekf_filter_node']
             assert owners('odom') == [tf_owner]
             # Broadcaster endpoints also exist when publish_tf=false in Humble.
@@ -159,7 +186,7 @@ def test_installed_fusion_and_tf_ownership(
             future = client.call_async(GetParameters.Request(names=['publish_tf']))
             end = time.monotonic() + 2.
             while not future.done() and time.monotonic() < end:
-                pump(.02, command)
+                pump(.02)
             assert future.done() and future.result().values[0].bool_value == (mode == 'canonical')
             earliest_stamp = stamp_key(canonical[-1]) if canonical else (0, 0)
 
@@ -173,7 +200,7 @@ def test_installed_fusion_and_tf_ownership(
             end = time.monotonic() + 3.
             observed = matching_transform()
             while time.monotonic() < end and observed is None:
-                pump(.05, command)
+                pump(.05)
                 observed = matching_transform()
             assert observed is not None
             transform, pose = observed
