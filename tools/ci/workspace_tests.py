@@ -42,6 +42,8 @@ def package_environment(root: Path, package: str, index: int) -> dict[str, str]:
         'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
         'CTEST_PARALLEL_LEVEL': '1',
     }
+    if package == 'cleany_base_driver':
+        environment['BASE_EKF_TEST_ROS_DOMAIN_ID'] = '26'
     if package == 'cleany_system_supervisor':
         # 각 사례에 별도 domain을 쓰는 기존 fixture의 범위는 다른 패키지와 분리합니다.
         environment.update(SUPERVISOR_GRAPH_DOMAIN_BASE='190', SUPERVISOR_E2E_DOMAIN_BASE='200')

@@ -6,33 +6,36 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from launch import LaunchContext
-from launch.actions import DeclareLaunchArgument
-from launch.utilities import perform_substitutions
+from launch.actions import IncludeLaunchDescription
+from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 import pytest
 
 
-def _preview_defaults():
+def test_arm_preview_delegates_to_calibrated_description():
     package = Path(__file__).parents[1]
     spec = importlib.util.spec_from_file_location(
         'arm_preview_launch', package / 'launch/arm_preview.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    include, = [action for action in module.generate_launch_description().entities
+                if isinstance(action, IncludeLaunchDescription)]
     context = LaunchContext()
-    for action in module.generate_launch_description().entities:
-        if isinstance(action, DeclareLaunchArgument):
-            context.launch_configurations[action.name] = perform_substitutions(
-                context, action.default_value)
-    return context.launch_configurations
+    context.launch_configurations['rviz'] = 'false'
+    assert {key: perform_substitutions(context, normalize_to_list_of_substitutions(value))
+            for key, value in include.launch_arguments} == {
+                'namespace': 'arm_preview', 'use_rviz': 'false'}
+    launch = include.launch_description_source.get_launch_description(context)
+    model = next(action for action in launch.entities
+                 if getattr(action, 'name', '') == 'model_variant')
+    assert perform_substitutions(context, model.default_value) == 'freecad_calibrated'
 
 
-def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
+def test_legacy_model_shoulders_remain_on_fixed_motor_shafts():
     package = Path(__file__).parents[1]
-    defaults = _preview_defaults()
     model = package.parent / 'cleany_description/urdf/cleany.urdf.xacro'
     root = ET.fromstring(subprocess.check_output([
         'xacro', str(model),
-        'include_head_camera:=' + defaults['include_head_camera'],
-        'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
+        'include_head_camera:=true', 'head_mast_rear_gap_m:=0.05',
     ], text=True))
     motors = [visual for visual in root.find("link[@name='base_link']").findall('visual')
               if visual.find('geometry/mesh') is not None
@@ -54,13 +57,12 @@ def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
             shaft, abs=1e-8)
 
 
-def test_default_preview_keeps_head_on_repositioned_mast():
-    defaults = _preview_defaults()
+def test_legacy_model_keeps_head_on_repositioned_mast():
     model = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
     nominal = ET.fromstring(subprocess.check_output(['xacro', str(model)]))
     preview = ET.fromstring(subprocess.check_output([
         'xacro', str(model),
-        'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
+        'head_mast_rear_gap_m:=0.05',
     ]))
     for name in ('top_base_joint', 'head_pan_joint'):
         path = f"joint[@name='{name}']/origin"
