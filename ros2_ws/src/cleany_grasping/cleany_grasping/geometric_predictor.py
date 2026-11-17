@@ -26,7 +26,7 @@ class GeometricGraspConfig:
     plane_ransac_iterations: int = 160
     extent_trim_percentile: float = 0.5
     axis_search_step_degrees: float = 1.0
-    yaw_offsets_degrees: tuple[float, ...] = (-20.0, -10.0, 0.0, 10.0, 20.0)
+    yaw_offsets_degrees: tuple[float, ...] = (-40.0, -20.0, 0.0, 20.0, 40.0)
     approach_tilt_degrees: float = 0.0
     approach_tilt_direction: tuple[float, float, float] = (1.0, 0.0, 0.0)
     reject_robot_opposite_approach: bool = False

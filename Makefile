@@ -810,7 +810,7 @@ test-motion-gpu:
 		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_gpu.py \
 		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_mast_gpu.py \
 		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_ik_warmup_gpu.py \
-		-k 'gpu_fk_and_position_ik_match_authoritative_urdf or gpu_generates_finite_joint_path or gpu_convex_acceptance_handles_containment_base_and_contact_pairs or mast or warmup' \
+		-k 'gpu_fk_and_position_ik_match_authoritative_urdf or device_wrist_scoring or gpu_generates_finite_joint_path or gpu_convex_acceptance_handles_containment_base_and_contact_pairs or mast or warmup' \
 		$(MOTION_GPU_PYTEST_ARGS)
 
 .PHONY: motion-container-image motion-container-prepare motion-container-check scene-mapping-setup moveit-octomap-lock-setup
@@ -879,3 +879,12 @@ DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
 .PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
 $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
 	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)
+
+# This target never starts a motor driver or sends trajectory requests.
+.PHONY: test-calibrated-cad
+test-calibrated-cad:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && ROS_LOCALHOST_ONLY=1 \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-select cleany_moveit_collision --return-code-on-test-failure \
+		--ctest-args -R 'test_cad_linkage|test_solid_collision'

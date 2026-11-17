@@ -46,8 +46,11 @@ class HybridConfig:
     group_gripper_openings: bool = False
     defer_candidate_ik_retries: bool = False
     seeded_local_ik: bool = False
+    endpoint_margin_rad: float = 0.0
 
     def __post_init__(self) -> None:
+        if not math.isfinite(self.endpoint_margin_rad) or self.endpoint_margin_rad < 0:
+            raise ValueError('GPU IK endpoint margin must be finite and nonnegative')
         if any(type(v) is not int or v < 1 for v in (
                 self.batch_size, self.ik_iterations, self.fallback_seeds)):
             raise ValueError('Hybrid batch, iterations and fallback seeds must be positive integers')
@@ -63,9 +66,11 @@ class HybridConfig:
 
 
 class _CandidateRobotModel(RobotModel):
-    def __init__(self, description, srdf, config, *, exclude_opposite_arm_cost):
+    def __init__(self, description, srdf, config, *, exclude_opposite_arm_cost,
+                 endpoint_margin_rad=0.0):
         super().__init__(description, srdf, config)
         self._exclude_opposite_arm_cost = exclude_opposite_arm_cost
+        self._endpoint_margin_rad = endpoint_margin_rad
         required = set(self.limits)
         self._joint_links = [joint.find('child').get('link')
             for joint in ET.fromstring(description).findall('joint')
@@ -73,6 +78,19 @@ class _CandidateRobotModel(RobotModel):
 
     def robot_config(self, path, arm, state, tip):
         robot = super().robot_config(path, arm, state, tip)
+        margin = getattr(self, '_endpoint_margin_rad', 0.0)
+        if margin:
+            if any(self.limits[name][0] + margin >= self.limits[name][1] - margin
+                   for name in ARM_JOINT_NAMES[arm]):
+                raise ValueError('GPU IK endpoint margin leaves no joint range')
+            # cuRobo clips after removing locked joints. Keep the authoritative
+            # physical model/state and MoveIt path limits unchanged.
+            cspace = robot['kinematics']['cspace']
+            cspace['position_limit_clip'] = margin
+            cspace['retract_config'] = [
+                min(max(value, self.limits[name][0]+margin), self.limits[name][1]-margin)
+                if name in ARM_JOINT_NAMES[arm] else value
+                for name, value in zip(cspace['joint_names'], cspace['retract_config'])]
         if not self._exclude_opposite_arm_cost:
             return robot
         # Preserve both joint chains and measured locked joints, while the GPU
@@ -80,12 +98,12 @@ class _CandidateRobotModel(RobotModel):
         opposite = 'right' if arm == 'left' else 'left'
         kin = robot['kinematics']
         spheres = {name:value for name,value in kin['collision_spheres'].items()
-                   if not name.startswith(opposite+'_')}
+                   if not name.startswith((opposite+'_', 'cad_'+opposite+'_'))}
         kin.update(collision_link_names=list(spheres), collision_spheres=spheres,
             self_collision_ignore={name:[other for other in others if other in spheres]
                 for name,others in kin['self_collision_ignore'].items() if name in spheres},
             self_collision_buffer={name:0. for name in spheres},
-            link_names=list(dict.fromkeys([tip,*self._joint_links])))
+            link_names=list(dict.fromkeys([tip,*kin['link_names'],*self._joint_links])))
         return robot
 
 
@@ -473,7 +491,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                     f'sphere_model={config.sphere_model} mesh_fit_spheres={config.spheres_per_link} '
                     f'link_sphere_budget={config.sphere_budget_per_link}'):
                 self._robot_model = _CandidateRobotModel(description, semantic, config,
-                    exclude_opposite_arm_cost=self._hybrid_config.exclude_opposite_arm_cost)
+                    exclude_opposite_arm_cost=self._hybrid_config.exclude_opposite_arm_cost,
+                    endpoint_margin_rad=self._hybrid_config.endpoint_margin_rad)
         model = self._robot_model.with_config(config)
         engine = CuRoboBatchEngine(model, config,
             ik_iterations=self._hybrid_config.ik_iterations,
@@ -532,6 +551,13 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             return None
         if result.solution.names != ARM_JOINT_NAMES[arm]:
             raise InfrastructureError('Candidate IK joint ownership mismatch')
+        margin = self._hybrid_config.endpoint_margin_rad
+        if margin and any(not lower + margin - 1e-9 <= value <= upper - margin + 1e-9
+                          for name, value in zip(result.solution.names, result.solution.positions)
+                          for lower, upper in [self._planning_position_bounds(name)]):
+            if diagnostic is not None:
+                diagnostic.update(outcome='endpoint_margin_rejected', failure_phase='FINAL_FK_CHECK')
+            return None
         with self._progress.stage('FINAL_FK_CHECK', f'arm={arm}'):
             pose = self.forward_kinematics(arm, result.solution)
         approach, closing = axis_errors_degrees(target.orientation_xyzw, pose.orientation_xyzw)

@@ -39,7 +39,8 @@ def setup(context):
     return [
         include('cleany_robot_interface', 'read_only_state.launch.py', {
             'robot_description_file': str(profile.model), 'arm_config_file': str(profile.arm_config),
-            'head_config_file': str(profile.head_config), 'head_mapping_file': str(profile.head_mapping)}),
+            'head_config_file': str(profile.head_config), 'head_mapping_file': str(profile.head_mapping),
+            'camera_pose_config': str(profile.camera_pose_config or '')}),
         include('cleany_perception', 'realsense.launch.py', {
             'serial_no': profile.camera_serial,
             'config_file': str(

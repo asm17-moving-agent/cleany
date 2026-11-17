@@ -6,6 +6,20 @@ source /opt/ros/humble/setup.bash
 source "${repo_root}/tools/ros2/cleany-install-env"
 source "${CLEANY_INSTALL_BASE}/setup.bash"
 source "${repo_root}/tools/vision-ros-env"
-export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+if [[ "${1:-}" == --serve ]]; then
+    settings_args=("$2")
+else
+    settings_args=("$1" --job)
+fi
+shared_rmw=$(PYTHONPATH="${repo_root}/ros2_ws/src/cleany_dev_monitor:${PYTHONPATH:-}" \
+    python3 "${repo_root}/tools/shared_perception_transport.py" "${settings_args[@]}")
+if [[ -n "${shared_rmw}" ]]; then
+    export RMW_IMPLEMENTATION="${shared_rmw}"
+fi
+if [[ "${RMW_IMPLEMENTATION}" == rmw_cyclonedds_cpp ]]; then
+    export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+else
+    unset CYCLONEDDS_URI
+fi
 set -u
 exec python3 -m cleany_dev_monitor.operator_jobs "$1" "${repo_root}"

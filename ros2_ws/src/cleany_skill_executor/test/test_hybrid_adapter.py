@@ -946,3 +946,49 @@ def test_candidate_cost_uses_active_arm_shapes_and_preserves_locked_joints(monke
     assert kin['lock_joints'] == original['kinematics']['lock_joints']
     assert set(kin['link_names']) == {f'{arm}_grasp_tcp','left_jaw','right_jaw'}
     assert spheres == {'left_jaw':[1], 'right_jaw':[2], 'base_link':[3]}
+
+
+@pytest.mark.parametrize('fault', ['none', 'first_fk', 'first_collision', 'scene_change'])
+def test_candidate_final_validation_is_integrated_once_and_scoped_to_batch(fault):
+    adapter, _ = make_adapter()
+    adapter.set_gripper_position('left', .4)
+    gpu = _CandidateGpuAdapter(object(), adapter._config, owner=adapter,
+        gpu_config=adapter._gpu_config, engine=NS(), scene_client=object(),
+        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    gpu.set_current_state(adapter._current_state)
+    adapter._gpu = lambda count: gpu
+    target = requests(1)[0].target
+    candidates = [PoseAlignment(JointSolution(ARM_JOINT_NAMES['left'],
+        (*target.position, 0., roll)), target, 0., 0., 0.) for roll in (0., .2)]
+    fk_calls, state_calls = [], []
+    original_fk = adapter.forward_kinematics
+    original_valid = adapter.state_is_valid
+    def fk(arm, solution):
+        fk_calls.append(solution)
+        return (PoseValue((9., 9., 9.), target.orientation_xyzw)
+                if fault == 'first_fk' and solution == candidates[0].solution
+                else original_fk(arm, solution))
+    def valid(arm, solution):
+        state_calls.append(solution)
+        return (False if fault == 'first_collision' and solution == candidates[0].solution
+                else original_valid(arm, solution))
+    adapter.forward_kinematics, adapter.state_is_valid = fk, valid
+    first, last = PlanningScene(), PlanningScene()
+    if fault == 'scene_change':
+        last.allowed_collision_matrix.entry_names = ['changed']
+    snapshots = iter([first, last])
+    gpu._snapshot = lambda: next(snapshots)
+    def solve(arm, targets, seeds):
+        with gpu._scene_operation():
+            return gpu._choose_batch(arm, [candidates])
+    gpu.solve_aligned_batch = solve
+    if fault == 'scene_change':
+        with pytest.raises(InfrastructureError, match='scene changed'):
+            adapter._batch('left', [target], [None], 16)
+    else:
+        result = adapter._batch('left', [target], [None], 16)[0]
+        assert result.solution == candidates[int(fault != 'none')].solution
+        assert len(fk_calls) == (1 if fault == 'none' else 2)
+        assert len(state_calls) == (2 if fault == 'first_collision' else 1)
+        assert adapter.last_ik_statistics['ik_diagnostics'][-1]['final_validation_integrated']
+    assert gpu.finalize_alignment is None and gpu.last_batch_finalizations == []

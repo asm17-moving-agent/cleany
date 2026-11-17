@@ -15,7 +15,16 @@ case "${1:-run}" in
     source "${CLEANY_INSTALL_BASE}/setup.bash"
     export ROS_DOMAIN_ID="${CLEANY_COLLECTION_ROS_DOMAIN_ID:-0}"
     source "${repo_root}/tools/vision-ros-env"
-    export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+    shared_rmw=$(PYTHONPATH="${repo_root}/ros2_ws/src/cleany_dev_monitor:${PYTHONPATH:-}" \
+      python3 "${repo_root}/tools/shared_perception_transport.py" "${operator_dir}")
+    if [[ -n "${shared_rmw}" ]]; then
+      export RMW_IMPLEMENTATION="${shared_rmw}"
+    fi
+    if [[ "${RMW_IMPLEMENTATION}" == rmw_cyclonedds_cpp ]]; then
+      export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+    else
+      unset CYCLONEDDS_URI
+    fi
     set -u
     control_enabled=false
     [[ ! -f "${operator_dir}/enabled" ]] || control_enabled=true

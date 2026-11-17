@@ -1,5 +1,6 @@
 """Live D435 and selectable grasp services for an existing real_control runtime."""
 import json
+import math
 from pathlib import Path
 import time
 
@@ -13,6 +14,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from cleany_robot_interface.state_profile import prepare_state_profile
+from cleany_skill_executor.core.collection import selection_gripper_parameters
 from cleany_skill_executor.motion_runtime import motion_launch_arguments, motion_runtime_prefix, selector_exit_handler
 
 
@@ -35,6 +37,11 @@ def setup(context):
     if backend == 'curobo_ik_moveit':
         selector_parameters.append(str(skill / 'config/hybrid_motion.yaml'))
     selector_parameters.append(str(skill / 'config/pregrasp_motion.yaml'))
+    from cleany_description.cad_coordinates import CadCoordinates
+    if CadCoordinates.from_urdf(profile.model.read_text()) is not None:
+        if backend != 'curobo_ik_moveit':
+            raise ValueError('Calibrated CAD hardware selection requires GPU IK with native collision validation')
+        selector_parameters.append({'curobo_sphere_model': 'cad_cached'})
     collection_file = value('collection_config_file')
     if collection_file:
         collection = json.loads(Path(collection_file).expanduser().resolve().read_text())
@@ -42,7 +49,12 @@ def setup(context):
             ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False))}
         if any(type(setting) is not bool for setting in policy.values()):
             raise ValueError('Collection selection policy values must be boolean')
+        pregrasp_z = collection.get('pregrasp_z_offset_m', 0.)
+        if type(pregrasp_z) not in (int, float) or not math.isfinite(pregrasp_z):
+            raise ValueError('pregrasp_z_offset_m must be finite meters')
+        policy['pregrasp_z_offset_m'] = float(pregrasp_z)
         selector_parameters.append(policy)
+        selector_parameters.append(selection_gripper_parameters(collection))
     predictor = value('grasp_predictor')
     if predictor not in ('geometric', 'anygrasp'):
         raise ValueError('Unknown grasp predictor')
@@ -60,16 +72,24 @@ def setup(context):
             grasp_server,
         ]
 
-    camera = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(str(perception / 'launch/realsense.launch.py')),
-        launch_arguments={'serial_no': profile.camera_serial,
-                          'config_file': str(perception / 'config/realsense_pregrasp.yaml')}.items(),
-    )
-    bridge = Node(
-        package='cleany_robot_interface', executable='rgbd_frame_bridge', output='screen',
-        parameters=[{'config_file': str(bridge_config),
-                     'receipt_file': str(run / 'rgbd_tf_receipt.json')}],
-    )
+    sensors = []
+    if value('start_head_camera') == 'true':
+        camera = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(str(perception / 'launch/realsense.launch.py')),
+            launch_arguments={'serial_no': profile.camera_serial,
+                              'config_file': str(perception / 'config/realsense_pregrasp.yaml')}.items(),
+        )
+        bridge = Node(
+            package='cleany_robot_interface', executable='rgbd_frame_bridge', output='screen',
+            parameters=[{'config_file': str(bridge_config),
+                         'receipt_file': str(run / 'rgbd_tf_receipt.json')}],
+        )
+        sensors = [
+            camera,
+            RegisterEventHandler(OnProcessExit(target_action=bridge,
+                on_exit=[EmitEvent(event=Shutdown(reason='RGB-D TF bridge exited'))])),
+            bridge,
+        ]
     print(f'PREGRASP_HARDWARE_SUPPORT_RUN_DIR={run}', flush=True)
     validation_parameters = [
         str(skill / 'config/validate_pick.yaml'),
@@ -107,12 +127,7 @@ def setup(context):
              'visibility_camera_frame': 'head_camera_rgb_optical_frame'}])
     return [
         *grasp_nodes,
-        camera,
-        RegisterEventHandler(OnProcessExit(
-            target_action=bridge,
-            on_exit=[EmitEvent(event=Shutdown(reason='RGB-D TF bridge exited'))],
-        )),
-        bridge,
+        *sensors,
         Node(
             package='cleany_perception', executable='depth_scene_node', output='screen',
             parameters=[*scene_parameters, {'use_sim_time': False,
@@ -138,6 +153,7 @@ def generate_launch_description():
         *motion_launch_arguments(),
         DeclareLaunchArgument('profile_file'),
         DeclareLaunchArgument('collection_config_file', default_value=''),
+        DeclareLaunchArgument('start_head_camera', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('workspace_config_file', default_value=''),
         DeclareLaunchArgument('scene_config_file', default_value=''),
         DeclareLaunchArgument('output_root', default_value='~/.local/share/cleany/pregrasp_hardware'),

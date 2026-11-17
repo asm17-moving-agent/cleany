@@ -146,7 +146,7 @@ def test_persistent_action_discovery_error_fails_at_startup_deadline(probe, monk
     monkeypatch.setattr(module.rclpy, 'init', lambda **kwargs: None)
     monkeypatch.setattr(module.rclpy, 'ok', lambda: True)
     monkeypatch.setattr(module.rclpy, 'spin_once', spin_once)
-    monkeypatch.setattr(module.rclpy, 'shutdown', lambda: cleanup.append('shutdown'))
+    monkeypatch.setattr(module.rclpy, 'try_shutdown', lambda: cleanup.append('shutdown'))
     assert module.main(['--timeout', '1']) == 1
     assert clock[0] == 11.
     output = capsys.readouterr().out

@@ -310,19 +310,24 @@ def test_partial_or_invalid_stdout_never_becomes_a_terminal_record(tmp_path):
     assert 'Duplicate ROS node names' in command_report(path)['message']
 
 
-def test_saved_cli_options_are_loaded_without_accepting_unrelated_environment(tmp_path):
+@pytest.mark.parametrize('backend,predictor', [('moveit', 'anygrasp'), ('curobo_ik_moveit', 'geometric')])
+def test_saved_cli_options_are_loaded_without_accepting_unrelated_environment(tmp_path, backend, predictor):
     assert runtime_settings(tmp_path) == {}
     path = tmp_path / 'runtime-settings.json'
     values = dict(GEMINI_API_KEY='test-secret', COLLECTION_QUERY='custom query',
-        CLEANY_COLLECTION_MOTION_BACKEND='moveit', CLEANY_COLLECTION_GRASP_PREDICTOR='anygrasp',
+        CLEANY_COLLECTION_MOTION_BACKEND=backend, CLEANY_COLLECTION_GRASP_PREDICTOR=predictor,
+        CLEANY_COLLECTION_USE_EXISTING_PERCEPTION='true',
+        CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
         CLEANY_MANIPULATION_COLLECTION_CONFIG='/custom/robot.json', BASH_ENV='/untrusted',
         CLEANY_CONTROL_RUNTIME_LOCKED='1')
     atomic_json(path, values)
     loaded = runtime_settings(tmp_path)
     assert loaded['COLLECTION_QUERY'] == 'custom query'
     assert loaded['CLEANY_MANIPULATION_COLLECTION_CONFIG'] == '/custom/robot.json'
-    assert loaded['CLEANY_COLLECTION_MOTION_BACKEND'] == 'moveit'
-    assert loaded['CLEANY_COLLECTION_GRASP_PREDICTOR'] == 'anygrasp'
+    assert loaded['CLEANY_COLLECTION_MOTION_BACKEND'] == backend
+    assert loaded['CLEANY_COLLECTION_GRASP_PREDICTOR'] == predictor
+    assert loaded['CLEANY_COLLECTION_USE_EXISTING_PERCEPTION'] == 'true'
+    assert loaded['CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION'] == 'rmw_fastrtps_cpp'
     assert 'BASH_ENV' not in loaded and 'CLEANY_CONTROL_RUNTIME_LOCKED' not in loaded
     path.chmod(0o644)
     with pytest.raises(ValueError, match='0600'):
@@ -332,7 +337,7 @@ def test_saved_cli_options_are_loaded_without_accepting_unrelated_environment(tm
 def test_control_on_captures_options_and_preserves_explicit_profiles(tmp_path):
     from cleany_dev_monitor.operator_jobs import RUNTIME_ENV_KEYS
     repo = Path(__file__).resolve().parents[4]
-    source = (repo / 'tools/dev-monitor').read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
+    source = (repo / 'tools/dev-monitor').read_text().split('  control-on|control-off)', 1)[1].split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
     root = tmp_path / 'operator'
     root.mkdir()
     env = {k: v for k, v in os.environ.items() if k not in RUNTIME_ENV_KEYS}

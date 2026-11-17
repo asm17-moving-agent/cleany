@@ -88,6 +88,9 @@ class JetsonManipulationNode(ManipulationNode):
         self.declare_parameter('bt_stop_timeout_sec', 10.0)
         self.declare_parameter('collection_config', '')
         self.declare_parameter('arm_return_pose_file', '')
+        self.declare_parameter('bt_wake_on_operation_complete', True)
+        if type(self.get_parameter('bt_wake_on_operation_complete').value) is not bool:
+            raise ValueError('bt_wake_on_operation_complete must be boolean')
         port = int(self.get_parameter('monitor_port').value)
         if not 1 <= port <= 65535:
             raise ValueError('monitor_port must be between 1 and 65535')
@@ -151,6 +154,10 @@ class JetsonManipulationNode(ManipulationNode):
         self.socket.bind(f'tcp://127.0.0.1:{port}')
         self._monitor_execution = ''
         self._monitor_failed_execution = ''
+        self._completion_guard = self.create_guard_condition(self._advance, callback_group=group)
+        if (self.get_parameter('bt_wake_on_operation_complete').value
+                and isinstance(self.backend, WorkerBackend)):
+            self.backend.set_completion_callback(self._wake_tick)
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
         self._progress_timer = self.create_timer(1.0, self._publish_progress, callback_group=group,
@@ -224,13 +231,41 @@ class JetsonManipulationNode(ManipulationNode):
             response.blocked_revisions = [record.revision for record in blocked]
         return response
 
-    def _tick(self) -> None:
+    def _wake_tick(self) -> None:
+        with self.core.lock:
+            if not self._closing and self.context.ok():
+                self._completion_guard.trigger()
+
+    def _accepted(self, handle) -> None:
+        super()._accepted(handle)
+        if self.get_parameter('bt_wake_on_operation_complete').value:
+            self._wake_tick()
+
+    def _advance(self) -> None:
+        """Advance serialized control and publish transitions on worker completion."""
         with self.core.lock:
             if self._closing:
                 return
             if self.core.record is not None:
                 super()._tick()
+                # Finalization is a core-local observation, so no worker will
+                # notify us that the native node can consume it on its next tick.
+                if (self.core.record.result is None and self.core.record.substage in
+                        ('FinalizeSuccess', 'FinalizeFailure')):
+                    super()._tick()
                 self._update_operation_progress()
+            if self.core.tree is not None:
+                execution = self.core.record.goal.execution_id
+                for event in self.core.transitions:
+                    self._bt_events.publish(String(data=json.dumps(dict(execution_id=execution, **event))))
+                self.core.transitions.clear()
+
+    def _tick(self) -> None:
+        """Keep deadline polling and UI work on the existing periodic cadence."""
+        with self.core.lock:
+            if self._closing:
+                return
+            self._advance()
             if self.core.tree is not None:
                 execution = self.core.record.goal.execution_id
                 if execution != self._monitor_failed_execution:
@@ -241,9 +276,6 @@ class JetsonManipulationNode(ManipulationNode):
                         self.get_logger().warning(f'BT monitor unavailable for {execution}: {error}')
                     else:
                         self._monitor_execution = execution
-                for event in self.core.transitions:
-                    self._bt_events.publish(String(data=json.dumps(dict(execution_id=execution, **event))))
-                self.core.transitions.clear()
             for _ in range(10):
                 try:
                     frames = self.socket.recv_multipart(flags=zmq.NOBLOCK)
@@ -266,6 +298,8 @@ class JetsonManipulationNode(ManipulationNode):
         if core is not None:
             with core.lock:
                 self._closing = True
+                if isinstance(self.backend, WorkerBackend):
+                    self.backend.set_completion_callback(None)
         arm_return = getattr(self, 'arm_return', None)
         if arm_return is not None:
             arm_return.destroy()

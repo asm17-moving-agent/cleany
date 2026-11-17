@@ -176,3 +176,6 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 `PROPOSING`, `REVALIDATING`, `EXECUTING`, `PROPOSING_NEXT`다. 승인 작업 실패 후에도
 소비된 제안은 재사용하지 않는다. `propose`, 별도 인식, 준비, 직접 실행, 복귀, 복구,
 종료 요청은 기존 제안을 무효화한다. 모니터 재시작은 승인 대기 시간을 연장하지 않는다.
+
+
+저장 실행 환경의 `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`는 기존 인식과 헤드 RGB-D를 공유한다. 웹과 작업 프로세스는 ROS 초기화 전에 `CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION`을 적용하며 기본값은 `rmw_fastrtps_cpp`다. 시작 전 읽기 전용 준비 검사와 RPC 응답을 확인하고, 종료 시 공유 제공자를 유지한다. HTTP·ROS endpoint와 요청 형식은 바뀌지 않는다.

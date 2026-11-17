@@ -550,3 +550,36 @@ def test_moveit_rejection_records_actual_full_state_and_bounded_contacts(contact
     assert adapter.state_is_valid('right', solution) is True
     assert adapter.last_state_validity_rejection is None
     assert len(logs) == 1
+
+
+def test_scene_barrier_defers_fk_but_gates_scene_queries_and_cleans_request():
+    from concurrent.futures import Future
+    from moveit_msgs.srv import GetPositionFK, GetPositionIK, GetCartesianPath, GetStateValidity
+    from cleany_interfaces.srv import CheckStateValidityBatch
+    calls = []
+    def send(request):
+        calls.append('rpc')
+        result = Future()
+        result.set_result(object())
+        return result
+    client = SimpleNamespace(service_is_ready=lambda: True, call_async=send)
+    adapter = MoveItGraspAdapter(object(), ik_client=object(), fk_client=object(),
+        validity_client=object(), plan_client=object())
+    for kind in (GetPositionIK, GetCartesianPath, GetStateValidity, CheckStateValidityBatch):
+        calls.clear()
+        adapter.set_scene_barrier(lambda: calls.append('scene'))
+        adapter._call(client, GetPositionFK.Request(), 1.)
+        assert calls == ['rpc']
+        adapter._call(client, kind.Request(), 1.)
+        adapter._call(client, kind.Request(), 1.)
+        assert calls == ['rpc', 'scene', 'rpc', 'rpc']
+    def failed():
+        raise InterruptedError('stale or canceled scene')
+    adapter.set_scene_barrier(failed)
+    calls.clear()
+    with pytest.raises(InterruptedError):
+        adapter._call(client, GetStateValidity.Request(), 1.)
+    assert not calls
+    adapter.set_scene_barrier(None)
+    adapter._call(client, GetStateValidity.Request(), 1.)
+    assert calls == ['rpc']

@@ -1,5 +1,6 @@
 """Validate physical CPU/GPU launch wiring without starting ROS or devices."""
 import importlib.util
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,7 +14,9 @@ from launch.actions import DeclareLaunchArgument
     ('moveit', 'geometric'), ('moveit', 'anygrasp'),
     ('curobo_ik_moveit', 'geometric'), ('curobo_ik_moveit', 'anygrasp'),
 ])
-def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, tmp_path, backend, predictor):
+@pytest.mark.parametrize('with_collection', [False, True])
+def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
+        monkeypatch, tmp_path, backend, predictor, with_collection):
     package = Path(__file__).resolve().parents[1]
     root = package.parents[2]
     spec = importlib.util.spec_from_file_location(
@@ -37,6 +40,13 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
         repository_root=str(root), profile_file=str(root / 'configs/robot/camera_preview.json'),
         output_root=str(tmp_path), motion_backend=backend, grasp_predictor=predictor,
         motion_runtime='native' if backend == 'moveit' else 'container')
+    if with_collection:
+        collection = tmp_path / 'collection.json'
+        collection.write_text(json.dumps({'pregrasp_z_offset_m': .010, 'arms': {side: {
+            'gripper': {'approved_existing_mapping': True, 'closed_joint_rad': -.3,
+                        'open_joint_rad': 2.4, 'maximum_width_m': .09},
+            'home_joint_rad': 'startup', 'bins': {}} for side in ('left', 'right')}}))
+        context.launch_configurations['collection_config_file'] = str(collection)
     for entity in module.generate_launch_description().entities:
         if isinstance(entity, DeclareLaunchArgument):
             entity.execute(context)
@@ -57,6 +67,13 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
         config.update(item if isinstance(item, dict) else
                       yaml.safe_load(Path(item).read_text())['grasp_selection_server']['ros__parameters'])
     assert config['motion_backend'] == backend
+    if with_collection:
+        assert config['gripper_closed_joint_rad'] == -.3
+        assert config['gripper_open_joint_rad'] == 2.4
+        assert config['maximum_gripper_width_m'] == .09
+    else:
+        assert config['gripper_closed_joint_rad'] == -.3745329776277857
+        assert config['gripper_open_joint_rad'] == 2.4173120563240813
     assert config['position_tolerance_m'] == config['pregrasp_position_tolerance_m'] == .010
     assert config['approach_tolerance_degrees'] == config['closing_tolerance_degrees'] == 30.
     assert config['maximum_candidates'] == 32
@@ -65,13 +82,20 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
     assert config['pregrasp_fallback_offsets_m'] == [.06, .04]
     assert config['stop_after_first_feasible'] is True
     assert config['prefer_near_wrist_grasp_direction'] is True
-    assert config['wrist_direction_tie_tolerance_degrees'] == 5.0
+    assert 'wrist_direction_tie_tolerance_degrees' not in config
+    assert config['pregrasp_z_offset_m'] == (.010 if with_collection else 0.)
     assert config['grasp_direction_pair_position_tolerance_m'] == .00001
     assert config['grasp_direction_pair_axis_tolerance_degrees'] == 1.0
     assert config['require_sensor_scene'] is True
     assert config['require_gripper_closure_clearance'] is True
-    assert config['asymmetric_gripper_enabled'] is True
-    assert config['fixed_jaw_additional_bias_m'] == .020
+    assert config['asymmetric_gripper_enabled'] is False
+    assert config['fixed_jaw_tcp_offset_m'] == 0.
+    assert config['fixed_jaw_additional_bias_m'] == 0.
+    if backend == 'curobo_ik_moveit':
+        assert config['curobo_ik_cpu_fallback'] is False
+        assert config['curobo_ik_batch_size'] == 8
+        assert config['curobo_ik_endpoint_margin_rad'] == .1
+        assert config['maximum_path_candidates'] == 4
     assert config['fixed_jaw_clearance_enabled'] is False
     assert config['fixed_jaw_minimum_clearance_m'] == .005
     assert config['fixed_jaw_maximum_correction_m'] == .010
@@ -85,3 +109,10 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
         assert prefix == ''
     else:
         assert prefix.endswith('/tools/launch-motion-container')
+
+
+def test_jetson_geometric_candidate_profile_uses_bounded_yaw_without_reversal():
+    profile = Path(__file__).parents[1] / 'config/geometric_pregrasp.yaml'
+    settings = yaml.safe_load(profile.read_text())['grasp_server']['ros__parameters']
+    assert settings['geometric.include_reverse_closing_axis'] is False
+    assert settings['geometric.yaw_offsets_degrees'] == [-40., -20., 0., 20., 40.]

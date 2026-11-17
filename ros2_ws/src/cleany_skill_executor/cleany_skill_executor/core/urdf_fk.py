@@ -29,6 +29,9 @@ class Joint:
     translation: np.ndarray
     rotation: np.ndarray
     axis: np.ndarray
+    mimic_joint: str | None = None
+    multiplier: float = 1.0
+    offset: float = 0.0
 
 
 class UrdfChain:
@@ -43,8 +46,14 @@ class UrdfChain:
             seen.add(tip)
             joint = parents[tip]
             kind = joint.get('type')
-            if kind not in ('fixed','revolute','continuous','prismatic') or joint.find('mimic') is not None:
+            if kind not in ('fixed','revolute','continuous','prismatic'):
                 raise ValueError('Unsupported URDF joint in serial FK chain')
+            mimic = joint.find('mimic')
+            source = mimic.get('joint') if mimic is not None else None
+            multiplier = float(mimic.get('multiplier', '1')) if mimic is not None else 1.
+            offset = float(mimic.get('offset', '0')) if mimic is not None else 0.
+            if not math.isfinite(multiplier+offset) or (mimic is not None and not source):
+                raise ValueError('Invalid URDF mimic coordinate')
             origin = joint.find('origin')
             xyz = np.fromstring(origin.get('xyz','0 0 0') if origin is not None else '0 0 0',sep=' ')
             rpy = np.fromstring(origin.get('rpy','0 0 0') if origin is not None else '0 0 0',sep=' ')
@@ -53,9 +62,21 @@ class UrdfChain:
             if any(v.shape != (3,) or not np.isfinite(v).all() for v in (xyz,rpy,axis)) or np.linalg.norm(axis) < 1e-12:
                 raise ValueError('Invalid URDF transform or axis')
             rotation = axis_rotation((0,0,1),rpy[2])@axis_rotation((0,1,0),rpy[1])@axis_rotation((1,0,0),rpy[0])
-            chain.append(Joint(joint.get('name'),kind,xyz,rotation,axis/np.linalg.norm(axis)))
+            chain.append(Joint(joint.get('name'),kind,xyz,rotation,axis/np.linalg.norm(axis),
+                               source,multiplier,offset))
             tip = joint.find('parent').get('link')
         self.joints = tuple(reversed(chain))
+        self._coordinates = {}
+        for joint in self.joints:
+            if joint.kind == 'fixed':
+                continue
+            source, multiplier, offset = joint.name, 1., 0.
+            if joint.mimic_joint is not None:
+                if joint.mimic_joint not in self._coordinates:
+                    raise ValueError('URDF mimic must reference an earlier joint in the chain')
+                source, factor, bias = self._coordinates[joint.mimic_joint]
+                multiplier, offset = factor*joint.multiplier, bias*joint.multiplier+joint.offset
+            self._coordinates[joint.name] = source,multiplier,offset
         # URDF axes stay constant across poses of this chain.
         self._joint_axes = {
             joint.name: tuple(map(float, joint.axis / np.linalg.norm(joint.axis)))
@@ -67,7 +88,8 @@ class UrdfChain:
             p = p+r@joint.translation
             r = r@joint.rotation
             if joint.kind != 'fixed':
-                value = float(positions[joint.name])
+                source, multiplier, offset = self._coordinates[joint.name]
+                value = float(positions[source])*multiplier+offset
                 if not math.isfinite(value):
                     raise ValueError('Nonfinite joint position')
                 if joint.kind == 'prismatic':
