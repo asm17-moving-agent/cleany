@@ -1,0 +1,116 @@
+{
+  "1": {
+    "homing_offset": 527,
+    "range_min": 763,
+    "range_max": 3482,
+    "torque_enabled": 0,
+    "position": 3480
+  },
+  "2": {
+    "homing_offset": 178,
+    "range_min": 835,
+    "range_max": 3230,
+    "torque_enabled": 0,
+    "position": 3229
+  },
+  "3": {
+    "homing_offset": 1020,
+    "range_min": 863,
+    "range_max": 3066,
+    "torque_enabled": 0,
+    "position": 871
+  },
+  "4": {
+    "homing_offset": 411,
+    "range_min": 855,
+    "range_max": 3261,
+    "torque_enabled": 0,
+    "position": 891
+  },
+  "5": {
+    "homing_offset": 1784,
+    "range_min": 1003,
+    "range_max": 3051,
+    "torque_enabled": 0,
+    "position": 875
+  },
+  "6": {
+    "homing_offset": -1400,
+    "range_min": 2048,
+    "range_max": 3868,
+    "torque_enabled": 0,
+    "position": 3862,
+    "phase": 12,
+    "mode": 0,
+    "lock": 1,
+    "speed_raw": 75,
+    "acceleration_raw": 1,
+    "torque_limit_raw": 400,
+    "temperature": 36,
+    "status": 0
+  },
+  "7": {
+    "homing_offset": -1447,
+    "range_min": 718,
+    "range_max": 3434,
+    "torque_enabled": 0,
+    "position": 1144
+  },
+  "8": {
+    "homing_offset": -1875,
+    "range_min": 827,
+    "range_max": 3215,
+    "torque_enabled": 0,
+    "position": 3207
+  },
+  "9": {
+    "homing_offset": 258,
+    "range_min": 913,
+    "range_max": 3100,
+    "torque_enabled": 0,
+    "position": 995
+  },
+  "10": {
+    "homing_offset": 1437,
+    "range_min": 826,
+    "range_max": 3227,
+    "torque_enabled": 0,
+    "position": 1807
+  },
+  "11": {
+    "homing_offset": 355,
+    "range_min": 1006,
+    "range_max": 2988,
+    "torque_enabled": 0,
+    "position": 3037
+  },
+  "12": {
+    "homing_offset": -1618,
+    "range_min": 2048,
+    "range_max": 3868,
+    "torque_enabled": 0,
+    "position": 3865,
+    "phase": 12,
+    "mode": 0,
+    "lock": 1,
+    "speed_raw": 75,
+    "acceleration_raw": 1,
+    "torque_limit_raw": 400,
+    "temperature": 36,
+    "status": 0
+  },
+  "13": {
+    "homing_offset": -1513,
+    "range_min": 8,
+    "range_max": 4001,
+    "torque_enabled": 0,
+    "position": 2049
+  },
+  "14": {
+    "homing_offset": 85,
+    "range_min": 44,
+    "range_max": 1101,
+    "torque_enabled": 0,
+    "position": 997
+  }
+}

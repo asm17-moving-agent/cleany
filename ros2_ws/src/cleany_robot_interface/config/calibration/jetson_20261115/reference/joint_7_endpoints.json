@@ -1,0 +1,47 @@
+{
+  "motor_id": 7,
+  "units": "encoder_ticks",
+  "status": "both_contact_endpoints_operator_confirmed",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "increasing": {
+      "position_ticks": 3434,
+      "confirmation": "operator_reported_contact",
+      "stop_reason": "no_progress",
+      "torque_cap_raw": 220,
+      "speed_raw": 40,
+      "acceleration_raw": 1,
+      "max_current_raw": 3,
+      "max_load_raw": 60,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T122946.191323Z_simultaneous_6_7_12.jsonl",
+      "source_result": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T122946.191323Z_simultaneous_6_7_12_result.json",
+      "recorded_at": "2026-11-14T12:31:54.534474+00:00",
+      "confirmed_at": "2026-11-14T12:32:41.393947+00:00",
+      "user_reply": "ㅇㅇ"
+    },
+    "decreasing": {
+      "position_ticks": 718,
+      "confirmation": "operator_reported_contact",
+      "stop_reason": "no_progress",
+      "torque_cap_raw": 220,
+      "speed_raw": 40,
+      "acceleration_raw": 1,
+      "max_current_raw": 3,
+      "max_load_raw": 60,
+      "final_hold_position_ticks": 718,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T123256.360483Z_simultaneous_6_7_12.jsonl",
+      "source_result": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T123256.360483Z_simultaneous_6_7_12_result.json",
+      "recorded_at": "2026-11-14T12:35:15.498529+00:00",
+      "confirmed_at": "2026-11-14T12:35:56.580758+00:00",
+      "user_reply": "ㅇㅇ. 이제 토크 풀어."
+    }
+  },
+  "contact_range_ticks": [
+    718,
+    3434
+  ],
+  "homing_offset": -1447,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_7_endpoints.json"
+}

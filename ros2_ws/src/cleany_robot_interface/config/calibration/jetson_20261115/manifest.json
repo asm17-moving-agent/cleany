@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "snapshot": "jetson_20261115",
+  "saved_at_utc": "2026-11-14T16:39:02.206211+00:00",
+  "local_date": "2026-11-15",
+  "timezone": "Asia/Seoul",
+  "source_session": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z",
+  "source_commit": "2f5248cfc2754fb6e2517edbf15bbbd6097f91be",
+  "source_worktree_dirty": true,
+  "scope": "Arm motor calibration and operator reference poses; head readback retained without recalibration.",
+  "units": "encoder_ticks",
+  "ticks_per_motor_turn": 4096,
+  "operating_margin_ticks": null,
+  "runtime_calibration_dir": "/home/cleany/.cache/huggingface/lerobot/calibration/robots/so_follower",
+  "motors": {
+    "1": {
+      "motor_id": 1,
+      "side": "left",
+      "joint": "shoulder_pan",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_1_endpoints.json",
+      "homing_offset": 527,
+      "range_min": 763,
+      "range_max": 3482
+    },
+    "2": {
+      "motor_id": 2,
+      "side": "left",
+      "joint": "shoulder_lift",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_2_endpoints.json",
+      "homing_offset": 178,
+      "range_min": 835,
+      "range_max": 3230
+    },
+    "3": {
+      "motor_id": 3,
+      "side": "left",
+      "joint": "elbow_flex",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_3_endpoints.json",
+      "homing_offset": 1020,
+      "range_min": 863,
+      "range_max": 3066
+    },
+    "4": {
+      "motor_id": 4,
+      "side": "left",
+      "joint": "wrist_flex",
+      "range_status": "upper_operator_confirmed_lower_load_stall_detected_applied",
+      "reference": "reference/joint_4_endpoints.json",
+      "homing_offset": 411,
+      "range_min": 855,
+      "range_max": 3261
+    },
+    "5": {
+      "motor_id": 5,
+      "side": "left",
+      "joint": "wrist_roll",
+      "range_status": "legacy_limits_retained_not_measured_this_session",
+      "center_ticks": 1983,
+      "reference": "reference/joint_5_center.json",
+      "homing_offset": 1784,
+      "range_min": 1003,
+      "range_max": 3051
+    },
+    "6": {
+      "motor_id": 6,
+      "side": "left",
+      "joint": "gripper",
+      "range_status": "manual_closed_open_references_operator_confirmed",
+      "reference": "reference/joint_6_endpoints.json",
+      "gripper_reference": "reference/joint_6_gripper_reference.json",
+      "homing_offset": -333,
+      "range_min": 888,
+      "range_max": 2074
+    },
+    "7": {
+      "motor_id": 7,
+      "side": "right",
+      "joint": "shoulder_pan",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_7_endpoints.json",
+      "homing_offset": -1447,
+      "range_min": 718,
+      "range_max": 3434
+    },
+    "8": {
+      "motor_id": 8,
+      "side": "right",
+      "joint": "shoulder_lift",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_8_endpoints.json",
+      "homing_offset": -1875,
+      "range_min": 827,
+      "range_max": 3215
+    },
+    "9": {
+      "motor_id": 9,
+      "side": "right",
+      "joint": "elbow_flex",
+      "range_status": "both_contact_endpoints_operator_confirmed",
+      "reference": "reference/joint_9_endpoints.json",
+      "homing_offset": 258,
+      "range_min": 913,
+      "range_max": 3100
+    },
+    "10": {
+      "motor_id": 10,
+      "side": "right",
+      "joint": "wrist_flex",
+      "range_status": "upper_operator_confirmed_lower_load_stall_detected_applied",
+      "reference": "reference/joint_10_endpoints.json",
+      "homing_offset": 1437,
+      "range_min": 826,
+      "range_max": 3227
+    },
+    "11": {
+      "motor_id": 11,
+      "side": "right",
+      "joint": "wrist_roll",
+      "range_status": "legacy_limits_retained_not_measured_this_session",
+      "center_ticks": 1967,
+      "reference": "reference/joint_11_center.json",
+      "homing_offset": 355,
+      "range_min": 1006,
+      "range_max": 2988
+    },
+    "12": {
+      "motor_id": 12,
+      "side": "right",
+      "joint": "gripper",
+      "range_status": "manual_closed_open_references_operator_confirmed",
+      "reference": "reference/joint_12_endpoints.json",
+      "gripper_reference": "reference/joint_12_gripper_reference.json",
+      "homing_offset": 1407,
+      "range_min": 1063,
+      "range_max": 2166
+    }
+  },
+  "verification": {
+    "eeprom_matches_runtime": true,
+    "all_motor_torque_off": true,
+    "changed_motor_ids": [
+      1,
+      2,
+      3,
+      7,
+      8,
+      9
+    ],
+    "changed_motor_readback_count": 3,
+    "power_cycle_tested": false,
+    "motion_commands_sent": false
+  },
+  "notes": [
+    "IDs 5 and 11 have new operator-defined centers; their prior limits are retained, not newly endpoint-calibrated.",
+    "Wrist-roll CAD center references are separate from the legacy URDF preview zeros.",
+    "IDs 4 and 10: upper contact operator-confirmed; lower contact detected from sustained load and no progress, without separate operator contact confirmation. Reassembled URDF zero poses remain unvalidated.",
+    "IDs 6 and 12 define manually confirmed closed/open cam strokes, not mechanical stops or a calibrated jaw-aperture curve. Powered endpoint validation was not performed.",
+    "Existing camera pose fingerprints reject the changed motor calibration/mapping; camera pose recalibration was not part of this save."
+  ],
+  "source_sha256": {
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_1_endpoints.json": "8e4ee62467d5838f66fef62a9308a92f23369f90bc17d5cc616dde2c7be7db56",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_2_endpoints.json": "0ca2d9df99a5eb01c3e601e746c302fd341d78f717288e69c5d8635da03e13f0",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_3_endpoints.json": "3867e2eacab5a0385151c97d08f4c0d33daaff95793db90d0c79203820b1f003",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_4_endpoints.json": "8a04a458afcdf7ca93c4df1984d0e1cca02e12485449a794d2ab39c3fd481121",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_5_center.json": "9634dc9745650c7202d29efa18892b5c4818b8c59b40df0e47cc11a77cd184f9",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_6_gripper_reference.json": "181366064b43dfff876f990446433e1ad41c3c5a7c6e5f691b229b25f64f8166",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_6_endpoints.json": "639ddd0b837f511013d461c63c9ece1120f5a603116ca717f1300140d5f61b0c",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_7_endpoints.json": "c493b617f7513e01482159e617a905103c6541757daedc2f114abbff86d1c68a",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_8_endpoints.json": "04415ecdc9d8606ae5d293e919b1c9227120f8d09e7834225e37bc1fa00a7875",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_9_endpoints.json": "4c796544a518c59e0110174eb4f196c9f9150584778fe29a29b4c09543e8b880",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_10_endpoints.json": "293216be5a36dfd4319f3dcd38d6e19311ea3168ac1ed2347c452f1eed1bbd88",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_11_center.json": "e831a136a68fa83719d061ae4ba3ebd6f489ddc1422577d65b812e81c022c19d",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_12_gripper_reference.json": "ea782bfe29bed8d07b5fba892ee644e6cf7251330e331ed6b7332569a2baf14e",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_12_endpoints.json": "ff12991cb794f1f9568cde51b6d3d1cb0b971e4bd5d0c2ad6d020e32ea2ab0fd",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/all_calibration_save_latest.json": "9b690096d8bea39b0d8473b88a1e16e06e9f3b0b616e7dfa301de89bd164b157",
+    "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/wrist_roll_centers_calibration.json": "7a505ff6f410504a6148044d91f0e445d08540b970df97aca7915741eb84782e",
+    "/home/cleany/.config/cleany/camera-calibration/20261114-main-head-wrists/arm-mapping.yaml": "772d9afee7de39e30421ffa81e51e00d2452e2255a314e2a633ba9682f14fabf"
+  },
+  "snapshot_files_sha256": {
+    "eeprom_readback.json": "c359c56f0f74d451ab3462e17b7af2e1414293b820bf4a879362533d03b525fb",
+    "motors/cleany_so101_left.json": "8a172dad6fc29806efe821f88d369eb87dc4ff20fb4097edbaaaf3278c439ccd",
+    "motors/cleany_so101_right.json": "91e9283fe732355306d2f86d59d7a1519c07598aa7be283cc469ca67bd42154b",
+    "reference/joint_10_endpoints.json": "14557f16913d57451700b905c9ab56b63eecc330339e5f8965f86b7bd9f58761",
+    "reference/joint_11_center.json": "4c02ee3d4a25a6bd2a27f1588072497f29aa59ffb3303e157cd97e32aa28f0f3",
+    "reference/joint_12_endpoints.json": "1a56c4704f5a0ecabbf08a9716fe4ac4045d774563c34e0accdb80e3d23a9d18",
+    "reference/joint_12_gripper_reference.json": "ea782bfe29bed8d07b5fba892ee644e6cf7251330e331ed6b7332569a2baf14e",
+    "reference/joint_1_endpoints.json": "b20141c9e5b85409a5868e05c00c70a76731d2659d963cd7a73e6d4e453590b4",
+    "reference/joint_2_endpoints.json": "a1566c634c2e4bb0a0909625636fa6017bc94647773a7693936d8ebc13ca1679",
+    "reference/joint_3_endpoints.json": "4f46a69a4deff87bdab61834eaf3dabd973ce96b217d8fe884314cdcff077819",
+    "reference/joint_4_endpoints.json": "c61258133db3e58b1d2299fa9ad896b2ec5158700346556e115636093b9ff29d",
+    "reference/joint_5_center.json": "d3ef1dc9aa24dd93923071ce7923ff2be8c92dcdd8529108eea675eb686d5596",
+    "reference/joint_6_endpoints.json": "e04cd8eecb52d07f4747a70d930266a013c23e9a5b060c55ddb6756640d40662",
+    "reference/joint_6_gripper_reference.json": "181366064b43dfff876f990446433e1ad41c3c5a7c6e5f691b229b25f64f8166",
+    "reference/joint_7_endpoints.json": "5b78ed980e6cdc664c902ef535790afe571608a7e91a3212ed3905afe76f0598",
+    "reference/joint_8_endpoints.json": "0978a3539818128082bedc1a0f44efcf4662b73bbbd279a1335f48e7c06c7f8a",
+    "reference/joint_9_endpoints.json": "fe53a58dbaa4f779e612dfb289d616e37f72eb5f9fb71aa20d2ccc98bab75f4f"
+  }
+}

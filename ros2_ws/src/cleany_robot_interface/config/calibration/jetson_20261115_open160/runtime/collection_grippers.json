@@ -1,0 +1,24 @@
+{
+  "arms": {
+    "left": {
+      "gripper": {
+        "measured": false,
+        "approved_existing_mapping": true,
+        "mapping_basis": "Maximum open is the physical 0-degree reference; commanded clockwise closing travel 160 degrees (1820 encoder ticks). Open 2048, closing target 3868. Left maximum opening remeasured 2026-11-15; right previously confirmed opening preserved. Jaw-width curve remains unmeasured.",
+        "closed_joint_rad": -0.3745329776277857,
+        "open_joint_rad": 2.4173120563240813,
+        "maximum_width_m": 0.1
+      }
+    },
+    "right": {
+      "gripper": {
+        "measured": false,
+        "approved_existing_mapping": true,
+        "mapping_basis": "Maximum open is the physical 0-degree reference; commanded clockwise closing travel 160 degrees (1820 encoder ticks). Open 2048, closing target 3868. Left maximum opening remeasured 2026-11-15; right previously confirmed opening preserved. Jaw-width curve remains unmeasured.",
+        "closed_joint_rad": -0.3745329776277857,
+        "open_joint_rad": 2.4173120563240813,
+        "maximum_width_m": 0.1
+      }
+    }
+  }
+}

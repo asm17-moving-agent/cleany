@@ -647,6 +647,11 @@ Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나
 
 ## Jetson 실물 실행 경로
 
+외부 제어 프로파일의 온도 설정은 [Feetech 온도 MACD 설정](../ros2_ws/src/cleany_robot_interface/docs/feetech-hardware.md#온도-macd-필터)을 따른다.
+기존 `temperature_fault_confirmation_samples`를 제거하고 세 시정수를
+명시해야 새 드라이버가 기동한다. 생성된 제어 모델은 표현 가능한 실측
+모터 범위와 운영 위치 제한의 교집합을 사용한다.
+
 `cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
 로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
 패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.

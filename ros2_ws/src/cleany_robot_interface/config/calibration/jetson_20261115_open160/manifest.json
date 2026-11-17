@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "snapshot": "jetson_20261115_open160",
+  "saved_at_utc": "2026-11-15T05:11:01.475761+00:00",
+  "source_commit": "e9ba5ff4d45ff5f42e1a4a0a69a65089d7c346bc",
+  "source_worktree_dirty": true,
+  "source_evidence": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z",
+  "previous_snapshot": "../jetson_20261115",
+  "scope": "Updated grippers only; complete arm motor files retain the previous non-gripper calibration. Runtime fragments contain only gripper settings.",
+  "reference": "maximum open = 0 degrees",
+  "closing_direction": "clockwise viewed from horn",
+  "ticks_per_motor_turn": 4096,
+  "open_ticks": 2048,
+  "closed_goal_ticks": 3868,
+  "requested_closing_degrees": 160,
+  "encoded_closing_degrees": 159.9609375,
+  "motors": {
+    "6": {
+      "side": "left",
+      "homing_offset": -1400,
+      "range_min": 2048,
+      "range_max": 3868,
+      "reference": "reference/grippers.json"
+    },
+    "12": {
+      "side": "right",
+      "homing_offset": -1618,
+      "range_min": 2048,
+      "range_max": 3868,
+      "reference": "reference/grippers.json"
+    }
+  },
+  "verification": {
+    "eeprom_matches_runtime": true,
+    "single_extended_positions_match": true,
+    "powered_closing_passed": true,
+    "operator_closing_confirmed": true,
+    "powered_full_roundtrip_validated": false,
+    "all_torques_off_at_final_readback": true,
+    "aperture_curve_measured": false,
+    "force_calibrated": false
+  },
+  "source_sha256": {
+    "/home/cleany/.cache/huggingface/lerobot/calibration/robots/so_follower/cleany_so101_left.json": "2f5122d03631c58a6b2fd93206ac9adeaca0267ac1992695e0dae1735476914d",
+    "/home/cleany/.cache/huggingface/lerobot/calibration/robots/so_follower/cleany_so101_right.json": "9653efa9ce59f2841a843c7d030616b727495a77fc7ea3fae8f5b2f12b2cc1ec",
+    "/home/cleany/.config/cleany/feetech_control.yaml": "e0028958151435a65b640238c894f43ff8c4d7762b47bcd89a32ca5801225c4a",
+    "/home/cleany/.config/cleany/collection_hardware.json": "8c8692601dc434265eeafc0afeea8837d0f27f929d7624dd5813c9be66dd8faa",
+    "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml": "aa88d9ec175d00199a8f6cd63335ad3654c4185d04c08b20654d1c6a69d083e7"
+  },
+  "snapshot_files_sha256": {
+    "eeprom_readback.json": "4f6ada6949d5188cced9effe750195439af442b92fd8e5c27fa2de545ce32fdf",
+    "motors/cleany_so101_left.json": "2f5122d03631c58a6b2fd93206ac9adeaca0267ac1992695e0dae1735476914d",
+    "motors/cleany_so101_right.json": "9653efa9ce59f2841a843c7d030616b727495a77fc7ea3fae8f5b2f12b2cc1ec",
+    "reference/grippers.json": "f9cbf4b2bdea9bd753eb658e494336532569aa45d77c9f489bf82bb79a7a5e6f",
+    "runtime/collection_grippers.json": "af9b914501db7330050d0e7dbb1398f6dd4f40c68e5688e80801437090ce2fcc",
+    "runtime/gripper_control.yaml": "41ea8faf8960e5d2a764aefa2bd692176b659c14c385af61fe30387737fcf9c0",
+    "runtime/gripper_mapping.yaml": "cb97eb3358f538b61f377082bf4c5cdbda56893844cfaf2d95d639b8d1d1220d"
+  }
+}

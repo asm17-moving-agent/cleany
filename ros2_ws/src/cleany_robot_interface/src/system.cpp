@@ -2,9 +2,12 @@
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <algorithm>
+#include <cstdlib>
+#include <string_view>
 #include <filesystem>
 #include <set>
 #include <stdexcept>
+#include <thread>
 
 namespace cleany_feetech_hardware
 {
@@ -12,6 +15,12 @@ namespace
 {
 constexpr double scale = 6.2831853071795864769 / 4096.0;
 constexpr int recovery_goal_tolerance_ticks = 32;
+// Used for recovery of an already powered hold without posture correction.
+bool require_powered_hold()
+{
+  const char * value = std::getenv("CLEANY_REQUIRE_POWERED_HOLD_RECOVERY");
+  return value && std::string_view(value) == "1";
+}
 const auto logger = rclcpp::get_logger("cleany_feetech_hardware");
 double number(const std::unordered_map<std::string, std::string> & values, const std::string & key)
 {
@@ -39,45 +48,14 @@ double Joint::radians(int ticks) const
 
 int Joint::ticks(double value) const
 {
-  if (!std::isfinite(value) || value < lower || value > upper) {
-    throw std::runtime_error(name + ": target outside model limits");
+  if (!std::isfinite(value)) {
+    throw std::runtime_error(name + ": non-finite position command");
   }
-  double raw = zero + direction * (value - offset) / scale;
-  if (!std::isfinite(raw) || raw < raw_min || raw > raw_max) {
-    throw std::runtime_error(name + ": target outside EEPROM limits");
+  const double raw = zero + direction * (std::clamp(value, lower, upper) - offset) / scale;
+  if (!std::isfinite(raw) || raw < 0 || raw > 4095) {
+    throw std::runtime_error(name + ": invalid encoder target");
   }
   return static_cast<int>(std::lround(raw));
-}
-
-bool Joint::measured_hold() const
-{
-  // JTC derives a hold command from floating-point feedback.  Allow the
-  // encoder-rounding difference between that command and the latest raw
-  // sample, while keeping the bypass too small to admit a motion command.
-  return std::isfinite(position) && std::abs(ticks(command) - raw) <= 2;
-}
-
-double Joint::limited_command(double dt) const
-{
-  ticks(command);
-  if (!std::isfinite(position) || !std::isfinite(dt) || dt <= 0) {
-    throw std::runtime_error(name + ": missing state/time");
-  }
-  // JTC cancel/abort replaces a lagging trajectory target with measured position.
-  // That discontinuity stops the servo; it is not a request for fast motion.
-  // Range and fresh-state checks still apply. Only the measured encoder value
-  // within the two-tick quantization allowance qualifies.
-  if (measured_hold()) {return position;}
-  if (tracking_error > 0 && std::abs(command - position) > tracking_error) {
-    throw std::runtime_error(name + ": tracking error command=" + std::to_string(command) +
-      " measured=" + std::to_string(position) + " limit=" + std::to_string(tracking_error));
-  }
-  // JTC and MoveIt own trajectory acceleration.  Reconstructing acceleration
-  // from consecutive samples is sensitive to controller-loop jitter and caused
-  // valid splines to latch a hardware fault.  Keep a deterministic final
-  // velocity guard by limiting how far the wire target may advance this cycle.
-  const double maximum_step = max_velocity * dt;
-  return std::clamp(command, previous - maximum_step, previous + maximum_step);
 }
 
 FeetechSystem::~FeetechSystem() {std::lock_guard<std::recursive_mutex> lock(io_mutex_); hold();}
@@ -106,12 +84,15 @@ hardware_interface::CallbackReturn FeetechSystem::on_init(const hardware_interfa
     read_recovery_budget_ms_ = p.count("serial_read_recovery_budget_ms") ?
       integer(p, "serial_read_recovery_budget_ms") : 60;
     temperature_limit_ = integer(p, "temperature_limit_c");
-    temperature_fault_confirmation_samples_ = integer(
-      p, "temperature_fault_confirmation_samples");
+    if (p.count("temperature_fault_confirmation_samples")) {
+      throw std::runtime_error("Replace temperature_fault_confirmation_samples with temperature_macd_*_tau_s");
+    }
+    temperature_filter_settings_ = {
+      number(p, "temperature_macd_fast_tau_s"), number(p, "temperature_macd_slow_tau_s"),
+      number(p, "temperature_macd_signal_tau_s")};
     if (timeout_ms_ < 1 || timeout_ms_ > 100 || max_state_age_ <= 0 || max_state_age_ > 1 ||
       temperature_limit_ < 1 || temperature_limit_ > 80 ||
-      temperature_fault_confirmation_samples_ < 1 ||
-      temperature_fault_confirmation_samples_ > 10 || info_.joints.size() != 14 ||
+      !temperature_filter_settings_.valid() || info_.joints.size() != 14 ||
       read_retries_ < 0 || read_retries_ > 1 || read_recovery_budget_ms_ < 1 ||
       read_recovery_budget_ms_ > 100 ||
       (read_retries_ > 0 && read_recovery_budget_ms_ > max_state_age_ * 1000.0))
@@ -165,14 +146,11 @@ hardware_interface::CallbackReturn FeetechSystem::on_init(const hardware_interfa
         j.homing = integer(v, "homing_offset");
         j.raw_min = integer(v, "range_min"); j.raw_max = integer(v, "range_max");
         j.lower = number(v, "lower"); j.upper = number(v, "upper");
-        j.max_velocity = number(v, "max_velocity"); j.max_acceleration = number(v, "max_acceleration");
-        j.tracking_error = number(v, "tracking_error");
         j.speed = integer(v, "speed_raw"); j.acceleration = integer(v, "acceleration_raw");
         j.torque = integer(v, "torque_limit_raw");
         j.temperature_limit = v.count("temperature_limit_c") ?
           integer(v, "temperature_limit_c") : temperature_limit_;
         if (j.raw_min < 0 || j.raw_max > 4095 || j.raw_min >= j.raw_max || j.lower >= j.upper ||
-          j.max_velocity <= 0 || j.max_acceleration <= 0 || j.tracking_error < 0 ||
           j.speed < 1 || j.speed > 4095 || j.acceleration < 1 || j.acceleration > 254 ||
           j.torque < 1 || j.torque > 1000 || j.temperature_limit < 1 ||
           j.temperature_limit > temperature_limit_)
@@ -246,6 +224,7 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
     size_t enabled_count = 0;
     size_t powered_count = 0;
     for (auto & j : joints_) {
+      j.temperature_filter = TemperatureMacd{};
       auto & bus = j.id <= 12 || shared_bus_ ? arm_ : head_;
       if (bus.read_value(j.id, 3, 2) != j.model) {throw std::runtime_error(j.name + ": model mismatch");}
       if (j.id > 12) {j.temperature_limit = temperature_limit_;}
@@ -279,6 +258,11 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
         }
       }
     }
+    if (require_powered_hold() && !read_only_ &&
+      (enabled_count == 0 || powered_count != enabled_count))
+    {
+      throw std::runtime_error("Hold-only recovery requires every commanded motor to remain powered");
+    }
     if (powered_count != 0 && powered_count != enabled_count) {
       throw std::runtime_error("Torque-on recovery requires every commanded motor to be powered");
     }
@@ -287,7 +271,9 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
       for (const auto & j : joints_) {
         if (!j.enabled) {continue;}
         const int goal = arm_.read_value(j.id, 42, 2);
-        if (std::abs(goal - j.raw) > recovery_goal_tolerance_ticks) {
+        if (j.raw >= j.raw_min && j.raw <= j.raw_max &&
+          std::abs(goal - j.raw) > recovery_goal_tolerance_ticks)
+        {
           throw std::runtime_error(j.name + ": powered recovery goal is not holding current pose");
         }
       }
@@ -297,6 +283,9 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
     RCLCPP_INFO(logger, "14 motors verified; register writes %s", read_only_ ? "DISABLED" : "enabled by explicit launch option");
     return CallbackReturn::SUCCESS;
   } catch (const std::exception & e) {
+    if (require_powered_hold()) {
+      for (auto & j : joints_) {j.powered = false;}
+    }
     fail(e.what()); arm_.close(); head_.close(); return CallbackReturn::ERROR;
   }
 }
@@ -352,25 +341,16 @@ void FeetechSystem::snapshot(int64_t stamp_ns)
       confirm_normal(25, 65, [](int value) {return value != 0;}, "motor-status");
       confirm_normal(23, 63, [&](int value) {return value >= j.temperature_limit;},
         "temperature");
-      if (state[23] >= j.temperature_limit && std::isfinite(j.temperature)) {
-        ++j.over_temperature_samples;
-        if (j.over_temperature_samples < temperature_fault_confirmation_samples_) {
-          RCLCPP_WARN(logger,
-            "%s: deferring over-temperature fault for confirmation (%d C, sample %d/%d)",
-            j.name.c_str(), static_cast<int>(state[23]), j.over_temperature_samples,
-            temperature_fault_confirmation_samples_);
-          state[23] = static_cast<uint8_t>(j.temperature);
-        }
-      } else if (state[23] < j.temperature_limit) {
-        j.over_temperature_samples = 0;
-      }
+      j.temperature = j.temperature_filter.update(
+        state[23], std::chrono::steady_clock::now(), temperature_filter_settings_);
       if (j.powered) {
         confirm_normal(0, 40, [](int value) {return value != 1;}, "torque-enable");
       }
-      if (state[25] != 0 || state[23] >= j.temperature_limit ||
+      if (state[25] != 0 || j.temperature >= j.temperature_limit ||
         (j.powered && state[0] != 1)) {
         throw std::runtime_error(j.name + ": motor status/temperature/torque fault: status=" +
-          std::to_string(state[25]) + " temperature=" + std::to_string(state[23]) +
+          std::to_string(state[25]) + " temperature=" + std::to_string(j.temperature) +
+          " temperature_raw=" + std::to_string(state[23]) +
           " temperature_limit=" + std::to_string(j.temperature_limit) +
           " torque=" + std::to_string(state[0]));
       }
@@ -397,7 +377,7 @@ void FeetechSystem::snapshot(int64_t stamp_ns)
     joints_[i].load_raw = snapshots[i][20] + 256 * snapshots[i][21];
     joints_[i].torque_enabled = snapshots[i][0];
     joints_[i].motor_status = snapshots[i][25];
-    joints_[i].temperature = snapshots[i][23];
+    joints_[i].temperature = reading_joints[i].temperature;
     joints_[i].voltage_raw = snapshots[i][22];
     joints_[i].goal_position_raw = snapshots[i][2] + 256 * snapshots[i][3];
     joints_[i].position_raw = raw[i];
@@ -411,7 +391,7 @@ void FeetechSystem::snapshot(int64_t stamp_ns)
     joints_[i].temperature_raw = original_temperatures[i];
     joints_[i].motor_status_raw = original_statuses[i];
     joints_[i].feedback_stamp_ns = static_cast<double>(stamp_ns);
-    joints_[i].over_temperature_samples = reading_joints[i].over_temperature_samples;
+    joints_[i].temperature_filter = reading_joints[i].temperature_filter;
     joints_[i].communication_recovery_count = static_cast<double>(observed_recoveries);
   }
   last_read_ = started;
@@ -421,6 +401,11 @@ void FeetechSystem::hold_for_read_recovery(int id, int address)
 {
   RCLCPP_WARN(logger, "Bounded READ recovery: ID %d address %d; preserving torque", id, address);
   if (!active_ || read_only_) {return;}
+  if (require_powered_hold() && std::all_of(joints_.begin(), joints_.end(),
+      [](const Joint & j) {return !j.enabled || j.stopped_goal_raw.has_value();}))
+  {
+    return;  // The powered goals already hold the arms.
+  }
   if (std::chrono::duration<double>(std::chrono::steady_clock::now() - last_read_).count() > max_state_age_) {
     throw std::runtime_error("READ recovery cannot hold stale motor feedback");
   }
@@ -442,26 +427,37 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
       [](const Joint & j) {return j.enabled && j.powered;});
     std::vector<std::pair<int, int>> targets;
     for (auto & j : joints_) {
-      j.command = j.previous = j.position;
+      j.command = j.position;
       if (!read_only_ && j.enabled) {
-        j.ticks(j.position);
         const int expected_torque = j.powered ? 1 : 0;
         if (arm_.read_value(j.id, 40, 1) != expected_torque) {
           throw std::runtime_error("Torque changed before activation");
         }
-        targets.emplace_back(j.id, j.raw);
+        targets.emplace_back(j.id, std::clamp(j.raw, j.raw_min, j.raw_max));
       }
     }
     if (!read_only_ && recovering) {
-      // An already powered servo is supporting a load with its existing PID
-      // error. Rewriting its goal to the encoder removes that support. Adopt
-      // the verified hold without rewriting goal, RAM limits or torque.
+      // Keep loaded in-range holds. Only out-of-range joints get a new raw goal.
+      std::vector<std::pair<int, int>> recovery_targets;
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
-        const int goal = arm_.read_value(j.id, 42, 2);
-        j.ticks(j.radians(goal));
-        if (std::abs(goal - j.raw) > recovery_goal_tolerance_ticks) {
-          throw std::runtime_error(j.name + ": powered recovery goal is not holding current pose");
+        int goal = arm_.read_value(j.id, 42, 2);
+        if (require_powered_hold() &&
+          (j.raw < j.raw_min || j.raw > j.raw_max || j.position < j.lower || j.position > j.upper))
+        {
+          throw std::runtime_error(j.name + ": hold-only recovery requires an in-range measured pose");
+        }
+        if (j.raw < j.raw_min || j.raw > j.raw_max) {
+          goal = std::clamp(j.raw, j.raw_min, j.raw_max);
+          recovery_targets.emplace_back(j.id, goal);
+        } else {
+          const double position = j.radians(goal);
+          if (position < j.lower || position > j.upper || goal < j.raw_min || goal > j.raw_max) {
+            throw std::runtime_error(j.name + ": powered recovery goal outside limits");
+          }
+          if (std::abs(goal - j.raw) > recovery_goal_tolerance_ticks) {
+            throw std::runtime_error(j.name + ": powered recovery goal is not holding current pose");
+          }
         }
         for (auto [address, size, expected] : std::vector<std::tuple<int, int, int>>{
             {41, 1, j.acceleration}, {44, 2, 0}, {46, 2, j.speed}, {48, 2, j.torque}})
@@ -473,40 +469,50 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
               " expected=" + std::to_string(expected));
           }
         }
-        j.command = j.previous = j.radians(goal);
+        j.command = j.radians(goal);
         j.stopped_goal_raw = goal;
       }
-      RCLCPP_INFO(logger, "Adopted powered hold without goal, RAM or torque writes");
+      if (!recovery_targets.empty()) {arm_.goals(recovery_targets);}
+      RCLCPP_INFO(logger, "Adopted powered hold; returning %zu joints to calibrated bounds",
+        recovery_targets.size());
     } else if (!read_only_) {
-      // Preload current pose before enabling any motor. EEPROM is never changed.
-      arm_.goals(targets);
+      // Set the existing motion profile before sending one complete raw goal.
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
         for (auto [address, size, value] : std::vector<std::tuple<int, int, int>>{
-            {41, 1, j.acceleration}, {44, 2, 0}, {46, 2, j.speed}, {48, 2, j.torque}, {42, 2, j.raw}})
+            {41, 1, j.acceleration}, {44, 2, 0}, {46, 2, j.speed}, {48, 2, j.torque}})
         {
           arm_.write_value(j.id, address, size, value);
           if (arm_.read_value(j.id, address, size) != value) {throw std::runtime_error("RAM write verification failed");}
         }
       }
-      // Recheck posture after setup; refuse torque-on if a supported arm moved meanwhile.
-      for (const auto & j : joints_) {
-        if (j.enabled && std::abs(arm_.read_value(j.id, 56, 2) - j.raw) > 2) {
-          throw std::runtime_error(j.name + ": posture moved during activation");
-        }
-      }
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
-        if (!j.powered) {
-          // Include an uncertain torque-on acknowledgement in best-effort hold.
-          j.powered = true;
-          arm_.write_value(j.id, 40, 1, 1);
+        const int goal = std::clamp(j.raw, j.raw_min, j.raw_max);
+        j.command = j.radians(goal);
+        j.stopped_goal_raw = goal;
+        // A goal write can also engage a servo; include it in fault cleanup.
+        j.powered = true;
+      }
+      arm_.goals(targets);
+      for (auto & j : joints_) {
+        if (!j.enabled) {continue;}
+        if (arm_.read_value(j.id, 42, 2) != *j.stopped_goal_raw) {
+          throw std::runtime_error("Startup goal verification failed");
         }
+        arm_.write_value(j.id, 40, 1, 1);
         if (arm_.read_value(j.id, 40, 1) != 1) {throw std::runtime_error("Torque enable verification failed");}
       }
     }
     if (!read_only_) {
       snapshot();
+      while (std::any_of(joints_.begin(), joints_.end(), [](const Joint & j) {
+          return j.enabled && (j.raw < j.raw_min || j.raw > j.raw_max);
+        }))
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        snapshot();
+      }
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
         j.sent_goal_raw = j.goal_position_raw;
@@ -515,7 +521,12 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
     }
     active_ = true;
     return CallbackReturn::SUCCESS;
-  } catch (const std::exception & e) {fail(e.what()); return CallbackReturn::ERROR;}
+  } catch (const std::exception & e) {
+    if (require_powered_hold()) {
+      for (auto & j : joints_) {j.powered = false;}
+    }
+    fail(e.what()); return CallbackReturn::ERROR;
+  }
 }
 
 void FeetechSystem::hold(const std::vector<std::string> & interfaces) noexcept
@@ -529,7 +540,9 @@ void FeetechSystem::hold(const std::vector<std::string> & interfaces) noexcept
     try {
       int raw = arm_.read_value(j.id, 56, 2);
       j.radians(raw);
-      if (raw < j.raw_min || raw > j.raw_max) {throw std::runtime_error("Hold position outside EEPROM range");}
+      if ((raw < j.raw_min || raw > j.raw_max) && !j.stopped_goal_raw) {
+        throw std::runtime_error("Hold position outside EEPROM range");
+      }
       // Stop at measured position once. Fault handling, deactivation, cleanup
       // and destruction may all call hold: re-latching each sagged encoder
       // value would progressively lower a loaded arm while torque stays ON.
@@ -541,7 +554,7 @@ void FeetechSystem::hold(const std::vector<std::string> & interfaces) noexcept
         arm_.write_value(j.id, 42, 2, target);
       }
       j.stopped_goal_raw = target;
-      j.command = j.previous = j.radians(target);
+      j.command = j.radians(target);
       j.sent_goal_raw = target;
       j.sent_position = j.radians(target);
     } catch (const std::exception & e) {RCLCPP_ERROR(logger, "Hold could not be confirmed: %s", e.what());}
@@ -580,31 +593,38 @@ hardware_interface::return_type FeetechSystem::write(const rclcpp::Time &, const
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
         hold_targets.emplace_back(j.id, j.ticks(j.position));
-        j.command = j.previous = j.sent_position = j.position;
-        j.sent_goal_raw = j.raw;
+        j.command = j.position;
+        j.sent_goal_raw = hold_targets.back().second;
+        j.sent_position = j.radians(hold_targets.back().second);
       }
       arm_.goals(hold_targets);
       recovery_hold_pending_ = false;
       return hardware_interface::return_type::OK;
     }
     std::vector<std::pair<int, int>> targets;
-    std::vector<std::pair<size_t, double>> limited;
+    std::vector<std::pair<size_t, int>> sent;
     for (size_t index = 0; index < joints_.size(); ++index) {
       const auto & j = joints_[index];
       if (j.enabled && claimed_.count(j.name + "/position")) {
-        const double target = j.limited_command(dt);
-        targets.emplace_back(j.id, j.ticks(target));
-        limited.emplace_back(index, target);
+        const int target = j.ticks(j.command);
+        // An idle position controller may initialize from the encoder. Preserve
+        // the loaded hold until it requests a distinct target.
+        if (require_powered_hold() && j.stopped_goal_raw &&
+          (target == *j.stopped_goal_raw || std::abs(target - j.raw) <= 2))
+        {
+          continue;
+        }
+        targets.emplace_back(j.id, target);
+        sent.emplace_back(index, target);
       }
     }
     // Validate every joint before the first packet; no partly validated sync command.
     if (!targets.empty()) {arm_.goals(targets);}
-    for (const auto & [index, target] : limited) {
+    for (const auto & [index, target] : sent) {
       auto & j = joints_[index];
       j.stopped_goal_raw.reset();
-      j.previous = target;
-      j.sent_goal_raw = j.ticks(target);
-      j.sent_position = j.radians(static_cast<int>(j.sent_goal_raw));
+      j.sent_goal_raw = target;
+      j.sent_position = j.radians(target);
     }
     return hardware_interface::return_type::OK;
   } catch (const std::exception & e) {fail(e.what()); return hardware_interface::return_type::ERROR;}

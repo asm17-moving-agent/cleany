@@ -32,6 +32,8 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_driver test/test_driver.cpp)
   target_link_libraries(test_driver cleany_feetech_hardware util)
+  ament_add_gtest(test_temperature_filter test/test_temperature_filter.cpp)
+  target_include_directories(test_temperature_filter PRIVATE include)
   ament_add_pytest_test(robot_interface test)
 endif()
 
