@@ -4,6 +4,52 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-11-18 이벤트 궤적 제어기 분리 검증
+
+`b991ce5f332f56717dbecc836b5ac93610bad479` 기반의
+`codex/event-trajectory-controller` 작업 트리에서 이벤트 제어기와 프로파일 선택만
+분리했다. Jetson Ubuntu 22.04 ARM64, ROS 2 Humble, JTC 2.53.3에서 기존
+의존 overlay를 읽고 별도 build 및 install 경로를 사용했다.
+
+| 확인 대상 | 입력과 결과 |
+|---|---|
+| 프로파일 | 기존 기본값, 두 plugin의 선택, 1–100Hz 범위와 잘못된 설정 거부를 포함해 30개 통과 |
+| 빌드 | `cleany_trajectory_controller`, `cleany_robot_interface` 2개 패키지 성공 |
+| 종료 동작 | 가상 모터의 성공, 실패, 취소와 완료 경쟁, 명령 교체 및 비활성화 등 34개 통과 |
+| 벤치마크 실행 | 1블록, 방식별 유효 표본 4개로 세 비교 경로 실행 성공 |
+| 설치본 식별 | 프로세스 library map에서 이번 build의 plugin과 `/opt/ros/humble`의 JTC 로드 확인 |
+
+벤치마크는 localhost domain 219의 `GenericSystem`만 사용했다. 이번의 작은
+표본은 실행 경로 확인용이며 성능 결론에는 아래의 상세 측정을 참고한다.
+실패한 검사는 없었다. 빌드 시 기존 overlay 사용과 setuptools 사용 중단 예정
+경고가 있었으며 빌드는 성공했다. 실물 모터와 운영 서비스는 구동하지 않았다.
+
+입력 파일 해시, 적용 patch, 명령 로그와 `smoke/results.json`은 Jetson의
+`/home/cleany/cleany-data/runs/event-controller-commit-20261118.bxhy7fh0/`에 있다.
+
+## 2026-11-17 이벤트 결과 전달 상세 측정
+
+Jetson `e9ba5ff4d45ff5f42e1a4a0a69a65089d7c346bc` 기반 미커밋 후보를
+Ubuntu 22.04 ARM64, Humble과 JTC 2.53.3에서 측정한 과거 결과다.
+localhost domain 219에서 가상 제어기 4개 중 1개에 동일 난수 궤적을 입력했다.
+제어 주기는 50Hz이며, 방식별 24회씩 3블록을 실행하고 순서를 바꿨다.
+
+| 방식 | CPU 중앙값 | 결과 지연 중앙값 | 결과 지연 P95 |
+|---|---:|---:|---:|
+| 기존 20Hz | 4.687% | 32.365ms | 49.795ms |
+| 기존 100Hz | 9.687% | 9.657ms | 14.163ms |
+| 이벤트 20Hz | 5.005% | 5.630ms | 9.863ms |
+
+CPU는 논리 코어 하나 기준의 제어기 프로세스 사용률로 블록별 값의 중앙값이다.
+지연은 성공 로그부터 결과 callback까지이며 방식별 유효 표본 72개를 합산했다.
+실물 이동 시간이나 전체 수거 주기의 측정 결과는 아니다.
+
+후보와 운용 설치본에서 종료 동작 검사가 각각 34개 통과했다. 초기 빌드의
+logger 참조와 명령 교체 시 잘못된 상태 전이를 수정한 뒤 검증했다.
+측정 원본 `comparison/results.json`, `production-functional/results.json`과
+배포 해시 `deployment.json`은 Jetson의
+`/home/cleany/cleany-data/reports/action-event-notification-20261117/`에 보관한다.
+
 ## 2026-11-16 LiDAR 평면 extrinsic
 
 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업트리에서 RPLIDAR A1M8

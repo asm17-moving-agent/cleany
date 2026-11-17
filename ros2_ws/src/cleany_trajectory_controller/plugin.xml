@@ -1,0 +1,7 @@
+<library path="cleany_trajectory_controller">
+  <class name="cleany_trajectory_controller/JointTrajectoryController"
+         type="cleany_trajectory_controller::JointTrajectoryController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>Upstream Humble motion control with event-driven terminal Action delivery.</description>
+  </class>
+</library>
