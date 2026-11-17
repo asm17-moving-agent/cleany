@@ -10,6 +10,8 @@ import torch
 from curobo.geom.sdf.world import CollisionQueryBuffer, WorldCollisionConfig, WorldPrimitiveCollision
 from curobo.geom.types import WorldConfig
 
+from .curobo_mast import mast_query_sphere_layout
+
 
 class MastWorldCollision:
     """Per-layout view over a shared scene checker; safe for captured CUDA graphs."""
@@ -17,12 +19,8 @@ class MastWorldCollision:
     def __init__(self, environment, cuboids: dict, kinematics: dict, tensor_args):
         self.environment = environment
         self.tensor_args = tensor_args
-        names = [name for name in kinematics['collision_link_names']
-                 for _ in kinematics['collision_spheres'][name]]
-        self.sphere_count = len(names)
-        self.excluded = torch.tensor([i for i, name in enumerate(names)
-                                      if not name.startswith(('left_', 'right_'))],
-                                     dtype=torch.long, device=tensor_args.device)
+        self.sphere_count, excluded = mast_query_sphere_layout(kinematics)
+        self.excluded = torch.tensor(excluded, dtype=torch.long, device=tensor_args.device)
         self.mast = WorldPrimitiveCollision(WorldCollisionConfig(
             tensor_args=tensor_args, world_model=WorldConfig.from_dict({'cuboid': cuboids}),
             cache={'obb': len(cuboids)}))

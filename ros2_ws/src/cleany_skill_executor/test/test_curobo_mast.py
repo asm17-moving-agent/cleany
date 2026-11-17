@@ -3,7 +3,22 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from cleany_skill_executor.curobo_mast import mast_cuboids
+from cleany_skill_executor.curobo_mast import mast_cuboids, mast_query_sphere_layout
+
+
+def test_mast_query_includes_legacy_and_calibrated_arms_only():
+    links = (
+        ('cad_left_elbow_pitch', 2), ('cad_head_tilt', 1),
+        ('right_gripper_frame', 3), ('base_link', 2),
+        ('cad_right_gripper_tip_L', 2), ('left_forearm_link', 1),
+        ('head_tilt_link', 1), ('cad_front_left_wheel', 1),
+    )
+    kinematics = {
+        'collision_link_names': [name for name, _ in links],
+        'collision_spheres': {name: [{}] * count for name, count in reversed(links)},
+    }
+
+    assert mast_query_sphere_layout(kinematics) == (13, [2, 6, 7, 11, 12])
 
 
 def description(kind='fixed', yaw='0'):
