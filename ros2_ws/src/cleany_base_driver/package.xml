@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>cleany_base_driver</name><version>0.1.0</version>
-  <description>Wheel driver and fixed host IMU calibration.</description>
+  <description>Wheel driver, fixed IMU calibration and wheel/gyro EKF bringup.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>rclpy</exec_depend>
@@ -11,6 +11,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>cleany_base_interfaces</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>diagnostic_msgs</exec_depend>

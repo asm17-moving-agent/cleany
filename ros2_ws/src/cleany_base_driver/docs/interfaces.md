@@ -57,6 +57,21 @@
 
 이름은 ROS remap으로 변경한다. 보정과 오류 상태는 [IMU 계약](imu.md)을 따른다.
 
+## ekf_filter_node
+
+외부 패키지 `robot_localization`의 `ekf_node`다. `base_ekf.launch.py`가 실행한다.
+
+| 종류 / 방향 | Bringup 기본 이름 | ROS 타입 | 조건 |
+|---|---|---|---|
+| 토픽 구독 | `wheel/odom` | `nav_msgs/msg/Odometry` | vx, vy, yaw rate; `odom0` 설정 |
+| 토픽 구독 | `imu/data_raw` | `sensor_msgs/msg/Imu` | 고정 bias 보정 yaw rate; `imu0` 설정 |
+| 토픽 발행 | `odometry/filtered` 또는 `odom` | `nav_msgs/msg/Odometry` | `shadow` / `canonical`; 50 Hz 설정 |
+| 토픽 발행 | `diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | `print_diagnostics=true` |
+| TF 발행 | `odom → base_link` | `tf2_msgs/msg/TFMessage` | `canonical`에서만 활성 |
+
+`shadow`에서는 기존 wheel relay가 canonical odom과 TF를 유지한다. 선택한
+입력과 TF 소유권은 [융합 계약](command-and-odometry.md#wheel과-imu-융합)을 따른다.
+
 ## 순서가 있는 구동 허가
 
 `base/set_enabled`는 host 전용 `cleany_base_interfaces/srv/SetBaseEnabled` 서비스다.

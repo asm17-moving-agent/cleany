@@ -1,10 +1,12 @@
 # IMU 실시간 수신
 
 MCU는 MPU6050 각속도와 가속도를 `sensor_msgs/msg/Imu`로 발행한다. Jetson의
-`cleany_imu`가 기존 gyro bias와 공분산을 적용한다.
+`cleany_imu`가 기존 gyro bias와 공분산을 적용한다. EKF는 보정된 각속도와
+wheel odometry의 평면 속도를 융합한다.
 
 ```text
-MCU → imu_uncalibrated/data_raw → cleany_imu → imu/data_raw
+MCU → imu_uncalibrated/data_raw → cleany_imu → imu/data_raw → EKF
+                                                         wheel/odom ↗
 ```
 
 ## 데이터와 좌표계
@@ -23,7 +25,7 @@ B1은 best effort, volatile, keep last 1이다. 모든 IMU 데이터는 동일�
 
 [REP-145](https://github.com/ros-infrastructure/rep/blob/master/rep-0145.rst)의
 토픽 관례에 따라 `imu/data_raw`에는 gyro와 가속도를 담는다. Bias 미보정 입력은
-`imu_uncalibrated` namespace에 두고, 보정 결과를 `imu/data_raw`로 발행한다.
+`imu_uncalibrated` namespace에 두고, EKF가 `imu/data_raw`의 Z축 각속도를 구독한다.
 `imu_link` 장착 TF는 실제 장착에 맞는 URDF 또는 명시적인 static TF로 제공한다.
 IMU bringup은 장착 회전을 추정하거나 TF를 만들지 않는다.
 

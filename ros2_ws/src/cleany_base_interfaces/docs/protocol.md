@@ -75,7 +75,7 @@ Driver는 중복, 역순 feedback을 무시하고 실제 수신 지연을 감시
 ## 표준 IMU telemetry
 
 IMU는 이 패키지의 custom message가 아니라 `sensor_msgs/msg/Imu`를 사용한다.
-MCU의 `imu_uncalibrated/data_raw` 발행과 Jetson 고정 gyro bias 적용은
+MCU의 `imu_uncalibrated/data_raw` 발행, Jetson 고정 gyro bias 적용과 EKF 연결은
 [IMU 계약](../../cleany_base_driver/docs/imu.md)을 따른다. Wheel의 MCU monotonic
 시각과 달리 IMU `header.stamp`는 Agent에 동기화한 ROS epoch 취득 시각이다.
 
