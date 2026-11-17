@@ -40,6 +40,18 @@ def resolve_moveit_trajectory_execution(read_only: bool, requested: str) -> bool
     return enabled
 
 
+def _controller_transport(settings: dict) -> tuple[str, float]:
+    controller_type = settings.get('type', 'joint_trajectory_controller/JointTrajectoryController')
+    if controller_type not in ('joint_trajectory_controller/JointTrajectoryController',
+                                'cleany_trajectory_controller/JointTrajectoryController'):
+        raise ValueError('Unsupported controller.type')
+    action_rate = settings.get('action_monitor_rate', 20.0)
+    if (type(action_rate) not in (int, float) or not math.isfinite(action_rate)
+            or not 1 <= action_rate <= 100):
+        raise ValueError('controller.action_monitor_rate must be in [1, 100] Hz')
+    return controller_type, float(action_rate)
+
+
 def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
                       head_mapping: dict, limits: dict, read_only: bool) -> tuple[str, dict, dict]:
     root = ET.fromstring(model)
@@ -74,14 +86,7 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             or not set(selected) <= {j.name for j in mapped}):
         raise ValueError('command_joints must be a nonempty unique subset of arm/gripper joints')
     settings = limits['controller']
-    controller_type = settings.get('type', 'joint_trajectory_controller/JointTrajectoryController')
-    if controller_type not in ('joint_trajectory_controller/JointTrajectoryController',
-                                'cleany_trajectory_controller/JointTrajectoryController'):
-        raise ValueError('Unsupported controller.type')
-    action_rate = settings.get('action_monitor_rate', 20.0)
-    if (type(action_rate) not in (int, float) or not math.isfinite(action_rate)
-            or not 1 <= action_rate <= 100):
-        raise ValueError('controller.action_monitor_rate must be in [1, 100] Hz')
+    controller_type, action_rate = _controller_transport(settings)
     for key in ('max_velocity', 'max_acceleration', 'speed_raw',
                 'acceleration_raw', 'torque_limit_raw'):
         if not math.isfinite(defaults[key]) or defaults[key] <= 0:
@@ -179,7 +184,7 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             manager[name] = {'type': controller_type}
             controllers[name] = {'ros__parameters': {
                 'joints': joints, 'command_interfaces': ['position'], 'state_interfaces': ['position'],
-                'state_publish_rate': float(rate), 'action_monitor_rate': float(action_rate),
+                'state_publish_rate': float(rate), 'action_monitor_rate': action_rate,
                 'open_loop_control': False, 'allow_partial_joints_goal': False,
                 'allow_nonzero_velocity_at_trajectory_end': False,
                 'constraints': {'goal_time': settings['goal_time'], 'stopped_velocity_tolerance': 0.0,
@@ -194,6 +199,8 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
 
 def prepare_control_profile(profile_file: Path, repository_root: Path, output: Path,
                             control_file: Path, read_only: bool = True) -> ControlProfile:
+    limits = yaml.safe_load(control_file.read_text())
+    _controller_transport(limits['controller'])
     state = prepare_state_profile(profile_file, repository_root, output)
     arm = yaml.safe_load(state.arm_config.read_text())
     directory = Path(arm['calibration_dir']).expanduser()
@@ -201,17 +208,17 @@ def prepare_control_profile(profile_file: Path, repository_root: Path, output: P
     calibrations = {side: json.loads(path.read_text()) for side, path in zip(('left', 'right'), cal_files)}
     model, controllers, moveit = add_control_model(
         state.model.read_text(), arm, calibrations, yaml.safe_load(state.head_config.read_text()),
-        json.loads(state.head_mapping.read_text()), yaml.safe_load(control_file.read_text()), read_only)
+        json.loads(state.head_mapping.read_text()), limits, read_only)
     destination = output / 'robot_control.urdf'
     destination.write_text(model)
     controllers_file = output / 'controllers.yaml'
     controllers_file.write_text(yaml.safe_dump(controllers, sort_keys=False))
     moveit_file = output / 'moveit_controllers.yaml'
     moveit_file.write_text(yaml.safe_dump(moveit, sort_keys=False))
-    limits = yaml.safe_load(control_file.read_text())['joint_defaults']
+    defaults = limits['joint_defaults']
     joint_limits = {'joint_limits': {joint.name: {
-        'has_velocity_limits': True, 'max_velocity': limits['max_velocity'],
-        'has_acceleration_limits': True, 'max_acceleration': limits['max_acceleration']}
+        'has_velocity_limits': True, 'max_velocity': defaults['max_velocity'],
+        'has_acceleration_limits': True, 'max_acceleration': defaults['max_acceleration']}
         for joint in mappings(arm, calibrations)}}
     limits_file = output / 'joint_limits.yaml'
     limits_file.write_text(yaml.safe_dump(joint_limits, sort_keys=False))
