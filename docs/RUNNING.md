@@ -200,6 +200,9 @@ ros2 launch cleany_perception inspect_scene.launch.py gemini_model:=gemini-decis
 기존 분류기는 `gemini_model:=gemini-3.5-flash-lite`로 명시적으로 선택한다.
 native와 컨테이너의 `run-perception`은 선택한 YOLOE 프로파일의 `gemini_model`을
 읽고, `GEMINI_MODEL` 설정을 우선한다. 기본 운영 프로파일은 Decision을 사용한다.
+Jetson의 수동 인식은 현재 저장소의 기본 ROS 설치 경로를 사용한다. 별도 설치본은 `CLEANY_YOLOE_NATIVE_INSTALL`으로 지정한다.
+헤드 카메라는 launch 인자와 패키지 설정에 보정 파일이 지정되지 않았을 때 `~/.config/cleany/head-rgb-intrinsics.json`을 확인한다.
+
 두 실행기의 RGB-D 구독 기본값은 best-effort다. 컨테이너에서 reliable이 필요한
 입력은 `CLEANY_RGBD_QOS_RELIABILITY=reliable`로 명시한다.
 
@@ -522,6 +525,8 @@ make run-dev-monitor
 자동 시작하지 않습니다. 기록은 아래 절차로 별도 실행합니다. 웹 자산 갱신 후에는
 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다.
 
+수동 수거와 왼팔 파지는 `~/.config/cleany/collection-runtime.env`에서 장비별 프로필을 읽는다. Jetson 설정 파일은 호출자가 지정한 값을 우선한다.
+
 ### Jetson 운영 UI와 작업 승인
 
 1. `make build-dev-monitor`로 웹과 ROS 패키지를 빌드한다. 처음 구성할 때는
@@ -759,7 +764,9 @@ Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나
 
 1. [개발환경](DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
 2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
-   별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
+   이 명령과 `tools/hardware-mapping`은 현재 저장소의 ROS 설치본, LiDAR 드라이버와 USB Agent의 설치 환경을 읽는다.
+   Jetson에 `~/.config/cleany/profiles/mapping_cad_lidar_front.yaml`이 있으면 기본 프로필로 사용한다. `profile:=...`으로 다른 프로필을 선택할 수 있다.
+   `make run-hardware-mapping HARDWARE_MAPPING_ARGS=--show-args`로 장치를 시작하기 전에 launch 인자를 확인한다.
 3. 현재 센서 장착과 일치하는 [프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
 
    FreeCAD와 같은 조립체이고 LiDAR 쪽이 전방이면 `mapping_cad_lidar_front.yaml`을

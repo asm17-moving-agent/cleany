@@ -2,6 +2,10 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+profile_env="${XDG_CONFIG_HOME:-${HOME}/.config}/cleany/collection-runtime.env"
+if [[ -r "${profile_env}" ]]; then
+  source "${profile_env}"
+fi
 state_dir="${CLEANY_COLLECTION_STATE_DIR:-/tmp/cleany-collection-runtime-${UID}}"
 pids_file="${state_dir}/pids"
 pipeline_pid_file="${state_dir}/pipeline.pid"

@@ -4,7 +4,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 venv="${CLEANY_YOLOE_NATIVE_VENV:-${HOME}/.local/opt/cleany/yoloe53/venv}"
 model_root="${YOLOE_MODEL_HOST_DIR:-${HOME}/models/yoloe}"
-install_root="${CLEANY_YOLOE_NATIVE_INSTALL:-${repo_root}/../cleany-data/builds/yoloe53/install}"
+source "${repo_root}/tools/ros2/cleany-install-env"
+install_root="${CLEANY_YOLOE_NATIVE_INSTALL:-${CLEANY_INSTALL_BASE}}"
 profile="${YOLOE_CONFIG_FILE:-${repo_root}/ros2_ws/src/cleany_perception/config/yoloe_real53.yaml}"
 engine="${YOLOE_MODEL_PATH:-${model_root}/real53/m/active/yoloe-26m-seg-real53.engine}"
 

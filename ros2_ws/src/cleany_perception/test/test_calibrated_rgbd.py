@@ -33,18 +33,26 @@ def test_points_behind_rgb_camera_are_not_published(native):
     assert not result.any()
 
 
-def test_launch_separates_sdk_topics_from_calibrated_outputs(monkeypatch, tmp_path):
+@pytest.mark.parametrize('explicit', [True, False])
+def test_launch_separates_sdk_topics_from_calibrated_outputs(monkeypatch, tmp_path, explicit):
     from launch import LaunchContext
     spec = importlib.util.spec_from_file_location('realsense_calibration_launch',
         Path(__file__).parents[1] / 'launch/realsense.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    model = tmp_path / 'intrinsics.json'
+    device_dir = tmp_path / 'cleany'
+    device_dir.mkdir()
+    host_model = device_dir / 'head-rgb-intrinsics.json'
+    host_model.write_text('{}')
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path))
+    monkeypatch.setattr(module, 'get_package_share_directory',
+                        lambda name: str(Path(__file__).parents[1]))
+    model = tmp_path / 'explicit.json' if explicit else host_model
     model.write_text('{}')
     nodes = []
     monkeypatch.setattr(module, 'Node', lambda **kwargs: nodes.append(kwargs))
     context = LaunchContext()
-    context.launch_configurations.update(rgb_intrinsics_file=str(model), serial_no='test',
+    context.launch_configurations.update(rgb_intrinsics_file=str(model) if explicit else '', serial_no='test',
         config_file='test.yaml', tf_topic='/tf', tf_static_topic='/tf_static')
     module.setup(context)
     assert [n['executable'] for n in nodes] == ['realsense2_camera_node', 'calibrated_rgbd']

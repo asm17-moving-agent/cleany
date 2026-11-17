@@ -702,6 +702,7 @@ test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
 
 .PHONY: build-teleop-ui build-hardware-mapping test-hardware-mapping-core
+build-teleop-ui test-hardware-mapping-core: export PATH := $(PATH):$(HOME)/.local/bin
 build-teleop-ui:
 	npm ci --prefix ros2_ws/src/cleany_teleop/ui
 	npm run build --prefix ros2_ws/src/cleany_teleop/ui
@@ -730,7 +731,7 @@ test-hardware-mapping-replay:
 .PHONY: run-hardware-mapping
 HARDWARE_MAPPING_ARGS ?=
 run-hardware-mapping:
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && ros2 launch cleany_bringup hardware_mapping.launch.py $(HARDWARE_MAPPING_ARGS)'
+	$(BASE_EXEC) bash -lc 'CLEANY_INSTALL_BASE="$(INSTALL_BASE)" "$(REPO_ROOT)tools/hardware-mapping" $(HARDWARE_MAPPING_ARGS)'
 
 .PHONY: test-tof-core build-tof test-tof
 
