@@ -68,6 +68,27 @@ def test_required_checks_are_preserved(probe, condition):
         assert any(item not in module.FEEDBACK for item in pending)
 
 
+def test_guard_waits_for_first_joint_sample_before_accepting_fresh_feedback(probe):
+    node, clock, *_ = probe
+    node.guard = 'waiting'
+    assert '/real_control/status ready' in module.ReadinessProbe.pending(node)
+    clock[0] += 3.
+    node.guard = 'ready'
+    assert set(module.ReadinessProbe.pending(node)) == set(module.FEEDBACK)
+    clock[0] += .1
+    node.received = {topic: clock[0] for topic in module.FEEDBACK}
+    assert module.ReadinessProbe.pending(node) == []
+
+
+def test_guard_that_keeps_waiting_hits_the_status_deadline(probe):
+    node, clock, *_ = probe
+    node.guard = 'waiting'
+    module.ReadinessProbe.pending(node)
+    clock[0] += 10.
+    with pytest.raises(RuntimeError, match='/real_control/status ready'):
+        module.ReadinessProbe.pending(node)
+
+
 def test_server_discovery_can_catch_up_without_restarting_process(probe):
     node, clock, _, _, servers, *_ = probe
     saved = servers[:]
