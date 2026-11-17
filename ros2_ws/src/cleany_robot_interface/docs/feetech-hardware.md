@@ -100,6 +100,8 @@ temperature_macd_signal_tau_s: 0.1
 이벤트 방식의 완료 결과 전달이 필요하면
 [`cleany_trajectory_controller/JointTrajectoryController`](../../cleany_trajectory_controller/docs/interfaces.md#설정)를
 지정한다. 두 제어기의 Action 이름과 메시지 타입은 동일하다.
+지원하지 않는 `controller.type`이나 1~100 Hz 범위의 유한한 숫자가 아닌
+`controller.action_monitor_rate`는 로봇 모델을 생성하기 전에 거부한다.
 
 | 인터페이스 | 타입 | 설명 |
 |---|---|---|

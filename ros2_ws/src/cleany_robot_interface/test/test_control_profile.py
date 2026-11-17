@@ -372,8 +372,10 @@ def test_controller_transport_rejects_invalid_settings(tmp_path, state_profile_f
     limits['controller'].update(settings)
     control = tmp_path/'invalid-notification.yaml'
     control.write_text(yaml.safe_dump(limits))
-    with pytest.raises(ValueError, match='controller.'+field):
-        prepare_control_profile(state_profile_file, ROOT, tmp_path/'run', control)
+    output = tmp_path/'run'
+    with pytest.raises(ValueError, match=rf'controller\.{field}'):
+        prepare_control_profile(state_profile_file, ROOT, output, control)
+    assert not output.exists()
 
 
 def test_control_limits_cannot_expand_measured_motor_travel(prepared):
