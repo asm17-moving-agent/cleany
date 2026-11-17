@@ -1,0 +1,3 @@
+enable_reference_observation:=true
+enable_wrist_observation:=true
+reference_ttl_seconds:=600.0

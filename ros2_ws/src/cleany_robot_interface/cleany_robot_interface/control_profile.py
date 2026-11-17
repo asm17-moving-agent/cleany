@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import apply_joint_bounds, calibrated_joint_bounds
 from cleany_robot_interface.state_profile import StateProfile, head_positions, prepare_state_profile
 
@@ -220,7 +220,7 @@ def prepare_control_profile(profile_file: Path, repository_root: Path, output: P
     _controller_transport(limits['controller'])
     state = prepare_state_profile(profile_file, repository_root, output)
     arm = yaml.safe_load(state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(state.arm_config, arm)
     cal_files = [directory / arm['arms'][side]['calibration'] for side in ('left', 'right')]
     calibrations = {side: json.loads(path.read_text()) for side, path in zip(('left', 'right'), cal_files)}
     model, controllers, moveit = add_control_model(

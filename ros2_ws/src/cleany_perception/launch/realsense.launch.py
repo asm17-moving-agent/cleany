@@ -15,7 +15,10 @@ def setup(context):
     selected = LaunchConfiguration('rgb_intrinsics_file').perform(context)
     if not selected:
         selection = Path(get_package_share_directory('cleany_perception')) / 'config/head_rgb_intrinsics.yaml'
-        selected = yaml.safe_load(selection.read_text())['intrinsics_file']
+        settings = yaml.safe_load(selection.read_text())
+        serial = LaunchConfiguration('serial_no').perform(context)
+        if settings['intrinsics_file'] and settings.get('serial_no', serial) == serial:
+            selected = str(selection.parent / Path(settings['intrinsics_file']).expanduser())
     remaps = [('/tf', LaunchConfiguration('tf_topic')),
               ('/tf_static', LaunchConfiguration('tf_static_topic')),
               ('~/depth/image_rect_raw', '/camera/raw_depth/image_raw'),

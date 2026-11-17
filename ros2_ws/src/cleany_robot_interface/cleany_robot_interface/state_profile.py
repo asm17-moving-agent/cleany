@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import apply_joint_bounds, calibrated_joint_bounds
 from cleany_robot_interface.rigid_accessories import attach_rigid_accessories
 
@@ -67,7 +67,7 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
     if not isinstance(selected, list):
         raise ValueError('calibrated_joint_position_bounds must be a list')
     if selected:
-        directory = Path(arm['calibration_dir']).expanduser()
+        directory = motor_calibration_directory(arm_path, arm)
         calibrations = {}
         for side, settings in arm['arms'].items():
             _, values = read(str(directory / settings['calibration']))

@@ -1,0 +1,286 @@
+{
+  "schema": "cleany.calibrated_camera_pose/v1",
+  "model_file": "cad-review.urdf",
+  "model_sha256": "80f349780083ca0a0b9708e28746c57ee25d6acb4aa019484d944596fab0d4ef",
+  "joint_coordinates": {
+    "cad_delta_left_shoulder_yaw": {
+      "source_joint": "left_shoulder_yaw_joint",
+      "scale": 1.0005057006252298,
+      "offset_rad": 0.004441043945639933
+    },
+    "cad_delta_left_shoulder_pitch": {
+      "source_joint": "left_shoulder_pitch_joint",
+      "scale": 0.9671479935049873,
+      "offset_rad": -3.1388453833118835
+    },
+    "cad_delta_left_elbow_pitch": {
+      "source_joint": "left_elbow_pitch_joint",
+      "scale": -0.9923084682503656,
+      "offset_rad": 3.094513671427472
+    },
+    "cad_delta_left_wrist_pitch": {
+      "source_joint": "left_wrist_pitch_joint",
+      "scale": -0.9854530340814629,
+      "offset_rad": -1.472647765444819
+    },
+    "cad_delta_left_wrist_roll": {
+      "source_joint": "left_wrist_roll_joint",
+      "scale": 1.0,
+      "offset_rad": -1.588437105855581
+    },
+    "cad_delta_right_shoulder_yaw": {
+      "source_joint": "right_shoulder_yaw_joint",
+      "scale": 1.001610824742268,
+      "offset_rad": -0.03618423245456137
+    },
+    "cad_delta_right_shoulder_pitch": {
+      "source_joint": "right_shoulder_pitch_joint",
+      "scale": -0.9699830169365344,
+      "offset_rad": 2.6427671288383605
+    },
+    "cad_delta_right_elbow_pitch": {
+      "source_joint": "right_elbow_pitch_joint",
+      "scale": 0.999568155260885,
+      "offset_rad": -3.1540312013563385
+    },
+    "cad_delta_right_wrist_pitch": {
+      "source_joint": "right_wrist_pitch_joint",
+      "scale": 1.0045814244064974,
+      "offset_rad": 1.530586193615573
+    },
+    "cad_delta_right_wrist_roll": {
+      "source_joint": "right_wrist_roll_joint",
+      "scale": 1.0,
+      "offset_rad": -1.6313885679163795
+    },
+    "cad_delta_head_pan": {
+      "source_joint": "head_pan_joint",
+      "scale": 1.0,
+      "offset_rad": 0.0
+    },
+    "cad_delta_head_tilt": {
+      "source_joint": "head_tilt_joint",
+      "scale": 1.0,
+      "offset_rad": 0.0
+    }
+  },
+  "cameras": {
+    "head": {
+      "parent_frame": "cad_head_tilt",
+      "parent_T_camera": [
+        [
+          0.026461763719793942,
+          -0.04477084291687006,
+          0.9986467577103281,
+          0.04071505801988009
+        ],
+        [
+          -0.9996292056357078,
+          -0.007601681265486246,
+          0.026147001397134884,
+          0.04688095906239032
+        ],
+        [
+          0.006420771056626883,
+          -0.9989683608936025,
+          -0.044955396034152245,
+          0.02326623742832001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "optical_frames": [
+        "head_camera_rgb_optical_frame"
+      ],
+      "intrinsics_file": "../../../../ros2_ws/src/cleany_perception/config/jetson_head_intrinsics.json"
+    },
+    "left": {
+      "parent_frame": "cad_left_wrist_roll",
+      "parent_T_camera": [
+        [
+          0.9991255729383675,
+          -0.03700747117449396,
+          0.01945601649484672,
+          -0.008778220875792928
+        ],
+        [
+          -0.04064478253496258,
+          -0.7506055076097988,
+          0.6594993355557848,
+          0.035315288225760376
+        ],
+        [
+          -0.009802609512999586,
+          -0.6597134370490758,
+          -0.7514533184593907,
+          0.07458455504086878
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "optical_frames": [
+        "left_wrist_camera_optical_frame",
+        "left_wrist_rgb_optical_frame"
+      ],
+      "intrinsics_file": "left/intrinsics.json"
+    },
+    "right": {
+      "parent_frame": "cad_right_wrist_roll",
+      "parent_T_camera": [
+        [
+          -0.9991705648918379,
+          -0.0265896242843678,
+          0.03084111110420037,
+          -0.005375275658024802
+        ],
+        [
+          -0.040202684107226674,
+          0.7645635837658038,
+          -0.6432933005789544,
+          -0.04624479579836696
+        ],
+        [
+          -0.0064750632661014825,
+          -0.6439996259778469,
+          -0.7649984021526406,
+          0.08556201122851811
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "optical_frames": [
+        "right_wrist_camera_optical_frame",
+        "right_wrist_rgb_optical_frame"
+      ],
+      "intrinsics_file": "right/intrinsics.json"
+    }
+  },
+  "source": "Operator requested latest arm endpoint correspondence; saved wrist-roll centers; unchanged camera mount fits",
+  "scope": "read_only_latest_endpoint_matched_CAD_and_consistent_camera_TF",
+  "absolute_accuracy_verified": false,
+  "source_dependencies_sha256": {
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/motors/cleany_so101_left.json": "2f5122d03631c58a6b2fd93206ac9adeaca0267ac1992695e0dae1735476914d",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_5_center.json": "d3ef1dc9aa24dd93923071ce7923ff2be8c92dcdd8529108eea675eb686d5596",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_6_gripper_reference.json": "181366064b43dfff876f990446433e1ad41c3c5a7c6e5f691b229b25f64f8166",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/motors/cleany_so101_right.json": "9653efa9ce59f2841a843c7d030616b727495a77fc7ea3fae8f5b2f12b2cc1ec",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_11_center.json": "4c02ee3d4a25a6bd2a27f1588072497f29aa59ffb3303e157cd97e32aa28f0f3",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_12_gripper_reference.json": "ea782bfe29bed8d07b5fba892ee644e6cf7251330e331ed6b7332569a2baf14e",
+    "cad-encoder-mapping.json": "d276a47464ab8f4588eb8f661e028710fdc2c762c67094abe86d7fd5a3dd1922",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml": "41153bd2f135bc52e1401f65d1abb472b83bc42ca56ac94dc9f0b6cb1ee27552",
+    "../../head_preview_joints.json": "16dab47464ee42de91a833094208e9cc85cb52f09b827a35d8899bf31981a9b6",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json": "b94eb6f244b8690d7b3e6c40938d4edd40ed47e8e1f74b0a756a9d6bcf9f9a0d"
+  },
+  "joint_calibration_snapshot": "/home/cleany/cleany/ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115",
+  "gripper_rebase": {
+    "scope": "left gripper only",
+    "reason": "operator-confirmed closed and open encoder references; camera chains do not consume gripper joint",
+    "original_camera_pose_sha256": "149522b9ae9008c4cc365b1630501020f79661e8b55d3e1bd037613224d41a6c",
+    "old_calibration_sha256": "8a172dad6fc29806efe821f88d369eb87dc4ff20fb4097edbaaaf3278c439ccd",
+    "old_arm_mapping_sha256": "772d9afee7de39e30421ffa81e51e00d2452e2255a314e2a633ba9682f14fabf"
+  },
+  "right_gripper_rebase": {
+    "scope": "right gripper only",
+    "reason": "operator-confirmed closed and open encoder references; camera chains do not consume gripper joint",
+    "original_camera_pose_sha256": "2996e2e8d5408f2435df327a10ba8e6fad3acd4e3580729cef68254f87df1f9b",
+    "old_calibration_sha256": "91e9283fe732355306d2f86d59d7a1519c07598aa7be283cc469ca67bd42154b",
+    "old_arm_mapping_sha256": "f2b1169a0237b955dafdec30a0217d1e224fcee32adb84315f676be60b08c53a"
+  },
+  "right_gripper_closed_refinement": {
+    "original_camera_pose_sha256": "dc7672da4a14f5481fcb62064e6e3f358b2dd8183045ad301f82841b7fc3a1c7",
+    "old_calibration_sha256": "2c99559037653d143df8fbbc941f652e3d7cdee241f3d071a72c860ad4afb958",
+    "old_arm_mapping_sha256": "13cb5cad4c0dccf0059299b89d744b0b431d0477b8eab7ff28697c8c898172f3",
+    "reason": "operator confirmed further closed position; gripper is not an input to camera transforms"
+  },
+  "right_gripper_manual_range": {
+    "evidence": "/home/cleany/cleany-data/runs/right-gripper-manual-range-20261115T021331Z",
+    "open_tick": 433,
+    "closed_tick": 2264,
+    "homing_offset": 0,
+    "camera_geometry_unchanged": true,
+    "gripper_not_used_by_camera_chains": true
+  },
+  "grippers_pincopen_document_profile": {
+    "evidence": "/home/cleany/cleany-data/runs/grippers-final-doc-20261115T030447Z/recovery",
+    "motors": {
+      "6": {
+        "side": "left",
+        "closed_reference_old_tick": 2469,
+        "previous_homing_offset": -1871,
+        "homing_offset": -1450,
+        "homing_raw": 3498,
+        "old_coordinate_range": [
+          796,
+          2469
+        ],
+        "old_coordinate_open": 876,
+        "closed_tick": 2048,
+        "open_tick": 455,
+        "range_min": 375,
+        "range_max": 2048,
+        "opening_direction": -1
+      },
+      "12": {
+        "side": "right",
+        "closed_reference_old_tick": 1981,
+        "previous_homing_offset": 108,
+        "homing_offset": 41,
+        "homing_raw": 41,
+        "old_coordinate_range": [
+          308,
+          1981
+        ],
+        "old_coordinate_open": 388,
+        "closed_tick": 2048,
+        "open_tick": 455,
+        "range_min": 375,
+        "range_max": 2048,
+        "opening_direction": -1
+      }
+    },
+    "previous_pose": "/home/cleany/.config/cleany/camera-calibration/20261114-main-head-wrists/camera_pose-right-pincopen-doc-20261115.json",
+    "camera_geometry_unchanged": true,
+    "gripper_not_used_by_camera_chains": true
+  },
+  "fresh_gripper_calibration": {
+    "evidence": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z",
+    "reference": "maximum open = 0 degrees",
+    "open_tick": 2048,
+    "closing_target_tick": 3868,
+    "closing_requested_degrees": 160,
+    "closing_encoded_degrees": 159.9609375,
+    "closing_direction": "clockwise viewed from horn; increasing encoder",
+    "motors": {
+      "left": {
+        "id": 6,
+        "drive_mode": 0,
+        "homing_offset": -1400,
+        "range_min": 2048,
+        "range_max": 3868
+      },
+      "right": {
+        "id": 12,
+        "drive_mode": 0,
+        "homing_offset": -1618,
+        "range_min": 2048,
+        "range_max": 3868
+      }
+    },
+    "left_open_reference": "newly operator-confirmed maximum open",
+    "right_open_reference": "previously operator-confirmed maximum open preserved",
+    "motion_validation": "settings and readback only; 160-degree closing motion not performed",
+    "previous_pose": "/home/cleany/.config/cleany/camera-calibration/20261114-main-head-wrists/camera_pose-gripper-fresh-20261115T033828Z-common150.json",
+    "gripper_not_used_by_camera_chains": true
+  }
+}

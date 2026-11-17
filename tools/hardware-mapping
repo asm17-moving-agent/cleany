@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -eo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${repo_root}/tools/ros2/cleany-install-env"
+source /opt/ros/humble/setup.bash
+source "${CLEANY_INSTALL_BASE}/setup.bash"
+
+lidar_install="${CLEANY_LIDAR_INSTALL:-${CLEANY_DATA_ROOT:-${repo_root}/../cleany-data}/dependencies/hardware/install}"
+agent_install="${CLEANY_MICRO_ROS_AGENT_INSTALL:-${repo_root}/esp32/micro_ros/agent/install}"
+for overlay in "${lidar_install}" "${agent_install}"; do
+  if [[ -f "${overlay}/local_setup.bash" ]]; then
+    source "${overlay}/local_setup.bash"
+  fi
+done
+
+args=()
+if [[ -f /etc/nv_tegra_release ]]; then
+  args+=("profile:=${repo_root}/ros2_ws/src/cleany_bringup/config/mapping_cad_lidar_front.yaml")
+fi
+exec ros2 launch cleany_bringup hardware_mapping.launch.py "${args[@]}" "$@"

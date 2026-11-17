@@ -21,7 +21,7 @@ setup(
         ),
         (
             os.path.join('share', package_name, 'config'),
-            glob('config/*.yaml') + glob('config/*.xml'),
+            glob('config/*.yaml') + glob('config/*.xml') + ['config/jetson_head_intrinsics.json'],
         ),
     ],
     install_requires=['setuptools'],

@@ -15,6 +15,8 @@ EEPROM 읽기 근거와 로봇별 설정에 병합할 조각은 스냅샷에 담
 실측은 양쪽 닫힘 목표 도달을 확인했다. 왕복 동작, 개구 폭 곡선과 힘은
 이 측정에서 검증하지 않았다.
 
+운영 시 [양팔 매핑](../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml)은 같은 패키지의 `calibration/jetson_20261115_open160/motors/`에서 좌우 모터 JSON을 읽는다. 두 파일은 Jetson LeRobot 캐시의 운영 사본과 바이트 단위로 같다. [카메라 자세](../configs/robot/jetson/calibration/camera_pose.json)는 이 매핑, 모터 보정과 기준 파일들의 SHA-256을 확인한다. 모델과 검증 입력 경로는 자세 파일을 기준으로 해석한다. 과거 촬영 기록에 남은 장비 경로는 당시 데이터의 출처다.
+
 ## LiDAR 평면 extrinsic
 
 [`wheel_odometry_evaluation.json`](../configs/mission/wheel_odometry_evaluation.json)은

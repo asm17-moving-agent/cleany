@@ -9,6 +9,7 @@ source "${repo_root}/tools/ros2/cleany-install-env"
 case "${1:-run}" in
   run)
     if [[ $# -gt 0 ]]; then shift; fi
+    source "${repo_root}/configs/robot/jetson/runtime.env" --connected
     set +u
     source /opt/ros/humble/setup.bash
     source "${repo_root}/tools/ros2/cleany-install-env"

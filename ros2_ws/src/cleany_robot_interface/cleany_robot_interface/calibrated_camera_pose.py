@@ -39,7 +39,8 @@ class CameraPoseModel:
         self.config = json.loads(path.read_text())
         self.sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
         for source, expected in self.config.get('source_dependencies_sha256', {}).items():
-            if hashlib.sha256(Path(source).expanduser().read_bytes()).hexdigest() != expected:
+            dependency = self.path.parent / Path(source).expanduser()
+            if hashlib.sha256(dependency.read_bytes()).hexdigest() != expected:
                 raise ValueError('Camera joint mapping or motor calibration changed: ' + source)
         model = Path(self.config['model_file']).expanduser()
         if not model.is_absolute():

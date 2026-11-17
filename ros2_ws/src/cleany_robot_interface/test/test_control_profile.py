@@ -10,7 +10,7 @@ from cleany_robot_interface.control_profile import (
     prepare_control_profile,
     resolve_moveit_trajectory_execution,
 )
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import calibrated_joint_bounds
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[4]
 
 def measured_bounds(prepared):
     arm = yaml.safe_load(prepared.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
     calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                     for side, cfg in arm['arms'].items()}
     joints = mappings(arm, calibrations)
@@ -174,7 +174,7 @@ def test_planning_limits_include_gripper_overrides(tmp_path, state_profile_file)
 
 def test_calibrated_pitch_bounds_match_state_model_driver_and_recorded_positions(prepared):
     arm = yaml.safe_load(prepared.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
     calibrations = {side: json.loads((directory/settings['calibration']).read_text())
                     for side, settings in arm['arms'].items()}
     joints = {j.motor_id: j for j in mappings(arm, calibrations)}
@@ -380,7 +380,7 @@ def test_controller_transport_rejects_invalid_settings(tmp_path, state_profile_f
 
 def test_control_limits_cannot_expand_measured_motor_travel(prepared):
     arm = yaml.safe_load(prepared.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
     calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                     for side, cfg in arm['arms'].items()}
     limits = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
@@ -399,7 +399,7 @@ def test_control_limits_cannot_expand_measured_motor_travel(prepared):
 
 def test_control_rejects_policy_disjoint_from_motor_range(prepared):
     arm = yaml.safe_load(prepared.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
     calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                     for side, cfg in arm['arms'].items()}
     limits = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
@@ -424,3 +424,17 @@ def test_control_model_supplies_the_host_executor_limit_contract(prepared):
             assert (bounds.lower, bounds.upper) == tuple(
                 float(limit.get(key)) for key in ('lower', 'upper'))
             assert bounds.velocity > 0 and bounds.acceleration > 0
+
+
+def test_jetson_profile_reads_both_calibrations_without_a_home_cache(tmp_path, monkeypatch):
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    jetson = ROOT / 'configs/robot/jetson'
+    output = tmp_path / 'runtime'
+    prepared = prepare_control_profile(
+        ROOT / 'configs/robot/cad_grasp.json', ROOT, output, jetson / 'feetech_control.yaml')
+    manifest = json.loads((output / 'control_manifest.json').read_text())
+    motors = prepared.state.arm_config.parent / 'calibration/jetson_20261115_open160/motors'
+    assert manifest['read_only']
+    assert set(map(Path, manifest['source_sha256'])) == {
+        jetson / 'feetech_control.yaml', motors / 'cleany_so101_left.json', motors / 'cleany_so101_right.json'}

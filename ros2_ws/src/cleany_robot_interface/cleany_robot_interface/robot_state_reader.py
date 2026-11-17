@@ -8,7 +8,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 import yaml
 
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.reader import ReadOnlyBus, verify_arm_calibration
 from cleany_robot_interface.state_profile import head_positions
 
@@ -21,7 +21,8 @@ class RobotStateReader(Node):
             self.declare_parameter(name, '')
         self.declare_parameter('rate_hz', 20.0)
         read = lambda name: yaml.safe_load(Path(self.get_parameter(name).value).read_text())
-        arm, head = read('arm_config_file'), read('head_config_file')
+        arm_file = Path(self.get_parameter('arm_config_file').value)
+        arm, head = yaml.safe_load(arm_file.read_text()), read('head_config_file')
         self.head_mapping = read('head_mapping_file')
         head_positions([0, 0], self.head_mapping)
         if head['motor_ids'] != {'pan': 13, 'tilt': 14}:
@@ -29,7 +30,7 @@ class RobotStateReader(Node):
         shared_bus = Path(arm['port']).resolve() == Path(head['serial_port']).resolve()
         if shared_bus and int(arm['baudrate']) != int(head['baudrate']):
             raise ValueError('Shared arm/head bus requires the same baudrate')
-        directory = Path(arm['calibration_dir']).expanduser()
+        directory = motor_calibration_directory(arm_file, arm)
         calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                         for side, cfg in arm['arms'].items()}
         self.joints = mappings(arm, calibrations)

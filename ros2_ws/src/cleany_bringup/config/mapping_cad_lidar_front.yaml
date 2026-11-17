@@ -1,0 +1,30 @@
+schema_version: 1
+base_profile: base_hardware.yaml
+base_frame: base_link
+startup_timeout_s: 30
+mount:
+  translation_m:
+  - 0.139275
+  - 0.0
+  - 0.0
+  yaw_deg: 180.0
+  source: Cleany-final.FCStd (91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0);
+    user confirmed LiDAR side forward and matching physical assembly on 2026-11-04
+  scope: CAD -Y forward, +X left. XY is the nominal rotor center. yaw=180 deg retains
+    the Jetson front-target observation; z=0 is the existing planar convention, not
+    measured optical height.
+lidar:
+  serial_port: /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0
+  baudrate: 115200
+  frame_id: lidar_link
+  scan_mode: Sensitivity
+  inverted: false
+  angle_compensate: true
+agent:
+  serial_port: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00
+  baudrate: 115200
+scan_filter:
+  min_range_m: 0.3
+  half_angle_deg: 90
+teleop:
+  max_wheel_speed: 10.0

@@ -1,0 +1,50 @@
+# Operator-supervised normal-motion profile for the physical dual arm.
+# Values are runtime limits, not motor nameplate maxima. EEPROM calibration is unchanged.
+status: operator_supervised_operational
+update_rate: 50
+serial_timeout_ms: 20
+serial_read_retries: 1
+serial_read_recovery_budget_ms: 60
+max_state_age_s: 0.1
+temperature_limit_c: 55
+temperature_macd_fast_tau_s: 0.1
+temperature_macd_slow_tau_s: 0.5
+temperature_macd_signal_tau_s: 0.1
+# A faulted process leaves all commanded joints holding torque. A replacement
+# process may adopt that all-on hold only after status, temperature and goal
+# proximity checks; mixed or distant motor states remain rejected.
+allow_torque_on_recovery: true
+joint_defaults:
+  max_velocity: 2.0           # rad/s, command-stream bound
+  max_acceleration: 8.0       # rad/s^2, trajectory acceleration bound
+  tracking_error: 0.0         # supervised test: disable hardware tracking-error abort
+  speed_raw: 1304             # nearest encoder step/s to 2 rad/s; host bound is 2.0
+  acceleration_raw: 254       # motor response cap; host trajectory acceleration is bounded
+  torque_limit_raw: 800       # 80% RAM output limit; EEPROM maximum is unchanged
+joint_overrides:
+  left_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
+  right_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
+controller:
+  type: cleany_trajectory_controller/JointTrajectoryController
+  action_monitor_rate: 20.0   # Hz: progress feedback; terminal results use events
+  trajectory_tolerance: 0.0   # supervised test: disable in-motion JTC path tolerance
+  goal_tolerance: 0.10        # rad, about 5.73 degrees; supervised physical test tolerance
+  goal_time: 5.0              # seconds to settle
+
+# 2026-10-05/06: both calibrations expressed about user-aligned CAD references.
+# 2026-10-09: pitch bounds come from calibrated raw ranges in the current ROS mapping.
+# Nominal CAD bounds do not reject valid measured pitch states. Other limits remain explicit.
+calibrated_joint_position_bounds:
+  - right_shoulder_yaw_joint
+  - left_shoulder_yaw_joint
+  - left_shoulder_pitch_joint
+  - left_elbow_pitch_joint
+  - left_wrist_pitch_joint
+  - right_shoulder_pitch_joint
+  - right_elbow_pitch_joint
+  - right_wrist_pitch_joint
+  - left_wrist_roll_joint
+  - right_wrist_roll_joint
+  - left_gripper_joint
+  - right_gripper_joint
+joint_position_bounds: {}

@@ -35,7 +35,7 @@ Feetech 드라이버가 오류를 고정하면 취득 시각의 갱신이 멈춘
 ## 2. 토크 수동 제어
 
 선택한 팔의 토크는 `tools/{left,right}-arm-torque-on --control-config /absolute/path/to/limits.yaml`
-및 `tools/{left,right}-arm-torque-off`로 제어합니다. 상태 조회기나 컨트롤러가 같은 포트를 점유한 동안 실행하지 않습니다.
+및 `tools/{left,right}-arm-torque-off`로 제어합니다. Jetson에서 한 팔을 유지할 때는 저장소의 `configs/robot/jetson/feetech_operational_left_arm.yaml` 또는 `feetech_operational_right_arm.yaml`을 해당 팔에 지정합니다. 상태 조회기나 컨트롤러가 같은 포트를 점유한 동안 실행하지 않습니다.
 
 ## 보정된 카메라 TF
 

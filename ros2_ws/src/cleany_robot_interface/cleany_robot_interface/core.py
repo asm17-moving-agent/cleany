@@ -1,6 +1,7 @@
 """Pure visualization mapping, deliberately not a motion-control calibration."""
 from dataclasses import dataclass
 import math
+from pathlib import Path
 from typing import Literal
 
 JOINTS = ('shoulder_pan', 'shoulder_lift', 'elbow_flex',
@@ -10,6 +11,11 @@ JointLimitStatus = Literal[
     'within_limits', 'encoder_boundary',
     'outside_model_limits', 'outside_motor_limits',
 ]
+
+
+def motor_calibration_directory(arm_file: Path, config: dict) -> Path:
+    """Resolve the motor snapshot relative to the arm mapping that selects it."""
+    return arm_file.parent / Path(config['calibration_dir']).expanduser()
 
 
 @dataclass(frozen=True)

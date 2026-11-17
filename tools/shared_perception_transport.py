@@ -16,6 +16,7 @@ def shared_perception_rmw(settings: Mapping[str, str]) -> str:
 
 if __name__ == '__main__':
     import argparse
+    import os
     from cleany_dev_monitor.operator_jobs import runtime_settings
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -23,4 +24,4 @@ if __name__ == '__main__':
     parser.add_argument('--job', action='store_true', help='Resolve settings from a job JSON path')
     args = parser.parse_args()
     root = args.operator_directory.parent.parent if args.job else args.operator_directory
-    print(shared_perception_rmw(runtime_settings(root)))
+    print(shared_perception_rmw({**os.environ, **runtime_settings(root)}))

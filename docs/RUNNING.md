@@ -200,6 +200,9 @@ ros2 launch cleany_perception inspect_scene.launch.py gemini_model:=gemini-decis
 기존 분류기는 `gemini_model:=gemini-3.5-flash-lite`로 명시적으로 선택한다.
 native와 컨테이너의 `run-perception`은 선택한 YOLOE 프로파일의 `gemini_model`을
 읽고, `GEMINI_MODEL` 설정을 우선한다. 기본 운영 프로파일은 Decision을 사용한다.
+Jetson의 수동 인식은 현재 저장소의 기본 ROS 설치 경로를 사용한다. 별도 설치본은 `CLEANY_YOLOE_NATIVE_INSTALL`으로 지정한다.
+헤드 카메라는 `serial_no:=261822075013`일 때 설치된 `cleany_perception/config/jetson_head_intrinsics.json`을 읽는다. 다른 일련번호 또는 미지정 장치는 SDK 보정을 사용한다. `rgb_intrinsics_file:=...`로 보정 파일을 직접 지정할 수 있다. Jetson의 기본 native 인식은 장비 프로필에 따라 참조 관측과 손목 관측을 켜고 참조를 600초 동안 보존한다.
+
 두 실행기의 RGB-D 구독 기본값은 best-effort다. 컨테이너에서 reliable이 필요한
 입력은 `CLEANY_RGBD_QOS_RELIABILITY=reliable`로 명시한다.
 
@@ -522,6 +525,8 @@ make run-dev-monitor
 자동 시작하지 않습니다. 기록은 아래 절차로 별도 실행합니다. 웹 자산 갱신 후에는
 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다.
 
+수동 수거, 왼팔 파지와 운영 UI는 등록된 양팔 USB 어댑터가 연결되면 [Jetson 설정](../configs/robot/jetson/runtime.env)에서 수거 정책, 모터 제어와 동작 감시 파일을 읽는다. 이 장비에서 승인한 수거 정책은 `configs/robot/jetson/collection.json`에 있다. 다른 장비나 별도 프로필을 쓰는 경우 세 설정 파일을 함께 지정한다.
+
 ### Jetson 운영 UI와 작업 승인
 
 1. `make build-dev-monitor`로 웹과 ROS 패키지를 빌드한다. 처음 구성할 때는
@@ -533,9 +538,10 @@ make run-dev-monitor
    시작만으로 로봇 런타임이나 조작 Goal을 실행하지 않는다.
 3. 실물 동작을 사용할 때는 실행 중인 작업이 없는 상태에서 로봇별
    `CLEANY_MANIPULATION_COLLECTION_CONFIG`, `CLEANY_FEETECH_CONTROL_CONFIG`,
-   `CLEANY_HARDWARE_MONITOR_CONFIG`를 지정하고 웹 제어를 켠다.
+   `CLEANY_HARDWARE_MONITOR_CONFIG`를 지정하고 웹 제어를 켠다. 기존 운영자 설정을 새 클론 경로로 갱신할 때는 이전 경로를 export하지 않은 셸에서 아래와 같이 Jetson 프로필을 먼저 읽는다.
 
    ```bash
+   source configs/robot/jetson/runtime.env
    make dev-monitor-control-on
    make dev-monitor-control-key
    ```
@@ -759,7 +765,9 @@ Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나
 
 1. [개발환경](DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
 2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
-   별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
+   이 명령과 `tools/hardware-mapping`은 현재 저장소의 ROS 설치본, LiDAR 드라이버와 USB Agent의 설치 환경을 읽는다.
+   Jetson에서는 저장소의 `ros2_ws/src/cleany_bringup/config/mapping_cad_lidar_front.yaml`을 기본으로 읽는다. `profile:=...`으로 다른 프로필을 선택할 수 있다.
+   `make run-hardware-mapping HARDWARE_MAPPING_ARGS=--show-args`로 장치를 시작하기 전에 launch 인자를 확인한다.
 3. 현재 센서 장착과 일치하는 [프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
 
    FreeCAD와 같은 조립체이고 LiDAR 쪽이 전방이면 `mapping_cad_lidar_front.yaml`을
@@ -767,7 +775,7 @@ Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나
 
    ```bash
    ros2 launch cleany_bringup hardware_mapping.launch.py \
-     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"
+     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_cad_lidar_front.yaml"
    ```
 
 4. 로그의 조종 주소와 state_root/web-token 키로 접속한다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꾼다.

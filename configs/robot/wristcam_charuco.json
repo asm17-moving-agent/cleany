@@ -1,6 +1,6 @@
 {
-  "camera_device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.1.4:1.0-video-index0",
-  "camera_label": "left_wrist_usb_port_2.1.4_confirmed_20261008",
+  "camera_device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.2.4:1.0-video-index0",
+  "camera_label": "left_wrist_usb_port_2.2.4",
   "width": 640,
   "height": 480,
   "squares_x": 7,

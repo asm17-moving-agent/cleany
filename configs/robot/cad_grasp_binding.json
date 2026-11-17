@@ -1,6 +1,6 @@
 {
   "schema": "cleany.cad_grasp_binding/v1",
-  "pose_config_sha256": "320729ff1589c07059b70b52ce9bb9e8616dfce382724f80c0c60ae460356643",
+  "pose_config_sha256": "feb28352f22c8d73b4353ea17ae78cde3fd2991e376259a9b7fd989356143703",
   "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
   "joint_coordinates": {
     "cad_delta_left_shoulder_yaw": {
@@ -356,7 +356,7 @@
     "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/config/geometry/freecad_wrist_camera_depth.json": "530f0a48a310125b3c39b6d6affcefba76f91493340ee0ed2743ed3ab8c7fdf1",
     "~/.local/share/cleany/freecad-runtime/releases/20261106-02/ws/install/cleany_description/share/cleany_description/config/geometry/freecad_camera_frames.json": "86c6b91e17f07bac7a212b4c2b25db96f40214d46f9b8da565b9705b770adae5"
   },
-  "calibrated_geometry_model": "~/.config/cleany/camera-calibration/20261114-main-head-wrists/cad-review.urdf",
+  "calibrated_geometry_model": "configs/robot/jetson/calibration/cad-review.urdf",
   "calibrated_geometry_model_sha256": "80f349780083ca0a0b9708e28746c57ee25d6acb4aa019484d944596fab0d4ef",
   "reused_calibrated_origins": {
     "cad_delta_head_pan": {

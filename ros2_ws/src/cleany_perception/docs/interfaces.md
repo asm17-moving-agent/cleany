@@ -68,5 +68,5 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 기본값은 0.025초이며 출력 네 메시지는 RGB 원본 시각을 공유한다. 원본의
 시각 차이는 상태에 남기며, 출력 시각 일치가 하드웨어 동시 촬영을 뜻하지는
 않는다. RGB 해상도가 보정값과 다르거나 깊이 투영행렬이 유효하지 않으면
-처리하지 않는다. `realsense.launch.py`에서 내부값을 선택하면 SDK RGB를
+처리하지 않는다. `realsense.launch.py`는 `rgb_intrinsics_file`을 우선한다. 설정에 등록된 일련번호와 `serial_no`가 일치하면 패키지에 설치된 보정 파일을 사용한다. 일치하는 설정이 없으면 SDK 보정을 사용한다. 실측 보정 파일을 선택하면 SDK RGB를
 `/camera/sdk/color/*`로 옮기고 SDK 자동 정렬 대신 이 노드를 실행한다.
