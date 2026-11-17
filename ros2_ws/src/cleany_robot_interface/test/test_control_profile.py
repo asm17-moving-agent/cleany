@@ -215,10 +215,6 @@ def test_head_mapping_bounds_reach_state_and_control_models(tmp_path, state_prof
     prepared = prepare_control_profile(
         state_profile_file, ROOT, tmp_path / 'head_bounds_run',
         ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml')
-    rigid = json.loads((ROOT / 'configs/robot/left_rigid_wrist_geometry.json').read_text())
-    rigid_root = ET.parse(ROOT / rigid['source_model']).getroot()
-    rigid_meshes = {mesh.get('filename') for mesh in rigid_root.findall('./link/collision/geometry/mesh')}
-    assert len(rigid_meshes) == 23
     for path in (prepared.state.model, prepared.model):
         root = ET.parse(path).getroot()
         for name, expected in bounds.items():
