@@ -2,6 +2,52 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## 이벤트 결과 전달 검증
+
+[`benchmark_action_notifications.py`](../tools/validation/benchmark_action_notifications.py)는
+가상 모터 `mock_components/GenericSystem`과 실제 궤적 제어기를 연결한다.
+모터 드라이버는 로드하지 않으며, localhost ROS domain 219를 사용한다.
+
+1. Humble과 기존 의존 패키지의 overlay를 읽고 관련 패키지를 빌드한다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   # 별도 설치한 의존 패키지가 있으면 해당 setup.bash도 읽는다.
+   make build COLCON_BUILD_ARGS='--packages-select cleany_trajectory_controller cleany_robot_interface --parallel-workers 2'
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 프로파일의 제어기 선택과 종료 동작을 확인한다. `--functional-only`는
+   성능 비교를 생략하고 진행 상태를 1Hz로 낮춰 결과 전달을 검사한다.
+
+   ```bash
+   make test-jetson-control JETSON_CONTROL_TEST_PATHS='ros2_ws/src/cleany_robot_interface/test/test_control_profile.py'
+   export ROS_DOMAIN_ID=219 ROS_LOCALHOST_ONLY=1
+   python3 tools/validation/benchmark_action_notifications.py \
+     --output /tmp/cleany-action-events-functional --functional-only
+   ```
+
+   정상 완료, 허용 오차 실패, 취소와 완료 경쟁, 명령 교체, 잘못된 목표 거부,
+   비활성화와 재활성화를 확인한다. 종료 결과가 1초 피드백 주기를 기다리거나
+   예상 상태와 다르게 도착하면 실패한다.
+
+3. 성능 비교가 필요하면 같은 도구를 전체 모드로 실행한다.
+
+   ```bash
+   python3 tools/validation/benchmark_action_notifications.py \
+     --output /tmp/cleany-action-events-comparison --blocks 3 --trials 24
+   ```
+
+| 측정 항목 | 기준 |
+|---|---|
+| 비교 방식 | 기존 20Hz, 기존 100Hz, 이벤트 방식 20Hz; 블록별 실행 순서 변경 |
+| 입력 | 50Hz 제어 주기, 가상 제어기 4개 중 1개에 동일 난수 궤적 입력 |
+| 결과 전달 지연 | 제어기 성공 로그 시각부터 client 결과 callback까지 |
+| CPU | 제어기 프로세스 사용량; 논리 코어 하나가 100% |
+| 원본 | 출력 폴더의 `results.json`, 제어기 설정 YAML과 로그 |
+
+이 측정은 실물 이동 시간이나 전체 수거 주기 검증을 대신하지 않는다.
+
 ## FreeCAD 정적 기준 모델
 
 `make test-freecad-model`은 부품 해시, URDF의 시각·충돌 표면 일치, 단위와

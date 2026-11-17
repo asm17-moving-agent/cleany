@@ -100,7 +100,10 @@ def test_four_controllers_match_moveit_and_use_actual_position_feedback(prepared
                                              for side in ('left', 'right') for part in ('arm', 'gripper')}
     all_joints = []
     for name in prepared.controller_names:
+        assert config['controller_manager']['ros__parameters'][name]['type'] == (
+            'joint_trajectory_controller/JointTrajectoryController')
         params = config[name]['ros__parameters']
+        assert params['action_monitor_rate'] == 20.0
         assert params['joints'] == moveit[name]['joints']
         assert params['state_interfaces'] == ['position']
         assert params['open_loop_control'] is False
@@ -298,3 +301,34 @@ def test_front_shoulder_bounds_reach_planning_model_and_motor_driver(
         joint = model.find(f"ros2_control/joint[@name='{name}']")
         assert tuple(float(joint.find(f"param[@name='{k}']").text)
                      for k in ('lower', 'upper')) == expected
+
+
+@pytest.mark.parametrize('plugin,rate', [
+    ('cleany_trajectory_controller/JointTrajectoryController', 1.),
+    ('cleany_trajectory_controller/JointTrajectoryController', 20.),
+    ('joint_trajectory_controller/JointTrajectoryController', 100.),
+])
+def test_controller_transport_profile(tmp_path, state_profile_file, plugin, rate):
+    limits = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['controller'].update(type=plugin, action_monitor_rate=rate)
+    control = tmp_path/'notification.yaml'
+    control.write_text(yaml.safe_dump(limits))
+    prepared = prepare_control_profile(state_profile_file, ROOT, tmp_path/'run', control)
+    config = yaml.safe_load(prepared.controllers.read_text())
+    for name in prepared.controller_names:
+        assert config['controller_manager']['ros__parameters'][name]['type'] == plugin
+        assert config[name]['ros__parameters']['action_monitor_rate'] == rate
+
+
+@pytest.mark.parametrize('settings,field', [
+    ({'type': 'unknown/controller'}, 'type'),
+    *[({'action_monitor_rate': rate}, 'action_monitor_rate')
+      for rate in (0, 101, float('nan'), float('inf'), True, '20')],
+])
+def test_controller_transport_rejects_invalid_settings(tmp_path, state_profile_file, settings, field):
+    limits = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['controller'].update(settings)
+    control = tmp_path/'invalid-notification.yaml'
+    control.write_text(yaml.safe_dump(limits))
+    with pytest.raises(ValueError, match='controller.'+field):
+        prepare_control_profile(state_profile_file, ROOT, tmp_path/'run', control)

@@ -74,6 +74,14 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             or not set(selected) <= {j.name for j in mapped}):
         raise ValueError('command_joints must be a nonempty unique subset of arm/gripper joints')
     settings = limits['controller']
+    controller_type = settings.get('type', 'joint_trajectory_controller/JointTrajectoryController')
+    if controller_type not in ('joint_trajectory_controller/JointTrajectoryController',
+                                'cleany_trajectory_controller/JointTrajectoryController'):
+        raise ValueError('Unsupported controller.type')
+    action_rate = settings.get('action_monitor_rate', 20.0)
+    if (type(action_rate) not in (int, float) or not math.isfinite(action_rate)
+            or not 1 <= action_rate <= 100):
+        raise ValueError('controller.action_monitor_rate must be in [1, 100] Hz')
     for key in ('max_velocity', 'max_acceleration', 'speed_raw',
                 'acceleration_raw', 'torque_limit_raw'):
         if not math.isfinite(defaults[key]) or defaults[key] <= 0:
@@ -168,10 +176,10 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             joints = [j for j in joints if j in selected]
             if not joints:
                 continue
-            manager[name] = {'type': 'joint_trajectory_controller/JointTrajectoryController'}
+            manager[name] = {'type': controller_type}
             controllers[name] = {'ros__parameters': {
                 'joints': joints, 'command_interfaces': ['position'], 'state_interfaces': ['position'],
-                'state_publish_rate': float(rate), 'action_monitor_rate': 20.0,
+                'state_publish_rate': float(rate), 'action_monitor_rate': float(action_rate),
                 'open_loop_control': False, 'allow_partial_joints_goal': False,
                 'allow_nonzero_velocity_at_trajectory_end': False,
                 'constraints': {'goal_time': settings['goal_time'], 'stopped_velocity_tolerance': 0.0,

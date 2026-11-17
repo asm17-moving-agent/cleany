@@ -42,6 +42,12 @@ C++ 드라이버와 가상 시리얼 검사는 [테스트 가이드](../../../..
 
 ## 3. ROS 인터페이스
 
+팔과 그리퍼의 궤적 제어기는 제어 프로파일의 `controller.type`으로 선택한다.
+생략하면 기존 `joint_trajectory_controller/JointTrajectoryController`를 사용한다.
+이벤트 방식의 완료 결과 전달이 필요하면
+[`cleany_trajectory_controller/JointTrajectoryController`](../../cleany_trajectory_controller/docs/interfaces.md#설정)를
+지정한다. 두 제어기의 Action 이름과 메시지 타입은 동일하다.
+
 | 인터페이스 | 타입 | 설명 |
 |---|---|---|
 | `/{arm}_controller/follow_joint_trajectory` | `control_msgs/action/FollowJointTrajectory` | 팔 5관절 단위 표준 궤적 추종 액션 |

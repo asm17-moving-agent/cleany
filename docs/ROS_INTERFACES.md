@@ -456,3 +456,10 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 운영 adapter는 Monitor와 작업 worker에서 생성한다. 별도 ROS console 실행 파일을 추가하지 않는다.
 
 [ros-ekf-filter-node]: ../ros2_ws/src/cleany_base_driver/docs/interfaces.md#ekf_filter_node
+
+## 이벤트 궤적 제어기
+
+`cleany_trajectory_controller/JointTrajectoryController`는 팔과 그리퍼의 기존
+`FollowJointTrajectory` Action을 유지하면서 완료 결과를 이벤트로 전달한다.
+별도 노드 실행 파일은 추가하지 않는다. 설정과 취소 및 명령 교체 규약은
+[제어기 인터페이스](../ros2_ws/src/cleany_trajectory_controller/docs/interfaces.md)를 따른다.
