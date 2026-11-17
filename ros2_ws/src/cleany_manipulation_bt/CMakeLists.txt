@@ -15,6 +15,12 @@ install(DIRECTORY trees config launch DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS scripts/manipulation_mujoco_server scripts/manipulation_jetson_server scripts/manipulation_recovery scripts/arm_return DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(bt_backend test TIMEOUT 300 ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1")
+  # 파일별 실행으로 느린 검사와 종료 교착을 식별하며 전체 검사를 유지합니다.
+  file(GLOB_RECURSE bt_test_files CONFIGURE_DEPENDS "test/test_*.py")
+  foreach(test_file IN LISTS bt_test_files)
+    get_filename_component(test_name "${test_file}" NAME_WE)
+    ament_add_pytest_test(bt_${test_name} "${test_file}" TIMEOUT 60
+      ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1")
+  endforeach()
 endif()
 ament_package()

@@ -436,7 +436,7 @@ def test_sensor_profile_and_rtf(
     expected_topics = PROFILE_TOPICS[options.sensor_profile]
     expected_topic_set = set(expected_topics)
 
-    monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', str(100 + os.getpid() % 100)))
     partition = f'cleany_runtime_test_{uuid4().hex}'
     monkeypatch.setenv('IGN_PARTITION', partition)
     launch_environment = os.environ.copy()

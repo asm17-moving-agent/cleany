@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <thread>
+#include <xtensor/xrandom.hpp>
 
 #include "gtest/gtest.h"
 #include "rclcpp/rclcpp.hpp"
@@ -53,13 +54,42 @@ TEST(NoiseGeneratorTest, NoiseGeneratorLifecycle)
   generator.shutdown();
 }
 
+// 잡음 합산은 작업 스레드 시작 전에 검증합니다. reset()은 즉시 재생성을 요청합니다.
+class ControlledNoiseGenerator : public NoiseGenerator
+{
+public:
+  ~ControlledNoiseGenerator() {shutdown();}
+
+  bool waitForGeneration()
+  {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    while (std::chrono::steady_clock::now() < deadline) {
+      {
+        std::lock_guard<std::mutex> guard(noise_lock_);
+        if (!ready_) {
+          return true;
+        }
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+  }
+
+  void prepareZeroNoises(unsigned int batch_size, unsigned int time_steps)
+  {
+    noises_vx_ = xt::zeros<float>({batch_size, time_steps});
+    noises_vy_ = xt::zeros<float>({batch_size, time_steps});
+    noises_wz_ = xt::zeros<float>({batch_size, time_steps});
+  }
+};
+
 TEST(NoiseGeneratorTest, NoiseGeneratorMain)
 {
   // Tests shuts down internal thread cleanly
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("node");
   node->declare_parameter("test_name.regenerate_noises", rclcpp::ParameterValue(true));
   ParametersHandler handler(node);
-  NoiseGenerator generator;
+  ControlledNoiseGenerator generator;
   cleany_navigation::mppi::models::OptimizerSettings settings;
   settings.batch_size = 100;
   settings.time_steps = 25;
@@ -79,9 +109,8 @@ TEST(NoiseGeneratorTest, NoiseGeneratorMain)
   cleany_navigation::mppi::models::State state;
   state.reset(settings.batch_size, settings.time_steps);
 
-  // Request an update with no noise yet generated, should result in identical outputs
-  generator.initialize(settings, false, "test_name", &handler);
-  generator.reset(settings, false);  // sets initial sizing and zeros out noises
+  // 생성 전의 0 잡음은 제어 시퀀스를 그대로 전달해야 합니다.
+  generator.prepareZeroNoises(settings.batch_size, settings.time_steps);
   generator.setNoisedControls(state, control_sequence);
   EXPECT_EQ(state.cvx(0), 0);
   EXPECT_EQ(state.cvy(0), 0);
@@ -90,9 +119,13 @@ TEST(NoiseGeneratorTest, NoiseGeneratorMain)
   EXPECT_EQ(state.cvy(9), 9);
   EXPECT_EQ(state.cwz(9), 9);
 
-  // Request an update with noise requested
+  // 고정 난수열로 수치 검사를 재현하고, 실제 작업 스레드의 생성을 검증합니다.
+  xt::random::seed(0);
+  generator.initialize(settings, false, "test_name", &handler);
+  generator.reset(settings, false);
+  ASSERT_TRUE(generator.waitForGeneration());
   generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  ASSERT_TRUE(generator.waitForGeneration());
   generator.setNoisedControls(state, control_sequence);
   EXPECT_NE(state.cvx(0), 0);
   EXPECT_EQ(state.cvy(0), 0);  // Not populated in non-holonomic
@@ -110,8 +143,9 @@ TEST(NoiseGeneratorTest, NoiseGeneratorMain)
 
   // Test holonomic setting
   generator.reset(settings, true);  // Now holonomically
+  ASSERT_TRUE(generator.waitForGeneration());
   generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  ASSERT_TRUE(generator.waitForGeneration());
   generator.setNoisedControls(state, control_sequence);
   EXPECT_NE(state.cvx(0), 0);
   EXPECT_NE(state.cvy(0), 0);  // Now populated in non-holonomic

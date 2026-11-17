@@ -456,7 +456,7 @@ def test_navigation_sensor_tf_runtime(
     options = runtime_test_options
     _assert_environment()
 
-    monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', str(100 + os.getpid() % 100)))
     partition = f'cleany_navigation_test_{uuid4().hex}'
     monkeypatch.setenv('IGN_PARTITION', partition)
     launch_environment = os.environ.copy()
