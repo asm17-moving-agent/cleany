@@ -1,5 +1,9 @@
 # VISUALIZATION ONLY: directions and URDF zero offsets need physical verification.
 # Present_Position already includes motor EEPROM homing_offset; do not add it twice.
+# 2026-11-15: matches the active Jetson preview mapping after wrist/gripper rebasing.
+# Current motor ranges: calibration/jetson_20261115_open160/.
+# Separate wrist CAD center references: calibration/jetson_20261115/reference/.
+# Wrist-roll centers 1983/1967 are not the legacy URDF zeros below.
 port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
 baudrate: 1000000
 rate_hz: 20.0
@@ -14,8 +18,6 @@ joints:
   wrist_flex: {suffix: wrist_pitch_joint, direction: 1, zero_tick: 2048, offset_rad: 0.0}
   wrist_roll: {suffix: wrist_roll_joint, direction: 1, zero_tick: 2048, offset_rad: 1.5707963267948966}
   gripper: {suffix: gripper_joint, direction: 1, zero_tick: range_min, offset_rad: -0.37453297762778586}
-# Left reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/left_arm_ros_reference_20261005.json.
-# Right reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/right_arm_ros_reference_20261006.json.
 # Manual CAD alignment does not establish precise angle or force calibration.
 overrides:
   left:
@@ -23,19 +25,20 @@ overrides:
     shoulder_pan: {direction: -1, zero_tick: 2069.0, offset_rad: 0.0}
     shoulder_lift: {direction: -1, zero_tick: 3093.0, offset_rad: 0.0}
     elbow_flex: {direction: 1, zero_tick: 1026.0, offset_rad: 0.0}
-    wrist_flex: {direction: 1, zero_tick: 2007.0, offset_rad: 0.0}
+    # EEPROM coordinates shifted +1024; reassembled physical zero is unvalidated.
+    wrist_flex: {direction: 1, zero_tick: 3031.0, offset_rad: 0.0}
     # Wrist mount orientation matched to the user-confirmed RViz preview.
     wrist_roll: {direction: -1, zero_tick: 3018.5, offset_rad: 0.0}
-    # 2026-11-02: replacement ID 6, measured closed reference and reversed opening.
-    gripper: {direction: -1, zero_tick: 2689.0, offset_rad: -0.37453297762778587}
+    # 2026-11-15: maximum-open encoder reference; closing travel is 160 degrees.
+    gripper: {direction: -1, zero_tick: 2048.0, offset_rad: 2.4173120563240813}
   right:
-    # 2026-11-02: user-held URDF zero pose; medians of 60 stable samples.
-    shoulder_pan: {direction: -1, zero_tick: 2054.0, offset_rad: 0.0}
-    shoulder_lift: {direction: -1, zero_tick: 3102.0, offset_rad: 0.0}
-    # ID 9 refined against the left elbow at the user-confirmed equal folded pose.
-    elbow_flex: {direction: 1, zero_tick: 1034.0, offset_rad: 0.0}
-    wrist_flex: {direction: 1, zero_tick: 1987.0, offset_rad: 0.0}
+    # References retained from the active 2026-11-14 camera/arm mapping.
+    shoulder_pan: {direction: -1, zero_tick: 2049.0, offset_rad: 0.0}
+    shoulder_lift: {direction: -1, zero_tick: 2745.0, offset_rad: 0.0}
+    elbow_flex: {direction: 1, zero_tick: 1036.0, offset_rad: 0.0}
+    # EEPROM coordinates shifted +1024; reassembled physical zero is unvalidated.
+    wrist_flex: {direction: 1, zero_tick: 3034.0, offset_rad: 0.0}
     # Wrist mount orientation matched to the user-confirmed RViz preview.
-    wrist_roll: {direction: -1, zero_tick: 3137.5, offset_rad: 0.0}
-    # 2026-11-02: replacement ID 12, measured closed reference and reversed opening.
-    gripper: {direction: -1, zero_tick: 2851.0, offset_rad: -0.37453297762778587}
+    wrist_roll: {direction: -1, zero_tick: 3030.5, offset_rad: 0.0}
+    # 2026-11-15: maximum-open encoder reference; closing travel is 160 degrees.
+    gripper: {direction: -1, zero_tick: 2048.0, offset_rad: 2.4173120563240813}

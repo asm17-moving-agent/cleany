@@ -1,5 +1,20 @@
 # 캘리브레이션 작업 가이드
 
+## 2026-11-15 양팔 보정과 그리퍼 복원 기준
+
+양팔 모터의 영점과 범위는 [현장 보정 기록](../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json)에 보관한다.
+이후 [개방 0° 보정](../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/manifest.json)에서 그리퍼 6번과 12번만 갱신했다.
+
+| 모터 | Homing offset | 최대 개방 | 닫힘 목표 |
+| --- | ---: | ---: | ---: |
+| 6, 왼쪽 | −1400 | 2048 tick | 3868 tick |
+| 12, 오른쪽 | −1618 | 2048 tick | 3868 tick |
+
+모터 혼 정면에서 시계 방향 닫힘 160°는 1820 tick이다. 모터 보정 JSON,
+EEPROM 읽기 근거와 로봇별 설정에 병합할 조각은 스냅샷에 담았다.
+실측은 양쪽 닫힘 목표 도달을 확인했다. 왕복 동작, 개구 폭 곡선과 힘은
+이 측정에서 검증하지 않았다.
+
 ## LiDAR 평면 extrinsic
 
 [`wheel_odometry_evaluation.json`](../configs/mission/wheel_odometry_evaluation.json)은

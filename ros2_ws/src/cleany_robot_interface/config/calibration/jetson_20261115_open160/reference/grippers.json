@@ -1,0 +1,88 @@
+{
+  "reference": "maximum open",
+  "open_angle_deg": 0,
+  "closing_requested_angle_deg": 160,
+  "closing_encoded_angle_deg": 159.9609375,
+  "closing_direction": "clockwise viewed from horn",
+  "open_tick": 2048,
+  "closing_target_tick": 3868,
+  "encoder_ticks_per_turn": 4096,
+  "motor_open_angle_degrees_formula": "(position_raw - 2048) * 360 / 4096",
+  "operator_reference_sources": {
+    "6": {
+      "side": "left",
+      "previous_offset": 453,
+      "previous_open_tick": 195,
+      "homing_offset": -1400,
+      "reference_source": "operator confirmed new maximum opening in this turn"
+    },
+    "12": {
+      "side": "right",
+      "previous_offset": 89,
+      "previous_open_tick": 341,
+      "homing_offset": -1618,
+      "reference_source": "previous operator-confirmed maximum opening preserved; prior run unified-150"
+    }
+  },
+  "software": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z/software-install-result.json",
+  "operator_natural_closure_confirmation": "confirmed",
+  "confirmation": {
+    "utc": "2026-11-15T04:58:11.033429+00:00",
+    "user_statement": "음 잘되었다",
+    "context": "Operator confirmed both grippers after the 160-degree closing motion and request to check natural jaw closure.",
+    "both_grippers_closing_confirmed": true,
+    "reference": "maximum open = 0 degrees",
+    "closing_direction": "clockwise viewed from horn",
+    "closing_requested_degrees": 160
+  },
+  "motion_results": {
+    "status": "passed",
+    "utc": "2026-11-15T04:57:01.148871+00:00",
+    "driver": "cleany_feetech_hardware/FeetechSystem",
+    "physical_reference": "maximum open = 0 degrees",
+    "open_tick": 2048,
+    "closing_target_tick": 3868,
+    "requested_closing_angle_deg": 160,
+    "encoded_target_angle_deg": 159.9609375,
+    "peak_trajectory_velocity_rad_s": 0.06,
+    "all_motors_torque_off": true,
+    "single_extended_coordinates_match": true,
+    "calibration_preserved": true,
+    "other_motor_configuration_unchanged": true,
+    "operator_natural_closure_confirmation": "confirmed",
+    "results": {
+      "left": {
+        "action_status": 4,
+        "error_code": 0,
+        "actual_tick": 3862,
+        "target_error_ticks": -6,
+        "reference_angle_deg": 159.43359375,
+        "maxima": {
+          "temperature_raw": 84.0,
+          "temperature": 40.200538356499685,
+          "current_raw": 4.0,
+          "load_magnitude_raw": 84.0
+        },
+        "evidence": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z/native-close-left"
+      },
+      "right": {
+        "action_status": 4,
+        "error_code": 0,
+        "actual_tick": 3865,
+        "target_error_ticks": -3,
+        "reference_angle_deg": 159.697265625,
+        "maxima": {
+          "temperature_raw": 42.0,
+          "temperature": 36.515038502867775,
+          "current_raw": 2.0,
+          "load_magnitude_raw": 52.0
+        },
+        "evidence": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z/native-close-right"
+      }
+    },
+    "operator_confirmation_utc": "2026-11-15T04:58:11.033429+00:00",
+    "operator_confirmation_evidence": "/home/cleany/cleany-data/runs/gripper-open-reference-160-20261115T044436Z/operator-closing-confirmation.json"
+  },
+  "aperture_curve_measured": false,
+  "force_calibrated": false
+}

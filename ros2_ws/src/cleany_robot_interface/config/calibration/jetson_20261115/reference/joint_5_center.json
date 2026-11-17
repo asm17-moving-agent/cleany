@@ -1,0 +1,36 @@
+{
+  "motor_id": 5,
+  "units": "encoder_ticks",
+  "center_ticks": 1983,
+  "homing_offset": 1784,
+  "reference_type": "operator_confirmed_current_wrist_roll_center",
+  "recorded_at_utc": "2026-11-14T16:31:00.711033+00:00",
+  "confirmed_at_utc": "2026-11-14T16:31:49.616661+00:00",
+  "user_instruction": "5,11 중앙점 읽어서 캘리브레이션 저장",
+  "sample_count": 40,
+  "sample_span_ticks": 0,
+  "applied_to_motor": false,
+  "endpoint_limits_confirmed": false,
+  "powered_motion_verification": {
+    "performed": false,
+    "scope": "new center reference"
+  },
+  "source_measurement": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T163100.710831Z_joint_5_11_centers_measurement.json",
+  "cad_reference": {
+    "model": "freecad_kinematic / PincOpen",
+    "joint_name": "cad_delta_left_wrist_roll",
+    "angle_rad": 0.0,
+    "angle_deg": 0.0,
+    "encoder_tick": 1983,
+    "confirmation": "operator_designated_current_center",
+    "confirmed_at_utc": "2026-11-14T16:31:49.616661+00:00",
+    "encoder_direction": -1,
+    "scope": "Current operator-defined center; encoder direction -1 inherited from prior reference. No new powered or CAD alignment test.",
+    "encoder_direction_confirmation": "operator_declared_clockwise_sweep_viewed_from_base_outward_with_decreasing_encoder",
+    "encoder_scale_rad_per_tick": 0.0015339807878856412,
+    "mapping_formula": "cad_delta_left_wrist_roll_rad = -(tick - 1983) * 2*pi / 4096",
+    "direction_source_log": "20261109T183503Z_joint5_manual_clockwise.jsonl",
+    "direction_confirmed_at_utc": "2026-11-09T18:35:40.348219+00:00"
+  },
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_5_center.json"
+}

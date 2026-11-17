@@ -1,0 +1,44 @@
+{
+  "motor_id": 8,
+  "units": "encoder_ticks",
+  "status": "both_contact_endpoints_operator_confirmed",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "decreasing": {
+      "position_ticks": 827,
+      "confirmation": "operator_reported_contact",
+      "confirmed_at": "2026-11-14T13:54:09.105928+00:00",
+      "user_reply": "ㅇㅇ됨",
+      "stop_reason": "no_progress",
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 8,
+      "max_load_raw": 72,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T135133.295893Z_native_dlpf_2_8_sweep_lower.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/dlpf_2_8_bilateral_sweep_audit.json"
+    },
+    "increasing": {
+      "position_ticks": 3215,
+      "confirmation": "operator_reported_contact",
+      "confirmed_at": "2026-11-14T13:54:09.105928+00:00",
+      "user_reply": "ㅇㅇ됨",
+      "stop_reason": "no_progress",
+      "torque_cap_raw": 300,
+      "speed_raw": 10,
+      "acceleration_raw": 1,
+      "max_current_raw": 9,
+      "max_load_raw": 72,
+      "source_log": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/20261114T135231.493038Z_native_dlpf_2_8_sweep_upper.jsonl",
+      "source_audit": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/dlpf_2_8_bilateral_sweep_audit.json"
+    }
+  },
+  "contact_range_ticks": [
+    827,
+    3215
+  ],
+  "homing_offset": -1875,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_8_endpoints.json"
+}
