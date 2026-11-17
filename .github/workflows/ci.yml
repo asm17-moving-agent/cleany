@@ -176,7 +176,10 @@ jobs:
 
       - name: Build workspace
         id: build
-        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200 -- make build COLCON_BUILD_ARGS=--cmake-force-configure
+        run: >-
+          tools/ci/run env CLEANY_MPPI_PORTABLE_BUILD=1
+          python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200
+          -- make build COLCON_BUILD_ARGS=--cmake-force-configure
 
       - name: Test workspace contracts in parallel
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

@@ -27,7 +27,12 @@ foreach(target cleany_mppi_controller cleany_mppi_critics)
   target_include_directories(${target} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:include> ${xsimd_INCLUDE_DIRS})
-  target_link_libraries(${target} xtensor xtensor::optimize xtensor::use_xsimd)
+  target_link_libraries(${target} xtensor)
+  # CI runners can reuse compiler cache entries across different CPU models.
+  if(NOT "$ENV{CLEANY_MPPI_PORTABLE_BUILD}" STREQUAL "1")
+    target_link_libraries(${target} xtensor::optimize)
+  endif()
+  target_link_libraries(${target} xtensor::use_xsimd)
   ament_target_dependencies(${target} ${mppi_dependencies})
 endforeach()
 install(TARGETS cleany_mppi_controller cleany_mppi_critics

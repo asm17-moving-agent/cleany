@@ -351,6 +351,9 @@ CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 
 | ccache | compiler 내용, 소스, header와 옵션에 따라 hit/miss 결정 | 빌드 명령은 매번 실행하며 CTest/pytest 결과는 캐시하지 않음 |
 | 같은 실행의 workspace | 전체 빌드 완료 후 runtime 검사에서 재사용 | 다른 실행의 `build/`, `install/`, test result는 복원하지 않음 |
 
+GitHub CI는 workspace 빌드에 `CLEANY_MPPI_PORTABLE_BUILD=1`을 전달합니다.
+MPPI는 xsimd를 사용하고, 러너 CPU에 따라 달라지는 `-march=native`를 제외합니다.
+
 이미지 key가 없으면 digest로 고정한 [기존 이미지 후보](../containers/ci/compatible-image.json)를 검사합니다.
 설치 스크립트, 저장소 시점, Python 버전, rosdep 규칙과 platform이 같아야 후보로 선택합니다.
 후보 컨테이너에서 현재 manifest의 `rosdep check`와 현재 버전 검사를 모두 통과한 경우에만
