@@ -9,16 +9,16 @@ from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.hardware_execution import collision_contact_details, transient_octomap_arm_collision
 
 
-@pytest.mark.parametrize('arm,zero,closed', [('left',1345,1358),('right',1359,1372)])
+@pytest.mark.parametrize('arm,zero,closed', [('left',2689,2676),('right',2851,2838)])
 def test_contact_close_uses_each_motor_raw_goal_through_physical_calibration(arm, zero, closed):
     from cleany_skill_executor.hardware_execution import HardwareExecution
     from cleany_skill_executor.core.gripper_contact import load_contact_criteria
     root = Path(__file__).resolve().parents[4]
     limit = PhysicalJointLimit(-.374532977628,1.74532919957,1.,2.,
-                               zero,1.,-.374532977628,zero,zero+1394)
+                               zero,-1.,-.374532977628,zero-1394,zero)
     node = NS(contact_criteria=load_contact_criteria(root/'configs/robot/gripper_contact_decision.yaml'))
     target = HardwareExecution.closed_contact_position(node, arm, {f'{arm}_gripper_joint':limit})
-    assert round(limit.zero+(target-limit.offset)*4096/math.tau) == closed
+    assert round(limit.zero+(target-limit.offset)*4096/math.tau/limit.direction) == closed
 
 
 def test_hardware_retimer_obeys_driver_limits_and_encoder_bounds():
@@ -115,7 +115,7 @@ def test_release_at_upper_limit_preserves_goal_without_relaxing_range_checks(out
             bounded_path(*args, velocity=1., acceleration=2.)
     else:
         samples, _ = bounded_path(*args, velocity=1., acceleration=2.)
-        assert len(samples) == 275
+        assert len(samples) == 184
         assert samples[-1].positions == (goal,)
         assert round(limit.zero+(goal-limit.offset)*4096/math.tau) == 2727
 
@@ -588,7 +588,8 @@ def test_guard_fault_latches_even_after_ready_and_rejects_stale_status(monkeypat
 
 
 @pytest.mark.parametrize('enabled', [None, True, False])
-def test_uncommanded_motion_switch_is_loaded_from_ros_parameters(enabled):
+@pytest.mark.parametrize('limit_scale', [.8, 1.])
+def test_uncommanded_motion_switch_is_loaded_from_ros_parameters(enabled, limit_scale):
     import rclpy
     from rclpy.context import Context
     from rclpy.node import Node
@@ -596,11 +597,16 @@ def test_uncommanded_motion_switch_is_loaded_from_ros_parameters(enabled):
     from cleany_skill_executor.hardware_execution import HardwareExecution
     context = Context()
     rclpy.init(context=context)
-    node = Node('uncommanded_motion_test', context=context, parameter_overrides=(
-        [] if enabled is None else [Parameter('hardware_uncommanded_motion_check_enabled', value=enabled)]))
+    overrides = [Parameter('hardware_trajectory_limit_scale', value=limit_scale)]
+    if enabled is not None:
+        overrides.append(Parameter('hardware_uncommanded_motion_check_enabled', value=enabled))
+    node = Node('uncommanded_motion_test', context=context, parameter_overrides=overrides)
     try:
         execution = HardwareExecution(node)
         assert execution.uncommanded_motion_check_enabled is (True if enabled is None else enabled)
+        assert execution.trajectory_limit_scale == limit_scale
+        changed = node.set_parameters([Parameter('hardware_trajectory_limit_scale', value=.5)])
+        assert not changed[0].successful
     finally:
         node.destroy_node()
         rclpy.shutdown(context=context)

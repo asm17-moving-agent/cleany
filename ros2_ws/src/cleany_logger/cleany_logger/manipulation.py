@@ -10,6 +10,7 @@ from typing import Any
 class ObservedExecution:
     record: dict[str, Any]
     received_at: float
+    last_seen_at: float = 0.
     intervals: list[dict[str, Any]] = field(default_factory=list)
     partial: bool = False
     clock_regressed: bool = False
@@ -25,7 +26,7 @@ class ManipulationObserver:
         self.executions: OrderedDict[str, ObservedExecution] = OrderedDict()
         self.evicted = 0
 
-    def ingest(self, record: dict[str, Any], received_at: float) -> bool:
+    def ingest(self, record: dict[str, Any], received_at: float, *, heartbeat: bool = False) -> bool:
         execution_id = record.get("execution_id")
         revision = record.get("revision")
         updated = record.get("updated_at_ns")
@@ -35,6 +36,10 @@ class ManipulationObserver:
             raise ValueError("Invalid manipulation execution identity or timestamp")
         observed = self.executions.get(execution_id)
         if observed and revision <= observed.record["revision"]:
+            if (heartbeat and record == observed.record and not record.get("has_result")
+                    and record.get("record_state") == "ACTIVE"):
+                observed.last_seen_at = received_at
+                return True
             return False  # Retained/repeated progress cannot replace newer evidence.
         gap = revision > 0 if observed is None else revision != observed.record["revision"] + 1
         if observed is None:
@@ -67,10 +72,11 @@ class ManipulationObserver:
             current["end_ns"] = updated if updated >= current["start_ns"] else None
         observed.record = deepcopy(record)
         observed.received_at = received_at
+        observed.last_seen_at = received_at
         return True
 
     def snapshot(self) -> dict[str, Any]:
-        runs = [dict(record=value.record, received_at=value.received_at,
+        runs = [dict(record=value.record, received_at=value.received_at, last_seen_at=value.last_seen_at,
                      intervals=value.intervals, partial=value.partial,
                      clock_regressed=value.clock_regressed)
                 for value in self.executions.values()]

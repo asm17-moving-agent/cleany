@@ -1,5 +1,60 @@
 # 캘리브레이션 작업 가이드
 
+## 2026-11-09 머리 모터 교체와 허용 범위
+
+사용자가 지정한 좌우 끝과 상하 끝을 각각 5 Hz로 15회 수집해 다음 범위를
+등록했다. 각 끝점의 15개 tick은 모두 같았다. 14번의 정면 영점은 별도로
+수집한 425 tick이며 13번은 2009 tick을 사용한다.
+
+| 모터 | 허용 tick 범위 | 정면 영점 tick | 정면 기준 각도 범위 |
+|---|---|---|---|
+| 13번 좌우 | 8~4001 | 2009 | −175.078125°~+175.869141° |
+| 14번 상하 | 44~1101 | 425 | −33.486328°~+59.414063° |
+
+모터 EEPROM의 최소 위치 주소 9와 최대 위치 주소 11에 범위를 저장하고
+잠금 주소 55를 다시 잠갔다. 포트를 닫았다 다시 열어 저장값과 토크 OFF를
+확인했다. 회전 방향은 왼쪽 및 위쪽 이동에서 raw tick이 감소하는 측정과
+대조했다.
+
+운영 매핑은 `configs/robot/head_preview_joints.json`이며
+`joint_position_bounds`의 rad 범위를 상태 모델과 제어 모델에 적용한다.
+읽기 전용 RViz의 별도 매핑은 Jetson
+`~/.config/cleany/head-rviz-mapping.json`에 저장한다. 원본 측정, 변경 전 값과
+적용 검증은 [실행 근거](EVIDENCE.md)에 연결한다.
+
+## 양팔의 수동 ROS 영점 정렬
+
+2026-11-02에 사용자가 양팔을 차례로 URDF의 다섯 관절이 모두 0 rad인
+자세로 유지한 상태에서 ID 1–5와 7–11의 엔코더를 읽었다. 현재 운영 설정
+`cleany_robot_interface/config/arm_preview.yaml`은 다음 `zero_tick`을 사용한다.
+
+| 관절 | 왼팔 모터 | 왼팔 영점 tick | 오른팔 모터 | 오른팔 영점 tick |
+|---|---:|---:|---:|---:|
+| shoulder_pan | 1 | 1997 | 7 | 2042 |
+| shoulder_lift | 2 | 3075 | 8 | 3111 |
+| elbow_flex | 3 | 1066 | 9 | 997 |
+| wrist_flex | 4 | 1995 | 10 | 2081 |
+| wrist_roll | 5 | 3092.5 | 11 | 3055.5 |
+
+초기값은 20 Hz로 읽은 연속 60개 표본의 중앙값이다. 오른팔 팔꿈치의 최종
+영점은 사용자가 양쪽 팔꿈치의 접힘 각도가 같다고 지정한 자세에서
+왼쪽 ID 3의 ROS 각도와 일치하도록 보완한 값이다. 이는 왼팔 기준의
+상대 각도 보정이다. 채택한 구간의 관절별
+최대 변동은 양팔 모두 8 tick 이하였다. `direction`과 `offset_rad`, 양쪽
+그리퍼와 모터 EEPROM은 변경하지 않았다. 이는 사용자 수동 정렬에 대한
+기준점이며 절대 각도 정확도나 구동 검증 결과가 아니다.
+
+손목 회전은 실물의 양쪽 카메라 마운트가 위쪽을 향하는 자세를 기준으로
+RViz에서 방향을 확인한 뒤 보완했다. 현재 영점은 이 미리보기의 회전량을
+실측 tick의 ROS 변환에 반영한 값이다. 카메라 외부 보정과 다른 관절 값은
+유지했으며, 시각적 방향 확인을 카메라 광학축의 정밀 보정으로 간주하지 않는다.
+
+다시 정렬할 때는 제어기와 조회 프로세스의 포트 점유를 해제하고, 토크가
+꺼진 팔을 기준 자세로 지지한 뒤 안정된 엔코더 구간을 수집한다. 현재 팔의
+`offset_rad`는 0이므로 해당 중앙값을 `zero_tick`으로 사용한다. 새 설정은
+읽기 전용 상태 조회 또는 제어 프로세스가 다음에 시작할 때 읽는다.
+원본 측정과 적용 근거는 [실행 근거](EVIDENCE.md)를 따른다.
+
 ## Jetson 실물 모델과 2026-10-09 보정 프로파일
 
 `cleany_description/config/calibration/jetson_20261009/`는 Jetson에서 사용한
@@ -28,13 +83,13 @@ v8 손목 마운트 형상 반영 시 Jetson의 양손목 외부 보정 파일�
 
 ```bash
 ros2 launch cleany_description description.launch.py \
-  use_sim_time:=false calibration_profile:=jetson_20261009
+  model_variant:=legacy_runtime use_sim_time:=false calibration_profile:=jetson_20261009
 ```
 
 이 launch는 `robot_state_publisher`만 실행한다. 관절 상태는 별도 `/joint_states`
 입력이 필요하며, 저장된 encoder 영점으로 tick을 변환하거나 모터를 제어하지 않는다.
-`calibration_profile`의 기본값은 빈 문자열이다. 기본 실행은 명목 헤드 TF를
-유지하고 손목 보정 optical frame을 추가하지 않는다.
+`calibration_profile`의 기본값은 빈 문자열이다. `legacy_runtime`에서 보정을 지정하지
+않으면 명목 헤드 TF를 유지하고 손목 보정 optical frame을 추가하지 않는다.
 
 노드를 실행하지 않고 보정된 URDF만 확인하려면 다음 명령을 사용한다.
 
@@ -195,3 +250,34 @@ make handeye-validate-mujoco \
 
 위 근거와 사용한 설정을 보존한 뒤에만 `calibrated=true`를 적용한다. 평면의 좌우 중심은
 ToF만으로 관측되지 않으므로 staging 위치와 팔 도달성은 별도 검증한다.
+
+## 저장된 손목 영상으로 기구학 보정
+
+`tools/kinematics_calibration/fit.py`는 실물 모터에 연결하지 않고 기존 ChArUco 영상의 대응점과 실제 엔코더 피드백으로 관절 영점, 회전축 방향, 두 링크의 길이 보정을 추정한다. 리밋, EEPROM, 운영 URDF와 카메라 TF는 변경하지 않는다. NumPy, SciPy, OpenCV가 필요하다.
+
+입력 JSON은 `urdf`, `datasets`, `priors`, `training_folds`, `max_evaluations`를 지정한다. `datasets`의 각 항목은 동결된 `extrinsics`와 `intrinsics` 결과 JSON 경로다. 해당 결과가 참조하는 원본 dataset과 split manifest도 존재해야 한다. 도구는 URDF, manifest, intrinsics, split, 표본 record와 원본 이미지의 해시를 대조한다.
+
+```json
+{
+  "urdf": "/absolute/path/cleany_freecad_kinematic.urdf",
+  "datasets": [
+    {"extrinsics": "/absolute/path/left-extrinsics.json", "intrinsics": "/absolute/path/left-intrinsics.json"}
+  ],
+  "training_folds": 4,
+  "max_evaluations": 240,
+  "priors": {"zero_sigma_deg": 10, "axis_sigma_deg": 2, "length_sigma_m": 0.003, "pixel_sigma_px": 1.0}
+}
+```
+
+```bash
+OPENBLAS_NUM_THREADS=1 python3 -s tools/kinematics_calibration/fit.py \
+  --config "$CLEANY_DATA_ROOT/kinematics_calibration/inputs.json" \
+  --output "$CLEANY_DATA_ROOT/kinematics_calibration/new-fit"
+python3 -s -m pytest tests/tools/test_kinematics_calibration.py -q
+```
+
+출력 디렉터리는 새 경로여야 한다. 카메라 장착 변환만 조정하는 모델부터 중간 세 관절의 영점, 네 축의 방향, 팔 위쪽과 아래쪽 링크 길이를 순서대로 추가한다. 마지막 `screw_axes` 모델은 링크 길이 두 개 대신 각 회전축의 위치를 축에 수직인 두 방향으로 보정한다. 기존 학습 표본 20장 안에서 교차 검증하고, 최적 평균 오차의 표준오차 하나 이내인 가장 단순한 모델을 선택한다. 남겨둔 5장은 모델 선택에 사용하지 않는다. 엔코더 각도 배율은 4096 tick/rev로 유지한다.
+
+첫 관절과 마지막 관절의 영점은 각각 보드 위치와 카메라 장착 변환에 흡수될 수 있어 입력 기준에 고정한다. 나머지 보정에는 지정한 표준편차의 prior와 5배 경계를 사용한다. 픽셀 잔차는 `pixel_sigma_px`로 나눈 뒤 prior와 결합한다. 원본 CAD 대비 축 보정, 링크 길이 보정, 카메라 장착 위치 차이와 경계 도달 여부를 함께 검토한다. `axis_line_offsets_m`가 있는 결과는 `joint_motion_convention`의 축 위치 이동을 포함해서 FK를 계산해야 한다. 결과의 `scaled_measurement_jacobian_rank`는 prior를 제외한 측정 정보의 수치적 rank이며, 물리 파라미터의 독립 측정을 대신하지 않는다.
+
+결과는 항상 `review_only`다. 영상 재투영 오차 감소만으로 실제 공구 위치 정확도나 반복 정밀도를 보장하지 않는다. 실제 링크의 독립 기준 측정과 요구 정확도 검증 후 운영 모델 반영을 별도로 결정한다.

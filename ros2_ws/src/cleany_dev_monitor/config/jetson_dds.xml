@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain Id="any">
+    <General>
+      <!-- The monitor remains available while the vision bridge is down. -->
+      <Interfaces><NetworkInterface autodetermine="true" multicast="false" /></Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+      <MaxMessageSize>1456B</MaxMessageSize>
+    </General>
+    <Internal><SocketReceiveBufferSize min="default" max="8MiB" /></Internal>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>64</MaxAutoParticipantIndex>
+      <Peers>
+        <Peer Address="127.0.0.1" />
+        <Peer Address="172.30.0.1" />
+        <Peer Address="172.30.0.10" />
+        <Peer Address="172.30.0.11" />
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>

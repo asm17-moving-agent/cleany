@@ -26,14 +26,17 @@ def test_ros_evidence_service_fuses_fresh_identity_load_and_tracking():
     def publish():
         stamp=source.get_clock().now().to_msg()
         rows=[]
-        for goal in (1358,1372):
+        for arm in ('left','right'):
+            criteria=node.histories[arm].criteria
+            goal=criteria.closed_goal_raw
             values={
                 'feedback_stamp_ns':float(stamp.sec*10**9+stamp.nanosec),
-                'current_limit_raw':250., 'position_raw':float(goal+(6 if control['empty'] else 340)),
+                'current_limit_raw':float(criteria.current_stop_raw),
+                'position_raw':float(goal+criteria.opening_direction*(6 if control['empty'] else 340)),
                 'goal_position_raw':float(goal), 'current_raw':1. if control['empty'] else 18.,
                 'load_magnitude_raw':36. if control['empty'] else 200.,
                 'torque_enabled':1.,'moving_flag':0.,'motor_status_raw':0.,
-                'protocol_error_code':0.,'torque_limit_readback_raw':200.,
+                'protocol_error_code':0.,'torque_limit_readback_raw':float(criteria.output_limit_raw),
                 'voltage_raw':120.,'temperature_raw':35.}
             if control['missing']:values.pop('current_raw')
             rows.append(InterfaceValue(interface_names=list(values),values=list(values.values())))

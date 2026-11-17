@@ -23,6 +23,7 @@ export type Interval = {
 export type Run = {
   record: Data;
   received_at: number;
+  last_seen_at?: number;
   intervals: Interval[];
   partial: boolean;
   clock_regressed: boolean;
@@ -139,10 +140,17 @@ export function manipulationObservation(
     (row) => row.kind === "manipulation" && row.key === "executions",
   );
   const runs: Run[] = summary?.data.executions || [];
+  const requestRow = rows.find((row) => row.kind === "manipulation_request");
+  const request = requestRow?.data;
   return {
     runtime,
+    serverMode: config.manipulation_observation_mode === "server",
+    timeAt,
+    live: replay || connected,
     summary,
     runs,
+    request,
+    requestFresh: fresh(requestRow) && request?.owner_alive === true,
     topic,
     runtimeFresh: fresh(runtimeRow),
     serverPresent: fresh(graphRow) && !!endpoint?.publishers?.length,
@@ -155,6 +163,20 @@ export function currentExecution(
 ): boolean {
   const { runtime, runtimeFresh, serverPresent } = observation;
   const record = run?.record;
+  if (observation.serverMode) {
+    const latest = observation.runs[0];
+    return (
+      !!record &&
+      latest?.record.execution_id === record.execution_id &&
+      record.execution_profile === "jetson" &&
+      record.record_state === "ACTIVE" &&
+      !record.has_result &&
+      observation.live &&
+      serverPresent &&
+      Math.max(0, observation.timeAt - (run.last_seen_at ?? run.received_at)) <
+        3
+    );
+  }
   return (
     !!record &&
     !record.has_result &&
@@ -174,6 +196,13 @@ export function missionExecutions(
   observation: ReturnType<typeof manipulationObservation>,
 ) {
   const { runtime, runs } = observation;
+  if (observation.serverMode)
+    return {
+      mission: undefined,
+      matching: runs,
+      automatic: runs[0],
+      execution: runs[0]?.record.execution_id,
+    };
   const mission =
     runtime.active_request?.mission_id ||
     runtime.last_result?.request?.mission_id;
@@ -201,6 +230,7 @@ export const objectLabels: Record<string, string> = {
   UNKNOWN: "미확인",
 };
 export const placementLabels: Record<string, string> = {
+  ASSUMED: "임시 가정",
   CONFIRMED: "안착 확인",
   NOT_CHECKED: "검증 전",
   NOT_CONFIRMED: "안착 미확인",

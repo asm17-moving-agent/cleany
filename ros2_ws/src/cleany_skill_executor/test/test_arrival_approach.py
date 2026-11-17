@@ -75,6 +75,8 @@ def command_pipeline(monkeypatch):
         'hardware_tcp_position_tolerance_m': .03,
         'hardware_tcp_orientation_tolerance_deg': 20.,
         'hardware_height_correction_min_duration_sec': .3,
+        'hardware_lift_min_duration_sec': .3,
+        'hardware_retreat_min_duration_sec': .3,
         'hardware_release_retreat_min_duration_sec': .25,
     }
     limits = {name: PhysicalJointLimit(-2., 2.0033789089786476 if name == names[0] else 2.,
@@ -368,9 +370,13 @@ def test_measured_start_rejects_conflicting_or_malformed_commands_before_motion(
     assert not plans and not sent
 
 
-def test_reverse_retreat_replays_final_sent_path_without_new_ik_or_double_bias(command_pipeline):
+
+
+@pytest.mark.parametrize('retime', [False, True])
+def test_reverse_retreat_replays_final_sent_path_without_new_ik_or_double_bias(command_pipeline, retime):
     node, selected, state, _, plans, sent, trace = command_pipeline
     node.config['retreat_reverse_approach_enabled'] = True
+    node.real.retime_retreat = retime
     pregrasp = node.pose('right')
     with node.record_approach_commands('right'):
         node.approach_target(selected, {})
@@ -394,12 +400,13 @@ def test_reverse_retreat_replays_final_sent_path_without_new_ik_or_double_bias(c
     assert len(plans) == 1 and len(sent) == 2
     backward = sent[1]
     end_ns = forward.points[-1].time_from_start.sec*10**9+forward.points[-1].time_from_start.nanosec
+    time_ns = lambda p: p.time_from_start.sec*10**9+p.time_from_start.nanosec
+    scale = time_ns(backward.points[-1])/end_ns
     for first, last in zip(forward.points, reversed(backward.points), strict=True):
         assert first.positions[:4] == last.positions[:4]
-        assert tuple(-v for v in first.velocities[:4]) == tuple(last.velocities[:4])
+        assert tuple(-v/scale for v in first.velocities[:4]) == pytest.approx(last.velocities[:4])
         assert last.positions[4] == .03 and last.velocities[4] == 0.
-        time_ns = lambda p: p.time_from_start.sec*10**9+p.time_from_start.nanosec
-        assert time_ns(first)+time_ns(last) == end_ns
+        assert abs(time_ns(first)*scale+time_ns(last)-end_ns*scale) <= 1.
     assert validity_states and all(s.position[-1] == -.3 for s in validity_states)
     assert validity_states[0].position[0] == measured_yaw
     assert node.real.last_execution_metrics['collision_checks_enabled'] is True

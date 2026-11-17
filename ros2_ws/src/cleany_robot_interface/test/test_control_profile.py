@@ -160,6 +160,29 @@ def test_calibrated_pitch_bounds_match_state_model_driver_and_recorded_positions
         assert str((directory/settings['calibration']).resolve()) in receipt['profile_dependencies_sha256']
 
 
+def test_head_mapping_bounds_reach_state_and_control_models(tmp_path, state_profile_file):
+    config = json.loads(state_profile_file.read_text())
+    mapping = json.loads((ROOT / config['head_joint_mapping']).read_text())
+    bounds = {'head_pan_joint': [-2., 2.], 'head_tilt_joint': [-.3, .6]}
+    mapping['reference_ticks'] = [2010, 1000]
+    mapping['joint_position_bounds'] = bounds
+    mapping_file = tmp_path / 'head_mapping.json'
+    mapping_file.write_text(json.dumps(mapping))
+    config['head_joint_mapping'] = str(mapping_file)
+    state_profile_file.write_text(json.dumps(config))
+    prepared = prepare_control_profile(
+        state_profile_file, ROOT, tmp_path / 'head_bounds_run',
+        ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml')
+    for path in (prepared.state.model, prepared.model):
+        root = ET.parse(path).getroot()
+        for name, expected in bounds.items():
+            limit = root.find(f"joint[@name='{name}']/limit")
+            assert [float(limit.get(key)) for key in ('lower', 'upper')] == expected
+    root = ET.parse(prepared.model).getroot()
+    tilt = root.find("ros2_control/joint[@name='head_tilt_joint']")
+    assert float(tilt.find("param[@name='zero_tick']").text) == 1000
+
+
 def test_reject_duplicate_hardware_before_any_device_open(prepared):
     with pytest.raises(ValueError, match='already contains'):
         add_control_model(prepared.model.read_text(), {}, {}, {}, {}, {}, True)

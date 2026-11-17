@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "probe_rotation_deg": [
+    -1.0,
+    -0.1,
+    0.1,
+    1.0
+  ],
+  "baseline_overlap_tolerance_mm3": 1e-05,
+  "classification": "A shared fastening axis and interference on both rotation signs establish a nominal seated mount, not measured clamp preload.",
+  "parts": {
+    "carrier": "Distal_Rod",
+    "shell": "Distal_Shell",
+    "insert": "Removable_Tip",
+    "pad": "Tip_Support"
+  },
+  "axis_match_distance_mm": 0.02,
+  "axis_match_angle_rad": 0.0001
+}

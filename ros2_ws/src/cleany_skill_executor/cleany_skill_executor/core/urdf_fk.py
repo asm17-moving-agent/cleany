@@ -5,17 +5,21 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 
-def axis_rotation(axis, angle):
-    axis = np.asarray(axis, dtype=float)
-    x, y, z = map(float, axis / np.linalg.norm(axis))
+def _unit_axis_rotation(axis, angle):
+    x, y, z = axis
     sine, cosine = math.sin(angle), math.cos(angle)
     complement = 1.0 - cosine
-    # Expand Rodrigues' formula without temporary 3x3 products.
     return np.array((
         (cosine + x*x*complement, x*y*complement - z*sine, x*z*complement + y*sine),
         (y*x*complement + z*sine, cosine + y*y*complement, y*z*complement - x*sine),
         (z*x*complement - y*sine, z*y*complement + x*sine, cosine + z*z*complement),
     ))
+
+
+def axis_rotation(axis, angle):
+    axis = np.asarray(axis, dtype=float)
+    unit = tuple(map(float, axis / np.linalg.norm(axis)))
+    return _unit_axis_rotation(unit, angle)
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,10 @@ class UrdfChain:
             chain.append(Joint(joint.get('name'),kind,xyz,rotation,axis/np.linalg.norm(axis)))
             tip = joint.find('parent').get('link')
         self.joints = tuple(reversed(chain))
+        # URDF axes stay constant across poses of this chain.
+        self._joint_axes = {
+            joint.name: tuple(map(float, joint.axis / np.linalg.norm(joint.axis)))
+            for joint in self.joints if joint.kind in ('revolute', 'continuous')}
 
     def pose(self, positions):
         p, r = np.zeros(3), np.eye(3)
@@ -65,5 +73,5 @@ class UrdfChain:
                 if joint.kind == 'prismatic':
                     p = p+r@joint.axis*value
                 else:
-                    r = r@axis_rotation(joint.axis,value)
+                    r = r@_unit_axis_rotation(self._joint_axes[joint.name], value)
         return p,r

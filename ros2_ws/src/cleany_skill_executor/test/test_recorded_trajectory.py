@@ -7,13 +7,37 @@ import random
 import pytest
 
 from cleany_skill_executor.core.hardware_execution import (
-    CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit, bounded_path,
+    CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit, bounded_path, prepare_bounded_path,
 )
 from cleany_skill_executor.core.recorded_trajectory import (
     CommandPoint, RecordedTrajectory, _cubic_slope_bound, descending_height_time,
     recorded_window, reversed_command_history, stopped_recorded_window,
-    validate_command_history, validate_recorded_trajectory,
+    validate_command_history, validate_recorded_trajectory, retime_recorded_trajectory,
 )
+
+
+@pytest.mark.parametrize('scale', [.8, 1.])
+def test_new_recorded_and_cropped_commands_share_the_current_rate_scale(scale):
+    limits = {'q': PhysicalJointLimit(-3., 3., 2., 8., 2048., 1., 0., 0., 4095.)}
+    prepared = prepare_bounded_path(('q',), [(-1.,), (1.4,)], limits,
+                                    velocity=2., acceleration=8., limit_scale=scale)
+    path = RecordedTrajectory(('q',), tuple(
+        CommandPoint(round(point.progress*prepared.duration*1e9), point.positions,
+                     tuple(value/prepared.duration for value in point.derivatives))
+        for point in prepared.command_knots))
+    validate_recorded_trajectory(path, limits, velocity=2., acceleration=8., step=.01,
+                                 limit_scale=scale)
+    cropped = stopped_recorded_window(path, path.points[-1].time_ns//10,
+        path.points[-1].time_ns*3//4, limits, velocity=2., acceleration=8., limit_scale=scale)
+    validate_recorded_trajectory(cropped, limits, velocity=2., acceleration=8., step=.01,
+                                 limit_scale=scale)
+    if scale == 1.:
+        with pytest.raises(CommandPathValidationError, match='rate limits'):
+            validate_recorded_trajectory(path, limits, velocity=2., acceleration=8., step=.01)
+    reduced = {'q': replace(limits['q'], velocity=.5)}
+    with pytest.raises(CommandPathValidationError, match='rate limits'):
+        validate_recorded_trajectory(path, reduced, velocity=2., acceleration=8., step=.01,
+                                     limit_scale=scale)
 
 
 def recorded_path():
@@ -36,6 +60,38 @@ def interpolate(path, time_ns):
                          for q0, q1, v0, v1 in zip(first.positions, last.positions,
                                                    first.velocities, last.velocities, strict=True))
     raise AssertionError('Time outside path')
+
+
+@pytest.mark.parametrize('velocity,acceleration', [(2., 4.), (.1, .2)])
+def test_recorded_retiming_preserves_cubics_under_faster_and_slower_limits(velocity, acceleration):
+    source, limits = recorded_path()
+    result = retime_recorded_trajectory(source, limits, velocity=velocity,
+                                       acceleration=acceleration, minimum_duration_sec=.3)
+    validate_recorded_trajectory(result, limits, velocity=velocity, acceleration=acceleration, step=.02)
+    assert [p.positions for p in result.points] == [p.positions for p in source.points]
+    assert (result.points[-1].time_ns < source.points[-1].time_ns) == (velocity == 2.)
+    for i in range(101):
+        assert interpolate(result, round(result.points[-1].time_ns*i/100)) == pytest.approx(
+            interpolate(source, round(source.points[-1].time_ns*i/100)), abs=1e-8)
+
+
+def test_reversal_preserves_actual_cubics_and_nonuniform_timing_except_fixed_roll():
+    forward, limits = recorded_path()
+    backward = forward.reversed_with_roll('roll', .73)
+    end = forward.points[-1].time_ns
+    assert len(backward.points) == len(forward.points)
+    for first, last in zip(forward.points, reversed(backward.points), strict=True):
+        assert first.time_ns+last.time_ns == end
+        assert first.positions[:2] == last.positions[:2]
+        assert tuple(-v for v in first.velocities[:2]) == last.velocities[:2]
+        assert last.positions[2] == .73 and last.velocities[2] == 0.
+    for i in range(101):
+        time_ns = round(end*i/100)
+        assert interpolate(backward, end-time_ns)[:2] == pytest.approx(interpolate(forward, time_ns)[:2])
+        assert interpolate(backward, end-time_ns)[2] == pytest.approx(.73)
+    samples = validate_recorded_trajectory(backward, limits, velocity=.8, acceleration=1.2, step=.03)
+    assert samples[0].positions == backward.points[0].positions
+    assert samples[-1].positions == pytest.approx(backward.points[-1].positions)
 
 
 def test_replay_checks_cubic_position_extrema_between_valid_endpoints():
@@ -149,23 +205,6 @@ def test_partial_replay_starts_and_stops_at_rest_with_current_limits():
     assert replay.points[-1].positions == path.sample_at(end).positions
 
 
-def test_reversal_preserves_actual_cubics_and_nonuniform_timing_except_fixed_roll():
-    forward, limits = recorded_path()
-    backward = forward.reversed_with_roll('roll', .73)
-    end = forward.points[-1].time_ns
-    assert len(backward.points) == len(forward.points)
-    for first, last in zip(forward.points, reversed(backward.points), strict=True):
-        assert first.time_ns+last.time_ns == end
-        assert first.positions[:2] == last.positions[:2]
-        assert tuple(-v for v in first.velocities[:2]) == last.velocities[:2]
-        assert last.positions[2] == .73 and last.velocities[2] == 0.
-    for i in range(101):
-        time_ns = round(end*i/100)
-        assert interpolate(backward, end-time_ns)[:2] == pytest.approx(interpolate(forward, time_ns)[:2])
-        assert interpolate(backward, end-time_ns)[2] == pytest.approx(.73)
-    samples = validate_recorded_trajectory(backward, limits, velocity=.8, acceleration=1.2, step=.03)
-    assert samples[0].positions == backward.points[0].positions
-    assert samples[-1].positions == pytest.approx(backward.points[-1].positions)
 
 
 def test_fixed_roll_still_has_to_fit_physical_encoder_range():

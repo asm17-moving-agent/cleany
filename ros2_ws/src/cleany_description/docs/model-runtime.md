@@ -1,5 +1,9 @@
 # cleany_description
 
+이 문서는 `legacy_runtime`의 기존 관절·제어 모델 계약이다. 기본 미리보기에서
+선택하는 새 FreeCAD 정적 형상과 미확정 값은 [FreeCAD 모델](freecad-model.md)을
+따른다.
+
 ## URDF migration
 
 `feat/migrate-cleany-description`의 형상 xacro와 참조 CAD frame 메시를 가져왔다.
@@ -147,7 +151,7 @@ motor**, and estimated PLA parts.
 After building and sourcing `ros2_ws`, publish the full description:
 
 ```bash
-ros2 launch cleany_description description.launch.py use_sim_time:=true
+ros2 launch cleany_description description.launch.py model_variant:=legacy_runtime use_sim_time:=true
 ```
 
 Expand the control description from this package directory:

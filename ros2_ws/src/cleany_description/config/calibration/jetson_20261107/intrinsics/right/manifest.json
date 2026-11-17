@@ -1,0 +1,113 @@
+{
+  "config": {
+    "camera_device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.1.3:1.0-video-index0",
+    "camera_label": "right_wrist_usb_port_2.1.3_confirmed_20261008",
+    "width": 640,
+    "height": 480,
+    "squares_x": 7,
+    "squares_y": 5,
+    "square_length_m": 0.05,
+    "marker_length_m": 0.035,
+    "dictionary": "DICT_6X6_250",
+    "minimum_corners": 8,
+    "minimum_corner_hull_fraction": 0.02,
+    "minimum_calibration_views": 20,
+    "square_size_physically_verified": true,
+    "automatic_capture": {
+      "hold_seconds": 1.5,
+      "stable_rms_px": 2.0,
+      "novel_rms_px": 20.0,
+      "max_gap_seconds": 1.0
+    },
+    "hold_seconds": 1.5,
+    "max_span_ticks": 3,
+    "max_gap_seconds": 0.3,
+    "stable_rms_px": 2.0,
+    "torque_capture": {
+      "enabled": false,
+      "motor_ids": [
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "seconds": 3.0,
+      "torque_limit_raw": 500,
+      "manual_commands": true,
+      "hold_speed_raw": 65,
+      "hold_acceleration_raw": 20,
+      "maximum_hold_drift_ticks": 12,
+      "feedback_period_s": 0.05,
+      "maximum_feedback_gap_s": 0.2
+    },
+    "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+    "baudrate": 1000000,
+    "encoder_period_ticks": 4096,
+    "motor_ids": {
+      "shoulder_pan": 7,
+      "shoulder_lift": 8,
+      "elbow_flex": 9,
+      "wrist_flex": 10,
+      "wrist_roll": 11,
+      "gripper": 12
+    },
+    "legacy_intrinsics_used": false,
+    "image_orientation": {
+      "owner": "camera_firmware_uvc_roll_3",
+      "image_rotation_degrees": 180,
+      "software_image_rotation_applied": false,
+      "evidence_sha256": "1a21e0ca1f1883ae683f3fbd5170077cdc1ebd694b57131fed66955ad753775f",
+      "source_main": "c32d9deea0994dd16e5e0daeb6c474c00d9a0a8a",
+      "calibration_input": "native output after firmware rotation"
+    }
+  },
+  "side": "right",
+  "kind": "wrist_intrinsic_and_handeye",
+  "opencv_version": "4.5.4",
+  "board_scale_assumed_m": 0.05,
+  "arm_mapping_sha256": "79bdf8f8657ba33f8c423b7f851d69275353909d4fb6046b010791bdddbc47c8",
+  "cad_urdf_sha256": "6ce867960a8e231fc1af8fc4aeccd8fa5fe1943ad46170f7119a5ab958990716",
+  "cad_camera_frames_sha256": "86c6b91e17f07bac7a212b4c2b25db96f40214d46f9b8da565b9705b770adae5",
+  "cad_joint_reference_verified": false,
+  "hardware_synchronized": false,
+  "image_orientation": {
+    "owner": "camera_firmware_uvc_roll_3",
+    "image_rotation_degrees": 180,
+    "software_image_rotation_applied": false,
+    "evidence_sha256": "1a21e0ca1f1883ae683f3fbd5170077cdc1ebd694b57131fed66955ad753775f",
+    "source_main": "c32d9deea0994dd16e5e0daeb6c474c00d9a0a8a",
+    "calibration_input": "native output after firmware rotation"
+  },
+  "camera_tf_reference": {
+    "frame": "cad_right_wrist_camera_optical_frame",
+    "parent": "cad_right_wrist_roll",
+    "xyz_m": [
+      -4.703245263091418e-14,
+      -0.045888242268916385,
+      0.08419048890458584
+    ],
+    "rpy_rad": [
+      -2.443460952792061,
+      0.0,
+      -3.141592653589793
+    ],
+    "origin_basis": "measured_front_glass_axis_intersection",
+    "status": "user_adjusted_default_reference",
+    "center_xyz_m": [
+      -4.7031822880683194e-14,
+      -0.0510305431464087,
+      0.07806213335963402
+    ],
+    "camera_local_offset_m": [
+      0.0,
+      0.0,
+      -0.008
+    ],
+    "offset_meaning": "8mm_inward_from_front_glass"
+  },
+  "motor_calibration_sha256": {
+    "left": "84fb8ee1ae841c5e72602ea518851d517b2ec22ec13bfca026fd3c1a39251794",
+    "right": "bbbfc6d9a422ec955594ab18a42a769193a17224cd898d500d51ac0dc8703d1a"
+  }
+}

@@ -91,16 +91,18 @@ std::vector<std::unique_ptr<fcl::Convexd>> solid_components(const shapes::Mesh& 
 }
 
 const std::string SolidCollisionAllocator::NAME = "cleany/SolidFCL";
+const std::string CADInspectionCollisionAllocator::NAME = "cleany/CADInspectionFCL";
 
-SolidCollisionEnv::SolidCollisionEnv(const moveit::core::RobotModelConstPtr& model, double padding, double scale)
-  : CollisionEnvFCL(model, padding, scale) { rebuild(); }
+SolidCollisionEnv::SolidCollisionEnv(const moveit::core::RobotModelConstPtr& model, double padding, double scale,
+    bool declared_only)
+  : CollisionEnvFCL(model, padding, scale), declared_only_(declared_only) { rebuild(); }
 
 SolidCollisionEnv::SolidCollisionEnv(const moveit::core::RobotModelConstPtr& model,
-    const collision_detection::WorldPtr& world, double padding, double scale)
-  : CollisionEnvFCL(model, world, padding, scale) { rebuild(); }
+    const collision_detection::WorldPtr& world, double padding, double scale, bool declared_only)
+  : CollisionEnvFCL(model, world, padding, scale), declared_only_(declared_only) { rebuild(); }
 
 SolidCollisionEnv::SolidCollisionEnv(const SolidCollisionEnv& other, const collision_detection::WorldPtr& world)
-  : CollisionEnvFCL(other, world), solid_components_(other.solid_components_) {}
+  : CollisionEnvFCL(other, world), solid_components_(other.solid_components_), declared_only_(other.declared_only_) {}
 
 void SolidCollisionEnv::updatedPaddingOrScaling(const std::vector<std::string>&) { rebuild(); }
 
@@ -206,7 +208,17 @@ void SolidCollisionEnv::rebuild()
     {
       const auto& shape = link->getShapes()[index];
       const double scale = getLinkScale(link->getName()), padding = getLinkPadding(link->getName());
-      if (shape->type == shapes::MESH)
+      bool use_solid = !declared_only_;
+      if (declared_only_)
+      {
+        const auto urdf_link = robot_model_->getURDF()->getLink(link->getName());
+        if (!urdf_link || urdf_link->collision_array.size() != link->getShapes().size())
+          throw std::runtime_error("CAD collision declarations do not match loaded shapes");
+        use_solid = urdf_link->collision_array[index]->name.rfind("cad_enclosure__", 0) == 0;
+        if (use_solid && shape->type != shapes::MESH)
+          throw std::runtime_error("A declared CAD enclosure must be a convex mesh");
+      }
+      if (shape->type == shapes::MESH && use_solid)
       {
         std::unique_ptr<shapes::Mesh> mesh(static_cast<const shapes::Mesh*>(shape.get())->clone());
         mesh->scaleAndPadd(scale, padding);

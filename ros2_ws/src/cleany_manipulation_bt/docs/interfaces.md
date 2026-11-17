@@ -19,3 +19,8 @@
 `arm_return`과 `manipulation_recovery`는 해당 Action과 Service의 CLI client다.
 `ReturnArm`의 성공과 수거 성공은 별도 결과이며, 복구 확인만으로 동작을 시작하지 않는다.
 노드 종료 시 취소한 명령의 응답과 실제 정지 근거를 제한 시간 안에서 수집한다.
+
+`control_state`의 JSON `external_motion_active`는 양팔과 그리퍼 컨트롤러의 Action 상태를
+집계한다. `ACCEPTED`, `EXECUTING`, `CANCELING` 중 하나라도 있으면 `true`다.
+상태 구독은 `/<left|right>_<arm|gripper>_controller/follow_joint_trajectory/_action/status`,
+`action_msgs/msg/GoalStatusArray`와 기본 Action status QoS를 사용한다.

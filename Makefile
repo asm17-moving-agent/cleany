@@ -6,6 +6,7 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
+GEOMETRY_PYTHON ?= python3
 SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
@@ -98,6 +99,7 @@ help:
 	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
 	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
 	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-freecad-model  Test the static CAD assembly (GEOMETRY_PYTHON override)"
 	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
 	@echo "  make test-moveit-collision    Test solid collision plugin and installed MoveIt services"
 	@echo "  make deps          Install workspace dependencies with rosdep"
@@ -632,17 +634,27 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_logger cleany_dev_monitor
+		--packages-up-to cleany_dev_monitor cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
+MONITOR_TEST_PYTHON ?= python3
+LOGGER_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_logger/tests"
+LOGGER_PYTEST_ARGS ?=
+DEV_MONITOR_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+DEV_MONITOR_PYTEST_ARGS ?=
 test-logger:
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_logger/tests"
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(LOGGER_TEST_PATHS) $(LOGGER_PYTEST_ARGS)
 
 test-dev-monitor: test-logger
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider $(DEV_MONITOR_TEST_PATHS) $(DEV_MONITOR_PYTEST_ARGS)
+
+DEV_MONITOR_E2E_ARGS ?=
+.PHONY: test-dev-monitor-web
+test-dev-monitor-web:
+	pnpm --dir "$(DEV_MONITOR_WEB)" exec playwright test $(DEV_MONITOR_E2E_ARGS)
 
 run-dev-monitor:
 	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
@@ -726,13 +738,25 @@ build-tof:
 test-tof: build-tof
 	$(BASE_EXEC) bash -c 'source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_navigation:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_interfaces cleany_tof cleany_mission_manager cleany_system_supervisor cleany_safety_adapter --return-code-on-test-failure && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
 
-.PHONY: test-description-models
+.PHONY: test-freecad-model test-description-models
+test-freecad-model:
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 $(GEOMETRY_PYTHON) -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_gripper_linkage.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_tip_mounts.py \
+		$(REPO_ROOT)tests/tools/test_export_freecad_model.py
+
 test-description-models:
 	source "$(ROS_SETUP)" && \
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
 	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
 	python3 -m pytest -q -p no:cacheprovider \
 		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_gripper_linkage.py \
+		$(ROS2_WS)/src/cleany_description/test/test_freecad_tip_mounts.py \
 		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)
 
 .PHONY: test-moveit-collision
@@ -830,3 +854,23 @@ manipulation-recover:
 	"$(REPO_ROOT)tools/collection-runtime" action-recover
 arm-return:
 	"$(REPO_ROOT)tools/collection-runtime" arm-return
+
+# Jetson operator workflow; use an isolated build root for review builds.
+OPERATOR_TEST_DOMAIN_ID ?= 226
+.PHONY: build-operator-workflow test-operator-workflow
+build-operator-workflow:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_dev_monitor cleany_manipulation_bt --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-operator-workflow:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(OPERATOR_TEST_DOMAIN_ID) PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor/tests:$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_perception/test:$${PYTHONPATH:-}" \
+	"$(MONITOR_TEST_PYTHON)" -m pytest -q -p no:cacheprovider --import-mode=importlib \
+		$(ROS2_WS)/src/cleany_dev_monitor/tests $(ROS2_WS)/src/cleany_logger/tests \
+		$(ROS2_WS)/src/cleany_perception/test/test_target_revalidation.py \
+		$(ROS2_WS)/src/cleany_perception/test/test_target_revalidation_service.py $(DEV_MONITOR_PYTEST_ARGS)
+
+DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
+.PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
+$(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
+	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)

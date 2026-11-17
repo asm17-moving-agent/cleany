@@ -81,6 +81,31 @@ TEST_F(SolidCollisionTest, DetectsContainedSphereAndPreservesDisconnectedGap)
   sphere(.15); EXPECT_FALSE(check().collision);
 }
 
+TEST_F(SolidCollisionTest, CadInspectionKeepsDeclaredEnclosuresSolidAcrossSceneCopies)
+{
+  robot->getURDF()->getLink("tool")->collision_array[0]->name="cad_enclosure__test";
+  scene->allocateCollisionDetector(cleany::CADInspectionCollisionAllocator::create());
+  sphere(-.08); EXPECT_TRUE(check().collision);
+  sphere(0.); EXPECT_FALSE(check().collision);
+  sphere(.08); EXPECT_TRUE(check().collision);
+  auto copy=planning_scene::PlanningScene::clone(scene);
+  collision_detection::CollisionRequest request;
+  collision_detection::CollisionResult result;
+  copy->checkCollision(request,result); EXPECT_TRUE(result.collision);
+  const auto* env=dynamic_cast<const cleany::SolidCollisionEnv*>(copy->getCollisionEnv().get());
+  ASSERT_NE(env,nullptr); EXPECT_EQ(env->solidComponentCount(),2u);
+}
+
+TEST_F(SolidCollisionTest, CadInspectionRetainsSurfaceMeshesButRejectsMalformedEnclosures)
+{
+  auto open=two_boxes(); --open->triangle_count;
+  auto* link=robot->getLinkModel("tool");
+  link->setGeometry({open},link->getCollisionOriginTransforms());
+  EXPECT_NO_THROW(cleany::CADInspectionCollisionEnv env(robot));
+  robot->getURDF()->getLink("tool")->collision_array[0]->name="cad_enclosure__broken";
+  EXPECT_THROW(cleany::CADInspectionCollisionEnv env(robot),std::runtime_error);
+}
+
 TEST_F(SolidCollisionTest, LiveAcmGroupsTransformsAndSceneCopiesAreRespected)
 {
   solid(); sphere(-.08);

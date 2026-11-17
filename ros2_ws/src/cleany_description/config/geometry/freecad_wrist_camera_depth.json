@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source": "User caliper measurements confirmed against the CAD A, B and C datums on 2026-11-05",
+  "lens_front_to_pcb_back_mm": 9.5,
+  "lens_front_to_mount_back_mm": 26.7,
+  "optical_forward_base_link": {
+    "Right": [0.0, -0.6427876096865399, -0.7660444431189777],
+    "Left": [0.0, 0.6427876096865399, -0.7660444431189777]
+  }
+}

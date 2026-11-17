@@ -1,12 +1,72 @@
 """Bounded, read-only host metrics. No ROS imports or process control."""
 
 from collections import deque
+import os
 from pathlib import Path
 import socket
+import sys
 import threading
 import time
 
 import psutil
+
+ProcessEntry = tuple[tuple[int, int | float], str, float, int]
+
+
+def linux_process_snapshot(directory: str | Path = '/proc') -> tuple[list[ProcessEntry], int]:
+    """Read identity, CPU and RSS together, without cached PID identities.
+
+    Linux stat fields 14/15, 22 and 24 contain CPU ticks, start ticks and
+    resident pages. Splitting after the final ')' also handles spaces and ')'
+    in process names. One read replaces three /proc reads per process.
+    """
+    ticks = os.sysconf('SC_CLK_TCK')
+    page_size = os.sysconf('SC_PAGE_SIZE')
+    processes, denied = [], 0
+    with os.scandir(directory) as entries:
+        for entry in entries:
+            if not entry.name.isdecimal():
+                continue
+            try:
+                with open(entry.path + '/stat', 'rb') as stream:
+                    prefix, separator, tail = stream.read(8192).rpartition(b')')
+                fields = tail.split()
+                if not separator:
+                    raise ValueError('Invalid process stat')
+                identity = (int(entry.name), int(fields[19]))
+                used = (int(fields[11]) + int(fields[12])) / ticks
+                rss = int(fields[21]) * page_size
+                name = prefix.split(b'(', 1)[1].decode(errors='replace')
+                processes.append((identity, name, used, rss))
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except (OSError, ValueError, IndexError):
+                denied += 1
+    return processes, denied
+
+
+def psutil_process_snapshot() -> tuple[list[ProcessEntry], int]:
+    processes, denied = [], 0
+    # Refresh identity on each scan to distinguish reused PIDs on other hosts.
+    if hasattr(psutil.process_iter, 'cache_clear'):
+        psutil.process_iter.cache_clear()
+    for proc in psutil.process_iter():
+        try:
+            with proc.oneshot():
+                identity = (proc.pid, proc.create_time())
+                times = proc.cpu_times()
+                processes.append((identity, proc.name(), times.user + times.system, proc.memory_info().rss))
+        except psutil.NoSuchProcess:
+            continue
+        except (psutil.AccessDenied, OSError):
+            denied += 1
+    return processes, denied
+
+
+def process_snapshot() -> tuple[list[ProcessEntry], int]:
+    if sys.platform.startswith('linux'):
+        return linux_process_snapshot()
+    return psutil_process_snapshot()
 
 
 class ResourceSampler:
@@ -113,35 +173,16 @@ class ResourceSampler:
             if not k.startswith("net:") or k in active_net
         }
         processes, next_processes = [], {}
-        denied = 0
-        # psutil caches Process instances; clear them before checking PID identity.
-        if hasattr(psutil.process_iter, "cache_clear"):
-            psutil.process_iter.cache_clear()
-        for proc in psutil.process_iter():
-            try:
-                with proc.oneshot():
-                    identity = (proc.pid, proc.create_time())
-                    times = proc.cpu_times()
-                    used = times.user + times.system
-                    old = self.processes.get(identity)
-                    percent = (
-                        100 * (used - old) / elapsed
-                        if old is not None and elapsed and elapsed > 0 and used >= old
-                        else None
-                    )
-                    next_processes[identity] = used
-                    processes.append(
-                        dict(
-                            pid=proc.pid,
-                            name=proc.name(),
-                            cpu_percent=percent,
-                            rss_bytes=proc.memory_info().rss,
-                        )
-                    )
-            except psutil.NoSuchProcess:
-                continue
-            except (psutil.AccessDenied, OSError):
-                denied += 1
+        observed, denied = read('processes', process_snapshot, ([], 0))
+        for identity, name, used, rss in observed:
+            old = self.processes.get(identity)
+            percent = (
+                100 * (used - old) / elapsed
+                if old is not None and elapsed and elapsed > 0 and used >= old
+                else None
+            )
+            next_processes[identity] = used
+            processes.append(dict(pid=identity[0], name=name, cpu_percent=percent, rss_bytes=rss))
         self.processes = next_processes
         by_cpu = sorted(processes, key=lambda p: p["cpu_percent"] or 0, reverse=True)[
             : self.process_limit

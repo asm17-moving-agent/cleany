@@ -10,7 +10,7 @@ import json
 import math
 import time
 import xml.etree.ElementTree as ET
-from typing import Any, Callable
+from typing import Any, Callable, Iterable, Sequence
 
 import numpy as np
 
@@ -144,6 +144,7 @@ class MoveItGraspAdapter:
         cartesian_client: Any | None = None,
         monotonic: Callable[[], float] = time.monotonic,
         spin_once: Callable[[float], None] | None = None,
+        response_wait_factory: Callable[[Any], Callable[[float], Any]] | None = None,
     ) -> None:
         self._node = node
         self._config = config
@@ -158,6 +159,7 @@ class MoveItGraspAdapter:
         self._cartesian_client = cartesian_client
         self._monotonic = monotonic
         self._spin_once = spin_once or self._default_spin
+        self._response_wait_factory = response_wait_factory
         self._current_state: JointState | None = None
         self._gripper_positions: dict[str, float] = {}
         self._active_goal_handle: Any | None = None
@@ -309,6 +311,27 @@ class MoveItGraspAdapter:
             result.joint_state.velocity = [velocities[name] for name in result.joint_state.name]
         return result
 
+    def _collision_states(
+        self, names: Sequence[str], positions: Iterable[Sequence[float]],
+    ) -> list[RobotState]:
+        """Share immutable metadata within one unsent full-state batch."""
+        if len(set(names)) != len(names):
+            raise ValueError('Collision joints must be unique')
+        baseline = self._merged_state(None)
+        joint = baseline.joint_state
+        slots = [joint.name.index(name) for name in names]
+        states = []
+        for row in positions:
+            if len(row) != len(slots) or any(not math.isfinite(value) for value in row):
+                raise ValueError('Collision sample must have finite matching joints')
+            values = list(joint.position)
+            for slot, value in zip(slots, row, strict=True):
+                values[slot] = value
+            state = JointState(header=joint.header, name=joint.name,
+                               position=values, velocity=joint.velocity)
+            states.append(RobotState(joint_state=state, is_diff=baseline.is_diff))
+        return states
+
     def _wait_service(self, client: Any, timeout: float) -> None:
         deadline = self._monotonic() + timeout
         while not client.service_is_ready():
@@ -321,6 +344,8 @@ class MoveItGraspAdapter:
         self._check_active()
         self._wait_service(client, timeout)
         future = client.call_async(request)
+        wait = (self._response_wait_factory(future)
+                if self._response_wait_factory is not None else self._spin_once)
         deadline = self._monotonic() + timeout
         while not future.done():
             self._check_active()
@@ -328,7 +353,7 @@ class MoveItGraspAdapter:
             if remaining <= 0:
                 future.cancel()
                 raise InfrastructureError('MoveIt service timed out')
-            self._spin_once(min(self._config.poll_interval_sec, remaining))
+            wait(min(self._config.poll_interval_sec, remaining))
         try:
             response = future.result()
         except Exception as error:
@@ -813,12 +838,10 @@ class MoveItGraspAdapter:
         if not lower <= min(opening, closing) <= max(opening, closing) <= upper:
             raise ValueError('Gripper sweep exceeds URDF limits')
         samples = max(1, math.ceil(abs(opening-closing)/step))
-        states = []
-        for position in np.linspace(opening, closing, samples+1):
-            robot_state = self._merged_state(solution)
-            state = robot_state.joint_state
-            state.position[state.name.index(f'{arm}_gripper_joint')] = float(position)
-            states.append(robot_state)
+        names = (*solution.names, f'{arm}_gripper_joint')
+        states = self._collision_states(names, (
+            (*solution.positions, float(position))
+            for position in np.linspace(opening, closing, samples+1)))
         batch = getattr(self, '_batch_validity', None)
         size = batch.batch_size if batch is not None else 1
         for offset in range(0, len(states), size):
@@ -1105,7 +1128,7 @@ class MoveItGraspAdapter:
             response = None
             if batch is not None:
                 self._check_active()
-                states = [self._merged_state(JointSolution(names, s.positions)) for s in chunk]
+                states = MoveItGraspAdapter._collision_states(self, names, (s.positions for s in chunk))
                 response = batch.check(states, lambda client, request: self._call(client, request,
                     self._config.state_validity_timeout_sec * len(states)))
             if response is not None:
@@ -1134,13 +1157,13 @@ class MoveItGraspAdapter:
             if (approach > self._config.approach_tolerance_degrees
                     or closing > self._config.closing_tolerance_degrees):
                 return False
-            # Axis tolerances above retain the existing directed closing contract.
+            # Real axes were checked above; only translation remains to validate.
             samples.append(CartesianPose(pose.position, target.orientation_xyzw))
         try:
             validate_corridor_samples(samples,
                 CartesianPose(start.position, target.orientation_xyzw),
                 CartesianPose(target.position, target.orientation_xyzw),
-                self._config.approach_corridor_radius_m, math.pi, math.pi)
+                self._config.approach_corridor_radius_m, None, None)
         except ValueError:
             return False
         return True
@@ -1170,6 +1193,8 @@ class MoveItGraspAdapter:
         )
 
     def _wait_future(self, future: Any, timeout: float) -> Any | None:
+        wait = (self._response_wait_factory(future)
+                if self._response_wait_factory is not None else self._spin_once)
         deadline = self._monotonic() + timeout
         while not future.done():
             self._check_active()
@@ -1177,7 +1202,7 @@ class MoveItGraspAdapter:
             if remaining <= 0:
                 future.cancel()
                 return None
-            self._spin_once(min(self._config.poll_interval_sec, remaining))
+            wait(min(self._config.poll_interval_sec, remaining))
         return future.result()
 
     def cancel_active(self) -> None:

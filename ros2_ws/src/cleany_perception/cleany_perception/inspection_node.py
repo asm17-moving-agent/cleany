@@ -99,6 +99,7 @@ from cleany_perception.snapshot_cache import (
     DetectionSnapshotCache,
 )
 from cleany_interfaces.srv import GetSceneSnapshot
+from cleany_perception.target_revalidation_service import TargetRevalidationService
 
 
 _FAILURE_CODES = {
@@ -154,6 +155,8 @@ class InspectionNode(Node):
             Detection overlays. All publisher names are configurable defaults.
 
     Services:
+        /perception/revalidate_target (cleany_interfaces/srv/RevalidateTarget):
+            Fresh local target observation with the cached approval semantics.
         /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
             Optional WristService endpoint when enable_wrist_observation is true.
 
@@ -536,6 +539,7 @@ class InspectionNode(Node):
                     'wrist_failure_image_directory').value),
                 config=wrist_config)
         self._observations = ObservationRuntime(self, reference_detector)
+        self._target_revalidation = TargetRevalidationService(self, reference_detector)
         cleanup_period = float(self.get_parameter('snapshot_cleanup_period_seconds').value)
         if not math.isfinite(cleanup_period) or cleanup_period < 0:
             raise ValueError('Snapshot cleanup period must be finite and nonnegative')

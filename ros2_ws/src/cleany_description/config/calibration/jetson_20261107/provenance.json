@@ -1,0 +1,33 @@
+{
+  "applied_utc": "2026-11-06T21:00:30.443460+00:00",
+  "repository_commit": "94c0fcd3ff04ceae243392b2b55d394ab45ad775",
+  "dataset_report": "/home/cleany/cleany-data/runs/camera-recalibration-20261107/results/input-manifest.json",
+  "order": [
+    "head",
+    "left",
+    "right"
+  ],
+  "quality": "Provisional RGB calibration; external held-out residuals retained for review",
+  "validation": {
+    "head": {
+      "intrinsic_held_out_rms_px": 0.3034462450707293,
+      "extrinsic_held_out_rms_px": 6.988554393027287,
+      "fit_views": 20,
+      "held_out_views": 5
+    },
+    "left": {
+      "intrinsic_held_out_rms_px": 0.3565496519285619,
+      "extrinsic_held_out_rms_px": 19.679574382082414,
+      "fit_views": 20,
+      "held_out_views": 5
+    },
+    "right": {
+      "intrinsic_held_out_rms_px": 0.32189086530866423,
+      "extrinsic_held_out_rms_px": 17.762073276910463,
+      "fit_views": 20,
+      "held_out_views": 5
+    }
+  },
+  "arm_mapping_change": "Transport saved joint reference through measured EEPROM homing changes",
+  "motor_writes": false
+}

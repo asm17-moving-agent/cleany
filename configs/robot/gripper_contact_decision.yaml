@@ -23,12 +23,12 @@ criteria:
 arms:
   left:
     motor_id: 6
-    closed_goal_raw: 1358
-    opening_direction: 1
+    closed_goal_raw: 2676
+    opening_direction: -1
   right:
     motor_id: 12
-    closed_goal_raw: 1372
-    opening_direction: 1
+    closed_goal_raw: 2838
+    opening_direction: -1
 states:
   CONTACT: position_residual_and_sustained_current_and_load
   EMPTY: near_closed_goal_and_low_current_and_low_load

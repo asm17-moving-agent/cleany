@@ -1,8 +1,10 @@
 /**:
   ros__parameters:
-    # The retimer also reserves 20% of the physical controller limits.
+    # Apply the full hardware caps to new commands and recorded returns.
     hardware_velocity_rad_s: 2.0
     hardware_acceleration_rad_s2: 8.0
+    hardware_trajectory_limit_scale: 1.0
+    hardware_path_step_rad: 0.02
     use_sim_time: false
     execution_use_verified_local_fk: true
     execution_timing_enabled: true
@@ -11,6 +13,9 @@
     hardware_parallel_model_queries: true
     hardware_sparse_cubic_commands: true
     hardware_share_return_preparation: true
+    hardware_retime_retreat: true
+    hardware_retreat_min_duration_sec: 0.3
+    hardware_lift_min_duration_sec: 0.3
     hardware_pickup_height_search_tolerance_m: 0.005
     execution_defer_pregrasp_validation: true
     # Small lift corrections still obey the full velocity/acceleration retimer.
@@ -20,7 +25,7 @@
     hardware_release_retreat_position_tolerance_m: 0.005
     hardware_release_retreat_orientation_tolerance_deg: 2.0
     # Both arm and gripper goals must be accepted before the common start.
-    hardware_return_start_delay_sec: 0.3
+    hardware_return_start_delay_sec: 0.2
     hardware_start_delay_sec: 0.3
     hardware_state_validity_batch_size: 64
     require_sensor_scene: true

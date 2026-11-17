@@ -7,7 +7,7 @@ Cartesian approach/lift services and actuator execution remain independent.
 from __future__ import annotations
 
 from collections import defaultdict
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
 import math
 import time
@@ -16,10 +16,10 @@ from typing import Callable, Sequence
 
 import numpy as np
 
-from cleany_skill_executor.core.alignment import axis_errors_degrees, tcp_axes
+from cleany_skill_executor.core.alignment import axis_errors_degrees, quaternion_from_rotation, tcp_axes
 from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.ik_diagnostics import (
-    AlignmentLimits, alignment_errors, summarize_alignments,
+    AlignmentLimits, ScoredAlignments, alignment_errors, summarize_alignments,
 )
 from cleany_skill_executor.core.physical_grasp_selection import (
     ARM_JOINT_NAMES, InfrastructureError, JointSolution, PoseAlignment,
@@ -94,12 +94,28 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
         self._owner = owner
         super().__init__(*args, **kwargs)
 
+    @contextmanager
+    def _compact_scoring(self):
+        previous = getattr(self._engine, '_compact_alignment_output', False)
+        self._engine._compact_alignment_output = True
+        try:
+            yield
+        finally:
+            self._engine._compact_alignment_output = previous
+
+    def solve_aligned_batch(self, arm, targets, seeds=None):
+        with self._compact_scoring():
+            return super().solve_aligned_batch(arm, targets, seeds)
+
+    def _call(self, client, request, timeout):
+        return self._owner._call(client, request, timeout)
+
     def _progress_stage(self, phase, detail):
         progress = getattr(self._owner, '_progress', None)
         return progress.stage(phase, detail) if progress is not None else nullcontext()
 
     def _score_batch(self, arm, targets, solutions, state, preferred_rolls=None):
-        with self._progress_stage('GPU_FK_ALIGNMENT',
+        with self._compact_scoring(), self._progress_stage('GPU_FK_ALIGNMENT',
                 f'arm={arm} targets={len(targets)} solutions={sum(map(len, solutions))}'):
             return super()._score_batch(arm, targets, solutions, state, preferred_rolls)
 
@@ -126,17 +142,22 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
     def _choose_batch(self, arm, evaluated, preferred_rolls=None):
         """Check ranked IK states until each target has a live MoveIt witness.
 
-        Only the Hybrid RPC path short-circuits. GPU collision batches and final
-        endpoint/path validation keep their existing behavior. Validity results
-        are never cached across targets, stages or scene operations.
+        The active Hybrid batch callback combines authoritative FK and the live
+        MoveIt state check. Direct callers use ranked state checks. Results
+        never carry over to another target, stage or scene operation.
         """
+        if getattr(self, 'finalize_alignment', None) is not None:
+            # Final FK/state timers belong to the callback. Do not nest them
+            # inside another additive collision timer.
+            return self._choose_moveit_batch(arm, evaluated, preferred_rolls)
         with self._progress_stage('MOVEIT_COLLISION',
                 f'arm={arm} targets={len(evaluated)} checked=0'):
             return self._choose_moveit_batch(arm, evaluated, preferred_rolls)
 
     def _choose_moveit_batch(self, arm, evaluated, preferred_rolls=None):
-        chosen, diagnostics = [], []
+        chosen, diagnostics, finalizations = [], [], []
         self._owner._check_active()
+        finalize = getattr(self, 'finalize_alignment', None)
         for index, group in enumerate(evaluated):
             validation_targets = getattr(self, 'validation_targets', None)
             proposal_only = validation_targets is not None and index not in validation_targets
@@ -144,27 +165,35 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
             if openings is not None and not proposal_only:
                 # GPU proposals share one jaw state; live MoveIt never does.
                 self._owner.set_gripper_position(arm, openings[index])
-            good = [item for item in group if self._feasible_alignment(item)]
+            items = group.candidates if isinstance(group, ScoredAlignments) else group
+            good = [item for item in items if self._feasible_alignment(item)]
             roll = preferred_rolls[index] if preferred_rolls is not None else None
             ordered = sorted(good, key=self._alignment_sort_key(good, roll)) if good else []
             checked, rejected, selected = 0, [], None
+            final_diagnostic = None
             if proposal_only and ordered:
                 selected = ordered[0]
             for item in ordered:
                 if proposal_only:
                     break
                 self._owner._check_active()
-                checked += 1
                 progress = getattr(self._owner, '_progress', None)
-                if progress is not None:
+                if progress is not None and finalize is None:
                     progress.update_detail(f'arm={arm} target={index+1}/{len(evaluated)} '
                                            f'checked={checked}/{len(ordered)}')
-                if self._owner.state_is_valid(arm, item.solution):
-                    selected = item
+                if finalize is None:
+                    checked += 1
+                    selected = item if self._owner.state_is_valid(arm, item.solution) else None
+                else:
+                    selected, final_diagnostic = finalize(index, item)
+                    checked += int(final_diagnostic['outcome'] in ('accepted', 'final_collision_rejected'))
+                if selected is not None:
                     break
-                if len(rejected) < 3:
+                if len(rejected) < 3 and (final_diagnostic is None or
+                        final_diagnostic['outcome'] == 'final_collision_rejected'):
                     rejected.append(list(item.solution.positions))
             chosen.append(selected)
+            finalizations.append((selected, final_diagnostic) if final_diagnostic is not None else None)
             diagnostics.append({
                 **summarize_alignments(group, AlignmentLimits(
                     self._config.position_tolerance_m,
@@ -179,6 +208,7 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
             })
         self._owner._check_active()
         self.last_batch_diagnostics = diagnostics
+        self.last_batch_finalizations = finalizations
         return chosen
 
 
@@ -251,14 +281,20 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                 self._check_active()
                 if continue_work is not None and not continue_work():
                     raise InterruptedError('IK warmup window ended')
-                position, _ = UrdfChain(self._description, self._config.base_frame, tip).pose(state)
+                position, rotation = UrdfChain(self._description, self._config.base_frame, tip).pose(state)
                 with self._progress.stage('IK_WARMUP', f'arm={arm} tip={tip}'):
                     # Results are discarded. Actual requests still refresh the
                     # world, locked joints, FK and complete MoveIt scene checks.
-                    gpu._engine.solve_batch(arm, tip,
-                        [tuple(float(v) for v in position)] * self._hybrid_config.batch_size,
-                        [seeds] * self._hybrid_config.batch_size, state, {},
-                        **({'continue_work': continue_work} if continue_work is not None else {}))
+                    size = self._hybrid_config.batch_size
+                    score = getattr(gpu._engine, 'solve_scored_batch', None)
+                    if tip == f'{arm}_grasp_tcp' and score is not None:
+                        target = PoseValue(tuple(float(v) for v in position), quaternion_from_rotation(rotation))
+                        score(arm, [target]*size, [seeds]*size, state, {}, self._config,
+                              [state[ARM_JOINT_NAMES[arm][-1]]]*size, continue_work=continue_work)
+                    else:
+                        gpu._engine.solve_batch(arm, tip,
+                            [tuple(float(v) for v in position)]*size, [seeds]*size, state, {},
+                            **({'continue_work': continue_work} if continue_work is not None else {}))
 
     def begin_candidate_pass(self, retry: bool) -> bool:
         """Start one grasp-first pass or a legacy pregrasp retry pass."""
@@ -566,6 +602,15 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         gpu.set_gripper_position(arm, proposal_opening)
         gpu.validation_openings = actual_openings
         gpu.validation_targets = validation_targets
+        backend = 'gpu_primary' if count == self._gpu_config.num_seeds else 'gpu_retry'
+
+        def finalize_alignment(index, proposal):
+            diagnostic = {'backend': backend}
+            result = self._accept_alignment(arm, targets[index], proposal, diagnostic)
+            return result, diagnostic
+
+        gpu.finalize_alignment = finalize_alignment
+        gpu.last_batch_finalizations = []
         width = self._hybrid_config.batch_size
         if self._hybrid_config.adaptive_batch_size:
             width = min(width, 1 << (len(targets)-1).bit_length())
@@ -574,9 +619,12 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             with self._progress.stage('CANDIDATE_IK',
                     f'arm={arm} targets={len(targets)} padded={width} seeds={count} retry={retry_pass}'):
                 results = gpu.solve_aligned_batch(arm, targets, seeds)
+            finalizations = list(gpu.last_batch_finalizations)
         finally:
             gpu.validation_openings = None
             gpu.validation_targets = None
+            gpu.finalize_alignment = None
+            gpu.last_batch_finalizations = []
             if opening is not None:
                 self.set_gripper_position(arm, opening)
         if len(results) != len(targets):
@@ -622,13 +670,19 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                     self._record_ik_diagnostic(diagnostic)
                     continue
                 self.set_gripper_position(arm, actual_opening)
-                accepted.append(self._accept_alignment(arm, target, result, diagnostic))
-                if (accepted[-1] is None and diagnostic['pose_feasible']
+                finalized = finalizations[index] if index < len(finalizations) else None
+                integrated = finalized is not None and finalized[0] is result
+                if integrated:
+                    diagnostic.update(finalized[1], final_validation_integrated=True)
+                    accepted.append(result)
+                else:
+                    accepted.append(self._accept_alignment(arm, target, result, diagnostic))
+                if (not integrated and accepted[-1] is None and diagnostic['pose_feasible']
                         and diagnostic.get('collision_checked', 0)
                         and not diagnostic.get('collision_valid', 0)
                         and 'final_alignment' not in diagnostic):
                     diagnostic.update(outcome='collision_rejected', failure_phase='MOVEIT_COLLISION')
-                elif result is None:
+                elif not integrated and result is None:
                     if diagnostic['evaluated_variants']:
                         diagnostic.update(outcome='pose_rejected', failure_phase='GPU_FK_ALIGNMENT')
                     else:

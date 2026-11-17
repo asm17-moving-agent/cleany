@@ -697,3 +697,43 @@ def test_real_control_owns_motion_and_moveit_only_plans(tmp_path):
     assert result.returncode == 0, result.stderr
     arguments = result.stdout.splitlines()
     assert {'read_only:=false', 'with_moveit:=true', 'allow_trajectory_execution:=false'} <= set(arguments)
+
+
+@pytest.mark.parametrize('domain, matching_code, viewer, expected', [
+    (224, True, True, '224 42'),
+    (225, True, True, '224 0'),
+    (224, False, True, '224 0'),
+    (224, True, False, '224 0'),
+])
+def test_manual_runtime_finds_restarted_rviz_review(tmp_path, domain, matching_code, viewer, expected):
+    import json
+    import sys
+
+    old_review = tmp_path / 'old'
+    current_review = tmp_path / 'current'
+    for review in (old_review, current_review):
+        review.mkdir()
+        (review / 'all_camera_feedback.py').write_text('approved reader')
+        (review / 'joint_reader.py').write_text('approved bus client')
+    if not matching_code:
+        (current_review / 'joint_reader.py').write_text('different bus client')
+    profile = tmp_path / 'profile.json'
+    profile.write_text(json.dumps(dict(review_directory=str(old_review), review_domain=224)))
+
+    proc = tmp_path / 'proc'
+    processes = [(42, b'/usr/bin/python3\0all_camera_feedback.py\0')]
+    if viewer:
+        processes.append((43, b'/opt/ros/humble/lib/rviz2/rviz2\0-d\0all-camera-live.rviz\0'))
+    for pid, args in processes:
+        entry = proc / str(pid)
+        entry.mkdir(parents=True)
+        (entry / 'cwd').symlink_to(current_review)
+        (entry / 'cmdline').write_bytes(args)
+        (entry / 'environ').write_bytes(f'ROS_DOMAIN_ID={domain}\0'.encode())
+
+    helper = (SCRIPT.parent / 'ros2/collection-manual-rviz').read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
+    helper = helper.replace("Path('/proc')", 'Path(sys.argv[3])')
+    result = subprocess.run([sys.executable, '-c', helper, str(profile), '0', str(proc)],
+                            text=True, capture_output=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == expected

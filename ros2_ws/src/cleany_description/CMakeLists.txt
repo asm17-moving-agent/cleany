@@ -16,6 +16,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(wrist_cameras test/test_wrist_cameras.py)
   ament_add_pytest_test(collision_meshes test/test_collision_meshes.py TIMEOUT 120
     ENV OPENBLAS_NUM_THREADS=1)
+  ament_add_pytest_test(freecad_model test/test_freecad_model.py TIMEOUT 120)
+  ament_add_pytest_test(freecad_kinematics test/test_freecad_kinematics.py TIMEOUT 120)
+  ament_add_pytest_test(freecad_gripper_linkage test/test_freecad_gripper_linkage.py TIMEOUT 120)
+  ament_add_pytest_test(freecad_tip_mounts test/test_freecad_tip_mounts.py TIMEOUT 120)
 endif()
 
 ament_package()

@@ -1,4 +1,5 @@
-"""Exercise USB capture lifecycle through actual ROS SetBool and image topics."""
+"""Exercise wrist camera configuration and ROS capture lifecycle."""
+import json
 import time
 
 import numpy as np
@@ -13,6 +14,29 @@ from std_msgs.msg import Bool
 from std_srvs.srv import SetBool
 
 from cleany_robot_interface import wrist_rgb_camera as module
+
+
+def test_device_override_keeps_recorded_calibration_binding(tmp_path):
+    camera = {'camera_device': '/dev/original', 'width': 640, 'height': 480}
+    profile = {
+        'arm': 'left', 'frame_id': 'left_wrist_rgb_optical_frame',
+        'camera_config': 'camera.json', 'calibration_config': 'calibration.json',
+        'publish_rate_hz': 15, 'camera_device_override': '/dev/relocated',
+    }
+    for name, value in {
+        'camera.json': camera,
+        'manifest.json': {'config': camera},
+        'profile.json': profile,
+        'calibration.json': {'intrinsics_file': 'intrinsics.json'},
+        'intrinsics.json': {'width': 640, 'height': 480},
+    }.items():
+        (tmp_path / name).write_text(json.dumps(value))
+
+    assert module.load_camera_profile(tmp_path / 'profile.json', tmp_path)[0]['camera_device'] == '/dev/relocated'
+    camera['camera_device'] = '/dev/unrelated'
+    (tmp_path / 'camera.json').write_text(json.dumps(camera))
+    with pytest.raises(ValueError, match='calibration mismatch: camera_device'):
+        module.load_camera_profile(tmp_path / 'profile.json', tmp_path)
 
 
 class FakeUsb:

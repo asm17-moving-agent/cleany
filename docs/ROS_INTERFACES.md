@@ -344,8 +344,9 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 | Gazebo `ros_gz_bridge` | [Bridge 표](../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#ros_gz_bridge). ROS/Gazebo sensor와 명령 변환 |
 | Nav2 / AMCL / Collision Monitor | [Navigation launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)와 [설정](../ros2_ws/src/cleany_navigation/config)이 조합을 선택. Mission이 호출하는 action/lifecycle 서비스는 Mission 노드 표에 포함 |
 | MoveIt `move_group` | `/compute_ik`, `/compute_fk`, `/check_state_validity`, `/get_planning_scene`, `/apply_planning_scene`, `/move_action`, `/execute_trajectory`를 이용. 자체 호출 노드 표와 [Planning 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md)에서 연결 확인 |
+| FreeCAD 검사 `move_group` | `freecad_inspection.launch.py`에서 CAD 상태 검사와 OctoMap 제공. `runtime_test/check_freecad_lower_body.py`는 자체 필터와 시험 장애물 접촉을 조회하는 보조 노드. [검사 인터페이스](../ros2_ws/src/cleany_moveit_config/docs/interfaces.md#freecad-검사) |
 | ros2_control | Arm/gripper의 FollowJointTrajectory와 joint_state_broadcaster. [Controller 설정](../ros2_ws/src/cleany_moveit_config/config/mock_ros2_controllers.yaml)과 [MuJoCo backend launch](../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py)이 선택 |
-| `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. URDF와 [모델 계약](../ros2_ws/src/cleany_description/docs/model.md)이 frame 의미를 관리 |
+| `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. `description.launch.py`의 기본 `freecad_final`은 정적 프레임, `freecad_kinematic`은 `cad_delta_*` 입력과 CAD 링크 프레임, `legacy_runtime`은 기존 관절 프레임 제공. 선택형 namespace는 description, joint state, TF 토픽에, frame_prefix는 TF frame ID에 적용. [모델 계약](../ros2_ws/src/cleany_description/docs/model.md)이 frame 의미를 관리 |
 | `InspectScene` | `perception_inspector`가 `perception/inspect_scene`을 제공. [Perception API](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
 | `ExecuteManipulationSkill` | Runtime의 action client와 [타입](../ros2_ws/src/cleany_interfaces/action/ExecuteManipulationSkill.action)은 존재. 기본 mock는 process 내부 구현이며 `action_mock`은 선택형 Python Mock 서버에 연결 |
 
@@ -442,3 +443,12 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 | `arm_return`, `manipulation_recovery` | `cleany_manipulation_bt` | [명시 요청 client](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
 | `collection_pipeline` | `cleany_skill_executor` | [설정 검사와 명시 실행](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#collection_pipeline) |
 | `manipulation_evidence` | `cleany_skill_executor` | [읽기 전용 실행 근거](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_evidence) |
+
+## 운영 UI와 승인 대상 재확인
+
+| 실행 또는 노드 | 계약 |
+|---|---|
+| `dev_monitor`와 `cleany_dev_monitor_operator_<pid>_<id>` | [관측, 인증과 작업 제안](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md) |
+| `inspection_node`의 `perception/revalidate_target` | [승인 대상의 최신 기하와 원본 분류](../ros2_ws/src/cleany_perception/docs/interfaces.md#승인-대상-재확인) |
+
+운영 adapter는 Monitor와 작업 worker에서 생성한다. 별도 ROS console 실행 파일을 추가하지 않는다.

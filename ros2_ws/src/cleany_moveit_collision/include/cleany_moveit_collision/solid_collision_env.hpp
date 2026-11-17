@@ -22,9 +22,10 @@ class SolidCollisionEnv : public collision_detection::CollisionEnvFCL
 {
 public:
   explicit SolidCollisionEnv(const moveit::core::RobotModelConstPtr& model,
-                             double padding = 0., double scale = 1.);
+                             double padding = 0., double scale = 1., bool declared_only = false);
   SolidCollisionEnv(const moveit::core::RobotModelConstPtr& model,
-                    const collision_detection::WorldPtr& world, double padding = 0., double scale = 1.);
+                    const collision_detection::WorldPtr& world, double padding = 0., double scale = 1.,
+                    bool declared_only = false);
   SolidCollisionEnv(const SolidCollisionEnv& other, const collision_detection::WorldPtr& world);
   std::size_t solidComponentCount() const { return solid_components_; }
   void checkSelfCollision(const collision_detection::CollisionRequest& req,
@@ -53,10 +54,35 @@ private:
                         const moveit::core::RobotState& state,
                         const collision_detection::AllowedCollisionMatrix* acm) const;
   std::size_t solid_components_ = 0;
+  bool declared_only_ = false;
 };
 
 class SolidCollisionAllocator
   : public collision_detection::CollisionDetectorAllocatorTemplate<SolidCollisionEnv, SolidCollisionAllocator>
+{
+public:
+  static const std::string NAME;
+};
+
+/** Inspect mixed CAD surfaces and explicitly named cad_enclosure__ solids.
+ * Only named enclosures are converted to solids; malformed enclosures still
+ * throw. Other CAD meshes retain standard FCL surface collision semantics.
+ */
+class CADInspectionCollisionEnv : public SolidCollisionEnv
+{
+public:
+  explicit CADInspectionCollisionEnv(const moveit::core::RobotModelConstPtr& model,
+                                    double padding = 0., double scale = 1.)
+    : SolidCollisionEnv(model, padding, scale, true) {}
+  CADInspectionCollisionEnv(const moveit::core::RobotModelConstPtr& model,
+                            const collision_detection::WorldPtr& world, double padding = 0., double scale = 1.)
+    : SolidCollisionEnv(model, world, padding, scale, true) {}
+  CADInspectionCollisionEnv(const CADInspectionCollisionEnv& other, const collision_detection::WorldPtr& world)
+    : SolidCollisionEnv(other, world) {}
+};
+
+class CADInspectionCollisionAllocator
+  : public collision_detection::CollisionDetectorAllocatorTemplate<CADInspectionCollisionEnv, CADInspectionCollisionAllocator>
 {
 public:
   static const std::string NAME;

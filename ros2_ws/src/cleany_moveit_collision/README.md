@@ -5,6 +5,13 @@
 틈과 링크별 배치, 충돌 허용 행렬을 유지한다. 열린 면이나 오목한 조각은
 초기화 오류로 거부한다. 임의 CAD를 볼록 외피로 바꾸지는 않는다.
 
+FreeCAD 검사 전용 `cleany/CADInspectionFCL`은 URDF collision 이름이
+`cad_enclosure__`로 시작하는 메시만 같은 닫힌 볼록 입체로 검사한다.
+나머지 CAD 메시에는 FCL 표면 검사를 유지한다. 선언한 외피가 열렸거나
+오목하면 초기화를 거부하며, 로드한 형상과 URDF 선언의 개수가 달라도
+거부한다. 검사 launch는 외피가 있는 캐시에서 이 detector와 로드 확인
+capability를 자동 선택한다. 기존 `cleany/SolidFCL`의 엄격한 조건은 유지한다.
+
 자기 충돌은 매 요청에서 링크 경계 상자를 계산해 검사할 부품 쌍을 줄인다.
 조건부 접촉 허용, world, attached object와 거리 쿼리는 FCL 규약을 따른다.
 이전 자세의 충돌 결과는 재사용하지 않는다.

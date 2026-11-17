@@ -5,7 +5,9 @@ from bisect import bisect_right
 from functools import cached_property
 import math
 
-from .hardware_execution import CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit
+from .hardware_execution import (
+    CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit, joint_rate_limits,
+)
 from .joint_path import JointPathSample
 
 
@@ -146,6 +148,40 @@ def _cubic_slope_bound(a: float, b: float, c: float) -> float:
     return math.nextafter(bound, math.inf)
 
 
+def retime_recorded_trajectory(
+        path: RecordedTrajectory, limits: dict[str, PhysicalJointLimit], *,
+        velocity: float, acceleration: float, minimum_duration_sec: float = .3,
+        limit_scale: float = .8) -> RecordedTrajectory:
+    """Uniformly retime saved cubics using their analytical rate extrema.
+
+    Positions and relative timing are retained. Velocities change inversely
+    with time, preserving each Hermite curve within timestamp quantization.
+    """
+    path.validate()
+    if (not set(path.joint_names) <= limits.keys()
+            or any(isinstance(value, bool) or not math.isfinite(value) or value <= 0
+                   for value in (velocity, acceleration, minimum_duration_sec))):
+        raise CommandPathValidationError('Invalid recorded timing limits')
+    velocity_limits, acceleration_limits = joint_rate_limits(
+        path.joint_names, limits, velocity=velocity, acceleration=acceleration,
+        limit_scale=limit_scale)
+    required_scale = 0.
+    for dt, coefficients in path._segments:
+        for (a, b, c, _), vmax, amax in zip(
+                coefficients, velocity_limits, acceleration_limits, strict=True):
+            required_scale = max(required_scale,
+                _cubic_slope_bound(a, b, c)/dt/vmax,
+                math.sqrt(max(abs(2*b), abs(6*a+2*b))/dt**2/amax))
+    duration = path.points[-1].time_ns/1e9
+    scale = max(minimum_duration_sec/duration, required_scale*1.05)
+    result = RecordedTrajectory(path.joint_names, tuple(
+        CommandPoint(round(point.time_ns*scale), point.positions,
+                     tuple(value/scale for value in point.velocities))
+        for point in path.points))
+    result.validate()
+    return result
+
+
 def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[float, ...]], float],
                            target_z: float, *, step_rad: float = .01,
                            maximum_points: int = 2000, height_tolerance_m: float = 0.) -> int:
@@ -204,7 +240,7 @@ def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[flo
 
 def stopped_recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int,
                             limits: dict[str, PhysicalJointLimit], *, velocity: float,
-                            acceleration: float) -> RecordedTrajectory:
+                            acceleration: float, limit_scale: float = .8) -> RecordedTrajectory:
     """Keep source timing and velocities, easing the final partial stop only.
 
     A continuation starts at rest, so that short segment uses a smooth start
@@ -216,8 +252,8 @@ def stopped_recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int
     if not set(names) <= limits.keys() or any(not math.isfinite(x) or x <= 0
                                              for x in (velocity, acceleration)):
         raise CommandPathValidationError('Invalid replay timing limits')
-    v_limits = [min(velocity, limits[n].velocity*.8) for n in names]
-    a_limits = [min(acceleration, limits[n].acceleration*.8) for n in names]
+    v_limits, a_limits = joint_rate_limits(
+        names, limits, velocity=velocity, acceleration=acceleration, limit_scale=limit_scale)
     duration = source.points[-1].time_ns/1e9
     start_stopped = all(abs(v) < 1e-9 for v in source.points[0].velocities)
     end_stopped = all(abs(v) < 1e-9 for v in source.points[-1].velocities)
@@ -297,7 +333,7 @@ def stopped_recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int
 def validate_recorded_trajectory(
         trajectory: RecordedTrajectory, limits: dict[str, PhysicalJointLimit], *,
         velocity: float, acceleration: float, step: float,
-        maximum_points: int = 2000) -> list[JointPathSample]:
+        maximum_points: int = 2000, limit_scale: float = .8) -> list[JointPathSample]:
     """Check exact Hermite extrema/rates and sample the cubics for collisions.
 
     The returned collision samples do not change the recorded command points.
@@ -309,13 +345,16 @@ def validate_recorded_trajectory(
             or not all(math.isfinite(v) and v > 0 for v in (velocity, acceleration, step))):
         raise CommandPathValidationError('Invalid recorded trajectory limits')
     end_ns = trajectory.points[-1].time_ns
+    velocity_limits, acceleration_limits = joint_rate_limits(
+        names, limits, velocity=velocity, acceleration=acceleration, limit_scale=limit_scale)
     duration = end_ns/1e9
     result = []
     for first, last in zip(trajectory.points, trajectory.points[1:]):
         dt = (last.time_ns-first.time_ns)/1e9
         coefficients, fractions, maximum = [], {0., 1.}, 0.
-        for name, q0, q1, v0, v1 in zip(
-                names, first.positions, last.positions, first.velocities, last.velocities, strict=True):
+        for name, q0, q1, v0, v1, velocity_limit, acceleration_limit in zip(
+                names, first.positions, last.positions, first.velocities, last.velocities,
+                velocity_limits, acceleration_limits, strict=True):
             a = 2*q0-2*q1+dt*(v0+v1)
             b = 3*q1-3*q0-dt*(2*v0+v1)
             c = dt*v0
@@ -335,8 +374,8 @@ def validate_recorded_trajectory(
                 if 0 < extremum < 1:
                     fractions.add(extremum)
             acceleration_bound = max(abs(2*b), abs(6*a+2*b))/dt**2
-            if (slope_bound/dt > min(velocity, limits[name].velocity*.8)+1e-7
-                    or acceleration_bound > min(acceleration, limits[name].acceleration*.8)+1e-7):
+            if (slope_bound/dt > velocity_limit+1e-7
+                    or acceleration_bound > acceleration_limit+1e-7):
                 raise CommandPathValidationError(f'Recorded trajectory exceeds joint rate limits: joint={name}')
             maximum = max(maximum, slope_bound)
         count = max(2, math.ceil(maximum/step))

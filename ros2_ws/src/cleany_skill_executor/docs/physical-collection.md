@@ -74,3 +74,21 @@ URDF 의존관계를 해석할 수 없거나 관절 정보가 불완전하면 �
 전류나 부하를 힘으로 해석하지 않으며, 관측의 대상 ID, 신선도와 시간 차이를 검사한다.
 구형 부하 단독 판정은 사용하지 않는다. 같은 근거를 재전송해도 새 관측이 되지 않는다.
 서비스와 메시지 정의는 [인터페이스](interfaces.md#manipulation_evidence)를 따른다.
+
+## 실행 준비와 시간 최적화
+
+동일한 관절 상태와 모델의 FK, IK client와 불변 모델 데이터는 재사용한다.
+최신 피드백 감시와 충돌 검사는 요청마다 유지하며 충돌 장면의 결과는 캐시하지 않는다.
+기록 경로는 `hardware_retime_retreat`로 역재생 시간 재계산을 선택할 수 있다.
+
+| Jetson 설정 | 값 | 적용 |
+|---|---|---|
+| `hardware_trajectory_limit_scale` | `1.0` | 요청 속도와 가속도를 물리 관절 한도로 제한 |
+| `hardware_path_step_rad` | `0.02` | 충돌 검사용 관절 보간 간격 |
+| `hardware_lift_min_duration_sec` | `0.3` | 들기 최소 시간. retimer의 속도와 가속도 제한 유지 |
+| `hardware_retreat_min_duration_sec` | `0.3` | 복귀 최소 시간 |
+| `hardware_retime_retreat` | `true` | 현재 한도로 기록 경로 재타이밍 |
+| `hardware_return_start_delay_sec` | `0.2` | 팔과 그리퍼의 공통 시작 대기 |
+
+위 값은 `cleany_manipulation_bt/config/manipulation_jetson.yaml`의 실행 프로필이며
+실행기 자체의 기본 여유율은 `0.8`이다. 실물 안전성과 전체 수거 시간의 개선은 별도 검증한다.
