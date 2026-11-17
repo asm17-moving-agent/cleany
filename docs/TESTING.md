@@ -466,6 +466,19 @@ frame/odom/lease와 pseudo-terminal을 사용하며 실제 센서나 모터를 �
 `ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
 실물 검증 항목은 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)을 따른다.
 
+MPPI의 스레드 시작, 노이즈 갱신과 종료 검사는 다음과 같이 반복한다. 각 명령은 실패가
+발생하면 반복을 중단하며, 테스트별 기본 제한 시간 60초를 유지한다.
+
+```bash
+make test-navigation NAVIGATION_CTEST_ARGS='-R mppi_noise_generator_test --repeat until-fail:100'
+make test-navigation NAVIGATION_CTEST_ARGS='-R mppi_critics_tests --repeat until-fail:100'
+```
+
+노이즈 검사는 작업 완료를 확인한 뒤 결과를 읽는다. MPPI 테스트의 Costmap은 내부 executor가
+시작되고 합성 TF가 수신된 것을 확인한 뒤 사용한다. 생성 직후 종료하더라도 시작 전에
+종료 요청을 보내는 순서가 되지 않도록 보장한다.
+이 절차는 실물 TF나 주행 검증을 포함하지 않는다.
+
 ToF 분류 회귀에는 단독 보드 로그의 3개 frame과 합성 입력을 사용한다. 정상 미검출의
 주행 허용, 부분 품질 불량 제외, 전부 불량 정지, 인접/물리 cluster, 15Hz 지속 확인,
 flash/고립 noise, 비상 단일 검출, 해제 hysteresis와 필터 reset을 검사한다. ROS 검사는

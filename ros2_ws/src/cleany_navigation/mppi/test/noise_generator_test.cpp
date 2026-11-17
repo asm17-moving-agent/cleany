@@ -15,6 +15,9 @@
 #include <chrono>
 #include <thread>
 
+#include <xtensor/xmath.hpp>
+#include <xtensor/xrandom.hpp>
+
 #include "gtest/gtest.h"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -23,8 +26,6 @@
 #include "cleany_navigation/mppi/models/optimizer_settings.hpp"
 #include "cleany_navigation/mppi/models/state.hpp"
 #include "cleany_navigation/mppi/models/control_sequence.hpp"
-
-// Tests noise generator object
 
 class RosLockGuard
 {
@@ -36,96 +37,211 @@ RosLockGuard g_rclcpp;
 
 using namespace cleany_navigation::mppi;  // NOLINT
 
-TEST(NoiseGeneratorTest, NoiseGeneratorLifecycle)
+class TestNoiseGenerator : public NoiseGenerator
 {
-  // Tests shuts down internal thread cleanly
-  NoiseGenerator generator;
-  cleany_navigation::mppi::models::OptimizerSettings settings;
-  settings.batch_size = 100;
-  settings.time_steps = 25;
+public:
+  ~TestNoiseGenerator() {shutdown();}
 
-  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("node");
-  node->declare_parameter("test_name.regenerate_noises", rclcpp::ParameterValue(false));
-  ParametersHandler handler(node);
-
-  generator.initialize(settings, false, "test_name", &handler);
-  generator.reset(settings, false);
-  generator.shutdown();
-}
-
-TEST(NoiseGeneratorTest, NoiseGeneratorMain)
-{
-  // Tests shuts down internal thread cleanly
-  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("node");
-  node->declare_parameter("test_name.regenerate_noises", rclcpp::ParameterValue(true));
-  ParametersHandler handler(node);
-  NoiseGenerator generator;
-  cleany_navigation::mppi::models::OptimizerSettings settings;
-  settings.batch_size = 100;
-  settings.time_steps = 25;
-  settings.sampling_std.vx = 0.1;
-  settings.sampling_std.vy = 0.1;
-  settings.sampling_std.wz = 0.1;
-
-  // Populate a potential control sequence
-  cleany_navigation::mppi::models::ControlSequence control_sequence;
-  control_sequence.reset(25);
-  for (unsigned int i = 0; i != control_sequence.vx.shape(0); i++) {
-    control_sequence.vx(i) = i;
-    control_sequence.vy(i) = i;
-    control_sequence.wz(i) = i;
+  void clearNoise()
+  {
+    std::unique_lock<std::mutex> guard(noise_lock_);
+    noises_vx_.fill(0.0f);
+    noises_vy_.fill(0.0f);
+    noises_wz_.fill(0.0f);
   }
 
-  cleany_navigation::mppi::models::State state;
-  state.reset(settings.batch_size, settings.time_steps);
+  bool waitForNoise()
+  {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (std::chrono::steady_clock::now() < deadline) {
+      {
+        std::unique_lock<std::mutex> guard(noise_lock_, std::try_to_lock);
+        // The worker clears ready_ and writes all samples under this same lock.
+        if (guard.owns_lock() && !ready_) {
+          return true;
+        }
+      }
+      std::this_thread::yield();
+    }
+    return false;
+  }
+};
 
-  // Request an update with no noise yet generated, should result in identical outputs
-  generator.initialize(settings, false, "test_name", &handler);
-  generator.reset(settings, false);  // sets initial sizing and zeros out noises
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_EQ(state.cvx(0), 0);
-  EXPECT_EQ(state.cvy(0), 0);
-  EXPECT_EQ(state.cwz(0), 0);
-  EXPECT_EQ(state.cvx(9), 9);
-  EXPECT_EQ(state.cvy(9), 9);
-  EXPECT_EQ(state.cwz(9), 9);
+class NoiseGeneratorTest : public ::testing::Test
+{
+protected:
+  NoiseGeneratorTest()
+  : node_(std::make_shared<rclcpp_lifecycle::LifecycleNode>("noise_test")),
+    handler_(node_)
+  {
+    settings_.batch_size = 100;
+    settings_.time_steps = 25;
+    settings_.sampling_std.vx = 0.1;
+    settings_.sampling_std.vy = 0.1;
+    settings_.sampling_std.wz = 0.1;
+  }
 
-  // Request an update with noise requested
-  generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_NE(state.cvx(0), 0);
-  EXPECT_EQ(state.cvy(0), 0);  // Not populated in non-holonomic
-  EXPECT_NE(state.cwz(0), 0);
-  EXPECT_NE(state.cvx(9), 9);
-  EXPECT_EQ(state.cvy(9), 9);  // Not populated in non-holonomic
-  EXPECT_NE(state.cwz(9), 9);
+  void initialize(bool background)
+  {
+    node_->declare_parameter("test_name.regenerate_noises", background);
+    generator_.initialize(settings_, false, "test_name", &handler_);
+  }
 
-  EXPECT_NEAR(state.cvx(0), 0, 0.3);
-  EXPECT_NEAR(state.cvy(0), 0, 0.3);
-  EXPECT_NEAR(state.cwz(0), 0, 0.3);
-  EXPECT_NEAR(state.cvx(9), 9, 0.3);
-  EXPECT_NEAR(state.cvy(9), 9, 0.3);
-  EXPECT_NEAR(state.cwz(9), 9, 0.3);
+  bool resetAndRead(bool holonomic)
+  {
+    control_.reset(settings_.time_steps);
+    for (unsigned int i = 0; i < settings_.time_steps; ++i) {
+      control_.vx(i) = i;
+      control_.vy(i) = i;
+      control_.wz(i) = i;
+    }
+    state_.reset(settings_.batch_size, settings_.time_steps);
+    generator_.reset(settings_, holonomic);
+    if (!generator_.waitForNoise()) {
+      return false;
+    }
+    generator_.setNoisedControls(state_, control_);
+    return true;
+  }
 
-  // Test holonomic setting
-  generator.reset(settings, true);  // Now holonomically
-  generator.generateNextNoises();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  generator.setNoisedControls(state, control_sequence);
-  EXPECT_NE(state.cvx(0), 0);
-  EXPECT_NE(state.cvy(0), 0);  // Now populated in non-holonomic
-  EXPECT_NE(state.cwz(0), 0);
-  EXPECT_NE(state.cvx(9), 9);
-  EXPECT_NE(state.cvy(9), 9);  // Now populated in non-holonomic
-  EXPECT_NE(state.cwz(9), 9);
+  void expectPassthrough()
+  {
+    EXPECT_TRUE(xt::all(xt::equal(state_.cvx, control_.vx)));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cvy, control_.vy)));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cwz, control_.wz)));
+  }
 
-  EXPECT_NEAR(state.cvx(0), 0, 0.3);
-  EXPECT_NEAR(state.cvy(0), 0, 0.3);
-  EXPECT_NEAR(state.cwz(0), 0, 0.3);
-  EXPECT_NEAR(state.cvx(9), 9, 0.3);
-  EXPECT_NEAR(state.cvy(9), 9, 0.3);
-  EXPECT_NEAR(state.cwz(9), 9, 0.3);
+  void expectNoise(bool holonomic)
+  {
+    EXPECT_EQ(state_.cvx.shape()[0], settings_.batch_size);
+    EXPECT_EQ(state_.cvx.shape()[1], settings_.time_steps);
+    EXPECT_EQ(state_.cvy.shape(), state_.cvx.shape());
+    EXPECT_EQ(state_.cwz.shape(), state_.cvx.shape());
+    EXPECT_TRUE(xt::all(xt::isfinite(state_.cvx)));
+    EXPECT_TRUE(xt::all(xt::isfinite(state_.cvy)));
+    EXPECT_TRUE(xt::all(xt::isfinite(state_.cwz)));
+    EXPECT_TRUE(xt::any(xt::not_equal(state_.cvx, control_.vx)));
+    EXPECT_TRUE(xt::any(xt::not_equal(state_.cwz, control_.wz)));
+    if (holonomic) {
+      EXPECT_TRUE(xt::any(xt::not_equal(state_.cvy, control_.vy)));
+    } else {
+      EXPECT_TRUE(xt::all(xt::equal(state_.cvy, control_.vy)));
+    }
+  }
 
-  generator.shutdown();
+  rclcpp_lifecycle::LifecycleNode::SharedPtr node_;
+  ParametersHandler handler_;
+  TestNoiseGenerator generator_;
+  models::OptimizerSettings settings_;
+  models::ControlSequence control_;
+  models::State state_;
+};
+
+TEST_F(NoiseGeneratorTest, ZeroNoiseSynchronous)
+{
+  initialize(false);
+  for (bool holonomic : {false, true}) {
+    ASSERT_TRUE(resetAndRead(holonomic));
+    generator_.clearNoise();
+    generator_.setNoisedControls(state_, control_);
+    expectPassthrough();
+  }
+}
+
+TEST_F(NoiseGeneratorTest, ZeroNoiseBackground)
+{
+  initialize(true);
+  for (bool holonomic : {false, true}) {
+    ASSERT_TRUE(resetAndRead(holonomic));
+    generator_.clearNoise();
+    generator_.setNoisedControls(state_, control_);
+    expectPassthrough();
+  }
+}
+
+TEST_F(NoiseGeneratorTest, SeededSynchronousSamples)
+{
+  initialize(false);
+  const auto expect_distribution = [](const auto & samples, const auto & controls, float stddev) {
+      const auto residual = samples - controls;
+      EXPECT_NEAR(xt::mean(residual)(), 0.0f, 0.1f * stddev);
+      EXPECT_NEAR(xt::mean(xt::square(residual))(), stddev * stddev, 0.2f * stddev * stddev);
+    };
+  for (bool holonomic : {false, true}) {
+    xt::random::seed(42);
+    ASSERT_TRUE(resetAndRead(holonomic));
+    expectNoise(holonomic);
+    expect_distribution(state_.cvx, control_.vx, settings_.sampling_std.vx);
+    expect_distribution(state_.cwz, control_.wz, settings_.sampling_std.wz);
+    if (holonomic) {
+      expect_distribution(state_.cvy, control_.vy, settings_.sampling_std.vy);
+    }
+    const auto first = state_;
+
+    xt::random::seed(42);
+    ASSERT_TRUE(resetAndRead(holonomic));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cvx, first.cvx)));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cvy, first.cvy)));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cwz, first.cwz)));
+
+    // Fixed-noise mode reuses its samples between resets.
+    generator_.generateNextNoises();
+    generator_.setNoisedControls(state_, control_);
+    EXPECT_TRUE(xt::all(xt::equal(state_.cvx, first.cvx)));
+    EXPECT_TRUE(xt::all(xt::equal(state_.cwz, first.cwz)));
+  }
+}
+
+TEST_F(NoiseGeneratorTest, BackgroundRequestsComplete)
+{
+  initialize(true);
+  ASSERT_TRUE(resetAndRead(false));
+  for (int i = 0; i < 20; ++i) {
+    const auto previous = state_.cvx;
+    generator_.generateNextNoises();
+    ASSERT_TRUE(generator_.waitForNoise());
+    generator_.setNoisedControls(state_, control_);
+    expectNoise(false);
+    EXPECT_TRUE(xt::any(xt::not_equal(state_.cvx, previous)));
+  }
+}
+
+TEST_F(NoiseGeneratorTest, ResetWhileGenerationIsPending)
+{
+  initialize(true);
+  ASSERT_TRUE(resetAndRead(false));
+  for (int i = 0; i < 20; ++i) {
+    generator_.generateNextNoises();
+    const bool holonomic = i % 2 == 0;
+    settings_.batch_size = holonomic ? 64 : 100;
+    settings_.time_steps = holonomic ? 12 : 25;
+    ASSERT_TRUE(resetAndRead(holonomic));
+    expectNoise(holonomic);
+  }
+}
+
+TEST_F(NoiseGeneratorTest, ShutdownIdleAndPendingWorker)
+{
+  initialize(true);
+  for (int i = 0; i < 20; ++i) {
+    if (i != 0) {
+      generator_.initialize(settings_, false, "test_name", &handler_);
+    }
+    ASSERT_TRUE(resetAndRead(false));
+    if (i % 2 == 0) {
+      generator_.generateNextNoises();
+    }
+    generator_.shutdown();
+    generator_.shutdown();
+  }
+}
+
+TEST_F(NoiseGeneratorTest, ShutdownBeforeFirstRequest)
+{
+  initialize(true);
+  generator_.shutdown();
+  for (int i = 0; i < 20; ++i) {
+    generator_.initialize(settings_, false, "test_name", &handler_);
+    generator_.shutdown();
+  }
 }

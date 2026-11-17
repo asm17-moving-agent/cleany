@@ -19,6 +19,7 @@ LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
+NAVIGATION_CTEST_ARGS ?=
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
 MISSION_MOCK_PACKAGES := $(MISSION_PACKAGES) cleany_skill_executor
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
@@ -257,7 +258,7 @@ test-navigation: build-navigation
 		--build-base "$(NAVIGATION_BUILD_BASE)" \
 		--install-base "$(NAVIGATION_INSTALL_BASE)" \
 		--packages-select cleany_navigation \
-		--return-code-on-test-failure && \
+		--return-code-on-test-failure --ctest-args $(NAVIGATION_CTEST_ARGS) && \
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
 
 test-navigation-runtime: build-navigation

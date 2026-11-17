@@ -27,9 +27,11 @@ void NoiseGenerator::initialize(
   cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic,
   const std::string & name, ParametersHandler * param_handler)
 {
+  std::unique_lock<std::mutex> guard(noise_lock_);
   settings_ = settings;
   is_holonomic_ = is_holonomic;
   active_ = true;
+  ready_ = false;
 
   auto getParam = param_handler->getParamGetter(name);
   getParam(regenerate_noises_, "regenerate_noises", false);
@@ -43,8 +45,10 @@ void NoiseGenerator::initialize(
 
 void NoiseGenerator::shutdown()
 {
-  active_ = false;
-  ready_ = true;
+  {
+    std::unique_lock<std::mutex> guard(noise_lock_);
+    active_ = false;
+  }
   noise_cond_.notify_all();
   if (noise_thread_.joinable()) {
     noise_thread_.join();
@@ -57,6 +61,9 @@ void NoiseGenerator::generateNextNoises()
   // to generate the next iteration's noises (if applicable).
   {
     std::unique_lock<std::mutex> guard(noise_lock_);
+    if (!regenerate_noises_ || !active_) {
+      return;
+    }
     ready_ = true;
   }
   noise_cond_.notify_all();
@@ -75,33 +82,36 @@ void NoiseGenerator::setNoisedControls(
 
 void NoiseGenerator::reset(cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic)
 {
-  settings_ = settings;
-  is_holonomic_ = is_holonomic;
-
   // Recompute the noises on reset, initialization, and fallback
   {
     std::unique_lock<std::mutex> guard(noise_lock_);
+    settings_ = settings;
+    is_holonomic_ = is_holonomic;
     xt::noalias(noises_vx_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
     xt::noalias(noises_vy_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
     xt::noalias(noises_wz_) = xt::zeros<float>({settings_.batch_size, settings_.time_steps});
-    ready_ = true;
+    ready_ = regenerate_noises_;
+    if (!regenerate_noises_) {
+      generateNoisedControls();
+    }
   }
 
   if (regenerate_noises_) {
     noise_cond_.notify_all();
-  } else {
-    generateNoisedControls();
   }
 }
 
 void NoiseGenerator::noiseThread()
 {
-  do {
+  while (true) {
     std::unique_lock<std::mutex> guard(noise_lock_);
-    noise_cond_.wait(guard, [this]() {return ready_;});
+    noise_cond_.wait(guard, [this]() {return ready_ || !active_;});
+    if (!active_) {
+      return;
+    }
     ready_ = false;
     generateNoisedControls();
-  } while (active_);
+  }
 }
 
 void NoiseGenerator::generateNoisedControls()

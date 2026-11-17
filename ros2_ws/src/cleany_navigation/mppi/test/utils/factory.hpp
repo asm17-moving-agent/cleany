@@ -32,6 +32,7 @@
 #include "cleany_navigation/mppi/tools/parameters_handler.hpp"
 #include "cleany_navigation/mppi/controller.hpp"
 
+#include "costmap.hpp"
 #include "models.hpp"
 
 namespace detail
@@ -100,7 +101,7 @@ geometry_msgs::msg::Point getDummyPoint(double x, double y)
 
 std::shared_ptr<nav2_costmap_2d::Costmap2DROS> getDummyCostmapRos()
 {
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>("cost_map_node");
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmapROS>("cost_map_node");
   costmap_ros->on_configure(rclcpp_lifecycle::State{});
   return costmap_ros;
 }
