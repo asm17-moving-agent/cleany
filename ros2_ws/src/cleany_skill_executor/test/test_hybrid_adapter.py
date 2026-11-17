@@ -167,6 +167,21 @@ def requests(count=8, opening=.4):
             for i in range(count)]
 
 
+def test_deferred_gpu_candidate_retains_the_best_in_bounds_proposal():
+    adapter, _ = make_adapter(hybrid_config=HybridConfig(endpoint_margin_rad=.1))
+    gpu = _CandidateGpuAdapter(object(), adapter._config, owner=adapter,
+        gpu_config=adapter._gpu_config, engine=NS(), scene_client=object(),
+        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    gpu.validation_targets = set()
+    adapter._planning_position_bounds = lambda _: (-2., 2.)
+    target = requests(1)[0].target
+    near, inside = [PoseAlignment(JointSolution(ARM_JOINT_NAMES['left'],
+        (*target.position, 0., roll)), target, 0., 0., 0.) for roll in (1.95, 1.5)]
+    assert gpu._choose_batch('left', [[near, inside], [near]], [1.95, 1.95]) == [inside, None]
+    assert gpu._seed_bases('left', near.solution)[0].positions[-1] == pytest.approx(1.9)
+    assert near.solution.positions[-1] == 1.95
+
+
 def test_grasp_first_gpu_batch_is_final_pose_then_seeded_pregrasp_through_scene_port():
     from cleany_skill_executor.planning_scene import SceneAwarePort
     adapter, trace = make_adapter(hybrid_config=HybridConfig(
@@ -940,6 +955,7 @@ def test_candidate_cost_uses_active_arm_shapes_and_preserves_locked_joints(monke
     monkeypatch.setattr(RobotModel,'robot_config',lambda *args:deepcopy(original))
     model = _CandidateRobotModel.__new__(_CandidateRobotModel)
     model._exclude_opposite_arm_cost = True
+    model.limits = dict.fromkeys(ARM_JOINT_NAMES[arm], (-2., 2.))
     model._joint_links = ['left_jaw','right_jaw']
     kin = model.robot_config('runtime.urdf',arm,{},f'{arm}_grasp_tcp')['kinematics']
     assert set(kin['collision_link_names']) == {f'{arm}_jaw','base_link'}
