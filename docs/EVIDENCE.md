@@ -4,6 +4,42 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-11-18 Jetson 헤드 TF 복구와 정지 상태 제어 피드백
+
+Jetson Orin의 Ubuntu 22.04 ARM64, ROS 2 Humble에서 `f45801bc`의
+`ros2_ws/install`과 기존 양팔, 그리퍼, 헤드 보정 프로파일을 사용했다.
+
+08:00:56 KST에 마지막 유효 모터 피드백의 나이가 271.3ms까지 늘어나 가드의
+250ms 한도를 넘었다. 가드는 `/joint_states` 발행을 중단하고 양팔과 그리퍼
+제어기를 비활성화했다. 첫 TF 단절은
+`base_link → head_pan_joint_cad_motor_frame`이었고,
+`base_link → head_camera_rgb_optical_frame`도 갱신이 끊겼다. 당시 MoveIt의
+깊이 처리 한 건은 1,195.43ms가 걸렸다. 제어 런타임 시작 때 FIFO 실시간
+스케줄링 권한 오류가 있었으며, 장애 시각 근처에 시리얼 재시도나 USB 리셋은
+기록되지 않았다. 당시 구간별 타이밍 기록이 없어 지연의 원인은 미확정이다.
+
+정지한 제어 프로세스를 읽기 전용 관절 조회로 전환했다. RGB 37장과 정렬 깊이
+3장의 촬영 시각으로 `base_link → camera_color_optical_frame`을 조회했다.
+정지 상태에서 14개 모터의 피드백을 다음과 같이 확인했다.
+
+| 측정 경로 | 관측 시간 및 유효 표본 | 갱신율 | 최대 갱신 간격 | 최대 피드백 나이 |
+| --- | --- | ---: | ---: | ---: |
+| 읽기 전용 ROS 구독 | 30.05초, 602개 | 20.0Hz | 56.04ms | 12.39ms |
+| 실제 제어 드라이버 | 30.02초, 1,501개 | 50.0Hz | 21.45ms | 15.65ms |
+| 실제 제어 가드 | 30.02초, 1,500개 | 50.0Hz | 21.45ms | 16.80ms |
+
+실제 제어 시험은 localhost ROS 도메인 226에서 MoveIt을 끄고 수행했다. 토크가
+켜져 있던 양팔과 그리퍼 모터 12개의 유지 목표를 인수해 제어기 4개를
+활성화했다. 관측 중 엔코더 범위와 시험 전후 엔코더 변화는 각각 0 tick이었고,
+토크와 목표 위치도 일치했다. 250ms를 넘은 표본과 시리얼 재시도 카운터 증가는
+0건이었다. 종료 후 운영 도메인의 읽기 전용 상태 발행을 복원했고, RGB 12장과
+정렬 깊이 3장의 촬영 시각으로 같은 TF를 다시 조회했다.
+
+관측 결과 집계와 모델 및 실행 로그 경로는 Jetson의
+`/home/cleany/cleany-data/runs/control-feedback-hold-20261118-0828/measurement-summary.json`에
+있다. 271.3ms 장애 로그의 원본은
+`/home/cleany/cleany/runtime/collection-operator/20261118-074304/logs/real-control.log`다.
+
 ## 2026-11-18 웹 로봇 준비와 Jetson 설치본 복구
 
 Jetson Orin의 ROS 2 Humble에서 `/home/cleany/cleany`의 `f45801bc` 작업 트리와
