@@ -8,6 +8,8 @@
 using cleany_feetech_hardware::Joint;
 using cleany_feetech_hardware::SerialBus;
 using cleany_feetech_hardware::ReadTimeout;
+using cleany_feetech_hardware::InvalidResponse;
+using cleany_feetech_hardware::MotorError;
 
 bool read_request(int master, uint8_t * request, size_t size)
 {
@@ -174,30 +176,6 @@ TEST(Serial, PersistentReadTimeoutAndWriteTimeoutNeverLoop)
   bus.close(); close(master);
 }
 
-TEST(Serial, MotorErrorOrCorruptPacketIsNotRecoverable)
-{
-  for (bool corrupt : {false, true}) {
-    int master, slave;
-    char path[128];
-    ASSERT_EQ(openpty(&master, &slave, path, nullptr, nullptr), 0);
-    close(slave);
-    SerialBus bus;
-    bus.open(path, 50, false);
-    int retries = 0;
-    bus.configure_read_recovery(1, 100, [&](int, int) {++retries;});
-    std::thread servo([=]() {
-        uint8_t request[8];
-        if (!read_request(master, request, sizeof(request))) {return;}
-        std::vector<uint8_t> response{255, 255, 1, 4, 1, 0, 8, static_cast<uint8_t>(~14)};
-        if (corrupt) {response.back() = 0;}
-        ::write(master, response.data(), response.size());
-      });
-    EXPECT_THROW(bus.read_value(1, 56, 2), std::runtime_error);
-    EXPECT_EQ(retries, 0);
-    servo.join(); bus.close(); close(master);
-  }
-}
-
 TEST(Serial, CompleteFrameDeadlineBoundsReadRecovery)
 {
   int master, slave;
@@ -214,4 +192,94 @@ TEST(Serial, CompleteFrameDeadlineBoundsReadRecovery)
   EXPECT_EQ(bus.read_recoveries(), 0u);
   bus.set_deadline({});
   bus.close(); close(master);
+}
+
+TEST(Serial, MotorErrorIsNotRecoverable)
+{
+  for (int response_size : {0, 2}) {
+    int master, slave;
+    char path[128];
+    ASSERT_EQ(openpty(&master, &slave, path, nullptr, nullptr), 0);
+    close(slave);
+    SerialBus bus;
+    bus.open(path, 50, false);
+    int retries = 0;
+    bus.configure_read_recovery(1, 100, [&](int, int) {++retries;});
+    std::thread servo([=]() {
+        uint8_t request[8];
+        if (!read_request(master, request, sizeof(request))) {return;}
+        std::vector<uint8_t> response{255, 255, 1, static_cast<uint8_t>(response_size + 2), 1};
+        if (response_size) {response.insert(response.end(), {0, 8});}
+        unsigned sum = 0;
+        for (size_t i = 2; i < response.size(); ++i) {sum += response[i];}
+        response.push_back(static_cast<uint8_t>(~sum));
+        ::write(master, response.data(), response.size());
+      });
+    EXPECT_THROW(bus.read_value(1, 56, 2), MotorError);
+    EXPECT_EQ(retries, 0);
+    servo.join(); bus.close(); close(master);
+  }
+}
+
+TEST(Serial, CorruptReadHasOneBoundedRetry)
+{
+  int master, slave; char path[128];
+  ASSERT_EQ(openpty(&master, &slave, path, nullptr, nullptr), 0);
+  close(slave);
+  SerialBus bus; bus.open(path, 20, false);
+  int retries = 0;
+  bus.configure_read_recovery(1, 60, [&](int, int) {++retries;});
+  std::thread servo([=]() {
+      uint8_t request[8];
+      if (!read_request(master, request, sizeof(request))) {return;}
+      std::vector<uint8_t> response{255, 255, 1, 4, 0, 0, 8, 0};
+      ::write(master, response.data(), response.size());
+      if (!read_request(master, request, sizeof(request))) {return;}
+      response.back() = static_cast<uint8_t>(~13);
+      ::write(master, response.data(), response.size());
+    });
+  EXPECT_EQ(bus.read_value(1, 56, 2), 2048);
+  EXPECT_EQ(retries, 1);
+  EXPECT_EQ(bus.read_recoveries(), 1u);
+  servo.join(); bus.close(); close(master);
+}
+
+TEST(Serial, ResynchronizesNoiseWrongIDAndFragmentedReply)
+{
+  int master, slave; char path[128];
+  ASSERT_EQ(openpty(&master, &slave, path, nullptr, nullptr), 0);
+  close(slave);
+  SerialBus bus; bus.open(path, 100, false);
+  std::thread servo([=]() {
+      uint8_t request[8];
+      if (!read_request(master, request, sizeof(request))) {return;}
+      const std::vector<uint8_t> noise{12, 87, 255, 0, 255, 255, 2, 4, 0, 0, 8,
+        static_cast<uint8_t>(~14), 255, 255, 1};
+      ::write(master, noise.data(), noise.size());
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      const std::vector<uint8_t> rest{4, 0, 0, 8, static_cast<uint8_t>(~13)};
+      ::write(master, rest.data(), rest.size());
+    });
+  EXPECT_EQ(bus.read_value(1, 56, 2), 2048);
+  EXPECT_EQ(bus.read_recoveries(), 1u);
+  servo.join(); bus.close(); close(master);
+}
+
+TEST(Serial, CorruptWriteAcknowledgementIsNeverRetried)
+{
+  int master, slave; char path[128];
+  ASSERT_EQ(openpty(&master, &slave, path, nullptr, nullptr), 0);
+  close(slave);
+  SerialBus bus; bus.open(path, 20, true);
+  int retries = 0;
+  bus.configure_read_recovery(1, 60, [&](int, int) {++retries;});
+  std::thread servo([=]() {
+      uint8_t request[9];
+      if (!read_request(master, request, sizeof(request))) {return;}
+      const std::vector<uint8_t> response{255, 255, 1, 2, 0, 0};
+      ::write(master, response.data(), response.size());
+    });
+  EXPECT_THROW(bus.write_value(1, 42, 2, 2048), InvalidResponse);
+  EXPECT_EQ(retries, 0);
+  servo.join(); bus.close(); close(master);
 }
