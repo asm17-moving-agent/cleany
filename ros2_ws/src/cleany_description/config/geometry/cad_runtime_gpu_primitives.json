@@ -1,0 +1,2125 @@
+{
+  "schema": "cleany.freecad_curobo_primitives/v1",
+  "source_collision_cache_sha256": "805eda61bf0b5f4e759d887b18419f5e4d18a093340547cf3340dcb56778d461",
+  "source_kinematics_sha256": "a666890bd4a8293cdee4e8bf9256091ae2fed28f11962b262e7e03597ecea820",
+  "source_camera_depth_sha256": "530f0a48a310125b3c39b6d6affcefba76f91493340ee0ed2743ed3ab8c7fdf1",
+  "source_urdf_sha256": "6ce867960a8e231fc1af8fc4aeccd8fa5fe1943ad46170f7119a5ab958990716",
+  "settings": {
+    "base_projection_excess_m": 0.034,
+    "projection_excess_m": 0.024,
+    "gripper_projection_excess_m": 0.023,
+    "include_drive_collision": false,
+    "mast_base_mount_as_box": true,
+    "wrist_body_sphere_counts": {
+      "cad_left_wrist_roll": 2
+    },
+    "finger_chain_counts": {
+      "internal": 4,
+      "external": 4,
+      "driving": 4,
+      "distal": 2
+    },
+    "tip_projection_excess_m": 0.024,
+    "tip_back_projection_excess_m": 0.004,
+    "wheel_projection_excess_m": 0.05,
+    "aperture_projection_excess_m": 0.00035,
+    "aperture_test_cam_deg": -25,
+    "camera_clearance_offset_m": 0.0148,
+    "camera_clearance_radius_m": 0.004,
+    "mast_box_sections": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        5,
+        8
+      ]
+    ]
+  },
+  "links": {
+    "base_link": {
+      "spheres": [
+        {
+          "group": "moveit_enclosure_LeftMountPlate",
+          "center": [
+            0.0924999974668026,
+            0.14749999903142452,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_LeftMountPlate",
+          "center": [
+            0.14749999716877937,
+            0.14749999903142452,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_LeftMountPlate",
+          "center": [
+            0.0924999974668026,
+            0.2025000024586916,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_LeftMountPlate",
+          "center": [
+            0.14749999716877937,
+            0.2025000024586916,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_RightMountPlate",
+          "center": [
+            0.0924999974668026,
+            -0.2025000024586916,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_RightMountPlate",
+          "center": [
+            0.14749999716877937,
+            -0.2025000024586916,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_RightMountPlate",
+          "center": [
+            0.0924999974668026,
+            -0.14749999903142452,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "moveit_enclosure_RightMountPlate",
+          "center": [
+            0.14749999716877937,
+            -0.14749999903142452,
+            0.3247999995946884
+          ],
+          "radius": 0.03939884166346758,
+          "projection_excess_m": 0.0330988542281267
+        },
+        {
+          "group": "cad_enclosure__BasePrint_0",
+          "center": [
+            0.14772868533908087,
+            -0.20039470865090625,
+            0.34298211023639086
+          ],
+          "radius": 0.037456937379422205,
+          "projection_excess_m": 0.025034370705594687
+        },
+        {
+          "group": "cad_enclosure__BasePrint_0",
+          "center": [
+            0.14773480306529305,
+            -0.1566017246139973,
+            0.343705259258288
+          ],
+          "radius": 0.03757358437297424,
+          "projection_excess_m": 0.02448763096311768
+        },
+        {
+          "group": "cad_enclosure__BasePrint_0",
+          "center": [
+            0.09226487462650648,
+            -0.20039089893297513,
+            0.34298171235337094
+          ],
+          "radius": 0.037456743763987006,
+          "projection_excess_m": 0.025034564798422705
+        },
+        {
+          "group": "cad_enclosure__BasePrint_0",
+          "center": [
+            0.09227078178760359,
+            -0.15659707065321368,
+            0.3437047636988543
+          ],
+          "radius": 0.03757374226318209,
+          "projection_excess_m": 0.024487758113014013
+        },
+        {
+          "group": "cad_enclosure__BasePrint_1",
+          "center": [
+            0.11745861540695939,
+            -0.14000441879034042,
+            0.355786256465671
+          ],
+          "radius": 0.0056399368177856265,
+          "projection_excess_m": 0.005124153006188625
+        },
+        {
+          "group": "cad_enclosure__BasePrint_2",
+          "center": [
+            0.1202897459154535,
+            -0.15468969962085702,
+            0.38012608086276134
+          ],
+          "radius": 0.0376624623963242,
+          "projection_excess_m": 0.010491649471167
+        },
+        {
+          "group": "cad_enclosure__BaseCover_0",
+          "center": [
+            0.11822639516955379,
+            -0.1690698630574305,
+            0.3819101486697127
+          ],
+          "radius": 0.04932909769096046,
+          "projection_excess_m": 0.029442938794857168
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_0",
+          "center": [
+            0.14772922445064599,
+            0.1565970756350742,
+            0.3437047659119371
+          ],
+          "radius": 0.037573741447439156,
+          "projection_excess_m": 0.024487756377383173
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_0",
+          "center": [
+            0.14773512035116004,
+            0.2003909003923057,
+            0.3429817128897439
+          ],
+          "radius": 0.03745674240402309,
+          "projection_excess_m": 0.02503456396072879
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_0",
+          "center": [
+            0.0922652048154746,
+            0.15660172069866482,
+            0.3437052587220771
+          ],
+          "radius": 0.037573582957848406,
+          "projection_excess_m": 0.024487630298929475
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_0",
+          "center": [
+            0.09227131087879714,
+            0.2003947028183426,
+            0.3429821082218931
+          ],
+          "radius": 0.03745693505112102,
+          "projection_excess_m": 0.02503437143162751
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_1",
+          "center": [
+            0.1225413904040127,
+            0.14000441879034045,
+            0.3557862558691703
+          ],
+          "radius": 0.005639938450709228,
+          "projection_excess_m": 0.0051241595568324305
+        },
+        {
+          "group": "cad_enclosure__BasePrint001_2",
+          "center": [
+            0.1197102592608848,
+            0.15468971556404768,
+            0.3801261080941359
+          ],
+          "radius": 0.037662471000998336,
+          "projection_excess_m": 0.010491676566091332
+        },
+        {
+          "group": "cad_enclosure__BaseCover001_0",
+          "center": [
+            0.12177360725104708,
+            0.16906986226358922,
+            0.3819101490911375
+          ],
+          "radius": 0.04932909706813427,
+          "projection_excess_m": 0.02944294332785053
+        },
+        {
+          "group": "cad_enclosure__rigid_Base_servo_0",
+          "center": [
+            0.11996842277535177,
+            -0.18331816560699707,
+            0.3769582569527455
+          ],
+          "radius": 0.028775743962122874,
+          "projection_excess_m": 0.01639786361201609
+        },
+        {
+          "group": "cad_enclosure__rigid_Base_servo001_0",
+          "center": [
+            0.12003158410825432,
+            0.18331816625563152,
+            0.37695825679390405
+          ],
+          "radius": 0.0287757491421382,
+          "projection_excess_m": 0.0163978710068427
+        }
+      ],
+      "cuboids": [
+        {
+          "name": "moveit_enclosure_torso_0",
+          "pose": [
+            0.0009999945759773254,
+            0.0,
+            -0.24450000375509262,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.41799999773502355,
+            0.5159999728202821,
+            0.20000000298023227
+          ]
+        },
+        {
+          "name": "moveit_enclosure_torso_1",
+          "pose": [
+            -0.1940000057220459,
+            0.0,
+            0.09099999815225601,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.027999997138977054,
+            0.5159999728202821,
+            0.4710000008344651
+          ]
+        },
+        {
+          "name": "moveit_enclosure_torso_2",
+          "pose": [
+            0.09999999683350325,
+            0.0,
+            0.09099999815225601,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.21999999321997168,
+            0.5159999728202821,
+            0.4710000008344651
+          ]
+        },
+        {
+          "name": "moveit_enclosure_torso_3",
+          "pose": [
+            -0.09500000346451998,
+            -0.24399999529123306,
+            0.09099999815225601,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.17000000737607482,
+            0.02799998223781586,
+            0.4710000008344651
+          ]
+        },
+        {
+          "name": "moveit_enclosure_torso_4",
+          "pose": [
+            -0.09500000346451998,
+            0.24399999529123306,
+            0.09099999815225601,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.17000000737607482,
+            0.02799998223781586,
+            0.4710000008344651
+          ]
+        },
+        {
+          "name": "moveit_enclosure_InstalledMountBracket",
+          "pose": [
+            0.0867343726567924,
+            0.0,
+            0.35097938776016235,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.15049999300390485,
+            0.14000000059604648,
+            0.06495875120162965
+          ]
+        },
+        {
+          "name": "moveit_enclosure_IMURig",
+          "pose": [
+            0.0,
+            0.0,
+            -0.13859999924898148,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.056000001728534705,
+            0.034000001847743995,
+            0.020199999213218692
+          ]
+        },
+        {
+          "name": "mast_0_1",
+          "pose": [
+            0.10244579426944256,
+            -7.463619112968445e-06,
+            0.3986440598964691,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.08524299364876747,
+            0.09924654614520073,
+            0.03031966414642334
+          ]
+        },
+        {
+          "name": "mast_1_5",
+          "pose": [
+            0.09249245189130306,
+            -3.9013102650642395e-06,
+            0.47443321347236633,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.06533630889248848,
+            0.050774981718182566,
+            0.12126663651657105
+          ]
+        },
+        {
+          "name": "mast_5_8",
+          "pose": [
+            0.08722455613315105,
+            -7.463619112968445e-06,
+            0.5805380046367645,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.054800517376184466,
+            0.06565833788704872,
+            0.09095099892807007
+          ]
+        },
+        {
+          "name": "head_fixed_lower_support",
+          "pose": [
+            0.09137944504618645,
+            -7.463619112968445e-06,
+            0.6558615267276764,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dims": [
+            0.062302004065036776,
+            0.06400199931454659,
+            0.05970195260238648
+          ]
+        }
+      ]
+    },
+    "cad_right_shoulder_yaw": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -0.00028906031987123134,
+            -0.01701698134055944,
+            -0.01620740528114975
+          ],
+          "radius": 0.03961240207337089,
+          "projection_excess_m": 0.019743407140826535
+        },
+        {
+          "group": "link",
+          "center": [
+            0.0004564771467792942,
+            -0.03480554497414043,
+            0.03151454168766644
+          ],
+          "radius": 0.039797091922441095,
+          "projection_excess_m": 0.01377624927801828
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_shoulder_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            0.00601632037612036,
+            0.011311700120644221,
+            -0.0017180666505234496
+          ],
+          "radius": 0.030146783446550113,
+          "projection_excess_m": 0.01794366439738157
+        },
+        {
+          "group": "link",
+          "center": [
+            0.035091876947984976,
+            0.011981076890746036,
+            -0.00043459386737069766
+          ],
+          "radius": 0.03234704915826238,
+          "projection_excess_m": 0.018917755680802922
+        },
+        {
+          "group": "link",
+          "center": [
+            0.01608955103795535,
+            0.055381320334173194,
+            0.0020074602501274075
+          ],
+          "radius": 0.032773500988768155,
+          "projection_excess_m": 0.021038208594536582
+        },
+        {
+          "group": "link",
+          "center": [
+            0.01647982395794158,
+            0.11146004758427262,
+            -0.0015020105792250948
+          ],
+          "radius": 0.030931063144421303,
+          "projection_excess_m": 0.018867774001447624
+        },
+        {
+          "group": "link",
+          "center": [
+            0.016300016078781746,
+            0.15837404513242184,
+            0.007835834283450775
+          ],
+          "radius": 0.03645517173151485,
+          "projection_excess_m": 0.015234820130006495
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_elbow_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            0.016680098679723098,
+            -0.16416609966720735,
+            0.003344335735606305
+          ],
+          "radius": 0.03576248358696549,
+          "projection_excess_m": 0.017126198286990125
+        },
+        {
+          "group": "link",
+          "center": [
+            0.01649160364465631,
+            -0.12407152818031733,
+            0.0018616858655587565
+          ],
+          "radius": 0.03503979221755701,
+          "projection_excess_m": 0.01748813118618546
+        },
+        {
+          "group": "link",
+          "center": [
+            0.016267483810005454,
+            -0.062066799804339726,
+            0.0005862466111928298
+          ],
+          "radius": 0.032459916597603805,
+          "projection_excess_m": 0.020149277054383324
+        },
+        {
+          "group": "link",
+          "center": [
+            0.0025775139318833023,
+            -0.015823750053162354,
+            -0.0004924796295517913
+          ],
+          "radius": 0.03111790044305139,
+          "projection_excess_m": 0.018792670284016724
+        },
+        {
+          "group": "link",
+          "center": [
+            0.026785716238108128,
+            -0.015186496312811644,
+            -0.0007156273120903262
+          ],
+          "radius": 0.028761814254768325,
+          "projection_excess_m": 0.020242570347927414
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_wrist_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            0.024884568379272998,
+            -0.04231441917736328,
+            0.0004716548238174966
+          ],
+          "radius": 0.03612324540745893,
+          "projection_excess_m": 0.01947143401174487
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.0001658988450266739,
+            -0.015273520425454937,
+            -0.0006574650600827815
+          ],
+          "radius": 0.02800951052738583,
+          "projection_excess_m": 0.013837969504116239
+        },
+        {
+          "group": "link",
+          "center": [
+            0.030528281462205282,
+            -0.005752071025028992,
+            -0.00217469994646898
+          ],
+          "radius": 0.027131091767809274,
+          "projection_excess_m": 0.012489253818010648
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_wrist_roll": {
+      "spheres": [
+        {
+          "group": "wrist_camera",
+          "center": [
+            1.34280991863499e-05,
+            -0.029989637099845597,
+            0.03914936402907208
+          ],
+          "radius": 0.03485761891152258,
+          "projection_excess_m": 0.014924027435996096
+        },
+        {
+          "group": "wrist_camera",
+          "center": [
+            -5.503829926643323e-06,
+            -0.03412428283422603,
+            0.09301378012073436
+          ],
+          "radius": 0.03326973871278744,
+          "projection_excess_m": 0.019724685742068405
+        },
+        {
+          "group": "link",
+          "center": [
+            0.02331871366230516,
+            -0.034115814164804546,
+            0.006769309711555085
+          ],
+          "radius": 0.04474892375901186,
+          "projection_excess_m": 0.022005589526265426
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.02392468993033562,
+            -0.03346350361857595,
+            0.008240309504669207
+          ],
+          "radius": 0.04561009160126895,
+          "projection_excess_m": 0.021837490312034115
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_shoulder_yaw": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            0.00028253471528274116,
+            0.017032564550102915,
+            -0.016207392574938355
+          ],
+          "radius": 0.03962368839994558,
+          "projection_excess_m": 0.019587382182937874
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.00044395291969823126,
+            0.03519500681500051,
+            0.03169125395778997
+          ],
+          "radius": 0.03978083476927863,
+          "projection_excess_m": 0.013481384735917888
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_shoulder_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -0.0162999786965555,
+            -0.15837406109267582,
+            0.007835846743672086
+          ],
+          "radius": 0.03645516532350117,
+          "projection_excess_m": 0.015234799470291358
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.01647982470923146,
+            -0.11146005748408018,
+            -0.0015019843703788522
+          ],
+          "radius": 0.030931061979381894,
+          "projection_excess_m": 0.018867745090407208
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.016089534875329423,
+            -0.05538132314270468,
+            0.002007461482411137
+          ],
+          "radius": 0.03277350496321472,
+          "projection_excess_m": 0.021038210586937497
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.035091880827468946,
+            -0.011981077017337999,
+            -0.0004345940501675553
+          ],
+          "radius": 0.03234704925638265,
+          "projection_excess_m": 0.01891775547782136
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.006016313505447443,
+            -0.011311717071490552,
+            -0.0017180672458167493
+          ],
+          "radius": 0.030146773322874878,
+          "projection_excess_m": 0.017943654263924313
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_elbow_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -0.01668031812036934,
+            0.16416618446027417,
+            0.0033436756821491613
+          ],
+          "radius": 0.03576252848229646,
+          "projection_excess_m": 0.017122241005056233
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.0164913199238917,
+            0.12407122450199072,
+            0.001862400242061885
+          ],
+          "radius": 0.035039815463239074,
+          "projection_excess_m": 0.01748329901842528
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.01626783916863673,
+            0.06213734546790891,
+            0.0009952316630267852
+          ],
+          "radius": 0.03251800095446814,
+          "projection_excess_m": 0.02061541940806239
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.015424393971930784,
+            0.012566440389844743,
+            -0.00029144917440100465
+          ],
+          "radius": 0.03658678266931968,
+          "projection_excess_m": 0.02385827202273279
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_wrist_pitch": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -0.03050946274587553,
+            0.005780334639404481,
+            -0.002202291728768297
+          ],
+          "radius": 0.027187442181215292,
+          "projection_excess_m": 0.012480919775216686
+        },
+        {
+          "group": "link",
+          "center": [
+            9.940436337656407e-05,
+            0.015215951056220091,
+            -0.000674126138139118
+          ],
+          "radius": 0.027971014069249157,
+          "projection_excess_m": 0.013797683519224979
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.02483633720096298,
+            0.04235751674145236,
+            0.000492632997094409
+          ],
+          "radius": 0.036143551130097054,
+          "projection_excess_m": 0.019460177605621666
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_wrist_roll": {
+      "spheres": [
+        {
+          "group": "wrist_camera",
+          "center": [
+            3.165914739120465e-07,
+            0.02998846687304474,
+            0.039154527189604715
+          ],
+          "radius": 0.034849538788481106,
+          "projection_excess_m": 0.014892502584875053
+        },
+        {
+          "group": "wrist_camera",
+          "center": [
+            -1.5196968650319306e-06,
+            0.03413966746892269,
+            0.09299142923175055
+          ],
+          "radius": 0.033243067896304566,
+          "projection_excess_m": 0.019676738464178684
+        },
+        {
+          "group": "link",
+          "center": [
+            0.02365445232473213,
+            0.03539949847961621,
+            0.00783251621127104
+          ],
+          "radius": 0.04412845187366485,
+          "projection_excess_m": 0.02241574382852238
+        },
+        {
+          "group": "link",
+          "center": [
+            -0.01869012119795604,
+            0.035996987258159405,
+            0.006656430170898334
+          ],
+          "radius": 0.045989210667456766,
+          "projection_excess_m": 0.02548435085079052
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_head_pan": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -0.016041732529518037,
+            -1.6856807334203385e-06,
+            0.0222876292865758
+          ],
+          "radius": 0.035247439013980454,
+          "projection_excess_m": 0.011882028046076461
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_head_tilt": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            0.00521530214440163,
+            0.01799719008922811,
+            0.021316683817996836
+          ],
+          "radius": 0.054465498159587865,
+          "projection_excess_m": 0.03034134396950495
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_front_right_wheel": {
+      "spheres": [],
+      "cuboids": []
+    },
+    "cad_front_left_wheel": {
+      "spheres": [],
+      "cuboids": []
+    },
+    "cad_rear_right_wheel": {
+      "spheres": [],
+      "cuboids": []
+    },
+    "cad_rear_left_wheel": {
+      "spheres": [],
+      "cuboids": []
+    },
+    "cad_right_gripper_cam": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -1.4531621282186603e-05,
+            5.039247898847078e-06,
+            0.002059974180310216
+          ],
+          "radius": 0.01673029882125546,
+          "projection_excess_m": 0.010969205259833123
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_internal_L": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            0.017751430887741865,
+            -0.03028421797927948,
+            -0.0008706353739841885
+          ],
+          "radius": 0.015217172878813986,
+          "projection_excess_m": 0.01065589815544889
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            0.009307773022267941,
+            -0.015667456228401225,
+            -0.0008768180945071733
+          ],
+          "radius": 0.015590375187764769,
+          "projection_excess_m": 0.011025740504437128
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            0.002254321611562294,
+            -0.0034572719179674326,
+            -0.0008819828607127256
+          ],
+          "radius": 0.013744380917054164,
+          "projection_excess_m": 0.009190382105849451
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            -0.008151082430677282,
+            0.014555456005193717,
+            -0.0008896020355001082
+          ],
+          "radius": 0.00982623503504221,
+          "projection_excess_m": 0.006389809830864019
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_external_L": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            0.0017229703011787394,
+            -0.0018373341732443767,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008159640138400991,
+          "projection_excess_m": 0.004158633654369314
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            0.007001435112744714,
+            -0.011711332805913285,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008761308427461369,
+          "projection_excess_m": 0.004760301943429692
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            0.012998574188865157,
+            -0.022929697453866832,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008761307705908595,
+          "projection_excess_m": 0.004760301221876918
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            0.01827704831323934,
+            -0.03280371350725537,
+            -0.0008749921528768966
+          ],
+          "radius": 0.00815965062773444,
+          "projection_excess_m": 0.004158644143702763
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_driving_L": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            -0.0020087358451187616,
+            0.002209086162354311,
+            -0.0070221199951611005
+          ],
+          "radius": 0.00874392009770252,
+          "projection_excess_m": 0.0064142121582759885
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            -0.011062088200912808,
+            0.001309488638726628,
+            -0.006781897613674203
+          ],
+          "radius": 0.009487832608450385,
+          "projection_excess_m": 0.006874923795276752
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            -0.021876883539664316,
+            0.00023486316045783677,
+            -0.006494936962031652
+          ],
+          "radius": 0.00942873831072595,
+          "projection_excess_m": 0.006565857331428118
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            -0.031075265366246354,
+            -0.0006791453954202824,
+            -0.006250866356871433
+          ],
+          "radius": 0.00863525995432489,
+          "projection_excess_m": 0.005995321169420413
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_distal_L": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Distal_Rod_L_collision",
+          "center": [
+            -0.00272542706820955,
+            -0.003554929788938129,
+            -0.0004223946756528763
+          ],
+          "radius": 0.012447192381573683,
+          "projection_excess_m": 0.005265882934672677
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Distal_Rod_L_collision",
+          "center": [
+            -0.010524658099650072,
+            -0.0007947217092756811,
+            -0.0011614725618927144
+          ],
+          "radius": 0.010228506151463868,
+          "projection_excess_m": 0.009103613731882974
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_internal_R": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            0.006224650375258699,
+            0.011228057685706344,
+            -0.0008617014544697015
+          ],
+          "radius": 0.013598650852339718,
+          "projection_excess_m": 0.008612940684928384
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            -0.0036137377831661445,
+            -0.005805011791778437,
+            -0.000868899869294234
+          ],
+          "radius": 0.012978974215504582,
+          "projection_excess_m": 0.010561349553934911
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            -0.00930954374583111,
+            -0.015666084269312926,
+            -0.000873067297273196
+          ],
+          "radius": 0.015590988031648718,
+          "projection_excess_m": 0.011035338721528867
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            -0.01775241760946183,
+            -0.030283118563260374,
+            -0.0008792446616344074
+          ],
+          "radius": 0.015217372850823595,
+          "projection_excess_m": 0.010664403459012851
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_external_R": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            -0.0017229612187830753,
+            -0.001837331154930747,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008159639973062679,
+          "projection_excess_m": 0.004158633489031002
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            -0.0070014283410941925,
+            -0.011711331330056174,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008761307334673589,
+          "projection_excess_m": 0.004760300850641911
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            -0.01299856981187847,
+            -0.022929697298934078,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008761306286385552,
+          "projection_excess_m": 0.004760299802353875
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            -0.018277042468234875,
+            -0.03280370782614902,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008159644438448372,
+          "projection_excess_m": 0.004158637954416695
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_driving_R": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            0.03103384453795012,
+            0.0010297745528142694,
+            -0.006297682532895629
+          ],
+          "radius": 0.00887482259892372,
+          "projection_excess_m": 0.006269428543807868
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            0.02197962721447971,
+            2.4163928204855214e-05,
+            -0.006501857596702858
+          ],
+          "radius": 0.009615074572387626,
+          "projection_excess_m": 0.006799866076765819
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            0.011152125165681499,
+            -0.0011783973434389202,
+            -0.00674602071348112
+          ],
+          "radius": 0.009572877792582687,
+          "projection_excess_m": 0.0069922185736711615
+        },
+        {
+          "group": "cad_enclosure__RightKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            0.0018866888299039974,
+            -0.0022074671004401448,
+            -0.006954958823477146
+          ],
+          "radius": 0.008844781553439445,
+          "projection_excess_m": 0.006507074016955434
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_distal_R": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Distal_Rod_R_collision",
+          "center": [
+            0.002950993583549316,
+            -0.0033130685717477366,
+            -0.0017695751144506215
+          ],
+          "radius": 0.012701339627714336,
+          "projection_excess_m": 0.005527784255519905
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Distal_Rod_R_collision",
+          "center": [
+            0.011026838184822705,
+            -0.0009023341666044857,
+            -1.9913967083018576e-05
+          ],
+          "radius": 0.010579064773377268,
+          "projection_excess_m": 0.00914493633825944
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_cam": {
+      "spheres": [
+        {
+          "group": "link",
+          "center": [
+            -5.598865322935374e-06,
+            -1.9426100081737213e-05,
+            0.002102123050451103
+          ],
+          "radius": 0.016750295670268246,
+          "projection_excess_m": 0.011029542797032908
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_internal_L": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            0.008144997302583851,
+            -0.014557339086013926,
+            -0.0008859534224650103
+          ],
+          "radius": 0.009826959588949951,
+          "projection_excess_m": 0.006388685245650676
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            -0.002256753404524299,
+            0.003454233149550405,
+            -0.0008802093315772252
+          ],
+          "radius": 0.013744575016698866,
+          "projection_excess_m": 0.009199561368978112
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            -0.009309193163857941,
+            0.015666170518458845,
+            -0.0008763148088089994
+          ],
+          "radius": 0.015590211263291819,
+          "projection_excess_m": 0.011035409140692249
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision",
+          "center": [
+            -0.01775071421498926,
+            0.030283427792908522,
+            -0.0008716532027472704
+          ],
+          "radius": 0.015217008553366693,
+          "projection_excess_m": 0.01066382190614518
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_external_L": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            -0.018277040462934768,
+            0.032803703780439605,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008159647184286268,
+          "projection_excess_m": 0.00415864070025459
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            -0.012998570050801935,
+            0.022929697321197217,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008761309663785733,
+          "projection_excess_m": 0.004760303179754056
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            -0.007001427862441438,
+            0.011711329862178042,
+            -0.0008749921528768966
+          ],
+          "radius": 0.00876130972432881,
+          "projection_excess_m": 0.004760303240297133
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_L_0",
+          "center": [
+            -0.0017229616752216853,
+            0.0018373313061378755,
+            -0.0008749921528768965
+          ],
+          "radius": 0.008159641562809052,
+          "projection_excess_m": 0.004158635078777374
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_driving_L": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            0.031075268430364303,
+            0.0006791470317722456,
+            -0.006250866797212987
+          ],
+          "radius": 0.008635258108144849,
+          "projection_excess_m": 0.005995319315160505
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            0.021876884642747993,
+            -0.0002348625144799497,
+            -0.006494937017362654
+          ],
+          "radius": 0.00942873746894562,
+          "projection_excess_m": 0.006565857082597781
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            0.01106209245584749,
+            -0.0013094886148682114,
+            -0.006781897071528184
+          ],
+          "radius": 0.009487832534762161,
+          "projection_excess_m": 0.006874923922425313
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_L_0",
+          "center": [
+            0.002008732141174965,
+            -0.002209087712310941,
+            -0.007022119234042344
+          ],
+          "radius": 0.00874392315669631,
+          "projection_excess_m": 0.00641421489068477
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_distal_L": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_collision",
+          "center": [
+            0.010774328935226717,
+            0.0007502268116324259,
+            -0.0014982887543631793
+          ],
+          "radius": 0.010392438363352454,
+          "projection_excess_m": 0.009096933341822027
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_collision",
+          "center": [
+            0.0029028454697119944,
+            0.0033684906599402284,
+            -0.00029229871907655484
+          ],
+          "radius": 0.012512285022875063,
+          "projection_excess_m": 0.005425071541888666
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_internal_R": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            0.017752865397550784,
+            0.030280727484740165,
+            -0.0008778375275468456
+          ],
+          "radius": 0.015217420034599348,
+          "projection_excess_m": 0.010684338462634939
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            0.009313418450996725,
+            0.01566288714796606,
+            -0.0008735149753458316
+          ],
+          "radius": 0.01559153683157549,
+          "projection_excess_m": 0.011058560439945955
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            0.002262415069768181,
+            0.003449949227556672,
+            -0.0008699035621361862
+          ],
+          "radius": 0.0137468199831409,
+          "projection_excess_m": 0.009219840297159991
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision",
+          "center": [
+            -0.008135521857405039,
+            -0.014560162429739492,
+            -0.0008645779021213545
+          ],
+          "radius": 0.009829338326841673,
+          "projection_excess_m": 0.006392338984190097
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_external_R": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            0.01827703882761252,
+            0.032803694527270444,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008159647509368479,
+          "projection_excess_m": 0.0041586410253368015
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            0.012998570606678668,
+            0.022929689468632337,
+            -0.0008749921528768966
+          ],
+          "radius": 0.008761311578827638,
+          "projection_excess_m": 0.00476030509479596
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            0.007001431465369769,
+            0.011711324643814965,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008761311807347537,
+          "projection_excess_m": 0.00476030532331586
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_External_Rod_R_0",
+          "center": [
+            0.0017229675211054318,
+            0.0018373275851978233,
+            -0.0008749921528768967
+          ],
+          "radius": 0.008159642295091444,
+          "projection_excess_m": 0.004158635811059767
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_driving_R": {
+      "spheres": [
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            -0.0018866889038889512,
+            0.0022074710970847082,
+            -0.006954959107518203
+          ],
+          "radius": 0.00884478544815268,
+          "projection_excess_m": 0.006507077981530258
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            -0.011152123163969657,
+            0.00117840059967749,
+            -0.006746021078720414
+          ],
+          "radius": 0.009572881078519247,
+          "projection_excess_m": 0.006992221992735149
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            -0.021979625624037446,
+            -2.4161852280675262e-05,
+            -0.006501857992856583
+          ],
+          "radius": 0.009615075997961926,
+          "projection_excess_m": 0.0067998670532138225
+        },
+        {
+          "group": "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Driving_Rod_R_0",
+          "center": [
+            -0.031033858795544857,
+            -0.0010297751858712486,
+            -0.006297682605278599
+          ],
+          "radius": 0.008874828943864418,
+          "projection_excess_m": 0.006269434484744538
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_distal_R": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_collision",
+          "center": [
+            -0.010756399003078287,
+            0.000781502016297279,
+            -0.00031362829301002666
+          ],
+          "radius": 0.010358040811699167,
+          "projection_excess_m": 0.009103735142012586
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_collision",
+          "center": [
+            -0.00278242598835145,
+            0.0034980578161351414,
+            -0.001542205011424147
+          ],
+          "radius": 0.012586129755899792,
+          "projection_excess_m": 0.005327308984245699
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_tip_L": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.004068217311465177,
+            -0.02410541226170461,
+            -0.007174262095448559
+          ],
+          "radius": 0.011030785999502656,
+          "projection_excess_m": 0.013962567469052303
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.000700198490005294,
+            -0.02469353733010378,
+            -0.0039484844041185385
+          ],
+          "radius": 0.014398804820962539,
+          "projection_excess_m": 0.02069860511197207
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.002289567996480669,
+            -0.024689036173207727,
+            0.003581818472383527
+          ],
+          "radius": 0.012809435314487163,
+          "projection_excess_m": 0.01751986609902132
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.00875851382443538,
+            -0.025936862504053405,
+            0.00629246577033006
+          ],
+          "radius": 0.006340489486532454,
+          "projection_excess_m": 0.00489230340298533
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.006762486000257,
+            -0.023278434889835775,
+            0.006982226726165185
+          ],
+          "radius": 0.008336517310710834,
+          "projection_excess_m": 0.008574030091468659
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.0013663781964717602,
+            -0.00851670684200069,
+            -0.009089500184792198
+          ],
+          "radius": 0.013732625114496083,
+          "projection_excess_m": 0.019366245699039143
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            7.153953950725329e-05,
+            -0.00891158244929975,
+            -0.00382808175722436
+          ],
+          "radius": 0.01502746377146059,
+          "projection_excess_m": 0.021955923012968157
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.00015911078681365534,
+            -0.009236765767601726,
+            0.0032259388674983945
+          ],
+          "radius": 0.015258114097781498,
+          "projection_excess_m": 0.022417223665609977
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.00024175702218585862,
+            -0.009548132485477994,
+            0.009011144910115142
+          ],
+          "radius": 0.015340760333153701,
+          "projection_excess_m": 0.022582516136354383
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_L_0",
+          "center": [
+            0.0011043708387299851,
+            -0.01657261302081793,
+            0.0007369463607807968
+          ],
+          "radius": 0.01380210316427082,
+          "projection_excess_m": 0.009346606104217734
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_L_0",
+          "center": [
+            6.337564512146534e-05,
+            -0.008962668700095542,
+            0.00040087364378369383
+          ],
+          "radius": 0.014333651746373079,
+          "projection_excess_m": 0.012127440136378155
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_L_0",
+          "center": [
+            -2.0321131399434645e-05,
+            -0.002349583613596082,
+            -3.744402483327766e-05
+          ],
+          "radius": 0.015119324442367283,
+          "projection_excess_m": 0.01070443340949568
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_right_gripper_tip_R": {
+      "spheres": [
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.004049685625126727,
+            -0.0239235566826611,
+            0.0073636402743326446
+          ],
+          "radius": 0.011049311063905422,
+          "projection_excess_m": 0.013999632499019034
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.00034736571909919504,
+            -0.0246934443796844,
+            0.00401846496449065
+          ],
+          "radius": 0.014751630969932955,
+          "projection_excess_m": 0.0214042723110741
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.0025108914852601987,
+            -0.024689047929375648,
+            -0.003524159093965649
+          ],
+          "radius": 0.012588105203771951,
+          "projection_excess_m": 0.01707722077875209
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.008644240781788574,
+            -0.025988636630844417,
+            -0.006150598791978049
+          ],
+          "radius": 0.006454755907243576,
+          "projection_excess_m": 0.005028676235900444
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.006198698921901992,
+            -0.02330142019904696,
+            -0.006899379925152305
+          ],
+          "radius": 0.008900297767130156,
+          "projection_excess_m": 0.009701605905468504
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.001365643039520959,
+            -0.00846806671976896,
+            0.009189760035650996
+          ],
+          "radius": 0.013733353649511181,
+          "projection_excess_m": 0.019367717670230558
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            2.0738240243801405e-05,
+            -0.008828600910215848,
+            0.004110457604436314
+          ],
+          "radius": 0.015119734929275942,
+          "projection_excess_m": 0.02214048022976008
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.0002884790952830269,
+            -0.0092828364997972,
+            -0.003235294501613674
+          ],
+          "radius": 0.015387475784315168,
+          "projection_excess_m": 0.02267596193983853
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.007698105794061657,
+            -0.013040297681628298,
+            -0.008517449784908567
+          ],
+          "radius": 0.007400890894970486,
+          "projection_excess_m": 0.006702792161149167
+        },
+        {
+          "group": "RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -0.003052667589357326,
+            -0.00767398783553464,
+            -0.008867350146898665
+          ],
+          "radius": 0.012046329099674813,
+          "projection_excess_m": 0.015993668570557826
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_R_0",
+          "center": [
+            -0.0011473418309771767,
+            -0.01656444763226096,
+            -0.0006491771664029
+          ],
+          "radius": 0.013754158290035241,
+          "projection_excess_m": 0.009344002872568574
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_R_0",
+          "center": [
+            -0.00010247779319349384,
+            -0.008867038960030268,
+            -0.0003386462046516463
+          ],
+          "radius": 0.014270999327401527,
+          "projection_excess_m": 0.01222506453216941
+        },
+        {
+          "group": "cad_enclosure__rigid_right_gripper_tip_R_0",
+          "center": [
+            9.019258277802973e-06,
+            -0.0023227637242631237,
+            1.763317137849432e-05
+          ],
+          "radius": 0.01510801594730994,
+          "projection_excess_m": 0.010605912505401743
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_tip_L": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.00024175910834877375,
+            0.009548132485478119,
+            0.009011144910115149
+          ],
+          "radius": 0.015340760333154041,
+          "projection_excess_m": 0.022582523586935677
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            0.00015911287297608494,
+            0.009236765767602208,
+            0.003225938867497595
+          ],
+          "radius": 0.015258114097781352,
+          "projection_excess_m": 0.0224172311161903
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -7.153745334457189e-05,
+            0.008911582449299767,
+            -0.003828081757224338
+          ],
+          "radius": 0.015027463771460695,
+          "projection_excess_m": 0.021955930463548986
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.0013663761103093507,
+            0.008516706842000734,
+            -0.009089500184792243
+          ],
+          "radius": 0.013732625114495916,
+          "projection_excess_m": 0.019366253149619428
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.006762483914097534,
+            0.023278434889837225,
+            0.006982226726165448
+          ],
+          "radius": 0.008336517310707732,
+          "projection_excess_m": 0.00857403754204306
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.008758398740639913,
+            0.0259368767001361,
+            0.006292478377830913
+          ],
+          "radius": 0.0063406024841653535,
+          "projection_excess_m": 0.0048924028675916996
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.002289565910301041,
+            0.024689035924140606,
+            0.0035818180044941547
+          ],
+          "radius": 0.012809435314504226,
+          "projection_excess_m": 0.017519873549636047
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.0007001964038428047,
+            0.024693537330103755,
+            -0.003948484404118548
+          ],
+          "radius": 0.014398804820962462,
+          "projection_excess_m": 0.02069861256255252
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision",
+          "center": [
+            -0.004068151677445127,
+            0.024105429762918986,
+            -0.007174253904184479
+          ],
+          "radius": 0.011030849547360139,
+          "projection_excess_m": 0.013962702015347874
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_L_0",
+          "center": [
+            9.018985082218446e-06,
+            0.002322702226387169,
+            -1.7691445031872184e-05
+          ],
+          "radius": 0.015108020209887486,
+          "projection_excess_m": 0.010605781610496865
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_L_0",
+          "center": [
+            -0.00010248034835033149,
+            0.008866857380492301,
+            0.00033851940662434586
+          ],
+          "radius": 0.014270953402872693,
+          "projection_excess_m": 0.012225276049161926
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_L_0",
+          "center": [
+            -0.0011474050779340867,
+            0.016564462425926463,
+            0.0006490843521989827
+          ],
+          "radius": 0.013754128204437893,
+          "projection_excess_m": 0.00934399866897969
+        }
+      ],
+      "cuboids": []
+    },
+    "cad_left_gripper_tip_R": {
+      "spheres": [
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.003682469680319546,
+            0.02431257290843233,
+            0.007337508048905723
+          ],
+          "radius": 0.01141652909487518,
+          "projection_excess_m": 0.014734061110377956
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.0009128511657524761,
+            0.024693613199303646,
+            0.003904861986438204
+          ],
+          "radius": 0.01418614760944225,
+          "projection_excess_m": 0.020273298139512095
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.002139226193594697,
+            0.024689050735452227,
+            -0.0036196432230090085
+          ],
+          "radius": 0.01295977258160003,
+          "projection_excess_m": 0.017820548083827655
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.008797686160563086,
+            0.02589836016764379,
+            -0.00638498538070152
+          ],
+          "radius": 0.006301312614631641,
+          "projection_excess_m": 0.004850043195195021
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.007077029813629168,
+            0.023075199606693905,
+            -0.006936149136168979
+          ],
+          "radius": 0.008021968961565559,
+          "projection_excess_m": 0.007944940843758713
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.0013168833461988522,
+            0.008603934168419355,
+            0.008904086185944425
+          ],
+          "radius": 0.013782115428995875,
+          "projection_excess_m": 0.019465233778619345
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            0.00012662322200559725,
+            0.008956209209848768,
+            0.003658111528190687
+          ],
+          "radius": 0.01497237555318913,
+          "projection_excess_m": 0.021845754027005854
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            -7.016259783854758e-05,
+            0.009203459538601091,
+            -0.0032233800048246104
+          ],
+          "radius": 0.015169161373033275,
+          "projection_excess_m": 0.022239325666694145
+        },
+        {
+          "group": "LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision",
+          "center": [
+            2.4940877731696226e-05,
+            0.009410976474406764,
+            -0.00891645616371435
+          ],
+          "radius": 0.01507405789746303,
+          "projection_excess_m": 0.022049118715553654
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_R_0",
+          "center": [
+            0.0011043449893642521,
+            0.016572598375883263,
+            -0.0007370388847925107
+          ],
+          "radius": 0.013802148159416966,
+          "projection_excess_m": 0.00934662663737713
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_R_0",
+          "center": [
+            6.342147457493244e-05,
+            0.008962872101609195,
+            -0.0004010165596644823
+          ],
+          "radius": 0.014333704410318377,
+          "projection_excess_m": 0.012127216960915989
+        },
+        {
+          "group": "cad_enclosure__rigid_left_gripper_tip_R_0",
+          "center": [
+            -2.0320694571534723e-05,
+            0.002349624272116834,
+            3.74054229348478e-05
+          ],
+          "radius": 0.015119319469766261,
+          "projection_excess_m": 0.010704534591344145
+        }
+      ],
+      "cuboids": []
+    }
+  }
+}

@@ -1,5 +1,6 @@
 """Shared MoveIt server with materialized real URDF and optional sim execution."""
 from pathlib import Path
+from cleany_moveit_config.calibrated_cad import cad_runtime_configuration
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -15,7 +16,7 @@ from cleany_moveit_config.controller_plugin import controller_plugin_environment
 
 
 def _moveit_config(robot_description_file='', controllers_file='', joint_limits_file=''):
-    description = Path(get_package_share_directory('cleany_description')) / 'urdf/cleany.urdf.xacro'
+    description = Path(get_package_share_directory('cleany_description')) / 'urdf/cleany.urdf'
     config = (MoveItConfigsBuilder('cleany', package_name='cleany_moveit_config')
         .robot_description(file_path=str(description), mappings={
             'include_head_camera': LaunchConfiguration('include_head_camera'),
@@ -29,11 +30,9 @@ def _moveit_config(robot_description_file='', controllers_file='', joint_limits_
         .planning_pipelines(default_planning_pipeline='ompl',
                             pipelines=['ompl', 'pilz_industrial_motion_planner'])
         .planning_scene_monitor().to_moveit_configs())
-    if robot_description_file:
-        config.robot_description = {'robot_description': Path(robot_description_file).read_text()}
-        if not joint_limits_file:
-            config.joint_limits = limits_from_model(
-                config.joint_limits, config.robot_description['robot_description'])
+    config.robot_description = {'robot_description': Path(robot_description_file or description).read_text()}
+    config.joint_limits = limits_from_model(
+        config.joint_limits, config.robot_description['robot_description'])
     return config
 
 
@@ -55,6 +54,17 @@ def _launch_nodes(context):
             config.robot_description_semantic['robot_description_semantic'] = ignore_simulation_mast(
                 config.robot_description['robot_description'],
                 config.robot_description_semantic['robot_description_semantic'], use_sim_time=True)
+    detector = value('collision_detector')
+    environment = controller_plugin_environment(
+        config.trajectory_execution.get('moveit_controller_manager', ''), keep_loaded=True)
+    semantic = config.robot_description_semantic['robot_description_semantic']
+    if isinstance(semantic, ParameterValue):
+        semantic = semantic.evaluate(context)
+    cad = cad_runtime_configuration(config.robot_description['robot_description'], semantic)
+    if cad is not None:
+        semantic, cad_environment, detector = cad
+        config.robot_description_semantic['robot_description_semantic'] = semantic
+        environment.update(cad_environment)
     parameters = [config.to_dict()]
     if value('enable_depth_octomap') == 'true':
         parameters += [str(Path(config.package_path) / 'config/depth_octomap.yaml'), {
@@ -64,22 +74,21 @@ def _launch_nodes(context):
         'allow_trajectory_execution': ParameterValue(LaunchConfiguration('allow_trajectory_execution'), value_type=bool),
         'publish_robot_description_semantic': True,
         'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
-        'collision_detector': value('collision_detector'),
+        'collision_detector': detector,
         'trajectory_execution.allowed_execution_duration_scaling': ParameterValue(
             LaunchConfiguration('allowed_execution_duration_scaling'), value_type=float),
         'trajectory_execution.allowed_goal_duration_margin': ParameterValue(
             LaunchConfiguration('allowed_goal_duration_margin'), value_type=float)})
     move_group = Node(package='moveit_ros_move_group', executable='move_group',
         output='screen', parameters=parameters,
-        additional_env=controller_plugin_environment(
-            config.trajectory_execution.get('moveit_controller_manager', ''), keep_loaded=True),
+        additional_env=environment,
         on_exit=Shutdown(reason='MoveIt planning process stopped'))
     rviz = Node(package='rviz2', executable='rviz2', name='moveit_rviz', output='log',
         condition=IfCondition(LaunchConfiguration('use_rviz')),
         arguments=['-d', str(Path(config.package_path) / 'config/moveit.rviz')],
         parameters=[config.robot_description, config.robot_description_semantic,
                     config.robot_description_kinematics, config.joint_limits,
-                    config.planning_pipelines, {'collision_detector': value('collision_detector'), 'use_sim_time': ParameterValue(
+                    config.planning_pipelines, {'collision_detector': detector, 'use_sim_time': ParameterValue(
                         LaunchConfiguration('use_sim_time'), value_type=bool)}])
     return [move_group, rviz]
 
@@ -89,7 +98,7 @@ def generate_launch_description() -> LaunchDescription:
         'use_rviz': 'false', 'use_sim_time': 'false',
         'collision_detector': 'cleany/SolidFCL',
         'robot_description_file': '', 'controllers_file': '', 'joint_limits_file': '',
-        'include_head_camera': 'false', 'enable_depth_octomap': 'false',
+        'include_head_camera': 'true', 'enable_depth_octomap': 'false',
         'depth_octomap_plugin': 'cleany_scene_mapping/KnownGeometryOctomapUpdater',
         'simulation_bins_config': '', 'enable_gripper_execution': 'false',
         'allow_trajectory_execution': 'false', 'allowed_execution_duration_scaling': '1.2',

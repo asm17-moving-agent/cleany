@@ -20,7 +20,7 @@ def _pose(transform: np.ndarray, parent: str) -> ET.Element:
 def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
     """Reuse canonical visuals; legacy navigation retains its collision envelope."""
     urdf = ET.fromstring(xacro.process_file(
-        str(description / 'urdf/cleany.urdf.xacro')).toxml())
+        str(description / 'urdf/cleany.urdf')).toxml())
     base = model.find("link[@name='base_link']")
     for side in ('left', 'right'):
         for visual in base.findall('visual'):

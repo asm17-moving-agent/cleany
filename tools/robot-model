@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${repo_root}/tools/ros2/cleany-install-env"
+set +u
+source /opt/ros/humble/setup.bash
+source "${CLEANY_INSTALL_BASE}/setup.bash"
+set -u
+case "${1:-check}" in
+  check)
+    python3 - "${repo_root}" <<'PY'
+import hashlib,json,sys
+from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
+from cleany_description.runtime_state import initial_positions,resolve_positions
+r=Path(sys.argv[1]);p=Path(get_package_share_directory('cleany_description'))
+model=p/'urdf/cleany.urdf';manifest=json.loads((p/'config/geometry/runtime_model.json').read_text())
+assert hashlib.sha256(model.read_bytes()).hexdigest()==manifest['sha256']
+values=resolve_positions(model.read_text(),initial_positions(model.read_text()))
+print(json.dumps({'model':str(model),'sha256':manifest['sha256'],'state_profile':str(r/'configs/robot/cad_grasp.json'),'motion_backend':'curobo_ik_moveit','actuator_count':14,'display_joint_count':len(values),'physical_closing_deg':[0,160],'motor_commands_sent':0},indent=2))
+PY
+    ;;
+  preview)
+    exec ros2 launch cleany_description description.launch.py use_rviz:=true
+    ;;
+  moveit)
+    exec ros2 launch cleany_moveit_config move_group.launch.py allow_trajectory_execution:=false
+    ;;
+  *) echo 'Usage: tools/robot-model {check|preview|moveit}' >&2; exit 2 ;;
+esac

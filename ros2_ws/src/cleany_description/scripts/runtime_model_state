@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+from cleany_description.runtime_state import main
+
+main()

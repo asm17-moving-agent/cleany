@@ -72,7 +72,7 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             validate_robot_parameters(robot, path.parent, use_sim_time=sim_time)
             guard = robot['voxel_guard']['ros__parameters']
             body = load_parameters(Path(guard['profile']))
-            description = Path(get_package_share_directory('cleany_description'))/'urdf/cleany.urdf.xacro'
+            description = Path(get_package_share_directory('cleany_description'))/'urdf/cleany.urdf'
             urdf = ET.fromstring(xacro.process_file(str(description)).toxml())
             body = apply_simulation_geometry(urdf, body, allowed=sim_time and guard.get('allow_simulation_limits', False))
             forward_kinematics(urdf, body['park_joints'],

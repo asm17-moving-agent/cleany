@@ -1,0 +1,21 @@
+{
+  "schema": "cleany.cad_gripper_endpoints/v1",
+  "source_cad_sha256": "91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0",
+  "physical_reference": "jetson_20261115_open160: maximum open 0 degrees, clockwise closing 160 degrees, encoder 2048 to 3868",
+  "cad_endpoint_basis": "Largest whole-degree opening accepted by both original BREP and native STL self collision. BREP first intersection lies between 144 and 145 degrees; the existing STL is slightly conservative and rejects 144 degrees by 0.014 mm. The 143-degree endpoint passes the full motor-stroke sweep.",
+  "intermediate_geometry": "nominal endpoint correspondence; not a measured motor-to-cam transmission ratio",
+  "grippers": {
+    "left": {
+      "motor_open_rad": 2.4173120563240813,
+      "motor_closed_rad": -0.3745329776277857,
+      "cad_open_rad": -2.4958208303518914,
+      "cad_closed_rad": 0.0
+    },
+    "right": {
+      "motor_open_rad": 2.4173120563240813,
+      "motor_closed_rad": -0.3745329776277857,
+      "cad_open_rad": -2.4958208303518914,
+      "cad_closed_rad": 0.0
+    }
+  }
+}
