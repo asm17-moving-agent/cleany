@@ -1,5 +1,24 @@
 # 캘리브레이션 작업 가이드
 
+## LiDAR 평면 extrinsic
+
+[`wheel_odometry_evaluation.json`](../configs/mission/wheel_odometry_evaluation.json)은
+[`lidar_extrinsic_20261116.json`](../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)을
+선택한다. `p_base = R(yaw) p_laser + t`이며 전진 +X는 CAD −Y,
+좌측 +Y는 CAD +X다. 평가기의 ICP 초기 추정과 결과 변환에 적용한다.
+
+| 항목 | 적용값 |
+|---|---:|
+| X | 0.143429742 m |
+| Y | −0.001191569 m |
+| yaw | 179.997034° |
+
+2026-11-16의 정지 스캔 180.03초를 현재 `Cleany.FCStd`의 여섯 수직 프로파일에
+정합한 값이다. 재측정 시 SDK 원시 각도와 거리를 보존하고, 라이다 높이의
+실제 홈과 곡면을 포함한 단면을 추출한다. 반복 관측의 각도별 중앙값을
+라이다에서 보이는 외곽 면에 정합한 뒤, 위 좌표계로 변환해 새 날짜의 파일에
+저장한다. 측정 원본과 검증은 [실행 근거](EVIDENCE.md#2026-11-16-lidar-평면-extrinsic)에 연결한다.
+
 ## 2026-11-09 머리 모터 교체와 허용 범위
 
 사용자가 지정한 좌우 끝과 상하 끝을 각각 5 Hz로 15회 수집해 다음 범위를

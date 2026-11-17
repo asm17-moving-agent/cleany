@@ -13,7 +13,9 @@ from lidar_scan_matcher import LidarScanMatcher, ScanMatchResult
 import run_oneway_eval as runner
 
 
-CONFIG = Path(__file__).resolve().parents[2] / "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json"
+ROOT = Path(__file__).resolve().parents[2]
+EVALUATION = json.loads((ROOT / "configs/mission/wheel_odometry_evaluation.json").read_text())
+CONFIG = ROOT / EVALUATION["extrinsic_config"]
 
 
 def test_current_mount_dry_run_reports_wheel_input_and_extrinsic(capsys):
@@ -29,7 +31,7 @@ def test_current_mount_dry_run_reports_wheel_input_and_extrinsic(capsys):
     assert status == 0
     assert "/wheel/odom" in output
     assert "'lidar_min_range_m': 0.45" in output
-    assert "79.77007003626845" in output
+    assert "179.99703389438147" in output
 
 
 @pytest.mark.parametrize("value", ["nan", "inf", "-0.1", "10"])
@@ -41,6 +43,9 @@ def test_invalid_lidar_filter_rejected_before_motion(value):
 
 def test_icp_seed_uses_inverse_extrinsic_and_both_lever_arms():
     extrinsic = PlanarExtrinsic.from_json(CONFIG)
+    forward = extrinsic.base_to_lidar(.5, 0, 0)
+    assert forward[0] == pytest.approx(-.5, abs=.001)
+    assert abs(forward[1]) < .001
     base = (.5, -.2, math.pi / 2)
     captured = []
     sentinel = object()
