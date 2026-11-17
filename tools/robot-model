@@ -24,7 +24,7 @@ PY
     exec ros2 launch cleany_description description.launch.py use_rviz:=true
     ;;
   moveit)
-    exec ros2 launch cleany_moveit_config move_group.launch.py allow_trajectory_execution:=false
+    exec ros2 launch cleany_moveit_config physical_move_group.launch.py use_calibrated_cad:=true allow_trajectory_execution:=false
     ;;
   *) echo 'Usage: tools/robot-model {check|preview|moveit}' >&2; exit 2 ;;
 esac

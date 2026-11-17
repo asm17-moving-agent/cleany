@@ -1,11 +1,196 @@
-"""Use the common calibrated CAD MoveIt launch for standalone planning."""
 from pathlib import Path
+import yaml
+
+from cleany_moveit_config.simulation_collision import ignore_simulation_mast
+from cleany_moveit_config.controller_plugin import controller_plugin_environment
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, Shutdown
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def generate_launch_description():
-    source = Path(get_package_share_directory('cleany_moveit_config'))/'launch/physical_move_group.launch.py'
-    return LaunchDescription([IncludeLaunchDescription(PythonLaunchDescriptionSource(str(source)))])
+def _moveit_config(controller_config='config/moveit_controllers.yaml'):
+    description_xacro = (
+        Path(get_package_share_directory('cleany_description'))
+        / 'urdf'
+        / 'cleany.urdf.xacro'
+    )
+    return (
+        MoveItConfigsBuilder(
+            'cleany', package_name='cleany_moveit_config'
+        )
+        .robot_description(
+            file_path=str(description_xacro),
+            # Arm-only backend publishes no wheel states; match its fixed wheels.
+            mappings={
+                'include_head_camera': 'false',
+                'include_wheel_joints': 'false',
+            },
+        )
+        .robot_description_semantic(file_path='config/cleany.srdf')
+        .robot_description_kinematics(file_path='config/kinematics.yaml')
+        .joint_limits(file_path='config/joint_limits.yaml')
+        .trajectory_execution(
+            file_path=controller_config,
+            moveit_manage_controllers=False,
+        )
+        .planning_pipelines(
+            default_planning_pipeline='ompl',
+            pipelines=['ompl', 'pilz_industrial_motion_planner'],
+        )
+        .planning_scene_monitor()
+        .to_moveit_configs()
+    )
+
+
+def _launch_setup(context):
+    use_rviz = LaunchConfiguration('use_rviz')
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    allow_trajectory_execution = LaunchConfiguration(
+        'allow_trajectory_execution'
+    )
+    execution_duration_scaling = LaunchConfiguration(
+        'allowed_execution_duration_scaling'
+    )
+    goal_duration_margin = LaunchConfiguration(
+        'allowed_goal_duration_margin'
+    )
+    moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml')
+                    if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
+                    else _moveit_config())
+    simulation_bins = LaunchConfiguration('simulation_bins_config').perform(context)
+    if simulation_bins:
+        fixture = yaml.safe_load(Path(simulation_bins).read_text(encoding='utf-8'))
+        ignore_mast = fixture.get('simulation_ignore_mast_collision', False)
+        if not isinstance(ignore_mast, bool):
+            raise ValueError('simulation_ignore_mast_collision must be a boolean')
+        if ignore_mast:
+            moveit_config.robot_description_semantic['robot_description_semantic'] = ignore_simulation_mast(
+                moveit_config.robot_description['robot_description'],
+                moveit_config.robot_description_semantic['robot_description_semantic'],
+                use_sim_time=use_sim_time.perform(context).lower() == 'true',
+            )
+    sensor_parameters = []
+    sensor_condition = IfCondition(LaunchConfiguration('enable_depth_octomap'))
+    if sensor_condition.evaluate(context):
+        sensor_parameters = [
+            str(Path(moveit_config.package_path)
+                / 'config' / 'depth_octomap.yaml'),
+            {
+                'sensors': ['depth_cloud'],
+                'depth_cloud.sensor_plugin': LaunchConfiguration(
+                    'depth_octomap_plugin'
+                ),
+            },
+        ]
+
+    move_group = Node(
+        package='moveit_ros_move_group',
+        executable='move_group',
+        ros_arguments=[
+            '--log-level', LaunchConfiguration('backend_log_level'),
+            '--log-level', ['move_group.scene_mapping:=', LaunchConfiguration('log_level')],
+        ],
+        # MoveIt also prints capability banners directly to stdout. Keep those
+        # in the launch log in quiet mode; ROS warnings/errors use stderr.
+        output=({'stdout': 'log', 'stderr': ['screen', 'log']}
+                if LaunchConfiguration('backend_log_level').perform(context) in ('warn', 'error', 'fatal')
+                else 'both'),
+        additional_env={
+            'RCUTILS_LOGGING_USE_STDOUT': '0',
+            **controller_plugin_environment(
+                moveit_config.trajectory_execution['moveit_controller_manager'],
+                keep_loaded=LaunchConfiguration('keep_controller_plugin_loaded').perform(context) == 'true',
+            ),
+        },
+        on_exit=Shutdown(reason='MoveIt planning process stopped'),
+        parameters=[
+            moveit_config.to_dict(),
+            *sensor_parameters,
+            {
+                'allow_trajectory_execution': ParameterValue(
+                    allow_trajectory_execution, value_type=bool
+                ),
+                'publish_robot_description_semantic': True,
+                'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
+                'collision_detector': LaunchConfiguration('collision_detector'),
+                'trajectory_execution.allowed_execution_duration_scaling': (
+                    ParameterValue(
+                        execution_duration_scaling, value_type=float
+                    )
+                ),
+                'trajectory_execution.allowed_goal_duration_margin': (
+                    ParameterValue(goal_duration_margin, value_type=float)
+                ),
+                'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
+            },
+        ],
+    )
+
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='moveit_rviz',
+        output='log',
+        condition=IfCondition(use_rviz),
+        arguments=[
+            '-d',
+            str(Path(moveit_config.package_path) / 'config' / 'moveit.rviz'),
+        ],
+        parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+            moveit_config.joint_limits,
+            moveit_config.planning_pipelines,
+            {
+                'collision_detector': LaunchConfiguration('collision_detector'),
+                'use_sim_time': ParameterValue(
+                    use_sim_time, value_type=bool
+                )
+            },
+        ],
+    )
+
+    return [move_group, rviz]
+
+
+def generate_launch_description() -> LaunchDescription:
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument('log_level', default_value='info',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('backend_log_level', default_value='info',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('keep_controller_plugin_loaded', default_value='true',
+                                 choices=['true', 'false'],
+                                 description='Keep the Humble controller plugin mapped through node teardown.'),
+            DeclareLaunchArgument('use_rviz', default_value='false'),
+            DeclareLaunchArgument('collision_detector', default_value='cleany/SolidFCL'),
+            DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('simulation_bins_config', default_value=''),
+            DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'enable_depth_octomap', default_value='false'
+            ),
+            DeclareLaunchArgument(
+                'depth_octomap_plugin',
+                default_value='occupancy_map_monitor/PointCloudOctomapUpdater',
+            ),
+            DeclareLaunchArgument(
+                'allow_trajectory_execution', default_value='true'
+            ),
+            DeclareLaunchArgument(
+                'allowed_execution_duration_scaling', default_value='1.2'
+            ),
+            DeclareLaunchArgument(
+                'allowed_goal_duration_margin', default_value='0.5'
+            ),
+            OpaqueFunction(function=_launch_setup),
+        ]
+    )

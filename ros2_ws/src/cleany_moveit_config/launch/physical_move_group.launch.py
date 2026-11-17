@@ -15,8 +15,10 @@ from cleany_moveit_config.joint_limits import limits_from_model
 from cleany_moveit_config.controller_plugin import controller_plugin_environment
 
 
-def _moveit_config(robot_description_file='', controllers_file='', joint_limits_file=''):
-    description = Path(get_package_share_directory('cleany_description')) / 'urdf/cleany.urdf'
+def _moveit_config(robot_description_file='', controllers_file='', joint_limits_file='', *,
+                   use_calibrated_cad=False):
+    urdf_directory = Path(get_package_share_directory('cleany_description')) / 'urdf'
+    description = urdf_directory / ('cleany.urdf' if use_calibrated_cad else 'cleany.urdf.xacro')
     config = (MoveItConfigsBuilder('cleany', package_name='cleany_moveit_config')
         .robot_description(file_path=str(description), mappings={
             'include_head_camera': LaunchConfiguration('include_head_camera'),
@@ -30,9 +32,11 @@ def _moveit_config(robot_description_file='', controllers_file='', joint_limits_
         .planning_pipelines(default_planning_pipeline='ompl',
                             pipelines=['ompl', 'pilz_industrial_motion_planner'])
         .planning_scene_monitor().to_moveit_configs())
-    config.robot_description = {'robot_description': Path(robot_description_file or description).read_text()}
-    config.joint_limits = limits_from_model(
-        config.joint_limits, config.robot_description['robot_description'])
+    if robot_description_file or use_calibrated_cad:
+        config.robot_description = {
+            'robot_description': Path(robot_description_file or description).read_text()}
+        config.joint_limits = limits_from_model(
+            config.joint_limits, config.robot_description['robot_description'])
     return config
 
 
@@ -41,7 +45,9 @@ def _launch_nodes(context):
     controllers = value('controllers_file')
     if not controllers and value('enable_gripper_execution') == 'true':
         controllers = 'config/sorting_moveit_controllers.yaml'
-    config = _moveit_config(value('robot_description_file'), controllers, value('joint_limits_file'))
+    config = _moveit_config(
+        value('robot_description_file'), controllers, value('joint_limits_file'),
+        use_calibrated_cad=value('use_calibrated_cad') == 'true')
     bins = value('simulation_bins_config')
     if bins:
         if value('use_sim_time') != 'true':
@@ -57,14 +63,16 @@ def _launch_nodes(context):
     detector = value('collision_detector')
     environment = controller_plugin_environment(
         config.trajectory_execution.get('moveit_controller_manager', ''), keep_loaded=True)
-    semantic = config.robot_description_semantic['robot_description_semantic']
-    if isinstance(semantic, ParameterValue):
-        semantic = semantic.evaluate(context)
-    cad = cad_runtime_configuration(config.robot_description['robot_description'], semantic)
-    if cad is not None:
-        semantic, cad_environment, detector = cad
-        config.robot_description_semantic['robot_description_semantic'] = semantic
-        environment.update(cad_environment)
+    description = config.robot_description['robot_description']
+    if isinstance(description, str):
+        semantic = config.robot_description_semantic['robot_description_semantic']
+        if isinstance(semantic, ParameterValue):
+            semantic = semantic.evaluate(context)
+        cad = cad_runtime_configuration(description, semantic)
+        if cad is not None:
+            semantic, cad_environment, detector = cad
+            config.robot_description_semantic['robot_description_semantic'] = semantic
+            environment.update(cad_environment)
     parameters = [config.to_dict()]
     if value('enable_depth_octomap') == 'true':
         parameters += [str(Path(config.package_path) / 'config/depth_octomap.yaml'), {
@@ -95,7 +103,7 @@ def _launch_nodes(context):
 
 def generate_launch_description() -> LaunchDescription:
     defaults = {
-        'use_rviz': 'false', 'use_sim_time': 'false',
+        'use_rviz': 'false', 'use_sim_time': 'false', 'use_calibrated_cad': 'false',
         'collision_detector': 'cleany/SolidFCL',
         'robot_description_file': '', 'controllers_file': '', 'joint_limits_file': '',
         'include_head_camera': 'true', 'enable_depth_octomap': 'false',

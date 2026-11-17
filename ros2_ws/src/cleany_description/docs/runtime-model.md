@@ -1,7 +1,7 @@
 # 공통 CAD 런타임
 
-설치된 `urdf/cleany.urdf`는 CLI, MoveIt 기본 실행, cuRobo 기본 모델 로딩과
-RViz가 공유하는 보정된 CAD다. `configs/robot/cad_grasp.json`으로 생성하며
+설치된 `urdf/cleany.urdf`는 `tools/robot-model`, CAD 파지 프로파일의
+MoveIt과 cuRobo, RViz가 공유하는 보정된 모델이다. `configs/robot/cad_grasp.json`으로 생성하며
 기존 14개 모터 좌표와 최대 열림 0도에서 닫힘 160도 범위를 유지한다.
 생성 파일의 해시는 `config/geometry/runtime_model.json`에 기록한다.
 
