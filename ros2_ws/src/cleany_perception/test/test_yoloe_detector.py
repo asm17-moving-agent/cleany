@@ -246,6 +246,40 @@ def test_yoloe_seg_uses_one_inference_and_preserves_instance_mask(tmp_path):
     assert not detections[0].segmentation_mask.flags.writeable
 
 
+def test_scene_suppresses_duplicate_masks_before_applying_candidate_limit(tmp_path):
+    checkpoint, encoder = _model_files(tmp_path)
+    model = _Model()
+    boxes = [
+        [0, 0, 20, 20, .95, 0],
+        [0, 0, 16, 20, .90, 1],
+        [0, 0, 20, 20, .80, 0],
+        [20, 0, 30, 20, .70, 1],
+    ]
+    masks = np.zeros((4, 20, 30), dtype=np.uint8)
+    masks[0, :, :10] = 1
+    masks[1] = masks[0]
+    masks[1, 0, 0] = 0
+    masks[2, :, 10:20] = 1
+    masks[3, :, 20:] = 1
+
+    def predict(_image, *, max_det, **_options):
+        return [SimpleNamespace(boxes=_Boxes(boxes[:max_det]), names=model.names,
+                                masks=SimpleNamespace(data=masks[:max_det]))]
+
+    model.predict = predict
+    detector = YoloeDetector(
+        str(checkpoint), ['cup', 'wallet'], device='cpu',
+        text_encoder_directory=str(encoder), model_factory=lambda _: model,
+        require_masks=True, maximum_detections=2, scene_duplicate_mask_iou=.9,
+    )
+    rgb = np.zeros((20, 30, 3), dtype=np.uint8)
+    assert [item.label for item in detector.detect(rgb, '')] == ['cup', 'wallet']
+    scene = detector.detect_scene(rgb, '')
+    assert [item.label for item in scene] == ['cup', 'cup']
+    np.testing.assert_array_equal(scene[0].segmentation_mask, masks[0])
+    np.testing.assert_array_equal(scene[1].segmentation_mask, masks[2])
+
+
 def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path):
     checkpoint, encoder_directory = _model_files(tmp_path)
     model = _Model()
