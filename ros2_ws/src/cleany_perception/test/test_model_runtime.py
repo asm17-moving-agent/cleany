@@ -22,11 +22,11 @@ def test_shared_profile_uses_yoloe_instance_masks():
     assert profile['minimum_detection_confidence'] == 0.25
 
 
-def test_flash_lite_profile_classifies_local_yoloe_masks():
+def test_decision_profile_classifies_local_yoloe_masks():
     profile = load_model_profile(
         Path(__file__).resolve().parents[1] / 'config/yoloe_seg_gemini.yaml')
     assert profile['detector_type'] == 'yoloe_gemini'
-    assert profile['gemini_model'] == 'gemini-3.5-flash-lite'
+    assert profile['gemini_model'] == 'gemini-decision-1'
     assert profile['segmenter_type'] == 'yoloe_seg'
     assert profile['preload_models'] is True
     for label in ('cup', 'computer mouse', 'crumpled tissue', 'lego brick'):

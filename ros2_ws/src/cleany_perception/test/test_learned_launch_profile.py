@@ -48,7 +48,7 @@ def test_standalone_uses_shared_yoloe_profile(monkeypatch, wrist):
     profile = Path(context.launch_configurations['model_profile'])
     settings = yaml.safe_load(profile.read_text())['perception_inspector']['ros__parameters']
     assert profile.name == 'yoloe_seg_gemini.yaml'
-    assert settings['gemini_model'] == 'gemini-3.5-flash-lite'
+    assert settings['gemini_model'] == 'gemini-decision-1'
     values = captured[0]['parameters'][-1]
     assert values['use_sim_time'].evaluate(context) is True
     assert values['enable_wrist_observation'].evaluate(context) is (wrist == 'true')

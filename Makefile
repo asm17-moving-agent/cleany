@@ -81,7 +81,7 @@ $(addprefix vision-,$(VISION_COMMANDS)):
 vision-license-check:
 	"$(REPO_ROOT)tools/vision-container" check-license
 
-VISION_SERVICE_COMMANDS := hybrid-config hybrid-up hybrid-down hybrid-run anygrasp-up anygrasp-run perception-up perception-run
+VISION_SERVICE_COMMANDS := hybrid-config hybrid-up hybrid-down hybrid-run anygrasp-up anygrasp-run perception-up
 .PHONY: $(VISION_SERVICE_COMMANDS)
 $(VISION_SERVICE_COMMANDS):
 	"$(REPO_ROOT)tools/vision-container" $@
@@ -879,3 +879,7 @@ DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
 .PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
 $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
 	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)
+
+.PHONY: perception-run
+perception-run:
+	"$(REPO_ROOT)tools/perception-native"

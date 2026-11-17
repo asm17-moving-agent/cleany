@@ -263,7 +263,7 @@ def test_real_profile_head_and_wrists_share_one_loaded_model(monkeypatch, tmp_pa
             self.prepared += 1
     monkeypatch.setattr(module, 'YoloeDetector', Adapter)
     monkeypatch.setattr(module.InspectionNode, '_resolve_local_model', lambda *args: None)
-    monkeypatch.setattr(module, 'GeminiClassifier', lambda **kwargs: SimpleNamespace(prepare=lambda: None))
+    monkeypatch.setattr(module, 'make_semantic_classifier', lambda **kwargs: SimpleNamespace(prepare=lambda: None))
     profile.update(yoloe_model_path=str(tmp_path / 'test.engine'), preload_models=False,
                    enable_wrist_observation=True)
     rclpy.init(args=[])

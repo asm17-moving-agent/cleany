@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+venv="${CLEANY_YOLOE_NATIVE_VENV:-${HOME}/.local/opt/cleany/yoloe53/venv}"
+model_root="${YOLOE_MODEL_HOST_DIR:-${HOME}/models/yoloe}"
+install_root="${CLEANY_YOLOE_NATIVE_INSTALL:-${repo_root}/../cleany-data/builds/yoloe53/install}"
+profile="${YOLOE_CONFIG_FILE:-${repo_root}/ros2_ws/src/cleany_perception/config/yoloe_real53.yaml}"
+engine="${YOLOE_MODEL_PATH:-${model_root}/real53/m/active/yoloe-26m-seg-real53.engine}"
+
+for required in "${venv}/bin/python" "${install_root}/setup.bash" "${profile}" "${engine}"; do
+  if [[ ! -f "${required}" ]]; then
+    echo "Required native perception file not found: ${required}" >&2
+    exit 1
+  fi
+done
+set +u
+source /opt/ros/humble/setup.bash
+source "${install_root}/setup.bash"
+set -u
+site_packages="$("${venv}/bin/python" -c 'import site; print(site.getsitepackages()[0])')"
+export PYTHONPATH="${site_packages}:${PYTHONPATH:-}"
+export YOLO_AUTOINSTALL=false
+export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
+if [[ -z "${GEMINI_API_KEY:-}" && -f "${HOME}/.config/cleany/gemini.env" ]]; then
+  source "${HOME}/.config/cleany/gemini.env"
+fi
+# Read semantic settings from the selected detector profile.
+semantic_model="${GEMINI_MODEL:-$("${venv}/bin/python" -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["perception_inspector"]["ros__parameters"]["gemini_model"])' "${profile}")}"
+exec ros2 launch cleany_perception inspect_scene.launch.py \
+  detector_type:=yoloe_gemini segmenter_type:=yoloe_seg \
+  yoloe_config_file:="${profile}" yoloe_model_path:="${engine}" \
+  yoloe_text_encoder_directory:="${model_root}" yoloe_device:=cuda \
+  gemini_model:="${semantic_model}" rgbd_qos_reliability:=best_effort "$@"

@@ -1,0 +1,110 @@
+schema_version: 1
+version: cleany-rgb-semantics-v1
+context: |
+  A robot with a parallel-jaw gripper is tasked with picking up
+  and moving objects on a tabletop.
+
+  The numbered boxes are proposals and may contain false detections.
+  Assess the actual visible content of each numbered box independently,
+  using the surrounding image when relevant.
+
+  Do not assume that every box contains a valid object.
+  Do not infer ownership as a fact.
+
+  You are given RGB evidence only. You are not given depth measurements,
+  gripper dimensions, the robot pose, or a motion plan.
+instructions:
+  object_type: What type of object is inside numbered box {id}?
+  sorting_category: Should the object inside numbered box {id} be treated as trash, a lost item, or sent for review?
+  visual_risk: Is there visible evidence that picking up and moving the object inside numbered box {id} may be problematic?
+unknown_description: No listed object type fits, the identity is unclear, or no valid object is visible in the box.
+sorting_criteria:
+  trash: Visible evidence supports treating the object as discarded disposable material.
+  lost_item: Visible evidence supports preserving the object as a reusable personal belonging. This does not establish ownership.
+  review: The object requires review because its identity, disposability, or handling is unclear, or the image supports concern about handling it.
+risk_criteria:
+  no_visible_issue: The image shows no obvious reason why picking up and moving the object may be problematic. This does not establish physical feasibility or safety.
+  visible_risk: The image shows a reason why picking up and moving the object may be problematic.
+  uncertain: There is insufficient visual information to judge whether picking up and moving the object may be problematic.
+
+# Canonical union of existing profiles and safety-veto object kinds.
+default_object_types:
+  - bag
+  - battery
+  - beverage can
+  - book
+  - bottle
+  - box
+  - broken glass
+  - cable
+  - camera
+  - card
+  - cardboard box
+  - case
+  - cell phone
+  - charger
+  - charging cable
+  - cigarette
+  - clock
+  - comb
+  - computer mouse
+  - cotton swab
+  - crumpled paper
+  - crumpled tissue
+  - cup
+  - cup lid
+  - disposable food container
+  - disposable utensil
+  - doll
+  - drink carton
+  - drinking straw
+  - earbud case
+  - earbuds
+  - eraser
+  - eyeglasses
+  - face mask
+  - food container
+  - hair clip
+  - hammer
+  - hand
+  - keyboard
+  - keys
+  - knife
+  - laptop
+  - lego brick
+  - lid
+  - lighter
+  - lipstick
+  - measuring tape
+  - mirror
+  - nail clipper
+  - notebook
+  - paper
+  - paper bag
+  - pen
+  - pencil
+  - pencil case
+  - person
+  - personal bag
+  - phone
+  - picture frame
+  - plastic bag
+  - plastic box
+  - plate
+  - power bank
+  - receipt
+  - remote control
+  - rubber band
+  - scissors
+  - screwdriver
+  - sheet of paper
+  - snack bag
+  - speaker
+  - straw
+  - tablet
+  - tape
+  - toilet paper roll
+  - utensil
+  - vase
+  - wallet
+  - watch

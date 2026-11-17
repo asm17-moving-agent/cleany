@@ -26,6 +26,7 @@ from cleany_perception.core.models import (
     ObjectMask,
     RgbArray,
 )
+from cleany_perception.core.wrist_observation import bbox_iou
 
 
 ModelFactory = Callable[..., Any]
@@ -57,6 +58,14 @@ def _numpy(value: Any) -> np.ndarray:
     return np.asarray(value)
 
 
+def _same_instance(first: Detection2D, second: Detection2D, minimum_mask_iou: float) -> bool:
+    left, right = first.segmentation_mask, second.segmentation_mask
+    if left is None or right is None or bbox_iou(first.bbox, second.bbox) == 0:
+        return False
+    union = np.count_nonzero(left | right)
+    return bool(union and np.count_nonzero(left & right) >= minimum_mask_iou * union)
+
+
 class YoloeDetector:
     """Ultralytics YOLOE adapter with optional instance masks."""
 
@@ -77,6 +86,7 @@ class YoloeDetector:
         allow_unvalidated_engine: bool = False,
         model_pool: YoloeModelPool | None = None,
         engine_execution: str = 'async',
+        scene_duplicate_mask_iou: float | None = None,
     ) -> None:
         normalized_classes = tuple(item.strip() for item in classes)
         if not model_path:
@@ -97,6 +107,9 @@ class YoloeDetector:
             raise ValueError('YOLOE IoU threshold must be in [0, 1]')
         if maximum_detections <= 0:
             raise ValueError('YOLOE maximum detections must be positive')
+        if scene_duplicate_mask_iou is not None and (
+                not require_masks or not 0.0 < scene_duplicate_mask_iou <= 1.0):
+            raise ValueError('YOLOE scene duplicate mask IoU requires masks and must be in (0, 1]')
         if engine_execution not in ('async', 'ultralytics'):
             raise ValueError('YOLOE engine execution must be async or ultralytics')
         if (class_confidence_thresholds
@@ -118,6 +131,7 @@ class YoloeDetector:
         self._confidence_threshold = confidence_threshold
         self._iou_threshold = iou_threshold
         self._maximum_detections = maximum_detections
+        self._scene_duplicate_mask_iou = scene_duplicate_mask_iou
         self._text_encoder_directory = str(
             Path(text_encoder_directory).expanduser().resolve()
         )
@@ -141,14 +155,18 @@ class YoloeDetector:
             return 'failed'
         return 'async' if self._execution.runner is not None else 'ultralytics'
 
-    def _predict(self, model: Any, image: np.ndarray) -> Any:
+    def _predict(
+        self, model: Any, image: np.ndarray, maximum_detections: int | None = None,
+    ) -> Any:
+        if maximum_detections is None:
+            maximum_detections = self._maximum_detections
         if self._execution.fatal_error:
             raise InspectionFailure(FailureKind.DETECTOR_API, self._execution.fatal_error)
         if self._execution.runner is not None:
             try:
                 return self._execution.runner.predict(image,
                     confidence=self._confidence_threshold, iou=self._iou_threshold,
-                    maximum_detections=self._maximum_detections)
+                    maximum_detections=maximum_detections)
             except CudaSynchronizationError as error:
                 self._execution.runner = None
                 self._execution.fatal_error = str(error)
@@ -160,7 +178,7 @@ class YoloeDetector:
         options = dict(
             device=self._device, imgsz=self._image_size,
             conf=self._confidence_threshold, iou=self._iou_threshold,
-            max_det=self._maximum_detections, verbose=False, rect=False,
+            max_det=maximum_detections, verbose=False, rect=False,
         )
         if self._require_masks:
             options['retina_masks'] = True
@@ -180,7 +198,18 @@ class YoloeDetector:
         with self._inference_lock:
             return self._detect_locked(rgb, query)
 
-    def _detect_locked(self, rgb: RgbArray, query: str) -> Sequence[Detection2D]:
+    def detect_scene(self, rgb: RgbArray, query: str) -> Sequence[Detection2D]:
+        """Keep one prediction per instance before assigning scene IDs."""
+        if self._scene_duplicate_mask_iou is None:
+            return self.detect(rgb, query)
+        # Give duplicates room to be removed before applying the scene limit.
+        with self._inference_lock:
+            detections = self._detect_locked(rgb, query, 2 * self._maximum_detections)
+        return self._unique_scene_instances(detections, self._scene_duplicate_mask_iou)
+
+    def _detect_locked(
+        self, rgb: RgbArray, query: str, maximum_detections: int | None = None,
+    ) -> Sequence[Detection2D]:
         del query
         image = np.asarray(rgb)
         if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
@@ -192,7 +221,7 @@ class YoloeDetector:
         model = self._get_model()
         try:
             # Ultralytics restores boxes and retina masks to original pixels.
-            results = self._predict(model, image)
+            results = self._predict(model, image, maximum_detections)
         except InspectionFailure:
             raise
         except Exception as error:
@@ -270,6 +299,19 @@ class YoloeDetector:
                 FailureKind.DETECTOR_RESPONSE,
                 f'YOLOE returned invalid detections: {error}',
             ) from error
+
+    def _unique_scene_instances(
+        self, detections: Sequence[Detection2D], minimum_mask_iou: float,
+    ) -> tuple[Detection2D, ...]:
+        """Keep the strongest nearly identical mask even if the class differs."""
+        kept: list[Detection2D] = []
+        for candidate in sorted(detections, key=lambda item: item.confidence, reverse=True):
+            if any(_same_instance(candidate, prior, minimum_mask_iou) for prior in kept):
+                continue
+            kept.append(candidate)
+            if len(kept) == self._maximum_detections:
+                break
+        return tuple(kept)
 
     def _get_model(self) -> Any:
         if self._model is not None:
