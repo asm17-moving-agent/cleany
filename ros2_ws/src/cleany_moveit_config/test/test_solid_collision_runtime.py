@@ -45,7 +45,7 @@ def _stop(process) -> None:
 
 @contextmanager
 def _runtime(tmp_path: Path, detector: str | None):
-    domain = 30 + os.getpid() % 180
+    domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 30 + os.getpid() % 180))
     context = Context()
     rclpy.init(args=[], context=context, domain_id=domain)
     node = rclpy.create_node('solid_collision_test', context=context)
@@ -118,7 +118,7 @@ def test_installed_detector_catches_contained_obstacles(tmp_path: Path, detector
 def test_unavailable_detector_stops_planning(tmp_path: Path):
     log_path = tmp_path / 'rejected_detector.log'
     with log_path.open('w') as log:
-        process = _start(log, 30 + os.getpid() % 180, 'cleany/MissingDetector')
+        process = _start(log, int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 30 + os.getpid() % 180)), 'cleany/MissingDetector')
         try:
             process.wait(timeout=40)
         finally:

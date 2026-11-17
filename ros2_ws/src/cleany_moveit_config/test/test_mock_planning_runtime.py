@@ -481,7 +481,7 @@ def _stop_process(process: subprocess.Popen[bytes]) -> None:
 
 
 def test_per_arm_position_ik_plan_and_execute() -> None:
-    domain_id = 60 + os.getpid() % 120
+    domain_id = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 60 + os.getpid() % 120))
     os.environ['ROS_DOMAIN_ID'] = str(domain_id)
 
     with tempfile.TemporaryDirectory(prefix='cleany-moveit-smoke-') as temp_dir:

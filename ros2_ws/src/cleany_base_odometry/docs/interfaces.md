@@ -13,6 +13,10 @@
 
 TF는 발행하지 않는다. 의미는 [Base odometry 계약](../../cleany_base_driver/docs/command-and-odometry.md)을 따른다.
 
+`twist_covariance_diagonal`은 vx, vy, vz, wx, wy, wz 순서의 유한한 비음수 분산
+6개다. 단독 실행 기본값은 0이며 EKF bringup은 융합에 사용하는 축에 양의 분산을
+설정한다. Off-diagonal 항은 0이다. Pose covariance는 변경하지 않는다.
+
 ## 원점 초기화
 
 `wheel_odometry/reset`은 private `~/reset`, `std_srvs/srv/Trigger` 서비스다.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import cos, sin
+from math import cos, isfinite, sin
 
 import rclpy
 from nav_msgs.msg import Odometry
@@ -33,7 +33,7 @@ class WheelOdometryNode(Node):
             mapping owner confirms STOP and terminates the previous SLAM.
 
     TF:
-        Does not broadcast; the odometry relay owns odom -> base_link.
+        Does not broadcast; the selected relay or EKF owns odom -> base_link.
 
     QoS:
         Input uses sensor_data; output is reliable with depth 10.
@@ -43,14 +43,22 @@ class WheelOdometryNode(Node):
         produce no message. Invalid wheel values raise a validation error.
     """
 
-    def __init__(self) -> None:
-        super().__init__('wheel_odometry')
+    def __init__(self, parameter_overrides=None) -> None:
+        super().__init__('wheel_odometry', parameter_overrides=parameter_overrides)
         self.declare_parameter('input_topic', 'joint_states')
         self.declare_parameter('output_topic', 'wheel/odom')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
         self.declare_parameter('velocity_window_s', 0.0)
         self.declare_parameter('yaw_scale', 1.0)
+        self.declare_parameter('twist_covariance_diagonal', [0.0] * 6)
+        diagonal = list(self.get_parameter('twist_covariance_diagonal').value)
+        if len(diagonal) != 6 or any(not isfinite(v) or v < 0.0 for v in diagonal):
+            raise ValueError(
+                'twist_covariance_diagonal must contain six finite nonnegative '
+                'values ordered vx, vy, vz, wx, wy, wz'
+            )
+        self._twist_covariance_diagonal = diagonal
         self.declare_parameter('wheel_radius_m', 0.0635)
         self.declare_parameter('wheelbase_m', 0.30)
         self.declare_parameter('wheel_separation_m', 0.51)
@@ -166,6 +174,8 @@ class WheelOdometryNode(Node):
         output.twist.twist.linear.x = estimate.linear_x_mps
         output.twist.twist.linear.y = estimate.linear_y_mps
         output.twist.twist.angular.z = estimate.angular_z_rps
+        for index, value in enumerate(self._twist_covariance_diagonal):
+            output.twist.covariance[index * 7] = value
         self._publisher.publish(output)
 
 

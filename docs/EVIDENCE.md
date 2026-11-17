@@ -28,6 +28,38 @@ NumPy 1.26.4 버전 경고를 출력했으며 좌표 변환, 선분 교차 검�
 `run_wheel_only_eval.sh --dry-run`이 통과했다. 검증 로그는 같은 원본 경로의
 `pr-validation/`에 보존한다.
 
+## Wheel/IMU EKF PR 분리 검증 (2026-11-16)
+
+고정 IMU 보정 `aa666358` 위에 EKF 연결을 적용한 작업 트리를 Ubuntu 22.04.5
+amd64 Distrobox, ROS 2 Humble과 `robot_localization` 3.5.4에서 검사했다.
+합성 IMU와 mock wheel을 localhost 전용 domain 182에서 연결했다.
+
+`make test-base-ekf test-base`에서 관련 패키지 3개 빌드, EKF와 공분산 검사
+10개가 통과했다. 센서 장착 회전, 공분산별 입력 기여와 shadow/canonical 모드의
+odom 및 TF 소유권을 확인했다. Colcon의 Python 검사 0개 수집을 보완한 전체
+base pytest는 139개가 통과했으며 전용 10개를 포함한다. 실물 주행, 시간 정렬과
+정확도 튜닝은 이 검사의 범위가 아니다.
+
+소스 patch, 환경, `ekf-validation.log`, `ekf-base-pytest.log`와 검증 JSON은
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+
+## 고정 IMU 보정 PR 분리 검증 (2026-11-16)
+
+`22c2956b` 기반 `08263ff4`의 IMU 변경을 Ubuntu 22.04 amd64 Distrobox,
+ROS 2 Humble에서 검사했다. 입력은 합성 IMU와 mock wheel이며 localhost 전용
+domain 181을 사용했다. EKF 연결을 제외한 독립 IMU 변경의 검증이다.
+
+`make test-imu-runtime test-motor-core test-micro-ros-setup test-base`에서 관련
+패키지 3개 빌드, IMU 검사 39개, C++ host 프로그램 9개와 준비 도구 15개가
+통과했다. Colcon은 Python 패키지 검사를 0개 수집하여 같은 설치의 전체 base
+pytest를 별도로 실행했고 129개가 통과했다. IMU 검사는 이 전체 검사와 중복된다.
+`make firmware-build`도 통과했다. 빌드에 `tests_require` 경고가 있었으며
+실물 업로드, 센서 수집과 주행은 실행하지 않았다.
+
+소스 사본, 분리 patch, 환경, 펌웨어 hash와 검사 로그는
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+`imu-validation.log`, `imu-base-pytest.log`, `firmware-build.log`가 실행 원본이다.
+
 ## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
 
 `aab901be`를 Jetson Ubuntu 22.04 ARM64, ROS 2 Humble의 격리 설치에서 검증했다.
@@ -57,6 +89,48 @@ macOS의 타입 검사와 웹 빌드, Playwright 46개도 통과했고 외부 �
 환경, 소스 패치, 초기 빌드 실패와 최종 로그, JUnit 원본은
 `/home/cleany/cleany-data/reports/pr78-local-validation-20261112/`에 보관한다.
 웹 검사 원본은 `/Users/hyeon/.codex/reports/cleany-pr78-local-20261112/`에 있다.
+
+## IMU 각속도 보정과 EKF 연동 검증 (2026-11-13)
+
+`feat/imu-wheel-odom`의 `6fba958b24cfe28fa68efa52983e56692de02574` 작업 트리에서
+host 고정 bias 보정과 wheel/gyro EKF 경로를 검사했다. Ubuntu 22.04 Distrobox의
+ROS 2 Humble, localhost 전용 domain 183에서 합성 IMU와 mock wheel을 사용했다.
+기존 gyro bias와 전체 공분산은 실행 전 설정과 동일하다.
+
+`make test-imu-runtime test-base-ekf BASE_TEST_ROS_DOMAIN_ID=183`으로 관련 패키지
+3개를 빌드하고 IMU 검사 39개, EKF 및 공분산 검사 10개를 통과했다. 앞서 실행한
+core 검사 29개는 IMU 검사에 포함된다. 영 가속도에서 각속도 보정과 전달,
+입력 오류 및 회복, 센서 축 변환과 두 실행 모드의 odom/TF 발행을 확인했다.
+최초 호스트 Python 실행은 pytest가 없어 종료했고 Distrobox에서 검사했다.
+실물 센서 수집과 주행은 실행하지 않았다.
+
+환경, 변경 전 사본, 패치와 로그는
+`CLEANY_DATA_ROOT/runs/imu-gyro-ekf-20261113-5af7dcev/`에 보존한다.
+
+## 고정 IMU 보정과 wheel EKF, ESP32 업로드 (2026-11-13)
+
+`feat/imu-wheel-odom`의 main 기반 `6fba958b24cfe28fa68efa52983e56692de02574`에
+작업 트리 패치를 적용했다. Fedora 호스트의 Ubuntu 22.04 Distrobox와 ROS 2
+Humble을 사용했으며, ROS 검사는 localhost 전용 domain 181의 합성 IMU와 mock
+wheel 입력으로 수행했다. 기존 `bench_20261014T142933Z/run06_persistent`의
+bias와 validation covariance가 설정값과 수치상 동일함을 확인했다.
+
+ROS 패키지 3개 빌드, IMU 전용 39개, EKF와 covariance 10개, driver/odometry
+전체 pytest 137개 및 C++ host 프로그램 9개가 통과했다. 전용 검사는 전체
+검사와 일부 중복된다. 이 환경의 colcon은 Python 패키지 검사를 0개로 수집해
+전체 pytest를 별도로 실행했다. 초기 domain 234 실행의 조기 종료, TF endpoint와
+실제 발행의 혼동, Humble callback API와 단일 wheel 표본 시각 jitter에 관한
+검사 실패를 보존하고 수정 후 전체 검사를 재실행했다.
+
+`make firmware-build` 후 모터 전원이 분리됐다는 사용자 확인 상태에서
+`make firmware-upload`를 실행했다. ESP32-S3 MAC `90:e5:b1:d5:3f:34`에
+bootloader, partition과 application을 기록했으며 esptool의 세 write hash 검증이
+통과했다. Application SHA-256은
+`e77d7143d7b952ea7ef0fdb44e128bfdee359a7f5fdd70b518e726b6863ac009`다.
+새 보정 측정, 실제 구동 명령과 실기기 ROS/EKF 실행은 수행하지 않았다.
+
+설정 사본, working-tree patch, 환경과 검증 JSON, 성공 및 실패 로그와 업로드
+이미지는 `CLEANY_DATA_ROOT/runs/imu-wheel-offline-20261113-c9ei25gh/`에 보존한다.
 
 ## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
 
@@ -1869,3 +1943,24 @@ Jetson의 BT.CPP는 4.10.0이며 amd64 CI의 4.9.1 환경은 재실행하지 않
 `/Users/hyeon/.codex/reports/cleany-pr77-local-20261112/`에 보관한다.
 Jetson 원본은 `/home/cleany/cleany-data/reports/pr77-local-fix-20261112/`에 있다.
 해당 결과는 커밋과 푸시 전의 로컬 검증이며 GitHub CI 결과와 구분한다.
+
+## 2026-11-13 통합 컨트롤러 KiCad 소스 분리 검증
+
+`feat/integrated_controller`는 main `6fba958b24cfe28fa68efa52983e56692de02574`에서
+분기했다. 기존 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업 폴더의 저장된
+KiCad 파일을 가져왔으며 회로도, PCB, 제작 규칙과 라이브러리 원본 바이트를 유지했다.
+입력 SHA-256, 환경과 ERC/DRC 원본 보고서는
+[분리 검증 기록](../esp32/pcb/integrated_controller/validation/pr_import_20261113.json)에 보관한다.
+
+Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10에서 `make test-pcb`가 통과했다.
+로컬 Molex 모델이 있는 환경의 59개 검사는 모두 통과했다. Git 제외 파일을 제거한
+별도 복사본에서는 58개 통과, 로컬 전용 모델 해시 검사 1개 skip이었다.
+두 환경 모두 ERC, DRC, 미연결 네트와 회로도 일치 위반이 0건이었다.
+별도 센서 캐리어 초안의 ERC도 0건이며 부품 배치와 배선은 없는 상태다.
+기존 프로젝트에서 비활성화한 ERC/DRC 항목은 원본 보고서의 `ignored_checks`에 남겼다.
+
+실패한 검사는 없었다. 원본 명령 로그와 공개 파일 복사본은
+`CLEANY_DATA_ROOT/runs/integrated-controller-pr-20261113-egedos3h/`에 보관한다.
+펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 보드 기준이며 통합 보드 이식은 별도 작업이다.
+실물 전원 부하, USB 신호 품질, 기구/RF와 제조사 DFM은 검증하지 않았다.
+이 기록은 로컬 검증이며 CI 통과나 사람 승인, main 병합을 의미하지 않는다.

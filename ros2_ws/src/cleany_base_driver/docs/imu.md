@@ -1,84 +1,110 @@
 # IMU 실시간 수신
 
-MCU가 부팅할 때 정지 보정을 한 번 수행하며 실패하면 기존 bench bias·covariance를
-적용한다. PC는 `base/imu_state`의 시각을 ROS로 변환하고 받은 결과를 그대로 발행한다.
-Agent나 PC 재시작으로 보정을 반복하지 않는다.
+MCU는 MPU6050 각속도와 가속도를 `sensor_msgs/msg/Imu`로 발행한다. Jetson의
+`cleany_imu`가 기존 gyro bias와 공분산을 적용한다. EKF는 보정된 각속도와
+wheel odometry의 평면 속도를 융합한다.
 
-| 토픽 | 내용 |
-|---|---|
-| `imu/data_raw` | MCU의 보정 전 각속도 |
-| `imu/data` | MCU에서 보정한 각속도, `RUNNING`·`FALLBACK`에서 발행 |
-| `imu/status` | `DiagnosticArray` 보정·수신 상태 |
+```text
+MCU → imu_uncalibrated/data_raw → cleany_imu → imu/data_raw → EKF
+                                                         wheel/odom ↗
+```
 
-IMU 입력·출력은 best effort / volatile / keep last 1이다.
-3축 gyro는 센서 좌표계이며 orientation·linear acceleration은 covariance 첫 원소
-`-1`로 unavailable을 표시한다. Raw gyro covariance의 0은 unknown이다.
-향후 EKF 입력은 장착 TF를 확인한 Z축 각속도만 사용한다.
+## 데이터와 좌표계
 
-### 실행
+| 토픽 | 발행자 | 내용과 QoS |
+|---|---|---|
+| `imu_uncalibrated/data_raw` | MCU | 센서 축 gyro(rad/s), 중력 포함 가속도(m/s²); B1 |
+| `imu/data_raw` | `cleany_imu` | 고정 bias를 뺀 gyro, 원본 가속도; B1 |
+| `imu/status` | `cleany_imu` | 입력과 고정 bias 적용 상태; reliable, transient local, depth 1 |
 
-같은 v2 인터페이스로 빌드한 모터 펌웨어를 업로드하고 Agent를 실행한다.
-**MCU 전원을 켤 때 로봇과 센서를 정지시킨다.** PC는 보정 도중이나 완료 후 연결해도 된다.
-레포 루트의 Humble 환경에서:
+B1은 best effort, volatile, keep last 1이다. 모든 IMU 데이터는 동일한
+`imu_link` 센서 frame과 취득 stamp를 유지한다. 미보정 입력과 `imu/data_raw`의
+`orientation_covariance[0]=-1`은 자세 미제공을 뜻한다. 미보정 입력 covariance의
+0은 unknown이며, `imu/data_raw` gyro에는 설정한 전체 3×3 covariance를 적용한다.
+가속도는 수신값을 그대로 전달한다.
+
+[REP-145](https://github.com/ros-infrastructure/rep/blob/master/rep-0145.rst)의
+토픽 관례에 따라 `imu/data_raw`에는 gyro와 가속도를 담는다. Bias 미보정 입력은
+`imu_uncalibrated` namespace에 두고, EKF가 `imu/data_raw`의 Z축 각속도를 구독한다.
+`imu_link` 장착 TF는 실제 장착에 맞는 URDF 또는 명시적인 static TF로 제공한다.
+IMU bringup은 장착 회전을 추정하거나 TF를 만들지 않는다.
+
+## 실행
+
+1. [펌웨어 절차](../../../../esp32/README.md)에 따라 변경한 모터 이미지를 빌드,
+   업로드하고 같은 DDS domain에서 Agent를 실행한다.
+2. Jetson의 Humble 환경에 `make deps`로 의존성을 설치한다.
+3. Host 패키지를 빌드하고 실행한다. 브랜치 전환 전 생성물과 분리한 경로를 사용한다.
 
 ```bash
-make build-base
 source /opt/ros/humble/setup.bash
+export CLEANY_BUILD_ROOT="$(dirname "$PWD")/cleany-data/builds/cleany-imu-factory"
+make build-base
 source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver imu_bringup.launch.py
-
-# 다른 terminal에서 동일 overlay/domain 적용
-ros2 topic echo /imu/data_raw --once --qos-reliability best_effort
-ros2 topic hz /imu/data_raw
-ros2 topic echo /imu/status --once --qos-durability transient_local
-ros2 topic echo /imu/data --once --qos-reliability best_effort
 ```
 
-PC 설정은 [`imu_bringup.yaml`](../config/imu_bringup.yaml)의 장치 MAC,
-센서 frame과 수신 시간 제한이다. Launch는 수신 node만 시작하며 모터 명령·TF·Agent를
-실행하지 않는다. `imu_link`의 실제 장착 TF는 별도로 측정해 URDF에 반영한다.
+4. 동일 overlay와 domain의 별도 터미널에서 각 단계를 확인한다.
 
-### MCU 보정 설정
+```bash
+ros2 topic echo /imu_uncalibrated/data_raw --once --qos-reliability best_effort
+ros2 topic hz /imu_uncalibrated/data_raw
+ros2 topic echo /imu/data_raw --once --qos-reliability best_effort
+ros2 topic echo /imu/status --once --qos-durability transient_local
+```
 
-[`imu_calibration.json`](../config/imu_calibration.json)은 빌드 시 검사해
-펌웨어에 포함한다. 기본값은 5초 안정화, 100 Hz 보정 1,000샘플 + 검증 500샘플,
-25초 timeout이다. 보정 중 모터를 차단하고, 완료 후에도 새 ENABLE이 필요하다.
+Launch는 host 보정 노드를 시작한다. Agent와 모터 driver는 별도로 실행한다.
+실물 IMU와 Gazebo IMU를 같은 namespace에서 동시에 발행하지 않는다.
 
-MCU는 `gyro_calibration.hpp`의 통계를 재사용해 두 window의 잡음·평균 잔차를
-검사한다. 정상일 때 새 평균을 bias로 사용하고 covariance는 검증·기준 분산 중
-큰 값으로 대각화한다. 실패하면 설정의 bias와 전체 covariance를 사용한다.
-기준 측정 출처는 JSON의 `source`에 보관한다. 새 결과는 MCU RAM에만 적용하며,
-재보정은 MCU 재부팅으로 수행한다. 센서 교체 시 MAC과 기준 보정값을 갱신한다.
-PC는 보정 파일이나 계수를 재검사하지 않는다.
+## 고정 factory 설정
 
-### 상태 토픽
+[`imu_bringup.yaml`](../config/imu_bringup.yaml)이 보정 계수와 입력 검사 설정의 단일 원본이다.
+기존 `bench_20261014T142933Z/run06_persistent`의 gyro bias와 covariance를
+고정값으로 사용한다. 적용 식은 센서 축에서 `gyro_calibrated = gyro_raw - bias`다.
+원본 bench 결과의 `accepted=false`는 자동 판정 한도 미검토 기록이며, 기존 계수
+재사용과 별개로 보존한다. 이 계수 사용을 새 실물 정확도 검증으로 해석하지 않는다.
 
-`imu/status`의 `status[0].name=imu_driver`, `message`에 아래 상태를 담는다.
+| Host parameter | 단위 또는 조건 |
+|---|---|
+| `gyro_bias_rad_s` | X/Y/Z의 유한한 3개 값; 필수 |
+| `gyro_covariance_rad2_s2` | 행 우선 9개 값, 대칭 양의 정부호; 필수 |
+| `calibration_source` | 측정 출처 |
+| `frame_id` | 입력과 일치하는 상대 frame명; 기본 `imu_link` |
+| `max_transport_delay_s` | 과거 지연과 미래 stamp 허용 한도; 기본 0.10 s |
+| `max_clock_jump_s` | ROS/steady 경과 차이 한도; 기본 0.05 s |
+| `stale_timeout_s` | 정상 입력 단절 한도; 기본 0.25 s |
 
-| 상태 | Level | 의미 |
-|---|---|---|
-| `CALIBRATING` | WARN | 시작 수신 대기 또는 정지 보정 중 |
-| `RUNNING` | OK | 새 보정값으로 실측 각속도 발행 중 |
-| `FALLBACK` | WARN | 기존 bench 보정값으로 실측 각속도 발행 중 |
-| `ERROR` | ERROR | 센서 오류·수신 timeout |
+Host parameter는 실행 중 read-only다. 계수 변경은 YAML 수정 후 bringup 재시작으로
+적용하며 MCU 재빌드는 필요 없다. Agent, host 또는 MCU를 재시작해도 같은 계수를
+사용한다. 새 측정 절차는 [캘리브레이션 가이드](../../../../docs/CALIBRATION.md#imu-factory-gyro-bias)를 따른다.
 
-`values`는 `bias_source` (`none/startup/fallback`), bias, 이유, 마지막 정상 샘플 age와
-수신 통계를 담는다. 상태 변경 시 즉시, 유지 시 1 Hz로 발행하며 QoS는
-reliable / transient local / keep last 1이다. `diagnostics`에도 같은 내용을 발행한다.
-센서 오류·수신 단절은 보정 상태보다 우선한다. 오류 중에는 측정값을 만들거나
-재생하지 않으며, 수신 회복 후 MCU가 선택한 상태로 돌아간다.
+표준 Imu에는 MAC과 부팅 ID가 없다. 여러 장치는 namespace/remap으로 분리하고
+각 센서에 맞는 계수를 선택한다. 센서 교체 후 이전 계수를 그대로 사용하지 않는다.
 
-### Timestamp와 상태 검사
+## 시각과 오류
 
-첫 정상 수신 시각에 MCU 시각을 맞추고 이후 취득 간격을 보존한다. 최초 USB
-지연은 남으므로 EKF 연결 전 wheel JointState와 시간 정렬을 실측한다.
-Protocol·장치·센서 오류, 중복/역순 샘플, 100 ms 초과 backlog/미래 시각과
-50 ms 초과 clock jump를 거부한다. MCU 재부팅이나 ROS clock jump 후 기준점을
-다시 잡는다. 기본 250 ms 수신 단절은 `ERROR`다. 이 상태의 주행 정지 연동은
-융합 주행을 연결할 때 검증한다.
+MCU는 Agent session 시각 동기화 후 `Agent epoch - 취득 이후 경과`를
+`header.stamp`에 기록한다. 동기화 실패 시 1초 간격으로 재시도하고 그동안 IMU를
+발행하지 않는다. 재연결마다 다시 동기화한다. Host는 수신 시각으로 restamp하지 않는다.
 
-### 장치 없는 검증
+| 검사 또는 상태 | 처리 |
+|---|---|
+| MCU 센서 오류, 포화, 비유한 값, 100 ms 초과 sample age | 해당 sample 미발행 |
+| Host frame 불일치, 비유한 값, gyro/가속도 unavailable | `imu/data_raw` 미발행, `ERROR` |
+| 중복/역순, backlog, 미래 stamp 한도 초과 | `imu/data_raw` 미발행, `ERROR` |
+| 첫 정상 입력 전 | `WAITING` (WARN), timeout 후 `ERROR` |
+| 정상 입력 | `RUNNING` (OK), `bias_source=factory` |
+| 정상 입력 단절 | `ERROR`; 입력 회복 시 같은 고정 계수로 재개 |
+| ROS clock jump | `ERROR` 유지; host 보정 노드를 재시작해 입력 시간 기준 초기화 |
+
+상태는 변경 즉시, 유지 시 1 Hz로 발행하고 `diagnostics`에도 복제한다.
+`imu/status`는 host 입력과 bias 적용 상태를 나타낸다. MCU 센서 오류의 세부 원인은
+firmware log에서 확인한다.
+
+IMU 상태와 주행 정지의 연동, 장착 축 및 wheel 시간 정렬은 실물에서 확인한다.
+
+## 검증
 
 ```bash
 make test-imu-runtime
@@ -87,5 +113,6 @@ make test-base
 make firmware-build
 ```
 
-부팅 보정/fallback·모터 차단, timestamp, raw/corrected 전달과 장애·수신 회복을
-검사한다. 실물에서는 수신율·시각 오차·정지 잡음·Z축 부호·모터 주기 영향을 확인한다.
+합성 ROS 검사는 host 보정 노드를 실행해 고정 bias와 공분산, acceleration 전달,
+취득 시각, 오류와 수신 회복을 검사한다. 실물에서는 수신율, 시각 오차,
+정지 잡음, Z축 부호와 USB/I2C 부하의 모터 주기 영향을 확인한다.

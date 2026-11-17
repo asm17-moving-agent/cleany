@@ -627,7 +627,23 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 
 ## 실물 IMU
 
-MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+MCU의 표준 Imu 입력에 host 고정 gyro bias와 공분산을 적용한다.
+빌드와 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
+Wheel과 IMU 융합은 기존 base bringup을 종료하고 실제 장착 TF가 제공되는
+환경에서 실행한다. 같은 overlay를 사용하며 기본 `mode=shadow`는 wheel
+`odom`과 TF를 유지하고 융합 결과를 `odometry/filtered`에 발행한다.
+
+```bash
+make build-base
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_base_driver base_ekf.launch.py --show-args
+ros2 launch cleany_base_driver base_ekf.launch.py mode:=shadow
+```
+
+Agent와 robot description은 별도로 준비한다. 이 launch는 ENABLE이나 이동
+목표를 요청하지 않는다. 융합 결과를 canonical odom으로 선택할 때는
+`mode:=canonical`로 재시작한다. [입력과 TF 계약](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md#wheel과-imu-융합)을 따른다.
 
 ## Jetson 실물 실행 경로
 

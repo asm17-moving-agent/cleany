@@ -54,6 +54,12 @@ class DependencyImageTest(unittest.TestCase):
         self.write('ros2_ws/src/robot/msg/New.msg', 'int32 value')
         self.assertEqual(self.key(), before)
 
+    def test_diagnostic_tools_do_not_invalidate_runtime_dependencies(self):
+        before = self.key()
+        self.write('tools/ci/prepare_debugger.py', 'prepare isolated debugger')
+        self.write('tools/ci/run', 'mount debugger without changing runtime libraries')
+        self.assertEqual(self.key(), before)
+
     def test_each_dependency_input_invalidates_the_image(self):
         for name in (
             'containers/ci/Dockerfile', 'containers/ci/pip-constraints.txt',

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <limits>
 
 #include "imu_runtime.hpp"
 
@@ -23,37 +24,31 @@ int main() {
   assert(!cleany::imuValueFresh(cleany::makeImuValue(sample, 0x68), 1));
 
   sample.saturated = true;
+  sample.timestampUs = 1000000;
   value = cleany::makeImuValue(sample, 0x68);
   assert(value.faultBits == cleany::kImuFaultSaturated);
+  assert(!cleany::imuValueFresh(value, 1000000));
   value = {};
   assert(value.faultBits == cleany::kImuFaultSensor);
   assert(!cleany::imuValueFresh(value, 1000000));
-  cleany::ImuCalibrationGate calibrationGate;
-  assert(calibrationGate.pending());
-  cleany::WheelCommandGate wheelGate({250000, 10.0F});
-  cleany::WheelCommand enable{};
-  enable.sequence = 1;
-  enable.validUntilUs = 200000;
-  enable.mode = cleany::WheelMode::kEnable;
-  assert(!cleany::acceptImuGatedWheelCommand(wheelGate, calibrationGate,
-                                              enable, 100000));
-  cleany::WheelCommand stop{};
-  stop.mode = cleany::WheelMode::kStop;
-  assert(cleany::acceptImuGatedWheelCommand(wheelGate, calibrationGate,
-                                            stop, 100000));
-  calibrationGate.complete();
-  assert(!calibrationGate.pending());
-  assert(!wheelGate.enabled());
-  enable.sequence = 2;
-  assert(cleany::acceptImuGatedWheelCommand(wheelGate, calibrationGate,
-                                            enable, 100000, false) == false);
-  assert(cleany::acceptImuGatedWheelCommand(wheelGate, calibrationGate,
-                                            enable, 100000));
-  cleany::WheelCommand velocity{};
-  velocity.sequence = 3;
-  velocity.validUntilUs = 200000;
-  velocity.mode = cleany::WheelMode::kVelocity;
-  velocity.velocity[0] = 1.0F;
-  assert(cleany::acceptImuGatedWheelCommand(wheelGate, calibrationGate,
-                                            velocity, 100000));
+  sample.saturated = false;
+  sample.timestampUs = 1000000;
+  sample.accelerationMps2[0] = std::numeric_limits<double>::infinity();
+  assert(!cleany::imuValueFresh(cleany::makeImuValue(sample, 0x68), 1000000));
+  sample.accelerationMps2[0] = 0;
+  sample.angularVelocityRadS[2] = std::numeric_limits<double>::quiet_NaN();
+  assert(!cleany::imuValueFresh(cleany::makeImuValue(sample, 0x68), 1000000));
+  sample.angularVelocityRadS[2] = 0.1;
+  value = cleany::makeImuValue(sample, 0x68);
+  assert(value.sample.angularVelocityRadS[2] == 0.1);
+  value.faultBits = cleany::kImuFaultSensor;
+  assert(!cleany::imuValueFresh(value, 1000000));
+  int64_t epoch = 0;
+  assert(cleany::acquisitionEpochNanoseconds(2000000000, 500, epoch));
+  assert(epoch == 1999500000);
+  assert(!cleany::acquisitionEpochNanoseconds(0, 0, epoch));
+  assert(!cleany::acquisitionEpochNanoseconds(2000000000, -1, epoch));
+  assert(!cleany::acquisitionEpochNanoseconds(1000, 2, epoch));
+  assert(!cleany::acquisitionEpochNanoseconds(2147483648000000000LL, 0, epoch));
+  assert(!cleany::imuValueFresh(cleany::makeImuValue(sample, 0x69), 1000000));
 }
