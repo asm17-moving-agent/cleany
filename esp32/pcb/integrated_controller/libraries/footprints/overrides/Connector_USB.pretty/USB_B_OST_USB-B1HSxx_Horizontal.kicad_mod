@@ -1,0 +1,339 @@
+(footprint "USB_B_OST_USB-B1HSxx_Horizontal"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "USB B receptacle, Horizontal, through-hole, http://www.on-shore.com/wp-content/uploads/2015/09/usb-b1hsxx.pdf")
+	(tags "USB-B receptacle horizontal through-hole")
+	(property "Reference" "REF**"
+		(at 7.6 -6.4 0)
+		(layer "F.SilkS")
+		(uuid "fb543ced-2cb0-4294-b667-870faf30d39d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "USB_B_OST_USB-B1HSxx_Horizontal"
+		(at 6.759999 10.27 0)
+		(layer "F.Fab")
+		(uuid "ced5c4e1-fda6-45fc-8812-d86a17f675f2")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://www.on-shore.com/wp-content/uploads/USB-B1HSXX.pdf"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "235e6e65-2a2c-4082-af74-af3e22731c7f")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "USB Type-B receptacle, 4 contacts + 2 shell tabs, all through-hole, right angle; 2.50 × 2.00 mm signal grid"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "b5f4c86c-fe23-4d3b-ac15-60e377811e4a")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "MPN" "USB-B1HSB6"
+		(at 0.000001 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "af3e69a4-8c8d-4f79-8dfc-4aad7a2c3289")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Manufacturer" "On Shore Technology Inc."
+		(at 0.000001 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "8439934b-9634-4f98-a4a2-0272a226443f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property ki_fp_filters "USB*")
+	(sheetname "/")
+	(sheetfile "integrated_controller.kicad_sch")
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -1.6 -4.91)
+		(end -1.6 7.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f4923f50-03c6-4f03-bb86-15b2a8373d4d")
+	)
+	(fp_line
+		(start -1.6 7.41)
+		(end 2.66 7.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "4000fffa-58b3-41cc-8a3e-2b4761c39b6a")
+	)
+	(fp_line
+		(start -0.5 -2.075)
+		(end 0.5 -2.075)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "517b69f5-8ee3-4ea0-8f5c-2568296f5243")
+	)
+	(fp_line
+		(start 0 -1.575)
+		(end -0.5 -2.075)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "02e0abe7-1545-4251-ac93-868020340163")
+	)
+	(fp_line
+		(start 0.5 -2.075)
+		(end 0 -1.575)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "787b013e-72e8-44c2-8f5d-688d2225b034")
+	)
+	(fp_line
+		(start 2.66 -4.91)
+		(end -1.6 -4.91)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "88ac1336-d097-4c09-9baf-67192984aaf1")
+	)
+	(fp_line
+		(start 6.76 -4.91)
+		(end 15.12 -4.91)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "430ee5cf-4bb8-459b-99ca-5d7239096206")
+	)
+	(fp_line
+		(start 15.12 -4.91)
+		(end 15.12 7.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "3eae8e97-4715-4268-a0f9-d6284e7142ac")
+	)
+	(fp_line
+		(start 15.12 7.41)
+		(end 6.76 7.41)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "fb32de3f-968d-4e20-b419-02b0e6ef1d24")
+	)
+	(fp_line
+		(start -1.99 -7.02)
+		(end -1.99 9.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "118dd1df-7cde-4e21-964e-ed6a59cf6708")
+	)
+	(fp_line
+		(start -1.99 9.52)
+		(end 15.51 9.52)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "d70da58a-92e2-418e-82b7-3f8b5631bbd2")
+	)
+	(fp_line
+		(start 15.51 -7.02)
+		(end -1.99 -7.02)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "935f540a-0926-4572-9776-aff219687eaf")
+	)
+	(fp_line
+		(start 15.51 9.52)
+		(end 15.51 -7.02)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "966ff69b-b791-4a62-9174-7fadb774e3b4")
+	)
+	(fp_line
+		(start -1.49 -3.8)
+		(end -0.49 -4.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "1e9401ed-47a8-45f3-804b-dc1bb4ae1143")
+	)
+	(fp_line
+		(start -1.49 7.3)
+		(end -1.49 -3.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "9374ffc7-fb65-4118-977e-c010512d22ac")
+	)
+	(fp_line
+		(start -0.49 -4.8)
+		(end 15.01 -4.8)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "289d00f9-5ac8-4dc1-b31a-9a2e1a3b32f1")
+	)
+	(fp_line
+		(start 15.01 -4.8)
+		(end 15.01 7.3)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "1805a48e-4f45-48bf-ad68-a396587a2ae8")
+	)
+	(fp_line
+		(start 15.01 7.3)
+		(end -1.49 7.3)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "129a02c7-3ce2-4f12-95f5-176e9401231a")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 6.76 1.25 0)
+		(layer "F.Fab")
+		(uuid "ac4f2ffb-a478-4ff2-b826-f5bd4bf306be")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole roundrect
+		(at 0 0)
+		(size 1.7 1.7)
+		(drill 0.92)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(roundrect_rratio 0.1470588235)
+		(uuid "6ce522da-f168-4c91-86ba-a84210519c6a")
+	)
+	(pad "2" thru_hole circle
+		(at 0 2.5)
+		(size 1.7 1.7)
+		(drill 0.92)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "905bc407-70bc-453f-8939-71755c6756a7")
+	)
+	(pad "3" thru_hole circle
+		(at 2 2.5)
+		(size 1.7 1.7)
+		(drill 0.92)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a16791ef-dbcd-4838-bb45-e0b52e51fcb2")
+	)
+	(pad "4" thru_hole circle
+		(at 2 0)
+		(size 1.7 1.7)
+		(drill 0.92)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "13ba09ff-ee11-4189-89fe-d155a22610cd")
+	)
+	(pad "SH" thru_hole circle
+		(at 4.71 -4.77)
+		(size 3.5 3.5)
+		(drill 2.33)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "661ffc15-d350-48e4-9ada-34057cda78b6")
+	)
+	(pad "SH" thru_hole circle
+		(at 4.71 7.27)
+		(size 3.5 3.5)
+		(drill 2.33)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "1143b345-7223-4768-b292-230eabaf3e81")
+	)
+	(embedded_fonts no)
+	(model "${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_B_OST_USB-B1HSxx_Horizontal.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

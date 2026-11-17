@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Integrated_Controller")(type "KiCad")(uri "${KIPRJMOD}/libraries/symbols/Integrated_Controller.kicad_sym")(options "")(descr "Integrated controller component variants"))
+)

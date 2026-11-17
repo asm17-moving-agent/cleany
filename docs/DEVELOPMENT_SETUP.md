@@ -2,6 +2,18 @@
 
 새 Ubuntu native ROS 개발환경을 아래 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
 
+## KiCad PCB 검증 환경
+
+통합 컨트롤러는 KiCad 10 이상의 `kicad-cli`와 같은 설치본의 Python `pcbnew`,
+표준 심벌과 풋프린트 라이브러리를 사용합니다. 3D 검토에는 KiCad의 표준 3D 라이브러리와
+[프로젝트 모델의 설치 조건](../esp32/pcb/integrated_controller/libraries/3dmodels/README.md)도 확인합니다.
+로컬 검증 환경은 Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10입니다.
+
+`make test-pcb`는 KiCad가 설치된 호스트에서 직접 실행하며 ROS 컨테이너를 사용하지 않습니다.
+`PCB_PYTHON` 기본값은 `/usr/bin/python3`입니다. 다른 Python을 사용하면 해당 실행 파일에서
+`import pcbnew`가 가능한지 확인합니다. 일반 Python venv만으로는 KiCad 모듈을 제공하지 않습니다.
+검증 명령과 출력 경로는 [PCB 검증 절차](TESTING.md#통합-컨트롤러-pcb-검증)를 따릅니다.
+
 
 ## 인식과 파지 후보 패키지
 
