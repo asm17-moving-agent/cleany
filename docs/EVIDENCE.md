@@ -4,20 +4,6 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
-## 2026-11-18 Decision 인식 경로
-
-`b991ce5f`에 Jetson `e9ba5ff4` 작업 트리의 인식 변경을 분리 적용했다.
-Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 `cleany_perception` 빌드와
-인식, 컨테이너 계약 테스트 362개를 통과했다. 1개는 skip됐으며 이 검증에서
-외부 API, 실물 카메라와 모터는 사용하지 않았다.
-원본은 `CLEANY_DATA_ROOT/runs/pr-split-20261118-0412/`의
-`perception-build.log`, `perception-tests.log`에 있다.
-
-별도의 운영 검증에서는 머리 RGB-D 한 프레임으로 Decision 응답의 객체
-6개를 확인했다. 첫 호출이 시간 초과되어 두 번째 호출에서 성공했다.
-기하 정확도와 신뢰도 임계값은 이 실행에서 검증하지 않았다.
-원본은 `CLEANY_DATA_ROOT/runs/decision-operational-20261117.Qp03Xk/verification.json`이다.
-
 ## 2026-11-16 LiDAR 평면 extrinsic
 
 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업트리에서 RPLIDAR A1M8
@@ -41,6 +27,20 @@ NumPy 1.26.4 버전 경고를 출력했으며 좌표 변환, 선분 교차 검�
 `22c2956b` 기반 변경에서 `make test-odometry-evaluation` 268개와
 `run_wheel_only_eval.sh --dry-run`이 통과했다. 검증 로그는 같은 원본 경로의
 `pr-validation/`에 보존한다.
+
+## 2026-11-18 Decision 인식 경로
+
+`b991ce5f`에 Jetson `e9ba5ff4` 작업 트리의 인식 변경을 분리 적용했다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 `cleany_perception` 빌드와
+인식, 컨테이너 계약 테스트 362개를 통과했다. 1개는 skip됐으며 이 검증에서
+외부 API, 실물 카메라와 모터는 사용하지 않았다.
+원본은 `CLEANY_DATA_ROOT/runs/pr-split-20261118-0412/`의
+`perception-build.log`, `perception-tests.log`에 있다.
+
+별도의 운영 검증에서는 머리 RGB-D 한 프레임으로 Decision 응답의 객체
+6개를 확인했다. 첫 호출이 시간 초과되어 두 번째 호출에서 성공했다.
+기하 정확도와 신뢰도 임계값은 이 실행에서 검증하지 않았다.
+원본은 `CLEANY_DATA_ROOT/runs/decision-operational-20261117.Qp03Xk/verification.json`이다.
 
 ## Wheel/IMU EKF PR 분리 검증 (2026-11-16)
 

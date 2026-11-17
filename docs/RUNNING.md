@@ -1,32 +1,5 @@
 # 실행 가이드
 
-## Decision 의미 분류와 운영 진입점
-
-기본 `yoloe_gemini` 구성은 YOLOE 마스크 뒤 `gemini-decision-1`을 호출한다.
-`GEMINI_API_KEY`를 같은 실행 환경에 주입한다. 종류 후보, 영어 질문, 위험에 따른
-최종 검토 규칙과 실패 계약은 [perception 런타임](../ros2_ws/src/cleany_perception/docs/runtime.md#decision-분류)을 따른다.
-
-```bash
-ros2 launch cleany_perception inspect_scene.launch.py gemini_model:=gemini-decision-1
-```
-
-기존 분류기는 `gemini_model:=gemini-3.5-flash-lite`로 명시적으로 선택한다.
-native와 컨테이너의 `run-perception`은 선택한 YOLOE 프로파일의 `gemini_model`을
-읽고, `GEMINI_MODEL` 설정을 우선한다. 기본 운영 프로파일은 Decision을 사용한다.
-두 실행기의 RGB-D 구독 기본값은 best-effort다. 컨테이너에서 reliable이 필요한
-입력은 `CLEANY_RGBD_QOS_RELIABILITY=reliable`로 명시한다.
-
-| 운영 진입점 | 인식 제공자와 모델 선택 |
-|---|---|
-| `cleany-perception.service`, Jetson의 `make perception-run` | `tools/perception-native`, 기본 real53 프로파일 |
-| `tools/vision-container perception-run`, `hybrid-run` | 컨테이너 `run-perception`, 엔진에 맞는 기본 real53 또는 real32 프로파일 |
-| `ros2 launch cleany_perception inspect_scene.launch.py` | 현재 source한 설치본의 프로파일; `gemini_model:=...` 명시값 우선 |
-
-`decision_object_types`는 ROS 문자열 배열로, `decision_prompt_file`은 설치된 기본
-YAML 또는 명시한 파일로 설정한다. 종류 후보와 질문은 실제 검출 이름을 힌트로 쓰지 않는다.
-시작 준비는 API를 호출하지 않으며 검출이 있는 새 관측에서 실제 접근을 확인한다.
-저장 이미지 검증과 실제 Jetson 배포는 구분한다.
-
 명령은 저장소 루트의 Ubuntu 22.04 / Humble 터미널에서 실행합니다. [환경과 출력 경로](DEVELOPMENT_SETUP.md), [연동 계약](INTEGRATION.md)을 확인한 뒤, 각 터미널에 같은 DDS domain과 같은 worktree overlay를 적용합니다.
 
 ```bash
@@ -198,6 +171,33 @@ cuRobo 검사 도구는 캐시 형상에서 거리 검색 범위를 계산합니
 `perception/check_rgbd`는 새 RGB-D 입력의 시각과 기하 유효성을 확인합니다.
 [인식 인터페이스](../ros2_ws/src/cleany_perception/docs/interfaces.md)와
 [파지 요청 좌표계 계약](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md)을 따릅니다.
+
+## Decision 의미 분류와 운영 진입점
+
+기본 `yoloe_gemini` 구성은 YOLOE 마스크 뒤 `gemini-decision-1`을 호출한다.
+`GEMINI_API_KEY`를 같은 실행 환경에 주입한다. 종류 후보, 영어 질문, 위험에 따른
+최종 검토 규칙과 실패 계약은 [perception 런타임](../ros2_ws/src/cleany_perception/docs/runtime.md#decision-분류)을 따른다.
+
+```bash
+ros2 launch cleany_perception inspect_scene.launch.py gemini_model:=gemini-decision-1
+```
+
+기존 분류기는 `gemini_model:=gemini-3.5-flash-lite`로 명시적으로 선택한다.
+native와 컨테이너의 `run-perception`은 선택한 YOLOE 프로파일의 `gemini_model`을
+읽고, `GEMINI_MODEL` 설정을 우선한다. 기본 운영 프로파일은 Decision을 사용한다.
+두 실행기의 RGB-D 구독 기본값은 best-effort다. 컨테이너에서 reliable이 필요한
+입력은 `CLEANY_RGBD_QOS_RELIABILITY=reliable`로 명시한다.
+
+| 운영 진입점 | 인식 제공자와 모델 선택 |
+|---|---|
+| `cleany-perception.service`, Jetson의 `make perception-run` | `tools/perception-native`, 기본 real53 프로파일 |
+| `tools/vision-container perception-run`, `hybrid-run` | 컨테이너 `run-perception`, 엔진에 맞는 기본 real53 또는 real32 프로파일 |
+| `ros2 launch cleany_perception inspect_scene.launch.py` | 현재 source한 설치본의 프로파일; `gemini_model:=...` 명시값 우선 |
+
+`decision_object_types`는 ROS 문자열 배열로, `decision_prompt_file`은 설치된 기본
+YAML 또는 명시한 파일로 설정한다. 종류 후보와 질문은 실제 검출 이름을 힌트로 쓰지 않는다.
+시작 준비는 API를 호출하지 않으며 검출이 있는 새 관측에서 실제 접근을 확인한다.
+저장 이미지 검증과 실제 Jetson 배포는 구분한다.
 
 ## 실행 선택과 준비 순서
 
