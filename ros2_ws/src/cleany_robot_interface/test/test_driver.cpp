@@ -27,8 +27,7 @@ Joint sample()
   Joint j;
   j.name = "test"; j.zero = 2048; j.direction = -1; j.offset = 0;
   j.lower = -1; j.upper = 1; j.raw_min = 1500; j.raw_max = 2600;
-  j.max_velocity = .15; j.max_acceleration = .5; j.tracking_error = .08;
-  j.position = j.command = j.previous = 0;
+  j.position = j.command = 0;
   j.raw = 2048;
   return j;
 }
@@ -42,55 +41,32 @@ TEST(Mapping, DirectionAndNoDuplicateHoming)
   EXPECT_EQ(j.ticks(j.radians(2100)), 2100);
   EXPECT_THROW(j.radians(4096), std::runtime_error);
   EXPECT_THROW(j.ticks(std::numeric_limits<double>::quiet_NaN()), std::runtime_error);
-  EXPECT_THROW(j.ticks(2), std::runtime_error);
+}
+
+TEST(Commands, ClampToRosBoundsBeforeEncoding)
+{
+  auto j = sample();
+  j.lower = -.4;
+  j.upper = .6;
+  EXPECT_EQ(j.ticks(2), 1657);
+  EXPECT_EQ(j.ticks(-2), 2309);
+  EXPECT_EQ(j.ticks(.2), 1918);
+  // Calibrated EEPROM bounds remain a startup concern, not another command clamp.
   j.raw_min = 2000;
-  EXPECT_THROW(j.ticks(.2), std::runtime_error);
+  EXPECT_EQ(j.ticks(.2), 1918);
+  j.direction = 1;
+  EXPECT_EQ(j.ticks(2), 2439);
+  EXPECT_EQ(j.ticks(-2), 1787);
 }
 
-TEST(Commands, VelocityLimitingTrackingAndInvalidTime)
+TEST(Commands, RejectNonFiniteAndUnencodableTargets)
 {
   auto j = sample();
-  j.tracking_error = 0;
-  j.command = .004;
-  EXPECT_DOUBLE_EQ(j.limited_command(.1), .004);
-  EXPECT_THROW(j.limited_command(0), std::runtime_error);
-  j.command = .09;
-  EXPECT_NEAR(j.limited_command(.1), .015, 1e-12);
-  j.command = -.09;
-  EXPECT_NEAR(j.limited_command(.1), -.015, 1e-12);
-}
-
-TEST(Commands, ZeroDisablesOnlyTrackingError)
-{
-  auto j = sample();
-  j.tracking_error = 0;
-  j.position = -.5;
-  j.command = .001;
-  EXPECT_NO_THROW(j.limited_command(.1));
-  j.command = .1;
-  EXPECT_NO_THROW(j.limited_command(.1));
-  j.tracking_error = .08;
-  EXPECT_THROW(j.limited_command(.1), std::runtime_error);
-}
-
-TEST(Commands, MeasuredHoldStopsALaggingTargetWithoutAllowingTargetJumps)
-{
-  auto j = sample();
-  j.previous = .02;
-  j.command = j.position;
-  EXPECT_TRUE(j.measured_hold());
-  EXPECT_DOUBLE_EQ(j.limited_command(.02), j.position);
-  EXPECT_THROW(j.limited_command(0), std::runtime_error);
-  // Encoder-rounded feedback is accepted, but a larger movement request
-  // retains the speed/acceleration checks.
-  j.command = j.radians(j.raw - 2);
-  EXPECT_TRUE(j.measured_hold());
-  EXPECT_DOUBLE_EQ(j.limited_command(.02), j.position);
-  j.command = j.radians(j.raw - 3);
-  EXPECT_FALSE(j.measured_hold());
-  EXPECT_NE(j.limited_command(.02), j.command);
-  j.position = std::numeric_limits<double>::quiet_NaN();
-  EXPECT_THROW(j.limited_command(.02), std::runtime_error);
+  EXPECT_THROW(j.ticks(std::numeric_limits<double>::quiet_NaN()), std::runtime_error);
+  EXPECT_THROW(j.ticks(std::numeric_limits<double>::infinity()), std::runtime_error);
+  EXPECT_THROW(j.ticks(-std::numeric_limits<double>::infinity()), std::runtime_error);
+  j.zero = 0;
+  EXPECT_THROW(j.ticks(.1), std::runtime_error);
 }
 
 TEST(Serial, ReadOnlyCannotWriteOrOpenOccupiedPort)

@@ -7,11 +7,12 @@ update_rate: 50
 serial_timeout_ms: 20
 max_state_age_s: 0.1
 temperature_limit_c: 60
-temperature_fault_confirmation_samples: 3
+temperature_macd_fast_tau_s: 0.1
+temperature_macd_slow_tau_s: 0.5
+temperature_macd_signal_tau_s: 0.1
 joint_defaults:
   max_velocity: 0.04
   max_acceleration: 0.15
-  tracking_error: 0.04
   speed_raw: 1
   acceleration_raw: 5
   torque_limit_raw: 100
