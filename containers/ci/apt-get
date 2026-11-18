@@ -89,7 +89,7 @@ def main() -> int:
     CACHE.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + 300
     try:
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=8) as pool:
             futures = [pool.submit(fetch_package, uri, name, int(size), checksum, deadline)
                        for uri, name, size, checksum in packages]
             for future in futures:

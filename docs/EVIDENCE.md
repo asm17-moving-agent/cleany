@@ -14,10 +14,17 @@ APT에 Launchpad의 동일 파일을 조회하는 경로를 추가하고, MPPI�
 SIMD와 기존 최적화는 유지하고 공유 라이브러리 링크에서도 미해결 심볼을 거부한다.
 
 실패 로그의 OpenJDK JRE 42,596,026 bytes와 JDK 73,666,166 bytes를 새 경로에서
-실제로 내려받아 snapshot의 SHA256과 크기를 확인했다. CI 도구 45개가 통과했다.
+실제로 내려받아 snapshot의 SHA256과 크기를 확인했다. CI 도구는 후속 수정 포함 51개가 통과했다.
 Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서 32개 패키지가 빌드됐으며
 MPPI 생성 컴파일 옵션에 `-march=native`가 없는 것을 확인했다.
 테스트 사례와 timeout, 패키지 버전과 서명 검증은 약화하지 않았다.
+
+첫 수정 `a92b9074`의 GitHub 실행 `44313068404`에서 OpenJDK 다운로드는 통과했으나
+APT 설치를 77회 호출한 뒤 이미지 빌드의 15분 제한에 걸렸다. 후속 수정은
+`rosdep`의 일반 APT 요구사항을 16개씩 설치하고 다운로드 병렬 수를 8개로 늘린다.
+기존 `rosdep install`과 추가 `rosdep check`, 고정 버전 검증을 모두 수행한다.
+실제 ARM64 설치 계획의 APT 요구사항 23개가 배치 준비에서 보존되는 것을 확인했다.
+이번 ARM64 전체 workspace 재검사는 6,293 tests, 0 errors, 0 failures, 70 skipped다.
 
 명령, 원본 실패 로그의 패키지 식별자, 다운로드 검증 결과와 로컬 로그는
 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr95-ci-repair/`에 보관한다.
