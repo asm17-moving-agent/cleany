@@ -154,6 +154,7 @@ class Selection:
 class GraspSelectionConfig:
     pregrasp_offset_m: float = 0.08
     maximum_candidates: int = 12
+    maximum_path_candidates: int = 0
     maximum_gripper_width_m: float = 0.10
     gripper_safety_margin_m: float = 0.005
     gripper_closed_joint_rad: float = -0.374532977628
@@ -180,6 +181,7 @@ class GraspSelectionConfig:
     direction_preference: GraspDirectionConfig = GraspDirectionConfig()
     pregrasp_fallback_offset_m: float = 0.0
     pregrasp_fallback_offsets_m: tuple[float, ...] = ()
+    pregrasp_z_offset_m: float = 0.0
 
     def __post_init__(self) -> None:
         positive = (
@@ -189,6 +191,10 @@ class GraspSelectionConfig:
         )
         if not all(math.isfinite(value) and value > 0.0 for value in positive):
             raise ValueError('grasp selection limits must be finite and positive')
+        if not math.isfinite(self.pregrasp_z_offset_m):
+            raise ValueError('pregrasp Z offset must be finite')
+        if type(self.maximum_path_candidates) is not int or self.maximum_path_candidates < 0:
+            raise ValueError('Path candidate limit must be a nonnegative integer')
         if (not math.isfinite(self.pregrasp_fallback_offset_m)
                 or not 0.0 <= self.pregrasp_fallback_offset_m < self.pregrasp_offset_m):
             raise ValueError('pregrasp fallback must be zero or shorter than the primary offset')
@@ -251,6 +257,10 @@ class GraspSelectionConfig:
         return self.gripper_closed_joint_rad + ratio * (
             self.gripper_open_joint_rad - self.gripper_closed_joint_rad
         )
+
+    def approach_gripper_position(self, opening_m: float) -> float:
+        self.opening_to_joint_position(opening_m)
+        return self.gripper_open_joint_rad
 
     def fixed_jaw_tcp_shift_m(self, opening_m: float) -> float:
         """Signed local +X shift that places the fixed jaw at one object face."""
@@ -334,11 +344,15 @@ class GraspSelector:
         candidate: Candidate,
         offset_m: float = 0.08,
         grasp_position: tuple[float, float, float] | None = None,
+        *, z_offset_m: float = 0.0,
     ) -> tuple[float, float, float]:
+        """Offset preparation along approach, then along planning-frame Z in meters."""
+        if not math.isfinite(z_offset_m):
+            raise ValueError('pregrasp Z offset must be finite')
         norm = math.sqrt(sum(value * value for value in candidate.approach_direction))
         if not math.isfinite(norm) or norm <= 1e-9:
             raise ValueError('approach_direction must be non-zero')
-        return tuple(
+        position = tuple(
             position - direction / norm * (offset_m + (candidate.approach_offset_m if grasp_position is not None else 0.0))
             for position, direction in zip(
                 candidate.position if grasp_position is None else grasp_position,
@@ -346,6 +360,8 @@ class GraspSelector:
                 strict=True,
             )
         )
+
+        return position[0], position[1], position[2] + z_offset_m
 
     def grasp_tcp_position(self, candidate: Candidate) -> tuple[float, float, float]:
         """Translate a symmetric grasp center to the fixed-jaw TCP target."""
@@ -396,8 +412,7 @@ class GraspSelector:
                     if arm not in current_poses:
                         current_poses[arm] = self._port.current_tcp_pose(arm)
                     ordered = order_grasp_directions(
-                        group, current_poses[arm].orientation_xyzw, preference,
-                        self._config.fixed_jaw_closing_axis_sign)
+                        group, current_poses[arm].orientation_xyzw)
                 attempts.extend((candidate, arm) for candidate in ordered[:count])
             remaining -= count
         return attempts
@@ -492,7 +507,8 @@ class GraspSelector:
             if self._config.pregrasp_fallback_offset_m else ())
         for fallback in fallbacks:
             targets.append(PoseValue(self.pregrasp_position(
-                candidate, fallback, grasp_target.position), candidate.orientation_xyzw))
+                candidate, fallback, grasp_target.position,
+                z_offset_m=self._config.pregrasp_z_offset_m), candidate.orientation_xyzw))
         for attempt, target in enumerate(targets):
             check_canceled()
             self._port.set_target_contacts(None)
@@ -521,6 +537,7 @@ class GraspSelector:
         cancel_requested: Callable[[], bool] = lambda: False,
         feedback: Feedback = lambda *_: None,
     ) -> Selection | None:
+        self.path_budget_exhausted = False
         if required_arm not in ("", "left", "right"):
             raise ValueError("required_arm must be empty, left, or right")
         ranked = sorted(candidates, key=lambda item: item.score, reverse=True)
@@ -554,12 +571,13 @@ class GraspSelector:
             for candidate, arm in attempts:
                 check_canceled()
                 try:
-                    opening = self._config.opening_to_joint_position(candidate.required_opening_m)
+                    opening = self._config.approach_gripper_position(candidate.required_opening_m)
                     position = self.grasp_tcp_position(candidate)
                 except ValueError:
                     continue
                 target = PoseValue(position if grasp_first else self.pregrasp_position(
-                    candidate, self._config.pregrasp_offset_m, position), candidate.orientation_xyzw)
+                    candidate, self._config.pregrasp_offset_m, position,
+                    z_offset_m=self._config.pregrasp_z_offset_m), candidate.orientation_xyzw)
                 if not getattr(self._port, 'prepares_pregrasps_lazily', False):
                     feedback(candidate.source_index, arm,
                              EvaluationStage.GRASP_IK if grasp_first else EvaluationStage.PREGRASP_IK,
@@ -569,6 +587,7 @@ class GraspSelector:
             prepare(requests)
             check_canceled()
 
+        planned_candidates: set[tuple[int, str]] = set()
         best_selection: Selection | None = None
         best_wrist_key: tuple[float, float, int] | None = None
         feasible_candidates: set[int] = set()
@@ -605,7 +624,7 @@ class GraspSelector:
             index = candidate.source_index
             opening_started = self._monotonic()
             try:
-                gripper_position = self._config.opening_to_joint_position(
+                gripper_position = self._config.approach_gripper_position(
                     candidate.required_opening_m
                 )
                 grasp_position = self.grasp_tcp_position(candidate)
@@ -623,7 +642,8 @@ class GraspSelector:
             )
             pregrasp_target = PoseValue(
                 self.pregrasp_position(
-                    candidate, self._config.pregrasp_offset_m, grasp_position),
+                    candidate, self._config.pregrasp_offset_m, grasp_position,
+                    z_offset_m=self._config.pregrasp_z_offset_m),
                 candidate.orientation_xyzw,
             )
             grasp_target = PoseValue(grasp_position, candidate.orientation_xyzw)
@@ -667,6 +687,14 @@ class GraspSelector:
                 continue
             latencies.append(('state_validity', self._monotonic() - started))
             check_canceled()
+            path_key = (id(candidate), arm)
+            if path_key not in planned_candidates:
+                if (self._config.maximum_path_candidates
+                        and len(planned_candidates) >= self._config.maximum_path_candidates):
+                    self.path_budget_exhausted = True
+                    feedback(index, arm, EvaluationStage.PLAN_GRASP, 'Path candidate budget exhausted')
+                    continue
+                planned_candidates.add(path_key)
             # Reject an unusable short approach before planning the long entry.
             # Target contacts remain allowed only for this grasp connection.
             started = self._monotonic()
@@ -768,12 +796,13 @@ class GraspSelector:
         check_canceled: Callable[[], None], feedback: Feedback,
     ) -> Selection | None:
         """Validate the current-to-grasp route without unused pregrasp prerequisites."""
+        planned = 0
         for candidate, arm in attempts:
             index = candidate.source_index
             check_canceled()
             started = self._monotonic()
             try:
-                opening = self._config.opening_to_joint_position(candidate.required_opening_m)
+                opening = self._config.approach_gripper_position(candidate.required_opening_m)
                 target = PoseValue(self.grasp_tcp_position(candidate), candidate.orientation_xyzw)
             except ValueError as error:
                 feedback(index, '', EvaluationStage.OPENING, str(error))
@@ -813,6 +842,10 @@ class GraspSelector:
             latencies.append(('state_validity', self._monotonic()-started))
             check_canceled()
             started = self._monotonic()
+            if self._config.maximum_path_candidates and planned >= self._config.maximum_path_candidates:
+                self.path_budget_exhausted = True
+                break
+            planned += 1
             feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning current-to-grasp')
             plan = (getattr(self._port, 'plan_direct_grasp', None)
                     if self._config.direct_grasp_shortcut_enabled else None)

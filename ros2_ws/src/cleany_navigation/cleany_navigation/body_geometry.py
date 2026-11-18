@@ -42,11 +42,11 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     메시 로컬 상자는 요소 사이의 오목한 공간을 유지하지만 요소 내부까지 표현하지는
     않습니다. 입력 주차 프로파일은 백엔드 자세와 같아야 하며 실시간 FK가 아닙니다.
     """
-    import xacro
     import yaml
-    from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry
-    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro')).toxml())
-    config = apply_simulation_geometry(urdf, yaml.safe_load(profile.read_text()), allowed=allow_simulation_limits)
+    from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry, load_navigation_model
+    config = yaml.safe_load(profile.read_text())
+    urdf = load_navigation_model(description, config, simulation=allow_simulation_limits)
+    config = apply_simulation_geometry(urdf, config, allowed=allow_simulation_limits)
     transforms = forward_kinematics(urdf, config['park_joints'], config.get('simulation_park_limits') if allow_simulation_limits else None)
     result = []
     frame_names: set[str] = set()
@@ -60,14 +60,10 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
                 prefix = 'package://cleany_description/'
                 if not uri.startswith(prefix):
                     raise ValueError(f'Unsupported mesh URI: {uri}')
-                raw = (description/uri.removeprefix(prefix)).read_bytes()
-                count = int.from_bytes(raw[80:84], 'little')
-                if len(raw) != 84+50*count:
-                    raise ValueError('Expected binary STL')
-                dtype = np.dtype([('normal','<f4',(3,)),('vertices','<f4',(3,3)),('attribute','<u2')])
-                vertices = np.frombuffer(raw, dtype=dtype, offset=84)['vertices'].reshape(-1,3)
-                vertices = vertices*np.fromstring(shape.get('scale','1 1 1'), sep=' ')
-                low, high = vertices.min(axis=0), vertices.max(axis=0)
+                from cleany_description.mesh_bounds import mesh_bounds
+                low, high = mesh_bounds(description/uri.removeprefix(prefix))
+                scale = np.fromstring(shape.get('scale','1 1 1'), sep=' ')
+                low, high = np.minimum(low*scale, high*scale), np.maximum(low*scale, high*scale)
             else:
                 if shape.tag == 'box':
                     half = np.fromstring(shape.get('size'), sep=' ')/2
@@ -95,7 +91,8 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
         pivot = transforms['head_pan_link'][:3, 3]
         expanded = []
         for box in result:
-            if box.name.startswith(('head_pan_link/', 'head_tilt_link/', 'head_camera')):
+            if box.name.startswith(('head_pan_link/', 'head_tilt_link/', 'head_camera',
+                                    'cad_head_pan/', 'cad_head_tilt/')):
                 corners = box.corners()
                 radius = np.linalg.norm(corners[:, :2]-pivot[:2], axis=1).max()
                 low, high = corners[:, 2].min(), corners[:, 2].max()
@@ -125,7 +122,8 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     children: dict[str, list[str]] = {}
     for joint in urdf.findall('joint'):
         children.setdefault(joint.find('parent').get('link'), []).append(joint.find('child').get('link'))
-    pending = ['left_shoulder_yaw_link', 'right_shoulder_yaw_link', 'top_base_link']
+    pending = ['left_shoulder_yaw_link', 'right_shoulder_yaw_link', 'top_base_link',
+               'cad_left_shoulder_yaw', 'cad_right_shoulder_yaw', 'cad_head_pan']
     links: set[str] = set()
     while pending:
         link_name = pending.pop()

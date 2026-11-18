@@ -24,50 +24,43 @@ LiDAR, 휠 피드백과 TF를 확인한 뒤 매핑 세션을 시작합니다. �
 
 ## 실물 휠 odometry와 2D LiDAR 매핑
 
-1. [개발환경](../development-setup.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행합니다.
-2. `make run-hardware-mapping` 또는 다음 직접 launch 중 하나로 시작합니다. 기존 base, Nav2, 조종기와 중복 실행하지 않습니다. 직접 launch는 빌드 overlay를 먼저 source합니다.
-3. 직접 실행하는 경우 현재 센서 장착과 일치하는 [프로필](../../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택합니다.
+1. [개발환경](../development-setup.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
+2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
+   이 명령과 `tools/hardware-mapping`은 현재 저장소의 ROS 설치본, LiDAR 드라이버와 USB Agent의 설치 환경을 읽는다.
+   Jetson에서는 저장소의 `ros2_ws/src/cleany_bringup/config/mapping_cad_lidar_front.yaml`을 기본으로 읽는다. `profile:=...`으로 다른 프로필을 선택할 수 있다.
+   `make run-hardware-mapping HARDWARE_MAPPING_ARGS=--show-args`로 장치를 시작하기 전에 launch 인자를 확인한다.
+3. 현재 센서 장착과 일치하는 [프로필](../../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
+
+   FreeCAD와 같은 조립체이고 LiDAR 쪽이 전방이면 `mapping_cad_lidar_front.yaml`을
+   선택한다. 센서 변환 변경 전 기존 지도를 저장하고 새 매핑 세션에서 실행한다.
 
    ```bash
    ros2 launch cleany_bringup hardware_mapping.launch.py \
-     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"
+     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_cad_lidar_front.yaml"
    ```
 
-4. 로그의 조종 주소와 state_root/web-token 키로 접속합니다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꿉니다.
-   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종합니다. 초기화 접수는 완료를 뜻하지 않습니다.
-5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료합니다.
-   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존합니다.
+4. 로그의 조종 주소와 state_root/web-token 키로 접속한다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꾼다.
+   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종한다. 초기화 접수는 완료를 뜻하지 않는다.
+5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료한다.
+   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존한다.
 
-| 설정 / 동작 | 적용 범위 |
-|---|---|
-| `state_root`, `host`, `phone_port`, `mock` | launch 인자 |
-| mock | 별도 ROS domain, mock MCU와 검사 도구의 합성 LiDAR |
-| scan | raw 원본 보존, 0.30 m 마스킹; 새 SLAM은 IMU 미사용 |
-| `scan_filter.half_angle_deg` | 90: 전방 180°, 180: 실험용 360°; 런타임 재시작 시 적용 |
-| 관측 | Dev Monitor를 같은 domain에서 별도 실행 가능 |
+`state_root`, `host`, `phone_port`, `mock`은 launch 인자다. 모의 모드는 별도 ROS domain에서 사용하며
+실물 장치 대신 main의 mock MCU를 실행한다. 모의 LiDAR 입력은 런타임 검사 도구가 제공한다.
+새 SLAM은 IMU를 사용하지 않으며 raw scan 원본, 전방 180도와 0.30m 마스킹을 유지한다.
+기존 Dev Monitor는 별도로 실행해 지도와 센서를 관측할 수 있다.
 
-지도 초기화만으로 scan 각도가 바뀌지 않습니다.
-
-휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 합니다.
+휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
 
 ```bash
 ros2 launch cleany_teleop teleop.launch.py \
   base_config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
 ```
 
-### 종료 결과와 실패 위치
-
-기본 출력 루트는 `~/.local/state/cleany/hardware/`입니다. `state_root`를 바꿨다면 그 경로를 따릅니다.
-
-| 확인 대상 | 출력 / 진단 |
-|---|---|
-| 지도 저장 | `maps/`의 지도와 pbstream; 종료 로그에서 저장 완료 확인 |
-| Logger 마감 | `recordings/`; flush와 세션 종료 확인 |
-| 조종 거절 | 상태 API의 `last_permission_error`, `event_log`; `teleop-events.jsonl` |
-| 매핑 실패 | `status_age_ms`, `error_code`, `error_file`; `maps/errors/` |
-| 오류 JSON 저장 실패 | `mapping.log`의 traceback |
-
-Ctrl+C가 전달됐다는 사실만으로 STOP 확인이나 지도 저장을 완료로 간주하지 않습니다.
+문제가 발생하면 조종 상태 API의 `last_permission_error`, `event_log`와 매핑 상태 API의
+`status_age_ms`, `error_code`, `error_file`을 먼저 확인한다. 기본 실행의 조종 사건은
+`~/.local/state/cleany/hardware/teleop-events.jsonl`, 매핑 오류 JSON은
+`~/.local/state/cleany/hardware/maps/errors/`에 남는다. `state_root`를 바꿨다면 해당 경로를
+따른다. 오류 JSON을 쓰지 못한 경우 `state_root/mapping.log`에서 traceback을 확인한다.
 
 ## 오프라인 SLAM 비교용 원본 bag
 

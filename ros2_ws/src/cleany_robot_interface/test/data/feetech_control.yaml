@@ -8,15 +8,16 @@ serial_read_retries: 1
 serial_read_recovery_budget_ms: 60
 max_state_age_s: 0.1
 temperature_limit_c: 80
-temperature_fault_confirmation_samples: 3
+temperature_macd_fast_tau_s: 0.1
+temperature_macd_slow_tau_s: 0.5
+temperature_macd_signal_tau_s: 0.1
 # A faulted process leaves all commanded joints holding torque. A replacement
 # process may adopt that all-on hold only after status, temperature and goal
 # proximity checks; mixed or distant motor states remain rejected.
 allow_torque_on_recovery: true
 joint_defaults:
-  max_velocity: 1.0           # rad/s, command-stream bound
-  max_acceleration: 2.0       # rad/s^2, command-stream bound
-  tracking_error: 0.0         # supervised test: disable hardware tracking-error abort
+  max_velocity: 1.0           # rad/s, MoveIt planning limit
+  max_acceleration: 2.0       # rad/s^2, MoveIt planning limit
   speed_raw: 800              # ~1.23 rad/s motor ceiling; host trajectory is limited to 1.0 rad/s
   acceleration_raw: 254       # maximize motor-side response; host trajectory is limited to 2.0 rad/s^2
   torque_limit_raw: 800       # 80% RAM output limit; EEPROM maximum is unchanged

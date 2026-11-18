@@ -30,6 +30,29 @@ URDF 의존관계를 해석할 수 없거나 관절 정보가 불완전하면 �
 실행 시간 기록을 켜면 `pickup_pose_captured`, `pickup_departure_recorded`, `return_planned`에
 누적 재사용 횟수 `measured_fk_cache_hits`와 성공한 서비스 호출 횟수 `measured_fk_service_calls`를 남긴다.
 
+## 명령 준비와 대기 재사용
+
+Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/config/manipulation_jetson.yaml)에서 읽는다.
+
+| 파라미터 | Jetson 값 | 적용 내용 |
+|---|---|---|
+| `hardware_trajectory_limit_scale` | 1.0 | 현재 관절별 속도와 가속도 상한을 명령 시간 계산에 반영. 코드 기본값은 0.8 |
+| `hardware_path_step_rad` | 0.02 | cubic 경로의 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
+| `hardware_start_delay_sec`, `hardware_return_start_delay_sec` | 0.2초 | 팔과 그리퍼의 공통 시작 여유. 시작 전 수락 조건 유지 |
+| `hardware_retime_retreat` | true | 기록 후퇴 곡선의 속도와 가속도 극값으로 실행 시간을 다시 계산 |
+| `hardware_retreat_min_duration_sec`, `hardware_lift_min_duration_sec` | 0.3초 | 후퇴 역재생과 일반 들어올리기의 최소 시간. 실제 제한이 요구하면 더 길어짐 |
+| `hardware_prepare_models_on_startup` | true | 시작 시 정적 모델과 FK 준비. 전송 전 현재 모델과 controller 상태 조회 유지 |
+| `hardware_prefetch_release_retreat` | true | 놓은 뒤 후퇴 계획과 독립적인 모델 조회를 겹침 |
+
+팔의 요청 상한은 2rad/s와 8rad/s²이며 그리퍼는 별도 하드웨어 상한을 따른다.
+시간 계산의 5% 수치 여유와 관절 범위 검사는 유지한다. 곡선 표본은 벡터 계산하고
+URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 복사하고 하나의 응답
+대기 반복에서는 같은 측정을 두 번 만들지 않는다.
+
+복귀 조회는 현재 팔, 명령 횟수, 통신 복구 세대와 신선도가 일치할 때 한 번 소비한다.
+후퇴 직후의 도착 확인은 전체 관절 위치와 모델이 정확히 같을 때만 재사용한다.
+빈 팔 복귀 시작에서도 정지 이력을 별도로 검사하고, 조건이 달라지면 새 조회와 대기를 한다.
+
 ## 복귀와 복구
 
 | 동작 | 적용 조건 |

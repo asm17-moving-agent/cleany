@@ -1,4 +1,5 @@
 # Gazebo 주행 평가용 자세이며, 팔 제어기나 보정 결과가 아닙니다.
+model_profile: cad_final
 adapter_origin_commit: 71f8d6c
 # 과거 어댑터의 출처입니다. 생성 메타데이터는 현재 URDF와 메시의 해시를 기록합니다.
 wheel_radius: 0.0635

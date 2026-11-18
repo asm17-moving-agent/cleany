@@ -5,24 +5,21 @@
 ## 검사 선택
 
 ```mermaid
-flowchart LR
-    Change["변경 경계"] --> Unit["가장 작은 관련 검사"]
-    Unit --> Install{"타입 / manifest / launch 변경?"}
-    Install -->|예| Build["관련 build와 package test"]
-    Install -->|아니오| Boundary["필요한 연결 경계 판단"]
-    Build --> Boundary
-    Boundary --> Runtime["격리 ROS / simulator / served UI"]
-    Runtime --> Evidence["실행 범위 / 실패 / skip 보고"]
+flowchart TB
+    Change{"바뀐 경계"}
+    Change -->|"순수 logic / 도구"| Unit["해당 core / host test"]
+    Change -->|"ROS type / manifest / launch"| Package["관련 package build + test"]
+    Change -->|"여러 package 연결"| ROS["합성 ROS runtime 검사"]
+    Change -->|"센서 / 주행 / 조작"| Sim["해당 simulator runtime 검사"]
+    Change -->|"UI"| UI["served app + refresh / reconnect / replay"]
+    Change -->|"문서"| Docs["링크 / 경로 / Make dry-run / KB 무결성"]
+    Unit --> Evidence["실행 조건과 결과 원본 보존"]
+    Package --> Evidence
+    ROS --> Evidence
+    Sim --> Evidence
+    UI --> Evidence
+    Docs --> Evidence
 ```
-
-| 수정한 경계 | 순서 |
-|---|---|
-| core / 도구 | 해당 단위 검사 → 필요할 때 연결 검사 |
-| 타입 / manifest / launch | 관련 build → package test → 연결 runtime |
-| 여러 package | 관련 검사 → 격리 ROS graph → 필요한 시뮬레이터 |
-| UI | frontend 검사 → served app 새로고침 / 재연결 / replay |
-| 문서 | 링크 / 명령 구문 / 생성 HTML → 브라우저 |
-
 
 아래 표에서 변경 범위에 맞는 명령을 선택합니다. Simulator, mock 통과는 해당 입력과 backend의 증거이며, 실물 검증은 별도로 수행합니다.
 
@@ -35,30 +32,25 @@ flowchart LR
 | Gazebo와 Mock Action | `make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | Nav2 도착과 정지, 두 수거, 추가 빈 관측과 보고 |
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
 | Supervisor core | `make test-supervision-core` | ROS 없는 Fault, 허가, 복구, 영속성, Runtime 감독 port, 안전 증거 |
-| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `SUPERVISION_LATENCY_REPORT` 경로에 기록 |
-| 슬립 분석 / BT 복구 | `make test-slip-detection`, `make test-slip-recovery` | 오프라인 비교와 격리 BT 경계; 아래 상세 조건 |
+| Supervisor와 Runtime 연동 | `make test-supervision` | Supervisor ROS graph와 실제 Runtime, base driver, safety adapter, lifecycle 복구의 E2E; 센서, Nav2와 안전 하드웨어는 합성. 장애→정지 지연을 `$(CLEANY_DATA_ROOT)/runs/supervision/latency.json`에 기록 |
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
-| 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
+| 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절과 보정 CAD/시뮬레이션 모델 선택 경계 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
-| Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 시뮬레이터의 sensor, odom, TF |
-| 시설 목표 생성 | `make test-gazebo-facility-tools` | 시뮬레이터 없는 ID, 여유, 제거 의자 처리 |
+| Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 simulator의 sensor, odom, TF |
+| 시설 목표 생성 | `make test-gazebo-facility-tools` | simulator 없는 ID, 여유, 제거 의자 처리 |
 | MuJoCo | `make test-mujoco` | scene loader; 모든 조작 runtime을 뜻하지 않음 |
 | Mock Manipulation Action | `make test-manipulation` | ROS Action, 취소, 조회와 재시작 복구 |
 | MuJoCo BT 경계 | `make test-manipulation-bt` | native BT, Action, 관련 인식과 수거 회귀; 실제 물리 수거 성공은 별도 |
 | Hand-eye 경계 | `make test-handeye` | description, MuJoCo, MoveIt, calibration |
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
+| IMU 고정 보정 | `make test-imu-runtime` | 기존 계수 적용 core, 합성 IMU 각속도와 가속도 전달, 오류와 수신 회복 |
+| Wheel/IMU EKF | `make test-base-ekf` | mock wheel, 합성 IMU, covariance에 따른 융합, 장착 회전 변환과 실제 TF 발행자 |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
-| 매핑 원본 bag 도구 | `python3 -m pytest tests/tools/test_mapping_bag_recorder.py` | 센서 토픽 선택, 기존 bag 보존, native recorder 종료와 flush |
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
-| Telemetry | `make test-telemetry`, `make test-pose-observation` | 위치 관측, 카메라 미리보기와 Backend 위치 adapter |
+| Telemetry | `make test-telemetry` | odom relay |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
-
-| 실행 환경 | 규칙 |
-|---|---|
-| Fedora hardware-mapping-core | 호스트 Make 호출; Python은 Humble Distrobox, 버튼 입력은 호스트 Node.js |
-| Python ROS graph | 설치 ROS와 BASE_TEST_ROS_DOMAIN_ID 사용 |
-| Navigation CTest | Lifecycle / 센서 신선도 묶음 한도 300 s; 내부 판정 시간과 임계값은 별도 유지 |
+| Jetson USB 카메라 초기화 | `make test-camera-orientation` | 장치 식별, USB 제어와 복구, 설치 경로, unit과 udev 규칙; 실제 장치는 열지 않음 |
 
 Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
 
@@ -66,50 +58,50 @@ CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외�
 
 `make test`는 package test가 실패해도 `colcon test-result --verbose`로 실패 상세를 출력하고 실패 상태를 반환합니다.
 
-### 실행 결과 읽기
-
-| 예시 상황 | 판정 |
-|---|---|
-| `make test`가 0으로 끝나고 결과 집계 통과 | 실행된 workspace 검사 통과 |
-| optional ROS 검사 `skipped` | 해당 경로 미검증; 통과 수에 합산하지 않음 |
-| build 성공, runtime timeout | 설치는 확인, runtime은 실패 |
-| CTest wrapper와 내부 pytest에 같은 검사 표시 | 중복 합산하지 않음 |
-| 시뮬레이터 센서 수신 성공 | 그 backend 입력만 확인; 실물 장치 성능은 별도 |
-
-### Supervisor와 위치 정합 회귀
-
-```mermaid
-flowchart LR
-    Fault["원인이 기록된 통신 Fault"] --> Stop["Base 정지 확인"]
-    Stop --> Health["기동 뒤 fresh / stable health"]
-    Health --> Recover["정책에 따른 잠금 해제"]
-    Unknown["실제 고장 / 원인 미상 / 정지 미확인"] --> Block["차단 유지"]
-```
-
-| 검사 | 확인할 분기 | 입력 한계 |
-|---|---|---|
-| Supervisor 재기동 | 통신 Fault만 해제; stale / 실제 고장 / 원인 미상 / 미확인 목표 정지 / 기본 수동 정책은 차단 | 실제 base driver + 합성 MCU; 물리 USB / 정지 성능 아님 |
-| Base test_stop_retry.py | STOP 3회 유실 뒤 동일 sequence ACK, watchdog과 미상 Fault 구분, 복구 ENABLE 없음 | 자동 검사 |
-| test_localization_alignment.py | 잘못된 pose / 작은 공분산, 지도 회전, degraded 감속과 lease 유지, 회복 / 개선 중단 / 최대 대기 | Core 입력 |
-| test_localization_guard_ros.py | 높은 공분산 탐색 / 재검증, 제한 탐색, 모호한 통로, 정지 미확인, 동시 복구, 수동 initialpose 선점 | 격리 domain의 실제 Guard / Supervisor + 합성 LiDAR / AMCL; 물리 정확도 아님 |
-
-### 슬립 분석과 복구
-
-| 검사 / 도구 | 입력과 확인 범위 |
-|---|---|
-| `make test-slip-detection` | 시간 보간 / 좌표 변환 / 합성 scan / 단일 벽 퇴화 / 품질 실패 / odom 단절 / 연속 조건; ROS 노드나 모터 명령 없음 |
-| `make test-slip-recovery` | 빌드한 실제 BT의 child halt / 정지 / 목표별 latch / 이전 비교 무시 / 반복 실패; BASE_TEST_ROS_DOMAIN_ID 격리 |
-| Gate 단위 검사 | 병진 방향 유지, 휠별 감속 상한, heartbeat 단절 |
-| tools/validation/slip_recovery_smoke.py | 별도 domain에 빈 지도와 lidar_navigation.launch.py motion_profile:=omni를 먼저 실행; 합성 입력으로 추종 시작 / 취소 뒤 0 출력 |
-
-Smoke 도구는 하드웨어 domain 0을 거부합니다. 기록 분석과 한계는 [슬립 분석](../calibration.md#bag-기반-슬립-의심-구간-분석)을 따릅니다.
-
 ## CI 실행과 재사용
 
-CI는 Ubuntu 22.04 amd64에서 모든 PR의 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.
+CI는 Ubuntu 22.04 amd64에서 전체 workspace 검사, ESP32 motor core와 합성 Navigation runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다. Gazebo 환경 점검과 `cleany_gazebo_sim` 패키지 검사를 포함하며, 실제 시뮬레이터를 실행하는 Gazebo runtime은 별도 명시 검사입니다.
 
-`cleany_manipulation_bt`의 pytest 수트는 ROS 프로세스 종료 검사를 포함하므로 CTest 제한을
-300초로 지정합니다. 개별 Action 응답과 종료 대기 제한은 각 테스트에서 별도로 검사합니다.
+전체 빌드 이후 검사를 아래 단계로 분리합니다. 한 검사 단계가 실패해도 빌드가 성공했다면 나머지 독립 검사를 실행합니다. 주요 패키지와 runtime 검사는 실패 표시를 유지하면서 후속 검사를 계속 실행합니다. UI와 카메라 검사에 사용하는 `continue-on-error`도 마지막 집계에서 실제 실패로 반영합니다. 마지막 집계는 실패, 중단과 결과 누락을 모두 실패로 처리합니다.
+
+CI 검사 대상 패키지를 하나의 작업 큐에서 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
+
+각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain이 필요한 ToF의 10–25와 Supervisor의 190–224는 해당 패키지 전용으로 유지합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
+
+| 단계 | 범위 |
+|---|---|
+| ui / camera | 조작 UI 빌드와 입력 처리, 장치 없는 USB 카메라 초기화 검사 |
+| environment | 도구, Pillow 이미지 API, 의존성 버전과 시뮬레이터 환경 |
+| build | 전체 workspace 컴파일과 설치 |
+| workspace | 전체 패키지 병렬 실행과 실패 집계 |
+| navigation | Navigation 패키지 결과 묶음 |
+| manipulation | Skill executor와 manipulation BT 결과 묶음 |
+| workspace-rest | 위 그룹에 없는 모든 패키지 결과; 새 패키지도 자동 포함 |
+| motor | ESP32 motor core |
+| ros-runtime | 합성 ROS 통합 검사 |
+
+[workspace_tests.py](../../../tools/ci/workspace_tests.py)는 전체 패키지, 그룹별 선택 목록과 명시적 제외 목록을 보존합니다. 제외 사유는 [workspace_test_exclusions.json](../../../tools/ci/workspace_test_exclusions.json)에서 관리합니다. `checks/workspace/schedule.json`에 동시 실행 수, 패키지별 시작과 종료 시각, 격리 환경을 기록하며 상세 로그와 진단은 `checks/<그룹>/packages/`에 둡니다. 그룹별 시간은 병렬 실행 기간이 겹치므로 합산하지 않습니다. 마지막 집계에서 세 그룹의 합집합이 명시적 제외 목록을 뺀 전체 패키지와 같은지 확인하고, 중복이나 추가 누락을 실패로 처리합니다. `cleany_manipulation_bt`는 `test/test_*.py`를 파일별 CTest 검사로 등록합니다. DDS Action runtime은 MuJoCo/Jetson 서버별로 분리하며 각 실행에 60초 제한을 적용합니다. 개별 Action 응답과 종료 대기 조건은 기존 테스트가 검사합니다.
+
+[check.py](../../../tools/ci/check.py)는 검사별 명령, 커밋과 미커밋 변경 여부, 경과 시간, 로그와 종료 상태를 `checks/<단계>/`에 저장합니다. Python 검사가 40초 동안 끝나지 않으면 pytest faulthandler가 스택을 출력합니다. 자식 프로세스가 45초 이상 유지되면 해당 프로세스 상태와 C++ 스레드 스택을 수집합니다. GDB 수집 자체는 5초로 제한하고, 실패 정보도 보존합니다. 전체 단계 제한을 넘기면 해당 검사 process group과 관찰한 자식 프로세스를 종료합니다. ROS launch가 별도 session을 만든 경우도 PID와 시작 시각을 대조해 정리합니다.
+
+MPPI 단위 검사는 실제 costmap executor의 시작을 확인한 뒤 진행합니다. 이는 짧은 검사 종료 시 Humble `NodeThread`의 시작과 취소가 엇갈리는 상황을 막으며 비용 계산이나 기대값을 변경하지 않습니다.
+
+로컬에서 특정 검사를 같은 방식으로 실행할 수 있습니다.
+
+```bash
+python3 tools/ci/check.py --root /path/to/ci-results run navigation \
+  --kind contract --timeout 600 -- make test-navigation
+```
+
+동시 실행 수를 지정해 전체 패키지를 검증하려면 빌드한 workspace를 source한 뒤 실행합니다. `--workers 1`로 같은 검사를 순차 실행할 수 있습니다.
+
+```bash
+source "$CLEANY_BUILD_ROOT/install/setup.bash"
+cd ros2_ws
+python3 ../tools/ci/workspace_tests.py all --workers 4
+```
+
+CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 권한이 필요합니다. Runner의 GDB와 전용 라이브러리를 읽기 전용으로 연결하며 고정 ROS 이미지의 라이브러리는 교체하지 않습니다. 진단 도구의 버전은 `debugger-version.txt`에 남깁니다. 테스트 결과는 캐시하지 않으며, 재시도로 첫 실패를 성공으로 바꾸지 않습니다.
 
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
@@ -146,7 +138,7 @@ Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지�
 
 `MAKEFLAGS`도 함께 지정해 colcon이 전체 CPU 수의 `-j` 옵션으로 CMake의 병렬 제한을 덮어쓰지 않도록 합니다.
 
-CI artifact에는 test XML, 실패 로그, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
+CI artifact에는 test XML, CTest 기록, 단계별 로그와 스택, 재현 명령, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
 
 전체 job 제한은 40분이며 이미지 생성은 별도로 15분 안에 완료해야 합니다.
 APT는 서명을 검증한 snapshot index에서 버전, 파일 경로와 SHA256을 결정합니다.
@@ -625,7 +617,7 @@ URDF FK와 MuJoCo의 고정 자식 배치가 일치하는지 확인합니다. �
 
 ## FreeCAD MoveIt와 OctoMap, cuRobo 검사
 
-[검사 launch](../running.md#freecad-moveit와-octomap-검사)를 실행하고 같은 ROS
+[검사 launch](../../RUNNING.md#freecad-moveit와-octomap-검사)를 실행하고 같은 ROS
 domain에서 아래 명령으로 CAD 저장 자세와 합성 점군을 보냅니다. MoveIt의 모델
 이름, 관절 상태, OctoMap과 동작 인터페이스 비활성화를 확인합니다.
 
@@ -720,8 +712,6 @@ python3 ros2_ws/src/cleany_moveit_config/runtime_test/check_freecad_lower_body.p
 추가 자기 접촉의 형상 수정과 세 모델 대조는
 [결합부 복원 실행 근거](../../EVIDENCE.md#2026-11-05-그리퍼-결합부-형상-복원과-자기-접촉-회귀-검사)에 있습니다.
 저장 자세의 검사 통과는 모든 관절 자세나 실물 계획 검증을 대신하지 않습니다.
-
-
 
 ## 인식과 파지 후보 검증
 
@@ -878,3 +868,103 @@ make test-dev-monitor-web
 Playwright는 기본 로컬 fixture 서버를 사용한다. `MONITOR_URL`이 필요한 실제 서버 검사는
 서버와 합성 입력을 준비한 경우에만 실행한다. `OPERATOR_VISUAL_DIR`을 저장소 밖 경로로
 지정하면 운영 UI의 라이트, 다크와 좁은 화면 근거 이미지를 저장한다.
+
+## Decision 실행 경로 검증
+
+`test_perception_container_model.py`는 실제 컨테이너 실행 스크립트의 ROS 명령을
+대체해 기본 real32/real53, 사용자 프로파일, 모델 override와 RGB-D QoS를 확인한다.
+Docker, 카메라, 모터와 실제 API를 사용하지 않는다. Docker Compose가 설치되어 있으면 구성 계약도 확인한다.
+
+```bash
+python3 -m pytest -q tests/tools/test_perception_container_model.py containers/vision/test/test_compose_contract.py
+```
+
+`tools/vision-container build-perception-workspace`는 인식 노드를 시작하지 않고
+설치본을 준비한다. 컨테이너 시작 검증은 별도 ROS domain, 외부 네트워크 차단,
+가짜 API 키와 USB 미전달 상태에서 수행하고 파라미터 RPC만 조회한다.
+이 검사는 실제 API 접근, 카메라 TF와 물리 집기 검증을 대신하지 않는다.
+
+명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../../../Makefile)을 기준으로 확인합니다.
+
+
+## 이벤트 결과 전달 검증
+
+[`benchmark_action_notifications.py`](../../../tools/validation/benchmark_action_notifications.py)는
+가상 모터 `mock_components/GenericSystem`과 실제 궤적 제어기를 연결한다.
+모터 드라이버는 로드하지 않으며, localhost ROS domain 219를 사용한다.
+
+1. Humble과 기존 의존 패키지의 overlay를 읽고 관련 패키지를 빌드한다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   # 별도 설치한 의존 패키지가 있으면 해당 setup.bash도 읽는다.
+   make build COLCON_BUILD_ARGS='--packages-select cleany_trajectory_controller cleany_robot_interface --parallel-workers 2'
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 프로파일의 제어기 선택과 종료 동작을 확인한다. `--functional-only`는
+   성능 비교를 생략하고 진행 상태를 1Hz로 낮춰 결과 전달을 검사한다.
+
+   ```bash
+   make test-jetson-control JETSON_CONTROL_TEST_PATHS='ros2_ws/src/cleany_robot_interface/test/test_control_profile.py'
+   export ROS_DOMAIN_ID=219 ROS_LOCALHOST_ONLY=1
+   python3 tools/validation/benchmark_action_notifications.py \
+     --output /tmp/cleany-action-events-functional --functional-only
+   ```
+
+   정상 완료, 허용 오차 실패, 취소와 완료 경쟁, 명령 교체, 잘못된 목표 거부,
+   비활성화와 재활성화를 확인한다. 종료 결과가 1초 피드백 주기를 기다리거나
+   예상 상태와 다르게 도착하면 실패한다.
+
+3. 성능 비교가 필요하면 같은 도구를 전체 모드로 실행한다.
+
+   ```bash
+   python3 tools/validation/benchmark_action_notifications.py \
+     --output /tmp/cleany-action-events-comparison --blocks 3 --trials 24
+   ```
+
+| 측정 항목 | 기준 |
+|---|---|
+| 비교 방식 | 기존 20Hz, 기존 100Hz, 이벤트 방식 20Hz; 블록별 실행 순서 변경 |
+| 입력 | 50Hz 제어 주기, 가상 제어기 4개 중 1개에 동일 난수 궤적 입력 |
+| 결과 전달 지연 | 제어기 성공 로그 시각부터 client 결과 callback까지 |
+| CPU | 제어기 프로세스 사용량; 논리 코어 하나가 100% |
+| 원본 | 출력 폴더의 `results.json`, 제어기 설정 YAML과 로그 |
+
+이 측정은 실물 이동 시간이나 전체 수거 주기 검증을 대신하지 않는다.
+
+
+## 공통 CAD 검증
+
+`tools/robot-model check`로 설치 CAD의 해시와 관절 구성을 확인한다.
+`cleany_description`의 `runtime_model`, `runtime_state`, `cad_coordinates`와
+`cleany_moveit_collision`의 `test_cad_linkage`는 모터 없이 실행한다.
+카메라 투영, 피드백 신선도와 소비자 간 모델 일치도도 Python 테스트로 확인한다.
+실제 카메라 정합, GPU를 사용하는 계획과 모터 구동은 별도 검증이다.
+
+
+## 통합 컨트롤러 PCB 검증
+
+PCB 검사는 [KiCad 호스트 환경](../development-setup.md#kicad-pcb-검증-환경)에서 실행합니다.
+PCB 검사는 로컬 전용이며 GitHub Actions CI에 포함하지 않습니다.
+`CI=true` 또는 `CI=1`이면 `make test-pcb`는 KiCad 검사와 보드 테스트를 실행하지 않고
+skip 메시지로 종료합니다. CI 컨테이너에도 `CI=true`를 전달합니다.
+
+```bash
+make test-pcb
+```
+
+`esp32/pcb/integrated_controller/tests/`의 보드 전용 검사는 BOM, 핀맵, 회로도와 PCB의 일치,
+제조 규칙의 경계값, 패드와 비아 간격, 3D 모델의 출처와 배치를 확인합니다.
+이어서 저장된 설계의 ERC와 회로도 일치 검사를 포함한 DRC를 실행합니다.
+오류, 경고와 제외 항목을 모두 보고하며 KiCad가 위반 종료 코드를 반환하면 target도 실패합니다.
+KiCad 실행 파일이나 `pcbnew`가 없으면 테스트 전에 실패합니다.
+
+`PCB_PYTHON`으로 KiCad Python 실행 파일을 선택합니다. `PCB_TEST_OUTPUT`의 기본값은
+`CLEANY_BUILD_ROOT/pcb-validation`이며 `erc.json`, `drc.json`을 기록합니다.
+별도 실행의 근거를 보존할 때는 `make test-pcb PCB_TEST_OUTPUT=/path/to/run`으로 경로를 지정합니다.
+[Molex 모델](../../../esp32/pcb/integrated_controller/libraries/3dmodels/README.md)은 로컬 설치 항목이므로
+새 checkout에서는 원본 해시 검사 1건만 건너뛰며 메타데이터와 PCB 배치 검사는 수행합니다.
+
+이 검사는 통합 보드의 저장된 설계를 대상으로 합니다. 별도 `sensor_controller`는 배치와 배선이
+없는 초안입니다. 제조사 DFM, 실물 전원 부하, USB 신호 품질과 펌웨어 이식 검증은 포함하지 않습니다.

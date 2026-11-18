@@ -1,5 +1,6 @@
 """속도 제한으로 존재하지 않는 최신 또는 미래 로봇 피드백이 만들어지지 않는지 확인합니다."""
 from types import SimpleNamespace
+import os
 import pytest
 rclpy = pytest.importorskip('rclpy')
 from rosgraph_msgs.msg import Clock
@@ -8,7 +9,7 @@ from cleany_gazebo_sim.feedback_sampler import FeedbackSampler
 
 
 def test_feedback_stamps_stall_future_and_clock_rewind(monkeypatch):
-    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', '223'))
     rclpy.init();node = FeedbackSampler()
     try:
         clocks, joints = [], []

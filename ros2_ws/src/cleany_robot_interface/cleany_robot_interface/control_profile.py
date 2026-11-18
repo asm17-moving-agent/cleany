@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import apply_joint_bounds, calibrated_joint_bounds
 from cleany_robot_interface.state_profile import StateProfile, head_positions, prepare_state_profile
 
@@ -40,6 +40,18 @@ def resolve_moveit_trajectory_execution(read_only: bool, requested: str) -> bool
     return enabled
 
 
+def _controller_transport(settings: dict) -> tuple[str, float]:
+    controller_type = settings.get('type', 'joint_trajectory_controller/JointTrajectoryController')
+    if controller_type not in ('joint_trajectory_controller/JointTrajectoryController',
+                                'cleany_trajectory_controller/JointTrajectoryController'):
+        raise ValueError('Unsupported controller.type')
+    action_rate = settings.get('action_monitor_rate', 20.0)
+    if (type(action_rate) not in (int, float) or not math.isfinite(action_rate)
+            or not 1 <= action_rate <= 100):
+        raise ValueError('controller.action_monitor_rate must be in [1, 100] Hz')
+    return controller_type, float(action_rate)
+
+
 def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
                       head_mapping: dict, limits: dict, read_only: bool) -> tuple[str, dict, dict]:
     root = ET.fromstring(model)
@@ -62,6 +74,15 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             or type(read_budget) is not int or not 1 <= read_budget <= 100
             or (read_retries > 0 and read_budget > limits['max_state_age_s']*1000)):
         raise ValueError('Invalid bounded serial READ recovery settings')
+    if 'temperature_fault_confirmation_samples' in limits:
+        raise ValueError('Replace temperature_fault_confirmation_samples with temperature_macd_*_tau_s')
+    temperature_filter = {f'temperature_macd_{name}_tau_s': limits[f'temperature_macd_{name}_tau_s']
+                          for name in ('fast', 'slow', 'signal')}
+    if (any(isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) or value <= 0 for value in temperature_filter.values())
+            or temperature_filter['temperature_macd_fast_tau_s']
+            >= temperature_filter['temperature_macd_slow_tau_s']):
+        raise ValueError('Invalid temperature MACD time constants')
     defaults = limits['joint_defaults']
     mapped = mappings(arm, calibrations)
     overrides = limits.get('joint_overrides', {})
@@ -74,21 +95,17 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             or not set(selected) <= {j.name for j in mapped}):
         raise ValueError('command_joints must be a nonempty unique subset of arm/gripper joints')
     settings = limits['controller']
+    controller_type, action_rate = _controller_transport(settings)
     for key in ('max_velocity', 'max_acceleration', 'speed_raw',
                 'acceleration_raw', 'torque_limit_raw'):
         if not math.isfinite(defaults[key]) or defaults[key] <= 0:
             raise ValueError('Invalid joint limit: ' + key)
-    if not math.isfinite(defaults['tracking_error']) or defaults['tracking_error'] < 0:
-        raise ValueError('Invalid joint limit: tracking_error')
     if (not math.isfinite(settings['trajectory_tolerance'])
             or settings['trajectory_tolerance'] < 0):
         raise ValueError('Invalid controller tolerance: trajectory_tolerance')
     for key in ('goal_tolerance', 'goal_time'):
         if not math.isfinite(settings[key]) or settings[key] <= 0:
             raise ValueError('Invalid controller tolerance: ' + key)
-    if (settings['trajectory_tolerance'] > 0 and defaults['tracking_error'] > 0
-            and settings['trajectory_tolerance'] >= defaults['tracking_error']):
-        raise ValueError('Controller trajectory tolerance must be below hardware fault threshold')
     bounds = dict(limits.get('joint_position_bounds', {}))
     if not set(bounds) <= {joint.name for joint in mapped}:
         raise ValueError('Physical joint position bounds must name calibrated arm joints')
@@ -97,6 +114,17 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
         raise ValueError('Joint position bounds have both explicit and calibrated sources')
     bounds.update(derived)
     root = ET.fromstring(apply_joint_bounds(model, bounds))
+    # Operational policies may narrow physical travel but cannot expand it.
+    physical = calibrated_joint_bounds(mapped, [joint.name for joint in mapped])
+    for name, (lower, upper) in physical.items():
+        limit = root.find(f"joint[@name='{name}']/limit")
+        if limit is None:
+            raise ValueError('Missing model joint/limit: ' + name)
+        lower, upper = max(lower, float(limit.get('lower'))), min(upper, float(limit.get('upper')))
+        if lower >= upper:
+            raise ValueError('Operational and motor joint limits do not overlap: ' + name)
+        limit.set('lower', str(lower))
+        limit.set('upper', str(upper))
     control = ET.SubElement(root, 'ros2_control', name='FeetechSystem', type='system')
     hardware = ET.SubElement(control, 'hardware')
     ET.SubElement(hardware, 'plugin').text = 'cleany_feetech_hardware/FeetechSystem'
@@ -110,10 +138,10 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
                            limits.get('allow_torque_on_recovery', False))).lower(),
                        'serial_read_retries': limits.get('serial_read_retries', 0),
                        'serial_read_recovery_budget_ms': limits.get('serial_read_recovery_budget_ms', 60),
+                       **temperature_filter,
                        **{k: limits[k] for k in (
                            'serial_timeout_ms', 'max_state_age_s',
                            'temperature_limit_c',
-                           'temperature_fault_confirmation_samples',
                        )}}.items():
         param(hardware, key, value)
     for joint in mapped:
@@ -136,12 +164,14 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
         values = {key: getattr(joint, key) for key in ('motor_id', 'model', 'zero_tick', 'direction',
                                                      'offset_rad', 'homing_offset', 'range_min', 'range_max')}
         joint_values = {**defaults, **overrides.get(joint.name, {})}
+        joint_values.pop('tracking_error', None)
         if (not all(math.isfinite(v) for v in joint_values.values())
                 or not 1 <= joint_values['torque_limit_raw'] <= 1000
                 or not 1 <= joint_values.get('temperature_limit_c', limits['temperature_limit_c'])
                 <= limits['temperature_limit_c']):
             raise ValueError('Invalid per-joint register limits')
         values.update(lower=float(bound.get('lower')), upper=float(bound.get('upper')), **joint_values)
+        # Host trajectory validation also reads the dynamic limits from this model.
         for key, value in values.items():
             param(element, key, value)
     for index, name in enumerate(('head_pan_joint', 'head_tilt_joint')):
@@ -168,10 +198,10 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             joints = [j for j in joints if j in selected]
             if not joints:
                 continue
-            manager[name] = {'type': 'joint_trajectory_controller/JointTrajectoryController'}
+            manager[name] = {'type': controller_type}
             controllers[name] = {'ros__parameters': {
                 'joints': joints, 'command_interfaces': ['position'], 'state_interfaces': ['position'],
-                'state_publish_rate': float(rate), 'action_monitor_rate': 20.0,
+                'state_publish_rate': float(rate), 'action_monitor_rate': action_rate,
                 'open_loop_control': False, 'allow_partial_joints_goal': False,
                 'allow_nonzero_velocity_at_trajectory_end': False,
                 'constraints': {'goal_time': settings['goal_time'], 'stopped_velocity_tolerance': 0.0,
@@ -186,25 +216,29 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
 
 def prepare_control_profile(profile_file: Path, repository_root: Path, output: Path,
                             control_file: Path, read_only: bool = True) -> ControlProfile:
+    limits = yaml.safe_load(control_file.read_text())
+    _controller_transport(limits['controller'])
     state = prepare_state_profile(profile_file, repository_root, output)
     arm = yaml.safe_load(state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(state.arm_config, arm)
     cal_files = [directory / arm['arms'][side]['calibration'] for side in ('left', 'right')]
     calibrations = {side: json.loads(path.read_text()) for side, path in zip(('left', 'right'), cal_files)}
     model, controllers, moveit = add_control_model(
         state.model.read_text(), arm, calibrations, yaml.safe_load(state.head_config.read_text()),
-        json.loads(state.head_mapping.read_text()), yaml.safe_load(control_file.read_text()), read_only)
+        json.loads(state.head_mapping.read_text()), limits, read_only)
     destination = output / 'robot_control.urdf'
     destination.write_text(model)
     controllers_file = output / 'controllers.yaml'
     controllers_file.write_text(yaml.safe_dump(controllers, sort_keys=False))
     moveit_file = output / 'moveit_controllers.yaml'
     moveit_file.write_text(yaml.safe_dump(moveit, sort_keys=False))
-    limits = yaml.safe_load(control_file.read_text())['joint_defaults']
-    joint_limits = {'joint_limits': {joint.name: {
-        'has_velocity_limits': True, 'max_velocity': limits['max_velocity'],
-        'has_acceleration_limits': True, 'max_acceleration': limits['max_acceleration']}
-        for joint in mappings(arm, calibrations)}}
+    joint_limits = {'joint_limits': {}}
+    for joint in mappings(arm, calibrations):
+        values = {**limits['joint_defaults'],
+                  **limits.get('joint_overrides', {}).get(joint.name, {})}
+        joint_limits['joint_limits'][joint.name] = {
+            'has_velocity_limits': True, 'max_velocity': values['max_velocity'],
+            'has_acceleration_limits': True, 'max_acceleration': values['max_acceleration']}
     limits_file = output / 'joint_limits.yaml'
     limits_file.write_text(yaml.safe_dump(joint_limits, sort_keys=False))
     (output / 'control_manifest.json').write_text(json.dumps({

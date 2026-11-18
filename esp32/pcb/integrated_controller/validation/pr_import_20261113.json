@@ -1,0 +1,241 @@
+{
+  "date": "2026-11-13",
+  "branch": "feat/integrated_controller",
+  "base_commit": "6fba958b24cfe28fa68efa52983e56692de02574",
+  "source_repository_head": "be4b8e70cb2a482ca00565190e9c5de61ab95a19",
+  "scope": "Saved KiCad files imported unchanged; packaging, optional Molex asset tests and repository documentation updated.",
+  "environment": {
+    "platform": "Linux-7.2.15-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "python": "3.14.10",
+    "kicad": "10.0.8"
+  },
+  "inputs_sha256": {
+    "esp32/pcb/.gitignore": "0e574dd55c8fe62721d85d377b7d6295cdd40573ac2b4a3eb4e97977850a2934",
+    "esp32/pcb/integrated_controller/BOM.csv": "8c531e60e666725f9947cd07c91d0267377baedbb259c0598be40393baf2438c",
+    "esp32/pcb/integrated_controller/BOM.md": "8d100e5cf53791da11b119add79d1d2185174702e8d5eda3ebebe6eda1d7c273",
+    "esp32/pcb/integrated_controller/BOM_ORDER.csv": "b40d487f0b9a41715360e83013c893cb47e2e9a3d2a6a09457365f79883999c8",
+    "esp32/pcb/integrated_controller/DESIGN_RULES.md": "a7dfc6353832a9982f62c3b0f2fd5293e45d70f748233ae8b3861c589119e6f6",
+    "esp32/pcb/integrated_controller/PINMAP.md": "dfdf5d7490e9e20aef3ef0d5031a14f7716cf93b703d328572651dac68938e21",
+    "esp32/pcb/integrated_controller/fp-lib-table": "1dd2ac85437bc5b7d8bf6034c8bc9d77f1fe8d78855cdda711fd1848956ed42a",
+    "esp32/pcb/integrated_controller/integrated_controller.kicad_dru": "62864a1411443741e5150942be099afaa660ad74dd951a45ba4fb0aecf61a35f",
+    "esp32/pcb/integrated_controller/integrated_controller.kicad_pcb": "7b606817a79b8446c593d6e49a97cc5ece895818c81a3a2ea4552e0b63e5c139",
+    "esp32/pcb/integrated_controller/integrated_controller.kicad_pro": "162405446d3e0930fa39db9c93f2901642f1fd2d280a744afc50c06bd0f8ca27",
+    "esp32/pcb/integrated_controller/integrated_controller.kicad_sch": "b76e79b7eb7b1c9b1f69b5e2ed1cea35a4c541e2a5ba3d946dd8985adad147b4",
+    "esp32/pcb/integrated_controller/interfaces.kicad_sch": "93220275c0fd90941a4d1268ddf06c544cf1b0cf22d840418e8c228619943cbd",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/Disclaimer_WE_KiCad_library.pdf": "afc7e37e2e1e82f72485772decc36bb243c7ec4b3db1198fcefc1e0dee488045",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/LICENSE.KiCad-packages3D.md": "45d2bce75e5a4208f5afb01b8fb2c406e700371c4fe2b5f5cd5c443d46db4d8f",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/L_Wurth_WE-XHMI-6060.step": "bad3326ba03207b064382fc704417cf9848a609c7a8d4ec704ac398241f552df",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/License_Terms_WE_KiCad_library.pdf": "4f83f2b1aa0344747b40570bb5b63e7fb76acffd1380bef98a47e4ff2461dd32",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/README.md": "652722262993f5f6959c1bd8e77c8dedade20b3df60500bc576f0e65f5d8715a",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/SOIC-8-1EP_3.9x4.9mm_P1.27mm_EP2.29x3mm.step": "2d6f7e774e8143e3320cbd59eb5be9f3b7864614644e3b072006e1eb05fb7fa6",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/easyeda/TCA9548ADGSR.source.json": "d6c62a32e3f6675fb188ed4b353208bc6f1d6bac3215d7332c194102473ca7b8",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/easyeda/TCA9548ADGSR.step": "271ba4897aad65006349c54c4a2f47a401f9dfb15fb8c0b1943b6141cfa99ce3",
+    "esp32/pcb/integrated_controller/libraries/3dmodels/molex/sources.json": "772f2dd0275971105075a524faa268e54c532cc0dcb2fcd31ccfd2d80dc55a35",
+    "esp32/pcb/integrated_controller/libraries/LICENSE.KiCad-footprints.md": "56f9d2f1bc2c9c4b189a38cb32b5112e3cd9434c6ec3b053311c55c42d561cb5",
+    "esp32/pcb/integrated_controller/libraries/LICENSE.KiCad-symbols.md": "9a113d45009458864f9adbe16303ade8202d42f2e9f9f94626d8a9e84c51f966",
+    "esp32/pcb/integrated_controller/libraries/LICENSE.kicad-druid.md": "e93a1cfd99a86ec13ae0b82b87202749e36e97806667e10e1817748b8d15a5ab",
+    "esp32/pcb/integrated_controller/libraries/footprints/Integrated_Controller.pretty/MountingHole_3.4mm_M3_Head7mm.kicad_mod": "985cf68a91d09283d6c76dda621e057ee0904fa971988b6c397ba63a845bd58e",
+    "esp32/pcb/integrated_controller/libraries/footprints/Integrated_Controller.pretty/RJ9_Assmann_A-2004-3-4-LP-N-R_Horizontal.kicad_mod": "0efdacb61293642b1b75f7eda199c82c7678ad171dc3678d57d9472785a77c9c",
+    "esp32/pcb/integrated_controller/libraries/footprints/Integrated_Controller.pretty/Texas_DGS0024A_VSSOP-24_3x6.1mm_P0.5mm.kicad_mod": "f32ab68e9a2803f9925ec3ba3f2e943315d1f7df224083e1930bc2386c28444e",
+    "esp32/pcb/integrated_controller/libraries/footprints/Integrated_Controller.pretty/Wuerth_74439346033_6.65x6.45mm.kicad_mod": "11e70472692025267fd227de392667b51e563ea50ede4e8f1f6cb8570e50cee7",
+    "esp32/pcb/integrated_controller/libraries/footprints/Integrated_Controller.pretty/XT60_Generic_Vertical_1x02_P7.20mm_Pin1Positive.kicad_mod": "7acf9281d7d5e67ec16f72c1c79ea0b0a3e71fad3e4aefb966b4b6574865efea",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Button_Switch_SMD.pretty/SW_SPST_PTS810.kicad_mod": "bb8872a56e62399e5e1a73b9a99316e4da575a3b4f72d0d2ea1e49ece5cc648c",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Connector_Molex.pretty/Molex_SPOX_5268-02A_1x02_P2.50mm_Horizontal.kicad_mod": "7ab947b12d8d91be57420649eb3e55fa06b76e52c600977c9f1bf33561785fe6",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Connector_Molex.pretty/Molex_SPOX_5268-03A_1x03_P2.50mm_Horizontal.kicad_mod": "d8a6a4ef2fb1ba79bcbb7d24ed180ddbeed5d5a16d8b21f97721ee9fbcac2367",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Connector_Molex.pretty/Molex_SPOX_5268-04A_1x04_P2.50mm_Horizontal.kicad_mod": "06222251ffafecd3eca86ad835e62deda74b70c5ab83653a91f7296790370418",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Connector_USB.pretty/USB_B_OST_USB-B1HSxx_Horizontal.kicad_mod": "b58fa16ccb3d23368e8ee96b9b1ac4c2e99122c72f9e86155ef40eb30926d0c8",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/Package_LGA.pretty/LGA-28_5.2x3.8mm_P0.5mm.kicad_mod": "4dece15ee2b1432efbd4a4193c3584c75070118f9b6d5e8825a3b97971d41489",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/RF_Module.pretty/ESP32-S3-WROOM-2.kicad_mod": "93b79d471d1ca423d1288647532d9f0065e21af1cbb7ccfcbba3436d44d51080",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/TerminalBlock_Phoenix.pretty/TerminalBlock_Phoenix_PT-1,5-2-5.0-H_1x02_P5.00mm_Horizontal.kicad_mod": "18fb22b4159215b9dc71a8653da5fcdc3a461bd2d7594deacef9d31e533b9007",
+    "esp32/pcb/integrated_controller/libraries/footprints/overrides/TerminalBlock_Phoenix.pretty/TerminalBlock_Phoenix_PT-1,5-3-5.0-H_1x03_P5.00mm_Horizontal.kicad_mod": "5a05077bb1e14a94c2fd653493f12cced8881df7e74b3ca168d95caf9d6321a3",
+    "esp32/pcb/integrated_controller/libraries/symbols/Integrated_Controller.kicad_sym": "97945c8e54d165b89b4fca258bf38dc5b0d1bde3176902f919d1b3f74d55cf3a",
+    "esp32/pcb/integrated_controller/power.kicad_sch": "de19cfe1536fdbd5c8bc0c05e0431df97aa7e7566ee71400af6fb6a1b2e40bc6",
+    "esp32/pcb/integrated_controller/sensors.kicad_sch": "87e69b0071cb3537c2b1405b066d884c312e663a071d1c15dca5d0dffd82fcb1",
+    "esp32/pcb/integrated_controller/sym-lib-table": "da3341bb159116e49a2d47b54eaaae4efe360ec21dcf66b4b83089dc3f1ded6a",
+    "esp32/pcb/integrated_controller/tests/test_3d_models.py": "8c9509316c62c7ec8421a80ed9e8f7d81ce3fe59bbe157b97c7e9f4abf574e0c",
+    "esp32/pcb/integrated_controller/tests/test_design_rules.py": "00f6d1c73d3d1bc9b17d32f43f0a9954b50f6aa8f6e2ebc48498640e0c7cd4f5",
+    "esp32/pcb/integrated_controller/tests/test_pad_via_clearance.py": "23d8ac61f4014f9865d69e8e1392a23a8e669ba8a8206b16727817d2a2f5957b",
+    "esp32/pcb/integrated_controller/tests/test_pinmap_sync.py": "0b437801eb3b4f438817a74a63739fd846800691d9fa86964912ceb12fba8add",
+    "esp32/pcb/integrated_controller/tests/test_schematic_sync.py": "29e6f2839fc364e99aff4d12fef1ad572b03f10b7cd4c75d5c7086420f5da104",
+    "esp32/pcb/integrated_controller/validation/hansaem_20261111.json": "f73ee4b29756529ead48f29ba7f4fe471c94f8c2c313e6b0f18fcc89b1a9f59f",
+    "esp32/pcb/sensor_controller/Cleany_Sensor.kicad_sym": "b1db102cf6e9611a776a4d0cc8d3ce64997a5e2e51cad3ca12d5a6bae0053575",
+    "esp32/pcb/sensor_controller/sensor_controller.kicad_dru": "5be4d49e81b0a8c35942c5556cf3b9196ed85043e5c571d4299f335c422cf9e7",
+    "esp32/pcb/sensor_controller/sensor_controller.kicad_pcb": "6b1159efbad01e579466816c5c83347c726db76e42fe900794e306a0ff323bdd",
+    "esp32/pcb/sensor_controller/sensor_controller.kicad_pro": "9d0ced4ad8fcd167f1d0894c8abe67a391cbf8c096da8fb62ef0dc65114957b6",
+    "esp32/pcb/sensor_controller/sensor_controller.kicad_sch": "ded0175e3ad6db6a6ee8eb1fe153819e96f81a674d9e26051c6df2e223351fab",
+    "esp32/pcb/sensor_controller/sensor_controller.md": "01578cbfead545cd05684692c64a8e7b3c7083128187ad30e7582bc82e2f89b7",
+    "esp32/pcb/sensor_controller/sensor_controller.pdf": "402937d3689156619506c6e1b1f2dc934878cb2ec1c5c65b595e2d39e6b28646",
+    "esp32/pcb/sensor_controller/sensor_controller.png": "215e99b7352034b5066d8650596cfbd89d33cd3951b7c019f38a95749d6e082d",
+    "esp32/pcb/sensor_controller/sensor_controller_bom.csv": "5a04ca3bbfb58c2b4f1206f2aebcd88ff542276a0670a51a97aa7ff586be069f",
+    "esp32/pcb/sensor_controller/sym-lib-table": "52c6db6e22bcaaff752c6a840245ea18abe82844c4e6c747d7e5ca2e894a29ba",
+    "Makefile": "582dbd03e0541f9445871eb4872ecb28bcafd5bef040b6c8647625bc1b979a78",
+    "esp32/pcb/fp-lib-table": "4a235394e94878447094d570b3bac07750a0ef5ea18398ddea4ce59fc0380828",
+    "esp32/pcb/libraries/LICENSE.Espressif.md": "891a1de695e924bf0725d11e210d5848a7ac1d0cb12829c07f041f8740db13cd",
+    "esp32/pcb/libraries/README.md": "6e1745f16d29049eb4b65e1a8774616fe0c65c13c24acc2a45545c19ddef10c5",
+    "esp32/pcb/libraries/footprints/Espressif.pretty/ESP32-S3-DevKitC.kicad_mod": "1e033c202e4ae743955d325da9e8e392c9600b51bf67caec56fb7f7eca723c0a",
+    "esp32/pcb/libraries/footprints/logo.kicad_mod": "c3c4306b34b311853b27fc8c26ca9244176296dc75190cfb1461b778f41e99ad",
+    "esp32/pcb/libraries/symbols/Espressif_ESP32-S3-DevKitC.kicad_sym": "786590e2daaa8c08bc3d7b5571d40ff75cb7fc1cdd892e178af03d3cc0e86ce0",
+    "esp32/pcb/motor_controller.kicad_pcb": "9a74a050b783ee83d9eff21c2b7b9975997e80362b52042fda7e14abc53bd1ab",
+    "esp32/pcb/motor_controller.kicad_pro": "0ecea36d1baeed64d2812788eb069426bb7431bee56fa95b16ece67710e9fe55",
+    "esp32/pcb/motor_controller.kicad_sch": "f0afd28a669dca0b2f98515e3f0d974ca1b97ae24a006977ba3c31381b8a21fb",
+    "esp32/pcb/sym-lib-table": "442c835acce67aa1e88cec18042388da3f95473748aa79303e93a0aa3b29ff1e",
+    "esp32/pcb/.gitattributes": "12904f0a58ae5c25d11226a92c81cfed33a292659e61e87b53d623f54849534b"
+  },
+  "tests": {
+    "command": "make test-pcb PCB_TEST_OUTPUT=<run-directory>",
+    "local_with_optional_models": {
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "clean_export_without_ignored_files": {
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exit_code": 0,
+      "skip_reason": "Optional Molex STEP binaries are not redistributed."
+    },
+    "sensor_erc_command": "kicad-cli sch erc --severity-all --exit-code-violations --format json -o <run-directory>/sensor-erc.json esp32/pcb/sensor_controller/sensor_controller.kicad_sch",
+    "sensor_erc_exit_code": 0
+  },
+  "reports": {
+    "erc": {
+      "$schema": "https://schemas.kicad.org/erc.v1.json",
+      "coordinate_units": "mm",
+      "date": "2026-11-13T14:34:52",
+      "ignored_checks": [
+        {
+          "description": "Global label only appears once in the schematic",
+          "key": "single_global_label"
+        },
+        {
+          "description": "Four connection points are joined together",
+          "key": "four_way_junction"
+        },
+        {
+          "description": "SPICE model issue",
+          "key": "simulation_model_issue"
+        },
+        {
+          "description": "Assigned footprint doesn't match footprint filters",
+          "key": "footprint_filter"
+        }
+      ],
+      "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+      ],
+      "kicad_version": "10.0.8",
+      "sheets": [
+        {
+          "path": "/",
+          "uuid_path": "/ffdc0864-6e4e-4fd0-8c93-9d90b3d91112",
+          "violations": []
+        },
+        {
+          "path": "/Power/",
+          "uuid_path": "/ffdc0864-6e4e-4fd0-8c93-9d90b3d91112/307206f5-8ddd-556a-b638-c2c5028ea886",
+          "violations": []
+        },
+        {
+          "path": "/Sensors / BNO055 and ToF/",
+          "uuid_path": "/ffdc0864-6e4e-4fd0-8c93-9d90b3d91112/7ac5371a-96bb-5e2e-a4cb-9bb7db5587cf",
+          "violations": []
+        },
+        {
+          "path": "/Motor and LED interfaces/",
+          "uuid_path": "/ffdc0864-6e4e-4fd0-8c93-9d90b3d91112/93f333b7-3057-5161-b711-70330f31bf09",
+          "violations": []
+        }
+      ],
+      "source": "integrated_controller.kicad_sch"
+    },
+    "drc": {
+      "$schema": "https://schemas.kicad.org/drc.v1.json",
+      "coordinate_units": "mm",
+      "date": "2026-11-13T14:34:54",
+      "ignored_checks": [
+        {
+          "description": "Footprint has no courtyard defined",
+          "key": "missing_courtyard"
+        },
+        {
+          "description": "Track endpoint not centered on via",
+          "key": "track_not_centered_on_via"
+        },
+        {
+          "description": "Tuning profile track geometries",
+          "key": "tuning_profile_track_geometries"
+        },
+        {
+          "description": "Footprint doesn't match symbol's footprint filters",
+          "key": "footprint_filters_mismatch"
+        },
+        {
+          "description": "Footprint component type doesn't match footprint pads",
+          "key": "footprint_type_mismatch"
+        }
+      ],
+      "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+      ],
+      "kicad_version": "10.0.8",
+      "schematic_parity": [],
+      "source": "integrated_controller.kicad_pcb",
+      "unconnected_items": [],
+      "violations": []
+    },
+    "sensor_erc": {
+      "$schema": "https://schemas.kicad.org/erc.v1.json",
+      "coordinate_units": "mm",
+      "date": "2026-11-13T14:34:49",
+      "ignored_checks": [
+        {
+          "description": "Global label only appears once in the schematic",
+          "key": "single_global_label"
+        },
+        {
+          "description": "Four connection points are joined together",
+          "key": "four_way_junction"
+        },
+        {
+          "description": "SPICE model issue",
+          "key": "simulation_model_issue"
+        },
+        {
+          "description": "Assigned footprint doesn't match footprint filters",
+          "key": "footprint_filter"
+        }
+      ],
+      "included_severities": [
+        "error",
+        "warning",
+        "exclusion"
+      ],
+      "kicad_version": "10.0.8",
+      "sheets": [
+        {
+          "path": "/",
+          "uuid_path": "/1806346d-4047-507c-9690-d65402029baf",
+          "violations": []
+        }
+      ],
+      "source": "sensor_controller.kicad_sch"
+    }
+  },
+  "raw_artifacts_relative_to_CLEANY_DATA_ROOT": "runs/integrated-controller-pr-20261113-egedos3h",
+  "limitations": [
+    "ERC and DRC use the saved project profile; ignored checks are listed in the raw reports.",
+    "sensor_controller is a schematic and fabrication-settings draft with no placed or routed PCB.",
+    "Current motor firmware retains the original GPIO map and MPU6050 driver; the integrated board requires a separate firmware port.",
+    "No hardware power/load, USB signal integrity, enclosure/RF or manufacturer DFM validation was performed.",
+    "Hansaem production stackup and USB impedance remain unconfirmed as documented in DESIGN_RULES.md.",
+    "CI and human approval are separate from these local checks."
+  ]
+}

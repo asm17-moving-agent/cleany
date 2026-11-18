@@ -107,23 +107,65 @@ std::vector<uint8_t> SerialBus::transaction(
   }
   if (response_size < 0) {return {};}
   reading = true;
-  std::vector<uint8_t> response(response_size + 6);
-  offset = 0;
-  while (offset < response.size()) {
-    ready(POLLIN);
-    const auto n = ::read(fd_, response.data() + offset, response.size() - offset);
+  std::vector<uint8_t> response;
+  std::string invalid;
+  size_t received = 0;
+  // A delayed reply or a partial frame must not shift every subsequent read.
+  // Resynchronization shares the original deadline and a bounded byte budget.
+  while (true) {
+    while (response.size() >= 2) {
+      if (response[0] != 255 || response[1] != 255) {
+        if (invalid.empty()) {invalid = "response header";}
+        response.erase(response.begin());
+        continue;
+      }
+      if (response.size() < 4) {break;}
+      const size_t frame_size = response[3] + 4;
+      if (frame_size < 6 || frame_size > 38) {
+        invalid = "response length=" + std::to_string(response[3]);
+        response.erase(response.begin());
+        continue;
+      }
+      if (response.size() < frame_size) {break;}
+      checksum = 0;
+      for (size_t i = 2; i < frame_size; ++i) {checksum += response[i];}
+      if ((checksum & 255) != 255) {
+        invalid = "response checksum";
+        response.erase(response.begin());
+        continue;
+      }
+      if (response[2] != id) {
+        invalid = "response ID=" + std::to_string(response[2]);
+      } else if (response[4] != 0) {
+        throw MotorError("Motor error ID " + std::to_string(id) +
+          " status=" + std::to_string(response[4]));
+      } else if (response[3] != response_size + 2) {
+        invalid = "response length=" + std::to_string(response[3]) +
+          " expected=" + std::to_string(response_size + 2);
+      } else {
+        if (instruction == 2 && !invalid.empty()) {++read_recoveries_;}
+        return {response.begin() + 5, response.begin() + frame_size - 1};
+      }
+      response.erase(response.begin(), response.begin() + frame_size);
+    }
+    if (instruction != 2 && !invalid.empty()) {
+      throw InvalidResponse("Invalid " + invalid + " for ID " + std::to_string(id));
+    }
+    try {ready(POLLIN);}
+    catch (const ReadTimeout &) {
+      if (!invalid.empty()) {
+        throw InvalidResponse("Invalid " + invalid + " for ID " + std::to_string(id));
+      }
+      throw;
+    }
+    uint8_t bytes[64];
+    const auto n = ::read(fd_, bytes, sizeof(bytes));
     if (n < 0 && (errno == EAGAIN || errno == EINTR)) {continue;}
     if (n <= 0) {throw std::runtime_error("Serial read failed");}
-    offset += n;
+    received += static_cast<size_t>(n);
+    if (received > 256) {throw InvalidResponse("Response byte budget exceeded for ID " + std::to_string(id));}
+    response.insert(response.end(), bytes, bytes + n);
   }
-  checksum = 0;
-  for (size_t i = 2; i < response.size(); ++i) {checksum += response[i];}
-  if (response[0] != 255 || response[1] != 255 || response[2] != id ||
-    response[3] != response_size + 2 || (checksum & 255) != 255 || response[4] != 0)
-  {
-    throw std::runtime_error("Invalid checksum/ID/length or motor fault ID " + std::to_string(id));
-  }
-  return {response.begin() + 5, response.end() - 1};
 }
 
 std::vector<uint8_t> SerialBus::read(int id, int address, int size)
@@ -133,6 +175,7 @@ std::vector<uint8_t> SerialBus::read(int id, int address, int size)
   }
   const auto deadline = std::chrono::steady_clock::now() +
     std::chrono::milliseconds(read_budget_ms_);
+  const auto initial_recoveries = read_recoveries_;
   for (int attempt = 0; ; ++attempt) {
     const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
       deadline - std::chrono::steady_clock::now()).count();
@@ -143,9 +186,11 @@ std::vector<uint8_t> SerialBus::read(int id, int address, int size)
       auto result = transaction(id, 2,
         {static_cast<uint8_t>(address), static_cast<uint8_t>(size)}, size,
         read_retries_ > 0 ? std::min(timeout_ms_, static_cast<int>(remaining)) : timeout_ms_);
-      if (attempt > 0) {++read_recoveries_;}
+      if (attempt > 0 && read_recoveries_ == initial_recoveries) {++read_recoveries_;}
       return result;
-    } catch (const ReadTimeout &) {
+    } catch (const std::exception & error) {
+      if (dynamic_cast<const ReadTimeout *>(&error) == nullptr &&
+        dynamic_cast<const InvalidResponse *>(&error) == nullptr) {throw;}
       if (attempt >= read_retries_) {throw;}
       if (before_read_retry_) {before_read_retry_(id, address);}
     }

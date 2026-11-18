@@ -274,7 +274,7 @@ def test_open_grasp_collision_is_rejected_even_without_optional_closure_sweep(cl
     value = Candidate((.5, .2, .8), (1., 0., 0.), 1., 0, required_opening_m=.04)
 
     assert GraspSelector(port, config).select([value], required_arm='left') is None
-    assert openings == [('left', config.opening_to_joint_position(.04))]
+    assert openings == [('left', config.gripper_open_joint_rad)]
     assert len([call for call in port.calls if call[0] == 'valid']) == 2
     assert not any(call[0].startswith('plan') for call in port.calls)
 
@@ -601,15 +601,6 @@ def test_shorter_pregrasp_fallback_reuses_grasp_and_keeps_collision_checks(failu
     assert bool([c for c in port.calls if c[0].startswith('plan_')]) == collision_free
 
 
-def test_shorter_pregrasp_fallback_is_not_used_when_primary_succeeds():
-    port = GraspFirstPort()
-    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offset_m=.06)
-    assert GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
-    preparations = [c for c in port.calls if c[0] == 'seeded_pregrasp']
-    assert len(preparations) == 1
-    assert preparations[0][2].position[0] == pytest.approx(.42)
-
-
 @pytest.mark.parametrize('fallbacks', [(.06,), (.06, .04)])
 def test_shorter_pregrasp_fallback_uses_selected_endpoint_for_corridor_validation(fallbacks):
     port = GraspFirstPort()
@@ -712,12 +703,14 @@ def test_pregrasp_distance_sequence_stops_at_first_valid_ik(first_success, failu
         return result
 
     port.solve_pregrasp_ik = prepare
-    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04))
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04),
+                                  pregrasp_z_offset_m=.010)
     selected = GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
     assert (selected is not None) == (first_success is not None)
     preparations = [c for c in port.calls if c[0] == 'seeded_pregrasp']
     expected = [.08, .06, .04][:1+[.08, .06, .04].index(first_success)] if first_success else [.08, .06, .04]
-    assert [.5-c[2].position[0] for c in preparations] == pytest.approx(expected)
+    for call, distance in zip(preparations, expected, strict=True):
+        assert call[2].position == pytest.approx((.5-distance, .2, .81))
     assert all(c[3] == preparations[0][3] for c in preparations)
     assert len([c for c in port.calls if c[0] == 'grasp_first']) == 1
 
@@ -820,3 +813,48 @@ def test_invalid_gripper_margins_are_rejected():
     for margin in (-.001, .1, float('nan'), float('inf')):
         with pytest.raises(ValueError, match='margin'):
             GraspSelectionConfig(gripper_safety_margin_m=margin)
+
+
+@pytest.mark.parametrize('grasp_first', [True, False])
+@pytest.mark.parametrize('arm', ['left', 'right'])
+def test_full_open_and_z_offset_keep_final_tcp(grasp_first, arm):
+    class AlignedPort(FakePort):
+        def solve_aligned_ik(self, arm, target, seed):
+            self.calls.append(('aligned', arm, target, seed))
+            return PoseAlignment(JointSolution((f'{arm}_joint',), (target.position[0],)),
+                                 target, 0., 0., 0.)
+
+        solve_pregrasp_ik = solve_aligned_ik
+
+        def prepare_grasps(self, requests):
+            self.calls.append(('prepare', requests))
+
+        prepare_pregrasps = prepare_grasps
+
+        def set_gripper_position(self, arm, position):
+            self.calls.append(('opening', arm, position))
+
+    port = AlignedPort()
+    value = Candidate((.5, .2, .8), (.6, 0., -.8), 1., required_opening_m=.02)
+    config = GraspSelectionConfig(grasp_ik_first=grasp_first, pregrasp_z_offset_m=.010,
+                                  gripper_open_joint_rad=2.4173120563240813)
+    result = GraspSelector(port, config).select([value], required_arm=arm)
+    assert result is not None
+    baseline = GraspSelector.pregrasp_position(value)
+    expected = [(baseline[0], baseline[1], baseline[2]+.010), value.position]
+    if grasp_first:
+        expected.reverse()
+    targets = [c[2].position for c in port.calls if c[0] == 'aligned']
+    for target, position in zip(targets, expected, strict=True):
+        assert target == pytest.approx(position)
+    prepared = next(c[1] for c in port.calls if c[0] == 'prepare')
+    assert prepared[0].gripper_position == config.gripper_open_joint_rad
+    assert result.gripper_joint_position == config.gripper_open_joint_rad
+    assert [c for c in port.calls if c[0] == 'opening'] == [
+        ('opening', arm, config.gripper_open_joint_rad)]
+
+
+@pytest.mark.parametrize('offset', [float('nan'), float('inf'), -float('inf')])
+def test_pregrasp_z_rejects_nonfinite_values(offset):
+    with pytest.raises(ValueError, match='pregrasp Z'):
+        GraspSelectionConfig(pregrasp_z_offset_m=offset)

@@ -167,6 +167,21 @@ def requests(count=8, opening=.4):
             for i in range(count)]
 
 
+def test_deferred_gpu_candidate_retains_the_best_in_bounds_proposal():
+    adapter, _ = make_adapter(hybrid_config=HybridConfig(endpoint_margin_rad=.1))
+    gpu = _CandidateGpuAdapter(object(), adapter._config, owner=adapter,
+        gpu_config=adapter._gpu_config, engine=NS(), scene_client=object(),
+        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    gpu.validation_targets = set()
+    adapter._planning_position_bounds = lambda _: (-2., 2.)
+    target = requests(1)[0].target
+    near, inside = [PoseAlignment(JointSolution(ARM_JOINT_NAMES['left'],
+        (*target.position, 0., roll)), target, 0., 0., 0.) for roll in (1.95, 1.5)]
+    assert gpu._choose_batch('left', [[near, inside], [near]], [1.95, 1.95]) == [inside, None]
+    assert gpu._seed_bases('left', near.solution)[0].positions[-1] == pytest.approx(1.9)
+    assert near.solution.positions[-1] == 1.95
+
+
 def test_grasp_first_gpu_batch_is_final_pose_then_seeded_pregrasp_through_scene_port():
     from cleany_skill_executor.planning_scene import SceneAwarePort
     adapter, trace = make_adapter(hybrid_config=HybridConfig(
@@ -940,9 +955,56 @@ def test_candidate_cost_uses_active_arm_shapes_and_preserves_locked_joints(monke
     monkeypatch.setattr(RobotModel,'robot_config',lambda *args:deepcopy(original))
     model = _CandidateRobotModel.__new__(_CandidateRobotModel)
     model._exclude_opposite_arm_cost = True
+    model.limits = dict.fromkeys(ARM_JOINT_NAMES[arm], (-2., 2.))
     model._joint_links = ['left_jaw','right_jaw']
     kin = model.robot_config('runtime.urdf',arm,{},f'{arm}_grasp_tcp')['kinematics']
     assert set(kin['collision_link_names']) == {f'{arm}_jaw','base_link'}
     assert kin['lock_joints'] == original['kinematics']['lock_joints']
     assert set(kin['link_names']) == {f'{arm}_grasp_tcp','left_jaw','right_jaw'}
     assert spheres == {'left_jaw':[1], 'right_jaw':[2], 'base_link':[3]}
+
+
+@pytest.mark.parametrize('fault', ['none', 'first_fk', 'first_collision', 'scene_change'])
+def test_candidate_final_validation_is_integrated_once_and_scoped_to_batch(fault):
+    adapter, _ = make_adapter()
+    adapter.set_gripper_position('left', .4)
+    gpu = _CandidateGpuAdapter(object(), adapter._config, owner=adapter,
+        gpu_config=adapter._gpu_config, engine=NS(), scene_client=object(),
+        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    gpu.set_current_state(adapter._current_state)
+    adapter._gpu = lambda count: gpu
+    target = requests(1)[0].target
+    candidates = [PoseAlignment(JointSolution(ARM_JOINT_NAMES['left'],
+        (*target.position, 0., roll)), target, 0., 0., 0.) for roll in (0., .2)]
+    fk_calls, state_calls = [], []
+    original_fk = adapter.forward_kinematics
+    original_valid = adapter.state_is_valid
+    def fk(arm, solution):
+        fk_calls.append(solution)
+        return (PoseValue((9., 9., 9.), target.orientation_xyzw)
+                if fault == 'first_fk' and solution == candidates[0].solution
+                else original_fk(arm, solution))
+    def valid(arm, solution):
+        state_calls.append(solution)
+        return (False if fault == 'first_collision' and solution == candidates[0].solution
+                else original_valid(arm, solution))
+    adapter.forward_kinematics, adapter.state_is_valid = fk, valid
+    first, last = PlanningScene(), PlanningScene()
+    if fault == 'scene_change':
+        last.allowed_collision_matrix.entry_names = ['changed']
+    snapshots = iter([first, last])
+    gpu._snapshot = lambda: next(snapshots)
+    def solve(arm, targets, seeds):
+        with gpu._scene_operation():
+            return gpu._choose_batch(arm, [candidates])
+    gpu.solve_aligned_batch = solve
+    if fault == 'scene_change':
+        with pytest.raises(InfrastructureError, match='scene changed'):
+            adapter._batch('left', [target], [None], 16)
+    else:
+        result = adapter._batch('left', [target], [None], 16)[0]
+        assert result.solution == candidates[int(fault != 'none')].solution
+        assert len(fk_calls) == (1 if fault == 'none' else 2)
+        assert len(state_calls) == (2 if fault == 'first_collision' else 1)
+        assert adapter.last_ik_statistics['ik_diagnostics'][-1]['final_validation_integrated']
+    assert gpu.finalize_alignment is None and gpu.last_batch_finalizations == []

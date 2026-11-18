@@ -3,7 +3,9 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import json
 import pytest
-from cleany_skill_executor.core.collection import configuration_issues, load_arm, check_evidence
+from cleany_skill_executor.core.collection import (
+    configuration_issues, load_arm, check_evidence, selection_gripper_parameters,
+)
 from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 
@@ -15,6 +17,22 @@ def config():
             'arms':{'left':{'gripper':{'measured':True,
             'closed_joint_rad':-.2,'open_joint_rad':1.,'maximum_width_m':.08},
             'home_joint_rad':[0.]*5,'bins':{'recycling':[.1]*5}}}}
+
+
+@pytest.mark.parametrize('invalid', ['empty', 'unapproved', 'mismatched', 'reversed'])
+def test_selection_rejects_missing_or_incompatible_gripper_mapping(invalid):
+    settings = config()
+    if invalid == 'empty':
+        settings['arms'] = {}
+    elif invalid == 'unapproved':
+        settings['arms']['left']['gripper']['measured'] = False
+    elif invalid == 'reversed':
+        settings['arms']['left']['gripper']['open_joint_rad'] = -.4
+    else:
+        settings['arms']['right'] = deepcopy(settings['arms']['left'])
+        settings['arms']['right']['gripper']['open_joint_rad'] += .1
+    with pytest.raises(ValueError):
+        selection_gripper_parameters(settings)
 
 
 def test_repository_return_hold_profile_needs_no_destination_or_bin():

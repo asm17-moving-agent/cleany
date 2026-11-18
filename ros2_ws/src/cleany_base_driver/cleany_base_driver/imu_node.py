@@ -1,65 +1,70 @@
-"""MCU 전원 인가 시 수행한 보정 결과를 받아 실시간 자이로와 상태를 발행합니다."""
+"""Apply fixed factory gyro calibration on the Jetson host."""
 from __future__ import annotations
 
+from copy import deepcopy
 import math
 import time
 
 import rclpy
-from cleany_base_interfaces.msg import ImuState
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
+from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.clock import Clock, ClockType
 from rclpy.executors import ExternalShutdownException
+from rclpy.exceptions import ParameterUninitializedException
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
-from rclpy.time import Time
 from sensor_msgs.msg import Imu
 
-from .imu_core import ImuAdapter, ImuValidationError
+from .imu_core import FactoryCalibration, ImuAdapter, ImuValidationError
 
 
 class ImuDriver(Node):
-    """MCU 부팅 보정 결과를 검증해 원시 및 보정 자이로를 전달합니다.
+    """Validate raw IMU samples and subtract the configured factory gyro bias.
 
     Subscriptions:
-        base/imu_state (cleany_base_interfaces/msg/ImuState): MCU 측정 및 보정 상태.
+        imu_uncalibrated/data_raw (sensor_msgs/msg/Imu): Gyro in rad/s and
+            acceleration including gravity in m/s^2; Agent-synchronized
+            acquisition time. QoS: B1.
 
     Publishers:
-        imu/data_raw, imu/data (sensor_msgs/msg/Imu): 각각 원시 및 보정 각속도(rad/s).
-            보정값은 RUNNING 또는 FALLBACK 상태에서만 발행합니다.
-        imu/status, diagnostics (diagnostic_msgs/msg/DiagnosticArray): 보정 및 수신 상태.
-
-    QoS:
-        IMU 입력과 각속도 출력은 best_effort, volatile, depth 1입니다.
-        imu/status는 reliable, transient_local, depth 1입니다.
-
-    TF:
-        발행하지 않습니다. 메시지 좌표계는 frame_id의 기본값 imu_link입니다.
+        imu/data_raw (sensor_msgs/msg/Imu): Bias-corrected gyro and
+            unchanged acceleration in the sensor frame. QoS: B1.
+        imu/status (diagnostic_msgs/msg/DiagnosticArray): Input and fixed-bias
+            status; reliable, transient local, depth 1.
+        diagnostics (diagnostic_msgs/msg/DiagnosticArray): Same status, depth 10.
 
     Notes:
-        호스트에서 보정을 시작하거나 반복하지 않습니다. 자세와 선가속도는 제공하지
-        않으며 covariance[0]=-1로 표시합니다. steady timer로 입력 유실을 진단합니다.
+        Names are remappable defaults. Invalid, stale or unavailable inputs
+        produce no calibrated sample. Bias is read-only and never estimated.
+        Orientation is marked unavailable; mounting TF is supplied externally.
     """
 
     def __init__(self, parameter_overrides=None) -> None:
         super().__init__('cleany_imu', parameter_overrides=parameter_overrides or [])
         defaults = {
             'frame_id': 'imu_link',
-            'expected_device_mac': '',
+            'gyro_bias_rad_s': Parameter.Type.DOUBLE_ARRAY,
+            'gyro_covariance_rad2_s2': Parameter.Type.DOUBLE_ARRAY,
+            'calibration_source': 'configured_factory',
             'max_transport_delay_s': 0.1,
             'max_clock_jump_s': 0.05,
             'stale_timeout_s': 0.25,
         }
-        for name, value in defaults.items():
-            self.declare_parameter(name, value)
+        for name, default in defaults.items():
+            self.declare_parameter(name, default, ParameterDescriptor(read_only=True))
+
         def value(name: str):
             return self.get_parameter(name).value
 
-        self.frame_id = value('frame_id')
-        if not self.frame_id or self.frame_id.startswith('/') or any(
-                char.isspace() for char in self.frame_id):
-            raise ValueError('frame_id must be a nonempty relative sensor-frame name')
+        try:
+            bias, covariance = value('gyro_bias_rad_s'), value('gyro_covariance_rad2_s2')
+        except ParameterUninitializedException as error:
+            raise ValueError('factory gyro bias and covariance must be configured') from error
+        self.calibration = FactoryCalibration(tuple(bias), tuple(covariance))
+        self.source = value('calibration_source')
         self.adapter = ImuAdapter(
-            expected_device_mac=value('expected_device_mac'),
+            self.calibration, frame_id=value('frame_id'),
             max_transport_delay_s=value('max_transport_delay_s'),
             max_clock_jump_s=value('max_clock_jump_s'),
         )
@@ -69,15 +74,13 @@ class ImuDriver(Node):
         self.started_at = time.monotonic()
         qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT,
                          durability=DurabilityPolicy.VOLATILE)
-        self.raw = self.create_publisher(Imu, 'imu/data_raw', qos)
-        self.corrected = self.create_publisher(Imu, 'imu/data', qos)
+        self.corrected = self.create_publisher(Imu, 'imu/data_raw', qos)
         status_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
                                 durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.status = self.create_publisher(DiagnosticArray, 'imu/status', status_qos)
         self.diags = self.create_publisher(DiagnosticArray, 'diagnostics', 10)
-        self.create_subscription(ImuState, 'base/imu_state', self.on_state, qos)
+        self.create_subscription(Imu, 'imu_uncalibrated/data_raw', self.on_sample, qos)
         self.received = self.rejected = 0
-        self.last_sample: ImuState | None = None
         self.last_receipt: float | None = None
         self.last_error = self.last_rejection = ''
         self._last_status_key = None
@@ -87,84 +90,63 @@ class ImuDriver(Node):
         )
         self.publish_diagnostics()
 
-    def on_state(self, message: ImuState) -> None:
+    def on_sample(self, message: Imu) -> None:
+        """Publish corrected gyro measurements after input and time validation."""
         try:
-            stamp = self.adapter.stamp(
-                message, self.get_clock().now().nanoseconds, time.monotonic_ns()
+            if (message.angular_velocity_covariance[0] == -1.
+                    or message.linear_acceleration_covariance[0] == -1.):
+                raise ImuValidationError('gyro and acceleration must be available')
+            stamp = message.header.stamp
+            if not 0 <= stamp.nanosec < 1_000_000_000:
+                raise ImuValidationError('invalid ROS timestamp nanoseconds')
+            corrected = self.adapter.process(
+                stamp.sec * 1_000_000_000 + stamp.nanosec, message.header.frame_id,
+                (message.angular_velocity.x, message.angular_velocity.y,
+                 message.angular_velocity.z),
+                (message.linear_acceleration.x, message.linear_acceleration.y,
+                 message.linear_acceleration.z),
+                self.get_clock().now().nanoseconds, time.monotonic_ns(),
             )
         except ImuValidationError as error:
             self.rejected += 1
             self.last_error = self.last_rejection = str(error)
             self.publish_diagnostics()
             return
-        now = time.monotonic()
-        self.last_sample, self.last_receipt = message, now
+        output = deepcopy(message)
+        output.angular_velocity.x, output.angular_velocity.y, output.angular_velocity.z = corrected
+        output.angular_velocity_covariance = list(self.calibration.covariance)
+        output.orientation.x = output.orientation.y = output.orientation.z = output.orientation.w = 0.
+        output.orientation_covariance = [-1.] + [0.] * 8
+        self.corrected.publish(output)
+        self.last_receipt = time.monotonic()
         self.last_error = ''
         self.received += 1
-        self.raw.publish(self._message(stamp, message.angular_velocity_rad_s, (0.,) * 9))
-        if message.calibration_state in (ImuState.RUNNING, ImuState.FALLBACK):
-            self.corrected.publish(self._message(
-                stamp, message.corrected_angular_velocity_rad_s,
-                message.gyro_covariance_rad2_s2))
         self.publish_diagnostics()
-
-    def _message(self, stamp_ns: int, angular_velocity, covariance) -> Imu:
-        message = Imu()
-        message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
-        message.header.frame_id = self.frame_id
-        message.orientation_covariance[0] = -1.
-        message.linear_acceleration_covariance[0] = -1.
-        message.angular_velocity.x = angular_velocity[0]
-        message.angular_velocity.y = angular_velocity[1]
-        message.angular_velocity.z = angular_velocity[2]
-        message.angular_velocity_covariance = list(covariance)
-        return message
 
     def publish_diagnostics(self) -> None:
         now = time.monotonic()
         age = math.inf if self.last_receipt is None else now - self.last_receipt
-        sample = self.last_sample
-        selected = sample is not None and sample.calibration_state in (ImuState.RUNNING, ImuState.FALLBACK)
-        source = ('fallback' if sample.calibration_state == ImuState.FALLBACK else 'startup') if selected else 'none'
-        reason = 'waiting for MCU telemetry'
-        if sample is not None:
-            reason = {
-                ImuState.REASON_NONE: 'completed' if selected else 'MCU boot calibration',
-                ImuState.REASON_TIMEOUT: 'calibration timeout',
-                ImuState.REASON_SENSOR: 'sensor failure during calibration',
-                ImuState.REASON_UNSTABLE: 'unstable calibration',
-                ImuState.REASON_SAMPLE: 'invalid calibration sample or timing',
-            }.get(sample.calibration_reason, 'MCU calibration')
         if self.last_error:
             level, state, reason = DiagnosticStatus.ERROR, 'ERROR', self.last_error
         elif ((self.last_receipt is None and now - self.started_at > self.stale_timeout)
               or (self.last_receipt is not None and age > self.stale_timeout)):
             level, state, reason = DiagnosticStatus.ERROR, 'ERROR', 'stale IMU feedback'
-        elif not selected:
-            level, state = DiagnosticStatus.WARN, 'CALIBRATING'
-        elif sample.calibration_state == ImuState.FALLBACK:
-            level, state = DiagnosticStatus.WARN, 'FALLBACK'
+        elif self.last_receipt is None:
+            level, state, reason = DiagnosticStatus.WARN, 'WAITING', 'waiting for raw IMU'
         else:
-            level, state = DiagnosticStatus.OK, 'RUNNING'
-        bias = tuple(sample.gyro_bias_rad_s) if selected else ()
-        key = (state, reason, source, bias, sample.boot_id if sample is not None else None)
+            level, state, reason = DiagnosticStatus.OK, 'RUNNING', 'fixed factory bias applied'
+        key = (state, reason)
         if key == self._last_status_key and now - self._last_status_at < 1.:
             return
         values = {
-            'bias_source': source,
-            'bias_rad_s': bias,
+            'bias_source': 'factory', 'calibration_source': self.source,
+            'bias_rad_s': self.calibration.bias,
             'reason': reason, 'feedback_age_s': age,
             'received': self.received, 'rejected': self.rejected,
-            'calibration_applied': selected,
-            'timestamp_mode': 'receipt_anchored_mcu_intervals',
-            'sensor_frame': self.frame_id, 'last_rejection': self.last_rejection,
+            'calibration_applied': self.last_receipt is not None,
+            'timestamp_mode': 'agent_synchronized_acquisition',
+            'sensor_frame': self.adapter.frame_id, 'last_rejection': self.last_rejection,
         }
-        if self.last_sample is not None:
-            values.update({
-                'device_mac': ':'.join(f'{v:02x}' for v in self.last_sample.device_mac),
-                'boot_id': self.last_sample.boot_id, 'sequence': self.last_sample.sequence,
-                'temperature_c': self.last_sample.temperature_c,
-            })
         status = DiagnosticStatus(
             name='imu_driver', hardware_id='mpu6050', level=level, message=state,
             values=[KeyValue(key=k, value=str(v)) for k, v in values.items()],

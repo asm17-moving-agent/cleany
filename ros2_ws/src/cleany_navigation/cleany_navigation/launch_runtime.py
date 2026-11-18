@@ -20,7 +20,7 @@ from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_pa
 from cleany_navigation.bt_trace import describe_tree
 from cleany_navigation.motion_profile import resolve_motion_profile, motion_profile_arguments
 from cleany_navigation.traction_config import configure_retry
-from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
+from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry, load_navigation_model
 
 
 def nav2_nodes(parameters: str, map_yaml: str, use_sim_time: bool, autostart: bool) -> list:
@@ -76,8 +76,9 @@ def _launch(context: LaunchContext, *, safety: bool, lidar_only: bool = False) -
             validate_robot_parameters(robot, path.parent, use_sim_time=sim_time)
             guard = robot['voxel_guard']['ros__parameters']
             body = load_parameters(Path(guard['profile']))
-            description = Path(get_package_share_directory('cleany_description'))/'urdf/cleany.urdf.xacro'
-            urdf = ET.fromstring(xacro.process_file(str(description)).toxml())
+            description = Path(get_package_share_directory('cleany_description'))
+            urdf = load_navigation_model(description, body,
+                simulation=sim_time and guard.get('allow_simulation_limits', False))
             body = apply_simulation_geometry(urdf, body, allowed=sim_time and guard.get('allow_simulation_limits', False))
             forward_kinematics(urdf, body['park_joints'],
                 body.get('simulation_park_limits') if guard.get('allow_simulation_limits', False) else None)

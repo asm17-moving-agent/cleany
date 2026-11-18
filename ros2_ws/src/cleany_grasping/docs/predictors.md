@@ -44,12 +44,14 @@ flowchart TD
 | 옵션 | 일반 기본 / Sorting | 동작 |
 |---|---|---|
 | `search_approach_tilts` | 기존 단일 `approach_tilt_degrees` / true | `approach_tilt_options` 기본 0, 8, 16, 24° 평가 |
-| `include_reverse_closing_axis` | 선택 / sorting 활성 | 비대칭 jaw의 반대 closing 방향 추가 |
+| `include_reverse_closing_axis` | 선택 / sorting 비활성 | 비대칭 jaw의 반대 closing 방향 추가 |
 | `nms_rotation_threshold_degrees` | 20° / 5° | 접근각 후보가 NMS에서 합쳐지는 범위 조정 |
 | `approach_reference_positions` | `[0.0]` 비활성 / 양 어깨 xyz | Planning 좌표계 기준점을 평탄화한 배열; 어깨에서 물체로 향하는 수평 접근 생성 |
 | `reject_robot_opposite_approach` | 선택 | `robot_reference_position`에서 물체로 향하는 방향과 반대인 후보 제거 |
 | `prefer_upward_closing_axis` | false | 같은 점수에서 fixed-jaw 쪽 +closing이 위인 후보 우선; 진단용 |
 | 생성 예산 | 일반 demo 24 / sorting 96 | 실행 selector의 IK 예산은 24 유지 |
+
+실물 준비 자세 프로파일과 sorting launch는 반대 closing 방향을 끄고 yaw를 0°, ±20°, ±40°로 제한합니다.
 
 접근 tilt와 어깨 기준점은 교차 배분합니다. 반대 closing 방향에도 같은 short-axis 점수를 주어 후보 제한에서 사라지지 않게 합니다. 재관측은 기존 방향과 중심 연속성으로 먼저 선별합니다.
 

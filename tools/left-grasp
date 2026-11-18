@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export CLEANY_COLLECTION_ARM=left
+export CLEANY_ROBOT_STATE_PROFILE="${CLEANY_ROBOT_STATE_PROFILE:-${repo_root}/configs/robot/cad_grasp.json}"
+export CLEANY_COLLECTION_MOTION_BACKEND="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
+if [[ "${1:-run}" == check ]]; then
+  exec "${repo_root}/tools/robot-model" check
+fi
+exec "${repo_root}/tools/collection-runtime" "${@:-run}"

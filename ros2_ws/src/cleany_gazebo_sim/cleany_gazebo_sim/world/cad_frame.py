@@ -84,7 +84,8 @@ def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> lis
 def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tuple[ET.Element, dict]:
     import xacro
     profile = yaml.safe_load(config.read_text())
-    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro')).toxml())
+    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro'),
+        mappings={'model_profile': profile['model_profile']}).toxml())
     identity = description_identity(urdf, description)
     for mesh in urdf.findall('.//mesh'):
         filename = mesh.get('filename')
@@ -174,7 +175,8 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():
             ET.SubElement(plugin, key).text = value
     camera = transforms['head_camera_depth_frame']
-    metadata = dict(simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []),
+    metadata = dict(model_profile=profile['model_profile'],
+                    simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []),
                     description=identity, profile_sha256=hashlib.sha256(config.read_bytes()).hexdigest(),
                     adapter_origin_commit=profile.get('adapter_origin_commit', profile.get('source_commit')),
                     collision_bounds=bounds,

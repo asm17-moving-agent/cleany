@@ -1,0 +1,45 @@
+{
+  "motor_id": 6,
+  "units": "encoder_ticks",
+  "status": "manual_closed_open_references_operator_confirmed",
+  "operating_margin_ticks": null,
+  "endpoints": {
+    "decreasing": {
+      "position_ticks": 888,
+      "physical_reference": "closed",
+      "confirmation": "operator_positioned_and_confirmed",
+      "user_reply": "함",
+      "original_coordinate_ticks": 2936,
+      "original_homing_offset": 1715,
+      "homing_offset": -333,
+      "coordinate_shift_ticks": 2048,
+      "stable_samples": 40,
+      "sample_span_ticks": 0,
+      "measured_torque_enabled": false,
+      "source": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/gripper_manual_closed_latest.json"
+    },
+    "increasing": {
+      "position_ticks": 2074,
+      "physical_reference": "open",
+      "confirmation": "operator_positioned_and_confirmed",
+      "user_reply": "벌렸어",
+      "original_coordinate_ticks": 26,
+      "original_homing_offset": 1715,
+      "homing_offset": -333,
+      "coordinate_shift_ticks": 2048,
+      "stable_samples": 40,
+      "sample_span_ticks": 0,
+      "measured_torque_enabled": false,
+      "source": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/gripper_manual_open_latest.json"
+    }
+  },
+  "contact_range_ticks": null,
+  "calibrated_range_ticks": [
+    888,
+    2074
+  ],
+  "homing_offset": -333,
+  "applied_to_motor": true,
+  "applied_to_runtime_calibration": true,
+  "source_record": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/joint_6_endpoints.json"
+}

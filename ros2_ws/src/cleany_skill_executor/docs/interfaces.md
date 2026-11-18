@@ -120,3 +120,7 @@ Action 결과는 계획 근거이며 실물 수거 성공을 뜻하지 않는다
 | Service server | `/manipulation/check_evidence` | `cleany_interfaces/srv/CheckManipulation` | arm, reference, snapshot, object, destination과 after stamp에 해당하는 근거 |
 
 근거의 나이와 모터와 카메라의 시간 차이를 검사하고 실패한 guard를 ready 메시지만으로 해제하지 않는다.
+
+선택기의 `pregrasp_z_offset_m`, `maximum_path_candidates`, `curobo_ik_endpoint_margin_rad`와 공통 실행 설정은 [공통 파지 설정](shared-grasp-policy.md)을 따른다. ROS endpoint와 메시지 타입은 바뀌지 않는다.
+
+실물 지원 launch의 `start_head_camera=false`는 기존 헤드 RGB-D와 TF bridge를 공유하며, GPU 선택기·장면 처리·ValidatePick은 계속 시작한다. 기본값 true는 기존 센서 시작 동작을 유지한다. [공유 계약](shared-grasp-policy.md#dev-monitor와-운영-인식-공유)을 따른다.

@@ -189,3 +189,6 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 승인 제안 adapter는 인식 snapshot과 같은 header의 debug image를 구독해 승인 대상
 표시와 근거 이미지를 저장합니다. 이 작업별 이미지 소비는 연속 카메라 미리보기의
 구독·lease·캐시와 별개입니다. JPEG 변환은 telemetry의 공통 변환 함수를 사용합니다.
+
+
+저장 실행 환경의 `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`는 기존 인식과 헤드 RGB-D를 공유한다. 웹과 작업 프로세스는 ROS 초기화 전에 `CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION`을 적용하며 기본값은 `rmw_fastrtps_cpp`다. 시작 전 읽기 전용 준비 검사와 RPC 응답을 확인하고, 종료 시 공유 제공자를 유지한다. HTTP·ROS endpoint와 요청 형식은 바뀌지 않는다.

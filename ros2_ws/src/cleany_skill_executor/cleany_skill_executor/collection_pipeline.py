@@ -38,6 +38,7 @@ from .core.cartesian import (
 )
 from .core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PlannedPath, PoseValue
 from .core.alignment import rotation_from_quaternion, quaternion_from_rotation
+from .core.grasp_approach_bounds import active_grasp_approach_yaw, grasp_approach_yaw_scope
 from .core.approach_path import (
     ApproachRoute, CartesianPathUnavailable, approach_detours, validate_detour_samples,
 )
@@ -747,6 +748,8 @@ class CollectionPipeline(PregraspPipeline):
         request.jump_threshold = 2.
         request.revolute_jump_threshold = .15
         request.avoid_collisions = check_collisions
+        if active_grasp_approach_yaw.get() is not None:
+            request.path_constraints = self.motion._grasp_approach_constraints(arm)
         response = self.call(self.cartesian, request, 30.)
         if not math.isfinite(response.fraction) or not 0 <= response.fraction <= 1:
             raise RuntimeError(f'{stage}: invalid Cartesian path fraction')
@@ -987,6 +990,11 @@ class CollectionPipeline(PregraspPipeline):
         return self.real.monitor()
 
     def approach_target(self, selected, report: dict):
+        real = getattr(self, 'real', None)
+        with grasp_approach_yaw_scope(getattr(real, 'grasp_approach_yaw', None)):
+            return CollectionPipeline._scoped_approach_target(self, selected, report)
+
+    def _scoped_approach_target(self, selected, report: dict):
         """Use corrected selection goals; inspect the physical fixed-finger path."""
         if not self.config.get('pregrasp_motion_enabled', True):
             return self.move_direct_to_grasp(selected, report)
@@ -1425,6 +1433,12 @@ class CollectionPipeline(PregraspPipeline):
         }
 
     def visual_approach(self, selected, before_observation, after_observation, report):
+        real = getattr(self, 'real', None)
+        with grasp_approach_yaw_scope(getattr(real, 'grasp_approach_yaw', None)):
+            return CollectionPipeline._scoped_visual_approach(
+                self, selected, before_observation, after_observation, report)
+
+    def _scoped_visual_approach(self, selected, before_observation, after_observation, report):
         """Reobserve each segment, rejecting one-frame centroid jumps near the jaws."""
         if before_observation is None or after_observation is None:
             raise RuntimeError('Visual approach requires before/after RGB-D observations')
@@ -1674,6 +1688,8 @@ class CollectionPipeline(PregraspPipeline):
         # from the same live state used by the joint planner and endpoint FK.
         self.motion.set_current_state(m.start_state.joint_state)
         m.start_state.is_diff = True
+        if active_grasp_approach_yaw.get() is not None:
+            m.path_constraints = self.motion._grasp_approach_constraints(arm)
         m.goal_constraints = [Constraints(joint_constraints=[
             JointConstraint(joint_name=n, position=q, tolerance_above=1e-4,
                             tolerance_below=1e-4, weight=1.)
@@ -1746,7 +1762,8 @@ class CollectionPipeline(PregraspPipeline):
             dimensions=[getattr(selected.selected_object.obb_size,a) for a in ('x','y','z')])]
         obj.primitive_poses = [deepcopy(selected.selected_object.obb_pose)]
         payload = AttachedCollisionObject(link_name=f'{arm}_gripper_frame', object=obj,
-            touch_links=[f'{arm}_gripper_frame',f'{arm}_moving_jaw_link'])
+            touch_links=list(self.config['arms'][arm].get('touch_links',
+                        [f'{arm}_gripper_frame', f'{arm}_moving_jaw_link'])))
         scene = PlanningScene(is_diff=True)
         scene.robot_state.is_diff = True
         scene.robot_state.attached_collision_objects = [payload]

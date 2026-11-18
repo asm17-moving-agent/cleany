@@ -4,6 +4,44 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 83 최신 main 통합 검증 (2026-11-18)
+
+PR head `6435ab4f25d4e2ac6bc63ef2559ddd862fab63a7`에 main
+`f45801bc046cbeada19c1ace1ee8acb4273cb0a7`을 merge했다. 최종 통합 commit과
+파일 hash는 아래 실행 원본의 `result.json`과 `source-sha256.json`에 기록한다.
+main의 보정 URDF, 펌웨어, 보정 설정과 runtime GLB 218개, PR의 simulation
+collision STL 330개를 원본과 대조했다. 이 자산을 재생성하지 않았다.
+
+노트북의 Ubuntu 22.04.5 ARM64 격리 컨테이너에서 ROS 2 Humble과 Python
+3.10.12를 사용했다. JTC는 main이 요구하는 2.53.3, robot_localization은
+3.5.4, MoveIt/Pilz는 2.5.10, BehaviorTree.CPP는 4.10.0이다. 입력은 저장소
+모델과 보정, 합성 센서/관절 상태, 가짜 Action 서버와 serial emulator다.
+로컬 환경의 Python/ROS 의존성 전체가 CI 고정 버전과 같지는 않으며 차이는
+`version-comparison.log`에 남겼다. amd64 CI 결과와 별개의 로컬 검증이다.
+
+32개 패키지 빌드와 Gazebo Fortress 환경 확인을 완료했다. 전체 workspace 실행과
+BT 분리 후 해당 패키지 재검사의 colcon 집계는 **6,312 tests, 0 errors,
+0 failures, 70 skipped**다. CTest 항목을 포함한 집계이며 GPU와 명시 runtime
+환경이 필요한 기존 제외 조건은 유지했다. Navigation runtime과
+CAD 소비자 경계 5개, controller emulator 36개, 이벤트 JTC GenericSystem 기능
+34개, Phone UI 빌드와 입력 17개, CI 도구 43개가 통과했다. README asset 16개
+해시와 문서 reader/guide 재생성 일치도 확인했다. 검사 묶음은 일부 겹친다.
+
+초기 환경에는 JTC 버전 불일치와 robot_localization/gdb 누락이 있었다.
+CI 이미지에도 preflight가 요구하는 gdb 설치를 명시했다.
+보정 전 관절 영점, 그리퍼 encoder와 이전 피드백 API를 사용하던 테스트 입력은
+현재 main 계약으로 수정했다. BT DDS 검사 34개를 한 파일에서 실행하면 로컬
+60초 예산을 넘는 사례가 있어 MuJoCo/Jetson 서버별 17개씩 분리했다.
+전체 34개가 중복/누락 없이 포함되는지 확인했으며 개별 요청과 취소, 종료의
+제한시간 및 안전 검증은 유지했다. 초기 실패와 진단 로그도 원본에 보존한다.
+
+실행 원본은 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr83-latest-main/`이다.
+컨테이너의 이벤트 제어기 결과에 있는 `scope` 문구는 도구 기본값이며 실제 실행
+호스트와 환경은 이 기록 및 `environment.txt`를 따른다. 성능 비교는 수행하지 않았다.
+Jetson 재검증은 사용자 요청으로 후속 작업으로 남겼다. 실물 주행과 정리,
+펌웨어 배포, 운영 서비스 변경은 하지 않았다. CI와 사람 승인, main 병합 상태는
+[PR #83](https://github.com/asm17-moving-agent/cleany/pull/83)에서 별도로 확인한다.
+
 ## Phone 주행, 문서와 telemetry 통합 검증 (2026-11-15)
 
 `main`의 `22c2956b`와 `refactor/docs-and-navigation`의 `66c3b913`을
@@ -31,6 +69,122 @@ Jetson Ubuntu 22.04 ARM64의 별도 설치에 관련 27개 패키지와 BT 패�
 입력 브랜치, 소스 hash, 환경, 실패와 최종 로그 및 JUnit 원본은
 `CLEANY_DATA_ROOT/runs/platform/2026-11-15_docs-navigation-integration/validation/`에
 보관한다. GitHub CI와 사람 승인 상태는 [통합 PR #83](https://github.com/asm17-moving-agent/cleany/pull/83)에서 확인한다.
+
+## 2026-11-18 이벤트 궤적 제어기 분리 검증
+
+`b991ce5f332f56717dbecc836b5ac93610bad479` 기반의
+`codex/event-trajectory-controller` 작업 트리에서 이벤트 제어기와 프로파일 선택만
+분리했다. Jetson Ubuntu 22.04 ARM64, ROS 2 Humble, JTC 2.53.3에서 기존
+의존 overlay를 읽고 별도 build 및 install 경로를 사용했다.
+
+| 확인 대상 | 입력과 결과 |
+|---|---|
+| 프로파일 | 기존 기본값, 두 plugin의 선택, 1–100Hz 범위와 잘못된 설정 거부를 포함해 30개 통과 |
+| 빌드 | `cleany_trajectory_controller`, `cleany_robot_interface` 2개 패키지 성공 |
+| 종료 동작 | 가상 모터의 성공, 실패, 취소와 완료 경쟁, 명령 교체 및 비활성화 등 34개 통과 |
+| 벤치마크 실행 | 1블록, 방식별 유효 표본 4개로 세 비교 경로 실행 성공 |
+| 설치본 식별 | 프로세스 library map에서 이번 build의 plugin과 `/opt/ros/humble`의 JTC 로드 확인 |
+
+벤치마크는 localhost domain 219의 `GenericSystem`만 사용했다. 이번의 작은
+표본은 실행 경로 확인용이며 성능 결론에는 아래의 상세 측정을 참고한다.
+실패한 검사는 없었다. 빌드 시 기존 overlay 사용과 setuptools 사용 중단 예정
+경고가 있었으며 빌드는 성공했다. 실물 모터와 운영 서비스는 구동하지 않았다.
+
+입력 파일 해시, 적용 patch, 명령 로그와 `smoke/results.json`은 Jetson의
+`/home/cleany/cleany-data/runs/event-controller-commit-20261118.bxhy7fh0/`에 있다.
+
+## 2026-11-17 이벤트 결과 전달 상세 측정
+
+Jetson `e9ba5ff4d45ff5f42e1a4a0a69a65089d7c346bc` 기반 미커밋 후보를
+Ubuntu 22.04 ARM64, Humble과 JTC 2.53.3에서 측정한 과거 결과다.
+localhost domain 219에서 가상 제어기 4개 중 1개에 동일 난수 궤적을 입력했다.
+제어 주기는 50Hz이며, 방식별 24회씩 3블록을 실행하고 순서를 바꿨다.
+
+| 방식 | CPU 중앙값 | 결과 지연 중앙값 | 결과 지연 P95 |
+|---|---:|---:|---:|
+| 기존 20Hz | 4.687% | 32.365ms | 49.795ms |
+| 기존 100Hz | 9.687% | 9.657ms | 14.163ms |
+| 이벤트 20Hz | 5.005% | 5.630ms | 9.863ms |
+
+CPU는 논리 코어 하나 기준의 제어기 프로세스 사용률로 블록별 값의 중앙값이다.
+지연은 성공 로그부터 결과 callback까지이며 방식별 유효 표본 72개를 합산했다.
+실물 이동 시간이나 전체 수거 주기의 측정 결과는 아니다.
+
+후보와 운용 설치본에서 종료 동작 검사가 각각 34개 통과했다. 초기 빌드의
+logger 참조와 명령 교체 시 잘못된 상태 전이를 수정한 뒤 검증했다.
+측정 원본 `comparison/results.json`, `production-functional/results.json`과
+배포 해시 `deployment.json`은 Jetson의
+`/home/cleany/cleany-data/reports/action-event-notification-20261117/`에 보관한다.
+
+## 2026-11-16 LiDAR 평면 extrinsic
+
+`be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업트리에서 RPLIDAR A1M8
+(firmware 1.29, hardware 7)을 SDK 2.1.0 Sensitivity 모드로 측정했다.
+Fedora 44 호스트에서 수집하고 Ubuntu 22.04 Humble Distrobox에서 분석했다.
+새 180.0316초의 1,374회전, 원시점 1,408,222개 중 15~50 cm 유효점은
+43,533개다. 스캔 timeout은 0회였다.
+
+현재 `Cleany.FCStd`의 여섯 수직 프로파일 외곽과 0.02° 구간 중앙값 541개를
+정합했다. 적용값은 X 143.429742 mm, Y −1.191569 mm, yaw 179.997034°다.
+CAD 표면 잔차 RMSE는 4.7165 mm, 앞뒤 90초의 거리 차이 P95는 1.0 mm다.
+CAD SHA-256과 원시 CSV SHA-256은
+[`보정 파일`](../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)의
+`measurement`에 기록했다.
+
+원본은 `CLEANY_DATA_ROOT/runs/lidar-profile-180s-20261116-214104/`의
+`capture/raw_samples.csv`, `result.json`, `section_summary.json`,
+`extrinsic_comparison.json`과 분석 스크립트다. 분석 환경의 SciPy 1.8.0은
+NumPy 1.26.4 버전 경고를 출력했으며 좌표 변환, 선분 교차 검사와 분석은 완료됐다.
+
+`22c2956b` 기반 변경에서 `make test-odometry-evaluation` 268개와
+`run_wheel_only_eval.sh --dry-run`이 통과했다. 검증 로그는 같은 원본 경로의
+`pr-validation/`에 보존한다.
+
+## 2026-11-18 Decision 인식 경로
+
+`b991ce5f`에 Jetson `e9ba5ff4` 작업 트리의 인식 변경을 분리 적용했다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble에서 `cleany_perception` 빌드와
+인식, 컨테이너 계약 테스트 362개를 통과했다. 1개는 skip됐으며 이 검증에서
+외부 API, 실물 카메라와 모터는 사용하지 않았다.
+원본은 `CLEANY_DATA_ROOT/runs/pr-split-20261118-0412/`의
+`perception-build.log`, `perception-tests.log`에 있다.
+
+별도의 운영 검증에서는 머리 RGB-D 한 프레임으로 Decision 응답의 객체
+6개를 확인했다. 첫 호출이 시간 초과되어 두 번째 호출에서 성공했다.
+기하 정확도와 신뢰도 임계값은 이 실행에서 검증하지 않았다.
+원본은 `CLEANY_DATA_ROOT/runs/decision-operational-20261117.Qp03Xk/verification.json`이다.
+
+## Wheel/IMU EKF PR 분리 검증 (2026-11-16)
+
+고정 IMU 보정 `aa666358` 위에 EKF 연결을 적용한 작업 트리를 Ubuntu 22.04.5
+amd64 Distrobox, ROS 2 Humble과 `robot_localization` 3.5.4에서 검사했다.
+합성 IMU와 mock wheel을 localhost 전용 domain 182에서 연결했다.
+
+`make test-base-ekf test-base`에서 관련 패키지 3개 빌드, EKF와 공분산 검사
+10개가 통과했다. 센서 장착 회전, 공분산별 입력 기여와 shadow/canonical 모드의
+odom 및 TF 소유권을 확인했다. Colcon의 Python 검사 0개 수집을 보완한 전체
+base pytest는 139개가 통과했으며 전용 10개를 포함한다. 실물 주행, 시간 정렬과
+정확도 튜닝은 이 검사의 범위가 아니다.
+
+소스 patch, 환경, `ekf-validation.log`, `ekf-base-pytest.log`와 검증 JSON은
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+
+## 고정 IMU 보정 PR 분리 검증 (2026-11-16)
+
+`22c2956b` 기반 `08263ff4`의 IMU 변경을 Ubuntu 22.04 amd64 Distrobox,
+ROS 2 Humble에서 검사했다. 입력은 합성 IMU와 mock wheel이며 localhost 전용
+domain 181을 사용했다. EKF 연결을 제외한 독립 IMU 변경의 검증이다.
+
+`make test-imu-runtime test-motor-core test-micro-ros-setup test-base`에서 관련
+패키지 3개 빌드, IMU 검사 39개, C++ host 프로그램 9개와 준비 도구 15개가
+통과했다. Colcon은 Python 패키지 검사를 0개 수집하여 같은 설치의 전체 base
+pytest를 별도로 실행했고 129개가 통과했다. IMU 검사는 이 전체 검사와 중복된다.
+`make firmware-build`도 통과했다. 빌드에 `tests_require` 경고가 있었으며
+실물 업로드, 센서 수집과 주행은 실행하지 않았다.
+
+소스 사본, 분리 patch, 환경, 펌웨어 hash와 검사 로그는
+`CLEANY_DATA_ROOT/runs/imu-fusion-pr-20261116-u12m3m14/`에 보존한다.
+`imu-validation.log`, `imu-base-pytest.log`, `firmware-build.log`가 실행 원본이다.
 
 ## 운영 UI 제안과 승인 흐름 PR 검증 (2026-11-11)
 
@@ -61,6 +215,48 @@ macOS의 타입 검사와 웹 빌드, Playwright 46개도 통과했고 외부 �
 환경, 소스 패치, 초기 빌드 실패와 최종 로그, JUnit 원본은
 `/home/cleany/cleany-data/reports/pr78-local-validation-20261112/`에 보관한다.
 웹 검사 원본은 `/Users/hyeon/.codex/reports/cleany-pr78-local-20261112/`에 있다.
+
+## IMU 각속도 보정과 EKF 연동 검증 (2026-11-13)
+
+`feat/imu-wheel-odom`의 `6fba958b24cfe28fa68efa52983e56692de02574` 작업 트리에서
+host 고정 bias 보정과 wheel/gyro EKF 경로를 검사했다. Ubuntu 22.04 Distrobox의
+ROS 2 Humble, localhost 전용 domain 183에서 합성 IMU와 mock wheel을 사용했다.
+기존 gyro bias와 전체 공분산은 실행 전 설정과 동일하다.
+
+`make test-imu-runtime test-base-ekf BASE_TEST_ROS_DOMAIN_ID=183`으로 관련 패키지
+3개를 빌드하고 IMU 검사 39개, EKF 및 공분산 검사 10개를 통과했다. 앞서 실행한
+core 검사 29개는 IMU 검사에 포함된다. 영 가속도에서 각속도 보정과 전달,
+입력 오류 및 회복, 센서 축 변환과 두 실행 모드의 odom/TF 발행을 확인했다.
+최초 호스트 Python 실행은 pytest가 없어 종료했고 Distrobox에서 검사했다.
+실물 센서 수집과 주행은 실행하지 않았다.
+
+환경, 변경 전 사본, 패치와 로그는
+`CLEANY_DATA_ROOT/runs/imu-gyro-ekf-20261113-5af7dcev/`에 보존한다.
+
+## 고정 IMU 보정과 wheel EKF, ESP32 업로드 (2026-11-13)
+
+`feat/imu-wheel-odom`의 main 기반 `6fba958b24cfe28fa68efa52983e56692de02574`에
+작업 트리 패치를 적용했다. Fedora 호스트의 Ubuntu 22.04 Distrobox와 ROS 2
+Humble을 사용했으며, ROS 검사는 localhost 전용 domain 181의 합성 IMU와 mock
+wheel 입력으로 수행했다. 기존 `bench_20261014T142933Z/run06_persistent`의
+bias와 validation covariance가 설정값과 수치상 동일함을 확인했다.
+
+ROS 패키지 3개 빌드, IMU 전용 39개, EKF와 covariance 10개, driver/odometry
+전체 pytest 137개 및 C++ host 프로그램 9개가 통과했다. 전용 검사는 전체
+검사와 일부 중복된다. 이 환경의 colcon은 Python 패키지 검사를 0개로 수집해
+전체 pytest를 별도로 실행했다. 초기 domain 234 실행의 조기 종료, TF endpoint와
+실제 발행의 혼동, Humble callback API와 단일 wheel 표본 시각 jitter에 관한
+검사 실패를 보존하고 수정 후 전체 검사를 재실행했다.
+
+`make firmware-build` 후 모터 전원이 분리됐다는 사용자 확인 상태에서
+`make firmware-upload`를 실행했다. ESP32-S3 MAC `90:e5:b1:d5:3f:34`에
+bootloader, partition과 application을 기록했으며 esptool의 세 write hash 검증이
+통과했다. Application SHA-256은
+`e77d7143d7b952ea7ef0fdb44e128bfdee359a7f5fdd70b518e726b6863ac009`다.
+새 보정 측정, 실제 구동 명령과 실기기 ROS/EKF 실행은 수행하지 않았다.
+
+설정 사본, working-tree patch, 환경과 검증 JSON, 성공 및 실패 로그와 업로드
+이미지는 `CLEANY_DATA_ROOT/runs/imu-wheel-offline-20261113-c9ei25gh/`에 보존한다.
 
 ## PR 65 Feetech 패키지 통합 검증 (2026-11-05)
 
@@ -1873,3 +2069,24 @@ Jetson의 BT.CPP는 4.10.0이며 amd64 CI의 4.9.1 환경은 재실행하지 않
 `/Users/hyeon/.codex/reports/cleany-pr77-local-20261112/`에 보관한다.
 Jetson 원본은 `/home/cleany/cleany-data/reports/pr77-local-fix-20261112/`에 있다.
 해당 결과는 커밋과 푸시 전의 로컬 검증이며 GitHub CI 결과와 구분한다.
+
+## 2026-11-13 통합 컨트롤러 KiCad 소스 분리 검증
+
+`feat/integrated_controller`는 main `6fba958b24cfe28fa68efa52983e56692de02574`에서
+분기했다. 기존 `be4b8e70cb2a482ca00565190e9c5de61ab95a19` 작업 폴더의 저장된
+KiCad 파일을 가져왔으며 회로도, PCB, 제작 규칙과 라이브러리 원본 바이트를 유지했다.
+입력 SHA-256, 환경과 ERC/DRC 원본 보고서는
+[분리 검증 기록](../esp32/pcb/integrated_controller/validation/pr_import_20261113.json)에 보관한다.
+
+Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10에서 `make test-pcb`가 통과했다.
+로컬 Molex 모델이 있는 환경의 59개 검사는 모두 통과했다. Git 제외 파일을 제거한
+별도 복사본에서는 58개 통과, 로컬 전용 모델 해시 검사 1개 skip이었다.
+두 환경 모두 ERC, DRC, 미연결 네트와 회로도 일치 위반이 0건이었다.
+별도 센서 캐리어 초안의 ERC도 0건이며 부품 배치와 배선은 없는 상태다.
+기존 프로젝트에서 비활성화한 ERC/DRC 항목은 원본 보고서의 `ignored_checks`에 남겼다.
+
+실패한 검사는 없었다. 원본 명령 로그와 공개 파일 복사본은
+`CLEANY_DATA_ROOT/runs/integrated-controller-pr-20261113-egedos3h/`에 보관한다.
+펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 보드 기준이며 통합 보드 이식은 별도 작업이다.
+실물 전원 부하, USB 신호 품질, 기구/RF와 제조사 DFM은 검증하지 않았다.
+이 기록은 로컬 검증이며 CI 통과나 사람 승인, main 병합을 의미하지 않는다.

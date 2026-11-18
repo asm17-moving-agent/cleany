@@ -4,13 +4,15 @@
     hardware_velocity_rad_s: 2.0
     hardware_acceleration_rad_s2: 8.0
     hardware_trajectory_limit_scale: 1.0
-    hardware_path_step_rad: 0.02
     use_sim_time: false
     execution_use_verified_local_fk: true
     execution_timing_enabled: true
     hardware_reuse_settle_history: true
     hardware_reuse_scene_barrier: true
     hardware_parallel_model_queries: true
+    hardware_prepare_models_on_startup: true
+    hardware_prefetch_release_retreat: true
+    hardware_path_step_rad: 0.02
     hardware_sparse_cubic_commands: true
     hardware_share_return_preparation: true
     hardware_retime_retreat: true
@@ -26,7 +28,9 @@
     hardware_release_retreat_orientation_tolerance_deg: 2.0
     # Both arm and gripper goals must be accepted before the common start.
     hardware_return_start_delay_sec: 0.2
-    hardware_start_delay_sec: 0.3
+    hardware_start_delay_sec: 0.2
+    bt_wake_on_operation_complete: true
+    bt_reuse_final_stationary_history: true
     hardware_state_validity_batch_size: 64
     require_sensor_scene: true
     planning_scene_timeout_sec: 5.0

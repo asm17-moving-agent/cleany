@@ -15,6 +15,16 @@ class ReadTimeout : public std::runtime_error
 public:
   using std::runtime_error::runtime_error;
 };
+class InvalidResponse : public std::runtime_error
+{
+public:
+  using std::runtime_error::runtime_error;
+};
+class MotorError : public std::runtime_error
+{
+public:
+  using std::runtime_error::runtime_error;
+};
 // Feetech protocol 1, little-endian STS registers. No EEPROM write API.
 class SerialBus
 {

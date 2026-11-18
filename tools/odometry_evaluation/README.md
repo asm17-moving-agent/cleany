@@ -320,3 +320,6 @@ make test-odometry-evaluation
 ```
 
 Batch config, 변환, ICP, 공통 제어, 휠 진단 pytest와 Bash 문법을 검사하며 장치를 실행하지 않습니다.
+
+현재 기본 평가 config는 [2026-11-16 LiDAR extrinsic](../../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)을 사용합니다.
+LiDAR → base 변환은 X 0.143429742 m, Y −0.001191569 m, yaw 179.997034°이며 ICP 초기값과 결과 변환에 함께 적용합니다.

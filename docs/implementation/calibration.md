@@ -98,7 +98,7 @@ python3 tools/validation/slip_detection.py \
 
 ```bash
 ros2 launch cleany_description description.launch.py \
-  use_sim_time:=false model_profile:=jetson_20261009 \
+  use_sim_time:=false model_variant:=legacy_runtime model_profile:=jetson_20261009 \
   calibration_profile:=jetson_20261009
 ```
 
@@ -192,3 +192,59 @@ RViz에서 방향을 확인한 뒤 보완했다. 현재 영점은 이 미리보�
 `offset_rad`는 0이므로 해당 중앙값을 `zero_tick`으로 사용한다. 새 설정은
 읽기 전용 상태 조회 또는 제어 프로세스가 다음에 시작할 때 읽는다.
 원본 측정과 적용 근거는 [실행 근거](../EVIDENCE.md)를 따른다.
+
+## 2026-11-15 양팔 보정과 그리퍼 복원 기준
+
+양팔 모터의 영점과 범위는 [현장 보정 기록](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json)에 보관한다.
+이후 [개방 0° 보정](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/manifest.json)에서 그리퍼 6번과 12번만 갱신했다.
+
+| 모터 | Homing offset | 최대 개방 | 닫힘 목표 |
+| --- | ---: | ---: | ---: |
+| 6, 왼쪽 | −1400 | 2048 tick | 3868 tick |
+| 12, 오른쪽 | −1618 | 2048 tick | 3868 tick |
+
+모터 혼 정면에서 시계 방향 닫힘 160°는 1820 tick이다. 모터 보정 JSON,
+EEPROM 읽기 근거와 로봇별 설정에 병합할 조각은 스냅샷에 담았다.
+실측은 양쪽 닫힘 목표 도달을 확인했다. 왕복 동작, 개구 폭 곡선과 힘은
+이 측정에서 검증하지 않았다.
+
+운영 시 [양팔 매핑](../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml)은 같은 패키지의 `calibration/jetson_20261115_open160/motors/`에서 좌우 모터 JSON을 읽는다. 두 파일은 Jetson LeRobot 캐시의 운영 사본과 바이트 단위로 같다. [카메라 자세](../../configs/robot/jetson/calibration/camera_pose.json)는 이 매핑, 모터 보정과 기준 파일들의 SHA-256을 확인한다. 모델과 검증 입력 경로는 자세 파일을 기준으로 해석한다. 과거 촬영 기록에 남은 장비 경로는 당시 데이터의 출처다.
+
+## LiDAR 평면 extrinsic
+
+[`wheel_odometry_evaluation.json`](../../configs/mission/wheel_odometry_evaluation.json)은
+[`lidar_extrinsic_20261116.json`](../../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261116.json)을
+선택한다. `p_base = R(yaw) p_laser + t`이며 전진 +X는 CAD −Y,
+좌측 +Y는 CAD +X다. 평가기의 ICP 초기 추정과 결과 변환에 적용한다.
+
+| 항목 | 적용값 |
+|---|---:|
+| X | 0.143429742 m |
+| Y | −0.001191569 m |
+| yaw | 179.997034° |
+
+2026-11-16의 정지 스캔 180.03초를 현재 `Cleany.FCStd`의 여섯 수직 프로파일에
+정합한 값이다. 재측정 시 SDK 원시 각도와 거리를 보존하고, 라이다 높이의
+실제 홈과 곡면을 포함한 단면을 추출한다. 반복 관측의 각도별 중앙값을
+라이다에서 보이는 외곽 면에 정합한 뒤, 위 좌표계로 변환해 새 날짜의 파일에
+저장한다. 측정 원본과 검증은 [실행 근거](../EVIDENCE.md#2026-11-16-lidar-평면-extrinsic)에 연결한다.
+
+## IMU factory gyro bias
+
+Jetson은 [`imu_bringup.yaml`](../../ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml)의
+고정 gyro bias와 covariance를 사용한다. 부팅 시 자동 보정은 수행하지 않는다.
+
+기본값은 기존 `bench_20261014T142933Z/run06_persistent` 결과다. 기존 값을
+재사용할 때는 새 측정 없이 이 설정으로 실행한다. 다음 절차는 계수를 새로
+산출하기로 한 경우에만 수행한다.
+
+1. [독립 IMU 진단 절차](../../esp32/imu_calibration/README.md)에 따라 센서를 정지시키고
+   새 bench 측정과 검증 결과를 저장한다.
+2. 센서 축과 rad/s 단위를 확인하고 YAML의 `gyro_bias_rad_s`,
+   `gyro_covariance_rad2_s2`, `calibration_source`를 함께 갱신한다.
+3. 모터 runtime 펌웨어를 복원하고 host `imu_bringup.launch.py`를 재시작한다.
+4. `imu_uncalibrated/data_raw`, `imu/data_raw`, `imu/status`에서 정지 잔차, 계수 출처와
+   covariance를 확인한다. 측정 환경, code commit와 원본 위치를 결과에 남긴다.
+
+측정 결과는 런타임에 자동 적용되지 않는다. 데이터와 filter 계약은
+[IMU reference](../../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.

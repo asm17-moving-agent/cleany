@@ -1,5 +1,7 @@
 # FreeCAD 기준 모델
 
+실행 CAD는 [공통 CAD 런타임](runtime-model.md)에서 다룬다.
+
 `Cleany-final.FCStd`의 저장된 조립 형상을 `freecad_final` 모델로 제공한다.
 프레임, 양팔, PincOpen 집게, 손목 카메라, 헤드, 바퀴, 외장과 화면을 포함한다.
 관절을 움직이는 모델이 아니라 CAD에 저장된 한 자세의 정적 기준 모델이다.
@@ -18,7 +20,7 @@
 | `freecad_kinematic` | 추출한 축과 집게 핀 연동의 변화량 표시 | 영점·운용 제한·실물 접촉 미확정, 실제 제어용이 아님 |
 | `legacy_runtime` | 기존 URDF의 관절, MoveIt, 제어와 기존 보정 비교 | 새 CAD 형상을 반영한 실행 모델이 아님 |
 
-`description.launch.py`의 기본값은 `legacy_runtime`이다. CAD 미리보기는 명시적으로 선택한다. 기존 직접 진입점인
+`description.launch.py`의 기본값은 `freecad_calibrated`이다. 정적 미리보기는 `model_variant:=freecad_final`로 선택한다. 기존 직접 진입점인
 `cleany.urdf.xacro`, `cleany_control.urdf.xacro`와 `mjcf/cleany.xml`은 기존 실행
 모델을 유지한다. 새 정적 모델은 기존 관절명과 TCP를 제공하지 않으므로 기존
 MoveIt chain이나 컨트롤러 설정을 붙여 사용하지 않는다. 기존 실행기의 홈 자세,

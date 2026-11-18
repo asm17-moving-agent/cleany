@@ -1,8 +1,22 @@
 """공통 URDF 변환과 선택적 고정 관절 변환입니다."""
 from __future__ import annotations
 from copy import deepcopy
+from pathlib import Path
 from xml.etree import ElementTree as ET
 import numpy as np
+
+
+def load_navigation_model(description: Path, profile: dict, *, simulation: bool) -> ET.Element:
+    """Load calibrated motor coordinates unless a simulation model is explicit."""
+    variant = profile.get('model_profile', 'freecad_calibrated')
+    if variant == 'freecad_calibrated':
+        return ET.parse(description / 'urdf/cleany.urdf').getroot()
+    if not simulation or variant not in ('cad_final', 'jetson_20261009'):
+        raise ValueError(f'Uncalibrated navigation model requires simulation: {variant}')
+    import xacro
+    return ET.fromstring(xacro.process_file(
+        str(description / 'urdf/cleany.urdf.xacro'),
+        mappings={'model_profile': variant}).toxml())
 
 def rotation(rpy: list[float]) -> np.ndarray:
     r, p, y = rpy
@@ -66,7 +80,17 @@ def apply_simulation_geometry(urdf: ET.Element, profile: dict, *, allowed: bool)
 def freeze(urdf: ET.Element, joints: dict[str, float],
            simulation_limits: dict[str, list[float]] | None = None,
            keep_pan: bool = False) -> dict[str, np.ndarray]:
-    """sdformat이 고정 body 질량과 형상을 합치기 전에 관절 위치를 반영합니다."""
+    """Bake joint positions before sdformat merges fixed-body mass and geometry."""
+    requested = set(joints)
+    from cleany_description.cad_coordinates import CadCoordinates
+    cad = CadCoordinates.from_urdf(ET.tostring(urdf, encoding='unicode'))
+    if cad is not None:
+        joints = cad.expanded(joints)
+        for joint in urdf.findall('joint'):
+            mimic = joint.find('mimic')
+            if mimic is not None:
+                joints[joint.get('name')] = (joints[mimic.get('joint')]*float(mimic.get('multiplier', '1'))
+                                            +float(mimic.get('offset', '0')))
     simulation_limits = simulation_limits or {}
     if not set(simulation_limits) <= set(joints):
         raise ValueError("Simulation limit override must name a parked joint")
@@ -95,16 +119,19 @@ def freeze(urdf: ET.Element, joints: dict[str, float],
                 used.add(name)
                 edges.append((joint.find('parent').get('link'), joint.find('child').get('link'), pose))
                 continue
-            joint.find('origin').set('rpy', ' '.join(map(str, rpy(pose[:3, :3]))))
+            joint_origin = joint.find('origin')
+            if joint_origin is None:
+                joint_origin = ET.SubElement(joint, 'origin', xyz='0 0 0')
+            joint_origin.set('rpy', ' '.join(map(str, rpy(pose[:3, :3]))))
             joint.set('type', 'fixed')
-            for tag in ('axis', 'limit', 'dynamics'):
+            for tag in ('axis', 'limit', 'dynamics', 'mimic'):
                 for item in joint.findall(tag):
                     joint.remove(item)
             used.add(name)
         elif joint.get('type') != 'fixed' and not name.endswith('_wheel_joint'):
             raise ValueError(f'Unconfigured movable upper-body joint: {name}')
         edges.append((joint.find('parent').get('link'), joint.find('child').get('link'), pose))
-    if used != set(joints):
+    if not requested <= used:
         raise ValueError('Park profile contains unknown joints')
     transforms = {'base_link': np.eye(4)}
     while edges:

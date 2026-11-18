@@ -1,7 +1,8 @@
 """Derive cuRobo configuration from the installed, authoritative robot model.
 
-No source mesh or generated asset is changed. Sparse spheres guide cuRobo
-optimization; complete convex envelopes (including base) validate on CUDA.
+Sparse spheres guide cuRobo optimization without modifying source meshes.
+Legacy models validate convex envelopes on CUDA. Calibrated CAD reuses its
+primitive cache for IK and requires native MoveIt collision acceptance.
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ class CuRoboConfig:
     def __post_init__(self) -> None:
         if type(self.device_alignment_min_solutions) is not int or self.device_alignment_min_solutions < 0:
             raise ValueError('Device alignment minimum must be a nonnegative integer')
-        if self.sphere_model not in ('joint_simplified', 'generated'):
+        if self.sphere_model not in ('joint_simplified', 'joint_simplified_registered', 'generated', 'cad_cached'):
             raise ValueError('Unknown collision sphere model')
         if (not math.isfinite(self.collision_hull_max_expansion_m)
                 or self.collision_hull_max_expansion_m < 0):
@@ -102,6 +103,10 @@ class RobotModel:
 
         self.xml, self.config = urdf, config
         self.geometry_cache_hits = self.geometry_cache_misses = 0
+        from .cad_gpu_model import configure_cached_cad
+
+        if configure_cached_cad(self, urdf, srdf):
+            return
         cache_path = model_cache_path(urdf, srdf, config)
         self.full_geometry_cache_hit = load_model(cache_path, self)
         if self.full_geometry_cache_hit:
@@ -286,6 +291,10 @@ class RobotModel:
         names = [*REQUIRED_JOINT_NAMES,
                  *(name for name in ('head_pan_joint', 'head_tilt_joint') if name in self.limits)]
         self.validate_state(state)
+        cad = getattr(self, 'cad_coordinates', None)
+        if cad is not None:
+            state = cad.expanded(state)
+            names.extend(cad.dependent_names)
         if arm not in ARM_JOINT_NAMES or tip not in (
             f"{arm}_grasp_tcp",
             f"{arm}_pregrasp_aim_tip",
@@ -297,7 +306,7 @@ class RobotModel:
                 "urdf_path": path,
                 "base_link": "base_link",
                 "ee_link": tip,
-                "link_names": [tip],
+                "link_names": [tip, *getattr(self, 'kinematic_links', ())],
                 "collision_link_names": list(self.spheres),
                 "collision_spheres": self.spheres,
                 "collision_sphere_buffer": 0.0,
@@ -325,6 +334,10 @@ class RobotModel:
             }
         }
         return robot
+
+    def kinematic_state(self, state):
+        cad = getattr(self, 'cad_coordinates', None)
+        return cad.expanded(state) if cad is not None else state
 
     def validate_state(self, state: dict[str, float]) -> None:
         if set(state) != set(self.limits):

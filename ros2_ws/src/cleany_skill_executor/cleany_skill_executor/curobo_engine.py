@@ -153,7 +153,8 @@ class CuRoboEngine:
                 self.resources.world_checker = solver.world_coll_checker
                 self.resources.world_key = repr(world)
         solver = self._ik[key]
-        locks = {n: v for n, v in state.items() if n not in ARM_JOINT_NAMES[arm]}
+        expanded = self.model.kinematic_state(state)
+        locks = {n: v for n, v in expanded.items() if n not in ARM_JOINT_NAMES[arm]}
         if locks != self._ik_locks[key]:
             self._update_ik_locked_joints(solver, arm, tip, state, locks, self._ik_locks[key])
             self._ik_locks[key] = locks
@@ -272,7 +273,8 @@ class CuRoboEngine:
         """Evaluate device joint rows without exporting intermediate FK poses."""
         self.model.validate_state(state)
         model = self._full_fk(state)
-        full = self.tensor.to_device([[state[name] for name in model.joint_names]]).repeat(len(joints), 1)
+        expanded = self.model.kinematic_state(state)
+        full = self.tensor.to_device([[expanded[name] for name in model.joint_names]]).repeat(len(joints), 1)
         indices = [model.joint_names.index(name) for name in ARM_JOINT_NAMES[arm]]
         full[:, indices] = joints.to(dtype=full.dtype)
         result = model.get_state(full)
@@ -309,7 +311,8 @@ class CuRoboEngine:
             ]
             robot["kinematics"].update(
                 lock_joints={},
-                link_names=list(dict.fromkeys(self.model.collision_links + tips)),
+                link_names=list(dict.fromkeys(self.model.collision_links + tips +
+                    list(getattr(self.model, 'kinematic_links', ())))),
                 collision_spheres=None,
                 collision_link_names=None,
                 self_collision_ignore={},
@@ -329,7 +332,8 @@ class CuRoboEngine:
         q = self.tensor.to_device(positions)
         if q.ndim != 2 or q.shape[1] != len(names) or q.shape[0] == 0:
             raise ValueError("invalid GPU validation shape")
-        full = self.tensor.to_device([[state[n] for n in model.joint_names]]).repeat(
+        expanded = self.model.kinematic_state(state)
+        full = self.tensor.to_device([[expanded[n] for n in model.joint_names]]).repeat(
             q.shape[0], 1
         )
         full[:, [model.joint_names.index(n) for n in names]] = q
@@ -337,6 +341,8 @@ class CuRoboEngine:
 
     def valid_states(self, names, positions, state, world, acm):
         """One GPU batch for bounds, complete robot envelopes and ACM pairs."""
+        if getattr(self.model, 'cad_coordinates', None) is not None:
+            raise ValueError('Calibrated CAD collision acceptance requires native MoveIt hybrid validation')
         from types import SimpleNamespace
         from cleany_skill_executor.curobo_collision import GpuCollisionValidator
 

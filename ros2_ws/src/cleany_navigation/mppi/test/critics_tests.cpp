@@ -17,6 +17,7 @@
 #include <thread>
 
 #include "gtest/gtest.h"
+#include "utils/test_costmap.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "cleany_navigation/mppi/tools/utils.hpp"
 #include "cleany_navigation/mppi/motion_models.hpp"
@@ -49,7 +50,7 @@ TEST(CriticTests, ConstraintsCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -119,7 +120,7 @@ TEST(CriticTests, ConstraintsCritic)
 
 TEST(CriticTests, ObstacleCriticMisalignedParams) {
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   auto getParam = param_handler.getParamGetter("critic");
@@ -139,7 +140,7 @@ TEST(CriticTests, ObstacleCriticMisalignedParams) {
 
 TEST(CriticTests, ObstacleCriticAlignedParams) {
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   auto getParam = param_handler.getParamGetter("critic");
@@ -158,7 +159,7 @@ TEST(CriticTests, ObstacleCriticAlignedParams) {
 TEST(CriticTests, CostCriticMisAlignedParams) {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -178,7 +179,7 @@ TEST(CriticTests, CostCriticMisAlignedParams) {
 TEST(CriticTests, CostCriticAlignedParams) {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -196,7 +197,7 @@ TEST(CriticTests, GoalAngleCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -248,7 +249,7 @@ TEST(CriticTests, GoalCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -297,7 +298,7 @@ TEST(CriticTests, PathAngleCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -493,7 +494,7 @@ TEST(CriticTests, PreferForwardCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -546,7 +547,7 @@ TEST(CriticTests, TwirlingCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -606,7 +607,7 @@ TEST(CriticTests, PathFollowCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -654,7 +655,7 @@ TEST(CriticTests, PathAlignCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -760,7 +761,7 @@ TEST(CriticTests, PathAlignLegacyCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   rclcpp_lifecycle::State lstate;
@@ -864,7 +865,7 @@ TEST(CriticTests, VelocityDeadbandCritic)
 {
   // Standard preamble
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("my_node");
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "dummy_costmap", "", "dummy_costmap");
   ParametersHandler param_handler(node);
   auto getParam = param_handler.getParamGetter("critic");

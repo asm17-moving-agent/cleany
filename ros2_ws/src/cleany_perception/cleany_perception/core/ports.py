@@ -20,6 +20,15 @@ class DetectorPort(Protocol):
         """RGB 영상 하나의 검증된 픽셀 공간 검출을 반환합니다."""
 
 
+class SemanticClassifierPort(Protocol):
+    def prepare(self) -> None:
+        """Validate local configuration without issuing inference requests."""
+
+    def classify(self, rgb: RgbArray,
+                 detections: Sequence[Detection2D]) -> tuple[Detection2D, ...]:
+        """Preserve instance geometry and order while assigning semantics."""
+
+
 class SegmenterPort(Protocol):
     def segment(
         self,

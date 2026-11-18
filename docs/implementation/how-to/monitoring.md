@@ -230,3 +230,8 @@ ros2 launch cleany_bringup pose_observation.launch.py enable_backend:=true \
 다시 활성화하면 명시한 옵션만 덮어쓰고 나머지 저장값을 유지한다. 저장값을 제거하려면
 유휴 상태에서 해당 항목을 삭제한다. 저장 경로, 인증, 중복 실행 방지와 결과 해석은
 [운영 제어 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#운영-제어와-상태)을 따른다.
+
+공유 인식 구성은 `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`와
+`CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION`으로 선택합니다. 시작 전 읽기 전용
+준비 검사와 RPC 응답을 확인하고, 종료 시 기존 인식 제공자를 유지합니다.
+[공유 인식 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md)을 따릅니다.

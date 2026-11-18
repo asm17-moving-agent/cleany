@@ -163,6 +163,7 @@ def test_validate_pick_filters_before_sam_and_forwards_moveit_result(failure_sta
     executor.add_node(client_node)
     thread = threading.Thread(target=executor.spin, daemon=True)
     thread.start()
+    client = None
     try:
         client = ActionClient(client_node, ValidatePick, '/test/validate')
         assert client.wait_for_server(timeout_sec=2.0)
@@ -186,6 +187,8 @@ def test_validate_pick_filters_before_sam_and_forwards_moveit_result(failure_sta
     finally:
         executor.shutdown()
         thread.join(timeout=2.0)
+        if client is not None:
+            client.destroy()
         inspect_server.destroy()
         selection_server.destroy()
         fake.destroy_service(grasp_service)
@@ -193,3 +196,7 @@ def test_validate_pick_filters_before_sam_and_forwards_moveit_result(failure_sta
         fake.destroy_node()
         client_node.destroy_node()
         rclpy.shutdown()
+        # Action waitable이 context 종료 후 GC까지 남지 않아야 합니다.
+        assert not tuple(node.waitables)
+        assert not tuple(client_node.waitables)
+        assert not tuple(fake.waitables)

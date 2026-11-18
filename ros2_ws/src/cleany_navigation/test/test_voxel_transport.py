@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import os
 import pytest
 
 rclpy = pytest.importorskip('rclpy')
@@ -23,7 +24,7 @@ def test_xyz_roundtrip_empty_cloud_and_truncation():
 
 
 def test_memory_node_initial_map_publishes_3d_metadata(tmp_path, monkeypatch):
-    monkeypatch.setenv("ROS_DOMAIN_ID", "222")
+    monkeypatch.setenv("ROS_DOMAIN_ID", os.environ.get("CLEANY_TEST_ROS_DOMAIN_ID", "222"))
     rclpy.init(args=['--ros-args', '-p', f'output_directory:={tmp_path}',
                     '-p', 'publish_3d:=true', '-p', 'mark_all_depth_points:=true'])
     node = None
@@ -51,7 +52,7 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
     from types import SimpleNamespace
     from geometry_msgs.msg import TransformStamped
     from sensor_msgs.msg import LaserScan
-    monkeypatch.setenv('ROS_DOMAIN_ID', '222')
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', '222'))
     rclpy.init(args=['--ros-args', '-p', 'publish_3d:=true'])
     node = ObstacleMemoryNode()
     try:
@@ -102,7 +103,7 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
 
 def test_expired_evidence_is_unknown_in_diagnostics_but_blocks_shared_navigation(monkeypatch):
     from types import SimpleNamespace
-    monkeypatch.setenv('ROS_DOMAIN_ID', '222')
+    monkeypatch.setenv('ROS_DOMAIN_ID', os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', '222'))
     rclpy.init(args=['--ros-args', '-p', 'publish_3d:=true'])
     node = ObstacleMemoryNode()
     try:

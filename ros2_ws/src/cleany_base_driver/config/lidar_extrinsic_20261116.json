@@ -1,0 +1,47 @@
+{
+  "yaw_deg": 179.99703389438147,
+  "lever_arm_x_m": 0.1434297415005268,
+  "lever_arm_y_m": -0.0011915687698364752,
+  "sensor_frame": "laser",
+  "base_frame": "base_link",
+  "calibrated_dof": [
+    "x",
+    "y",
+    "yaw"
+  ],
+  "transform": "p_base = R(yaw) p_laser + t",
+  "physical_direction_anchor": {
+    "front": "CAD -Y maps to physical base +X",
+    "left": "CAD +X maps to physical base +Y"
+  },
+  "measurement": {
+    "date": "2026-11-16",
+    "source_commit": "be4b8e70cb2a482ca00565190e9c5de61ab95a19",
+    "data_root": "CLEANY_DATA_ROOT",
+    "source": "runs/lidar-profile-180s-20261116-214104/result.json",
+    "fit_source": "runs/lidar-profile-180s-20261116-214104/section_summary.json",
+    "model": "A1M8",
+    "firmware": "1.29",
+    "hardware_revision": 7,
+    "mode": "Sensitivity",
+    "duration_s": 180.03163492,
+    "stationary_scan_count": 1374,
+    "raw_sample_count": 1408222,
+    "valid_15_to_50_cm_count": 43533,
+    "cad_source": "../cleany_cad/cad/Cleany.FCStd",
+    "cad_source_sha256": "e3e19ce0f9d16ca9c146e0a34fb74e1c00ea9a319ccac7b47ae47780a0db2bd9",
+    "raw_samples_sha256": "6ae244ebdb70d17aba2a051a381c842d411c3860808c6e8c9acd98f9cba5a191",
+    "profiles": [
+      "InstalledProfile00",
+      "InstalledProfile01",
+      "InstalledProfile02",
+      "InstalledProfile03",
+      "InstalledProfile21",
+      "InstalledProfile22"
+    ],
+    "fit_method": "Equal-profile-weighted soft-L1 point-to-visible-CAD-exterior fit of 0.02-degree polar medians",
+    "fit_point_count": 541,
+    "surface_rmse_mm": 4.716463208756097,
+    "temporal_range_difference_p95_mm": 1.0
+  }
+}

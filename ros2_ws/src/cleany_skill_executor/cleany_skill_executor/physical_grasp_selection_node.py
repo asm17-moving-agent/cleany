@@ -50,6 +50,7 @@ from cleany_skill_executor.core.fixed_jaw_clearance import (
 from cleany_skill_executor.fixed_jaw_geometry import load_fixed_jaw_bounds, target_box
 from cleany_skill_executor.sensor_scene import SensorSceneMonitor
 from cleany_skill_executor.physical_moveit_adapter import MoveItAdapterConfig, MoveItGraspAdapter
+from cleany_skill_executor.core.grasp_approach_bounds import declare_grasp_approach_yaw
 from cleany_skill_executor.planning_scene import SceneAwarePort, TargetSceneTransaction
 
 
@@ -81,6 +82,7 @@ class GraspSelectionNode(Node):
             'motion_backend': 'moveit',
             'curobo_num_seeds': 32,
             'curobo_ik_primary_seeds': 16,
+            'curobo_ik_endpoint_margin_rad': 0.0,
             'curobo_ik_fallback_seeds': 32,
             'curobo_ik_batch_size': 8,
             'curobo_ik_iterations': 50,
@@ -98,6 +100,7 @@ class GraspSelectionNode(Node):
             'curobo_ik_vlm_warmup_enabled': False,
             'curobo_ik_vlm_warmup_arms': ['right', 'left'],
             'curobo_ik_vlm_warmup_window_sec': 30.0,
+            'selection_overlap_sensor_wait': False,
             'state_validity_batch_size': 32,
             'curobo_ik_cpu_fallback': False,
             'curobo_planning_retries': 1,
@@ -137,11 +140,11 @@ class GraspSelectionNode(Node):
             'velocity_scaling': 0.1,
             'acceleration_scaling': 0.1,
             'maximum_candidates': 12,
+            'maximum_path_candidates': 0,
             'stop_after_first_feasible': False,
             'fast_candidate_paths_first': False,
             'deduplicate_candidates': False,
             'prefer_near_wrist_grasp_direction': False,
-            'wrist_direction_tie_tolerance_degrees': 5.0,
             'grasp_direction_pair_position_tolerance_m': 1e-5,
             'grasp_direction_pair_axis_tolerance_degrees': 1.0,
             'grasp_direction_pair_score_tolerance': 1e-6,
@@ -161,6 +164,7 @@ class GraspSelectionNode(Node):
             'action_timeout_sec': 120.0,
             'robot_description_startup_timeout_sec': 30.0,
             'pregrasp_offset_m': 0.08,
+            'pregrasp_z_offset_m': 0.0,
             'pregrasp_fallback_offset_m': 0.0,
             'planner_id': 'RRTConnectkConfigDefault',
             'aim_tip_offset_m': 0.14,
@@ -211,6 +215,9 @@ class GraspSelectionNode(Node):
         self.declare_parameter(fallback_name, Parameter.Type.DOUBLE_ARRAY)
         if self.get_parameter_or(fallback_name).value is None:
             self.set_parameters([Parameter(fallback_name, Parameter.Type.DOUBLE_ARRAY, [])])
+        self._overlap_sensor_wait = self.get_parameter('selection_overlap_sensor_wait').value
+        if type(self._overlap_sensor_wait) is not bool:
+            raise ValueError('selection_overlap_sensor_wait must be boolean')
         self._sensor_scene = SensorSceneMonitor(self)
         if self._sensor_scene.required and self.get_parameter("motion_backend").value not in ('moveit', 'curobo_ik_moveit'):
             raise ValueError("Sensor OctoMap requires the MoveIt backend; cuRobo conversion is unavailable")
@@ -261,6 +268,7 @@ class GraspSelectionNode(Node):
                 adapter_options['gpu_config'] = replace(adapter_options['gpu_config'],
                     num_seeds=int(self.get_parameter('curobo_ik_primary_seeds').value))
                 adapter_options['hybrid_config'] = HybridConfig(
+                    endpoint_margin_rad=float(self.get_parameter('curobo_ik_endpoint_margin_rad').value),
                     batch_size=int(self.get_parameter('curobo_ik_batch_size').value),
                     ik_iterations=int(self.get_parameter('curobo_ik_iterations').value),
                     exclude_opposite_arm_cost=self.get_parameter('curobo_ik_exclude_opposite_arm_cost').value,
@@ -278,6 +286,7 @@ class GraspSelectionNode(Node):
         self._adapter = adapter_class(
             self,
             MoveItAdapterConfig(
+                grasp_approach_yaw=declare_grasp_approach_yaw(self),
                 state_validity_batch_size=int(self.get_parameter('state_validity_batch_size').value),
                 **{name: self.get_parameter(name).value for name in (
                     'align_wrist_roll', 'pose_refinement_iterations', 'validate_motion_paths',
@@ -341,8 +350,7 @@ class GraspSelectionNode(Node):
         prefer_direction = self.get_parameter('prefer_near_wrist_grasp_direction').value
         if prefer_direction and self.get_parameter('planning_frame').value != 'base_link':
             raise ValueError('Grasp direction left preference requires planning_frame=base_link')
-        self._requires_description = (backend == 'curobo_ik_moveit'
-                                      or self._fixed_jaw_config is not None or prefer_direction)
+        self._requires_description = True
         self.create_subscription(String, '/robot_description', self._on_description,
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
             callback_group=callback_group)
@@ -359,8 +367,6 @@ class GraspSelectionNode(Node):
             GraspSelectionConfig(
                 direction_preference=GraspDirectionConfig(
                     enabled=prefer_direction,
-                    movement_tie_degrees=float(self.get_parameter(
-                        'wrist_direction_tie_tolerance_degrees').value),
                     pair_position_tolerance_m=float(self.get_parameter(
                         'grasp_direction_pair_position_tolerance_m').value),
                     pair_axis_tolerance_degrees=float(self.get_parameter(
@@ -375,6 +381,8 @@ class GraspSelectionNode(Node):
                     'pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled',
                     'grasp_ik_first')},
                 pregrasp_offset_m=float(self.get_parameter('pregrasp_offset_m').value),
+                pregrasp_z_offset_m=float(self.get_parameter('pregrasp_z_offset_m').value),
+                maximum_path_candidates=int(self.get_parameter('maximum_path_candidates').value),
                 pregrasp_fallback_offset_m=float(self.get_parameter('pregrasp_fallback_offset_m').value),
                 pregrasp_fallback_offsets_m=tuple(self.get_parameter('pregrasp_fallback_offsets_m').value),
                 maximum_candidates=int(self.get_parameter('maximum_candidates').value),
@@ -451,6 +459,9 @@ class GraspSelectionNode(Node):
 
     def _update_description(self, message):
         try:
+            scene = getattr(self, '_scene', None)
+            if scene is not None:
+                scene.set_robot_description(message.data)
             self._adapter.set_robot_description(message.data)
             if getattr(self, '_fixed_jaw_config', None) is not None:
                 meshes = self.get_parameter('fixed_jaw_collision_meshes').value
@@ -633,7 +644,8 @@ class GraspSelectionNode(Node):
             if canceled():
                 raise InterruptedError('Fixed-jaw correction canceled')
             grasp = selector.grasp_tcp_position(candidate)
-            pregrasp = selector.pregrasp_position(candidate, selector._config.pregrasp_offset_m, grasp)
+            pregrasp = selector.pregrasp_position(candidate, selector._config.pregrasp_offset_m, grasp,
+                z_offset_m=selector._config.pregrasp_z_offset_m)
             poses = [PoseValue(position, candidate.orientation_xyzw) for position in (pregrasp, grasp)]
             corners = target_box(messages[candidate.source_index].target_object).corners()
             gaps = {arm: closing_clearance(self._fixed_jaw_models[arm], corners, poses, side)
@@ -894,6 +906,7 @@ class GraspSelectionNode(Node):
         )
         candidate_messages = list(goal_handle.request.candidates)
         scene_started = False
+        scene_barrier_installed = False
         progress_timer = None
         progress_active = threading.Event()
         terminal_state = 'abort'
@@ -928,8 +941,24 @@ class GraspSelectionNode(Node):
                 scene_started = True
                 self._scene.begin(candidate_messages[0], object_id)
                 self._scene_port.reset()
-                self._sensor_scene.wait(after_stamp_ns=self.get_clock().now().nanoseconds,
-                    canceled=lambda: goal_handle.is_cancel_requested or time.monotonic() >= deadline)
+                scene_stamp = self.get_clock().now().nanoseconds
+                scene_began = time.monotonic()
+
+                def wait_scene():
+                    began = time.monotonic()
+                    self._sensor_scene.wait(after_stamp_ns=scene_stamp,
+                        deadline=scene_began+getattr(self._sensor_scene, 'timeout', 10.),
+                        canceled=lambda: goal_handle.is_cancel_requested or time.monotonic() >= deadline)
+                    self.get_logger().info('selection_scene_wait=' + json.dumps({
+                        'preparation_overlap_sec': began-scene_began,
+                        'blocking_wait_sec': time.monotonic()-began}))
+
+                if (getattr(self, '_overlap_sensor_wait', False)
+                        and hasattr(self._adapter, 'set_scene_barrier')):
+                    self._adapter.set_scene_barrier(wait_scene)
+                    scene_barrier_installed = True
+                else:
+                    wait_scene()
                 candidates = [
                     Candidate(
                         position=(
@@ -1037,6 +1066,8 @@ class GraspSelectionNode(Node):
                 else:
                     result.success = True
                     result.error_code = result.ERROR_NONE
+                    if scene_barrier_installed:
+                        self._adapter.await_scene_barrier()
                     self._sensor_scene.check()
                     GraspSelectionNode._remember_warmup_arm(self, selection.arm)
                     result.message = 'Selected reachable grasp (plan-only)'
@@ -1079,6 +1110,8 @@ class GraspSelectionNode(Node):
                 f'Unexpected error: {error}',
             )
         finally:
+            if scene_barrier_installed:
+                self._adapter.set_scene_barrier(None)
             progress_active.clear()
             if progress_timer is not None:
                 self.destroy_timer(progress_timer)

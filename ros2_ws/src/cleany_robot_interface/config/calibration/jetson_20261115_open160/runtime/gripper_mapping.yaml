@@ -1,0 +1,11 @@
+overrides:
+  left:
+    gripper:
+      direction: -1
+      zero_tick: 2048.0
+      offset_rad: 2.4173120563240813
+  right:
+    gripper:
+      direction: -1
+      zero_tick: 2048.0
+      offset_rad: 2.4173120563240813

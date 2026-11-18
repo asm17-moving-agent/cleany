@@ -262,7 +262,7 @@ class GraspNode(Node):
         self.declare_parameter('geometric.extent_trim_percentile', 0.5)
         self.declare_parameter('geometric.axis_search_step_degrees', 1.0)
         self.declare_parameter(
-            'geometric.yaw_offsets_degrees', [-20.0, -10.0, 0.0, 10.0, 20.0]
+            'geometric.yaw_offsets_degrees', [-40.0, -20.0, 0.0, 20.0, 40.0]
         )
         self.declare_parameter('geometric.approach_tilt_degrees', 0.0)
         self.declare_parameter('geometric.search_approach_tilts', False)

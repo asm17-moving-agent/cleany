@@ -152,10 +152,8 @@ def test_physical_rviz_and_planning_preserve_calibrated_wrist_bounds(
         assert float(actual.get('lower')) == lower
         assert float(actual.get('upper')) == upper
         prefix = 'robot_description_planning.joint_limits.left_wrist_roll_joint.'
+        assert parameters[prefix + 'min_position'] == lower
+        assert parameters[prefix + 'max_position'] == upper
         if explicit_limits:
-            assert prefix + 'min_position' not in parameters
             assert parameters[prefix + 'max_velocity'] == 0.3
             assert parameters[prefix + 'max_acceleration'] == 0.5
-        else:
-            assert parameters[prefix + 'min_position'] == lower
-            assert parameters[prefix + 'max_position'] == upper

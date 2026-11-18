@@ -2,6 +2,10 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+profile_env="${repo_root}/configs/robot/jetson/runtime.env"
+if [[ -r "${profile_env}" ]]; then
+  source "${profile_env}" --connected
+fi
 state_dir="${CLEANY_COLLECTION_STATE_DIR:-/tmp/cleany-collection-runtime-${UID}}"
 pids_file="${state_dir}/pids"
 pipeline_pid_file="${state_dir}/pipeline.pid"
@@ -12,9 +16,15 @@ start_timeout="${CLEANY_COLLECTION_START_TIMEOUT_SEC:-300}"
 daemon_stop_timeout="${CLEANY_COLLECTION_DAEMON_STOP_TIMEOUT_SEC:-5}"
 execution_stop_timeout="${CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC:-25}"
 gui="${CLEANY_COLLECTION_GUI:-false}"
+record_motor_telemetry="${CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY:-false}"
 motion_backend="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
 grasp_predictor="${CLEANY_COLLECTION_GRASP_PREDICTOR:-geometric}"
 planning_mode_file="${state_dir}/planning-mode"
+use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-false}"
+perception_mode_file="${state_dir}/perception-mode"
+shared_rmw="${CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+perception_rmw_file="${state_dir}/perception-rmw"
+robot_profile="${CLEANY_ROBOT_STATE_PROFILE:-${repo_root}/configs/robot/camera_preview.json}"
 arm_port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
 
 usage() {
@@ -53,8 +63,13 @@ Environment:
   CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC
                                          Wait for manipulation/pipeline shutdown before dependencies (default: 25)
   CLEANY_COLLECTION_GUI                 true enables RViz and bbox viewer (default: false)
+  CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY
+                                        true writes raw motor diagnostics (default: false)
   CLEANY_COLLECTION_MOTION_BACKEND      curobo_ik_moveit (default) or moveit
   CLEANY_COLLECTION_GRASP_PREDICTOR     geometric (default) or anygrasp
+  CLEANY_COLLECTION_USE_EXISTING_PERCEPTION
+                                        true reuses running perception and head RGB-D (default: false)
+  CLEANY_ROBOT_STATE_PROFILE             Model/state profile (default: camera_preview.json)
   CLEANY_MANIPULATION_COLLECTION_CONFIG  Required local collection profile
   CLEANY_FEETECH_CONTROL_CONFIG          Required local hardware/controller limits
   CLEANY_HARDWARE_MONITOR_CONFIG         Required local motion-monitor ROS parameters
@@ -71,6 +86,14 @@ validate_planning_mode() {
     geometric|anygrasp) ;;
     *) echo "CLEANY_COLLECTION_GRASP_PREDICTOR must be geometric or anygrasp." >&2; return 2 ;;
   esac
+  case "${shared_rmw}" in
+    rmw_fastrtps_cpp|rmw_cyclonedds_cpp) ;;
+    *) echo "Unsupported shared perception RMW implementation." >&2; return 2 ;;
+  esac
+  if [[ "${use_existing_perception}" != true && "${use_existing_perception}" != false ]]; then
+    echo "CLEANY_COLLECTION_USE_EXISTING_PERCEPTION must be true or false." >&2
+    return 2
+  fi
 }
 
 require_matching_planning_mode() {
@@ -85,6 +108,16 @@ require_matching_planning_mode() {
     echo "Use make collection-stop, then restart with the requested planning options." >&2
     return 1
   fi
+  local active_shared=false
+  [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
+  if [[ "${active_shared}" != "${use_existing_perception}" ]]; then
+    echo "Running perception ownership differs; stop the managed runtime before changing providers." >&2
+    return 1
+  fi
+  if [[ "${active_shared}" == true && -f "${perception_rmw_file}" && "$(<"${perception_rmw_file}")" != "${shared_rmw}" ]]; then
+    echo "Running shared perception transport differs; stop the managed runtime first." >&2
+    return 1
+  fi
 }
 
 prepare_motion_runtime() {
@@ -97,6 +130,10 @@ prepare_motion_runtime() {
 
 start_vision() {
   local log="$1"
+  if [[ "${use_existing_perception}" == true ]]; then
+    echo "Reusing existing perception and head RGB-D; no duplicate services started."
+    return 0
+  fi
   "${repo_root}/tools/vision-container" hybrid-down || return
   if [[ "${grasp_predictor}" == anygrasp ]]; then
     "${repo_root}/tools/vision-container" hybrid-up || return
@@ -121,6 +158,10 @@ source_ros() {
   export ROS_DOMAIN_ID="${domain_id}"
   # shellcheck disable=SC1091
   source "${repo_root}/tools/vision-ros-env"
+  if [[ "${use_existing_perception}" == true ]]; then
+    export RMW_IMPLEMENTATION="${shared_rmw}"
+    if [[ "${shared_rmw}" != rmw_cyclonedds_cpp ]]; then unset CYCLONEDDS_URI; fi
+  fi
   set -u
   export ROS2CLI_DISABLE_DAEMON=1
 }
@@ -191,7 +232,7 @@ start_real_control() {
   start_group real_control "${log}" \
     ros2 launch cleany_robot_interface real_control.launch.py \
       repository_root:="${repo_root}" \
-      profile_file:="${repo_root}/configs/robot/camera_preview.json" \
+      profile_file:="${robot_profile}" \
       control_file:="${CLEANY_FEETECH_CONTROL_CONFIG}" \
       output_root:="${HOME}/.local/share/cleany/real_control" \
       read_only:=false with_moveit:=true allow_trajectory_execution:=false \
@@ -206,23 +247,31 @@ start_hardware_support() {
   start_group hardware_support "${log}" \
     ros2 launch cleany_skill_executor pregrasp_hardware_support.launch.py \
       repository_root:="${repo_root}" \
-      profile_file:="${repo_root}/configs/robot/camera_preview.json" \
+      profile_file:="${robot_profile}" \
       collection_config_file:="${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
       output_root:="${HOME}/.local/share/cleany/pregrasp_hardware" \
       evidence_output_directory:="${run_dir}/evidence" \
       motion_backend:="${motion_backend}" \
       motion_runtime:="${motion_runtime}" grasp_predictor:="${grasp_predictor}" \
+      start_head_camera:="$([[ "${use_existing_perception}" != true ]] && echo true || echo false)" \
       scene_pixel_stride:=4 maximum_candidates:=32 \
       selection_timeout_sec:=480.0 pipeline_timeout_sec:=600.0
 }
 
-require_lines() {
-  local values="$1"
-  shift
-  local item
-  for item in "$@"; do
-    grep -Fqx -- "${item}" <<<"${values}" || return 1
-  done
+wait_for_perception_snapshot() {
+  timeout 15 python3 - <<'PYTHON'
+import rclpy
+from cleany_interfaces.srv import GetSceneSnapshot
+
+rclpy.init()
+node = rclpy.create_node('collection_snapshot_discovery')
+try:
+    client = node.create_client(GetSceneSnapshot, '/perception/get_scene_snapshot')
+    raise SystemExit(0 if client.wait_for_service(timeout_sec=10.) else 1)
+finally:
+    node.destroy_node()
+    rclpy.try_shutdown()
+PYTHON
 }
 
 require_gui_node() {
@@ -273,6 +322,10 @@ start_runtime() {
     echo "CLEANY_COLLECTION_GUI must be true or false." >&2
     return 2
   fi
+  if [[ "${record_motor_telemetry}" != true && "${record_motor_telemetry}" != false ]]; then
+    echo "CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY must be true or false." >&2
+    return 2
+  fi
   check_dds_transport || return
   mkdir -p "${state_dir}"
   if managed_processes_alive; then
@@ -286,12 +339,16 @@ start_runtime() {
   fi
   # The native CPU selector does not require a prepared cuRobo workspace.
   prepare_motion_runtime || return
+  if [[ "${use_existing_perception}" == true ]]; then
+    source_ros
+    python3 "${repo_root}/tools/shared_perception_readiness.py" --timeout 10.0 || return
+  fi
   if fuser -s "${arm_port}"; then
     echo "A motor serial port is in use. Stop preview/control tools first." >&2
     fuser -v "${arm_port}" >&2 || true
     return 1
   fi
-  if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+  if [[ -z "${GEMINI_API_KEY:-}" && "${use_existing_perception}" != true ]]; then
     echo "Load GEMINI_API_KEY into the environment before starting collection." >&2
     return 1
   fi
@@ -305,6 +362,8 @@ start_runtime() {
   mkdir -p "${log_dir}" "${run_dir}/evidence"
   printf '%s\n' "${run_dir}" > "${run_dir_file}"
   printf '%s %s\n' "${motion_backend}" "${grasp_predictor}" > "${planning_mode_file}"
+  printf '%s\n' "${use_existing_perception}" > "${perception_mode_file}"
+  printf '%s\n' "${shared_rmw}" > "${perception_rmw_file}"
   : > "${pids_file}"
   rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
 
@@ -334,8 +393,10 @@ start_runtime() {
   start_group manipulation_evidence "${log_dir}/manipulation-evidence.log" \
     ros2 launch cleany_skill_executor manipulation_evidence.launch.py \
       contact_rule_file:="${repo_root}/configs/robot/gripper_contact_decision.yaml"
-  start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
-    ros2 run cleany_robot_interface motor_telemetry_recorder
+  if [[ "${record_motor_telemetry}" == true ]]; then
+    start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
+      ros2 run cleany_robot_interface motor_telemetry_recorder
+  fi
   start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}"
   if [[ "${gui}" == true ]]; then
     start_group bbox_view "${log_dir}/bbox-view.log" \
@@ -563,12 +624,11 @@ start_action_server() {
     fi
   done < "${pids_file}"
   source_ros || return
-  local services run_dir
-  services="$(timeout 10 ros2 service list)" || return
-  if ! require_lines "${services}" /perception/get_scene_snapshot; then
-    echo "The perception snapshot service is missing. Rebuild and restart the perception runtime." >&2
+  if ! wait_for_perception_snapshot; then
+    echo "The perception snapshot service was not discovered. Check the perception runtime and DDS settings." >&2
     return 1
   fi
+  local run_dir
   run_dir="$(current_run_dir)" || return
   start_group manipulation_action "${run_dir}/logs/manipulation-action.log" \
     ros2 launch cleany_manipulation_bt manipulation_jetson.launch.py \
@@ -844,7 +904,11 @@ stop_runtime() {
     sleep 2
   fi
   if [[ ! -f "${state_dir}/manual-rviz-profile" ]]; then
-    "${repo_root}/tools/vision-container" hybrid-down || true
+    local active_shared="${use_existing_perception}"
+    [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
+    if [[ "${active_shared}" != true ]]; then
+      "${repo_root}/tools/vision-container" hybrid-down || true
+    fi
     "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
   fi
   source_ros

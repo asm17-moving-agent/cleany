@@ -10,15 +10,27 @@ from cleany_robot_interface.control_profile import (
     prepare_control_profile,
     resolve_moveit_trajectory_execution,
 )
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import calibrated_joint_bounds
 
 ROOT = Path(__file__).resolve().parents[4]
 
 
+def measured_bounds(prepared):
+    arm = yaml.safe_load(prepared.state.arm_config.read_text())
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
+    calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
+                    for side, cfg in arm['arms'].items()}
+    joints = mappings(arm, calibrations)
+    return calibrated_joint_bounds(joints, [joint.name for joint in joints])
+
+
 @pytest.fixture
 def state_profile_file(tmp_path):
     config = json.loads((ROOT / 'configs/robot/camera_preview.json').read_text())
+    config.pop('camera_pose_config', None)  # Synthetic motors have no operator camera model.
+    config['arm_config'] = 'ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml'
+    config['head_rgb_extrinsics'] = 'configs/robot/head_rgb_board_extrinsics.yaml'
     arm = yaml.safe_load((ROOT / config['arm_config']).read_text())
     arm['port'] = '/dev/cleany-synthetic-test-only'
     arm['calibration_dir'] = str(tmp_path)
@@ -51,10 +63,16 @@ def test_default_has_read_only_head_and_twelve_arm_position_commands(prepared):
     state_model = ET.parse(prepared.state.model).getroot()
     # Physical bounds are the only permitted change to the state model.
     limits = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
-    for name, values in limits.get('joint_position_bounds', {}).items():
-        actual = root.find(f"joint[@name='{name}']/limit")
-        assert [float(actual.get(key)) for key in ('lower', 'upper')] == values
+    physical = measured_bounds(prepared)
+    policies = limits.get('joint_position_bounds', {})
+    for name, (lower, upper) in physical.items():
         original = state_model.find(f"joint[@name='{name}']/limit")
+        original_values = [float(original.get(key)) for key in ('lower', 'upper')]
+        policy = policies.get(name, original_values)
+        actual = root.find(f"joint[@name='{name}']/limit")
+        assert [float(actual.get(key)) for key in ('lower', 'upper')] == [
+            max(policy[0], lower), min(policy[1], upper),
+        ]
         for key in ('lower', 'upper'):
             actual.set(key, original.get(key))
     root.remove(root.find('ros2_control'))
@@ -100,7 +118,10 @@ def test_four_controllers_match_moveit_and_use_actual_position_feedback(prepared
                                              for side in ('left', 'right') for part in ('arm', 'gripper')}
     all_joints = []
     for name in prepared.controller_names:
+        assert config['controller_manager']['ros__parameters'][name]['type'] == (
+            'joint_trajectory_controller/JointTrajectoryController')
         params = config[name]['ros__parameters']
+        assert params['action_monitor_rate'] == 20.0
         assert params['joints'] == moveit[name]['joints']
         assert params['state_interfaces'] == ['position']
         assert params['open_loop_control'] is False
@@ -113,11 +134,14 @@ def test_four_controllers_match_moveit_and_use_actual_position_feedback(prepared
     limits = yaml.safe_load(prepared.joint_limits.read_text())['joint_limits']
     assert set(limits) == set(all_joints)
     hardware = ET.parse(prepared.model).getroot()
+    defaults = yaml.safe_load((Path(__file__).parent / 'data/feetech_control.yaml').read_text())['joint_defaults']
     for name, item in limits.items():
         joint = hardware.find(f"ros2_control/joint[@name='{name}']")
         assert item['has_acceleration_limits'] is True
         for key in ('max_velocity', 'max_acceleration'):
-            assert item[key] == float(joint.find(f"param[@name='{key}']").text)
+            assert item[key] == defaults[key]
+            assert float(joint.find(f"param[@name='{key}']").text) == item[key]
+        assert joint.find("param[@name='tracking_error']") is None
 
 
 def test_existing_mapping_and_eeprom_values_preserved(prepared):
@@ -130,9 +154,27 @@ def test_existing_mapping_and_eeprom_values_preserved(prepared):
     assert manifest['read_only'] and not manifest['physical_motion_validated']
 
 
+def test_planning_limits_include_gripper_overrides(tmp_path, state_profile_file):
+    config = yaml.safe_load((Path(__file__).parent / 'data/feetech_control.yaml').read_text())
+    for side in ('left', 'right'):
+        config.setdefault('joint_overrides', {}).setdefault(f'{side}_gripper_joint', {}).update(
+            max_velocity=.06, max_acceleration=.1)
+    control = tmp_path / 'gripper_control.yaml'
+    control.write_text(yaml.safe_dump(config))
+    profile = prepare_control_profile(state_profile_file, ROOT, tmp_path / 'gripper_limits', control)
+    planning = yaml.safe_load(profile.joint_limits.read_text())['joint_limits']
+    hardware = ET.parse(profile.model).getroot()
+    for name, limits in planning.items():
+        expected = config['joint_overrides'].get(name, {})
+        joint = hardware.find(f"ros2_control/joint[@name='{name}']")
+        for key in ('max_velocity', 'max_acceleration'):
+            assert limits[key] == expected.get(key, config['joint_defaults'][key])
+            assert float(joint.find(f"param[@name='{key}']").text) == limits[key]
+
+
 def test_calibrated_pitch_bounds_match_state_model_driver_and_recorded_positions(prepared):
     arm = yaml.safe_load(prepared.state.arm_config.read_text())
-    directory = Path(arm['calibration_dir']).expanduser()
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
     calibrations = {side: json.loads((directory/settings['calibration']).read_text())
                     for side, settings in arm['arms'].items()}
     joints = {j.motor_id: j for j in mappings(arm, calibrations)}
@@ -245,7 +287,6 @@ def test_operational_profile_provides_normal_motion_limits(tmp_path, state_profi
     assert defaults == {
         'max_velocity': 1.0,
         'max_acceleration': 2.0,
-        'tracking_error': 0.0,
         'speed_raw': 800,
         'acceleration_raw': 254,
         'torque_limit_raw': 800,
@@ -260,13 +301,15 @@ def test_operational_profile_provides_normal_motion_limits(tmp_path, state_profi
         params = generated[name]['ros__parameters']
         assert all(params['constraints'][joint]['goal'] == .10 for joint in params['joints'])
     assert limits['temperature_limit_c'] == 80
-    assert limits['temperature_fault_confirmation_samples'] == 3
+    assert 'temperature_fault_confirmation_samples' not in limits
     assert limits['allow_torque_on_recovery'] is True
     hardware = model.find('ros2_control/hardware')
     assert hardware.find("param[@name='allow_torque_on_recovery']").text == 'true'
-    assert hardware.find(
-        "param[@name='temperature_fault_confirmation_samples']"
-    ).text == '3'
+    for name, expected in (('fast', .1), ('slow', .5), ('signal', .1)):
+        key = f'temperature_macd_{name}_tau_s'
+        assert limits[key] == expected
+        assert float(hardware.find(f"param[@name='{key}']").text) == expected
+    assert hardware.find("param[@name='temperature_fault_confirmation_samples']") is None
 
 
 @pytest.mark.parametrize('filename', [
@@ -292,9 +335,106 @@ def test_front_shoulder_bounds_reach_planning_model_and_motor_driver(
     model = ET.parse(prepared.model).getroot()
     for arm in arms:
         name = f'{arm}_shoulder_yaw_joint'
-        expected = (-2.16, 0.) if arm == 'left' else (0., 2.0033789089786476)
+        policy = (-2.16, 0.) if arm == 'left' else (0., 2.0033789089786476)
+        physical = measured_bounds(prepared)[name]
+        expected = (max(policy[0], physical[0]), min(policy[1], physical[1]))
         limit = model.find(f"joint[@name='{name}']/limit")
         assert tuple(float(limit.get(k)) for k in ('lower', 'upper')) == expected
         joint = model.find(f"ros2_control/joint[@name='{name}']")
         assert tuple(float(joint.find(f"param[@name='{k}']").text)
                      for k in ('lower', 'upper')) == expected
+
+
+@pytest.mark.parametrize('plugin,rate', [
+    ('cleany_trajectory_controller/JointTrajectoryController', 1.),
+    ('cleany_trajectory_controller/JointTrajectoryController', 20.),
+    ('joint_trajectory_controller/JointTrajectoryController', 100.),
+])
+def test_controller_transport_profile(tmp_path, state_profile_file, plugin, rate):
+    limits = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['controller'].update(type=plugin, action_monitor_rate=rate)
+    control = tmp_path/'notification.yaml'
+    control.write_text(yaml.safe_dump(limits))
+    prepared = prepare_control_profile(state_profile_file, ROOT, tmp_path/'run', control)
+    config = yaml.safe_load(prepared.controllers.read_text())
+    for name in prepared.controller_names:
+        assert config['controller_manager']['ros__parameters'][name]['type'] == plugin
+        assert config[name]['ros__parameters']['action_monitor_rate'] == rate
+
+
+@pytest.mark.parametrize('settings,field', [
+    ({'type': 'unknown/controller'}, 'type'),
+    *[({'action_monitor_rate': rate}, 'action_monitor_rate')
+      for rate in (0, 101, float('nan'), float('inf'), True, '20')],
+])
+def test_controller_transport_rejects_invalid_settings(tmp_path, state_profile_file, settings, field):
+    limits = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['controller'].update(settings)
+    control = tmp_path/'invalid-notification.yaml'
+    control.write_text(yaml.safe_dump(limits))
+    output = tmp_path/'run'
+    with pytest.raises(ValueError, match=rf'controller\.{field}'):
+        prepare_control_profile(state_profile_file, ROOT, output, control)
+    assert not output.exists()
+
+
+def test_control_limits_cannot_expand_measured_motor_travel(prepared):
+    arm = yaml.safe_load(prepared.state.arm_config.read_text())
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
+    calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
+                    for side, cfg in arm['arms'].items()}
+    limits = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['joint_position_bounds'] = {f'{side}_shoulder_yaw_joint': [-10., 10.]
+                                       for side in ('left', 'right')}
+    model, _, _ = add_control_model(prepared.state.model.read_text(), arm, calibrations,
+        yaml.safe_load(prepared.state.head_config.read_text()),
+        json.loads(prepared.state.head_mapping.read_text()), limits, True)
+    root = ET.fromstring(model)
+    for joint in mappings(arm, calibrations):
+        expected = sorted((joint.radians(joint.range_min), joint.radians(joint.range_max)))
+        limit = root.find(f"joint[@name='{joint.name}']/limit")
+        assert float(limit.get('lower')) >= expected[0] - 1e-12
+        assert float(limit.get('upper')) <= expected[1] + 1e-12
+
+
+def test_control_rejects_policy_disjoint_from_motor_range(prepared):
+    arm = yaml.safe_load(prepared.state.arm_config.read_text())
+    directory = motor_calibration_directory(prepared.state.arm_config, arm)
+    calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
+                    for side, cfg in arm['arms'].items()}
+    limits = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    limits['joint_position_bounds'] = {'left_shoulder_yaw_joint': [10., 11.]}
+    with pytest.raises(ValueError, match='do not overlap'):
+        add_control_model(prepared.state.model.read_text(), arm, calibrations,
+            yaml.safe_load(prepared.state.head_config.read_text()),
+            json.loads(prepared.state.head_mapping.read_text()), limits, True)
+
+
+def test_control_model_supplies_the_host_executor_limit_contract(prepared):
+    from cleany_skill_executor.core.hardware_execution import physical_limits
+
+    model = ET.parse(prepared.model).getroot()
+    model.find("ros2_control/hardware/param[@name='read_only']").text = 'false'
+    xml = ET.tostring(model, encoding='unicode')
+    for arm in ('left', 'right'):
+        actual = physical_limits(xml, arm)
+        assert len(actual) == 6
+        for name, bounds in actual.items():
+            limit = model.find(f"joint[@name='{name}']/limit")
+            assert (bounds.lower, bounds.upper) == tuple(
+                float(limit.get(key)) for key in ('lower', 'upper'))
+            assert bounds.velocity > 0 and bounds.acceleration > 0
+
+
+def test_jetson_profile_reads_both_calibrations_without_a_home_cache(tmp_path, monkeypatch):
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    jetson = ROOT / 'configs/robot/jetson'
+    output = tmp_path / 'runtime'
+    prepared = prepare_control_profile(
+        ROOT / 'configs/robot/cad_grasp.json', ROOT, output, jetson / 'feetech_control.yaml')
+    manifest = json.loads((output / 'control_manifest.json').read_text())
+    motors = prepared.state.arm_config.parent / 'calibration/jetson_20261115_open160/motors'
+    assert manifest['read_only']
+    assert set(map(Path, manifest['source_sha256'])) == {
+        jetson / 'feetech_control.yaml', motors / 'cleany_so101_left.json', motors / 'cleany_so101_right.json'}

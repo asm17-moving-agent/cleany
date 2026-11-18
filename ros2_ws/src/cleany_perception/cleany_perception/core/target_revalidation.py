@@ -32,4 +32,5 @@ def match_approved_target(source: Detection2D, detections: Sequence[Detection2D]
             or not np.any(mask)):
         raise InspectionFailure(FailureKind.MASK, '승인 물체의 최신 마스크가 유효하지 않습니다.')
     return replace(fresh, label=source.label, detector_label=source.detector_label,
-                   sorting_category=source.sorting_category, sorting_reason=source.sorting_reason)
+                   sorting_category=source.sorting_category, sorting_reason=source.sorting_reason,
+                   semantic_assessment=source.semantic_assessment)

@@ -16,7 +16,6 @@ grasp_selection_server:
     # Reorder only equivalent 180-degree pairs using local measured-state FK.
     # Prefer the fixed jaw toward base_link +Y when estimated roll travel ties.
     prefer_near_wrist_grasp_direction: true
-    wrist_direction_tie_tolerance_degrees: 5.0
     # MoveIt's plan-only result also includes trajectory processing and scene
     # locking. A measured 11.5s successful response exceeded the old 5s wait.
     planning_response_margin_sec: 20.0

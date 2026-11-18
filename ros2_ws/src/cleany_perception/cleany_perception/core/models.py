@@ -60,6 +60,28 @@ class BoundingBox2D:
 
 
 @dataclass(frozen=True)
+class ChoiceAssessment:
+    """One typed semantic answer; probabilities retain their named outcomes."""
+
+    choice: str
+    confidence: float
+    probabilities: tuple[tuple[str, float], ...]
+
+
+@dataclass(frozen=True)
+class SemanticAssessment:
+    """Original RGB judgment, retained through ranking and revalidation."""
+
+    request_id: str
+    prompt_object_id: int
+    model: str
+    object_type: ChoiceAssessment
+    sorting_category: ChoiceAssessment
+    visual_risk: ChoiceAssessment
+    review_triggers: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Detection2D:
     label: str
     confidence: float
@@ -71,6 +93,7 @@ class Detection2D:
     estimated_width_m: float = 0.0
     estimated_height_m: float = 0.0
     detector_label: str = ''
+    semantic_assessment: SemanticAssessment | None = field(default=None, compare=False)
 
     def __post_init__(self) -> None:
         if self.sorting_category not in ('', 'trash', 'lost_item', 'review'):

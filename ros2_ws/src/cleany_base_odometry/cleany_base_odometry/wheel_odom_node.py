@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import cos, sin
+from math import cos, isfinite, sin
 
 import rclpy
 from nav_msgs.msg import Odometry
@@ -18,39 +18,47 @@ from cleany_base_odometry.mecanum_odometry import (
 
 
 class WheelOdometryNode(Node):
-    """누적 휠 회전량으로 평면 odometry를 추정합니다.
+    """Estimate planar odometry from cumulative wheel angles.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): 네 휠의 위치(rad).
-            input_topic으로 입력 이름을 바꿀 수 있습니다.
+        joint_states (sensor_msgs/msg/JointState): All four wheel positions in
+            radians; configurable with input_topic.
 
     Publishers:
-        wheel/odom (nav_msgs/msg/Odometry): odom 좌표계의 위치와 base_link의 속도.
-            토픽과 좌표계 이름은 파라미터 기본값입니다.
+        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
+            base_link; topic and frame names are parameter defaults.
 
     Services:
-        ~/reset (std_srvs/srv/Trigger): 매핑 담당자가 STOP을 확인하고 이전 SLAM을
-            종료한 뒤 위치와 encoder 기준점을 초기화합니다.
+        ~/reset (std_srvs/srv/Trigger): Reset pose and encoder baseline after the
+            mapping owner confirms STOP and terminates the previous SLAM.
 
     TF:
-        직접 발행하지 않으며 odometry relay가 odom → base_link를 담당합니다.
+        Does not broadcast; the selected relay or EKF owns odom -> base_link.
 
     QoS:
-        입력은 sensor_data, 출력은 reliable과 depth 10을 사용합니다.
+        Input uses sensor_data; output is reliable with depth 10.
 
     Notes:
-        첫 표본, 증가하지 않은 시각과 속도 창 초기화 구간에는 발행하지 않습니다.
-        무효한 휠 값은 검증 오류를 발생시킵니다.
+        The first sample, non-increasing time and velocity-window warm-up
+        produce no message. Invalid wheel values raise a validation error.
     """
 
-    def __init__(self) -> None:
-        super().__init__('wheel_odometry')
+    def __init__(self, parameter_overrides=None) -> None:
+        super().__init__('wheel_odometry', parameter_overrides=parameter_overrides)
         self.declare_parameter('input_topic', 'joint_states')
         self.declare_parameter('output_topic', 'wheel/odom')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
         self.declare_parameter('velocity_window_s', 0.0)
         self.declare_parameter('yaw_scale', 1.0)
+        self.declare_parameter('twist_covariance_diagonal', [0.0] * 6)
+        diagonal = list(self.get_parameter('twist_covariance_diagonal').value)
+        if len(diagonal) != 6 or any(not isfinite(v) or v < 0.0 for v in diagonal):
+            raise ValueError(
+                'twist_covariance_diagonal must contain six finite nonnegative '
+                'values ordered vx, vy, vz, wx, wy, wz'
+            )
+        self._twist_covariance_diagonal = diagonal
         self.declare_parameter('wheel_radius_m', 0.0635)
         self.declare_parameter('wheelbase_m', 0.30)
         self.declare_parameter('wheel_separation_m', 0.51)
@@ -98,7 +106,7 @@ class WheelOdometryNode(Node):
         )
 
     def _on_reset(self, request, response):
-        """위치와 encoder 기준점을 초기화합니다. 세션 관리자가 먼저 STOP을 확인해야 합니다."""
+        """Reset pose and encoder baseline; the session manager confirms STOP first."""
         self._odometry = MecanumOdometry(
             self._geometry,
             velocity_window_s=float(self.get_parameter('velocity_window_s').value),
@@ -108,10 +116,10 @@ class WheelOdometryNode(Node):
         return response
 
     def _on_joint_state(self, message: JointState) -> None:
-        """네 휠의 완전한 표본을 적분하며 stamp가 0이면 노드 시각을 사용합니다.
+        """Integrate complete wheel samples, using node time for a zero stamp.
 
-        위치나 휠 이름이 부족하면 무시합니다. 유한하지 않은 휠 값은 검증에서
-        오류가 발생하며 정지 상태로 치환하지 않습니다.
+        Missing positions or wheel names are ignored. Non-finite wheel values
+        raise during validation; they are not converted into zero motion.
         """
         if len(message.position) < len(message.name):
             self.get_logger().warning(
@@ -166,6 +174,8 @@ class WheelOdometryNode(Node):
         output.twist.twist.linear.x = estimate.linear_x_mps
         output.twist.twist.linear.y = estimate.linear_y_mps
         output.twist.twist.angular.z = estimate.angular_z_rps
+        for index, value in enumerate(self._twist_covariance_diagonal):
+            output.twist.covariance[index * 7] = value
         self._publisher.publish(output)
 
 

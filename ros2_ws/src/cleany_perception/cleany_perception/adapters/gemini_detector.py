@@ -268,6 +268,8 @@ class GeminiDetector:
     ) -> None:
         if not model:
             raise ValueError('Gemini model must not be empty')
+        if model.removeprefix('models/').startswith('gemini-decision-'):
+            raise ValueError('Decision requires yoloe_gemini semantic classification')
         if not api_key_environment:
             raise ValueError(
                 'Gemini API key environment name must not be empty'

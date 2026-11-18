@@ -18,10 +18,10 @@ _domains = itertools.count(os.getpid())
 
 
 @contextlib.contextmanager
-def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None, collision_detector='cleany/SolidFCL'):
+def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None, collision_detector='cleany/SolidFCL', localhost_only=True):
     domain = str(120 + next(_domains) % 60)
     previous_localhost = os.environ.get('ROS_LOCALHOST_ONLY')
-    os.environ['ROS_LOCALHOST_ONLY'] = '1'
+    os.environ['ROS_LOCALHOST_ONLY'] = '1' if localhost_only else '0'
     env = {**os.environ, 'ROS_DOMAIN_ID': domain}
     context = Context()
     rclpy.init(args=[], context=context, domain_id=int(domain))

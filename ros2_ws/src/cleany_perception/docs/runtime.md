@@ -23,6 +23,24 @@ sequenceDiagram
 | 장애물 지도 입력 | [전체 Depth](#전체-depth-환경-포인트클라우드), [receipt](#필터링-점군-수신-확인) |
 | 새 체크포인트 학습 | [오프라인 학습](#스터디카페-mujoco-전용-yoloe-seg-학습) |
 
+## Decision 분류
+
+YOLOE가 장면의 instance mask를 찾은 뒤 Decision 분류기가 같은 검출의 의미를
+평가한다. 선택한 종류, 분류, 위험 판단과 검토 사유는 객체별로 연결하고, 승인
+대상 재확인에서는 원래 분류를 유지한다. 종류 후보와 질문의 기본값은
+[decision_prompt.yaml](../config/decision_prompt.yaml)에 있다.
+
+| 설정 | 역할 |
+|---|---|
+| `gemini_model` | 분류 backend 선택 |
+| `decision_prompt_file` | Decision 질문과 선택지 파일 |
+| `decision_object_types` | 물체 종류 선택지 배열 |
+| `yoloe_scene_duplicate_mask_iou` | 장면의 중복 mask 제거 기준 |
+
+실행기에서 `GEMINI_MODEL`을 지정하면 YOLOE 프로파일의 모델 이름보다 우선한다.
+배포 환경에서 해당 API와 모델을 사용할 수 있어야 한다. API 키는 실행 환경의
+`GEMINI_API_KEY`로 전달한다.
+
 ## 모델 준비
 
 의존성 설치는 [개발환경](../../../../docs/implementation/development-setup.md)를 따릅니다. YOLOE checkpoint와

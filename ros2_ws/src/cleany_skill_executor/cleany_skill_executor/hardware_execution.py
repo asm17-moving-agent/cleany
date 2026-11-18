@@ -5,7 +5,7 @@ Never starts hardware, enables torque, clears faults, or changes driver limits.
 from copy import deepcopy
 from collections import deque
 from contextlib import contextmanager, nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import math
 from pathlib import Path
@@ -29,6 +29,7 @@ from std_srvs.srv import SetBool, Trigger
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from .core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution
+from .core.grasp_approach_bounds import active_grasp_approach_yaw, declare_grasp_approach_yaw
 from .state_validity_batch import StateValidityBatch
 from .execution_timing import timed_operation
 from .readonly_services import ReadOnlyBatch, call_readonly_services
@@ -118,6 +119,7 @@ def transient_octomap_arm_collision(response, arm):
 class HardwareExecution:
     def __init__(self, node):
         self.node = node
+        self.grasp_approach_yaw = declare_grasp_approach_yaw(node)
         self.guard = None
         self.guard_time = 0.
         self.fault = ''
@@ -139,7 +141,7 @@ class HardwareExecution:
         node.declare_parameter('hardware_reuse_settle_history', True)
         node.declare_parameter('hardware_reuse_scene_barrier', False)
         for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation',
-                     'retime_retreat'):
+                     'retime_retreat', 'prepare_models_on_startup', 'prefetch_release_retreat'):
             parameter = 'hardware_'+name
             node.declare_parameter(parameter, False)
             enabled = node.get_parameter(parameter).value
@@ -249,6 +251,74 @@ class HardwareExecution:
             self.value('hardware_motion_response_error_rad'),
             self.value('hardware_motion_minimum_motion_rad'),
             self.value('hardware_motion_feedback_timeout_sec'), abort_on_deviation)
+
+        self._model_lock = threading.Lock()
+        self._model_warmup_allowed = self.prepare_models_on_startup
+        self._model_warmup_futures = []
+        self._model_warmup_timer = (node.create_timer(.25, self._warmup_models)
+                                    if self.prepare_models_on_startup else None)
+
+    def _stop_model_warmup(self):
+        self._model_warmup_allowed = False
+        timer = getattr(self, '_model_warmup_timer', None)
+        if timer is not None:
+            timer.cancel()
+        for future in getattr(self, '_model_warmup_futures', ()):
+            if not future.done():
+                future.cancel()
+
+    def _prepare_models(self, signature, arms):
+        """Reuse static parsing; callers still check live controller/model responses."""
+        hit = signature == getattr(self, '_verified_models', None)
+        if not hit:
+            models = [ET.fromstring(xml) for xml in signature]
+            for model in models:
+                for system in model.findall('ros2_control'):
+                    model.remove(system)
+            if ET.tostring(models[0]) != ET.tostring(models[1]):
+                raise RuntimeError('Physical and planning robot models differ')
+            self._verified_models = signature
+            self._physical_limits = {}
+        for arm in arms:
+            if arm not in self._physical_limits:
+                self._physical_limits[arm] = physical_limits(signature[0], arm)
+        self.node.motion.set_robot_description(signature[0])
+        return hit
+
+    def _warmup_models(self):
+        """Prepare static models while idle, without hardware or motion requests."""
+        if not self._model_warmup_allowed:
+            return
+        futures = self._model_warmup_futures
+        if not futures:
+            clients = (self.parameters, self.moveit_parameters)
+            if not all(client.service_is_ready() for client in clients):
+                return
+            self._model_warmup_started = time.monotonic()
+            self._model_warmup_futures = [client.call_async(
+                GetParameters.Request(names=['robot_description'])) for client in clients]
+            return
+        if not all(future.done() for future in futures):
+            if time.monotonic()-self._model_warmup_started > 5.:
+                self._stop_model_warmup()
+            return
+        try:
+            with self._model_lock:
+                if not self._model_warmup_allowed:
+                    return
+                responses = [future.result() for future in futures]
+                if any(response is None or len(response.values) != 1 for response in responses):
+                    raise RuntimeError('Startup model response is incomplete')
+                signature = tuple(response.values[0].string_value for response in responses)
+                began = time.monotonic()
+                self._prepare_models(signature, ARM_JOINT_NAMES)
+                self.node.get_logger().info('hardware_model_warmup=' + json.dumps({
+                    'preparation_sec': time.monotonic()-began,
+                    'elapsed_sec': time.monotonic()-self._model_warmup_started}))
+        except Exception as error:
+            self.node.get_logger().warning(f'Model warmup deferred to live verification: {error}')
+        finally:
+            self._stop_model_warmup()
 
     def motion_client(self, arm, controller):
         name = f'/{arm}_{controller}_controller/follow_joint_trajectory'
@@ -770,6 +840,8 @@ class HardwareExecution:
         preparation = ReturnPreparation(arm)
         self._return_preparation = preparation
         try:
+            if getattr(self, 'prefetch_release_retreat', False):
+                HardwareExecution._prefetch_return_models(self, arm)
             yield
         finally:
             if preparation.batch is not None:
@@ -789,15 +861,32 @@ class HardwareExecution:
         if preparation is None or preparation.arm != arm or preparation.phase != 'retreat':
             return
         preparation.phase = 'home'
+        HardwareExecution._prefetch_return_models(self, arm)
+
+    def _prefetch_return_models(self, arm):
+        """Overlap live model reads with planning inside the guarded return scope."""
+        preparation = getattr(self, '_return_preparation', None)
+        if preparation is None or preparation.arm != arm:
+            return
         self.monitor()
+        if preparation.batch is not None:
+            age = time.monotonic()-preparation.batch.started
+            if (preparation.submissions == self.motion_submissions
+                    and preparation.generation == self.communication_recovery_count
+                    and 0 <= age <= self.value('hardware_guard_max_age_sec')):
+                return
+            preparation.batch.close()
+            preparation.batch = None
         calls = HardwareExecution._model_requests(self)
         if not all(client.service_is_ready() for client, _ in calls):
-            self.node.event('return_model_prefetch', outcome='services_not_ready', arm=arm)
+            self.node.event('return_model_prefetch', outcome='services_not_ready', arm=arm,
+                            phase=preparation.phase)
             return
         preparation.submissions = self.motion_submissions
         preparation.generation = self.communication_recovery_count
         preparation.batch = ReadOnlyBatch(self.node, calls, availability_timeout=0.)
-        self.node.event('return_model_prefetch', outcome='started', arm=arm)
+        self.node.event('return_model_prefetch', outcome='started', arm=arm,
+                        phase=preparation.phase)
 
     def _current_return_endpoint(self, state):
         """Match one fresh, fully verified retreat receipt to live robot state."""
@@ -827,6 +916,7 @@ class HardwareExecution:
 
     def _return_model_responses(self, arm):
         preparation = getattr(self, '_return_preparation', None)
+        self._last_return_model_prefetch_used = False
         if preparation is None or preparation.batch is None:
             return None
         batch, preparation.batch = preparation.batch, None
@@ -844,12 +934,14 @@ class HardwareExecution:
                 or preparation.generation != self.communication_recovery_count):
             self.node.event('return_model_prefetch', arm=arm, outcome='invalidated_during_wait')
             return None
+        self._last_return_model_prefetch_used = True
         self.node.event('return_model_prefetch', arm=arm, outcome='consumed', age_sec=age)
         return responses
 
     @timed_operation('model_verification', node_attribute='node')
     def verify(self, arm):
         began = time.monotonic()
+        HardwareExecution._stop_model_warmup(self)
         if self.node.get_parameter('use_sim_time').value:
             raise RuntimeError('Physical execution forbids simulation time')
         self.monitor()
@@ -883,21 +975,10 @@ class HardwareExecution:
         if (preparation is not None and preparation.endpoint is not None
                 and preparation.endpoint.models != signature):
             raise RuntimeError('Robot model changed after release retreat; fresh retreat verification required')
-        self._last_model_cache_hit = signature == getattr(self, '_verified_models', None)
-        if not self._last_model_cache_hit:
-            models = [ET.fromstring(xml) for xml in signature]
-            for model in models:
-                for system in model.findall('ros2_control'):
-                    model.remove(system)
-            if ET.tostring(models[0]) != ET.tostring(models[1]):
-                raise RuntimeError('Physical and planning robot models differ')
-            self._verified_models = signature
-            self._physical_limits = {}
-        if arm not in self._physical_limits:
-            self._physical_limits[arm] = physical_limits(description, arm)
-        limits = self._physical_limits[arm]
-        self.node.description = description
-        self.node.motion.set_robot_description(description)
+        with getattr(self, '_model_lock', nullcontext()):
+            self._last_model_cache_hit = HardwareExecution._prepare_models(self, signature, (arm,))
+            limits = self._physical_limits[arm]
+            self.node.description = description
         self._last_model_verification_sec = time.monotonic()-began
         return limits
 
@@ -1230,6 +1311,15 @@ class HardwareExecution:
         return ()
 
     @timed_operation('trajectory_execution', node_attribute='node')
+    @staticmethod
+    def _with_grasp_approach_limits(arm, limits, policy):
+        if policy is None:
+            return limits
+        name = ARM_JOINT_NAMES[arm][0]
+        yaw = limits[name]
+        lower, upper = policy.intersect(name, *yaw.position_bounds())
+        return {**limits, name: replace(yaw, lower=lower, upper=upper)}
+
     def _execute(
         self,
         arm,
@@ -1277,6 +1367,14 @@ class HardwareExecution:
                                 or recorded_window is not None):
             raise ValueError('Retiming requires one complete recorded arm trajectory')
         limits = self.verify(arm)
+        if controller == 'arm':
+            limits = HardwareExecution._with_grasp_approach_limits(
+                arm, limits, active_grasp_approach_yaw.get())
+        if type(retime_recorded) is not bool:
+            raise ValueError('retime_recorded must be boolean')
+        if retime_recorded and (controller != 'arm' or recorded_trajectory is None
+                                or recorded_window is not None):
+            raise ValueError('Retiming requires one complete recorded arm trajectory')
         if retime_recorded:
             recorded_trajectory.validate()
             source_duration = recorded_trajectory.points[-1].time_ns/1e9
@@ -1490,6 +1588,7 @@ class HardwareExecution:
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
             'model_queries_wall_sec': getattr(self, '_last_model_queries_sec', None),
             'parallel_model_queries': getattr(self, 'parallel_model_queries', False),
+            'return_model_prefetch_used': getattr(self, '_last_return_model_prefetch_used', False),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
             'start_settle_wall_sec': getattr(self, '_last_start_settle_sec', None),
             'minimum_duration_sec': minimum_duration_sec if recorded_trajectory is None else None,
@@ -1665,7 +1764,8 @@ class HardwareExecution:
             raise ValueError('check_collisions must be boolean')
         preparation_began = time.monotonic()
         self.last_execution_metrics = {}
-        limits = self.verify(arm)
+        limits = HardwareExecution._with_grasp_approach_limits(
+            arm, self.verify(arm), active_grasp_approach_yaw.get())
         arm_names = ARM_JOINT_NAMES[arm]
         gripper_name = f'{arm}_gripper_joint'
         if (tuple(arm_trajectory.joint_names) != arm_names
@@ -1796,6 +1896,7 @@ class HardwareExecution:
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
             'model_queries_wall_sec': getattr(self, '_last_model_queries_sec', None),
             'parallel_model_queries': getattr(self, 'parallel_model_queries', False),
+            'return_model_prefetch_used': getattr(self, '_last_return_model_prefetch_used', False),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
             'start_settle_wall_sec': getattr(self, '_last_start_settle_sec', None),
             'input_waypoints': len(arm_trajectory.points),

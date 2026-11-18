@@ -212,3 +212,18 @@ python3 tools/validation/check_freecad_curobo.py ros2_ws/src/cleany_description 
 cuRobo 검사 도구는 캐시 형상에서 거리 검색 범위를 계산합니다. 외부 solver에
 연결할 때도 manifest의 `required_mesh_query_distance_m`을 적용하는
 [검사 계약](../../../ros2_ws/src/cleany_moveit_config/docs/planning.md#freecad-형상-검사)을 따릅니다.
+
+## 공통 CAD 미리보기와 파지 프로파일
+
+`tools/robot-model check`는 설치된 CAD와 manifest의 일치 여부를 검사한다.
+`tools/robot-model preview`는 CAD 표시와 피드백 모니터링을 시작하며,
+`tools/robot-model moveit`은 궤적 실행을 끈 상태에서 MoveIt을 시작한다.
+[공통 CAD 런타임](../../../ros2_ws/src/cleany_description/docs/runtime-model.md)에 모델 갱신과 상태 토픽을 설명한다.
+
+실물 파지의 CAD 바인딩은 `CLEANY_ROBOT_STATE_PROFILE`에
+`configs/robot/cad_grasp.json`을 명시하거나 `tools/left-grasp`로 선택한다.
+로봇별 보정 파일과 수거, Feetech 제어, 모션 감시 설정은 운영자가 제공한다.
+`configs/robot/collection_cad.json`은 시운전 승인 전의 설정 예시다.
+이미 실행 중인 RGB-D와 인식을 쓰는 경우에는
+`CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`와 운영 DDS 설정을 사용한다.
+자세한 조건은 [공유 인식과 CAD 파지](../../../ros2_ws/src/cleany_skill_executor/docs/shared-grasp-policy.md)를 따른다.

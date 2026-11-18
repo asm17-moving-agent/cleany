@@ -55,6 +55,33 @@ STOP 재전송은 50Hz driver tick에서 수행하고 새 구동 허가를 만�
 
 실물 초기 속도 제한은 바퀴를 띄운 시험용이며 바닥 주행 승인값이 아닙니다. Mock geometry는 합성값이므로 실물 보정값으로 사용하지 않습니다. Feedback 단절 중 이동량은 관측할 수 없습니다.
 
+## Wheel과 IMU 융합
+
+`base_ekf.launch.py`는 base driver, wheel odometry, 고정 IMU 보정과
+`robot_localization` EKF를 실행한다. 기존 base bringup과 중복 실행하지 않는다.
+[`base_ekf.yaml`](../config/base_ekf.yaml)의 2D EKF는 wheel의 vx, vy, yaw rate와
+`imu/data_raw`의 보정된 yaw rate를 사용한다. Wheel pose, IMU orientation과
+가속도는 융합하지 않는다. Mecanum의 횡속도 vy는 실제 측정값을 사용한다.
+
+| `mode` | `odom` 및 `odom → base_link` 소유자 | EKF 출력 |
+|---|---|---|
+| `shadow` (기본) | Wheel relay | `odometry/filtered`; EKF TF 비활성 |
+| `canonical` | EKF; wheel relay 실행 안 함 | `odom`; EKF TF 활성 |
+
+`base_config`가 기구학 geometry를, `ekf_config`가 융합 선택과 wheel twist
+covariance를 관리한다. 기본 wheel 분산 0.0025는 이전 비교 설정의 초기값이며
+실측 정확도가 아니다. 고정 gyro bias와 covariance는 기존 IMU 설정을 사용한다.
+
+`base_link → imu_link` 회전은 외부 TF가 제공한다. `publish_imu_tf=true`로
+회전 전용 static TF를 추가할 때는 `imu_roll`, `imu_pitch`, `imu_yaw`를 rad로
+모두 명시해야 하며 translation은 0이다. 기본값으로 장착 회전을 가정하지 않는다.
+URDF가 장착 TF를 제공하면 `publish_imu_tf=false`를 유지한다.
+
+입력 단절 시 EKF의 예측 출력은 계속될 수 있다. 출력 존재가 IMU 정상이나
+구동 허가를 뜻하지 않는다. `imu/status`와 wheel feedback 가용성은 별도로 확인한다.
+Wheel ROS 수신 stamp와 IMU 취득 stamp의 시간 정렬, 실제 장착 축과 주행 오차는
+실물 검증 대상으로 남는다. 실행 명령은 [실행 가이드](../../../../docs/RUNNING.md#실물-imu)에 둔다.
+
 ## Diagnostics와 장애 구분
 
 `base_driver` status의 `feedback_received`는 현재 유효한 MCU 피드백 연결 여부입니다. 피드백이 stale이면 driver가 수신 기록을 초기화하므로 부팅 전과 연결 상실 뒤 모두 `False`입니다. `fault`는 다음 acknowledged ENABLE까지 유지되는 실제 장애 이유입니다.

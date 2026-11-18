@@ -1,4 +1,4 @@
-"""MCU가 보정한 자이로와 상태를 전달합니다."""
+"""Publish fixed-bias IMU measurements for wheel/gyro fusion."""
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory

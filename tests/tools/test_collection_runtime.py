@@ -515,14 +515,11 @@ source_ros() { :; }
 current_run_dir() { printf '%s\n' /tmp/action-start-test; }
 alive() { [[ "$failure" == legacy_running ]]; }
 start_group() { printf '%s\n' STARTED; }
+wait_for_perception_snapshot() { [[ "$failure" != missing_snapshot ]]; }
 timeout() { shift; "$@"; }
 sleep() { SECONDS=$((SECONDS + 31)); }
 ros2() {
   case "$1 $2" in
-    'service list')
-      if [[ "$failure" != missing_snapshot ]]; then
-        printf '%s\n' /perception/get_scene_snapshot
-      fi ;;
     'action info')
       if [[ "$failure" == duplicate_action ]]; then
         printf '%s\n' 'Action servers: 2'

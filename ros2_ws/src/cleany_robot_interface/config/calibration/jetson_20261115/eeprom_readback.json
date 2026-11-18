@@ -1,0 +1,259 @@
+{
+  "recorded_at_utc": "2026-11-14T16:39:02.206211+00:00",
+  "source": "/home/cleany/cleany-data/joint_calibration/session-20261114T121030Z/all_calibration_save_latest.json",
+  "motors": {
+    "1": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 527,
+      "range_min": 763,
+      "range_max": 3482,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 3116,
+        "cap_raw": 800,
+        "position": 3129,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 35,
+        "status": 0
+      }
+    },
+    "2": {
+      "model": 2825,
+      "mode": 0,
+      "homing_offset": 178,
+      "range_min": 835,
+      "range_max": 3230,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 1031,
+        "cap_raw": 300,
+        "position": 3170,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 37,
+        "status": 0
+      }
+    },
+    "3": {
+      "model": 2825,
+      "mode": 0,
+      "homing_offset": 1020,
+      "range_min": 863,
+      "range_max": 3066,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 2042,
+        "cap_raw": 300,
+        "position": 1022,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 34,
+        "status": 0
+      }
+    },
+    "4": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 411,
+      "range_min": 855,
+      "range_max": 3261,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 905,
+        "cap_raw": 300,
+        "position": 1924,
+        "current_raw": 1,
+        "load_raw": 0,
+        "temperature": 34,
+        "status": 0
+      }
+    },
+    "5": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 1784,
+      "range_min": 1003,
+      "range_max": 3051,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 1986,
+        "cap_raw": 200,
+        "position": 1983,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 35,
+        "status": 0
+      }
+    },
+    "6": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": -333,
+      "range_min": 888,
+      "range_max": 2074,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 4044,
+        "cap_raw": 200,
+        "position": 2073,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    },
+    "7": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": -1447,
+      "range_min": 718,
+      "range_max": 3434,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 1010,
+        "cap_raw": 800,
+        "position": 845,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    },
+    "8": {
+      "model": 2825,
+      "mode": 0,
+      "homing_offset": -1875,
+      "range_min": 827,
+      "range_max": 3215,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 1023,
+        "cap_raw": 300,
+        "position": 3047,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    },
+    "9": {
+      "model": 2825,
+      "mode": 0,
+      "homing_offset": 258,
+      "range_min": 913,
+      "range_max": 3100,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 2076,
+        "cap_raw": 300,
+        "position": 1310,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 32,
+        "status": 0
+      }
+    },
+    "10": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 1437,
+      "range_min": 826,
+      "range_max": 3227,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 877,
+        "cap_raw": 300,
+        "position": 1771,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    },
+    "11": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 355,
+      "range_min": 1006,
+      "range_max": 2988,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 1972,
+        "cap_raw": 200,
+        "position": 1967,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 35,
+        "status": 0
+      }
+    },
+    "12": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 1407,
+      "range_min": 1063,
+      "range_max": 2166,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 3617,
+        "cap_raw": 200,
+        "position": 2164,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    },
+    "13": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": -1513,
+      "range_min": 8,
+      "range_max": 4001,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 2049,
+        "cap_raw": 200,
+        "position": 2049,
+        "current_raw": 1,
+        "load_raw": 0,
+        "temperature": 35,
+        "status": 0
+      }
+    },
+    "14": {
+      "model": 777,
+      "mode": 0,
+      "homing_offset": 85,
+      "range_min": 44,
+      "range_max": 1101,
+      "lock": 1,
+      "state": {
+        "torque": 0,
+        "goal": 997,
+        "cap_raw": 200,
+        "position": 997,
+        "current_raw": 0,
+        "load_raw": 0,
+        "temperature": 36,
+        "status": 0
+      }
+    }
+  },
+  "power_cycle_tested": false
+}

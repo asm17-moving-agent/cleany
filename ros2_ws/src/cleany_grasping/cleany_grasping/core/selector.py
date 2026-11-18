@@ -127,7 +127,7 @@ def rank_grasps(
         ranked.append(
             GraspPose(
                 rotation=tcp_rotation,
-                translation=candidate.translation.copy(),
+                translation=candidate.translation + candidate.depth_m * candidate.rotation[:, 0],
                 approach_direction=approach,
                 required_opening_m=candidate.width_m,
                 depth_m=candidate.depth_m,

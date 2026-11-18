@@ -58,6 +58,12 @@ Voxel guard는 몸체 OBB와 예측 제동 sweep를 검사합니다. 요청 속�
 
 몸체 검사는 설정된 park posture를 가정합니다. 실시간 팔 FK 감시, 자세 유지는 미구현이며, 관측하지 않은 공간의 안전을 보장하지 않습니다. 물리 E-stop, driver watchdog, 실측 제동은 로봇 통합에서 별도 검증합니다.
 
+몸체 프로파일의 기본 `model_profile: freecad_calibrated`는 공통 `urdf/cleany.urdf`의
+모터 좌표와 종속 그리퍼 관절을 사용합니다. Gazebo 평가 프로파일은
+`model_profile: cad_final`을 명시해 시뮬레이션 xacro와 같은 형상을 선택합니다.
+`cad_final`과 `jetson_20261009`는 시뮬레이션 허용 경로에서만 선택할 수 있으며,
+실물 경로에서는 보정되지 않은 모델이나 시뮬레이션 관절 제한을 거부합니다.
+
 ## Memory와 진단
 
 Global/local costmap은 obstacle_memory/grid를 max 병합합니다. Voxel을 사용하려면 memory가 필요합니다. Pan/memory/voxel을 비활성화하면 그에 맞춰 속도 경로가 바뀝니다.

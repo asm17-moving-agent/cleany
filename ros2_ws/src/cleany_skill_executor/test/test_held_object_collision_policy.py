@@ -22,7 +22,7 @@ def payload_scene(request):
     scene = PlanningScene()
     scene.allowed_collision_matrix = deepcopy(original)
     applied, events = [], []
-    node = NS(config={}, carrying=None, payload_future=None, releasing=False,
+    node = NS(config={'arms': {arm: {}}}, carrying=None, payload_future=None, releasing=False,
               get_scene=object(), payload_selected=None, payload_evidence_time=0.,
               get_clock=lambda: NS(now=lambda: NS(to_msg=lambda: Header().stamp)),
               pose=lambda _: Pose(), measured=lambda: JointState(

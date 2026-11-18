@@ -9,7 +9,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 import yaml
 
-from cleany_robot_interface.core import mappings
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 
 
 class ReadOnlyBus:
@@ -65,8 +65,9 @@ class ArmStateReader(Node):
         super().__init__('arm_state_reader')
         self.bus = None
         self.declare_parameter('config_file', '')
-        config = yaml.safe_load(Path(self.get_parameter('config_file').value).read_text())
-        directory = Path(config['calibration_dir']).expanduser()
+        config_file = Path(self.get_parameter('config_file').value)
+        config = yaml.safe_load(config_file.read_text())
+        directory = motor_calibration_directory(config_file, config)
         calibrations = {
             side: json.loads((directory / arm['calibration']).read_text())
             for side, arm in config['arms'].items()

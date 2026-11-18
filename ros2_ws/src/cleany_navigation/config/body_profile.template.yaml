@@ -1,6 +1,7 @@
 # robot_params.yaml 옆의 body_profile.yaml로 복사하고 모든 관절각을
 # 라디안으로 채웁니다. 실제 백엔드는 주행 중 이 자세를 유지해야 합니다.
 # simulation_park_limits를 실물 로봇 프로파일로 복사하지 않습니다.
+model_profile: freecad_calibrated
 park_joints:
   left_shoulder_yaw_joint: null
   right_shoulder_yaw_joint: null

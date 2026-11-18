@@ -60,6 +60,11 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 
 ## Jetson 실물 실행 경로
 
+외부 제어 프로파일의 온도 설정은 [Feetech 온도 MACD 설정](../../../ros2_ws/src/cleany_robot_interface/docs/feetech-hardware.md#온도-macd-필터)을 따른다.
+기존 `temperature_fault_confirmation_samples`를 제거하고 세 시정수를
+명시해야 새 드라이버가 기동한다. 생성된 제어 모델은 표현 가능한 실측
+모터 범위와 운영 위치 제한의 교집합을 사용한다.
+
 `cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
 로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
 패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.
@@ -90,7 +95,6 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 
 상태 가드는 결측되거나 오래된 관절 상태를 차단합니다. 정지 요청은 `/real_control/stop`
 서비스를 사용합니다. 토픽, 상태와 카메라 제어는 [패키지 인터페이스](../../../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 따릅니다.
-
 
 
 ## 실물 파지 계획과 준비 자세
@@ -128,3 +132,33 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 실물 준비 자세 실행 이후 수거, 복귀와 복구 명령은
 [실물 수거 안내](../../../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md)를 따른다.
 실물 프로필을 명시적으로 입력하며 `make collection-plan`과 실제 실행 명령을 구분한다.
+
+## Decision 의미 분류와 운영 진입점
+
+기본 `yoloe_gemini` 구성은 YOLOE 마스크 뒤 `gemini-decision-1`을 호출한다.
+`GEMINI_API_KEY`를 같은 실행 환경에 주입한다. 종류 후보, 영어 질문, 위험에 따른
+최종 검토 규칙과 실패 계약은 [perception 런타임](../../../ros2_ws/src/cleany_perception/docs/runtime.md#decision-분류)을 따른다.
+
+```bash
+ros2 launch cleany_perception inspect_scene.launch.py gemini_model:=gemini-decision-1
+```
+
+기존 분류기는 `gemini_model:=gemini-3.5-flash-lite`로 명시적으로 선택한다.
+native와 컨테이너의 `run-perception`은 선택한 YOLOE 프로파일의 `gemini_model`을
+읽고, `GEMINI_MODEL` 설정을 우선한다. 기본 운영 프로파일은 Decision을 사용한다.
+Jetson의 수동 인식은 현재 저장소의 기본 ROS 설치 경로를 사용한다. 별도 설치본은 `CLEANY_YOLOE_NATIVE_INSTALL`으로 지정한다.
+헤드 카메라는 `serial_no:=261822075013`일 때 설치된 `cleany_perception/config/jetson_head_intrinsics.json`을 읽는다. 다른 일련번호 또는 미지정 장치는 SDK 보정을 사용한다. `rgb_intrinsics_file:=...`로 보정 파일을 직접 지정할 수 있다. Jetson의 기본 native 인식은 장비 프로필에 따라 참조 관측과 손목 관측을 켜고 참조를 600초 동안 보존한다.
+
+두 실행기의 RGB-D 구독 기본값은 best-effort다. 컨테이너에서 reliable이 필요한
+입력은 `CLEANY_RGBD_QOS_RELIABILITY=reliable`로 명시한다.
+
+| 운영 진입점 | 인식 제공자와 모델 선택 |
+|---|---|
+| `cleany-perception.service`, Jetson의 `make perception-run` | `tools/perception-native`, 기본 real53 프로파일 |
+| `tools/vision-container perception-run`, `hybrid-run` | 컨테이너 `run-perception`, 엔진에 맞는 기본 real53 또는 real32 프로파일 |
+| `ros2 launch cleany_perception inspect_scene.launch.py` | 현재 source한 설치본의 프로파일; `gemini_model:=...` 명시값 우선 |
+
+`decision_object_types`는 ROS 문자열 배열로, `decision_prompt_file`은 설치된 기본
+YAML 또는 명시한 파일로 설정한다. 종류 후보와 질문은 실제 검출 이름을 힌트로 쓰지 않는다.
+시작 준비는 API를 호출하지 않으며 검출이 있는 새 관측에서 실제 접근을 확인한다.
+저장 이미지 검증과 실제 Jetson 배포는 구분한다.

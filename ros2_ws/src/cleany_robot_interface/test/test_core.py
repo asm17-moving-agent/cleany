@@ -12,14 +12,16 @@ from cleany_robot_interface.core import (
 
 def fixture():
     config = yaml.safe_load((Path(__file__).parents[1] / 'config/arm_preview.yaml').read_text())
-    # Keep recorded-angle regressions independent of later operational zero updates.
+    # Keep recorded-angle regressions independent of later operational reference updates.
     reference_zeros = {
-        'left': (2044, 3104, 1049, 2008, 2513),
-        'right': (2043, 3108, 1052, 2053, 2467),
+        'left': (2044, 3104, 1049, 2008, 2513, 2689),
+        'right': (2043, 3108, 1052, 2053, 2467, 2851),
     }
     for side, zeros in reference_zeros.items():
         for key, zero in zip(JOINTS, zeros):
             config['overrides'][side][key]['zero_tick'] = zero
+        config['overrides'][side]['gripper'].update(
+            direction=-1, offset_rad=-0.37453297762778586)
     cal = {side: {key: dict(id=first + i, drive_mode=0, homing_offset=123,
                            range_min=500, range_max=3500)
                   for i, key in enumerate(JOINTS)}

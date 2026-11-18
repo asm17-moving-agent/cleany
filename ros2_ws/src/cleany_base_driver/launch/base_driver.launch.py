@@ -35,6 +35,7 @@ def _nodes(context):
     config = LaunchConfiguration('config').perform(context)
     mock = LaunchConfiguration('mock').perform(context).lower() == 'true'
     relay = LaunchConfiguration('relay_odom').perform(context).lower() == 'true'
+    odometry_config = LaunchConfiguration('odometry_config').perform(context)
     data, required = load_profile(config, mock)
     params = {'mock': mock, 'geometry.wheel_radius_m': required[0],
               'geometry.wheelbase_m': required[1], 'geometry.wheel_separation_m': required[2],
@@ -42,13 +43,17 @@ def _nodes(context):
               'limits.angular_z_rad_s': required[5], 'limits.wheel_rad_s': required[6],
               'limits.command_timeout_s': required[7],
               'counts_per_revolution': data['protocol']['counts_per_revolution']}
+    odometry_params = [{
+        'input_topic': 'joint_states', 'output_topic': 'wheel/odom',
+        'wheel_radius_m': required[0], 'wheelbase_m': required[1],
+        'wheel_separation_m': required[2],
+    }]
+    if odometry_config:
+        odometry_params.insert(0, odometry_config)
     nodes = [Node(package='cleany_base_driver', executable='base_driver_node',
                   name='cleany_base_driver', parameters=[params], output='screen'),
              Node(package='cleany_base_odometry', executable='wheel_odometry_node',
-                  name='wheel_odometry', parameters=[{
-                      'input_topic': 'joint_states', 'output_topic': 'wheel/odom',
-                      'wheel_radius_m': required[0], 'wheelbase_m': required[1],
-                      'wheel_separation_m': required[2]}], output='screen')]
+                  name='wheel_odometry', parameters=odometry_params, output='screen')]
     if mock:
         nodes.append(Node(package='cleany_base_driver', executable='mock_mcu_node',
                           name='mock_base_mcu', output='screen'))
@@ -64,5 +69,6 @@ def generate_launch_description():
         DeclareLaunchArgument('config', default_value=str(share / 'config' / 'base_synthetic.yaml')),
         DeclareLaunchArgument('mock', default_value='true'),
         DeclareLaunchArgument('relay_odom', default_value='true'),
+        DeclareLaunchArgument('odometry_config', default_value=''),
         OpaqueFunction(function=_nodes),
     ])

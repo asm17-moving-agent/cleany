@@ -1,7 +1,7 @@
 # Jetson 관제 통합
 
-Cleany의 `refactor/docs-and-navigation`과 `cleany-control-plane`의 `main`을 기준으로
-노트북에서 개발하고 `jetson-orin-via-n100`에서 최종 검증합니다. Dashboard, Backend와
+Cleany와 `cleany-control-plane`을 노트북에서 개발하고
+`jetson-orin-via-n100`에서 최종 검증합니다. Dashboard, Backend와
 주행 서버는 모두 Jetson에서 실행합니다.
 
 ## 지도와 연결

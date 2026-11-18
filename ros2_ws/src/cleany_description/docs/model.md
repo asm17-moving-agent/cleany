@@ -1,26 +1,27 @@
 # Robot model 계약
 
-기본 모델 `cad_final`은 `Cleany-final.FCStd`의 조립 형상을 사용합니다. 외장, 팔과 링크형 그리퍼를 포함한 308개 CAD 부품을 공유하며, 실물 보정과 관성 추정은 별도입니다.
+CAD 파지와 미리보기는 `urdf/cleany.urdf`를 공유한다. 기존 14개 모터 좌표를 보정된 CAD
+형상에 연결하며 CLI, MoveIt, cuRobo와 RViz가 같은 산출물을 읽는다.
+기본 launch, 표시 상태와 갱신 절차는 [공통 CAD 런타임](runtime-model.md)을 따른다.
 
-`description.launch.py`의 기본 `model_variant:=legacy_runtime`은 위 xacro 프로필을 사용합니다.
-별도 `freecad_final` 정적 모델과 `freecad_kinematic` 상대 관절 모델은
-[FreeCAD 형상](freecad-model.md)과 [관절 미리보기](freecad-kinematics.md)를 따릅니다.
-이전 실물 장착은 `model_profile:=jetson_20261009`로 명시합니다.
+| 항목 | 계약 |
+|---|---|
+| 로봇 좌표 | `base_link`의 +X 전방, +Y 좌측, +Z 상방 |
+| 광학 좌표 | +X 우측, +Y 하방, +Z 전방 |
+| 모터 좌표 | 기존 양팔과 헤드의 14개 관절 이름, rad 단위와 보정 범위를 유지 |
+| 집게 연동 | 16개 종속 관절을 기존 핀 연결 해석기로 계산하며 별도 모터로 제어하지 않음 |
+| 집게 끝점 | 실제 최대 열림 0도와 닫힘 160도를 CAD의 양 끝 자세에 대응 |
+| TCP | 현재 실물 프로파일의 손목 기준 119.775 mm 위치와 대칭 그리퍼 방향 |
+| 충돌 | CAD 자기 충돌과 외부 장애물 검사를 유지하며 단계별 정책은 수거 프로파일에서 결정 |
+| GPU | cuRobo IK와 native MoveIt 충돌 검사를 결합하며 CPU IK fallback을 기본으로 사용하지 않음 |
 
-```mermaid
-flowchart LR
-  CAD[Cleany-final.FCStd] --> Export[CAD 축 등록 / 부품별 메시]
-  Export --> URDF[URDF]
-  Export --> MJCF[MJCF]
-  URDF --> TF[TF / MoveIt]
-  URDF --> Gazebo[Gazebo]
-  MJCF --> MuJoCo[MuJoCo]
-  Old[jetson_20261009] --> Cal[이전 실물 장착 / 보정]
-```
+CAD 끝점 보간은 실측된 중간 개구 폭 곡선이 아니다. 원본 형상, 카메라 보정과
+구동 좌표의 연결 및 검증 범위는 [CAD 파지 계약](../../cleany_moveit_collision/docs/calibrated-cad.md)을 따른다.
+이 모델의 계산 일치도는 실물 TCP 정확도나 동역학 검증을 뜻하지 않는다.
 
-[실행과 재생성](model-runtime.md) / [실물 캘리브레이션](../../../../docs/implementation/calibration.md)
+`cleany.urdf.xacro`, control xacro와 `mjcf/cleany.xml`은 기존 시뮬레이션에서도 사용한다. 원본 CAD 입력과 과거 측정 기록은 재현 근거로 보존한다.
 
-## 조립 CAD와 구현 모델
+## 시뮬레이션 조립 모델
 
 <figure class="contract-figure" data-visual-id="cad-assembly">
 <img src="assets/cad-assembly.png" alt="외장 패널, 디스플레이, 양팔과 구동부를 포함한 최신 조립 CAD" loading="lazy">
@@ -29,7 +30,7 @@ flowchart LR
 
 | 경로 | 현재 기준 |
 |---|---|
-| TF, MoveIt | `urdf/cad_final/geometry.xacro` |
+| 시뮬레이션 TF, MoveIt | `urdf/cad_final/geometry.xacro` |
 | Gazebo 기본값 | 같은 URDF를 변환하는 `cad_frame`; navigation 설정은 팔 제외 |
 | MuJoCo | `mjcf/cleany.xml`; 같은 부품별 메시와 관절 배치 |
 | 이전 장착 | `model_profile:=jetson_20261009`; 이전 URDF, MJCF와 보정 자료 보존 |
@@ -37,7 +38,7 @@ flowchart LR
 
 [형상 등록 정보](../config/geometry/cad_final.json)는 CAD 해시, 부품별 메시 해시, 좌표 변환과 조립 자세를 기록합니다. 팔 장착점, 헤드, 그리퍼와 카메라 형상은 최신 CAD 기준입니다. 팔의 관절 방향과 이름은 유지하며 CAD 조립 자세를 관절 영점으로 바꾸지 않습니다.
 
-## 좌표와 동작 범위
+## 시뮬레이션 좌표와 동작 범위
 
 | 항목 | 계약 |
 |---|---|
@@ -53,7 +54,7 @@ flowchart LR
 
 D435 preview의 CAD 좌표는 조립 원점 기준입니다. 위 `base_link` 이동을 적용하지 않은 값을 URDF 좌표와 섞지 않습니다. Gazebo의 LiDAR 높이 실험 프로필과 기존 실물 LiDAR TF는 독립된 센서 설정입니다.
 
-## 카메라
+## 시뮬레이션 카메라
 
 <figure class="contract-figure" data-visual-id="wrist-axes">
 <img src="assets/wrist-axes.png" alt="최신 CAD의 왼쪽 gripper 기준 손목 optical 축" loading="lazy">

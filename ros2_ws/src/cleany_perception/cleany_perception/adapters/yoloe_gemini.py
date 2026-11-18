@@ -3,15 +3,33 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 import time
+from typing import Any
 
-from cleany_perception.adapters.gemini_detector import GeminiClassifier
+from cleany_perception.core.ports import SemanticClassifierPort
 from cleany_perception.adapters.yoloe_detector import YoloeDetector
 from cleany_perception.core.models import Detection2D, RgbArray
 
 
+def make_semantic_classifier(*, model: str, object_types: Sequence[str],
+                             prompt_file: str | Path,
+                             audit: Callable[[dict], None] | None = None,
+                             **kwargs: Any) -> SemanticClassifierPort:
+    """Choose explicitly configured semantics; never fall back after a failure."""
+    if model.removeprefix('models/').startswith('gemini-decision-'):
+        from cleany_perception.adapters.decision_classifier import DecisionClassifier
+        return DecisionClassifier(model=model, object_types=object_types,
+                                  prompt_file=prompt_file, audit=audit, **kwargs)
+    from cleany_perception.adapters.gemini_detector import GeminiClassifier
+    # The deployed legacy adapter predates progress and cancellation callbacks.
+    kwargs.pop('progress', None)
+    kwargs.pop('cancelled', None)
+    return GeminiClassifier(model=model, **kwargs)
+
+
 class YoloeGeminiDetector:
-    def __init__(self, yoloe: YoloeDetector, classifier: GeminiClassifier, *,
+    def __init__(self, yoloe: YoloeDetector, classifier: SemanticClassifierPort, *,
                  vlm_active: Callable[[bool], None] | None = None,
                  timing: Callable[[str, float], None] | None = None) -> None:
         self._yoloe = yoloe
@@ -29,7 +47,7 @@ class YoloeGeminiDetector:
     def _detect_local(self, rgb, query):
         began = time.monotonic()
         try:
-            return tuple(self._yoloe.detect(rgb, query))
+            return tuple(self._yoloe.detect_scene(rgb, query))
         finally:
             self._timing('yoloe', time.monotonic() - began)
 

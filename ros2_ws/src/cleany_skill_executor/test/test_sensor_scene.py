@@ -215,3 +215,14 @@ def test_operational_scene_budget_checks_capture_and_map_separately(
     else:
         with pytest.raises(InfrastructureError, match='Sensor planning scene unavailable'):
             monitor.check()
+
+
+def test_deferred_scene_wait_keeps_original_deadline(monkeypatch):
+    from cleany_skill_executor import sensor_scene as module
+    from cleany_skill_executor.core.physical_grasp_selection import InfrastructureError
+    def stale(**_):
+        raise InfrastructureError('no fresh capture')
+    monitor = SimpleNamespace(required=True, timeout=10., check=stale)
+    monkeypatch.setattr(module.time, 'sleep', lambda _: pytest.fail('expired wait must not restart'))
+    with pytest.raises(InfrastructureError, match='fresh capture'):
+        module.SensorSceneMonitor.wait(monitor, deadline=0.)

@@ -116,6 +116,8 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
             while not any(f.substage == 'GraspObject' for f in feedback) and time.monotonic() < deadline:
                 time.sleep(.01)
             assert any(f.substage == 'GraspObject' for f in feedback)
+            # 늦은 관찰자도 30ms 모의 동작의 완료 시점에 의존하지 않아야 합니다.
+            time.sleep(.1)
             if mode is None:
                 assert wait(handle.cancel_goal_async()).goals_canceling
             else:
