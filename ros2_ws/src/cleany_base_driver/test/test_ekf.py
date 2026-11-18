@@ -99,12 +99,29 @@ def test_installed_fusion_and_tf_ownership(
                 rclpy.spin_once(node, timeout_sec=.01)
                 time.sleep(.005)
 
+        def owners(topic):
+            return [p.node_name for p in node.get_publishers_info_by_topic(topic)]
+
+        def odom_edges():
+            return [t for msg in transforms for t in msg.transforms
+                    if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link']
+
+        def observations_ready():
+            # Topic samples, graph discovery and TF can become available separately.
+            return bool(enable.service_is_ready() and fused and wheel and corrected and canonical
+                        and owners('base/wheel_state') == ['mock_base_mcu'] and odom_edges()
+                        and any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
+                                for msg in mounts for t in msg.transforms))
+
         try:
             end = time.monotonic() + 15
-            while time.monotonic() < end and not (enable.service_is_ready() and fused and wheel):
+            while time.monotonic() < end and not observations_ready():
                 pump(.05)
-            assert fused and wheel and enable.service_is_ready()
-            assert [p.node_name for p in node.get_publishers_info_by_topic('base/wheel_state')] == ['mock_base_mcu']
+            assert observations_ready(), {
+                'enable': enable.service_is_ready(), 'fused': len(fused), 'wheel': len(wheel),
+                'imu': len(corrected), 'odom': len(canonical), 'tf': len(odom_edges()),
+                'wheel_state_owners': owners('base/wheel_state'), 'mounts': len(mounts),
+            }
             future = enable.call_async(SetBool.Request(data=True))
             end = time.monotonic() + 2
             while not future.done() and time.monotonic() < end:
@@ -134,9 +151,6 @@ def test_installed_fusion_and_tf_ownership(
             assert fused[-1].header.frame_id == 'odom'
             assert fused[-1].child_frame_id == 'base_link'
             assert fused[-1].pose.pose.position.z == pytest.approx(0., abs=1e-6)
-            def owners(topic):
-                return [p.node_name for p in node.get_publishers_info_by_topic(topic)]
-
             end = time.monotonic() + 3.
             while time.monotonic() < end and (
                     owners(output_topic) != ['ekf_filter_node'] or owners('odom') != [tf_owner]):
@@ -151,8 +165,7 @@ def test_installed_fusion_and_tf_ownership(
             while not future.done() and time.monotonic() < end:
                 pump(.02, command)
             assert future.done() and future.result().values[0].bool_value == (mode == 'canonical')
-            edges = [t for msg in transforms for t in msg.transforms
-                     if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link']
+            edges = odom_edges()
             assert edges and canonical
             transform = edges[-1].transform
             pose = canonical[-1].pose.pose
