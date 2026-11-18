@@ -8,9 +8,12 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 GEOMETRY_PYTHON ?= python3
 SORTING_ARGS ?=
-# Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
+ifneq ($(wildcard $(REPO_ROOT).env.workspace-build),)
+CLEANY_BUILD_ROOT ?= $(ROS2_WS)
+else
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
+endif
 CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
 export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT CLEANY_INSTALL_BASE
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build

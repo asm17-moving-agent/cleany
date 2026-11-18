@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DATA_ROOT="${CLEANY_DATA_ROOT:-$(dirname "${REPO_ROOT}")/cleany-data}"
-BUILD_ROOT="${CLEANY_BUILD_ROOT:-${DATA_ROOT}/builds/$(basename "${REPO_ROOT}")}"
-BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
+source "${SCRIPT_DIR}/cleany-install-env"
+BUILD_ROOT="$(realpath -m "${CLEANY_BUILD_ROOT}")"
 # Reject a build root that contains any protected directory.
 for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
   protected="$(realpath -m "${protected}")"

@@ -4,6 +4,20 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-11-18 Jetson 워크스페이스 설치 경로와 실물 RViz
+
+운영 Jetson의 `main`(`f45801bc`)에 설치 경로 변경을 적용하고 ROS 2 Humble, domain 0에서 확인했다.
+체크아웃 루트에 `.env.workspace-build`가 있는 상태에서 로봇 모델, 하드웨어 인터페이스, 인식 패키지의 설치 경로가 모두 `/home/cleany/cleany/ros2_ws/install` 아래로 잡혔다.
+
+| 확인 대상 | 입력과 결과 |
+|---|---|
+| 경로 선택 | 경로 테스트 7개가 통과했다. 별도 체크아웃에서 설정 파일 유무와 `CLEANY_BUILD_ROOT` 지정 유무를 조합한 네 경우에 Make, 셸, Python이 선택한 빌드 루트와 `ros2-clean`이 삭제 전에 표시한 루트가 일치했다. |
+| 예전 빌드 삭제 직후 | `main-f45801bc-prepare/build`와 `install`을 삭제한 뒤 `/perception/check_rgbd`가 114 ms 전의 동기화된 RGB-D 입력을 확인했다. `head_camera_rgb_optical_frame`에서 `camera_color_optical_frame`까지 TF를 조회했다. 당시에는 `/robot_description`과 `/joint_states` 발행자가 없어 전체 모델 검증이 실패했다. |
+| 실물 상태 발행 재개 후 | 실행 중인 RViz 설정의 고정 프레임 `base_link`에서 로봇 링크 85개 모두의 TF를 조회했고, 시각화 메시 310개의 파일을 설치 경로에서 확인했다. 관절 상태 타임스탬프 218개 모두에서 헤드카메라, 양쪽 손목 카메라와 양쪽 파지 프레임의 TF를 같은 시각에 조회했다. |
+
+Jetson 원본은 `/home/cleany/cleany-data/runs/rviz-main-install-20261118-085949.UazpEf/`에 있다.
+삭제 전후 비교는 `prepare-cleanup.nIFi1lfk/`에, 전체 모델 재검증 결과는 `commit-plan-check.EQn3lHWD/full-rviz.json`에 있다.
+
 ## 2026-11-18 이벤트 궤적 제어기 분리 검증
 
 `b991ce5f332f56717dbecc836b5ac93610bad479` 기반의

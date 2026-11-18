@@ -337,6 +337,8 @@ source "$(make -s print-install-base)/setup.bash"
 `CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
 `CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
 `INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
+운영 Jetson에서는 체크아웃 루트에 빈 파일 `.env.workspace-build`를 두어 빌드 루트를 그 체크아웃의 `ros2_ws`로 지정합니다. `/home/cleany/cleany`의 기본 설치 경로는 `/home/cleany/cleany/ros2_ws/install`입니다.
+새로 체크아웃한 Jetson을 같은 방식으로 구성하려면 저장소 루트에서 `touch .env.workspace-build`를 실행합니다. 명시한 `CLEANY_BUILD_ROOT`가 우선합니다.
 호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
 `INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
 
