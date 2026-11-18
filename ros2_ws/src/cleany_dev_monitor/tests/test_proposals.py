@@ -25,6 +25,47 @@ def scene():
               representative_frame='base_link', detections=[item])
 
 
+@pytest.mark.parametrize(('tracking_state', 'skip', 'expected_state'), [
+    ('TRACKED', False, 'READY'),
+    ('TRACKED', True, 'READY'),
+    ('AMBIGUOUS', False, 'DISPLAY_ONLY'),
+])
+def test_temporary_proposal_displays_nearest_even_if_skipped_or_ambiguous(
+        tmp_path, tracking_state, skip, expected_state):
+    pytest.importorskip('rclpy')
+    from cleany_dev_monitor.proposal_ros import ProposalROS
+
+    adapter = ProposalROS.__new__(ProposalROS)
+    adapter.store, adapter.policy = ProposalStore(tmp_path), DEFAULTS
+    adapter.config = lambda: dict(
+        operation_mode='pick_return_release', temporary_ignore_decision=True,
+        label_destinations={'*': 'return_to_pick'})
+    observed = scene()
+    far = observed.detections[0]
+    closer = deepcopy(far)
+    closer.object_id, closer.track_id, closer.distance_m = 8, 'track-b', .3
+    closer.tracking_state = tracking_state
+    observed.detections.append(closer)
+    now = time.time_ns()
+    observed.header = NS(stamp=NS(sec=now // 10**9, nanosec=now % 10**9))
+    adapter.inspect_scene = lambda *_args, **_kwargs: observed
+    adapter.capture_image = lambda _scene, target, _cancelled: (
+        b'nearest' if target['object_id'] == closer.object_id else None)
+    previous = dict(tracking_session_id='session', tracking_epoch='epoch',
+                    excluded_tracks=['track-b'], target={'track_id': 'track-b'}, state='READY')
+
+    shown = adapter.propose(lambda: False, previous=previous, skip=skip)
+
+    assert shown['planner'] == 'nearest_detected'
+    assert shown['excluded_tracks'] == []
+    assert shown['state'] == expected_state
+    assert shown['target']['object_id'] == 8
+    assert shown['image_available']
+    if expected_state == 'DISPLAY_ONLY':
+        with pytest.raises(ValueError):
+            adapter.store.claimable(shown['id'])
+
+
 @pytest.mark.parametrize('case', ['success', 'retry', 'missing', 'moved', 'wrong_source', 'stale', 'cancelled'])
 def test_approval_observes_only_bound_target_and_records_failure_without_reclassifying(tmp_path, case):
     pytest.importorskip('rclpy')
@@ -36,6 +77,7 @@ def test_approval_observes_only_bound_target_and_records_failure_without_reclass
     approved = proposal()
     cached = scene()
     cached.snapshot_id = approved['snapshot_id']
+    cached.detections[0].object_id = approved['target']['object_id']
     adapter.call = lambda *_: NS(found=True, detections=cached)
     adapter.inspect_scene = lambda *_args, **_kwargs: pytest.fail('Approval must not invoke full-scene/Gemini inspection')
     attempts = []
@@ -60,6 +102,61 @@ def test_approval_observes_only_bound_target_and_records_failure_without_reclass
     assert audit['success'] == (case in ('success', 'retry'))
     assert len(attempts) == (0 if case == 'cancelled' else 2 if case in ('retry', 'missing') else 1)
     if case == 'moved': assert '50.0mm' in audit['message']
+
+
+@pytest.mark.parametrize('case', [
+    'valid', 'expired', 'cache_missing', 'wrong_object', 'duplicate_object', 'wrong_track',
+    'wrong_config', 'wrong_epoch', 'cancel_after_lookup',
+])
+def test_stationary_approval_binds_cached_object_without_a_new_image(tmp_path, case):
+    pytest.importorskip('rclpy')
+    from cleany_dev_monitor.proposal_ros import ProposalROS
+
+    adapter = ProposalROS.__new__(ProposalROS)
+    adapter.store, adapter.policy, adapter.lookup = ProposalStore(tmp_path), DEFAULTS, object()
+    config = dict(operation_mode='pick_return_release', assume_stationary_target=True,
+                  visual_servo_enabled=False, wrist_observation_enabled=False,
+                  label_destinations={'*': 'return_to_pick'})
+    adapter.config = lambda: config
+    approved, cached = proposal(), scene()
+    approved['config_fingerprint'] = fingerprint(config)
+    cached.snapshot_id = approved['snapshot_id']
+    item = cached.detections[0]
+    item.object_id = approved['target']['object_id']
+    if case == 'expired':
+        approved['expires_at'] = time.time() - 1
+    elif case == 'wrong_object':
+        item.object_id += 1
+    elif case == 'duplicate_object':
+        cached.detections.append(deepcopy(item))
+    elif case == 'wrong_track':
+        item.track_id = 'neighbor'
+    elif case == 'wrong_config':
+        config['label_destinations'] = {}
+    elif case == 'wrong_epoch':
+        cached.tracking_epoch = 'new-epoch'
+
+    lookups = []
+    def lookup(client, request):
+        assert client is adapter.lookup and request.snapshot_id == approved['snapshot_id']
+        lookups.append(request.snapshot_id)
+        return NS(found=case != 'cache_missing', detections=cached)
+
+    adapter.call = lookup
+    adapter._observe_target = lambda *_: pytest.fail('Stationary approval requested a new image')
+    cancelled = lambda: bool(case == 'cancel_after_lookup' and lookups)
+    if case == 'valid':
+        adapter.revalidate(approved, cancelled)
+    else:
+        with pytest.raises((ValueError, InterruptedError)):
+            adapter.revalidate(approved, cancelled)
+    assert lookups == [approved['snapshot_id']]
+    audit = json.loads((tmp_path / 'revalidations' / f"{approved['id']}.json").read_text())
+    assert audit['success'] == (case == 'valid')
+    assert audit['attempts'] == []
+    if case == 'valid':
+        assert audit['mode'] == 'stationary_target_assumed'
+        assert audit['source_snapshot_id'] == approved['snapshot_id']
 
 
 def proposal():

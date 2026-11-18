@@ -915,6 +915,15 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             diagnostic.update(summarize_alignments([value], self._alignment_limits()))
             value = self._accept_alignment(arm, target, value, diagnostic)
             self._record_ik_diagnostic(diagnostic)
+            if value is None and self._prepared_grasps and self._primary_only:
+                # A deferred batch retained one unchecked pose. Check the ranked
+                # primary solutions before discarding a feasible grasp orientation.
+                self._primary_only = False
+                try:
+                    value = self._batch(arm, [target], [None], self._gpu_config.num_seeds,
+                                        openings=[request.gripper_position])[0]
+                finally:
+                    self._primary_only = True
         if value is None and self._primary_only:
             self._deferred_ik = True
             self._pregrasp_alignment_pending.add(request)

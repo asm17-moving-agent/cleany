@@ -30,16 +30,19 @@ def make_semantic_classifier(*, model: str, object_types: Sequence[str],
 
 class YoloeGeminiDetector:
     def __init__(self, yoloe: YoloeDetector, classifier: SemanticClassifierPort, *,
+                 decision_enabled: bool = True,
                  vlm_active: Callable[[bool], None] | None = None,
                  timing: Callable[[str, float], None] | None = None) -> None:
         self._yoloe = yoloe
         self._classifier = classifier
+        self._decision_enabled = decision_enabled
         self._vlm_active = vlm_active or (lambda active: None)
         self._timing = timing or (lambda stage, seconds: None)
 
     def prepare(self) -> None:
         self._yoloe.prepare()
-        self._classifier.prepare()
+        if self._decision_enabled:
+            self._classifier.prepare()
 
     def detect(self, rgb: RgbArray, query: str) -> Sequence[Detection2D]:
         return self._classify(rgb, self._detect_local(rgb, query))
@@ -52,8 +55,8 @@ class YoloeGeminiDetector:
             self._timing('yoloe', time.monotonic() - began)
 
     def _classify(self, rgb, detections):
-        if not detections:
-            return ()
+        if not detections or not self._decision_enabled:
+            return detections
         began = time.monotonic()
         try:
             self._vlm_active(True)
@@ -65,8 +68,8 @@ class YoloeGeminiDetector:
     def detect_with_preprocessing(self, rgb: RgbArray, query: str,
                                   preprocess: Callable[[Sequence[Detection2D]], None]):
         detections = self._detect_local(rgb, query)
-        if not detections:
-            return ()
+        if not detections or not self._decision_enabled:
+            return detections
         # Only the remote request runs in the worker. Local GPU inference has
         # completed; geometry preprocessing uses CPU and publishes no target.
         with ThreadPoolExecutor(max_workers=1, thread_name_prefix='vlm-classify') as executor:

@@ -128,6 +128,12 @@ def approved_command(repo: Path, job: dict) -> list[str]:
         '--ros-args', '--params-file', str(repo / 'ros2_ws/src/cleany_manipulation_bt/config/manipulation_jetson.yaml')]
 
 
+def selection_message(message: str) -> str:
+    if message == 'No reachable commissioned arm':
+        return '설정된 팔에서 자세, 충돌, 경로 조건을 모두 통과한 파지 후보를 찾지 못했습니다.'
+    return message
+
+
 def command_report(path: Path) -> dict:
     """Explain this job using its CLI's final record; never authorize motion from logs."""
     try:
@@ -153,9 +159,7 @@ def command_report(path: Path) -> dict:
             'failed_stage', 'failed_substage', 'object_id', 'object_state', 'placement_state',
             'arm_recovered', 'stop_confirmed') if key in record}
         message = str(record.get('message', ''))[:1000]
-        if message == 'No reachable commissioned arm':
-            message = '선택한 물체를 잡을 팔 자세(IK)를 양팔 모두에서 찾지 못했습니다. 물체 위치와 접근 방향을 확인하세요.'
-        return dict(result=result, message=message)
+        return dict(result=result, message=selection_message(message))
     for line in reversed(lines):
         if line.startswith('Collection readiness failed:'):
             return dict(message='로봇 준비 확인 실패: ' + line.split(':', 1)[1].strip()[:1000])

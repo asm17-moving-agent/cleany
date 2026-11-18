@@ -1,6 +1,7 @@
 {
   "frame": "base_link",
   "operation_mode": "pick_return_release",
+  "temporary_ignore_decision": true,
   "temporary_contact_verification": "raw_feedback",
   "temporary_placement_verification": "assume_success",
   "return_to_pick_height_offset_m": 0.02,
@@ -130,5 +131,5 @@
     }
   },
   "continuous_scene_updates": true,
-  "pregrasp_z_offset_m": 0.01
+  "pregrasp_z_offset_m": 0.02
 }

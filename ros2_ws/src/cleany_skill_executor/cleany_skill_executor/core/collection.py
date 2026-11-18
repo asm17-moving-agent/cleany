@@ -11,6 +11,10 @@ def temporary_return_mode(config: dict) -> bool:
     return config.get('operation_mode') == 'pick_return_release'
 
 
+def temporary_local_target_selection(config: dict) -> bool:
+    return temporary_return_mode(config) and config.get('temporary_ignore_decision') is True
+
+
 @dataclass(frozen=True)
 class PickupReturnPolicy:
     height_offset_m: float
@@ -89,6 +93,10 @@ def configuration_issues(config: dict) -> list[str]:
             issues.append('temporary return requires explicit assumed placement')
         if config.get('label_destinations') != {'*': RETURN_TO_PICK}:
             issues.append('temporary return destination must be return_to_pick for all labels')
+    if ('temporary_ignore_decision' in config and
+            (type(config['temporary_ignore_decision']) is not bool
+             or (config['temporary_ignore_decision'] and not temporary_return_mode(config)))):
+        issues.append('temporary_ignore_decision requires a boolean and pick_return_release when enabled')
     if 'continuous_scene_updates' in config and type(config['continuous_scene_updates']) is not bool:
         issues.append('continuous_scene_updates must be boolean')
     pregrasp_z = config.get('pregrasp_z_offset_m', 0.)

@@ -22,8 +22,8 @@ joint_defaults:
   acceleration_raw: 254       # motor response cap; host trajectory acceleration is bounded
   torque_limit_raw: 800       # 80% RAM output limit; EEPROM maximum is unchanged
 joint_overrides:
-  left_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
-  right_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
+  left_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 52, speed_raw: 1304, max_velocity: 2.0, max_acceleration: 8.0}
+  right_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 52, speed_raw: 1304, max_velocity: 2.0, max_acceleration: 8.0}
 controller:
   type: cleany_trajectory_controller/JointTrajectoryController
   action_monitor_rate: 20.0   # Hz: progress feedback; terminal results use events

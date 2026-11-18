@@ -38,7 +38,8 @@ def setup(context):
         selector_parameters.append(str(skill / 'config/hybrid_motion.yaml'))
     selector_parameters.append(str(skill / 'config/pregrasp_motion.yaml'))
     from cleany_description.cad_coordinates import CadCoordinates
-    if CadCoordinates.from_urdf(profile.model.read_text()) is not None:
+    calibrated_cad = CadCoordinates.from_urdf(profile.model.read_text()) is not None
+    if calibrated_cad:
         if backend != 'curobo_ik_moveit':
             raise ValueError('Calibrated CAD hardware selection requires GPU IK with native collision validation')
         selector_parameters.append({'curobo_sphere_model': 'cad_cached'})
@@ -61,10 +62,13 @@ def setup(context):
     grasp_nodes = []
     if predictor == 'geometric':
         grasping = Path(get_package_share_directory('cleany_grasping'))
+        grasp_parameters = [str(grasping / 'config/anygrasp.yaml'),
+                            str(skill / 'config/geometric_pregrasp.yaml')]
+        if calibrated_cad:
+            grasp_parameters.append(str(skill / 'config/geometric_collection_cad.yaml'))
         grasp_server = Node(
             package='cleany_grasping', executable='grasp_server', output='screen',
-            parameters=[str(grasping / 'config/anygrasp.yaml'),
-                        str(skill / 'config/geometric_pregrasp.yaml')],
+            parameters=grasp_parameters,
         )
         grasp_nodes = [
             RegisterEventHandler(OnProcessExit(target_action=grasp_server,

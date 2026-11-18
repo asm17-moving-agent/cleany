@@ -296,8 +296,13 @@ def test_failed_job_reports_its_terminal_execution_and_preserves_audit(tmp_path)
     assert reported['result']['execution_id'] == 'physical-execution'
     assert reported['result']['status'] == 'BLOCKED'
     assert reported['result']['object_state'] == 'NOT_TOUCHED'
-    assert '양팔' in reported['message']
+    assert '충돌' in reported['message']
+    assert 'IK' not in reported['message']
     assert json.loads(path.read_text()) == job  # Summaries do not rewrite history or clear blocks.
+    legacy = {**job, 'result': record, 'message': '이전 IK 오류 표기'}
+    atomic_json(path, legacy)
+    assert control.job_history()[0]['message'] == reported['message']
+    assert json.loads(path.read_text()) == legacy
 
 
 def test_partial_or_invalid_stdout_never_becomes_a_terminal_record(tmp_path):

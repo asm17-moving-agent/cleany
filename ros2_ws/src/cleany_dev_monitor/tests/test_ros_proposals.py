@@ -14,7 +14,8 @@ import pytest
 pytestmark = pytest.mark.skipif(os.environ.get('CLEANY_RUN_ROS_TESTS') != '1', reason='ROS opt-in')
 
 
-def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, monkeypatch):
+@pytest.mark.parametrize('stationary', [False, True])
+def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, monkeypatch, stationary):
     assert os.environ.get('ROS_DOMAIN_ID', '0') != '0', 'Use an isolated ROS domain'
     import rclpy
     from rclpy.action import ActionServer
@@ -145,6 +146,13 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
         assert all(request.source_snapshot_id == value['snapshot_id'] for request in observations)
         assert len({request.tracking_session_id for request in calls}) == 1
         position[0] = .4
+        if stationary:
+            settings = json.loads(config.read_text())
+            settings.update(assume_stationary_target=True, visual_servo_enabled=False,
+                            wrist_observation_enabled=False)
+            config.write_text(json.dumps(settings))
+            value = adapter.propose(lambda: False)
+        observations_before_approval = len(observations)
         (tmp_path / 'enabled').touch()
         (tmp_path / 'jobs').mkdir()
         request_id = str(uuid4())
@@ -159,6 +167,13 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
             execute_job(job, Path(__file__).resolve().parents[4])
         result = json.loads(job.read_text())
         assert result['state'] == 'SUCCEEDED', (result, job.with_suffix('.log').read_text())
+        audit = json.loads((tmp_path / 'revalidations' / f"{value['id']}.json").read_text())
+        if stationary:
+            assert len(observations) == observations_before_approval
+            assert audit['mode'] == 'stationary_target_assumed' and audit['attempts'] == []
+        else:
+            assert len(observations) == observations_before_approval + 1
+            assert audit['mode'] == 'local_target_frozen_semantics' and len(audit['attempts']) == 1
         assert len(goals) == 1
         assert goals[0].snapshot_id == value['snapshot_id'] and goals[0].object_id == value['target']['object_id']
         assert goals[0].execution_id == request_id

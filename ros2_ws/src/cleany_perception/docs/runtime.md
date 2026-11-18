@@ -80,6 +80,10 @@ aligned RGB-D → capture-time TF → detector bbox + 번호
 
 ## Decision 분류
 
+`decision_enabled=false`로 시작하면 장면 인식은 로컬 YOLOE 마스크만 사용하고
+처리 분류를 빈 값으로 둔다. 깊이, 크기와 추적 정보는 같은 방식으로 계산한다.
+기본값은 `true`다.
+
 YOLOE가 장면의 instance mask를 찾은 뒤 Decision 분류기가 같은 검출의 의미를
 평가한다. 선택한 종류, 분류, 위험 판단과 검토 사유는 객체별로 연결하고, 승인
 대상 재확인에서는 원래 분류를 유지한다. 종류 후보와 질문의 기본값은

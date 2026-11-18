@@ -446,9 +446,9 @@ class CollectionPipeline(PregraspPipeline):
             )
             if not self.destination or self.destination not in self.arm_config.bins:
                 raise RuntimeError('No approved destination for selected label')
-        expected = self.arm_config.opening(float(selected.selected_candidate.required_opening_m))
-        if abs(expected-selected.gripper_joint_position) > 1e-4:
-            raise RuntimeError('Selector gripper mapping differs from physical calibration')
+        if not math.isclose(selected.gripper_joint_position, self.arm_config.opened,
+                            rel_tol=0., abs_tol=1e-4):
+            raise RuntimeError('Selector did not validate the configured fully open gripper')
         limits = self.real.verify(arm)
         if self.arm_config.home is None:
             measured = self.real.monitor()
@@ -843,22 +843,27 @@ class CollectionPipeline(PregraspPipeline):
         # still originate at measured FK and retain the requested destination.
         hold = (None if stage == 'return_to_pickup' else
                 self.real.arm_holds.get(arm))
+        compensate_support_offset = stage not in ('approach', 'approach_detour')
         command_start = None
         if hold is not None:
             command_start = fk(hold.command)
-            if command_target is None:
+            if command_target is not None:
+                command_waypoints = (command_target,)
+            elif compensate_support_offset:
                 command_waypoints = tuple(estimate_measured_path_pose(command_start, start, p)
                                           for p in waypoints)
             else:
-                command_waypoints = (command_target,)
+                # Continue from the held joints without moving the grasp goal.
+                command_waypoints = waypoints
             if (command_target is not None or math.dist(start.position, command_start.position) > 1e-9
                     or orientation_error_rad(start.orientation, command_start.orientation) > 1e-9):
                 command_state = deepcopy(measured)
                 sent = dict(zip(names, hold.command, strict=True))
                 command_state.position = [sent.get(name, value) for name, value in
                                           zip(measured.name, measured.position, strict=True)]
-                roll = (None if wrist_roll_target is None else wrist_roll_target
-                        +hold.command[-1]-measured_joints[-1])
+                roll = wrist_roll_target
+                if roll is not None and compensate_support_offset:
+                    roll += hold.command[-1] - measured_joints[-1]
                 trajectory = self._cartesian_trajectory(
                     arm, command_state, command_waypoints, stage+'_command_support', roll,
                     check_collisions)
@@ -892,10 +897,12 @@ class CollectionPipeline(PregraspPipeline):
             self.motion.set_current_state(actual)
             current = dict(zip(actual.name, actual.position, strict=True))
             origin = fk(tuple(current[name] for name in names))
+            if command_start is not None and not compensate_support_offset:
+                origin = command_start
             final_poses = []
             for sample in samples:
                 pose = fk(sample.positions)
-                if command_start is not None:
+                if command_start is not None and compensate_support_offset:
                     pose = estimate_measured_path_pose(origin, command_start, pose)
                 final_poses.append(pose)
             try:
