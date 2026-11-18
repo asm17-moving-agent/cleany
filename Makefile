@@ -769,7 +769,6 @@ test-description-models:
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
 	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
 	python3 -m pytest -q -p no:cacheprovider \
-		$(ROS2_WS)/src/cleany_description/test/test_cad_final.py \
 		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
 		$(ROS2_WS)/src/cleany_description/test/test_freecad_model.py \
 		$(ROS2_WS)/src/cleany_description/test/test_freecad_kinematics.py \

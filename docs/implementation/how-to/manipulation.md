@@ -20,7 +20,7 @@ flowchart TD
 <figcaption><strong>필요한 자료:</strong> 본문 MuJoCo 실행의 관찰 → 접근 → 놓기와 Action 결과를 연결한 화면 또는 GIF.<br><strong>빈 이유:</strong> 기존 실물 파지 사진과 Isaac 저장 자세는 이 실행 경로를 보여주지 않습니다.</figcaption>
 </figure>
 
-최신 기본 모델 `cad_final`의 그리퍼는 조립 자세로 고정되어 있어 집기 명령을 허용하지 않습니다. 아래 경로를 선택하기 전에 [모델별 구동 범위](../../../ros2_ws/src/cleany_description/docs/model.md#좌표와-동작-범위)를 확인합니다. 이전 모델에서 얻은 집기 결과를 최신 CAD의 결과로 해석하지 않습니다.
+실물 공통 CAD와 기존 시뮬레이션은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md)에서 구분합니다. 아래 실행 경로에서 사용하는 모델과 구동 설정을 먼저 확인합니다.
 
 | 실행 범위 | 진입점 |
 |---|---|

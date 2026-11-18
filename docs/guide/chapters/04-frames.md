@@ -32,7 +32,7 @@ Cleany의 공통 모델 위치는 [모델 계약](../../../ros2_ws/src/cleany_de
 | [cleany_geometry.xacro](../../../ros2_ws/src/cleany_description/urdf/cleany_geometry.xacro) | `model_profile`에 따라 최신 CAD 또는 이전 모델 선택 |
 | [cleany.urdf.xacro](../../../ros2_ws/src/cleany_description/urdf/cleany.urdf.xacro) | TF·MoveIt에서 쓰는 plugin-free 설명 |
 | [cleany_control.urdf.xacro](../../../ros2_ws/src/cleany_description/urdf/cleany_control.urdf.xacro) | MuJoCo 제어 backend를 추가하는 진입점 |
-| [cad_final/geometry.xacro](../../../ros2_ws/src/cleany_description/urdf/cad_final/geometry.xacro) | 최신 CAD의 관절과 카메라 좌표계 |
+| [cleany.urdf](../../../ros2_ws/src/cleany_description/urdf/cleany.urdf) | 실물 공통 CAD의 관절과 카메라 좌표계 |
 | [legacy_20261009](../../../ros2_ws/src/cleany_description/urdf/legacy_20261009/head_camera.xacro) | 이전 장착의 헤드 모델; 이전 실물 보정과 함께 사용 |
 
 `robot_state_publisher`는 URDF와 관절 상태를 이용해 link 사이 TF를 제공합니다. 모델 파일이 존재하는 것과 현재 관절값이 들어오는 것은 별개의 조건입니다. 움직이는 관절의 각도를 모르면서 센서 위치를 정확히 계산할 수는 없습니다.
@@ -53,7 +53,7 @@ Cleany의 공통 모델 위치는 [모델 계약](../../../ros2_ws/src/cleany_de
 
 `origin`은 부모 링크에서 관절 기준으로 가는 고정 관계입니다. 이 예제에서는 Z 방향으로 0.1 m 올라갑니다. `axis`는 관절 기준의 회전축이므로 Y축을 중심으로 회전합니다. `limit`의 각도와 속도 단위는 rad와 rad/s입니다.
 
-현재 Cleany 모델은 [프로필 선택 파일](../../../ros2_ws/src/cleany_description/urdf/cleany_geometry.xacro)에서 기본 `cad_final`을 선택하고, [최신 형상](../../../ros2_ws/src/cleany_description/urdf/cad_final/geometry.xacro)의 `head_tilt_joint`로 이어집니다. 원본에서 부모, 자식, `origin`, `axis`를 찾아 위 예제와 비교합니다. 좌표 수치와 보정 적용 조건은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md)이 관리합니다.
+실물 Cleany 모델은 [공통 CAD URDF](../../../ros2_ws/src/cleany_description/urdf/cleany.urdf)의 `head_tilt_joint`를 사용합니다. 원본에서 부모, 자식, `origin`, `axis`를 찾아 위 예제와 비교합니다. 좌표 수치와 보정 적용 조건은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md)이 관리합니다.
 
 ```mermaid
 flowchart TD
@@ -107,7 +107,7 @@ TF 관계를 출력하면 다음처럼 부모·자식 좌표계과 발행 노드
 
 ## 04.5 TF 오류 추적 실습
 
-먼저 ROS 없이 파일 세 개를 비교하세요. [최신 CAD 형상](../../../ros2_ws/src/cleany_description/urdf/cad_final/geometry.xacro)의 부모·자식 이름, [base.yaml](../../../ros2_ws/src/cleany_gazebo_sim/config/base.yaml)의 센서 이름, [slam_toolbox.yaml](../../../ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml)의 `map_frame`, `odom_frame`, `base_frame`입니다. 이름을 적고 각 관계의 발행 주체를 표시해 보세요.
+먼저 ROS 없이 파일 세 개를 비교하세요. [기존 시뮬레이션 형상](../../../ros2_ws/src/cleany_description/urdf/legacy_20261009/cleany_geometry.xacro)의 부모·자식 이름, [base.yaml](../../../ros2_ws/src/cleany_gazebo_sim/config/base.yaml)의 센서 이름, [slam_toolbox.yaml](../../../ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml)의 `map_frame`, `odom_frame`, `base_frame`입니다. 이름을 적고 각 관계의 발행 주체를 표시해 보세요.
 
 06장의 독립된 Gazebo·SLAM 실습 환경을 실행한 경우 다음 읽기 전용 명령으로 확인할 수 있습니다.
 

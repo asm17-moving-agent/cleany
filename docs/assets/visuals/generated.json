@@ -25,7 +25,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -45,7 +45,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -61,7 +61,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -81,7 +81,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -97,23 +97,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
-        }
-      ]
-    },
-    {
-      "id": "wrist-axes",
-      "asset": "ros2_ws/src/cleany_description/docs/assets/wrist-axes.png",
-      "scope": "Approximate geometry transform, not measured hand-eye calibration.",
-      "sha256": "5050795418d243e8ff63cdf550e5aaeb341870dcd35ef46baeba5d982b32a252",
-      "inputs": [
-        {
-          "path": "ros2_ws/src/cleany_description/config/geometry/cad_final.json",
-          "sha256": "1c4197bd0ec63df1774d529deda75a7225117df62f3710580142d600c18d764a"
-        },
-        {
-          "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -129,7 +113,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -149,7 +133,7 @@
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     },
@@ -161,39 +145,11 @@
       "inputs": [
         {
           "path": "ros2_ws/src/cleany_scene_mapping/test/test_known_geometry.cpp",
-          "sha256": "d53a1e6af522a293ce475c9f0adda8f30828277a3572bdce369f435018a1aad6"
+          "sha256": "a344517429de726865363122723583bd227dacfeebb96a44ff70022a7ea4bb61"
         },
         {
           "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
-        }
-      ]
-    },
-    {
-      "id": "collision-shape",
-      "asset": "ros2_ws/src/cleany_description/docs/assets/collision-shape.png",
-      "scope": "Current CAD elbow socket and its convex collision envelope, identical view; not a whole-robot collision result.",
-      "sha256": "dd183750400fbfe80f90116605677e5e8896163e8228590f353d6fc9ec16e8c6",
-      "inputs": [
-        {
-          "path": "ros2_ws/src/cleany_description/meshes/cad_final/Aligned_AssembledElbowBSocket.stl",
-          "sha256": "b6bd21e91a885bdd8009e6c4025f3c8a45790d1f33628f59b1214399d9a5fb4a"
-        },
-        {
-          "path": "ros2_ws/src/cleany_description/meshes/cad_final/collision/Aligned_AssembledElbowBSocket.stl",
-          "sha256": "dfce39b60f6e327446771104d5dfe8b26479c5c3aac16160d590e1ef757cf982"
-        },
-        {
-          "path": "configs/robot/arm_collision_meshes.json",
-          "sha256": "4b56639bb8873566b82437ddac9dd005a076e5109928eb5038f1844369c83d05"
-        },
-        {
-          "path": "tools/optimize_arm_collision_meshes.py",
-          "sha256": "6c63cf7c2920d639df2e264d815fe32e29cd32e110e57190f4d77b569850dc6b"
-        },
-        {
-          "path": "tools/docs/render_contract_figures.py",
-          "sha256": "b1bb8786457a45628bea6d551e18d7e72c8ee75f249d0d9b185c26f8685a5312"
+          "sha256": "4a698d1ee9ac712007c694327edf3e6d10985ec4ed1a10ea3ce10f2ecc35dc3e"
         }
       ]
     }

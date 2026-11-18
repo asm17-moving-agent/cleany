@@ -60,8 +60,8 @@ Voxel guard는 몸체 OBB와 예측 제동 sweep를 검사합니다. 요청 속�
 
 몸체 프로파일의 기본 `model_profile: freecad_calibrated`는 공통 `urdf/cleany.urdf`의
 모터 좌표와 종속 그리퍼 관절을 사용합니다. Gazebo 평가 프로파일은
-`model_profile: cad_final`을 명시해 시뮬레이션 xacro와 같은 형상을 선택합니다.
-`cad_final`과 `jetson_20261009`는 시뮬레이션 허용 경로에서만 선택할 수 있으며,
+`model_profile: jetson_20261009`를 명시해 기존 시뮬레이션 xacro와 같은 형상을 선택합니다.
+`jetson_20261009`는 시뮬레이션 허용 경로에서만 선택할 수 있으며,
 실물 경로에서는 보정되지 않은 모델이나 시뮬레이션 관절 제한을 거부합니다.
 
 ## Memory와 진단

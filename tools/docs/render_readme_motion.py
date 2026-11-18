@@ -77,9 +77,6 @@ def main() -> None:
     width, height, fps = 400, 420, 10
     model = model_with_floor(source, width, height)
     data = mujoco.MjData(model)
-    registration = json.loads((package / 'config/geometry/cad_final.json').read_text())
-    for name, q in registration['registration_angles_rad'].items():
-        data.qpos[model.joint(name).qposadr[0]] = q
     home = data.qpos.copy()
     options = mujoco.MjvOption()
     options.geomgroup[:] = [1, 1, 1, 0, 0, 0]

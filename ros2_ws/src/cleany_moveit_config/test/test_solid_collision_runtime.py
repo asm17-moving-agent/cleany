@@ -22,7 +22,7 @@ from rclpy.executors import SingleThreadedExecutor
 from shape_msgs.msg import SolidPrimitive
 
 
-def _start(log, domain: int, detector: str | None, model_profile="cad_final"):
+def _start(log, domain: int, detector: str | None, model_profile="jetson_20261009"):
     command = ['ros2', 'launch', 'cleany_moveit_config', 'move_group.launch.py',
                'use_rviz:=false', 'allow_trajectory_execution:=false', 'model_profile:=' + model_profile]
     if detector is not None:
@@ -44,7 +44,7 @@ def _stop(process) -> None:
 
 
 @contextmanager
-def _runtime(tmp_path: Path, detector: str | None, model_profile="cad_final"):
+def _runtime(tmp_path: Path, detector: str | None, model_profile="jetson_20261009"):
     domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 30 + os.getpid() % 180))
     context = Context()
     rclpy.init(args=[], context=context, domain_id=domain)
@@ -125,33 +125,3 @@ def test_unavailable_detector_stops_planning(tmp_path: Path):
             _stop(process)
     assert 'Requested collision detector cleany/MissingDetector did not load' in log_path.read_text()
     assert not re.search(r'\[INFO\].*Verified collision detector:', log_path.read_text())
-
-
-def test_latest_cad_panel_detects_contained_obstacle(tmp_path: Path):
-    manifest = json.loads((Path(__file__).parents[2] /
-        'cleany_description/config/geometry/cad_final.json').read_text())
-    with _runtime(tmp_path, None) as (node, call):
-        validity = node.create_client(GetStateValidity, '/check_state_validity')
-        apply = node.create_client(ApplyPlanningScene, '/apply_planning_scene')
-        state = RobotState()
-        state.joint_state.name = list(manifest['registration_angles_rad'])
-        state.joint_state.position = list(manifest['registration_angles_rad'].values())
-        query = GetStateValidity.Request(robot_state=state)
-        baseline = call(validity, query)
-        assert baseline.valid, str(baseline.contacts)
-        obstacle = CollisionObject(id='cad_panel_probe', operation=CollisionObject.ADD)
-        obstacle.header.frame_id = 'base_link'
-        obstacle.primitives = [SolidPrimitive(type=SolidPrimitive.SPHERE, dimensions=[.0005])]
-        pose = Pose()
-        pose.orientation.w = 1.
-        # 최신 측면 패널 내부의 CAD 좌표 (220, -202.5, 400)mm입니다.
-        pose.position.x, pose.position.y, pose.position.z = (.202475, .220027, .115503)
-        obstacle.primitive_poses = [pose]
-        update = ApplyPlanningScene.Request()
-        update.scene.is_diff = True
-        update.scene.world.collision_objects = [obstacle]
-        assert call(apply, update).success
-        result = call(validity, query)
-        assert not result.valid
-        pairs = [{c.contact_body_1, c.contact_body_2} for c in result.contacts]
-        assert {'base_link', 'cad_panel_probe'} in pairs

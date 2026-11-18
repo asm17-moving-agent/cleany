@@ -105,7 +105,7 @@ return Selection(index, arm, candidate, pregrasp, grasp)
 
 별도 [nearest-pregrasp coordinator](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/nearest_pregrasp_coordinator.py)가 선택 결과를 실행합니다. 기본은 pre-grasp까지이며 `execute_grasp_and_lift=true`는 재관측과 접촉 집기·후퇴·lift를 연결합니다. 연속 sorting과 BT Action은 [별도 실행 경로](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)입니다. 후보, 계획, controller 실행과 물체 상태 변화를 구분해 읽습니다.
 
-최신 기본 모델 `cad_final`의 링크형 그리퍼는 현재 조립 자세로 고정되어 있습니다. 위 실행 경로의 존재가 최신 그리퍼의 집기 성공을 의미하지 않습니다. 구동 가능 범위와 이전 모델의 구분은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md#좌표와-동작-범위)에서 확인합니다.
+위 데모는 기존 시뮬레이션 모델을 사용합니다. 실물 공통 CAD의 구동 좌표와 보정은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md)에서 확인합니다.
 
 ## 08.6 파지 파이프라인 추적
 

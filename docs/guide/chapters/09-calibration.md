@@ -140,7 +140,7 @@ try:
 
 보드가 고정되어 있다면 held-out 표본에서 계산한 `base_T_target`도 서로 비슷해야 합니다. 이 일관성 오차와 시뮬레이션의 정답 대비 오차는 다른 지표입니다. MuJoCo ground truth는 평가용이며 solver에 넣지 않습니다. 평가 조건은 [evaluation.template.yaml](../../../ros2_ws/src/cleany_handeye_calibration/config/evaluation.template.yaml)과 패키지 README를 함께 읽습니다.
 
-출력 보정 변환은 검토할 결과 파일입니다. 패키지가 결과를 자동으로 보정 TF에 적용하지는 않습니다. 최신 `cad_final`의 명목 카메라 위치와 이전 `jetson_20261009`의 실물 보정은 다른 장착 조건입니다. 데이터에 기록된 모델과 수집 조건을 확인하고 [보정 적용 절차](../../implementation/calibration.md)를 따릅니다.
+출력 보정 변환은 검토할 결과 파일입니다. 패키지가 결과를 자동으로 보정 TF에 적용하지는 않습니다. 공통 CAD의 카메라 위치와 기존 `jetson_20261009` 보정은 장착 조건을 구분해야 합니다. 데이터에 기록된 모델과 수집 조건을 확인하고 [보정 적용 절차](../../implementation/calibration.md)를 따릅니다.
 
 ## 09.6 보정 데이터 추적 실습
 

@@ -110,8 +110,8 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="true"),
-            DeclareLaunchArgument("model_profile", default_value="cad_final",
-                                  choices=["cad_final", "jetson_20261009"]),
+            DeclareLaunchArgument("model_profile", default_value="jetson_20261009",
+                                  choices=["jetson_20261009"]),
             DeclareLaunchArgument(
                 "namespace",
                 default_value="",

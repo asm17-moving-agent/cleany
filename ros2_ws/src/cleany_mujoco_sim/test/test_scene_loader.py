@@ -339,21 +339,19 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             )
 
 
-def test_legacy_control_scene_keeps_commanded_jaws_and_latest_cad_stays_default():
+def test_default_control_scene_keeps_legacy_commanded_jaws():
     template = Path(__file__).parents[1] / 'scenes/study_cafe_grasp_execution.xml.in'
-    for profile, opening in [('jetson_20261009', -.35), ('cad_final', 0.)]:
-        scene = materialize_control_scene(template, model_profile=profile,
-            initial_joint_positions={'left_gripper_joint': opening, 'right_gripper_joint': opening})
-        model = mujoco.MjModel.from_xml_path(str(scene))
-        data = mujoco.MjData(model)
-        mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
-        for side in ('left', 'right'):
-            joint = model.joint(f'{side}_gripper_joint')
-            assert data.qpos[joint.qposadr[0]] == pytest.approx(opening)
-            if profile == 'jetson_20261009':
-                assert joint.range[0] < opening < joint.range[1]
-            else:
-                assert abs(joint.range[0]) <= 1e-9
-                assert abs(joint.range[1]) <= 1e-9
-    with pytest.raises(ValueError, match='Unknown model_profile'):
-        materialize_control_scene(template, model_profile='unknown')
+    opening = -.35
+    scene = materialize_control_scene(
+        template, initial_joint_positions={
+            'left_gripper_joint': opening, 'right_gripper_joint': opening})
+    model = mujoco.MjModel.from_xml_path(str(scene))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    for side in ('left', 'right'):
+        joint = model.joint(f'{side}_gripper_joint')
+        assert data.qpos[joint.qposadr[0]] == pytest.approx(opening)
+        assert joint.range[0] < opening < joint.range[1]
+    for profile in ('cad_final', 'unknown'):
+        with pytest.raises(ValueError, match='Unknown model_profile'):
+            materialize_control_scene(template, model_profile=profile)

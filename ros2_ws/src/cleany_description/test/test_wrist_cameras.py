@@ -14,7 +14,7 @@ PACKAGE = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope='module')
 def model() -> mujoco.MjModel:
-    return mujoco.MjModel.from_xml_path(str(PACKAGE / 'mjcf/cleany_jetson_20261009.xml'))
+    return mujoco.MjModel.from_xml_path(str(PACKAGE / 'mjcf/cleany.xml'))
 
 
 @pytest.fixture(scope='module')

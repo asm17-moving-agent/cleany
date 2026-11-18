@@ -14,7 +14,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def _moveit_config(controller_config='config/moveit_controllers.yaml', model_profile='cad_final'):
+def _moveit_config(controller_config='config/moveit_controllers.yaml', model_profile='jetson_20261009'):
     description_xacro = (
         Path(get_package_share_directory('cleany_description'))
         / 'urdf'
@@ -35,7 +35,7 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml', model_pro
         )
         .robot_description_semantic(file_path='config/cleany.srdf')
         .robot_description_kinematics(file_path='config/kinematics.yaml')
-        .joint_limits(file_path='config/joint_limits_jetson_20261009.yaml' if model_profile == 'jetson_20261009' else 'config/joint_limits.yaml')
+        .joint_limits(file_path='config/joint_limits.yaml')
         .trajectory_execution(
             file_path=controller_config,
             moveit_manage_controllers=False,
@@ -193,7 +193,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'allowed_goal_duration_margin', default_value='0.5'
             ),
-            DeclareLaunchArgument('model_profile', default_value='cad_final', choices=['cad_final','jetson_20261009']),
+            DeclareLaunchArgument('model_profile', default_value='jetson_20261009', choices=['jetson_20261009']),
             OpaqueFunction(function=_launch_setup),
         ]
     )

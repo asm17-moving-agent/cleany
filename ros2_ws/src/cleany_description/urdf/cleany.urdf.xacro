@@ -13,9 +13,6 @@
 
   <xacro:cleany_robot_geometry include_wheel_joints="$(arg include_wheel_joints)"
                               head_mast_rear_gap_m="$(arg head_mast_rear_gap_m)"/>
-  <xacro:if value="${'$(arg calibration_profile)' != '' and '$(arg model_profile)' != 'jetson_20261009'}">
-    ${xacro.fatal('Measured calibration requires model_profile:=jetson_20261009; cad_final has a different assembly')}
-  </xacro:if>
   <xacro:if value="${'$(arg calibration_profile)' != ''}">
     <xacro:cleany_calibrated_wrist_camera side="left"
       calibration_file="${calibration_directory + '/left_wrist_camera_extrinsics.yaml'}"/>

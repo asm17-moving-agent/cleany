@@ -21,7 +21,7 @@ def _mock_moveit_config(include_head_camera='false', head_tilt_initial='0.405'):
         .robot_description_semantic(file_path='config/cleany.srdf.xacro',
                                     mappings={'include_head_camera': include_head_camera})
         .robot_description_kinematics(file_path='config/kinematics.yaml')
-        .joint_limits(file_path='config/joint_limits_jetson_20261009.yaml')
+        .joint_limits(file_path='config/joint_limits.yaml')
         .trajectory_execution(
             file_path='config/moveit_controllers.yaml',
             moveit_manage_controllers=False,

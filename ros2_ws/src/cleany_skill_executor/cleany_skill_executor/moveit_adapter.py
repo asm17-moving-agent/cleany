@@ -31,7 +31,7 @@ from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.urdf_fk import UrdfChain
 
 
-# cad_final과 jetson_20261009 모델 프로파일이 공유하는 팔 한계입니다.
+# Joint limits for the retained jetson_20261009 simulation model.
 # seed 생성 시 손목 roll 항목은 설정된 범위로 교체합니다.
 _ARM_JOINT_LIMITS = (
     (-2.16, 2.16),

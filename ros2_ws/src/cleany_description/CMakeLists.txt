@@ -13,7 +13,6 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(cad_final test/test_cad_final.py TIMEOUT 300)
   ament_add_pytest_test(runtime_state test/test_runtime_state.py)
   ament_add_pytest_test(runtime_model test/test_runtime_model.py)
   ament_add_pytest_test(cad_coordinates test/test_cad_coordinates.py)

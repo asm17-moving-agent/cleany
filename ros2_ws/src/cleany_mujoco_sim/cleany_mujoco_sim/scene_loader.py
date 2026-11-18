@@ -75,7 +75,7 @@ def materialize_control_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
-    model_profile: str = 'cad_final',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     """MuJoCo 3.4와 호환되는 팔 제어 장면을 구체화합니다.
@@ -104,7 +104,7 @@ def resolve_control_scene_path(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
-    model_profile: str = 'cad_final',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if scene_path.suffix == '.in':
@@ -137,7 +137,7 @@ def _materialize_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
-    model_profile: str = 'cad_final',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if not template_path.is_file():

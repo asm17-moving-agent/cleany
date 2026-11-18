@@ -36,7 +36,7 @@ def _launch_file(package: str, filename: str) -> str:
     )
 
 
-def _shoulder_reference_positions(model_profile: str = 'cad_final') -> list[float]:
+def _shoulder_reference_positions(model_profile: str = 'jetson_20261009') -> list[float]:
     """시뮬레이션과 같은 기본 URDF에서 base_link 기준 어깨 원점을 읽습니다."""
     path = Path(get_package_share_directory('cleany_description')) / 'urdf/cleany.urdf.xacro'
     robot = ET.fromstring(xacro.process_file(str(path), mappings={'model_profile': model_profile}).toxml())

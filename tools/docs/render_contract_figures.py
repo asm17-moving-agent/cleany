@@ -143,25 +143,6 @@ def lattice():
     return fig, [source], "Stored primitive poses at heading index 0; straight segments join samples."
 
 
-def wrist_axes():
-    source = PKG + "description/config/geometry/cad_final.json"
-    transform = np.array(read(source)["wrist_cameras"]["left"])
-    fig = plt.figure(figsize=(6.4, 6.4), layout="constrained")
-    ax = fig.add_subplot(projection="3d")
-    origin = transform[:3, 3] * 1000
-    for index, color in enumerate([RED, GREEN, BLUE]):
-        v = transform[:3, index] * 25
-        ax.quiver(*origin, *v, color=color, arrow_length_ratio=.15, lw=2)
-        ax.text(*(origin+v*1.15), "optical " + "XYZ"[index], color=color, fontsize=11)
-    ax.scatter(*origin, color="black", s=30)
-    ax.scatter(0, 0, 0, color=ORANGE, s=30)
-    ax.plot([0, origin[0]], [0, origin[1]], [0, origin[2]], "--", color="gray")
-    ax.text2D(.03, .03, "Orange point: jaw origin", transform=ax.transAxes, fontsize=10)
-    ax.set(xlabel="Jaw X (mm)", ylabel="Jaw Y (mm)", zlabel="Jaw Z (mm)",
-           xlim=(-110, 20), ylim=(-100, 25), zlim=(-45, 55),
-           title="CAD-final left wrist optical frame")
-    ax.set_box_aspect((1, 1, 1)); ax.view_init(23, 35)
-    return fig, [source], "Approximate geometry transform, not measured hand-eye calibration."
 
 
 def bins():
@@ -258,32 +239,6 @@ def octomap_cells():
     return fig, [source], "XY section at z=5 mm of C++ fixture; actual containment checks all eight 3D corners."
 
 
-def collision_shape():
-    settings = "configs/robot/arm_collision_meshes.json"
-    reader = "tools/optimize_arm_collision_meshes.py"
-    package = read(settings)["description_package"]
-    filename = "Aligned_AssembledElbowBSocket.stl"
-    inputs = [f"{package}/meshes/cad_final/{filename}", f"{package}/meshes/cad_final/collision/{filename}"]
-    loader = runpy.run_path(str(ROOT / reader))["read_stl"]
-    meshes = [loader(ROOT / path) for path in inputs]
-    scale = read(settings).get("mesh_scales", {}).get(filename, 1.) * 1000
-    lo = np.min(np.vstack([m.vertices for m in meshes]), axis=0) * scale
-    hi = np.max(np.vstack([m.vertices for m in meshes]), axis=0) * scale
-    fig = plt.figure(figsize=(6.4, 10), layout="constrained")
-    for i, (mesh, title) in enumerate(zip(meshes, ["CAD visual", "Optimized collision"])):
-        ax = fig.add_subplot(2, 1, i+1, projection="3d")
-        triangles = mesh.vertices[mesh.faces] * scale
-        ax.add_collection3d(Poly3DCollection(triangles, facecolors=GREEN if i == 0 else ORANGE,
-                                            edgecolor="none", shade=True))
-        ax.set(xlim=(lo[0], hi[0]), ylim=(lo[1], hi[1]), zlim=(lo[2], hi[2]),
-               xlabel="Mesh X (mm)", ylabel="Mesh Y (mm)", zlabel="Mesh Z (mm)",
-               title=f"{title}: {len(mesh.faces):,} triangles")
-        ax.set_box_aspect(hi-lo); ax.view_init(25, -55); ax.set_proj_type("ortho")
-        ax.locator_params(nbins=4)
-        ax.tick_params(labelsize=9, pad=1)
-        for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
-            axis.label.set_size(10)
-    return fig, inputs + [settings, reader], "Current CAD elbow socket and its convex collision envelope, identical view; not a whole-robot collision result."
 
 
 FIGURES = [
@@ -292,11 +247,9 @@ FIGURES = [
     ("lattice", NAV + "docs/assets/lattice.png", lattice),
     ("alignment", NAV + "docs/assets/alignment.png", alignment),
     ("depth-mask", NAV + "docs/assets/depth-mask.png", depth_mask),
-    ("wrist-axes", PKG + "description/docs/assets/wrist-axes.png", wrist_axes),
     ("bins", PKG + "mujoco_sim/docs/assets/bins.png", bins),
     ("joint-sync", PKG + "handeye_calibration/docs/assets/joint-sync.png", joint_sync),
     ("octomap-cells", PKG + "scene_mapping/docs/assets/octomap-cells.png", octomap_cells),
-    ("collision-shape", PKG + "description/docs/assets/collision-shape.png", collision_shape),
 ]
 
 

@@ -11,7 +11,7 @@ def load_navigation_model(description: Path, profile: dict, *, simulation: bool)
     variant = profile.get('model_profile', 'freecad_calibrated')
     if variant == 'freecad_calibrated':
         return ET.parse(description / 'urdf/cleany.urdf').getroot()
-    if not simulation or variant not in ('cad_final', 'jetson_20261009'):
+    if not simulation or variant not in ('jetson_20261009',):
         raise ValueError(f'Uncalibrated navigation model requires simulation: {variant}')
     import xacro
     return ET.fromstring(xacro.process_file(

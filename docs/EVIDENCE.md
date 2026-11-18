@@ -4,6 +4,36 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 83 시뮬레이션 전용 CAD 제외 (2026-11-18)
+
+입력은 통합 commit `d789f276fd755037cb1bc2b03c6e749e2b45af4f`이다.
+`cad_final` visual STL 330개와 collision STL 330개, 해당 모델 정의와 생성 도구를
+제외하고 기존 시뮬레이션은 `jetson_20261009` URDF와 main의 `mjcf/cleany.xml`을 사용하도록 정리했다.
+실물 collision GLB 218개, FreeCAD 자산과 README media를 포함한 551개 파일의
+SHA-256이 변경 전과 같으며 main 대비 새 mesh 파일은 없다. 실물 보정 URDF와
+로봇 설정도 변경하지 않았다.
+
+위 통합 검증과 같은 Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서
+관련 6개 패키지를 빌드했다. 모델, 카메라, 시설 지도와 소비자 경계 검사 109개가
+통과했다. 전체 workspace 검사에서 제거된 CAD를 기대하던 Gazebo/MuJoCo 검사
+3개가 실패해 기존 main의 카메라 좌표, 차체 폭과 contact 이름으로 수정했다.
+오차 허용값과 안전 조건은 유지했다. 두 패키지 재검사 후 최종 colcon 집계는
+**6,293 tests, 0 errors, 0 failures, 70 skipped**다. CTest 항목을 포함하며,
+삭제한 모델 전용 pytest 17개와 CTest 등록 1개, 해당 모델 panel 검사 1개가 이전 집계에서 빠졌다.
+모델 parity 최종 검사 54개, Gazebo 형상 검사 10개와 문서 reader/guide,
+남은 contract figure 8개의 재생성 일치도 확인했다. 검사 묶음은 일부 겹친다.
+
+추가 Navigation runtime 검사는 병렬 검사 중 simulated-clock 사례의 초기 map/TF
+준비가 제한시간을 넘었다. 동일 코드와 제한시간으로 단독 재검사한 5개는 모두 통과했다.
+초기 실패와 단독 재검사 결과는 실행 원본에 보존한다.
+이전 head의 amd64 CI는 MPPI `TrajectoryVisualizer::add` undefined reference로
+빌드에 실패했으며 이번 자산 제외에서 별도로 수정하지 않았다.
+로컬 검사와 GitHub CI, Jetson 실물 검증을 구분한다. Jetson 검증은 후속 작업이다.
+
+실행 원본은 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr83-without-sim-assets/`다.
+최종 commit, 입력 파일 hash, 삭제 목록과 결과는 해당 실행의 `result.json`,
+`source-sha256.json`, `removed-files.json`과 검증 로그에 남긴다.
+
 ## PR 83 최신 main 통합 검증 (2026-11-18)
 
 PR head `6435ab4f25d4e2ac6bc63ef2559ddd862fab63a7`에 main

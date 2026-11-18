@@ -1,12 +1,9 @@
+<?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:arg name="model_profile" default="cad_final"/>
-  <xacro:if value="${'$(arg model_profile)' not in ['cad_final', 'jetson_20261009']}">
-    ${xacro.fatal('Unknown model_profile; choose cad_final or jetson_20261009')}
+  <!-- Retained simulation model; physical CAD uses cleany.urdf. -->
+  <xacro:arg name="model_profile" default="jetson_20261009"/>
+  <xacro:if value="${'$(arg model_profile)' != 'jetson_20261009'}">
+    ${xacro.fatal('Unknown model_profile; choose jetson_20261009')}
   </xacro:if>
-  <xacro:if value="${'$(arg model_profile)' == 'cad_final'}">
-    <xacro:include filename="$(find cleany_description)/urdf/cad_final/geometry.xacro"/>
-  </xacro:if>
-  <xacro:if value="${'$(arg model_profile)' == 'jetson_20261009'}">
-    <xacro:include filename="$(find cleany_description)/urdf/legacy_20261009/cleany_geometry.xacro"/>
-  </xacro:if>
+  <xacro:include filename="$(find cleany_description)/urdf/legacy_20261009/cleany_geometry.xacro"/>
 </robot>

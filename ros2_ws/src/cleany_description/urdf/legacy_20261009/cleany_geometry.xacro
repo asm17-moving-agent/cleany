@@ -8,7 +8,7 @@
     <link name="base_link">
       <xacro:cleany_link_properties link_name="base_link" />
     </link>
-    <!-- 어깨 원점은 physical_properties.xacro와 mjcf/cleany_jetson_20261009.xml의 CAD 체결 홀에 맞춘 Base 배치를 따릅니다. -->
+    <!-- 어깨 원점은 physical_properties.xacro와 mjcf/cleany.xml의 CAD 체결 홀에 맞춘 Base 배치를 따릅니다. -->
     <xacro:cleany_arm side="left" side_sign="1" base_xyz="0.116200343 0.196231727 0.447797" base_yaw="3.14159265359" />
     <xacro:cleany_arm side="right" side_sign="-1" base_xyz="0.116200838 -0.196177072 0.447797" base_yaw="0" />
     <link name="rear_left_wheel_link">

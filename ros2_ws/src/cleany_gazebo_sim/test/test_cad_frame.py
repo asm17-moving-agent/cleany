@@ -88,17 +88,18 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     assert max(abs(low[0]), abs(high[0])) < 0.48
     assert max(abs(low[1]), abs(high[1])) < 0.40
     assert high[1]-low[1] > 0.60
-    assert high[1]-low[1] == pytest.approx(.65480175, abs=1e-6)
+    assert high[1]-low[1] == pytest.approx(.6548, abs=1e-6)
     angle = np.deg2rad(20)
     np.testing.assert_allclose(meta['depth_camera_tf']['rotation_rpy'], [0, angle, 0], atol=1e-9)
-    # 독립적으로 지정한 CAD 혼 축과 유지되는 차체 원점입니다.
-    pan_pivot = np.array([.0874177404372793-.000025, -.0000074623620002+.000027, .9893865235624802-.284497])
-    tilt_pivot = pan_pivot + [.00001, 0, 0]
-    camera_offset = np.array([.03125, .0169, .0323960780542311])
-    expected = tilt_pivot + rotation([0,angle,0]) @ camera_offset
+    # Jetson mast origin: (0.1172, 0, 0.35); reversed pan: (-0.103, 0, 0.3505).
+    pan_pivot = np.array([0.0142, 0.0, 0.7005])
+    tilt_pivot = pan_pivot + [-0.001, -0.002, 0.09815]
+    expected = tilt_pivot + [
+        0.025*np.cos(angle)+0.03*np.sin(angle), 0,
+        -0.025*np.sin(angle)+0.03*np.cos(angle)]
     np.testing.assert_allclose(meta['depth_camera_tf']['pan_pivot'], pan_pivot, atol=1e-9)
     np.testing.assert_allclose(meta['depth_camera_tf']['translation'], expected, atol=1e-9)
-    assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + camera_offset[2]
+    assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + 0.03
 
     # URDF에서 얻은 TF 메타데이터와 별도로 변환된 SDF를 해석합니다.
     entities = {e.get('name'): e for e in model if e.tag in ('link', 'joint', 'frame')}

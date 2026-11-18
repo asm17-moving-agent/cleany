@@ -1,6 +1,6 @@
 # MuJoCo 장면과 모델 설정
 
-기본 로봇은 최신 `cad_final`입니다. 링크형 그리퍼는 고정 형상이므로 이 모델로 수거 구동을 활성화할 수 없습니다. 원본 메시와 고정 fingertip 접촉은 [모델 계약](../../cleany_description/docs/model.md)을 따릅니다.
+기존 MuJoCo 로봇은 `jetson_20261009` 모델입니다. 실물 공통 CAD와의 구분은 [모델 계약](../../cleany_description/docs/model.md)을 따릅니다.
 
 스터디카페 관찰과 고정 베이스 수거 장면을 제공합니다. 로봇 형상은 `cleany_description`, 물리 제어와 촬영은 선택한 backend가 소유합니다.
 
@@ -375,7 +375,6 @@ flowchart LR
 모델 기준은 [Description](../../cleany_description/docs/model.md), 제품 전제는 [Robot Platform KB](../../../../docs/cleany-docs/20_TECHNICAL/04%20-%20Robot%20Platform%20XLeRobot.md)를 따릅니다.
 
 `study_cafe_backend.launch.py`의 `model_profile`은 URDF와 MJCF에 같은 형상을 선택합니다.
-기본은 `cad_final`이며, 기존 집기·분리수거 데모는 구동 계약이 있는
-`jetson_20261009`와 해당 손목 optical TF를 명시합니다. 최신 링크형 집게의
-미검증 구동을 활성화하지 않으며, 두 모델의 관절 영점과 형상을 혼합하지 않습니다.
+지원 프로필은 `jetson_20261009`이며 기존 집기와 분리수거 데모도 같은 모델과
+손목 optical TF를 사용합니다. 실물 공통 CAD의 관절 영점과 형상을 혼합하지 않습니다.
 `config/model_profiles.json`이 각 MJCF와 장면의 그리퍼 접촉 형상을 함께 선택합니다.

@@ -210,8 +210,8 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
 def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
-            DeclareLaunchArgument('model_profile', default_value='cad_final',
-                                  choices=['cad_final', 'jetson_20261009']),
+            DeclareLaunchArgument('model_profile', default_value='jetson_20261009',
+                                  choices=['jetson_20261009']),
             DeclareLaunchArgument('log_level', default_value='info',
                                  choices=['debug', 'info', 'warn', 'error', 'fatal']),
             DeclareLaunchArgument('backend_log_level', default_value='warn',

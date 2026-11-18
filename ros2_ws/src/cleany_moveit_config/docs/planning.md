@@ -2,7 +2,7 @@
 
 MoveIt은 팔별 5관절을 계획하며 gripper, base는 planning group에서 제외합니다. Grasp group은 같은 팔 관절을 사용하고 fixed TCP joint까지 chain을 확장합니다.
 
-기본 형상은 최신 `cad_final`입니다. `move_group.launch.py model_profile:=jetson_20261009`는 이전 형상과 이전 joint limits를 함께 선택합니다. 최신 링크형 그리퍼는 0 rad 고정이며 Mock에서도 읽기 전용입니다. [모델 계약](../../cleany_description/docs/model.md)을 따릅니다.
+`move_group.launch.py`는 기존 시뮬레이션 모델 `jetson_20261009`와 `joint_limits.yaml`을 사용합니다. 실물 공통 CAD의 실행은 아래 실물 계획 기반과 [모델 계약](../../cleany_description/docs/model.md)을 따릅니다.
 
 ## FreeCAD 형상 검사
 
@@ -228,6 +228,5 @@ URDF의 관절 위치 범위를 계획 설정에 적용하며 RViz도 같은 모
 전체 장면의 배치 상태 검사를 제공한다. OMPL 시간 배정은
 `cleany/RobustTimeParameterization`을 사용한다. [패키지 계약](../../cleany_moveit_capabilities/README.md)을 따른다.
 
-`mock_planning.launch.py`의 기존 팔 제어 회귀는 `jetson_20261009` 모델과 해당 joint
-limits를 함께 사용합니다. `move_group.launch.py`의 기본 `cad_final` 형상과
-링크형 집게의 미확정 구동 계약은 별도로 유지합니다.
+`mock_planning.launch.py`와 `move_group.launch.py`의 기존 팔 제어 회귀는
+`jetson_20261009` 모델과 `joint_limits.yaml`을 함께 사용합니다.

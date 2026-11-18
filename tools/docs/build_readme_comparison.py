@@ -32,7 +32,7 @@ def main() -> None:
     plan_input = json.loads((args.input/'plan-input.json').read_text())
     receipt = json.loads((args.input/'execution/receipt.json').read_text())
     records = [json.loads(line) for line in (args.input/'execution/camera-frames.jsonl').read_text().splitlines()]
-    source = ROOT/'ros2_ws/src/cleany_description/mjcf/cleany_jetson_20261009.xml'
+    source = ROOT/'ros2_ws/src/cleany_description/mjcf/cleany.xml'
     root = ET.parse(source).getroot()
     compiler = root.find('compiler')
     compiler.set('meshdir', str((source.parent/compiler.get('meshdir')).resolve()))

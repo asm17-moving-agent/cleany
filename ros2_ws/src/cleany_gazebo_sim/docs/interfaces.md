@@ -117,7 +117,7 @@ QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따릅니다. `/
 
 | 손목 카메라 | 계약 |
 |---|---|
-| 형상 원본 | 최신 CAD는 `description/config/geometry/cad_final.json`; legacy는 `wrist_mount_v8.json` |
+| 형상 원본 | `description/config/geometry/wrist_mount_v8.json`의 기존 장착 좌표 |
 | 축 | Gazebo +X 전방을 optical +Z로 변환 |
 | SDF 좌표계 | *_wrist_rgb_optical_frame에 같은 pose; 추가 ROS TF 발행 없음 |
 | Legacy model | v8 visual 6개 사용, 기존 주행 상체 collision envelope 유지 |

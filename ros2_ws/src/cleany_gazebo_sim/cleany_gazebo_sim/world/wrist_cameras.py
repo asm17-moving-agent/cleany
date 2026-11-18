@@ -59,14 +59,12 @@ def apply_wrist_cameras(
     """존재하는 센서와 광학 좌표계를 맞추고 제외된 CAD 팔은 추가하지 않습니다."""
     registration = json.loads(
         (description / 'config/geometry/wrist_mount_v8.json').read_text())
-    latest = json.loads((description / 'config/geometry/cad_final.json').read_text()) if not legacy_visuals else None
     # Gazebo는 +X 전방, +Y 왼쪽, +Z 위쪽이며 광학 좌표계는 +Z 전방, +X 오른쪽, +Y 아래쪽입니다.
     cv_from_sensor = np.array([[0., -1., 0.], [0., 0., -1.], [1., 0., 0.]])
     names = {element.get('name') for element in model if element.tag in ('link', 'frame')}
     for side in ('left', 'right'):
-        jaw_from_cv = np.asarray(latest['wrist_cameras'][side] if latest else
-                                 registration['legacy_jaw_from_camera_cv_approximate'])
-        jaw_from_geometry = jaw_from_cv if latest else np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
+        jaw_from_cv = np.asarray(registration['legacy_jaw_from_camera_cv_approximate'])
+        jaw_from_geometry = np.asarray(registration['legacy_jaw_from_camera_geometry_body'])
         jaw_from_sensor = jaw_from_cv.copy()
         jaw_from_sensor[:3, :3] = jaw_from_cv[:3, :3] @ cv_from_sensor
         sensor = model.find(f".//sensor[@name='{side}_wrist_rgb']")

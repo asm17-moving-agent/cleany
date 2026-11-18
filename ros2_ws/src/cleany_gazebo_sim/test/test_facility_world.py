@@ -30,7 +30,7 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
     path = materialize_facility_world(TEMPLATE, tmp_path / 'cad.sdf')
     robot = ET.parse(path).getroot().find("world/model[@name='cleany_mecanum']")
     meshes = [mesh.text for mesh in robot.findall('.//mesh/uri')]
-    assert any('/meshes/cad_final/' in mesh for mesh in meshes)
+    assert any('/meshes/cad_frame/' in mesh for mesh in meshes)
     assert not any('raskog' in mesh.lower() for mesh in meshes)
     assert robot.find("joint[@name='head_pan_joint']") is not None
     for wheel in ('front_left', 'front_right', 'rear_left', 'rear_right'):
@@ -44,7 +44,7 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
     assert metadata['adapter_origin_commit'] == profile['adapter_origin_commit']
     assert metadata['description']['entrypoint'] == 'urdf/cleany.urdf.xacro'
     assert len(metadata['description']['sha256']) == 64
-    assert 'meshes/cad_final/InstalledMast.stl' in metadata['description']['mesh_sha256']
+    assert 'meshes/cad_frame/topbase1.stl' in metadata['description']['mesh_sha256']
     assert not any('Upper_Arm_5cm_Sockets.stl' in mesh for mesh in meshes)
     # DART는 물체 고정 마찰을 적용할 때 네임스페이스 접두사를 문자열로 조회합니다.
     assert 'ignition:expressed_in="base_link"' in path.read_text()

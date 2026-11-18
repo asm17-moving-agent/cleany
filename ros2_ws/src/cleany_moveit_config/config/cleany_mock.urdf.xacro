@@ -12,9 +12,9 @@
     <xacro:cleany_head_camera/>
   </xacro:if>
 
-  <xacro:macro name="cleany_mock_joint" params="joint_name initial_value:=0.0 command:=true">
+  <xacro:macro name="cleany_mock_joint" params="joint_name initial_value:=0.0">
     <joint name="${joint_name}">
-      <xacro:if value="${command}"><command_interface name="position"/></xacro:if>
+      <command_interface name="position"/>
       <state_interface name="position">
         <param name="initial_value">${initial_value}</param>
       </state_interface>
@@ -32,13 +32,13 @@
     <xacro:cleany_mock_joint joint_name="left_elbow_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="left_wrist_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="left_wrist_roll_joint"/>
-    <xacro:cleany_mock_joint joint_name="left_gripper_joint" command="${'$(arg model_profile)' != 'cad_final'}"/>
+    <xacro:cleany_mock_joint joint_name="left_gripper_joint"/>
     <xacro:cleany_mock_joint joint_name="right_shoulder_yaw_joint"/>
     <xacro:cleany_mock_joint joint_name="right_shoulder_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_elbow_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_wrist_pitch_joint"/>
     <xacro:cleany_mock_joint joint_name="right_wrist_roll_joint"/>
-    <xacro:cleany_mock_joint joint_name="right_gripper_joint" command="${'$(arg model_profile)' != 'cad_final'}"/>
+    <xacro:cleany_mock_joint joint_name="right_gripper_joint"/>
     <xacro:if value="$(arg include_head_camera)">
       <xacro:cleany_mock_joint joint_name="head_pan_joint" initial_value="0.023"/>
       <xacro:cleany_mock_joint joint_name="head_tilt_joint" initial_value="$(arg head_tilt_initial)"/>

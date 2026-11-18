@@ -49,9 +49,6 @@ def test_wrist_sensors_follow_selected_assembly_lens(
     registration = json.loads((DESCRIPTION / 'config/geometry/wrist_mount_v8.json').read_text())
     expected = np.asarray(registration['legacy_jaw_from_camera_cv_approximate'])
     for side in ('left', 'right'):
-        if model_name == 'cad_frame_with_arms':
-            cad = json.loads((DESCRIPTION / 'config/geometry/cad_final.json').read_text())
-            expected = np.asarray(cad['wrist_cameras'][side])
         parent = f'{side}_{jaw_suffix}'
         sensor = model.find(f".//sensor[@name='{side}_wrist_rgb']")
         pose = sensor.find('pose')
@@ -69,11 +66,7 @@ def test_wrist_sensors_follow_selected_assembly_lens(
         np.testing.assert_allclose(_transform(frames[0].find('pose')), expected, atol=1e-12)
         visuals = [v for v in model.findall('.//visual')
                    if f'{side}_wrist_mount_v8_' in v.get('name', '')]
-        if model_name == 'legacy':
-            assert len(visuals) == 6
-        else:
-            assert not visuals
-            assert any(f'{side.title()}Camera_Lens.stl' in uri.text for uri in model.findall('.//visual/geometry/mesh/uri'))
+        assert len(visuals) == 6
         assert not any('XLeRobot_camera' in uri.text
                        for uri in model.findall('.//visual/geometry/mesh/uri'))
         for visual in visuals:
