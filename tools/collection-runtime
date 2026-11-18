@@ -296,7 +296,7 @@ check_managed_health() {
 wait_for_graph() {
   check_managed_health || return 1
   local readiness_pid result
-  local options=(--timeout "${start_timeout}")
+  local options=(--timeout "${start_timeout}" "$@")
   [[ "${gui}" != true ]] || options+=(--gui)
   # One participant discovers the existing requirements and waits for feedback
   # concurrently. The parent continues monitoring all managed processes.
@@ -421,6 +421,10 @@ start_runtime() {
   if [[ "${record_motor_telemetry}" == true ]]; then
     start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
       ros2 run cleany_robot_interface motor_telemetry_recorder
+  fi
+  if [[ "${motion_backend}" == curobo_ik_moveit ]]; then
+    echo "Waiting for guarded feedback and MoveIt before starting GPU IK warmup..."
+    wait_for_graph --control-startup || return
   fi
   start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}"
   if [[ "${gui}" == true ]]; then

@@ -13,6 +13,8 @@ from rclpy.impl.implementation_singleton import rclpy_implementation as _rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from controller_manager_msgs.srv import ListControllers
+from moveit_msgs.msg import PlanningSceneComponents
+from moveit_msgs.srv import GetPlanningScene
 from rcl_interfaces.msg import ParameterType
 from rcl_interfaces.srv import GetParameters
 from sensor_msgs.msg import Image, JointState
@@ -39,6 +41,33 @@ FEEDBACK_TIMEOUTS = {'/joint_states': 15., '/camera/depth/image_raw': 20.,
                      '/perception/scene_cloud_receipt': 20.}
 
 
+CONFIG_QUERY_TIMEOUT_S = 10.
+
+
+def moveit_execution_disabled(node, ready_since):
+    """Verify MoveIt's boolean reply, retrying an unanswered read once after discovery."""
+    request = lambda: node.parameter_client.call_async(
+        GetParameters.Request(names=['allow_trajectory_execution']))
+    if node.parameter_future is None:
+        if not node.parameter_client.service_is_ready():
+            return False
+        node.parameter_future = request()
+    if (not node.parameter_future.done() and node.parameter_retry is None
+            and ready_since is not None
+            and time.monotonic() - ready_since >= CONFIG_QUERY_TIMEOUT_S / 2
+            and node.parameter_client.service_is_ready()):
+        node.parameter_retry = request()
+    replies = [f for f in (node.parameter_future, node.parameter_retry)
+               if f is not None and f.done()]
+    for future in replies:
+        result = future.result()
+        if (result is None or len(result.values) != 1
+                or result.values[0].type != ParameterType.PARAMETER_BOOL
+                or result.values[0].bool_value):
+            raise RuntimeError('MoveIt must have allow_trajectory_execution=false (boolean)')
+    return bool(replies)
+
+
 def graph_pending(nodes, services, action_servers, *, gui: bool) -> list[str]:
     """Action clients alone must never satisfy server readiness."""
     duplicates = [name for name, count in Counter(nodes).items() if count > 1]
@@ -55,6 +84,48 @@ def graph_pending(nodes, services, action_servers, *, gui: bool) -> list[str]:
         if name not in nodes:
             pending.append(name)
     return pending
+
+
+class ControlStartupProbe(Node):
+    """Wait for live guard feedback and a loaded planning scene before starting IK."""
+
+    def __init__(self):
+        super().__init__('collection_control_startup')
+        self.guard_state = None
+        self.guard_received = 0.
+        self.create_subscription(String, '/real_control/status', self.receive_guard,
+            QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
+        self.scene = self.create_client(GetPlanningScene, '/get_planning_scene')
+        self.scene_future = None
+        self.scene_ready_at = None
+        self.parameter_client = self.create_client(GetParameters, '/move_group/get_parameters')
+        self.parameter_future = self.parameter_retry = None
+
+    def receive_guard(self, message):
+        self.guard_state = json.loads(message.data)['state']
+        self.guard_received = time.monotonic()
+
+    def pending(self):
+        if self.guard_state not in (None, 'waiting', 'ready'):
+            raise RuntimeError(f'Real-control guard is not ready: {self.guard_state}')
+        if self.scene_future is None and self.scene.service_is_ready():
+            request = GetPlanningScene.Request()
+            request.components.components = PlanningSceneComponents.ROBOT_STATE
+            self.scene_future = self.scene.call_async(request)
+        if self.scene_future is None or not self.scene_future.done():
+            return ['/get_planning_scene']
+        result = self.scene_future.result()
+        if result is None or not result.scene.robot_state.joint_state.name:
+            raise RuntimeError('MoveIt returned an empty joint state')
+        if self.scene_ready_at is None:
+            self.scene_ready_at = time.monotonic()
+        if not moveit_execution_disabled(self, self.scene_ready_at):
+            if time.monotonic() - self.scene_ready_at >= CONFIG_QUERY_TIMEOUT_S:
+                raise RuntimeError('Required configuration/status query timed out: MoveIt execution mode')
+            return ['MoveIt execution mode']
+        if self.guard_state != 'ready' or self.guard_received < self.scene_ready_at:
+            return ['/real_control/status ready']
+        return []
 
 
 class ReadinessProbe(Node):
@@ -74,6 +145,7 @@ class ReadinessProbe(Node):
         self.parameter_client = self.create_client(GetParameters, '/move_group/get_parameters')
         self.controllers_client = self.create_client(ListControllers, '/controller_manager/list_controllers')
         self.parameter_future = self.controllers_future = None
+        self.parameter_retry = None
         self.warmup_client = self.create_client(Trigger, '/grasp/warmup_status')
         self.warmup_future = None
         self.warmup_ready = False
@@ -110,19 +182,10 @@ class ReadinessProbe(Node):
         elif self.graph_ready_at is None:
             self.graph_ready_at = now
         # Requests and subscriptions progress together, including during graph discovery.
-        if self.parameter_future is None and self.parameter_client.service_is_ready():
-            self.parameter_future = self.parameter_client.call_async(
-                GetParameters.Request(names=['allow_trajectory_execution']))
         if self.controllers_future is None and self.controllers_client.service_is_ready():
             self.controllers_future = self.controllers_client.call_async(ListControllers.Request())
-        if self.parameter_future is None or not self.parameter_future.done():
+        if not moveit_execution_disabled(self, self.graph_ready_at):
             pending.append('MoveIt execution mode')
-        else:
-            result = self.parameter_future.result()
-            if (result is None or len(result.values) != 1
-                    or result.values[0].type != ParameterType.PARAMETER_BOOL
-                    or result.values[0].bool_value):
-                raise RuntimeError('MoveIt must have allow_trajectory_execution=false (boolean)')
         if self.controllers_future is None or not self.controllers_future.done():
             pending.append('Controller state')
         else:
@@ -141,7 +204,7 @@ class ReadinessProbe(Node):
             raise RuntimeError(f'Real-control guard is not ready: {self.guard}')
         if pending:
             self.feedback_after = None
-            if self.graph_ready_at is not None and now - self.graph_ready_at >= 10.:
+            if self.graph_ready_at is not None and now - self.graph_ready_at >= CONFIG_QUERY_TIMEOUT_S:
                 raise RuntimeError('Required configuration/status query timed out: ' + ', '.join(pending))
         # GPU initialization has its own configured budget, not the 10-second
         # configuration-query timeout. A solver allocation alone is not ready.
@@ -176,12 +239,13 @@ def main(args=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--timeout', type=float, default=300.)
     parser.add_argument('--gui', action='store_true')
+    parser.add_argument('--control-startup', action='store_true')
     options = parser.parse_args(args)
     if not math.isfinite(options.timeout) or options.timeout <= 0:
         parser.error('--timeout must be finite and positive')
     began = time.monotonic()
     rclpy.init(args=[])
-    node = ReadinessProbe(gui=options.gui)
+    node = ControlStartupProbe() if options.control_startup else ReadinessProbe(gui=options.gui)
     last_log = began - 5.
     try:
         while rclpy.ok():
@@ -189,7 +253,8 @@ def main(args=None) -> int:
             pending = node.pending()
             elapsed = time.monotonic() - began
             if not pending:
-                print(json.dumps({'event': 'collection_readiness', 'wall_sec': elapsed,
+                event = 'control_startup_ready' if options.control_startup else 'collection_readiness'
+                print(json.dumps({'event': event, 'wall_sec': elapsed,
                                   'status': 'ready'}), flush=True)
                 return 0
             if elapsed >= options.timeout:

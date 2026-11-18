@@ -40,6 +40,40 @@ Jetson Orin의 Ubuntu 22.04 ARM64, ROS 2 Humble에서 `f45801bc`의
 있다. 271.3ms 장애 로그의 원본은
 `/home/cleany/cleany/runtime/collection-operator/20261118-074304/logs/real-control.log`다.
 
+## 2026-11-18 Jetson 준비 중 모터 피드백 지연
+
+Jetson의 운영 소스 기준 커밋은 `f45801bc`다. 08:51 실물 오류의 377.4ms는 보호 노드가 마지막으로 확인한 전체 모터 스냅샷의 취득 시각부터 경과한 시간이다. 보호 노드가 정지를 요청한 뒤 30ms 후 드라이버가 명령 컨트롤러의 정지를 기록했다. 당시 CuRobo는 오른팔 IK 솔버를 초기화 중이었고 별도 RViz 창이 기동했다. 그 실행에는 콜백별 측정값이 없다.
+
+동일한 운영 프로필과 드라이버를 격리된 ROS 도메인 172의 가상 시리얼 장치에서 구동하고, 보호 노드와 독립 구독자의 타임스탬프를 비교했다. 수정 전 재현에서는 보호 타이머 한 번이 333.8ms 걸리고 다음 타이머가 344.6ms에서 정지했다. 그 동안 독립 구독자에는 더 최근에 취득한 모터 샘플이 도착했다. 수정 전에도 통과한 반복이 있었다. 비동기 전송만 적용한 다른 시험에서는 가상 모터 ID 7의 READ가 먼저 시간 초과되어 보호 정지했다. 보호 기준은 개별 READ 20ms, READ 재시도 1회와 복구 예산 60ms, 드라이버 전체 상태 및 활성 제어 주기 100ms, 보호 노드의 피드백 나이 250ms다.
+
+운영 수정은 컨트롤러 매니저 및 보호 노드의 Fast DDS 전송을 비동기로 설정하고, 새 cuRobo 수거 세션에서 MoveIt 계획 장면 응답 및 그 뒤의 보호 노드 준비 상태를 확인한 후 GPU 초기화를 시작한다. 운영 설치본 가상 시험에서 기동 확인은 9.88초에 통과했고 보호 노드는 정상 상태를 유지했다. 독립 관측자에 도착한 관절 메시지 나이는 중앙값 7.16ms, 99백분위 22.69ms, 최대 233.05ms였다. 관련 보호, 준비, 수거 도구 검사 144개가 통과했다.
+
+09:03:44 웹 준비 요청 `bb70ed49-d436-4922-8ada-d13717d4291c`는 수정한 소스와 GPU 작업공간의 해시 불일치로 실물 제어기 기동 전 실패했다. 이후 모터 ID 1–14의 토크 OFF를 직접 확인하고 GPU 패키지 5개를 재빌드해 `make motion-container-check`가 통과했다. Jetson 원본은 `/home/cleany/cleany-data/runs/feedback-prepare-20261118-0856`에 있다. `baseline/guard-timing.tsv`, `staged-current/summary.json`, `tests-final.log`, `web-click.json`, `live/stop.log`, `gpu-check.log`에서 각 결과를 확인할 수 있다.
+
+09:05:44 웹 요청 `ecd1ed2a-be5b-4085-844b-c78025440307`에서 새 시작 순서를 실물로 확인했다. MoveIt 응답과 그 이후의 보호 상태는 13.54초에 확인했다. 드라이버 표본 1,312개가 약 26.46초 동안 관측됐고 보호 노드 출력 1,263개의 수신 나이는 중앙값 19.46ms, 99백분위 72.06ms, 최대 104.77ms였다. 드라이버 READ 복구 횟수는 0이었다. 준비 작업은 후속 MoveIt 실행 모드 조회가 10초 기한 안에 응답하지 않아 실패했다. 종료 후 ID 1–14의 토크 OFF를 확인했다. `retry/live/feedback-statistics.json`, `retry/live/control-final.log`, `retry/live/stop.log`가 원본이다.
+
+준비 절차가 GPU 기동 전과 전체 준비 검사에서 각각 실제 `allow_trajectory_execution=false` 응답을 확인하도록 수정했다. 초기 응답이 누락되면 기존 10초 기한 안에서 읽기 요청을 한 번 더 보내며, 불리언 false 이외의 응답은 거부한다. 동일 Jetson의 가상 시리얼 시험에서 MoveIt 응답과 보호 상태를 9.95초에 확인했고 관련 검사 145개가 통과했다. `mode-query.log`, `mode-retry/gate.log`, `mode-retry-tests.log`, `gpu-mode-retry-check.log`에서 실제 서비스 응답, 시험과 재빌드 검사를 확인할 수 있다.
+
+운영 드라이버의 READ 오류 시험도 별도로 실행했다. Python ROS 실행기와 가상 모터가 같은 프로세스에 있는 기존 시험은 의도한 단일 오류 뒤에 ID 1의 추가 타임아웃이 발생해 실패했다. 가상 시리얼 응답에 기존 전용 프로세스 에뮬레이터를 사용하고 종료 뒤 패킷 기록을 확인하는 시험으로 변경했다. 단일 READ 누락 후 복구 및 계속된 READ 누락 시 정지, 토크 해제 패킷 유무 검사를 통과했다. 두 시험 결과는 `pty-loss-test.log`와 `pty-loss-independent.log`에 있다.
+
+복구 브랜치 `49755ea9`에 후속 수정을 적용한 별도 작업 트리에서 Jetson
+ROS 2 Humble로 다시 검증했다. 경로 조회 네 가지와 읽기 전용 검사 12개,
+준비와 수거 도구 및 마스트 검사 136개가 통과했다. 제어와 실행 패키지 두 개를
+별도 설치 경로에 빌드했고 가상 시리얼 READ 단절 검사 1개가 통과했다.
+첫 검사에서 프로필 실패 테스트가 운영 세션의 상태 경로를 참조했다.
+임시 상태 경로를 지정하고 같은 검사를 통과했다. 빌드와 검사 원본은 Jetson의
+`/home/cleany/cleany-data/runs/commit-jetson-recovery.Udjqok`에 있다.
+
+## 2026-11-18 Jetson 실물 조작 화면의 로봇 준비와 카메라 TF
+
+운영 작업공간 `/home/cleany/cleany`에서 현장 확인을 받고 dev-monitor의 실물 조작 화면을 통해 준비를 한 번 요청했다. 읽기 전용 시리얼 소유권을 해제하고 이전 부분 실행의 종료 및 모터 ID 1–14의 토크 OFF를 확인했다. 인증한 웹 화면에서 토크 확인 대화상자를 제출한 시각은 08:51:04 KST이며, HTTP 202 요청 ID는 `6cf67f5d-86b6-47bd-8622-74c6ff191d12`다.
+
+`real_control` PID 1905366이 기동한 `move_group` PID 1905953에서 업데이터 SHA-256 `c17df8f18ade`를 확인했다. 임시 그리퍼 TF 발행기 없이 충돌 형상 245개를 등록했으며, 서로 다른 촬영 타임스탬프 3개에서 `integrated=1`이 기록됐다. 08:51:37에 모터 피드백 나이가 377.4ms에 이르러 보호 가드가 명령 컨트롤러를 정지했다. 준비 작업의 최종 결과는 `FAILED`다. 이후 관측 구간에서 관절 상태와 지도 반영 수신은 모두 0건이었다. 종료 시 ID 1–14 토크 OFF를 직접 확인했다. 일부 센서 지원 프로세스가 남아 관리 PID 기록은 유지됐다.
+
+준비 실패 당시 RViz 원본은 `rviz/web-fault.png`에 있다. 토크 OFF 후 기존 읽기 전용 관절 서비스를 복원해 찍은 사진은 `rviz/read-only-tcp-cameras.png`다. 두 세션의 URDF SHA-256은 동일했다. 읽기 전용 실측 자세 14개 표본에서 양손 TCP의 로컬 −Y는 119.775mm의 공구 오프셋 및 140mm 접근 기준점 방향과 일치했다. 로컬 +X와 CAD 손끝 두 개를 잇는 직선의 각도 차이는 왼손 0.036°, 오른손 0.038°다. 헤드 및 양손목 광학 TF는 `camera_pose.json` 보정 모델과 수치 정밀도 범위에서 일치했다. 절대 장착 오차는 별도로 측정하지 않았다. 두 TCP와 세 카메라 좌표축을 표시하는 설정은 Jetson의 `~/.rviz2/cleany-physical-tcp-cameras.rviz`에 보관했다.
+
+Jetson 원본 디렉터리는 `/home/cleany/cleany-data/runs/web-prepare-tcp-wrist-20261118-0849`다. `web-click.json`, `live/runtime.json`, `live/control-before-stop.log`, `live/web-job.jsonl`, `safe-stop.log`, `live/stationary-geometry.json`에서 요청, 프로세스, 실패, 토크 해제와 좌표축 검증을 확인할 수 있다.
+
 ## 2026-11-18 실물 읽기 전용 그리퍼 TF와 RViz
 
 Jetson Orin의 `f45801bc` 작업공간에 읽기 전용 판독 노드와 launch 수정을 적용했다. 실물 관절 서비스만 재시작하고 dev-monitor가 사용한 물리용 MoveIt 설정으로 측정용 프로세스를 기동했다. 웹의 로봇 준비 버튼과 팔 구동은 이번 검사에 포함하지 않았다. ROS 도메인 0에서 이전 임시 그리퍼 TF 발행기 두 개는 꺼져 있었다.
