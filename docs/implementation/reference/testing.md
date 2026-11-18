@@ -138,6 +138,11 @@ Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지�
 
 `MAKEFLAGS`도 함께 지정해 colcon이 전체 CPU 수의 `-j` 옵션으로 CMake의 병렬 제한을 덮어쓰지 않도록 합니다.
 
+MPPI는 CPU별 allocator ABI가 달라지는 `-march=native`와 xsimd SSE2 수학 결과를
+손상시키는 `-ffast-math`를 사용하지 않습니다. `-O3`와 SIMD는 유지합니다.
+`mppi_simd_math_test`는 라이브러리와 동일한 최적화 옵션에서 반올림, critic 비용의
+거듭제곱과 optimizer 가중치의 지수 함수를 scalar 결과와 비교합니다.
+
 CI artifact에는 test XML, CTest 기록, 단계별 로그와 스택, 재현 명령, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
 
 전체 job 제한은 40분이며 이미지 생성은 별도로 15분 안에 완료해야 합니다.
