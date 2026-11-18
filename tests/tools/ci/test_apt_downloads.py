@@ -17,6 +17,7 @@ apt = module_from_spec(spec_from_loader(loader.name, loader))
 loader.exec_module(apt)
 
 URI = 'https://snapshot.ubuntu.com/ubuntu/20260807T000000Z/pool/main/p/pkg.deb'
+LAUNCHPAD = 'https://launchpad.net/ubuntu/+archive/primary/+files/pkg.deb'
 
 
 class PackageDownloadTest(unittest.TestCase):
@@ -27,7 +28,7 @@ class PackageDownloadTest(unittest.TestCase):
 
     def test_mirror_uses_identical_pool_file_and_ros_is_untouched(self):
         self.assertEqual(apt.package_urls(URI), [
-            'https://archive.ubuntu.com/ubuntu/pool/main/p/pkg.deb', URI])
+            'https://archive.ubuntu.com/ubuntu/pool/main/p/pkg.deb', LAUNCHPAD, URI])
         ros = 'http://snapshots.ros.org/humble/fixed/pkg.deb'
         self.assertEqual(apt.package_urls(ros), [ros])
 
@@ -39,12 +40,31 @@ class PackageDownloadTest(unittest.TestCase):
             self.assertEqual(request.call_count, 1)
             self.assertEqual((Path(cache) / 'pkg.deb').read_bytes(), b'fixed package')
 
-    def test_missing_mirror_file_falls_back_to_snapshot(self):
+    def test_superseded_mirror_file_uses_verified_launchpad_binary(self):
         with tempfile.TemporaryDirectory() as cache, patch.object(
                 apt, 'urlopen', side_effect=[HTTPError(URI, 404, 'missing', {}, None),
                                             io.BytesIO(b'fixed package')]) as request:
             self.download(cache)
-            self.assertEqual(request.call_args_list[1].args[0], URI)
+            self.assertEqual(request.call_args_list[1].args[0], LAUNCHPAD)
+            self.assertEqual((Path(cache) / 'pkg.deb').read_bytes(), b'fixed package')
+
+    def test_unavailable_launchpad_file_still_falls_back_to_snapshot(self):
+        with tempfile.TemporaryDirectory() as cache, patch.object(
+                apt, 'urlopen', side_effect=[HTTPError(URI, 404, 'missing', {}, None),
+                                            HTTPError(LAUNCHPAD, 404, 'missing', {}, None),
+                                            io.BytesIO(b'fixed package')]) as request:
+            self.download(cache)
+            self.assertEqual(request.call_args_list[2].args[0], URI)
+
+    def test_wrong_launchpad_hash_falls_back_without_caching_bad_bytes(self):
+        with tempfile.TemporaryDirectory() as cache, patch.object(
+                apt, 'urlopen', side_effect=[HTTPError(URI, 404, 'missing', {}, None),
+                                            io.BytesIO(b'wrong package'),
+                                            io.BytesIO(b'fixed package')]) as request:
+            self.download(cache)
+            self.assertEqual(request.call_args_list[2].args[0], URI)
+            self.assertEqual((Path(cache) / 'pkg.deb').read_bytes(), b'fixed package')
+            self.assertEqual(len(list(Path(cache).iterdir())), 1)
 
     def test_wrong_hash_never_enters_cache(self):
         with tempfile.TemporaryDirectory() as cache, patch.object(

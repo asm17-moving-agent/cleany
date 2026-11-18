@@ -142,7 +142,8 @@ CI artifact에는 test XML, CTest 기록, 단계별 로그와 스택, 재현 명
 
 전체 job 제한은 40분이며 이미지 생성은 별도로 15분 안에 완료해야 합니다.
 APT는 서명을 검증한 snapshot index에서 버전, 파일 경로와 SHA256을 결정합니다.
-Ubuntu 패키지 파일은 동일한 pool 경로의 archive 미러에서 먼저 받고, 없거나 검증에 실패하면 원래 snapshot에서 받습니다.
+Ubuntu 패키지 파일은 동일한 pool 경로의 archive 미러, Launchpad의 동일 파일, 원래 snapshot 순서로 받습니다.
+일반 archive에서 제거된 과거 버전도 snapshot의 크기와 SHA256에 일치하는 경우에만 사용합니다.
 다운로드는 4개씩 수행하고 SHA256과 크기가 일치하는 파일만 APT cache에 보관하며 설치 시 APT가 다시 검증합니다.
 미러의 최신 index나 다른 버전으로 대체하지 않습니다.
 연결 timeout은 15초, 파일 다운로드는 60초, 한 설치 명령의 다운로드 준비는 5분으로 제한합니다.

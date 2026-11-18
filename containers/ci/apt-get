@@ -18,11 +18,16 @@ CACHE = Path('/var/cache/apt/archives')
 
 
 def package_urls(uri: str) -> list[str]:
-    """Prefer the public archive for the same Ubuntu pool file, never its index."""
+    """Try exact Ubuntu archive files without changing the signed package index."""
     parsed = urlsplit(uri)
     parts = parsed.path.split('/pool/', 1)
     if parsed.hostname == 'snapshot.ubuntu.com' and len(parts) == 2:
-        return ['https://archive.ubuntu.com/ubuntu/pool/' + parts[1], uri]
+        # Superseded binaries disappear from the live pool but remain on Launchpad.
+        # Every source must still match the snapshot's size and SHA256 below.
+        filename = parts[1].rsplit('/', 1)[-1]
+        return ['https://archive.ubuntu.com/ubuntu/pool/' + parts[1],
+                'https://launchpad.net/ubuntu/+archive/primary/+files/' + filename,
+                uri]
     return [uri]
 
 
