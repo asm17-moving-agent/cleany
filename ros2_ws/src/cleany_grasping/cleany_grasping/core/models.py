@@ -31,6 +31,7 @@ class RawGrasp:
     width_m: float
     depth_m: float
     score: float
+    pad_offset_m: float = 0.0
 
     def __post_init__(self) -> None:
         rotation = np.asarray(self.rotation, dtype=np.float64)
@@ -48,6 +49,8 @@ class RawGrasp:
             for value in (self.width_m, self.depth_m, self.score)
         ):
             raise ValueError('Grasp dimensions and score must be finite')
+        if not math.isfinite(self.pad_offset_m) or self.pad_offset_m < 0:
+            raise ValueError('Pad contact offset must be finite and non-negative')
         if self.width_m <= 0.0 or self.depth_m < 0.0:
             raise ValueError('Grasp width must be positive and depth non-negative')
         object.__setattr__(self, 'rotation', rotation)

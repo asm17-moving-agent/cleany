@@ -1077,16 +1077,21 @@ def test_executor_cancels_and_reconnects_remaining_path_after_read_recovery(tmp_
         runtime.close()
 
 
-@pytest.mark.parametrize('side,motor,closed', [('left',6,3868), ('right',12,3868)])
+@pytest.mark.parametrize('side,motor,closed', [('left', 6, 3868), ('right', 12, 3868)])
 def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp_path, side, motor, closed):
     from control_msgs.msg import DynamicJointState, JointTolerance
     from cleany_skill_executor.core.gripper_contact import (
         ContactState, LiveContactHistory, load_contact_criteria,
     )
-    runtime = Runtime(tmp_path, False, current_calibration=True)
+    criteria = load_contact_criteria(ROOT/'configs/robot/gripper_contact_decision.yaml')[side]
+    assert criteria.closed_goal_raw == closed
+    config = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    config['joint_overrides'][f'{side}_gripper_joint']['torque_limit_raw'] = criteria.output_limit_raw
+    control_file = tmp_path/'contact_control.yaml'
+    control_file.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, False, control_file=control_file, current_calibration=True)
     try:
-        history = LiveContactHistory(load_contact_criteria(
-            ROOT/'configs/robot/gripper_contact_decision.yaml')[side])
+        history = LiveContactHistory(criteria)
         joint = f'{side}_gripper_joint'
         def feedback(message):
             row = message.interface_values[message.joint_names.index(joint)]
@@ -1094,10 +1099,10 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
         subscription = runtime.node.create_subscription(DynamicJointState,
             '/joint_state_broadcaster/dynamic_joint_states', feedback, 10)
         mem = runtime.arms.registers[motor]
-        assert int.from_bytes(mem[48:50], 'little') == 200
+        assert int.from_bytes(mem[48:50], 'little') == criteria.output_limit_raw
         runtime.arms.load_offsets[motor] = 340
         mem[60:62] = (0x400 | 200).to_bytes(2, 'little')
-        mem[69:71] = (0x8000 | 18).to_bytes(2, 'little')
+        mem[69:71] = (0x8000 | 15).to_bytes(2, 'little')
         element = ET.parse(runtime.profile.model).find(f"ros2_control/joint[@name='{joint}']")
         p = {v.get('name'):float(v.text) for v in element.findall('param')}
         target = p['offset_rad']+p['direction']*(closed-p['zero_tick'])*math.tau/4096
@@ -1121,14 +1126,13 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
         assert decision.state == ContactState.CONTACT, decision
         assert int.from_bytes(mem[42:44], 'little') == closed
         assert int.from_bytes(mem[56:58], 'little') == closed-340
-        # Preserve the command while the encoder and electrical feedback become empty.
-        runtime.arms.load_offsets[motor] = 6
-        mem[56:58] = (closed-6).to_bytes(2, 'little')
+        # Keep the same encoder residual while changing the electrical evidence.
         mem[69:71] = (1).to_bytes(2, 'little')
         mem[60:62] = (36).to_bytes(2, 'little')
         runtime.spin(.6)
         decision = history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds)
         assert decision.state == ContactState.EMPTY, decision
+        assert int.from_bytes(mem[56:58], 'little') == closed-340
         assert int.from_bytes(mem[42:44], 'little') == closed
         # A high current is confirmed and latches the driver fault, without dropping torque.
         mem[69:71] = (250).to_bytes(2, 'little')

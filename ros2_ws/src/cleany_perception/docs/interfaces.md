@@ -40,7 +40,7 @@
 추적 session/ID를 확인하고 원본과 `after_stamp_ns`(ns)보다 새 RGB-D 한 장에서 대상을
 측정한다. 원본 캐시, 좌표계나 카메라 보정이 달라지거나 대응 후보가 모호하면 실패한다.
 
-원본 검출 클래스와 bbox, 마스크로 대상을 대응한다. 응답 한 건은 원본 object/track ID,
+물체 번호는 승인 사진 안에서만 유효하다. 동일 원시 클래스의 bbox가 여러 원본이나 여러 최신 검출과 겹치면 각 최신 후보가 원본 추적 위치와 마스크에 일대일로 대응해야 한다. 거리 한계로 `tracking_maximum_distance_m`, bbox와 마스크의 IoU 하한으로 `reference_minimum_detection_iou`를 사용한다. 승인 track이 사라지거나 대응이 모호하면 실패한다. 응답 한 건은 원본 object/track ID,
 종류명, 처리 분류와 `sorting_reason`을 유지하고 신뢰도, 위치, 크기, 깊이는 최신 값을 쓴다.
 Gemini 재분류, 추적 이력 갱신, 참조 고정이나 모터 동작은 수행하지 않는다.
 진단 snapshot은 파지용 캐시에 저장하지 않으며 승인 실행은 원래 snapshot/object를 쓴다.

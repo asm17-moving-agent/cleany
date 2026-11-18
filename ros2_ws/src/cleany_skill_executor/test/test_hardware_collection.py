@@ -2,6 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace as NS
 import json
+import math
 import pytest
 from cleany_skill_executor.core.collection import (
     configuration_issues, load_arm, check_evidence, selection_gripper_parameters,
@@ -315,7 +316,7 @@ def test_startup_home_is_explicit_and_not_confused_with_a_missing_pose():
 def test_single_destination_can_use_a_wildcard_label():
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
     selected=NS(selected_arm='left',selected_object=NS(label='earbud charging case'),
-                selected_candidate=NS(required_opening_m=.04),gripper_joint_position=.4)
+                gripper_joint_position=1.)
     limits={name:NS(check=lambda _:None) for name in (*ARM_JOINT_NAMES['left'],'left_gripper_joint')}
     node=NS(config={**config(),'label_destinations':{'*':'recycling'}},arm_config=None,
             destination='',real=NS(verify=lambda _:limits, closed_contact_position=lambda *_:0.),
@@ -323,6 +324,18 @@ def test_single_destination_can_use_a_wildcard_label():
             event=lambda *_,**__:None)
     CollectionPipeline.before_execution(node,selected)
     assert node.destination=='recycling'
+
+
+@pytest.mark.parametrize('planned_opening', [.4, math.nan])
+def test_invalid_selector_opening_is_rejected_before_hardware_verification(planned_opening):
+    from cleany_skill_executor.collection_pipeline import CollectionPipeline
+
+    selected = NS(selected_arm='left', selected_object=NS(label='bottle'),
+                  gripper_joint_position=planned_opening)
+    node = NS(config=config(), arm_config=None, destination='',
+              real=NS(verify=lambda _: pytest.fail('Mismatched selection reached hardware')))
+    with pytest.raises(RuntimeError, match='configured fully open gripper'):
+        CollectionPipeline.before_execution(node, selected)
 
 
 @pytest.mark.parametrize('state', ['CONTACT','EMPTY','UNKNOWN'])
@@ -810,7 +823,7 @@ def test_temporary_motor_contact_preflight_needs_no_wrist_evidence_provider():
               evidence=NS(wait_for_service=lambda **_: pytest.fail('Unexpected wrist evidence dependency')),
               event=lambda *_, **__: None)
     selected = NS(selected_arm='left', selected_candidate=NS(required_opening_m=.04),
-                  gripper_joint_position=.4)
+                  gripper_joint_position=1.)
     CollectionPipeline.before_execution(node, selected)
     assert contact_setup == [True] and node.destination == 'return_to_pick'
     node.config['operation_mode'] = 'full_collection'

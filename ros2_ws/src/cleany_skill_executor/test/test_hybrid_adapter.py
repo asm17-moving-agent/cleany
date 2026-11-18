@@ -1008,3 +1008,28 @@ def test_candidate_final_validation_is_integrated_once_and_scoped_to_batch(fault
         assert len(state_calls) == (2 if fault == 'first_collision' else 1)
         assert adapter.last_ik_statistics['ik_diagnostics'][-1]['final_validation_integrated']
     assert gpu.finalize_alignment is None and gpu.last_batch_finalizations == []
+
+
+def test_grasp_first_checks_other_primary_solutions_if_cached_pose_collides():
+    adapter, trace = make_adapter(hybrid_config=HybridConfig(
+        progressive_pregrasp=True, group_gripper_openings=True, cpu_ik_fallback=False))
+    items = requests(2)
+    adapter.prepare_grasps(items)
+    adapter.begin_candidate_pass(False)
+    adapter.set_gripper_position('left', items[0].gripper_position)
+    assert adapter.solve_aligned_ik('left', items[0].target, None)
+    cached = adapter._pregrasp_cache[items[1]]
+    assert cached is not None
+    gpu = adapter._gpu(16)
+    search = gpu.solve_aligned_batch
+
+    def alternative(arm, targets, seeds):
+        [pose] = search(arm, targets, seeds)
+        different = JointSolution(pose.solution.names, (*pose.solution.positions[:-1], .05))
+        return [PoseAlignment(different, pose.pose, 0., 0., 0.)]
+
+    gpu.solve_aligned_batch = alternative
+    adapter.state_is_valid = lambda arm, solution: solution != cached.solution
+    selected = adapter.solve_aligned_ik('left', items[1].target, None)
+    assert selected is not None and selected.solution != cached.solution
+    assert [c['gpu_test_double'] for c in trace if isinstance(c, dict)] == [16, 16]
