@@ -4,6 +4,8 @@
 경로 계획과 파지 전 준비 자세는 [physical-pregrasp.md](physical-pregrasp.md)를 따른다.
 MoveIt은 경로만 계산하고 실제 명령은 하드웨어 실행기가 보낸다.
 
+새 cuRobo 실물 준비 세션은 모터 보호 노드의 실시간 준비 상태와 MoveIt 계획 장면 서비스의 관절 상태 응답을 확인한 뒤 GPU IK 초기화를 시작한다. GPU 기동 전과 전체 준비 검사에서 MoveIt의 궤적 실행 설정이 불리언 false인지 확인한다. 탐색이 끝난 뒤에도 설정 조회 응답이 도착하지 않으면 10초 검사 기한 안에 한 번 재조회한다.
+
 ## 실행 경로
 
 `manipulation_jetson_server`는 기존 수거 트리를 실행하며 실행 기록을 별도 SQLite에 보존한다.

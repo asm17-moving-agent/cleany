@@ -589,7 +589,7 @@ def test_shared_bus_readonly_has_no_writes(tmp_path):
 
 def test_single_read_timeout_holds_and_recovers_but_persistent_loss_stops(tmp_path):
     runtime = Runtime(tmp_path, False, shared_bus=True, serial_timeout_ms=20,
-                      max_state_age_s=.1, serial_read_retries=1)
+                      max_state_age_s=.1, serial_read_retries=1, servo_type=ProcessServos)
     try:
         handle, _ = runtime.goal('left_arm_controller', delta=.03, duration=2)
         assert handle.accepted
@@ -604,13 +604,13 @@ def test_single_read_timeout_holds_and_recovers_but_persistent_loss_stops(tmp_pa
         result = runtime.wait(handle.get_result_async())
         assert result.status == 4 and result.result.error_code == 0
         assert all(runtime.arms.registers[motor][40] == 1 for motor in range(1, 13))
-        assert not any(w['address'] == 40 and w['data'] == [0] for w in runtime.arms.writes)
         runtime.arms.drop_reads = True
         runtime.spin(.6)
         assert 'LATCHED hardware fault' in (tmp_path/'manager.log').read_text()
         assert runtime.guard.fault
     finally:
         runtime.close()
+    assert not any(w['address'] == 40 and w['data'] == [0] for w in runtime.arms.writes)
 
 
 

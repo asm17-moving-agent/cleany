@@ -18,7 +18,7 @@ def probe(monkeypatch):
     future = lambda result: NS(done=lambda: True, result=lambda: result)
     node = NS(gui=False, get_node_names_and_namespaces=lambda: nodes,
         get_service_names_and_types=lambda: services,
-        parameter_future=future(parameter), controllers_future=future(controllers),
+        parameter_future=future(parameter), parameter_retry=None, controllers_future=future(controllers),
         parameter_client=NS(service_is_ready=lambda: False),
         controllers_client=NS(service_is_ready=lambda: False),
         warmup_client=NS(service_is_ready=lambda: False), warmup_future=None,
@@ -234,3 +234,43 @@ def test_failed_gpu_warmup_never_reports_collection_ready(probe):
         result=lambda: NS(success=False, message='IK warmup failed: GPU unavailable'))
     with pytest.raises(RuntimeError, match='GPU unavailable'):
         module.ReadinessProbe.pending(node)
+
+def test_gpu_startup_waits_for_scene_and_current_guard(monkeypatch):
+    monkeypatch.setattr(module.time, 'monotonic', lambda: 20.)
+    node = NS(scene_future=None, scene_ready_at=None, scene=NS(service_is_ready=lambda: False),
+              guard_state='ready', guard_received=20.)
+    pending = module.ControlStartupProbe.pending
+    assert pending(node) == ['/get_planning_scene']
+    node.scene_future = NS(done=lambda: True,
+                           result=lambda: NS(scene=NS(robot_state=NS(joint_state=NS(name=['left_gripper_joint'])))))
+    node.parameter_client = NS(service_is_ready=lambda: False)
+    node.parameter_future = node.parameter_retry = None
+    assert pending(node) == ['MoveIt execution mode']
+    disabled = NS(values=[ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=False)])
+    node.parameter_future = NS(done=lambda: True, result=lambda: disabled)
+    node.guard_received = 10.
+    assert pending(node) == ['/real_control/status ready']
+    node.guard_received = 20.
+    assert pending(node) == []
+    node.guard_state = 'fault'
+    with pytest.raises(RuntimeError, match='fault'):
+        pending(node)
+
+
+
+def test_lost_moveit_reply_retries_without_accepting_an_unsafe_mode(probe):
+    node, clock, _, _, _, parameter, _ = probe
+    first = NS(done=lambda: False)
+    node.parameter_future = first
+    sent = []
+    def query(request):
+        sent.append(request.names)
+        return NS(done=lambda: True, result=lambda: NS(values=parameter.values))
+    node.parameter_client = NS(service_is_ready=lambda: True, call_async=query)
+    assert not module.moveit_execution_disabled(node, clock[0])
+    clock[0] += 5.
+    assert module.moveit_execution_disabled(node, clock[0] - 5.)
+    assert sent == [['allow_trajectory_execution']] and node.parameter_future is first
+    parameter.values[0].bool_value = True
+    with pytest.raises(RuntimeError, match='allow_trajectory_execution=false'):
+        module.moveit_execution_disabled(node, clock[0] - 5.)
