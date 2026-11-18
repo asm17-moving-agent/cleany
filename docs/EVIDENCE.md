@@ -40,6 +40,14 @@ Jetson Orin의 Ubuntu 22.04 ARM64, ROS 2 Humble에서 `f45801bc`의
 있다. 271.3ms 장애 로그의 원본은
 `/home/cleany/cleany/runtime/collection-operator/20261118-074304/logs/real-control.log`다.
 
+## 2026-11-18 실물 읽기 전용 그리퍼 TF와 RViz
+
+Jetson Orin의 `f45801bc` 작업공간에 읽기 전용 판독 노드와 launch 수정을 적용했다. 실물 관절 서비스만 재시작하고 dev-monitor가 사용한 물리용 MoveIt 설정으로 측정용 프로세스를 기동했다. 웹의 로봇 준비 버튼과 팔 구동은 이번 검사에 포함하지 않았다. ROS 도메인 0에서 이전 임시 그리퍼 TF 발행기 두 개는 꺼져 있었다.
+
+30초 동안 단일 `/read_only_robot_state`가 모터 좌표 14개와 종속 관절 16개를 담은 메시지 600개를 발행했다. D435 점군 59개 중 36개가 지도에 반영됐다. 36개 모두 촬영 시각에 종속 링크 16개, 손끝 4개, 양손 TCP 및 카메라 프레임을 조회했다. 관절값은 보정 모델 해와 일치했고 TF 회전 오차는 최대 2.9e-16 rad였다. MoveIt 서비스에서 `base_link` 기준 해상도 1cm의 지도를 조회했다. 30초 검사가 끝난 뒤 촬영 시각의 충돌 형상 변환이 불완전해 한 점군을 건너뛰었고 후속 갱신이 재개됐다. 이 오류 로그는 해당 링크 이름을 제공하지 않는다.
+
+관련 운영 패키지 검사 30개가 통과했다. Jetson 원본은 `/home/cleany/cleany-data/runs/read-only-gripper-tf-20261118-0840`의 `live/validation.json`, `live/move_group.log`, `live/scene.json`, `deployment.json`, `pytest-production.log`에 있다. `rviz/robot.png`, `rviz/grippers.png`와 `rviz/octomap.png`는 실물 ROS 토픽에 연결한 RViz 창을 직접 캡처한 것이다.
+
 ## 2026-11-18 웹 로봇 준비와 Jetson 설치본 복구
 
 Jetson Orin의 ROS 2 Humble에서 `/home/cleany/cleany`의 `f45801bc` 작업 트리와

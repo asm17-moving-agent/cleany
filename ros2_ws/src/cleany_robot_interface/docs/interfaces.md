@@ -5,12 +5,14 @@
 > [!CAUTION]
 > 엔코더 상태 조회 노드(`reader.py`, `robot_state_reader.py`)와 실물 제어기(`real_control.launch.py`)가 동일한 시리얼 포트를 동시에 점유해서는 안 됩니다.
 
+`read_only_state.launch.py`는 판독 노드와 `robot_state_publisher`에 같은 URDF를 지정한다. CAD 링크 계산이나 모터 읽기에 실패한 표본은 발행하지 않는다. 모델에 CAD 보정이 없거나 `robot_state_reader`를 모델 없이 실행하면 실측 관절만 발행한다.
+
 ## 1. 노드별 인터페이스 목록
 
 | 노드명 | 인터페이스 명칭 및 타입 | 역할 및 동작 상세 |
 |---|---|---|
 | `arm_state_reader` | `joint_states` (`sensor_msgs/JointState`) [발행] | 설정된 단일 팔의 실측 관절 위치 |
-| `read_only_robot_state` | `/joint_states` (`sensor_msgs/JointState`) [발행] | 양팔 및 헤드 전체 실측 관절 위치 (기본 20 Hz) |
+| `read_only_robot_state` | `/joint_states` (`sensor_msgs/JointState`) [발행] | 기본 20 Hz로 모터 실측 위치를 발행한다. 보정 CAD 모델에서는 양쪽 그리퍼의 실측 각도로 계산한 손가락 종속 관절 16개를 같은 메시지에 담는다. |
 | `real_control_state_guard` | `joint_state_broadcaster/dynamic_joint_states` (`control_msgs/msg/DynamicJointState`) [구독] | 최신 프레임 하나에서 모터 위치와 공통 취득 시각을 확인한다. QoS는 best effort다. |
 | 〃 | `joint_states` (`sensor_msgs/JointState`) [발행] | 정상성과 신선도(최대 나이 0.25초)를 검증한 관절 상태 |
 | 〃 | `real_control/status` (`std_msgs/String`) [발행] | 제어 상태 판정 결과 (`waiting/ready/fault`, 20 Hz, Transient Local) |
@@ -31,6 +33,8 @@
 Feetech 드라이버가 오류를 고정하면 취득 시각의 갱신이 멈춘다. 가드는
 프레임에 오류 비트가 있으면 함께 검사하고, `require_driver_fault=true`를
 선택한 경우에는 해당 비트가 없는 프레임도 거부한다.
+
+실물 제어 launch는 Fast DDS를 사용할 때 컨트롤러 매니저와 보호 노드의 메시지를 비동기로 전송한다. 관절 상태는 드라이버의 취득 시각을 유지하며 보호 노드는 50ms마다 마지막 취득 시각을 검사한다.
 
 ## 2. 토크 수동 제어
 
