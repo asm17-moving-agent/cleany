@@ -4,6 +4,26 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 95 의존성 다운로드와 MPPI 링크 수정 검증 (2026-11-18)
+
+입력은 `ad5f8242bade657a8430201d311a240458b9fda5`와 이번 CI 수정이다.
+GitHub amd64 실행 `44301850550`은 OpenJDK 11 snapshot 파일 다운로드에서,
+`44301879186`은 MPPI `TrajectoryVisualizer::add` 링크에서 실패했다.
+APT에 Launchpad의 동일 파일을 조회하는 경로를 추가하고, MPPI에서
+`xtensor::optimize`가 전달하는 `-march=native`를 제거했다.
+SIMD와 기존 최적화는 유지하고 공유 라이브러리 링크에서도 미해결 심볼을 거부한다.
+
+실패 로그의 OpenJDK JRE 42,596,026 bytes와 JDK 73,666,166 bytes를 새 경로에서
+실제로 내려받아 snapshot의 SHA256과 크기를 확인했다. CI 도구 45개가 통과했다.
+Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서 32개 패키지가 빌드됐으며
+MPPI 생성 컴파일 옵션에 `-march=native`가 없는 것을 확인했다.
+테스트 사례와 timeout, 패키지 버전과 서명 검증은 약화하지 않았다.
+
+명령, 원본 실패 로그의 패키지 식별자, 다운로드 검증 결과와 로컬 로그는
+`CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr95-ci-repair/`에 보관한다.
+최종 amd64 CI 결과는 PR 95와 PR 83의 해당 commit 실행에서 확인한다.
+ARM64 빌드 결과는 amd64 CI나 Jetson 실물 검증을 대신하지 않는다.
+
 ## PR 83 문서와 기능 분리 검증 (2026-11-18)
 
 입력 통합본은 `9dec4c79fcacb454380f6b328ee6979a17ba5950`, 원격 main 기준은
