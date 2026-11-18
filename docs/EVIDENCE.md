@@ -33,6 +33,13 @@ QEMU user mode에서 비교했다. `-ffast-math` 사용 시 반올림, `pow`, `e
 모두 실패했고, 해당 옵션만 제외하면 3개 모두 통과했다. critic 기대값과 공차는
 변경하지 않고 MPPI 빌드 옵션을 수정하며 같은 옵션을 쓰는 수학 회귀 검사를 추가했다.
 
+`ba1d8593`의 GitHub 실행 `44322335839`에서 32개 패키지의 6,297 tests와
+Navigation runtime 5개가 통과했다. 문서 브랜치의 실행 `44322410198`에서는
+같은 MPPI와 runtime 검사는 통과했지만 EKF fixture가 DDS publisher와 TF 준비를
+기다리지 않아 2개 사례가 실패했다. 베이스 동작 코드는 바꾸지 않고 fixture의
+기존 15초 준비 조건에 필요한 관측값을 모두 포함했다. 원래 EKF 검사 4개는
+수정 후 ARM64에서 3회 연속 통과했으며 수치 공차와 TF 소유권 검사는 유지했다.
+
 명령, 원본 실패 로그의 패키지 식별자, 다운로드 검증 결과와 로컬 로그는
 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr95-ci-repair/`에 보관한다.
 최종 amd64 CI 결과는 PR 95와 PR 83의 해당 commit 실행에서 확인한다.
