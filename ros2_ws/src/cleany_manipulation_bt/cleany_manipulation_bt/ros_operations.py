@@ -12,16 +12,17 @@ from cleany_interfaces.srv import GetSceneSnapshot, ObserveWristTarget, Register
 from controller_manager_msgs.srv import ListControllers
 from cleany_skill_executor.core.grasp_selection import InfrastructureError, REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
-from cleany_skill_executor.core.sorting import COLLECTION_SKILLS, bin_release_region, normalize_label
+from cleany_skill_executor.core.sorting import (
+    COLLECTION_SKILLS, bin_release_region, normalize_label, validate_release_point,
+)
 from cleany_skill_executor.collision_geometry_cache import candidate_bounding_radius
 from cleany_skill_executor.manipulation.models import Error, ObjectState, Placement
-from cleany_skill_executor.nearest_pregrasp_coordinator import LiftRedetectionError
+from cleany_skill_executor.gripper_operations import LiftRedetectionError
 from cleany_skill_executor.pick_operations import GraspProgress
 from cleany_skill_executor.seeded_cartesian import CartesianPlanningError
-from cleany_skill_executor.sorting_coordinator import (
-    HeldObject, SortTarget, SortingCoordinator, held_bounding_radius, rotation,
+from cleany_skill_executor.sorting_operations import (
+    SortTarget, SortingOperations,
 )
-import numpy as np
 import rclpy
 
 from .backend import ExecutionContext, Observation, OperationError
@@ -56,8 +57,8 @@ class TrackedClient:
         return future
 
 
-class MujocoOperations(SortingCoordinator):
-    """Reuse calibrated sorting motion without invoking run(), pick() or execute_sort()."""
+class MujocoOperations(SortingOperations):
+    """분류 공통 연산을 사용하며 실행 순서는 BT에 위임합니다."""
     def __init__(self) -> None:
         self._joint_feedback = JointFeedback(REQUIRED_JOINT_NAMES)
         super().__init__()
@@ -69,9 +70,6 @@ class MujocoOperations(SortingCoordinator):
         self.deadline = math.inf
         self._clock_value = 0
         self._clock_progress_wall = time.monotonic()
-        self.declare_parameter('sorting_release_clearance_m', 0.06)
-        self.declare_parameter('sorting_release_maximum_clearance_m', 0.21)
-        self.declare_parameter('sorting_release_edge_margin_m', 0.005)
         self.declare_parameter('bt_feedback_max_age_sec', 2.0)
         self.declare_parameter('bt_operation_timeout_sec', 180.0)
         self.declare_parameter('bt_verification_timeout_sec', 10.0)
@@ -358,8 +356,7 @@ class MujocoOperations(SortingCoordinator):
                 float(self.get_parameter('sorting_release_maximum_clearance_m').value),
                 float(self.get_parameter('sorting_release_edge_margin_m').value))
             point = self._fixed_release_points[context.goal.destination_id]
-            if any(point - .001 < low) or any(point + .001 > high):
-                raise ValueError('Configured release point does not fit observed payload')
+            validate_release_point(point, low, high)
         except ValueError as error:
             raise OperationError(Error.DESTINATION_UNAVAILABLE, str(error)) from error
 
@@ -422,34 +419,6 @@ class MujocoOperations(SortingCoordinator):
         if self._wrist_enabled:
             self._set_head_depth_boost(False)
         return Observation(object_state=ObjectState.HELD, message='Post-lift observation and contact confirmed')
-
-    def transport(self, held: HeldObject, destination: str) -> None:
-        # The single-object Action validates payload fit before any carry motion.
-        bin_ = self._bins[destination]
-        radius = held_bounding_radius(self, held)
-        low, high = bin_release_region(
-            bin_.center_xy, bin_.outside_size, bin_.wall, bin_.top_z, radius,
-            float(self.get_parameter('sorting_release_clearance_m').value),
-            float(self.get_parameter('sorting_release_maximum_clearance_m').value),
-            float(self.get_parameter('sorting_release_edge_margin_m').value))
-        point = self._fixed_release_points[destination]
-        if np.any(point - .001 < low) or np.any(point + .001 > high):
-            raise RuntimeError(f'Fixed release point does not fit payload in {destination}: {point.tolist()}')
-        super().transport(held, destination)
-
-    def check_release_target(self, held: HeldObject, destination: str) -> None:
-        super().check_release_target(held, destination)
-        pose = self._tcp_pose(held.selected.selected_arm)
-        center = (np.array(self._pose_position(pose))
-                  + rotation(pose) @ held.offset_in_tcp)
-        bin_ = self._bins[destination]
-        radius = held_bounding_radius(self, held)
-        if not math.isfinite(radius) or radius <= 0:
-            raise RuntimeError('Release payload radius must be positive and finite')
-        if (any(abs(center[i] - bin_.center_xy[i]) + radius
-                >= bin_.outside_size[i] / 2 - bin_.wall for i in range(2))
-                or center[2] - radius <= bin_.top_z):
-            raise RuntimeError('Object is not safely above the bin opening')
 
     def carry(self, context: ExecutionContext) -> Observation:
         self.transport(context.held, context.goal.destination_id)

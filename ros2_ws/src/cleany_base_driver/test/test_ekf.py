@@ -169,12 +169,20 @@ def test_installed_fusion_and_tf_ownership(
             print(log.read())
             raise
         finally:
-            if process.poll() is None:
+            # A failed launch may exit before its mock child nodes do.
+            try:
                 os.killpg(process.pid, signal.SIGINT)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=8)
+            except subprocess.TimeoutExpired:
+                pass
+            finally:
                 try:
-                    process.wait(timeout=8)
-                except subprocess.TimeoutExpired:
                     os.killpg(process.pid, signal.SIGKILL)
-                    process.wait()
+                except ProcessLookupError:
+                    pass
+                process.wait()
             node.destroy_node()
             rclpy.shutdown()

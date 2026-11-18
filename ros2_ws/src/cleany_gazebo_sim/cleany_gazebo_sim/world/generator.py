@@ -236,7 +236,7 @@ def materialize_mecanum_wheel_world(
     *,
     target_path: Path | None = None,
     sensor_render_engine: str = 'ogre2',
-    robot_model: str = 'legacy',
+    robot_model: str = 'cad_frame',
 ) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     if sensor_render_engine not in {'ogre', 'ogre2'}:
@@ -709,7 +709,7 @@ def materialize_study_cafe_world(
     sensor_render_engine: str = 'ogre2',
     robot_spawn_pose: tuple[float, float, float, float, float, float]
     | None = None,
-    robot_model: str = 'legacy',
+    robot_model: str = 'cad_frame',
     chair_model: str = 'legacy',
     chair_config_path: Path | None = None,
 ) -> Path:

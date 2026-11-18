@@ -11,6 +11,32 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 from cleany_navigation.urdf_geometry import rotation
 
 
+def test_description_identity_tracks_geometry_bytes_and_expanded_origins(tmp_path):
+    from cleany_gazebo_sim.world.cad_frame import description_identity
+    mesh = tmp_path / 'meshes' / 'part.stl'
+    mesh.parent.mkdir()
+    mesh.write_bytes(b'first mesh revision')
+    robot = ET.fromstring('''<robot><link name="base_link"><visual>
+      <origin xyz="0 0 0"/><geometry>
+      <mesh filename="package://cleany_description/meshes/part.stl"/>
+      </geometry></visual></link></robot>''')
+    first = description_identity(robot, tmp_path)
+    assert description_identity(robot, tmp_path) == first
+    mesh.write_bytes(b'second mesh revision')
+    second = description_identity(robot, tmp_path)
+    assert first['sha256'] != second['sha256']
+    assert first['expanded_urdf_sha256'] == second['expanded_urdf_sha256']
+    robot.find('.//origin').set('xyz', '0 0 1')
+    third = description_identity(robot, tmp_path)
+    assert third['sha256'] != second['sha256']
+    assert third['mesh_sha256'] == second['mesh_sha256']
+
+    installed = tmp_path / 'install'
+    installed.mkdir()
+    (installed / 'meshes').symlink_to(mesh.parent, target_is_directory=True)
+    assert description_identity(robot, installed) == third
+
+
 def test_park_rotation_follows_joint_axis_and_preserves_translation():
     robot = ET.fromstring('''<robot><joint name="arm" type="revolute">
       <parent link="base_link"/><child link="arm_link"/>
@@ -137,3 +163,10 @@ def test_simulation_limit_override_is_explicit_and_bounded():
         freeze(ET.fromstring(source), {'wrist': -2.1}, {'wrist': [-2, 1]})
     with pytest.raises(ValueError, match='parked joint'):
         freeze(ET.fromstring(source), {'wrist': 0}, {'typo': [-2, 1]})
+
+
+@pytest.mark.parametrize('pitch', [np.pi/2, -np.pi/2, np.pi/2-1e-12])
+def test_rpy_round_trip_at_optical_axis_gimbal_lock(pitch):
+    from cleany_navigation.urdf_geometry import rpy
+    expected = rotation([.3, pitch, -.7])
+    np.testing.assert_allclose(rotation(rpy(expected)), expected, atol=2e-12)

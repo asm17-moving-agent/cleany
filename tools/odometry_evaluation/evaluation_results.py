@@ -12,6 +12,11 @@ from typing import Any, Callable
 from lidar_scan_matcher import ScanMatchResult
 
 
+def reference_error(result: dict[str, Any]) -> dict[str, Any]:
+    """새 기준 오차 키를 우선 사용하고 과거 평가 JSON도 읽습니다."""
+    return result["reference_error"] if "reference_error" in result else result["physical_ground_truth"]
+
+
 def json_finite(value: Any) -> Any:
     if isinstance(value, bool):
         return value
@@ -68,6 +73,7 @@ def build_leg_result(
         "is_valid": match.is_valid,
         "odom_reported": reported,
         "raw_lidar_icp": match_metadata(match),
+        "calibrated_base_reference": None,
         "calibrated_base_ground_truth": None,
         "one_way_error": None,
     }
@@ -80,6 +86,7 @@ def build_leg_result(
     data["calibrated_base_ground_truth"] = {
         "dx_m": dx, "dy_m": dy, "dyaw_deg": math.degrees(yaw),
     }
+    data["calibrated_base_reference"] = data["calibrated_base_ground_truth"]
     data["one_way_error"] = {
         "error_x_mm": error_x, "error_y_mm": error_y,
         "error_yaw_deg": error_yaw, "error_norm_mm": norm,

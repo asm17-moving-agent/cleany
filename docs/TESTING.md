@@ -741,3 +741,9 @@ make test-dev-monitor-web
 Playwright는 기본 로컬 fixture 서버를 사용한다. `MONITOR_URL`이 필요한 실제 서버 검사는
 서버와 합성 입력을 준비한 경우에만 실행한다. `OPERATOR_VISUAL_DIR`을 저장소 밖 경로로
 지정하면 운영 UI의 라이트, 다크와 좁은 화면 근거 이미지를 저장한다.
+
+## Phone Nav2와 관측 분리 회귀 검사
+
+공통 workspace 검사에 camera/pose 관측, Backend relay, 지도 목표와 안전 상태 검사가 포함된다.
+ROS Navigation runtime과 실물 CAD 소비자 경계는 `make test-navigation-runtime`으로
+명시 실행한다. MCU emulator와 합성 ROS 입력의 통과는 실물 주행이나 카메라 장치 검증과 구분한다.

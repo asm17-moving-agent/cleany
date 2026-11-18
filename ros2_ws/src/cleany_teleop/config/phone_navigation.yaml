@@ -1,0 +1,3 @@
+phone_remote:
+  ros__parameters:
+    navigation.max_wheel_rad_s: 10.0

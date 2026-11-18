@@ -4,6 +4,37 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 83 문서와 기능 분리 검증 (2026-11-18)
+
+입력 통합본은 `9dec4c79fcacb454380f6b328ee6979a17ba5950`, 원격 main 기준은
+`f45801bc046cbeada19c1ace1ee8acb4273cb0a7`이다. 기능은
+`integration/phone-navigation-runtime`으로 분리하고 기존 PR 83은 그 위의 문서 PR로 유지한다.
+기존 통합 이력은 보존하며 README, 문서 재구성, 주석 번역과 시각자료 제작 도구를
+기능 diff에서 제외했다. 새 실행 파일과 변경된 endpoint, 설정, 실행 절차에 필요한
+계약 문서는 기능 브랜치에 함께 둔다.
+
+런타임 파일 906개의 Python AST 또는 주석을 제외한 소스 토큰을 입력 통합본과 비교했다.
+Python docstring은 비교에서 제외하고 preprocessor와 shebang은 유지했다.
+런타임 파일 경로와 실행 권한, 실제 mesh 679개와 실물 CAD 설정을 대조했다.
+문서 PR을 합친 런타임은 입력 통합본과 같으며 이 비교는 실물 동작 검증을 대신하지 않는다.
+
+Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서 32개 패키지를 빌드했다.
+전체 workspace 집계는 **6,293 tests, 0 errors, 0 failures, 70 skipped**다.
+Phone UI 빌드와 입력 검사 17개, CI 도구 43개도 통과했다.
+README media는 원본 hash를 유지하고 HTML reader/guide와 contract figure 8개의
+재생성 일치를 확인했다. Navigation runtime과 CAD 소비자 경계 검사 5개도 통과했다.
+
+초기 테스트 실행기는 구버전 Git의 `relativeWorktrees` 미지원과 컨테이너 안의
+submodule 상대 경로 때문에 시작 전에 실패했다. 호스트 Git 설정을 바꾸지 않고
+읽기 전용 object를 참조하는 검증용 Git 메타데이터를 만들어 재실행했다.
+submodule 상태는 호스트에서 확인하고 컨테이너의 상태 기록에서만 제외했다.
+테스트 사례, 통과 조건과 timeout은 변경하지 않았다.
+
+원본은 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr83-docs-runtime-split/`에 보관한다.
+분류 목록, 소스 비교, 검사 로그와 최종 commit 및 파일 hash를 함께 기록한다.
+amd64 GitHub CI와 ARM64 로컬 결과는 별개이며 기존 MPPI 링크 오류는 이 분리에서 수정하지 않았다.
+Jetson 검증과 main 병합은 수행하지 않았다.
+
 ## 2026-11-18 이벤트 궤적 제어기 분리 검증
 
 `b991ce5f332f56717dbecc836b5ac93610bad479` 기반의

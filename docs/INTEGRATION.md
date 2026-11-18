@@ -2,6 +2,18 @@
 
 이 문서는 연결 흐름과 각 계약의 소유 위치를 안내합니다. 제품 책임과 안전 원칙은 [KB Technical](cleany-docs/README.md), 정확한 wire type과 실행 옵션은 현재 코드를 기준으로 확인합니다.
 
+## 관측과 외부 전달
+
+ROS 위치와 카메라는 [telemetry](../ros2_ws/src/cleany_telemetry/docs/interfaces.md)가
+읽기 전용으로 제공하고, Backend 위치 계약과 인증 및 재접속은
+[control bridge](../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#pose_backend_bridge)가 담당한다.
+수동 입력과 지도 목표는 [teleop](../ros2_ws/src/cleany_teleop/docs/interfaces.md)의
+기존 허가와 정지 경로를 사용한다. 센서 드라이버, 인식과 원본 기록의 소유권은 변경하지 않는다.
+
+좌석 목표 schema 2는 지도와 배치 revision 및 digest를 확인한다.
+실제로 적용한 `target_map`은 Mission snapshot에서 확인하며
+[Mission 인터페이스](../ros2_ws/src/cleany_mission_manager/docs/interfaces.md)를 따른다.
+
 ## 연결 흐름
 
 ```mermaid

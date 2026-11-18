@@ -37,7 +37,7 @@ def main() -> None:
                                   for name, x, y, yaw in args.override},
                                  tuple(args.half_extents), args.padding, args.front_offset,
                                  args.localization_margin, args.reference_world)
-    args.output.write_text('# Approximate simulation approach poses; arm reach is unvalidated.\n'+
+    args.output.write_text('# 근사 시뮬레이션 접근 자세이며 팔 도달 가능성은 검증되지 않았습니다.\n'+
                            yaml.safe_dump(targets, sort_keys=False))
     args.output.with_suffix('.validation.json').write_text(json.dumps(evidence, indent=2)+'\n')
     print(f'Generated {len(targets["seats"])} collision-checked approach poses: {args.output}')

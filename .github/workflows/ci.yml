@@ -118,7 +118,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/cleany-builds" "${RUNNER_TEMP}/cleany-ccache"
-          # Bound package-level and compiler-level parallelism together.
+          # 패키지 빌드와 컴파일러의 병렬 작업 수를 함께 제한합니다.
           compile_jobs=$(( $(nproc) / 2 ))
           test "${compile_jobs}" -ge 1 || compile_jobs=1
           docker run --detach --name cleany-ci --entrypoint sleep \
@@ -154,6 +154,7 @@ jobs:
             python3 -m pytest --version
             git rev-parse HEAD
             python3 tools/ci/preflight.py
+            make check-gazebo-env
             env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble --skip-keys "sllidar_ros2 micro_ros_agent"
             python3 containers/ci/verify-versions.py
           '

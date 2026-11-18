@@ -6,6 +6,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from cleany_navigation.motion_profile import motion_profile_arguments
 
 
 def generate_launch_description():
@@ -22,6 +23,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "state_root", default_value="~/.local/state/cleany/hardware"
             ),
+            DeclareLaunchArgument("navigation_map", default_value=""),
+            DeclareLaunchArgument("robot_params_file", default_value=""),
+            DeclareLaunchArgument("depth_params_file", default_value=""),
+            *motion_profile_arguments("omni"),
+            DeclareLaunchArgument("slip_recovery", default_value="true", choices=["true", "false"]),
             DeclareLaunchArgument("host", default_value="0.0.0.0"),
             DeclareLaunchArgument("phone_port", default_value="8766"),
             Node(
@@ -31,6 +37,11 @@ def generate_launch_description():
                 sigterm_timeout="90",
                 sigkill_timeout="15",
                 arguments=[
+                    "--navigation-map", LaunchConfiguration("navigation_map"),
+                    "--robot-params", LaunchConfiguration("robot_params_file"),
+                    "--depth-params", LaunchConfiguration("depth_params_file"),
+                    "--motion-profile", LaunchConfiguration("motion_profile"),
+                    "--slip-recovery", LaunchConfiguration("slip_recovery"),
                     "--profile",
                     LaunchConfiguration("profile"),
                     "--mock",

@@ -30,6 +30,7 @@ class HealthReport:
     status: Availability
     observed_at: float
     detail: str = ''
+    cause: str = ''
 
 
 @dataclass
@@ -47,6 +48,7 @@ class Fault:
     locks_operation: bool = False
     cleared_at: float | None = None
     restored: bool = False
+    cause: str = ''
 
 
 @dataclass

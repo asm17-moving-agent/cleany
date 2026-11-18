@@ -25,12 +25,13 @@ def _preview_defaults():
     return context.launch_configurations
 
 
-def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
+def test_legacy_preview_shoulders_remain_on_fixed_motor_shafts():
     package = Path(__file__).parents[1]
-    defaults = _preview_defaults()
+    defaults = {'model_profile': 'jetson_20261009',
+                'include_head_camera': 'true', 'head_mast_rear_gap_m': '0.05'}
     model = package.parent / 'cleany_description/urdf/cleany.urdf.xacro'
     root = ET.fromstring(subprocess.check_output([
-        'xacro', str(model),
+        'xacro', str(model), 'model_profile:=' + defaults['model_profile'],
         'include_head_camera:=' + defaults['include_head_camera'],
         'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ], text=True))
@@ -54,14 +55,36 @@ def test_default_preview_shoulders_remain_on_fixed_motor_shafts():
             shaft, abs=1e-8)
 
 
-def test_default_preview_keeps_head_on_repositioned_mast():
-    defaults = _preview_defaults()
+def test_legacy_preview_keeps_head_on_repositioned_mast():
+    defaults = {'model_profile': 'jetson_20261009',
+                'include_head_camera': 'true', 'head_mast_rear_gap_m': '0.05'}
     model = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
-    nominal = ET.fromstring(subprocess.check_output(['xacro', str(model)]))
+    nominal = ET.fromstring(subprocess.check_output(['xacro', str(model), 'model_profile:=' + defaults['model_profile']]))
     preview = ET.fromstring(subprocess.check_output([
-        'xacro', str(model),
+        'xacro', str(model), 'model_profile:=' + defaults['model_profile'],
         'head_mast_rear_gap_m:=' + defaults['head_mast_rear_gap_m'],
     ]))
     for name in ('top_base_joint', 'head_pan_joint'):
         path = f"joint[@name='{name}']/origin"
         assert preview.find(path).attrib == nominal.find(path).attrib
+
+
+def test_default_preview_includes_common_calibrated_model_without_motor_reader():
+    from launch.actions import IncludeLaunchDescription
+    from launch_ros.actions import Node
+    package = Path(__file__).parents[1]
+    spec = importlib.util.spec_from_file_location(
+        'arm_preview_default', package / 'launch/arm_preview.launch.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    actions = module.generate_launch_description().entities
+    assert not any(isinstance(action, Node) for action in actions)
+    includes = [action for action in actions if isinstance(action, IncludeLaunchDescription)]
+    assert len(includes) == 1
+    context = LaunchContext()
+    for action in includes[0].launch_description_source.get_launch_description(context).entities:
+        if isinstance(action, DeclareLaunchArgument):
+            context.launch_configurations[action.name] = perform_substitutions(context, action.default_value)
+    assert context.launch_configurations['model_variant'] == 'freecad_calibrated'
+    assert context.launch_configurations['input_joint_states'] == '/joint_states'
+    assert dict(includes[0].launch_arguments)['namespace'] == 'arm_preview'

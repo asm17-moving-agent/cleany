@@ -125,13 +125,19 @@ def test_navigation_context_respects_remapping_selection_and_native_bytes(tmp_pa
     recorder.append_raw()
     recorder.close()
     import rosbag2_py
-    reader = rosbag2_py.SequentialReader()
-    reader.open(rosbag2_py.StorageOptions(uri=str(recorder.resolve_bag(recorder.session_id)), storage_id='sqlite3'),
-                rosbag2_py.ConverterOptions('', ''))
     saved = {}
-    while reader.has_next():
-        topic, payload, _ = reader.read_next()
-        saved[topic] = payload
+    directory = recorder.resolve_bag(recorder.session_id)
+    for location, expected in ((directory, {'/robot/plan'}),
+                               (directory / 'diagnostics', {'/robot/map'})):
+        reader = rosbag2_py.SequentialReader()
+        reader.open(rosbag2_py.StorageOptions(uri=str(location), storage_id='sqlite3'),
+                    rosbag2_py.ConverterOptions('', ''))
+        found = set()
+        while reader.has_next():
+            topic, payload, _ = reader.read_next()
+            saved[topic] = payload
+            found.add(topic)
+        assert found == expected
     assert list(deserialize_message(saved['/robot/map'], OccupancyGrid).data) == [100]
     assert '/robot/plan' in saved
     settings['enabled'].update({key: False for key in settings['enabled']})

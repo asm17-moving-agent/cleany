@@ -1,14 +1,15 @@
 """Live ROS/web observer and client of the independent recording node."""
 import threading
+
 import rclpy
 from rclpy.clock import Clock, ClockType
 from cleany_logger.observer import ObservationNode
-from .camera import preview_supported
+from cleany_telemetry.camera import preview_supported
 from .core import Hub
 from .proposals import DEFAULTS as PROPOSAL_DEFAULTS
 from .request import read_request
-from .slam_reader import SlamReader
 from .server import serve
+from .slam_reader import SlamReader
 
 
 class MonitorNode(ObservationNode):
@@ -28,7 +29,8 @@ class MonitorNode(ObservationNode):
                              "control_enabled": False,
                              "control_directory": "~/.local/state/cleany/dev-monitor/operator",
                              "control_repository_root": "", "control_session_seconds": 3600,
-                             "manipulation_request_file": ""}, **kwargs)
+                             "manipulation_request_file": "",
+                             "camera_preview_url": "http://127.0.0.1:8769"}, **kwargs)
         from .logger_client import LoggerClient
         self.logger_client = LoggerClient(self, self.config)
         self.create_timer(1.0, self.command_progress, clock=Clock(clock_type=ClockType.STEADY_TIME))

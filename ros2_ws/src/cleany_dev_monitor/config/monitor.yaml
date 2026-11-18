@@ -68,8 +68,7 @@ cleany_dev_monitor:
     max_grid_cells: 524288
     bt_event_repeat_interval_s: 1.0
     max_selected_topics: 16
-    camera_max_streams: 2
-    camera_fps: 5.0
+    camera_preview_url: http://127.0.0.1:8769
     state_directory: ~/.local/state/cleany/recordings
     session_limit_bytes: 104857600
     total_limit_bytes: 1073741824

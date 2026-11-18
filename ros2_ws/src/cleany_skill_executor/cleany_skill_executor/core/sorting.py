@@ -57,6 +57,28 @@ def bin_release_region(
     return lower, upper
 
 
+def validate_release_point(point, lower, upper, *, tolerance_m: float = .001) -> None:
+    """계획 오차 범위 전체가 허용된 놓기 영역 안에 있는지 검사합니다."""
+    if (len(point) != 3 or not all(math.isfinite(v) for v in point)
+            or not math.isfinite(tolerance_m) or tolerance_m < 0
+            or any(p - tolerance_m < lo or p + tolerance_m > hi
+                   for p, lo, hi in zip(point, lower, upper, strict=True))):
+        raise ValueError('Configured release point does not fit observed payload')
+
+
+def validate_payload_above_opening(center, radius: float, center_xy, outside_size,
+                                   wall: float, top_z: float) -> None:
+    """관측된 물체 경계 구가 수거함 내부 폭과 입구 높이를 모두 만족해야 합니다."""
+    if not math.isfinite(radius) or radius <= 0:
+        raise ValueError('Release payload radius must be positive and finite')
+    if (len(center) != 3
+            or not all(math.isfinite(v) for v in (*center, *center_xy, *outside_size, wall, top_z))):
+        raise ValueError('Release payload geometry must be positive and finite')
+    if (any(abs(center[i] - center_xy[i]) + radius >= outside_size[i] / 2 - wall
+            for i in range(2)) or center[2] - radius <= top_z):
+        raise ValueError('Object is not safely above the bin opening')
+
+
 @dataclass(frozen=True)
 class Decision:
     label: str

@@ -1,6 +1,7 @@
 """ROS ports for guarded phone control and serialized mapping requests."""
 
 import threading
+import time
 
 from rclpy.qos import (
     QoSProfile,
@@ -70,13 +71,14 @@ class MappingBridge:
         return {"operation_id": response.operation_id}
 
 
-def bind(node, profile, lock, *, event_sink=None, mapping_status_timeout_s=1.0):
+def bind(node, profile, lock, *, event_sink=None, mapping_status_timeout_s=1.0, command_topic="cmd_vel"):
     """Create no WheelCommand publisher: only the base driver owns that topic."""
     geo = profile["geometry"]
     geometry = Geometry(
         geo["wheel_radius_m"], geo["wheelbase_m"], geo["wheel_separation_m"]
     )
-    velocity = node.create_publisher(Twist, "cmd_vel", 10)
+    velocity = node.create_publisher(Twist, command_topic, 10)
+    final_velocity = node.create_publisher(Twist, "cmd_vel", 10) if command_topic != "cmd_vel" else velocity
     permission = node.create_client(SetBaseEnabled, "base/set_enabled")
 
     def request(client, sequence, enabled):
@@ -89,11 +91,24 @@ def bind(node, profile, lock, *, event_sink=None, mapping_status_timeout_s=1.0):
     def send(axes):
         message = Twist()
         message.linear.x, message.linear.y, message.angular.z = axes
-        velocity.publish(message)
+        if getattr(control, "automatic_client", None) and control.owner == control.automatic_client:
+            velocity.publish(message)
+        else:
+            final_velocity.publish(message)
 
     control = DriverControl(
         DriverTransport(request, send, geometry), event_sink=event_sink
     )
+
+    def safe_velocity(message):
+        with lock:
+            if (getattr(control, 'automatic_client', None)
+                    and control.owner == control.automatic_client and control.phase == 'moving'
+                    and not control.paused and time.monotonic()-control.clock.received_at <= .1):
+                final_velocity.publish(message)
+
+    if command_topic != 'cmd_vel':
+        node.create_subscription(Twist, 'navigation/safe_cmd_vel', safe_velocity, 1)
 
     def feedback(message):
         with lock:

@@ -18,6 +18,7 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <random>
 #include <mutex>
 #include <condition_variable>
 
@@ -73,7 +74,7 @@ public:
   void setNoisedControls(models::State & state, const models::ControlSequence & control_sequence);
 
   /**
-   * @brief Reset noise generator with settings and model types
+   * @brief Synchronously prepare a complete batch with settings and model types
    * @param settings Settings of controller
    * @param is_holonomic If base is holonomic
    */
@@ -101,6 +102,8 @@ protected:
   cleany_navigation::mppi::models::OptimizerSettings settings_;
   bool is_holonomic_;
 
+  // Keep parallel controller instances independent of xtensor's shared engine.
+  std::mt19937 random_engine_;
   std::thread noise_thread_;
   std::condition_variable noise_cond_;
   std::mutex noise_lock_;

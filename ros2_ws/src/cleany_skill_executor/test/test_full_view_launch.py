@@ -18,7 +18,8 @@ def test_hardware_scene_roi_is_independent_of_target_roi(tmp_path, monkeypatch, 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     monkeypatch.setattr(module, 'prepare_state_profile',
-        lambda *args: SimpleNamespace(camera_serial='synthetic-camera'))
+        lambda *args: SimpleNamespace(camera_serial='synthetic-camera',
+            model=package.parent/'cleany_description/urdf/cleany.urdf.xacro'))
     monkeypatch.setattr(module, 'get_package_share_directory',
         lambda name: str(package.parent/name))
     profile = tmp_path/'profile.json'

@@ -349,7 +349,9 @@ def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatc
     assert parameters['grasp_server']['geometric.include_reverse_closing_axis'] is False
     assert tuple(parameters['grasp_server']['geometric.yaw_offsets_degrees']) == (-40., -20., 0., 20., 40.)
     urdf_path = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
-    urdf = ET.fromstring(subprocess.check_output(['xacro', str(urdf_path)]))
+    urdf = ET.fromstring(subprocess.check_output(
+        ['xacro', str(urdf_path), 'model_profile:=jetson_20261009']
+    ))
     shoulder_origins = [
         float(value)
         for side in ('left', 'right')

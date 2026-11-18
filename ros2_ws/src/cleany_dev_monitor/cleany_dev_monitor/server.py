@@ -9,13 +9,18 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-from aiohttp import WSMsgType, web
-
+from aiohttp import ClientSession, WSMsgType, web
 from cleany_logger import ArchiveReader
 from cleany_logger.controller import ControlConflict
-from cleany_logger.recording import LABELS, RAW, observation_policies, rate_profiles, validate
+from cleany_logger.recording import (
+    LABELS,
+    RAW,
+    observation_policies,
+    rate_profiles,
+    validate,
+)
+from cleany_telemetry.camera_http import loopback_origin, proxy_frame
 
-from .camera import IMAGE_TYPES, preview_source, preview_supported
 from .operator_http import attach_control
 from cleany_logger.resources import ResourceWorker
 from .sources import (
@@ -237,43 +242,19 @@ def create_app(hub, config, recorder, assets, control):
                 await sender
         return ws
 
+    preview_origin = loopback_origin(config.get('camera_preview_url', 'http://127.0.0.1:8769'))
+    preview_session = None
+
     async def camera(request):
-        topic = request.query.get("topic", "")
-        graph = hub.latest_data("graph", "ros")
-        item = next(
-            (item for item in graph.get("topics", []) if item["name"] == topic), None
-        )
-        if (
-            not item
-            or len(item.get("types", [])) != 1
-            or item["types"][0] not in IMAGE_TYPES
-        ):
-            raise web.HTTPBadRequest(text="카메라 토픽을 선택하세요")
-        if not preview_supported(topic):
-            raise web.HTTPBadRequest(text="깊이 원본은 미리보기를 지원하지 않습니다")
-        topic = preview_source(topic, graph.get("topics", []))
-        try:
-            frame, error, now = hub.cameras.request(topic)
-        except ValueError as exc:
-            raise web.HTTPTooManyRequests(text=str(exc)) from exc
-        headers = {"Cache-Control": "no-store", "X-Camera-Topic": topic}
-        if error:
-            return web.json_response(
-                {"state": "error", "message": error}, status=422, headers=headers
-            )
-        if not frame or now - frame.received > 2:
-            return web.json_response(
-                {"state": "stale" if frame else "waiting"}, status=202, headers=headers
-            )
-        headers.update(
-            {
-                "X-Frame-Age": str(now - frame.received),
-                "X-Image-Width": str(frame.width),
-                "X-Image-Height": str(frame.height),
-                "X-ROS-Stamp": str(frame.stamp or 0),
-            }
-        )
-        return web.Response(body=frame.jpeg, content_type="image/jpeg", headers=headers)
+        return await proxy_frame(preview_session, preview_origin, request.query.get('topic', ''))
+
+    async def preview_client(app):
+        nonlocal preview_session
+        async with ClientSession(trust_env=False) as session:
+            preview_session = session
+            yield
+
+    app.cleanup_ctx.append(preview_client)
 
     async def index(request):
         target = assets / "index.html"
