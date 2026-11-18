@@ -1,6 +1,9 @@
 #include "cleany_scene_mapping/known_geometry.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <unordered_set>
 #include <utility>
 
 namespace cleany_scene_mapping
@@ -146,32 +149,53 @@ ClearResult clearContainedVolumes(octomap::OcTree& tree,
     if (sphere.center.allFinite() && std::isfinite(sphere.radius) && sphere.radius > 0.0)
       bounded.push_back(&volume);
   }
-  if (bounded.empty())
-    return result;
-  for (auto it = tree.begin_leafs(), end = tree.end_leafs(); it != end; ++it)
+  // Clamp before discretizing: a shape can straddle the OctoMap key limit.
+  const double first = tree.keyToCoord(octomap::key_type{0});
+  const double last = tree.keyToCoord(std::numeric_limits<octomap::key_type>::max());
+  const auto boundKey = [&](const Eigen::Vector3d& point) {
+    octomap::OcTreeKey key;
+    for (unsigned int axis = 0; axis < 3; ++axis)
+      key[axis] = tree.coordToKey(std::clamp(point[axis], first, last));
+    return key;
+  };
+  std::unordered_set<const octomap::OcTreeNode*> visited;
+  for (const auto* volume : bounded)
   {
-    if (result.examined >= maximum_examined)
-    {
-      result.budget_exhausted = true;
-      break;
-    }
-    ++result.examined;
-    if (!tree.isNodeOccupied(*it))
+    const double tolerance = 1e-8 * (1.0 + volume->sphere().radius);
+    const Eigen::Vector3d low = volume->low().array() - tolerance;
+    const Eigen::Vector3d high = volume->high().array() + tolerance;
+    if ((high.array() < first - tree.getResolution() * 0.5).any() ||
+        (low.array() > last + tree.getResolution() * 0.5).any())
       continue;
-    const Eigen::Vector3d center(it.getX(), it.getY(), it.getZ());
-    const double half_size = it.getSize() * 0.5;
-    for (const auto* candidate : bounded)
+    for (auto it = tree.begin_leafs_bbx(boundKey(low), boundKey(high)), end = tree.end_leafs_bbx();
+         it != end; ++it)
     {
-      const auto& sphere = candidate->sphere();
-      if ((center - sphere.center).squaredNorm() > sphere.radius * sphere.radius)
+      if (!visited.insert(&*it).second)
         continue;
-      if (candidate->containsCell(center, half_size))
+      if (result.examined == maximum_examined)
       {
-        it->setLogOdds(tree.getClampingThresMinLog());
-        ++result.cleared;
+        result.budget_exhausted = true;
         break;
       }
+      ++result.examined;
+      if (!tree.isNodeOccupied(*it))
+        continue;
+      // A leaf in overlapping boxes may be fully inside only a later shape.
+      const Eigen::Vector3d center(it.getX(), it.getY(), it.getZ());
+      for (const auto* candidate : bounded)
+      {
+        const auto& sphere = candidate->sphere();
+        if ((center - sphere.center).squaredNorm() <= sphere.radius * sphere.radius &&
+            candidate->containsCell(center, it.getSize() * 0.5))
+        {
+          it->setLogOdds(tree.getClampingThresMinLog());
+          ++result.cleared;
+          break;
+        }
+      }
     }
+    if (result.budget_exhausted)
+      break;
   }
   if (result.cleared > 0)
     tree.updateInnerOccupancy();

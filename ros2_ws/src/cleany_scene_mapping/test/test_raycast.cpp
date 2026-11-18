@@ -97,4 +97,122 @@ TEST(Raycast, KeyLimitsOriginEndpointsAndOutOfRangeOrigin)
   endpoints[0].insert(geometry.coordToKey(0.,0.,0.));
   compare(workspace, .01, {400,0,0}, endpoints);
 }
+
+TEST(Raycast, BlockWritesMatchNativeLogOddsPruningAndChangeTracking)
+{
+  for (bool track_changes : {false, true})
+    for (std::size_t budget : {0U, 8U * 1024U * 1024U})
+    {
+      octomap::OcTree reference(.025), actual(.025);
+      for (auto* tree : {&reference, &actual})
+      {
+        tree->setProbMiss(.35);
+        tree->setClampingThresMin(.15);
+        for (int x = -8; x < 8; ++x)
+          for (int y = -4; y < 4; ++y)
+            for (int z = -4; z < 4; ++z)
+              tree->updateNode((x + .5) * .025, (y + .5) * .025, (z + .5) * .025, x < 0);
+        tree->prune();
+        tree->enableChangeDetection(track_changes);
+      }
+      cleany_scene_mapping::RaycastWorkspace workspace(budget);
+      std::mt19937 random(819);
+      std::uniform_real_distribution<float> coordinate(-.45f, .45f);
+      const octomap::point3d origin(-.025f, .037f, .019f);
+      octomap::KeyRay ray;
+      for (unsigned int frame = 0; frame < 7; ++frame)
+      {
+        octomap::KeySet occupied, model, clipped, misses;
+        for (unsigned int i = 0; i < 300; ++i)
+        {
+          const auto key = actual.coordToKey(coordinate(random), coordinate(random), coordinate(random));
+          (i % 4 == 0 ? model : occupied).insert(key);
+          if (i % 3 == 0)
+            clipped.insert(key);
+        }
+        for (const auto& key : model)
+          occupied.erase(key);
+        misses = clipped;
+        for (const auto* keys : {&occupied, &model, &clipped})
+          for (const auto& key : *keys)
+            if (reference.computeRayKeys(origin, reference.keyToCoord(key), ray))
+              misses.insert(ray.begin(), ray.end());
+        for (const auto& key : occupied)
+          misses.erase(key);
+        for (const auto& key : misses)
+          reference.updateNode(key, false);
+        const auto blocks = workspace.traceFrame(actual, origin, occupied, model, clipped);
+        cleany_scene_mapping::integrateFreeBlocks(actual, blocks);
+        for (auto* tree : {&reference, &actual})
+        {
+          for (const auto& key : occupied)
+            tree->updateNode(key, true);
+          for (const auto& key : model)
+            tree->updateNode(key, tree->getClampingThresMinLog() - tree->getClampingThresMaxLog());
+        }
+        std::ostringstream expected, observed;
+        reference.writeData(expected);
+        actual.writeData(observed);
+        ASSERT_TRUE(expected.str() == observed.str()) << "frame=" << frame << " budget=" << budget;
+        EXPECT_EQ(actual.size(), reference.size());
+        octomap::KeyBoolMap expected_changes(reference.changedKeysBegin(), reference.changedKeysEnd());
+        for (auto it = actual.changedKeysBegin(); it != actual.changedKeysEnd(); ++it)
+        {
+          ASSERT_EQ(expected_changes.count(it->first), 1U);
+          EXPECT_EQ(it->second, expected_changes.find(it->first)->second);
+          expected_changes.erase(it->first);
+        }
+        EXPECT_TRUE(expected_changes.empty());
+      }
+    }
+}
+
+TEST(Raycast, InvalidOriginStillAppliesClippedEndpointAndHitWins)
+{
+  octomap::OcTree tree(.01);
+  const auto hit = tree.coordToKey(.105, .005, .005);
+  const auto miss = tree.coordToKey(.115, .005, .005);
+  cleany_scene_mapping::RaycastWorkspace workspace;
+  octomap::KeySet occupied, model, clipped;
+  occupied.insert(hit);
+  clipped.insert(hit);
+  clipped.insert(miss);
+  const auto blocks = workspace.traceFrame(tree, {400, 0, 0}, occupied, model, clipped);
+  cleany_scene_mapping::integrateFreeBlocks(tree, blocks);
+  EXPECT_EQ(tree.search(hit), nullptr);
+  ASSERT_NE(tree.search(miss), nullptr);
+  EXPECT_FLOAT_EQ(tree.search(miss)->getLogOdds(), tree.getProbMissLog());
+}
+
+TEST(Raycast, FullBlockPrunesAndSaturatedMissesPreserveCoarseEvidence)
+{
+  octomap::OcTree expected(.01), actual(.01);
+  const octomap::OcTreeKey base(32768, 32768, 32768);
+  octomap::KeySet keys;
+  for (unsigned int x = 0; x < 4; ++x)
+    for (unsigned int y = 0; y < 4; ++y)
+      for (unsigned int z = 0; z < 4; ++z)
+        keys.insert({static_cast<octomap::key_type>(base[0] + x),
+                     static_cast<octomap::key_type>(base[1] + y),
+                     static_cast<octomap::key_type>(base[2] + z)});
+  const std::vector<cleany_scene_mapping::FreeVoxelBlock> full{{base, ~std::uint64_t{0}}};
+  for (unsigned int frame = 0; frame < 12; ++frame)
+  {
+    for (const auto& key : keys)
+      expected.updateNode(key, false);
+    cleany_scene_mapping::integrateFreeBlocks(actual, full);
+    EXPECT_EQ(actual.getNumLeafNodes(), 1U);
+    EXPECT_FLOAT_EQ(actual.search(base)->getLogOdds(), expected.search(base)->getLogOdds());
+  }
+  cleany_scene_mapping::integrateFreeBlocks(actual, {{base, 1}});
+  EXPECT_EQ(actual.getNumLeafNodes(), 1U);
+  expected.updateNode(base, true);
+  actual.updateNode(base, true);
+  expected.updateNode(base, false);
+  cleany_scene_mapping::integrateFreeBlocks(actual, {{base, 1}});
+  std::ostringstream reference, observed;
+  expected.writeData(reference);
+  actual.writeData(observed);
+  EXPECT_EQ(reference.str(), observed.str());
+}
 }  // namespace
