@@ -1,6 +1,9 @@
 # Tuned Humble MPPI implementation owned by cleany_navigation.
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
+# xsimd's SSE2 rounding uses ordered additions. -ffast-math reassociates them
+# and corrupts pow/exp results used by critic costs and optimizer weights.
+set(mppi_compile_options -O3 -finline-limit=10000000 -ffp-contract=fast -mtune=generic)
 set(mppi_dependencies
   rclcpp rclcpp_lifecycle nav2_common pluginlib tf2 geometry_msgs visualization_msgs nav_msgs
   nav2_core nav2_costmap_2d nav2_util tf2_geometry_msgs tf2_eigen tf2_ros)
@@ -24,7 +27,7 @@ foreach(target cleany_mppi_controller cleany_mppi_critics)
   target_compile_features(${target} PUBLIC cxx_std_17)
   target_compile_definitions(${target} PUBLIC XTENSOR_ENABLE_XSIMD XTENSOR_USE_XSIMD)
   target_compile_options(${target} PUBLIC -fconcepts)
-  target_compile_options(${target} PRIVATE -O3 -finline-limit=10000000 -ffp-contract=fast -ffast-math -mtune=generic)
+  target_compile_options(${target} PRIVATE ${mppi_compile_options})
   target_include_directories(${target} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:include> ${xsimd_INCLUDE_DIRS})

@@ -26,6 +26,13 @@ APT 설치를 77회 호출한 뒤 이미지 빌드의 15분 제한에 걸렸다.
 실제 ARM64 설치 계획의 APT 요구사항 23개가 배치 준비에서 보존되는 것을 확인했다.
 이번 ARM64 전체 workspace 재검사는 6,293 tests, 0 errors, 0 failures, 70 skipped다.
 
+후속 실행 `44316550437`은 이미지 준비를 9분 45초에 마치고 amd64 빌드까지 통과했다.
+이후 MPPI critic 8개 사례와 Navigation runtime 2개 사례가 실패했다.
+GCC 11.4, xsimd 7.6.0, xtensor 0.23.10으로 amd64 SSE2 실행 파일을 교차 빌드하고
+QEMU user mode에서 비교했다. `-ffast-math` 사용 시 반올림, `pow`, `exp` 검사 3개가
+모두 실패했고, 해당 옵션만 제외하면 3개 모두 통과했다. critic 기대값과 공차는
+변경하지 않고 MPPI 빌드 옵션을 수정하며 같은 옵션을 쓰는 수학 회귀 검사를 추가했다.
+
 명령, 원본 실패 로그의 패키지 식별자, 다운로드 검증 결과와 로컬 로그는
 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr95-ci-repair/`에 보관한다.
 최종 amd64 CI 결과는 PR 95와 PR 83의 해당 commit 실행에서 확인한다.
