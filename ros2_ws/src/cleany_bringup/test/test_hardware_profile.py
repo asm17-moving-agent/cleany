@@ -45,3 +45,32 @@ def test_invalid_mount_cannot_enter_operational_profile(tmp_path):
 def test_mock_always_selects_synthetic_geometry(tmp_path):
     profile = load_profile(PROFILE, mock=True, state_root=tmp_path, package_share=share)
     assert Path(profile["base_config"]).name == "base_synthetic.yaml"
+
+
+@pytest.mark.parametrize('session,total,valid', [
+    (9536, 14336, True), (10240, 10240, True),
+    (10241, 14336, False), (9536, 1024, False), (True, 10240, False),
+])
+def test_recording_quota_profile(tmp_path, session, total, valid):
+    data = yaml.safe_load(PROFILE.read_text())
+    data.update(recording_limit_mib=session, recording_total_limit_mib=total)
+    path = tmp_path / 'quota.yaml'
+    path.write_text(yaml.safe_dump(data))
+    if valid:
+        assert load_profile(path, package_share=share)['recording_limit_mib'] == session
+    else:
+        with pytest.raises(ValueError):
+            load_profile(path, package_share=share)
+
+
+@pytest.mark.parametrize('half_angle,valid', [(90, True), (180, True), (0, False), (181, False), (float('nan'), False)])
+def test_scan_coverage_profile(tmp_path, half_angle, valid):
+    data = yaml.safe_load(PROFILE.read_text())
+    data['scan_filter']['half_angle_deg'] = half_angle
+    path = tmp_path / 'coverage.yaml'
+    path.write_text(yaml.safe_dump(data))
+    if valid:
+        assert load_profile(path, package_share=share)['scan_filter']['half_angle_deg'] == half_angle
+    else:
+        with pytest.raises(ValueError):
+            load_profile(path, package_share=share)

@@ -2,6 +2,8 @@ from pathlib import Path
 import math
 import os
 import yaml
+import xacro
+from xml.etree import ElementTree as ET
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -32,6 +34,22 @@ def _launch_file(package: str, filename: str) -> str:
     return str(
         Path(get_package_share_directory(package)) / 'launch' / filename
     )
+
+
+def _shoulder_reference_positions(model_profile: str = 'jetson_20261009') -> list[float]:
+    """시뮬레이션과 같은 기본 URDF에서 base_link 기준 어깨 원점을 읽습니다."""
+    path = Path(get_package_share_directory('cleany_description')) / 'urdf/cleany.urdf.xacro'
+    robot = ET.fromstring(xacro.process_file(str(path), mappings={'model_profile': model_profile}).toxml())
+    positions = []
+    for side in ('left', 'right'):
+        joint = robot.find(f"joint[@name='{side}_shoulder_yaw_joint']")
+        if joint is None or joint.find('parent').get('link') != 'base_link':
+            raise ValueError(f'{side} shoulder must have a base_link origin')
+        xyz = [float(value) for value in joint.find('origin').get('xyz').split()]
+        if len(xyz) != 3 or not all(math.isfinite(value) for value in xyz):
+            raise ValueError(f'Invalid {side} shoulder origin')
+        positions.extend(xyz)
+    return positions
 
 
 def _application_log_arguments(*logger_names: str) -> list:
@@ -262,6 +280,7 @@ def generate_launch_description() -> LaunchDescription:
             'camera_frame_name': 'head_camera_rgb_optical_frame',
             'enable_camera_contract_adapter': 'false',
             'enable_gripper_controllers': 'true',
+            'model_profile': 'jetson_20261009',
             'head_tilt_initial': '1.0',
             'left_shoulder_yaw_initial': '-1.53',
             'left_shoulder_pitch_initial': '3.35',
@@ -307,6 +326,7 @@ def generate_launch_description() -> LaunchDescription:
             'use_sim_time': use_sim_time,
             'use_rviz': use_rviz,
             'enable_gripper_execution': sorting_mode,
+            'model_profile': 'jetson_20261009',
             'simulation_bins_config': PythonExpression([
                 "'", LaunchConfiguration('sorting_bins_config'), "' if '",
                 sorting_mode, "' == 'true' else ''",
@@ -439,8 +459,8 @@ def generate_launch_description() -> LaunchDescription:
                 'geometric.defer_support_plane_collision': ParameterValue(sorting_mode, value_type=bool),
                 'geometric.prefer_upward_closing_axis': ParameterValue(
                     LaunchConfiguration('prefer_upward_closing_axis'), value_type=bool),
-                # Nominal base_link shoulder origins from cleany_geometry.xacro.
-                'geometric.approach_reference_positions': [0.116200343, 0.196231727, 0.447797, 0.116200838, -0.196177072, 0.447797],
+                # 현재 기본 URDF와 같은 base_link 기준 좌표를 사용합니다.
+                'geometric.approach_reference_positions': _shoulder_reference_positions('jetson_20261009'),
                 'geometric.search_approach_tilts': ParameterValue(
                     PythonExpression(["'", sorting_mode, "' == 'true' and '",
                                       LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool
@@ -741,7 +761,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sorting_approach_acceleration_scaling', default_value='1.0'),
             DeclareLaunchArgument('sorting_return_gripper_position_rad', default_value='-0.30'),
             DeclareLaunchArgument('sorting_wrist_cameras_config',
-                default_value=str(mujoco_share / 'config' / 'sorting_wrist_cameras.yaml')),
+                default_value=str(mujoco_share / 'config' / 'sorting_wrist_cameras_jetson_20261009.yaml')),
             DeclareLaunchArgument(
                 'fastdds_profiles_file', default_value=EnvironmentVariable(
                     'FASTRTPS_DEFAULT_PROFILES_FILE',

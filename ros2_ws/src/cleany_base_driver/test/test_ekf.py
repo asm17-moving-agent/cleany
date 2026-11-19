@@ -92,7 +92,7 @@ def test_installed_fusion_and_tf_ownership(
 
         command = None
 
-        def publish_inputs():
+        def publish_imu():
             packet = Imu()
             packet.header.stamp = node.get_clock().now().to_msg()
             packet.header.frame_id = 'imu_link'
@@ -101,10 +101,14 @@ def test_installed_fusion_and_tf_ownership(
             packet.angular_velocity.z = bias[2] + sensor_sign * .4
             packet.linear_acceleration.z = sensor_sign * 9.80665
             imu.publish(packet)
+
+        def publish_command():
             if command is not None:
                 commands.publish(command)
 
-        node.create_timer(.02, publish_inputs)
+        # Model the nominal 100 Hz IMU stream independently of the 50 Hz drive commands.
+        node.create_timer(.01, publish_imu)
+        node.create_timer(.02, publish_command)
 
         def pump(duration):
             end = time.monotonic() + duration
@@ -115,11 +119,20 @@ def test_installed_fusion_and_tf_ownership(
         def owners(topic):
             return [p.node_name for p in node.get_publishers_info_by_topic(topic)]
 
+        def odom_edges():
+            return [t for msg in transforms for t in msg.transforms
+                    if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link']
+
+        def imu_mount_ready():
+            return any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
+                       for msg in mounts for t in msg.transforms)
+
         def ready():
             wheel_command_subscribers = [p.node_name for p in
                                          node.get_subscriptions_info_by_topic('base/wheel_command')]
             return (enable.service_is_ready() and commands.get_subscription_count() == 1
-                    and fused and wheel and corrected and mounts and wheel_states
+                    and fused and wheel and corrected and canonical and wheel_states
+                    and odom_edges() and imu_mount_ready()
                     and owners('base/wheel_state') == ['mock_base_mcu']
                     and owners('base/wheel_command') == ['cleany_base_driver']
                     and wheel_command_subscribers == ['mock_base_mcu'])
@@ -133,7 +146,12 @@ def test_installed_fusion_and_tf_ownership(
             end = time.monotonic() + 15
             while time.monotonic() < end and not ready():
                 pump(.05)
-            assert ready()
+            assert ready(), {
+                'enable': enable.service_is_ready(), 'fused': len(fused), 'wheel': len(wheel),
+                'imu': len(corrected), 'odom': len(canonical), 'tf': len(odom_edges()),
+                'wheel_state_owners': owners('base/wheel_state'), 'imu_mount': imu_mount_ready(),
+                'wheel_command_owners': owners('base/wheel_command'), 'wheel_states': len(wheel_states),
+            }
             future = enable.call_async(SetBool.Request(data=True))
             end = time.monotonic() + 2
             while not future.done() and time.monotonic() < end:
@@ -188,14 +206,12 @@ def test_installed_fusion_and_tf_ownership(
             while not future.done() and time.monotonic() < end:
                 pump(.02)
             assert future.done() and future.result().values[0].bool_value == (mode == 'canonical')
-            earliest_stamp = stamp_key(canonical[-1]) if canonical else (0, 0)
+            earliest_stamp = stamp_key(canonical[-1])
 
             def matching_transform():
                 poses = {stamp_key(m): m.pose.pose for m in canonical if stamp_key(m) >= earliest_stamp}
                 return next(((t.transform, poses[stamp_key(t)])
-                             for msg in reversed(transforms) for t in msg.transforms
-                             if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link'
-                             and stamp_key(t) in poses), None)
+                             for t in reversed(odom_edges()) if stamp_key(t) in poses), None)
 
             end = time.monotonic() + 3.
             observed = matching_transform()
@@ -208,8 +224,7 @@ def test_installed_fusion_and_tf_ownership(
             assert transform.translation.y == pytest.approx(pose.position.y, abs=.02)
             assert transform.rotation.z == pytest.approx(pose.orientation.z, abs=.02)
             assert transform.rotation.w == pytest.approx(pose.orientation.w, abs=.02)
-            assert any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
-                       for msg in mounts for t in msg.transforms)
+            assert imu_mount_ready()
             assert ('base_odom_relay' in node.get_node_names()) == (mode == 'shadow')
         except Exception:
             log.flush()

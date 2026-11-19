@@ -5,6 +5,7 @@ module does not import ROS, HTTP, browser or mission execution components.
 """
 
 import hashlib
+import fnmatch
 import json
 import os
 import sqlite3
@@ -16,6 +17,22 @@ from .recording import allowed, category, validate
 from .rosbag import RosbagWriter
 from .sources import resolved, validate_sources
 from .archive import ArchiveReader, decode_record
+
+
+def _tree_bytes(directory):
+    """Count the same files as rglob without repeated Path/stat allocations."""
+    try:
+        entries = os.scandir(directory)
+    except FileNotFoundError:
+        return 0
+    total = 0
+    with entries:
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                total += _tree_bytes(entry.path)
+            elif entry.is_file():
+                total += entry.stat().st_size
+    return total
 
 
 class Recorder(ArchiveReader):
@@ -109,12 +126,18 @@ class Recorder(ArchiveReader):
             controls.writer_error = self.reason
 
     def disk_bytes(self):
-        return (sum(p.stat().st_size for p in self.directory.glob("*.sqlite3*"))
-                + sum(p.stat().st_size for p in (self.directory / 'bags').rglob('*') if p.is_file()))
+        try:
+            entries = os.scandir(self.directory)
+        except FileNotFoundError:
+            return 0
+        with entries:
+            processed = sum(entry.stat().st_size for entry in entries
+                if fnmatch.fnmatchcase(entry.name, '*.sqlite3*'))
+        return processed + _tree_bytes(self.directory / 'bags')
 
     def session_bytes(self):
         return ((self.path.stat().st_size if self.path.exists() else 0)
-                + sum(p.stat().st_size for p in self.bag_path.rglob('*') if p.is_file()))
+                + _tree_bytes(self.bag_path))
 
     def limit_reached(self, size):
         return (max(self.session_bytes(), self.bytes) + size + 65536 > self.session_limit

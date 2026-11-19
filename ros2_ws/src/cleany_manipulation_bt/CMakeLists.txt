@@ -19,8 +19,25 @@ if(BUILD_TESTING)
   file(GLOB_RECURSE bt_test_files CONFIGURE_DEPENDS "test/test_*.py")
   foreach(test_file IN LISTS bt_test_files)
     get_filename_component(test_name "${test_file}" NAME_WE)
-    ament_add_pytest_test(bt_${test_name} "${test_file}" TIMEOUT 60
-      ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1")
+    if(test_name STREQUAL "test_action_runtime")
+      # Isolate the two DDS servers without changing per-request deadlines.
+      foreach(profile mujoco jetson)
+        set(case_name bt_${test_name}_${profile})
+        set(result_file "${AMENT_TEST_RESULTS_DIR}/${PROJECT_NAME}/${case_name}.xunit.xml")
+        ament_add_test(${case_name}
+          COMMAND "${Python3_EXECUTABLE}" -u -m pytest "${test_file}"
+            -k "${profile}" -p no:cacheprovider
+            "--junit-xml=${result_file}" "--junit-prefix=${PROJECT_NAME}"
+          RESULT_FILE "${result_file}"
+          OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/ament_cmake_pytest/${case_name}.txt"
+          TIMEOUT 60
+          ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1")
+        set_tests_properties(${case_name} PROPERTIES LABELS "pytest")
+      endforeach()
+    else()
+      ament_add_pytest_test(bt_${test_name} "${test_file}" TIMEOUT 60
+        ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1")
+    endif()
   endforeach()
 endif()
 ament_package()

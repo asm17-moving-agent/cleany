@@ -7,6 +7,7 @@
   <license>MIT</license>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>cleany_logger</exec_depend>
+  <exec_depend>cleany_telemetry</exec_depend>
   <exec_depend>rosidl_runtime_py</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_msgs</exec_depend>
@@ -22,11 +23,11 @@
   <exec_depend>control_msgs</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>cartographer_ros_msgs</exec_depend>
-  <exec_depend>python3-pil</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>rosgraph_msgs</exec_depend>
   <exec_depend>python3-aiohttp</exec_depend>
   <exec_depend>python3-psutil</exec_depend>
+  <exec_depend>python3-pil</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

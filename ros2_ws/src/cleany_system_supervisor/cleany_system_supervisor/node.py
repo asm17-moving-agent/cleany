@@ -22,6 +22,7 @@ from rclpy.task import Future
 from sensor_msgs.msg import Image, LaserScan
 
 from .config import load, with_tof
+from .faults import BASE_FEEDBACK_LOST
 from .models import Availability, OperatingState, RecoveryState
 from .recovery import UnsupportedRecovery
 from .ros_transport import MissionStopPort, RecoveryPort
@@ -141,11 +142,17 @@ class SupervisorNode(Node):
                     except ValueError:
                         age = float('inf')
                     fresh = self._fresh('base', msg.header)
+                    if 'base_disarmed' in self.core.config['sources']:
+                        self._observe('base_disarmed', fresh and
+                                      0 <= age <= self.core.config['sources']['base']['stale_s'] and
+                                      values.get('disarmed') == 'True',
+                                      'fresh disabled MCU, zero targets/PWM and stopped wheel feedback')
                     if fresh and values.get('feedback_received') == 'False' and not values.get('fault'):
                         # Before the first verified feedback this is unverified (boot grace),
                         # afterwards it is a lost link.
                         if 'base' in self.core.health.verified:
-                            self.core.observe('base', Availability.UNAVAILABLE, 'MCU feedback lost')
+                            self.core.observe('base', Availability.UNAVAILABLE, 'MCU feedback lost',
+                                              cause=BASE_FEEDBACK_LOST)
                         else:
                             self.core.observe('base', Availability.UNKNOWN, 'waiting for first MCU feedback')
                         continue
@@ -153,11 +160,16 @@ class SupervisorNode(Node):
                     if 'fault' in values:
                         # A STOP request or cmd_vel timeout raises the diagnostic level but is a
                         # safe, available base; only `fault` reasons mean unavailability.
-                        self._observe('base', fresh and within and not values['fault'],
-                                      values['fault'] or status.message)
+                        valid = fresh and within and not values['fault']
+                        reason = values['fault']
+                        cause = ('base_hardware_or_protocol_fault' if reason and reason != 'stale wheel feedback'
+                                 else BASE_FEEDBACK_LOST)
+                        self.core.observe('base', Availability.AVAILABLE if valid else Availability.UNAVAILABLE,
+                                          reason or status.message, cause='' if valid else cause)
                     else:
-                        self._observe('base', fresh and status.level == DiagnosticStatus.OK and within,
-                                      status.message)
+                        valid = fresh and status.level == DiagnosticStatus.OK and within
+                        self.core.observe('base', Availability.AVAILABLE if valid else Availability.UNAVAILABLE,
+                                          status.message, cause='' if valid else 'base_unverified')
 
     def _check_publishers(self):
         """Graph allowlist: detects misconfigured or unexpected reporters, not authenticated spoofing."""

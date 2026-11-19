@@ -4,6 +4,78 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR 95 의존성 다운로드와 MPPI 링크 수정 검증 (2026-11-18)
+
+입력은 `ad5f8242bade657a8430201d311a240458b9fda5`와 이번 CI 수정이다.
+GitHub amd64 실행 `44301850550`은 OpenJDK 11 snapshot 파일 다운로드에서,
+`44301879186`은 MPPI `TrajectoryVisualizer::add` 링크에서 실패했다.
+APT에 Launchpad의 동일 파일을 조회하는 경로를 추가하고, MPPI에서
+`xtensor::optimize`가 전달하는 `-march=native`를 제거했다.
+SIMD와 기존 최적화는 유지하고 공유 라이브러리 링크에서도 미해결 심볼을 거부한다.
+
+실패 로그의 OpenJDK JRE 42,596,026 bytes와 JDK 73,666,166 bytes를 새 경로에서
+실제로 내려받아 snapshot의 SHA256과 크기를 확인했다. CI 도구는 후속 수정 포함 51개가 통과했다.
+Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서 32개 패키지가 빌드됐으며
+MPPI 생성 컴파일 옵션에 `-march=native`가 없는 것을 확인했다.
+테스트 사례와 timeout, 패키지 버전과 서명 검증은 약화하지 않았다.
+
+첫 수정 `a92b9074`의 GitHub 실행 `44313068404`에서 OpenJDK 다운로드는 통과했으나
+APT 설치를 77회 호출한 뒤 이미지 빌드의 15분 제한에 걸렸다. 후속 수정은
+`rosdep`의 일반 APT 요구사항을 16개씩 설치하고 다운로드 병렬 수를 8개로 늘린다.
+기존 `rosdep install`과 추가 `rosdep check`, 고정 버전 검증을 모두 수행한다.
+실제 ARM64 설치 계획의 APT 요구사항 23개가 배치 준비에서 보존되는 것을 확인했다.
+이번 ARM64 전체 workspace 재검사는 6,293 tests, 0 errors, 0 failures, 70 skipped다.
+
+후속 실행 `44316550437`은 이미지 준비를 9분 45초에 마치고 amd64 빌드까지 통과했다.
+이후 MPPI critic 8개 사례와 Navigation runtime 2개 사례가 실패했다.
+GCC 11.4, xsimd 7.6.0, xtensor 0.23.10으로 amd64 SSE2 실행 파일을 교차 빌드하고
+QEMU user mode에서 비교했다. `-ffast-math` 사용 시 반올림, `pow`, `exp` 검사 3개가
+모두 실패했고, 해당 옵션만 제외하면 3개 모두 통과했다. critic 기대값과 공차는
+변경하지 않고 MPPI 빌드 옵션을 수정하며 같은 옵션을 쓰는 수학 회귀 검사를 추가했다.
+
+`ba1d8593`의 GitHub 실행 `44322335839`에서 32개 패키지의 6,297 tests와
+Navigation runtime 5개가 통과했다. 문서 브랜치의 실행 `44322410198`에서는
+같은 MPPI와 runtime 검사는 통과했지만 EKF fixture가 DDS publisher와 TF 준비를
+기다리지 않아 2개 사례가 실패했다. 베이스 동작 코드는 바꾸지 않고 fixture의
+기존 15초 준비 조건에 필요한 관측값을 모두 포함했다. 원래 EKF 검사 4개는
+수정 후 ARM64에서 3회 연속 통과했으며 수치 공차와 TF 소유권 검사는 유지했다.
+
+명령, 원본 실패 로그의 패키지 식별자, 다운로드 검증 결과와 로컬 로그는
+`CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr95-ci-repair/`에 보관한다.
+최종 amd64 CI 결과는 PR 95와 PR 83의 해당 commit 실행에서 확인한다.
+ARM64 빌드 결과는 amd64 CI나 Jetson 실물 검증을 대신하지 않는다.
+
+## PR 83 문서와 기능 분리 검증 (2026-11-18)
+
+입력 통합본은 `9dec4c79fcacb454380f6b328ee6979a17ba5950`, 원격 main 기준은
+`f45801bc046cbeada19c1ace1ee8acb4273cb0a7`이다. 기능은
+`integration/phone-navigation-runtime`으로 분리하고 기존 PR 83은 그 위의 문서 PR로 유지한다.
+기존 통합 이력은 보존하며 README, 문서 재구성, 주석 번역과 시각자료 제작 도구를
+기능 diff에서 제외했다. 새 실행 파일과 변경된 endpoint, 설정, 실행 절차에 필요한
+계약 문서는 기능 브랜치에 함께 둔다.
+
+런타임 파일 906개의 Python AST 또는 주석을 제외한 소스 토큰을 입력 통합본과 비교했다.
+Python docstring은 비교에서 제외하고 preprocessor와 shebang은 유지했다.
+런타임 파일 경로와 실행 권한, 실제 mesh 679개와 실물 CAD 설정을 대조했다.
+문서 PR을 합친 런타임은 입력 통합본과 같으며 이 비교는 실물 동작 검증을 대신하지 않는다.
+
+Ubuntu 22.04.5 ARM64, ROS 2 Humble 격리 컨테이너에서 32개 패키지를 빌드했다.
+전체 workspace 집계는 **6,293 tests, 0 errors, 0 failures, 70 skipped**다.
+Phone UI 빌드와 입력 검사 17개, CI 도구 43개도 통과했다.
+README media는 원본 hash를 유지하고 HTML reader/guide와 contract figure 8개의
+재생성 일치를 확인했다. Navigation runtime과 CAD 소비자 경계 검사 5개도 통과했다.
+
+초기 테스트 실행기는 구버전 Git의 `relativeWorktrees` 미지원과 컨테이너 안의
+submodule 상대 경로 때문에 시작 전에 실패했다. 호스트 Git 설정을 바꾸지 않고
+읽기 전용 object를 참조하는 검증용 Git 메타데이터를 만들어 재실행했다.
+submodule 상태는 호스트에서 확인하고 컨테이너의 상태 기록에서만 제외했다.
+테스트 사례, 통과 조건과 timeout은 변경하지 않았다.
+
+원본은 `CLEANY_DATA_ROOT/runs/platform/2026-11-18_pr83-docs-runtime-split/`에 보관한다.
+분류 목록, 소스 비교, 검사 로그와 최종 commit 및 파일 hash를 함께 기록한다.
+amd64 GitHub CI와 ARM64 로컬 결과는 별개이며 기존 MPPI 링크 오류는 이 분리에서 수정하지 않았다.
+Jetson 검증과 main 병합은 수행하지 않았다.
+
 ## 2026-11-18 이벤트 궤적 제어기 분리 검증
 
 `b991ce5f332f56717dbecc836b5ac93610bad479` 기반의

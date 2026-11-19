@@ -212,24 +212,14 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
         origin=[-3.1, -3.1, 0.], negate=0, occupied_thresh=.65, free_thresh=.2)))
     from ament_index_python.packages import get_package_share_directory
     from cleany_description.cad_coordinates import CadCoordinates
-    from xml.etree import ElementTree as ET
-
+    from cleany_description.runtime_state import initial_positions
     description = Path(get_package_share_directory('cleany_description'))
     model = (description/'urdf/cleany.urdf').read_text()
-    urdf = ET.fromstring(model)
     cad = CadCoordinates.from_urdf(model)
     assert cad is not None
-    derived = set(cad.dependent_names)
-    joints = {}
-    for joint in urdf.findall('joint'):
-        name = joint.get('name')
-        if (joint.get('type') == 'fixed' or name.endswith('_wheel_joint')
-                or name in derived or joint.find('mimic') is not None):
-            continue
-        limit = joint.find('limit')
-        lower, upper = float(limit.get('lower', '-inf')), float(limit.get('upper', 'inf'))
-        # Use neutral positions where valid and choose an in-range synthetic pose otherwise.
-        joints[name] = 0. if lower <= 0. <= upper else (lower + upper) / 2.
+    joints = initial_positions(model)
+    assert joints.keys().isdisjoint(cad.dependent_names)
+    joints['head_pan_joint'] = 0.
     (tmp_path/'body.yaml').write_text(yaml.safe_dump({'park_joints': joints, 'dynamic_pan': True}))
     robot = load_parameters(root/'config/nav2_safety.yaml')
     for name in ('local_costmap', 'global_costmap'):

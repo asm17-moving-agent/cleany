@@ -152,10 +152,10 @@ def test_internal_tray_rejects_unsupported_bins(tmp_path):
         add_sorting_bins('<mujoco><worldbody><body name="chassis"/></worldbody></mujoco>', config)
 
 
-def test_internal_fixtures_clear_chassis_box_collisions():
+def test_internal_fixtures_clear_legacy_chassis_box_collisions():
     """Check frame rails/electronics, not arbitrary arm poses or CAD meshes."""
     root = ET.parse(Path(__file__).parents[2] /
-                    'cleany_description/urdf/physical_properties.xacro')
+                    'cleany_description/urdf/legacy_20261009/physical_properties.xacro')
     fixtures = list(load_shelf_boxes(CONFIG))
     for bin_ in load_bins(CONFIG):
         fixtures.extend(bin_.boxes())

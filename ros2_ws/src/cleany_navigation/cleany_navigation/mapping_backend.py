@@ -13,6 +13,39 @@ from .mapping_process import identity, descendants, live_recorded
 from .mapping_storage import atomic_json, planar_origin, save_grid
 
 
+def mapping_recording_settings(settings: dict, profile: dict) -> dict:
+    """Preserve saved recording policy across map resets; seed first-run defaults."""
+    from copy import deepcopy
+
+    settings = deepcopy(settings)
+    if (Path(profile["recordings_directory"]) / "recording-settings.json").is_file():
+        return settings
+    settings["enabled"].update(
+        motion=True, slam=True, costmaps=True, lidar=True
+    )
+    settings["topics"]["lidar"] = "/scan"
+    settings["limit_mib"] = min(
+        10240, int(profile.get("recording_limit_mib", 1024))
+    )
+    settings["hz"]["lidar"] = 10.0
+    for source in (
+        "wheel_state_topic",
+        "wheel_command_topic",
+        "joint_state_topic",
+        "canonical_odometry_topic",
+        "odometry_topic",
+        "raw_scan_topic",
+        "map_topic",
+        "slam_submaps_topic",
+        "slam_trajectory_topic",
+        "slam_constraints_topic",
+        "slam_matched_points_topic",
+    ):
+        settings["source_enabled"][source] = True
+        settings["source_hz"][source] = None
+    return settings
+
+
 class LoggerPort:
     """Use the mapping executor's ROS clients; no nested contexts or executors."""
 
@@ -395,29 +428,7 @@ class MappingBackend:
                     "Logger already active; refusing to replace its session"
                 )
             settings = state["settings"]
-            settings["enabled"].update(
-                motion=True, slam=True, costmaps=True, lidar=True
-            )
-            settings["topics"]["lidar"] = "/scan"
-            settings["limit_mib"] = min(
-                1024, int(self.profile.get("recording_limit_mib", 1024))
-            )
-            settings["hz"]["lidar"] = 10.0
-            for source in (
-                "wheel_state_topic",
-                "wheel_command_topic",
-                "joint_state_topic",
-                "canonical_odometry_topic",
-                "odometry_topic",
-                "raw_scan_topic",
-                "map_topic",
-                "slam_submaps_topic",
-                "slam_trajectory_topic",
-                "slam_constraints_topic",
-                "slam_matched_points_topic",
-            ):
-                settings["source_enabled"][source] = True
-                settings["source_hz"][source] = None
+            settings = mapping_recording_settings(settings, self.profile)
             self.logger.call("configure", settings=settings, revision=state["revision"])
             state = self.logger.call("start")
             self.logger_session = state["session_id"]

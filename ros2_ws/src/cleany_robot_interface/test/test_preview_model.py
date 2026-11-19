@@ -6,7 +6,8 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 from launch import LaunchContext
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch_ros.actions import Node
 from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 import pytest
 
@@ -17,7 +18,9 @@ def test_arm_preview_delegates_to_calibrated_description():
         'arm_preview_launch', package / 'launch/arm_preview.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    include, = [action for action in module.generate_launch_description().entities
+    actions = module.generate_launch_description().entities
+    assert not any(isinstance(action, Node) for action in actions)
+    include, = [action for action in actions
                 if isinstance(action, IncludeLaunchDescription)]
     context = LaunchContext()
     context.launch_configurations['rviz'] = 'false'
@@ -25,9 +28,10 @@ def test_arm_preview_delegates_to_calibrated_description():
             for key, value in include.launch_arguments} == {
                 'namespace': 'arm_preview', 'use_rviz': 'false'}
     launch = include.launch_description_source.get_launch_description(context)
-    model = next(action for action in launch.entities
-                 if getattr(action, 'name', '') == 'model_variant')
-    assert perform_substitutions(context, model.default_value) == 'freecad_calibrated'
+    defaults = {action.name: perform_substitutions(context, action.default_value)
+                for action in launch.entities if isinstance(action, DeclareLaunchArgument)
+                and action.name in ('model_variant', 'input_joint_states')}
+    assert defaults == {'model_variant': 'freecad_calibrated', 'input_joint_states': '/joint_states'}
 
 
 def test_legacy_model_shoulders_remain_on_fixed_motor_shafts():

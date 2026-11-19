@@ -204,19 +204,23 @@ class ProcessServos(Servos):
 class Runtime:
     def __init__(self, directory, read_only, control_file=None, shared_bus=False,
                  serial_timeout_ms=100, max_state_age_s=.5, serial_read_retries=0,
-                 serial_read_recovery_budget_ms=60, servo_type=Servos, start_controllers=True):
+                 serial_read_recovery_budget_ms=60, servo_type=Servos, start_controllers=True,
+                 current_calibration=False):
         self.directory, self.read_only = directory, read_only
         state = json.loads((ROOT/'configs/robot/camera_preview.json').read_text())
         state.pop('camera_pose_config', None)  # Synthetic motors have no fitted camera model.
         state['arm_config'] = 'ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml'
         state['head_rgb_extrinsics'] = 'configs/robot/head_rgb_board_extrinsics.yaml'
         arm = yaml.safe_load((ROOT/state['arm_config']).read_text())
-        arm['calibration_dir'] = str(
-            ROOT/'ros2_ws/src/cleany_description/config/calibration/jetson_20261009/motors')
-        # Keep the historical motor fixture's jaw references together with its ranges.
-        for side, zero in (('left', 2689.), ('right', 2851.)):
-            arm['overrides'][side]['gripper'].update(
-                direction=-1, zero_tick=zero, offset_rad=-0.37453297762778586)
+        if current_calibration:
+            arm['calibration_dir'] = str((ROOT/state['arm_config']).parent/arm['calibration_dir'])
+        else:
+            arm['calibration_dir'] = str(
+                ROOT/'ros2_ws/src/cleany_description/config/calibration/jetson_20261009/motors')
+            # Keep historical jaw references together with their encoder ranges.
+            for side, zero in (('left', 2689.), ('right', 2851.)):
+                arm['overrides'][side]['gripper'].update(
+                    direction=-1, zero_tick=zero, offset_rad=-0.37453297762778586)
         arm_file = directory/'synthetic_arm.yaml'
         arm_file.write_text(yaml.safe_dump(arm))
         state['arm_config'] = str(arm_file)
@@ -1043,13 +1047,13 @@ def test_executor_cancels_and_reconnects_remaining_path_after_read_recovery(tmp_
         runtime.close()
 
 
-@pytest.mark.parametrize('side,motor,closed', [('left',6,1358), ('right',12,1372)])
+@pytest.mark.parametrize('side,motor,closed', [('left',6,3868), ('right',12,3868)])
 def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp_path, side, motor, closed):
     from control_msgs.msg import DynamicJointState, JointTolerance
     from cleany_skill_executor.core.gripper_contact import (
         ContactState, LiveContactHistory, load_contact_criteria,
     )
-    runtime = Runtime(tmp_path, False)
+    runtime = Runtime(tmp_path, False, current_calibration=True)
     try:
         history = LiveContactHistory(load_contact_criteria(
             ROOT/'configs/robot/gripper_contact_decision.yaml')[side])
@@ -1061,7 +1065,7 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
             '/joint_state_broadcaster/dynamic_joint_states', feedback, 10)
         mem = runtime.arms.registers[motor]
         assert int.from_bytes(mem[48:50], 'little') == 200
-        runtime.arms.load_offsets[motor] = -340
+        runtime.arms.load_offsets[motor] = 340
         mem[60:62] = (0x400 | 200).to_bytes(2, 'little')
         mem[69:71] = (0x8000 | 18).to_bytes(2, 'little')
         element = ET.parse(runtime.profile.model).find(f"ros2_control/joint[@name='{joint}']")
@@ -1086,10 +1090,10 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
                 break
         assert decision.state == ContactState.CONTACT, decision
         assert int.from_bytes(mem[42:44], 'little') == closed
-        assert int.from_bytes(mem[56:58], 'little') == closed+340
+        assert int.from_bytes(mem[56:58], 'little') == closed-340
         # Preserve the command while the encoder and electrical feedback become empty.
-        runtime.arms.load_offsets[motor] = -6
-        mem[56:58] = (closed+6).to_bytes(2, 'little')
+        runtime.arms.load_offsets[motor] = 6
+        mem[56:58] = (closed-6).to_bytes(2, 'little')
         mem[69:71] = (1).to_bytes(2, 'little')
         mem[60:62] = (36).to_bytes(2, 'little')
         runtime.spin(.6)

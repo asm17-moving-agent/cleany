@@ -12,6 +12,9 @@ FIELDS = {
     'logs': {'rosout_topic': ('ROS 로그', '/rosout')},
 }
 FIELDS['motion'].update({
+    'slip_topic': ('슬립 관측과 위치', '/navigation/slip'),
+    'traction_recovery_topic': ('슬립 복구 상태', '/navigation/traction_recovery'),
+    'localization_status_topic': ('위치 정합과 복구', '/localization/status'),
     'wheel_state_topic': ('휠 원본 상태', '/base/wheel_state'),
     'wheel_command_topic': ('휠 원본 명령', '/base/wheel_command'),
     'joint_state_topic': ('휠 관절 상태', '/joint_states'),
@@ -71,6 +74,8 @@ def validate_source_enabled(value):
 # Recording bounds follow the monitor's observation cadence and payload cost.
 # None preserves received event records without an additional time-based filter.
 SOURCE_DEFAULT_HZ = {
+    'slip_topic': 5., 'traction_recovery_topic': None,
+    'localization_status_topic': 2.,
     'wheel_state_topic': None, 'wheel_command_topic': None, 'joint_state_topic': None,
     'canonical_odometry_topic': 5., 'raw_scan_topic': 10.,
     'slam_submaps_topic': 2., 'slam_trajectory_topic': 2., 'slam_constraints_topic': 2., 'slam_matched_points_topic': 2.,
@@ -116,6 +121,9 @@ for key, spec in SCHEMA.items():
 # Publisher reference bounds, separate from recording and UI processing limits.
 # Event/input-driven topics have planning estimates, not physical hard limits.
 SOURCE_MAX_HZ = {
+    'slip_topic': (5., 'code', 'Slip monitor heartbeat: 0.2 s'),
+    'traction_recovery_topic': (100., 'estimate', 'BT tick and state transitions'),
+    'localization_status_topic': (5., 'code', 'Localization guard: 0.2 s'),
     'wheel_state_topic': (50., 'estimate', 'MCU feedback rate depends on the active firmware'),
     'wheel_command_topic': (50., 'code', 'Base driver steady timer: 0.02 s'),
     'joint_state_topic': (50., 'estimate', 'Fresh MCU feedback rate'),

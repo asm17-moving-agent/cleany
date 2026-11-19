@@ -41,6 +41,52 @@ TEST(StraightFirstPlanner, InitialRotationAndCancellationAreChecked) {
   EXPECT_TRUE(cleany_navigation::checkedStraightPath(a,b,map,footprint).poses.empty());
   EXPECT_TRUE(cleany_navigation::checkedStraightPath(a,b,map,footprint,[] {return true;}).poses.empty());
 }
+TEST(StraightFirstPlanner, DirectPrefixRemovesGridSeedTurnsAndPreservesSuffix) {
+  nav2_costmap_2d::Costmap2D map(200,200,.05,-5,-5,0);
+  std::vector<geometry_msgs::msg::Point> footprint;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.3,-.4},{.3,-.4},{.3,.4},{-.3,.4}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
+  }
+  nav_msgs::msg::Path route;route.header.frame_id="map";
+  for(auto v:std::vector<std::vector<double>>{{0,0,0},{0,0,.2},{.02,0,.2},
+    {.02,0,0},{.5,0,0},{1,0,0},{1.5,0,0},{2,0,0}}) {
+    geometry_msgs::msg::PoseStamped p;p.header=route.header;
+    p.pose.position.x=v[0];p.pose.position.y=v[1];
+    p.pose.orientation.z=std::sin(v[2]/2);p.pose.orientation.w=std::cos(v[2]/2);
+    route.poses.push_back(p);
+  }
+  auto shortcut=cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,1.);
+  ASSERT_FALSE(shortcut.poses.empty());
+  EXPECT_EQ(shortcut.poses.front(),route.poses.front());
+  EXPECT_EQ(shortcut.poses[shortcut.poses.size()-2],route.poses[6]);
+  EXPECT_EQ(shortcut.poses.back(),route.poses.back());
+  for(const auto &p:shortcut.poses)EXPECT_DOUBLE_EQ(p.pose.orientation.z,0.);
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(shortcut,map,footprint));
+  EXPECT_EQ(cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,0.),route);
+  EXPECT_TRUE(cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,1.,
+    []{return true;}).poses.empty());
+}
+TEST(StraightFirstPlanner, PrefixDoesNotCutThroughObstacleOrReverseBehindRobot) {
+  nav2_costmap_2d::Costmap2D map(200,200,.05,-5,-5,0);
+  std::vector<geometry_msgs::msg::Point> footprint;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.1,-.1},{.1,-.1},{.1,.1},{-.1,.1}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
+  }
+  nav_msgs::msg::Path route;route.header.frame_id="map";
+  for(auto xy:std::vector<std::pair<double,double>>{{0,0},{0,.2},{.6,.2}}) {
+    geometry_msgs::msg::PoseStamped p;p.header=route.header;p.pose.orientation.w=1.;
+    p.pose.position.x=xy.first;p.pose.position.y=xy.second;route.poses.push_back(p);
+  }
+  ASSERT_TRUE(cleany_navigation::sweptPathCollisionFree(route,map,footprint));
+  unsigned int x,y;map.worldToMap(.25,0.,x,y);map.setCost(x,y,254);
+  // The obstacle is off the original route but intersects the shortcut's body.
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(route,map,footprint));
+  EXPECT_EQ(cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,1.),route);
+  map.setCost(x,y,0);
+  route.poses[1].pose.position.x=-.3;route.poses[1].pose.position.y=0.;
+  route.poses[2].pose.position.x=-.6;route.poses[2].pose.position.y=0.;
+  EXPECT_EQ(cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,1.),route);
+}
 TEST(StraightFirstPlanner, HolonomicRearAndSideMotionPreserveOrientationAndFullBodySafety) {
   nav2_costmap_2d::Costmap2D map(200,200,.05,-5,-5,0);
   std::vector<geometry_msgs::msg::Point> footprint;
@@ -427,4 +473,27 @@ TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
   // A complete barrier cannot be bypassed by changing body yaw.
   for(unsigned int x=0;x<120;++x)for(unsigned int y=50;y<52;++y)map.setCost(x,y,254);
   EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.).poses.empty());
+}
+
+TEST(StraightFirstPlanner, TravelHeadingIsIndependentOfArrivalYaw) {
+  nav2_costmap_2d::Costmap2D map(200,200,.05,-5,-5,0);
+  std::vector<geometry_msgs::msg::Point> body;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.29,-.38},{.29,-.38},{.29,.38},{-.29,.38}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;body.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped a,b;a.header.frame_id=b.header.frame_id="map";
+  a.pose.orientation.w=1;b.pose.position.x=b.pose.position.y=1.5;
+  b.pose.orientation.z=std::sin(-.5);b.pose.orientation.w=std::cos(-.5);
+  auto headings=cleany_navigation::holonomicTravelHeadings(a,b,.8);
+  ASSERT_GE(headings.size(),2u);EXPECT_NEAR(headings.front(),M_PI/4,1e-6);
+  const auto path=cleany_navigation::checkedHolonomicPath(a,b,map,body,[]{return false;},.8);
+  ASSERT_FALSE(path.poses.empty());
+  for(const auto &p:path.poses)if(p.pose.position.x>.1 && p.pose.position.x<1.4) {
+    EXPECT_NEAR(2*std::atan2(p.pose.orientation.z,p.pose.orientation.w),M_PI/4,1e-6);
+  }
+  EXPECT_EQ(path.poses.back().pose.position,b.pose.position);
+  EXPECT_NEAR(path.poses.back().pose.orientation.z,b.pose.orientation.z,1e-6);
+  b.pose.position.x=0;b.pose.position.y=.5;
+  headings=cleany_navigation::holonomicTravelHeadings(a,b,.8);EXPECT_NEAR(headings.front(),0.,1e-6);
+  EXPECT_TRUE(cleany_navigation::checkedHolonomicPath(a,b,map,body,[]{return true;},.8).poses.empty());
 }

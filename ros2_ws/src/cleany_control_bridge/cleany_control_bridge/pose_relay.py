@@ -1,0 +1,244 @@
+"""Latest-value Backend pose transport with bounded input lifetime."""
+
+from __future__ import annotations
+
+import json
+import logging
+import math
+import threading
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Protocol
+from urllib.parse import urlparse
+
+LOGGER = logging.getLogger(__name__)
+
+
+class Transport(Protocol):
+    def send(self, message: str) -> None: ...
+    def close(self) -> None: ...
+
+
+@dataclass(frozen=True)
+class Pose:
+    x: float
+    y: float
+    received_at: float
+    source_stamp: float | None
+    yaw: float | None = None
+    frame_id: str | None = None
+    map_id: str | None = None
+
+
+class PoseCache:
+    """Keep only the latest pose; received_at uses monotonic time."""
+
+    def __init__(self, input_timeout: float) -> None:
+        self.input_timeout = input_timeout
+        self._pose: Pose | None = None
+        self._last_source_stamp: float | None = None
+        self._lock = threading.Lock()
+
+    def update(
+        self, x: float, y: float, received_at: float,
+        source_stamp: float | None, yaw: float | None = None,
+        frame_id: str | None = None, map_id: str | None = None,
+    ) -> bool:
+        if not (math.isfinite(x) and math.isfinite(y)):
+            return False
+        if source_stamp is not None and not math.isfinite(source_stamp):
+            return False
+        with self._lock:
+            if self._pose is not None and self._pose.frame_id != frame_id:
+                self._last_source_stamp = None
+            # Drop the reset sample and old pose; the next source sample starts a new epoch.
+            if (
+                source_stamp is not None
+                and self._last_source_stamp is not None
+                and source_stamp < self._last_source_stamp
+            ):
+                self._pose = None
+                self._last_source_stamp = None
+                return False
+            if (
+                source_stamp is not None
+                and self._last_source_stamp is not None
+                and source_stamp == self._last_source_stamp
+            ):
+                # Repeated source timestamps must not renew the input lifetime.
+                return False
+            self._last_source_stamp = source_stamp
+            valid_yaw = yaw if yaw is not None and math.isfinite(yaw) else None
+            self._pose = Pose(x, y, received_at, source_stamp, valid_yaw, frame_id, map_id)
+            return True
+
+    def fresh(self, now: float) -> Pose | None:
+        with self._lock:
+            if self._pose is None or now - self._pose.received_at > self.input_timeout:
+                return None
+            return self._pose
+
+
+class PoseRelay:
+    """Run network delivery independently from callbacks updating the latest pose."""
+
+    def __init__(
+        self,
+        url: str,
+        rate: float = 5.0,
+        input_timeout: float = 1.5,
+        reconnect_initial: float = 1.0,
+        reconnect_max: float = 30.0,
+        transport_factory: Callable[[str], Transport] | None = None,
+        monotonic: Callable[[], float] = time.monotonic,
+        *, device_token_file: str = "",
+    ) -> None:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("ws", "wss") or not parsed.netloc:
+            raise ValueError("url must be a ws:// or wss:// URL")
+        if not all(math.isfinite(value) for value in (
+            rate, input_timeout, reconnect_initial, reconnect_max,
+        )):
+            raise ValueError("relay timing parameters must be finite")
+        if rate <= 0 or input_timeout <= 0 or reconnect_initial <= 0 or reconnect_max < reconnect_initial:
+            raise ValueError("invalid relay timing parameters")
+        self.url, self.period = url, 1.0 / rate
+        self.cache = PoseCache(input_timeout)
+        self._connect = transport_factory or (
+            lambda address: _websocket_transport(address, device_token_file)
+        )
+        self._clock = monotonic
+        self._initial, self._maximum = reconnect_initial, reconnect_max
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def update_pose(
+        self, x: float, y: float, source_stamp: float | None = None,
+        *, yaw: float | None = None, frame_id: str | None = None,
+        map_id: str | None = None, source_age: float = 0.0,
+    ) -> bool:
+        if not math.isfinite(source_age) or source_age < 0 or source_age > self.cache.input_timeout:
+            return False
+        return self.cache.update(
+            x, y, self._clock() - source_age, source_stamp, yaw, frame_id, map_id
+        )
+
+    def start(self) -> None:
+        if self._thread is None:
+            self._thread = threading.Thread(target=self._run, name="pose-websocket", daemon=True)
+            self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=5.0)
+
+    def _run(self) -> None:
+        transport: Transport | None = None
+        backoff = self._initial
+        next_send = self._clock()
+        next_connect = next_send
+        while not self._stop.is_set():
+            if transport is None:
+                if self._stop.wait(max(0.0, next_connect - self._clock())):
+                    break
+                try:
+                    transport = self._connect(self.url)
+                    backoff = self._initial
+                    next_send = self._clock()
+                except Exception as error:  # noqa: BLE001 - isolate external transport failures
+                    LOGGER.warning(
+                        "Pose WebSocket connect failed (%s); retrying in %.1fs",
+                        type(error).__name__, backoff,
+                    )
+                    self._stop.wait(backoff)
+                    next_connect = self._clock()
+                    backoff = min(backoff * 2.0, self._maximum)
+                    continue
+            now = self._clock()
+            if now >= next_send:
+                pose = self.cache.fresh(now)
+                if pose is not None:
+                    try:
+                        payload = {"x": pose.x, "y": pose.y}
+                        if pose.frame_id is not None:
+                            payload["frame_id"] = pose.frame_id
+                        if pose.map_id is not None:
+                            payload["map_id"] = pose.map_id
+                        if pose.yaw is not None:
+                            payload["yaw"] = pose.yaw
+                        transport.send(json.dumps(payload, separators=(",", ":"), allow_nan=False))
+                    except Exception as error:  # noqa: BLE001 - isolate external transport failures
+                        LOGGER.warning(
+                            "Pose WebSocket send failed (%s); reconnecting",
+                            type(error).__name__,
+                        )
+                        try:
+                            transport.close()
+                        except Exception as error:  # noqa: BLE001 - best-effort socket cleanup
+                            LOGGER.debug("Pose socket close failed (%s)", type(error).__name__)
+                        transport = None
+                        next_connect = self._clock() + backoff
+                        backoff = min(backoff * 2.0, self._maximum)
+                        continue
+                next_send = now + self.period
+            self._stop.wait(min(max(next_send - self._clock(), 0.001), 0.1))
+        if transport is not None:
+            try:
+                transport.close()
+            except Exception as error:  # noqa: BLE001 - best-effort socket cleanup
+                LOGGER.debug("Pose socket close failed (%s)", type(error).__name__)
+
+
+def _websocket_transport(url: str, device_token_file: str = "") -> Transport:
+    import websocket  # type: ignore[import-not-found]
+
+    headers = {}
+    if device_token_file:
+        # Read on each connection so rotating credentials does not require a ROS restart.
+        token = Path(device_token_file).expanduser().read_text().strip()
+        if not token or any(c.isspace() for c in token):
+            raise ValueError("invalid device token file")
+        headers["Authorization"] = "Bearer " + token
+    return _WebsocketTransport(
+        websocket.create_connection(url, timeout=5, suppress_origin=True, header=headers), websocket
+    )
+
+
+class _WebsocketTransport:
+    """Read frames so websocket-client answers pings and detects disconnects."""
+
+    def __init__(self, socket: object, module: object) -> None:
+        self._socket = socket
+        self._module = module
+        self._closed = threading.Event()
+        self._reader = threading.Thread(
+            target=self._read, name="pose-websocket-reader", daemon=True
+        )
+        self._reader.start()
+
+    def _read(self) -> None:
+        try:
+            while not self._closed.is_set():
+                try:
+                    self._socket.recv()  # type: ignore[attr-defined]
+                except self._module.WebSocketTimeoutException:
+                    continue
+                except Exception:  # noqa: BLE001 - reader failure closes the transport
+                    break
+        finally:
+            self._closed.set()
+
+    def send(self, message: str) -> None:
+        if self._closed.is_set():
+            raise ConnectionError("websocket is closed")
+        self._socket.send(message)  # type: ignore[attr-defined]
+
+    def close(self) -> None:
+        self._closed.set()
+        try:
+            self._socket.close()  # type: ignore[attr-defined]
+        finally:
+            self._reader.join(timeout=1.0)

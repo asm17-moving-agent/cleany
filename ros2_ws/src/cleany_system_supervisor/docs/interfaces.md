@@ -1,10 +1,10 @@
 # cleany_system_supervisor 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다. 동작 계약은 [System Supervisor](supervision.md)를 따른다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다. 동작 계약은 [System Supervisor](supervision.md)를 따릅니다.
 
 ## system_supervisor
 
-실행 파일: `system_supervisor`. 원본: [node.py](../cleany_system_supervisor/node.py), [ros_transport.py](../cleany_system_supervisor/ros_transport.py). 설정: [system_supervisor.yaml](../config/system_supervisor.yaml)의 `ros`.
+실행 파일: `system_supervisor`. 원본: [노드.py](../cleany_system_supervisor/node.py), [ros_transport.py](../cleany_system_supervisor/ros_transport.py). 설정: [system_supervisor.yaml](../config/system_supervisor.yaml)의 `ros`.
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
@@ -28,7 +28,12 @@
 | 액션 호출 | `mission/stop` | `cleany_interfaces/action/StopMission` | Action 기본값; `stop_action`; 서버는 `mission_runtime` |
 | 액션 호출 | `<source>/recover` | `cleany_interfaces/action/RecoverComponent` | Action 기본값; `recovery_policies.*.action` |
 
-Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사한다. 상태 snapshot의 retained 값은 허가가 아니며, client는 heartbeat freshness, epoch와 lease 만료를 별도로 검사한다.
+Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사합니다. 상태 snapshot의 retained 값은 허가가 아니며, client는 heartbeat freshness, epoch와 lease 만료를 별도로 검사합니다.
+
+기동 복구를 사용하는 프로필은 `base_driver` diagnostics의 `disarmed`도 확인합니다.
+키 누락, stale 측정 시각와 stale 피드백은 `base_disarmed` 정상 증거가 아닙니다.
+연결 단절 원인은 영속 Fault의 `cause`에 보존하고 복구 결과는 기존 `system/events`의
+`BASE_STARTUP_RECONCILED`로 발행합니다. 기존 ROS 메시지와 서비스 형식은 유지합니다.
 
 ## supervisor_operator
 
@@ -40,9 +45,9 @@ Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사한�
 | 토픽 구독 | `system/faults` | `cleany_interfaces/msg/SystemFaults` | R/T1 |
 | 서비스 호출 | `system/request_fault_reset` | `cleany_interfaces/srv/RequestFaultReset` | Service 기본값; reset 인자가 있을 때만 |
 
-인자 없이 실행하면 활성 Fault를 나열하고, `<FAULT_CODE> --operator <name>`은 reset을 요청한다. 하드웨어를 해제하지 않는다.
+인자 없이 실행하면 활성 Fault를 나열하고, `<FAULT_CODE> --operator <name>`은 reset을 요청합니다. 하드웨어를 해제하지 않습니다.
 
 `tof_required=true`이면 `tof_proximity`를 component source와 `BASE_MOTION` 필수 근거에
-추가하고 `/proximity_guard`의 health 발행을 허용한다. source가 오래되거나 가용하지 않으면
-기존 lease 회수와 Mission stop 경로를 사용한다. 일반 장애물 정지는 health 불가용으로
-보고하지 않는다. ToF가 실제로 없는 구성에는 이 옵션을 적용하지 않는다.
+추가하고 `/proximity_guard`의 health 발행을 허용합니다. source가 오래되거나 가용하지 않으면
+기존 lease 회수와 Mission stop 경로를 사용합니다. 일반 장애물 정지는 health 불가용으로
+보고하지 않습니다. ToF가 실제로 없는 구성에는 이 옵션을 적용하지 않습니다.

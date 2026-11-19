@@ -58,7 +58,8 @@ def test_diagonal_candidate_uses_fallback_and_preserves_axial_gains(axis):
 
 
 @pytest.mark.parametrize("axis", ["diagonal_left", "diagonal_right"])
-def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis):
+@pytest.mark.parametrize("reference_key", ["calibrated_base_reference", "calibrated_base_ground_truth"])
+def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis, reference_key):
     ux, uy = translation_direction(axis)
     result = {"nominal_displacement": .5}
     for leg, sign in (("outbound", 1), ("inbound", -1)):
@@ -66,7 +67,7 @@ def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis):
             return {"dx_m": sign*(ux*along - uy*cross), "dy_m": sign*(uy*along + ux*cross),
                     "dyaw_deg": 1.}
         result[leg] = {"is_valid": True, "odom_reported": pose(.496, .003),
-                       "calibrated_base_ground_truth": pose(.510, .008),
+                       reference_key: pose(.510, .008),
                        "one_way_error": {"error_norm_mm": math.hypot(14, 5)}}
     errors = endpoint_errors(result, axis)
     for leg in ("outbound", "inbound"):

@@ -103,7 +103,7 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
 def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint, head_meshes):
     def expand(value):
         root = ET.fromstring(subprocess.check_output([
-            'xacro', str(PACKAGE / 'urdf' / entrypoint), f'optimized_arm_collision_meshes:={value}',
+            'xacro', str(PACKAGE / 'urdf' / entrypoint), 'model_profile:=jetson_20261009', f'optimized_arm_collision_meshes:={value}',
             'include_head_camera:=true', f'head_collision_meshes:={head_meshes}',
         ]))
         for element in root.iter():
@@ -131,7 +131,7 @@ def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint, head_
 
 @pytest.mark.parametrize('entrypoint', ['cleany.urdf.xacro', 'cleany_control.urdf.xacro'])
 def test_default_model_uses_the_optimized_collision_resources(entrypoint):
-    command = ['xacro', str(PACKAGE / 'urdf' / entrypoint), 'include_head_camera:=true']
+    command = ['xacro', str(PACKAGE / 'urdf' / entrypoint), 'model_profile:=jetson_20261009', 'include_head_camera:=true']
     default = ET.fromstring(subprocess.check_output(command))
     explicit = ET.fromstring(subprocess.check_output(command + [
         'optimized_arm_collision_meshes:=true', 'head_collision_meshes:=true']))

@@ -39,12 +39,17 @@ def load_profile(path: Path, *, mock=False, state_root=None, package_share=None)
             raise ValueError("Invalid serial baudrate")
     minimum = float(data["scan_filter"]["min_range_m"])
     half_angle = float(data["scan_filter"]["half_angle_deg"])
-    if minimum != 0.30 or half_angle != 90:
+    if minimum != 0.30 or half_angle not in (90, 180):
         raise ValueError(
-            "Mapping profile must retain front 180 degrees and mask <=0.30 m"
+            "Mapping profile must use 180 or 360 degrees and mask <=0.30 m"
         )
     if not 0.5 <= float(data["teleop"]["max_wheel_speed"]) <= 10:
         raise ValueError("Invalid phone wheel limit")
+    session_limit = data.get("recording_limit_mib", 1024)
+    total_limit = data.get("recording_total_limit_mib", 10240)
+    if (type(session_limit) is not int or not 10 <= session_limit <= 10240
+            or type(total_limit) is not int or total_limit < session_limit):
+        raise ValueError("Invalid recording session or total limit in MiB")
     if (
         not math.isfinite(float(data.get("startup_timeout_s", 30)))
         or not 0 < float(data.get("startup_timeout_s", 30)) <= 120

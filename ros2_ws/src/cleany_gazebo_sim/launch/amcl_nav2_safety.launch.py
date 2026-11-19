@@ -10,7 +10,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import yaml
 
-from cleany_navigation.runtime_config import load_parameters
+from cleany_navigation.runtime_config import load_parameters, load_navigation_profile
 
 
 def _launch(context: LaunchContext) -> list:
@@ -21,7 +21,7 @@ def _launch(context: LaunchContext) -> list:
     safety = load_parameters(Path(value('safety_params_file')))
     camera = safety.pop('depth_camera_tf')
     robot = safety
-    base = load_parameters(Path(value('params_file')))
+    base = load_navigation_profile(navigation/'config/nav2_amcl.yaml', Path(value('params_file')))
     for name in ('local_costmap', 'global_costmap'):
         layer = base[name][name]['ros__parameters']['obstacle_layer']
         robot[name][name]['ros__parameters']['obstacle_layer'] = {
@@ -41,6 +41,8 @@ def _launch(context: LaunchContext) -> list:
         robot['local_costmap']['local_costmap']['ros__parameters']['depth_layer'].setdefault(
             key, safety['local_costmap']['local_costmap']['ros__parameters']['depth_layer'][key])
     directory = Path(mkdtemp(prefix='cleany-gazebo-navigation-'))
+    parameters_file = directory/'parameters.yaml'
+    parameters_file.write_text(yaml.safe_dump(base, sort_keys=False))
     robot_file = directory/'robot.yaml'
     robot_file.write_text(yaml.safe_dump(robot, sort_keys=False))
     adapters = []
@@ -67,7 +69,7 @@ def _launch(context: LaunchContext) -> list:
         launch_arguments={
             'map': value('map'), 'robot_params_file': str(robot_file), 'use_sim_time': value('use_sim_time'),
             'autostart': value('autostart'), 'axis_motion': value('axis_motion'),
-            'axis_params_file': value('axis_params_file'), 'omni_params_file': value('omni_params_file'), 'params_file': value('params_file'),
+            'axis_params_file': value('axis_params_file'), 'omni_params_file': value('omni_params_file'), 'params_file': str(parameters_file),
             'localization_params_file': value('localization_params_file'),
             # Launch arguments share a context across includes. Do not let the
             # Gazebo metadata YAML become the common ROS parameter overlay.
@@ -90,7 +92,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('localization_params_file', default_value=''),
         DeclareLaunchArgument('safety_params_file', default_value=str(share/'config/nav2_safety.yaml')),
         DeclareLaunchArgument('axis_params_file', default_value=str(navigation/'config/nav2_axis_motion.yaml')),
-        DeclareLaunchArgument('omni_params_file', default_value=str(navigation/'config/nav2_omni_motion.yaml')),
+        DeclareLaunchArgument('omni_params_file', default_value=str(navigation/'config/nav2_omni_low_speed.yaml')),
         DeclareLaunchArgument('voxel_params_file', default_value=str(navigation/'config/voxel_guard.yaml')),
         DeclareLaunchArgument('memory_params_file', default_value=str(navigation/'config/obstacle_memory.yaml')),
         DeclareLaunchArgument('body_profile', default_value=str(share/'config/cad_frame.yaml')),

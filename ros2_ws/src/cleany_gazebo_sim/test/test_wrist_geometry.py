@@ -29,12 +29,12 @@ def _transform(pose: ET.Element) -> np.ndarray:
 def legacy_model(tmp_path_factory: pytest.TempPathFactory) -> ET.Element:
     directory = tmp_path_factory.mktemp('wrist-world')
     world = materialize_mecanum_wheel_world(
-        PACKAGE / 'worlds/cleany_mecanum_fortress.sdf', target_path=directory/'world.sdf')
+        PACKAGE / 'worlds/cleany_mecanum_fortress.sdf', target_path=directory/'world.sdf', robot_model='legacy')
     return ET.parse(world).find("world/model[@name='cleany_mecanum']")
 
 
 @pytest.mark.parametrize('model_name', ('legacy', 'cad_frame_with_arms'))
-def test_wrist_sensors_and_optical_frames_follow_v8_lens(
+def test_wrist_sensors_follow_selected_assembly_lens(
     tmp_path: Path, legacy_model: ET.Element, model_name: str,
 ) -> None:
     model = deepcopy(legacy_model)

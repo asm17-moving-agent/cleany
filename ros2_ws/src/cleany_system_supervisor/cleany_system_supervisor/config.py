@@ -38,6 +38,14 @@ def validate(config: dict) -> dict:
             raise ValueError('unknown recovery policy')
         if not isinstance(entry['latched'], bool) or not isinstance(entry['locks_operation'], bool):
             raise ValueError('fault latch and lock settings must be booleans')
+    reconnect = config.get('startup_base_reconnect', {})
+    if not isinstance(reconnect.get('enabled', False), bool):
+        raise ValueError('startup_base_reconnect.enabled must be a boolean')
+    if reconnect.get('enabled', False):
+        positive(reconnect.get('stable_s'), 'startup_base_reconnect.stable_s')
+        if ('base' not in sources or not sources['base']['latched'] or
+                'base_disarmed' not in sources or not sources['base_disarmed'].get('monitor_only')):
+            raise ValueError('startup base reconnect requires latched base and monitor-only base_disarmed')
     codes = [entry['fault_code'] for entry in sources.values()]
     if len(codes) != len(set(codes)):
         raise ValueError('fault codes must be unique')

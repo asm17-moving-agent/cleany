@@ -13,6 +13,7 @@ from launch.actions import (DeclareLaunchArgument, GroupAction, IncludeLaunchDes
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, SetRemap
+from launch_ros.parameter_descriptions import ParameterValue
 
 from cleany_mission_manager.adapters.config import (
     load_runtime_parameters, load_targets, validate_manipulation_fixture,
@@ -68,7 +69,9 @@ def _start(context):
         # Use the existing mecanum controller profile with a 3 cm
         # controller tolerance, inside the unchanged 8 cm Mission arrival gate.
         nav_parameters = yaml.safe_load((navigation_share / "config/nav2_amcl.yaml").read_text())
-        omni = yaml.safe_load((navigation_share / "config/nav2_omni_motion.yaml").read_text())
+        from cleany_navigation.runtime_config import load_navigation_profile
+        omni = load_navigation_profile(navigation_share / "config/nav2_omni.yaml",
+                                       navigation_share / "config/nav2_omni_low_speed.yaml")
         merge_parameters(nav_parameters, {"controller_server": omni["controller_server"]})
         safety = yaml.safe_load((sim / "config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):
@@ -121,8 +124,13 @@ def _start(context):
         ])
     if arg("enable_telemetry") == "true":
         pose_url = arg("pose_url") or arg("gateway_url").removesuffix("/gateway/ws") + "/pose/ws"
-        nodes.append(Node(package="cleany_telemetry", executable="telemetry_node", output="screen",
-                          parameters=[{"odom_topic": "/ground_truth/odom", "url": pose_url}]))
+        nodes.extend([
+            Node(package="cleany_telemetry", executable="pose_observer", output="screen",
+                 parameters=[{"odom_topic": "/ground_truth/odom", "use_sim_time": True}]),
+            Node(package="cleany_control_bridge", executable="pose_backend_bridge", output="screen",
+                 parameters=[{"url": pose_url, "use_sim_time": True,
+                              "device_token_file": ParameterValue(arg("pose_device_token_file"), value_type=str)}]),
+        ])
     if arg("enable_logger") == "true":
         logger = Path(get_package_share_directory("cleany_logger"))
         nodes.append(IncludeLaunchDescription(
@@ -161,6 +169,7 @@ def generate_launch_description():
                               description="Run the System Supervisor stack; false runs the Runtime unsupervised."),
         DeclareLaunchArgument("estop_released_topic", default_value=""),
         DeclareLaunchArgument("protection_ready_topic", default_value=""),
+        DeclareLaunchArgument("pose_device_token_file", default_value=""),
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
         # Isolate Gazebo transport from other simulations on the same host.
         DeclareLaunchArgument("sim_partition", default_value="cleany-mission"),

@@ -9,6 +9,29 @@ source "$(make -s print-install-base)/setup.bash"
 
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
+## Phone Nav2와 관측 서비스
+
+실물 주행은 하드웨어 profile, 저장된 지도와 DDS 설정을 명시해 실행한다.
+`tools/ros2/run-navigation --help`에서 입력을 확인하고
+[휴대폰 지도 주행](implementation/how-to/phone-navigation.md)의 실행 절차를 따른다.
+`run-phone-navigation`은 같은 도구를 호출하는 호환 이름이다.
+`motion_profile`은 `omni` 또는 `longitudinal`을 선택하며 주행 설정과 안전 조건은
+[Navigation 계약](../ros2_ws/src/cleany_navigation/docs/interfaces.md)과
+[위치 정합](../ros2_ws/src/cleany_navigation/docs/localization.md)을 따른다.
+
+카메라와 위치 관측은 Backend 없이 실행할 수 있다.
+
+```bash
+ros2 run cleany_telemetry camera_preview
+ros2 launch cleany_bringup pose_observation.launch.py source:=tf
+```
+
+위치는 기본 `map -> base_link` TF의 원본 시각을 보존해 `/telemetry/pose`로 발행한다.
+Backend 전송이 필요할 때만 `enable_backend:=true`와 해당 배포의 `pose_url`, `map_id`,
+`device_token_file`을 지정한다. 기존 `telemetry_node`는 `pose_observer`와
+`pose_backend_bridge`로 분리했다. 카메라 HTTP는 기본 `127.0.0.1:8769`에서 제공하며
+[Telemetry 인터페이스](../ros2_ws/src/cleany_telemetry/docs/interfaces.md)를 따른다.
+
 ## 공통 CAD 미리보기와 파지 프로파일
 
 `tools/robot-model check`는 설치된 CAD와 manifest의 일치 여부를 검사한다.

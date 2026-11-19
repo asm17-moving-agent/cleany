@@ -23,7 +23,7 @@ SIDES = ('left', 'right')
 
 
 def test_canonical_mast_exception_only_covers_its_fixed_mount():
-    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'head_camera.xacro').getroot()
+    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'legacy_20261009' / 'head_camera.xacro').getroot()
     joint = mast.find(".//joint[@name='top_base_joint']")
     assert joint.get('type') == 'fixed'
     assert joint.find('parent').get('link') == 'base_link'
@@ -66,7 +66,7 @@ def _expand_side(value: str, side: str) -> str:
 
 
 def _canonical_joint_elements() -> list[ET.Element]:
-    root = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'dual_arm.xacro').getroot()
+    root = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'legacy_20261009' / 'dual_arm.xacro').getroot()
     return [
         element
         for element in root.findall('.//joint')

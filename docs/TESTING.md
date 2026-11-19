@@ -375,7 +375,7 @@ CI는 Ubuntu 22.04 amd64에서 모든 PR에서 Gazebo 전용 패키지를 제외
 
 전체 빌드 이후 검사를 아래 단계로 분리합니다. 한 검사 단계가 실패해도 빌드가 성공했다면 나머지 독립 검사를 실행합니다. 주요 패키지와 runtime 검사는 실패 표시를 유지하면서 후속 검사를 계속 실행합니다. UI와 카메라 검사에 사용하는 `continue-on-error`도 마지막 집계에서 실제 실패로 반영합니다. 마지막 집계는 실패, 중단과 결과 누락을 모두 실패로 처리합니다.
 
-CI 검사 대상 패키지를 하나의 작업 큐에서 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
+CI는 실시간 mock MCU watchdog을 사용하는 `cleany_base_driver` 검사를 단독으로 먼저 실행합니다. 나머지 패키지는 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
 
 각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain은 ToF에 10–25, 베이스 EKF에 26–28, Supervisor에 190–224를 배정합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
 
@@ -394,8 +394,6 @@ CI 검사 대상 패키지를 하나의 작업 큐에서 runner CPU 수에 따�
 [workspace_tests.py](../tools/ci/workspace_tests.py)는 전체 패키지, 그룹별 선택 목록과 명시적 제외 목록을 보존합니다. 제외 사유는 [workspace_test_exclusions.json](../tools/ci/workspace_test_exclusions.json)에서 관리합니다. `checks/workspace/schedule.json`에 동시 실행 수, 패키지별 시작과 종료 시각, 격리 환경을 기록하며 상세 로그와 진단은 `checks/<그룹>/packages/`에 둡니다. 그룹별 시간은 병렬 실행 기간이 겹치므로 합산하지 않습니다. 마지막 집계에서 세 그룹의 합집합이 명시적 제외 목록을 뺀 전체 패키지와 같은지 확인하고, 중복이나 추가 누락을 실패로 처리합니다. `cleany_manipulation_bt`는 `test/test_*.py`를 파일별 CTest 검사로 등록하며 각각 60초 제한을 적용합니다. 개별 Action 응답과 종료 대기 조건은 기존 테스트가 검사합니다.
 
 [check.py](../tools/ci/check.py)는 검사별 명령, 커밋과 미커밋 변경 여부, 경과 시간, 로그와 종료 상태를 `checks/<단계>/`에 저장합니다. Python 검사가 40초 동안 끝나지 않으면 pytest faulthandler가 스택을 출력합니다. 자식 프로세스가 45초 이상 유지되면 해당 프로세스 상태와 C++ 스레드 스택을 수집합니다. GDB 수집 자체는 5초로 제한하고, 실패 정보도 보존합니다. 전체 단계 제한을 넘기면 해당 검사 process group과 관찰한 자식 프로세스를 종료합니다. ROS launch가 별도 session을 만든 경우도 PID와 시작 시각을 대조해 정리합니다.
-
-CI의 MPPI 빌드는 `CLEANY_MPPI_PORTABLE_BUILD=ON`으로 `x86-64-v2`를 사용합니다. 컴파일러 캐시를 다른 amd64 러너에서 재사용할 때도 같은 명령어 집합으로 실행합니다.
 
 MPPI 단위 검사는 실제 costmap executor의 시작을 확인한 뒤 진행합니다. 이는 짧은 검사 종료 시 Humble `NodeThread`의 시작과 취소가 엇갈리는 상황을 막으며 비용 계산이나 기대값을 변경하지 않습니다.
 
@@ -451,12 +449,21 @@ Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지�
 
 `MAKEFLAGS`도 함께 지정해 colcon이 전체 CPU 수의 `-j` 옵션으로 CMake의 병렬 제한을 덮어쓰지 않도록 합니다.
 
+MPPI는 CPU별 allocator ABI가 달라지는 `-march=native`와 xsimd SSE2 수학 결과를
+손상시키는 `-ffast-math`를 사용하지 않습니다. `-O3`와 SIMD는 유지합니다.
+amd64 CI는 `CLEANY_MPPI_PORTABLE_BUILD=ON`으로 MPPI 라이브러리와 이를 링크하는 대상에 같은 `-march=x86-64-v2`를 적용합니다.
+`mppi_simd_math_test`는 라이브러리와 동일한 최적화 옵션에서 반올림, critic 비용의
+거듭제곱과 optimizer 가중치의 지수 함수를 scalar 결과와 비교합니다.
+
 CI artifact에는 test XML, CTest 기록, 단계별 로그와 스택, 재현 명령, 설치된 apt/pip 버전과 ccache 통계를 남깁니다. 속도는 이미지 생성과 compiler cache miss가 있는 최초 실행, 이미지와 cache를 재사용하는 실행으로 구분해 비교합니다. 이미지 pull과 cache 복원 시간도 포함한 GitHub job 전체 시간을 기준으로 판단합니다.
 
 전체 job 제한은 40분이며 이미지 생성은 별도로 15분 안에 완료해야 합니다.
 APT는 서명을 검증한 snapshot index에서 버전, 파일 경로와 SHA256을 결정합니다.
-Ubuntu 패키지 파일은 동일한 pool 경로의 archive 미러에서 먼저 받고, 없거나 검증에 실패하면 원래 snapshot에서 받습니다.
-다운로드는 4개씩 수행하고 SHA256과 크기가 일치하는 파일만 APT cache에 보관하며 설치 시 APT가 다시 검증합니다.
+Ubuntu 패키지 파일은 동일한 pool 경로의 archive 미러, Launchpad의 동일 파일, 원래 snapshot 순서로 받습니다.
+일반 archive에서 제거된 과거 버전도 snapshot의 크기와 SHA256에 일치하는 경우에만 사용합니다.
+다운로드는 최대 8개씩 수행하고 SHA256과 크기가 일치하는 파일만 APT cache에 보관하며 설치 시 APT가 다시 검증합니다.
+`rosdep` 설치 계획의 일반 APT 요구사항은 16개씩 먼저 설치해 패키지별 반복 호출을 줄입니다.
+이후 기존 `rosdep install`과 `rosdep check`로 pip, 대체 패키지와 전체 의존성 충족 여부를 확인합니다.
 미러의 최신 index나 다른 버전으로 대체하지 않습니다.
 연결 timeout은 15초, 파일 다운로드는 60초, 한 설치 명령의 다운로드 준비는 5분으로 제한합니다.
 APT 자체 재시도는 1회, 의존성 준비 명령은 10초 대기 후 최대 2회 실행합니다.
@@ -743,3 +750,9 @@ make test-dev-monitor-web
 Playwright는 기본 로컬 fixture 서버를 사용한다. `MONITOR_URL`이 필요한 실제 서버 검사는
 서버와 합성 입력을 준비한 경우에만 실행한다. `OPERATOR_VISUAL_DIR`을 저장소 밖 경로로
 지정하면 운영 UI의 라이트, 다크와 좁은 화면 근거 이미지를 저장한다.
+
+## Phone Nav2와 관측 분리 회귀 검사
+
+공통 workspace 검사에 camera/pose 관측, Backend relay, 지도 목표와 안전 상태 검사가 포함된다.
+ROS Navigation runtime과 실물 CAD 소비자 경계는 `make test-navigation-runtime`으로
+명시 실행한다. MCU emulator와 합성 ROS 입력의 통과는 실물 주행이나 카메라 장치 검증과 구분한다.

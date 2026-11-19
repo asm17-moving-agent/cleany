@@ -2,6 +2,9 @@
 option(CLEANY_MPPI_PORTABLE_BUILD "Use the fixed CI amd64 instruction set" OFF)
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
+# xsimd's SSE2 rounding uses ordered additions. -ffast-math reassociates them
+# and corrupts pow/exp results used by critic costs and optimizer weights.
+set(mppi_compile_options -O3 -finline-limit=10000000 -ffp-contract=fast -mtune=generic)
 set(mppi_dependencies
   rclcpp rclcpp_lifecycle nav2_common pluginlib tf2 geometry_msgs visualization_msgs nav_msgs
   nav2_core nav2_costmap_2d nav2_util tf2_geometry_msgs tf2_eigen tf2_ros)
@@ -19,21 +22,23 @@ add_library(cleany_mppi_critics SHARED
   src/critics/path_align_critic.cpp src/critics/path_align_legacy_critic.cpp
   src/critics/path_follow_critic.cpp src/critics/path_angle_critic.cpp
   src/critics/prefer_forward_critic.cpp src/critics/twirling_critic.cpp
-  src/critics/constraint_critic.cpp src/critics/velocity_deadband_critic.cpp)
+  src/critics/constraint_critic.cpp src/critics/velocity_deadband_critic.cpp
+  src/critics/directional_motion_critic.cpp)
 foreach(target cleany_mppi_controller cleany_mppi_critics)
   target_compile_features(${target} PUBLIC cxx_std_17)
   target_compile_definitions(${target} PUBLIC XTENSOR_ENABLE_XSIMD XTENSOR_USE_XSIMD)
   target_compile_options(${target} PUBLIC -fconcepts)
-  target_compile_options(${target} PRIVATE -O3 -finline-limit=10000000 -ffp-contract=fast -ffast-math -mtune=generic)
+  target_compile_options(${target} PRIVATE ${mppi_compile_options})
   target_include_directories(${target} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:include> ${xsimd_INCLUDE_DIRS})
+  # xtensor::optimize adds -march=native. Its CPU-dependent allocator alignment
+  # changes tensor ABI across cached objects from different CI runners.
   target_link_libraries(${target} xtensor xtensor::use_xsimd)
   if(CLEANY_MPPI_PORTABLE_BUILD AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
     target_compile_options(${target} PUBLIC -march=x86-64-v2)
-  else()
-    target_link_libraries(${target} xtensor::optimize)
   endif()
+  target_link_options(${target} PRIVATE -Wl,--no-undefined)
   ament_target_dependencies(${target} ${mppi_dependencies})
 endforeach()
 install(TARGETS cleany_mppi_controller cleany_mppi_critics

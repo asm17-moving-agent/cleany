@@ -36,6 +36,7 @@ class SessionController:
 
     def tick(self):
         if self.state == 'RECORDING':
+            self.recorder.append_raw()
             self.recorder.append(self.hub.snapshot(self.recorder.last))
             self.recorder.append_raw()
             if self.recorder.reason:
