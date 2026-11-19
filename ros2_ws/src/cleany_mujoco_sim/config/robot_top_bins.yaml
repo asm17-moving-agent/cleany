@@ -1,9 +1,9 @@
-# Simulation concept only: mounting strength and collection trajectories unverified.
-# +X forward, +Y robot-left. No table zones or divider lines in this layout.
-# Chassis-mounted internal rear tray; filename retained for launch compatibility.
+# 시뮬레이션 개념 모델이며 장착 강도와 수거 궤적은 검증되지 않았습니다.
+# +X는 전방, +Y는 로봇 왼쪽입니다. 이 배치에는 테이블 구역이나 구분선이 없습니다.
+# 차체 내부 후방 장착 트레이이며 launch 호환성을 위해 파일명을 유지합니다.
 schema_version: 1
 frame_id: base_link
-# Simulation-only shortcut: preserve the mast visual, ignore its physical contacts.
+# 시뮬레이션 전용 단순화입니다. 기둥 외형은 유지하되 물리적 접촉은 무시합니다.
 simulation_ignore_mast_collision: true
 internal_tray:
   center_xy_m: [-0.075, 0.0]

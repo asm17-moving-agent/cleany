@@ -19,7 +19,7 @@ class WheelLimitPolygon : public nav2_collision_monitor::Polygon {
   }
 };
 
-/// Retain Nav2's polygon, TF, lifecycle and STOP processing with absolute caps.
+/// 절대 상한을 적용하며 Nav2 polygon, TF, lifecycle과 STOP 처리를 유지합니다.
 class CleanyCollisionMonitor : public nav2_collision_monitor::CollisionMonitor {
  public:
   CleanyCollisionMonitor() {
@@ -114,8 +114,8 @@ class CleanyCollisionMonitor : public nav2_collision_monitor::CollisionMonitor {
         get_parameter("cmd_vel_in_topic").as_string(), 1,
         [this](geometry_msgs::msg::Twist::ConstSharedPtr message) {
           if (!process_active_ || !limited_polygon_ || !limit_) {return;}
-          // Humble drops stale sources rather than stopping on source loss.
-          // Keep this required-input gate inside the existing final monitor.
+          // Humble은 소스 손실 때 정지하는 대신 오래된 소스를 버립니다.
+          // 필수 입력 검사를 기존 최종 monitor 안에 유지합니다.
           if (depth_required_ && (!depth_received_ ||
               std::chrono::duration<double>(std::chrono::steady_clock::now()-depth_at_).count()>depth_timeout_ ||
               get_clock()->now().seconds()-depth_stamp_>depth_timeout_ ||

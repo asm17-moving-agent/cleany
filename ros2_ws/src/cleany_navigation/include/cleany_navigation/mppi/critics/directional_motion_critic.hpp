@@ -6,12 +6,12 @@
 
 namespace cleany_navigation::mppi::critics
 {
-/** @brief Fixed body-frame lateral and diagonal travel costs for Omni rollouts.
+/** @brief Omni 후보 궤적에 차체 좌표계 기준 횡이동 및 대각 이동 비용을 부과합니다.
  *
- * Integrates travel distance times lateral*sin(theta)^2 + diagonal*sin(2*theta)^2,
- * where theta is the body-frame translation angle. Weights are cost per metre;
- * zero disables each term. Zero translation has zero cost.
- * No measured slip, map location, or recovery state changes these weights.
+ * 이동 거리에 lateral*sin(theta)^2 + diagonal*sin(2*theta)^2를 곱해 적분합니다.
+ * theta는 차체 기준 이동 방향이며 가중치는 m당 비용입니다. 각 가중치가 0이면
+ * 해당 항을 끄고, 병진 이동이 없으면 비용도 0입니다.
+ * 측정된 미끄러짐, 지도 위치나 복구 상태에 따라 가중치를 바꾸지 않습니다.
  */
 class DirectionalMotionCritic : public CriticFunction
 {

@@ -10,8 +10,8 @@
 
 namespace cleany_mujoco_observer {
 
-/// Input and camera state only. Rendering uses the sensor worker's private
-/// snapshot; the viewer never holds the physics mutex while drawing.
+/// 입력과 카메라 상태만 관리합니다. 렌더링은 센서 worker의 전용 snapshot을 사용하며
+/// 그리는 동안 viewer는 physics mutex를 잡지 않습니다.
 class EfficientViewer {
 public:
   EfficientViewer(GLFWwindow* window, const mjModel* model, mjvScene* scene,
@@ -85,8 +85,8 @@ public:
 private:
   template <typename MoveCamera = decltype(&mjv_moveCamera)>
   void move_camera(int action, mjtNum dx, mjtNum dy) {
-    // MuJoCo headers differ in whether camera movement takes a scene argument.
-    // Select from the installed signature rather than assuming a vendor version.
+    // MuJoCo 헤더마다 카메라 이동에 scene 인자를 받는지가 다릅니다.
+    // vendor 버전을 가정하지 않고 설치된 함수 시그니처로 선택합니다.
     MoveCamera move = &mjv_moveCamera;
     if constexpr (std::is_invocable_v<MoveCamera, const mjModel*, int,
                                      mjtNum, mjtNum, mjvScene*, mjvCamera*>) {

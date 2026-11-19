@@ -1,4 +1,4 @@
-"""Exclusive Nav2/desk command selection upstream of every existing safety stage."""
+"""모든 기존 안전 단계 앞에서 Nav2와 책상 명령을 배타적으로 선택합니다."""
 import math
 import time
 import rclpy
@@ -14,12 +14,12 @@ from .ros_support import Inputs, SupervisorView, settings, steady_timer, twist, 
 
 
 class DeskApproachNode(Node):
-    """Serve desk/approach (DeskApproach) and select motion/cmd_vel (Twist).
+    """desk/approach(DeskApproach)를 처리하고 motion/cmd_vel(Twist)을 선택합니다.
 
-    Nav2 commands arrive on nav2/cmd_vel. All selected commands enter the existing
-    pan/Collision Monitor/3-D chain and final proximity guard. Active Nav2 goals
-    exclude desk ownership. Cancellation, invalid input and timeout emit zero.
-    Plane success includes sustained stopped odometry, not just a pose estimate.
+    Nav2 명령은 nav2/cmd_vel로 들어옵니다. 선택한 모든 명령은 기존 pan,
+    Collision Monitor, 3D 경로와 최종 근접 guard를 통과합니다. 활성 Nav2 목표가
+    있으면 책상 제어 소유권을 허용하지 않습니다. 취소, 무효 입력과 시간 초과는
+    0을 발행합니다. 평면 접근 성공에는 자세 추정뿐 아니라 지속적인 정지 odometry가 필요합니다.
     """
     def __init__(self, **kwargs):
         super().__init__('desk_approach', **kwargs)

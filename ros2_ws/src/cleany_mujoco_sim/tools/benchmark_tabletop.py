@@ -1,4 +1,4 @@
-"""Paired stationary-scene microbenchmark; not an end-to-end sorting benchmark."""
+"""고정 장면의 짝지은 microbenchmark이며 전체 분류 과정의 benchmark가 아닙니다."""
 from __future__ import annotations
 
 import argparse
@@ -29,7 +29,7 @@ def main() -> None:
         parser.error('steps, frames, and repeats must be positive')
     package = Path(__file__).resolve().parents[1]
     launch = package.parent / 'cleany_skill_executor/launch/study_cafe_nearest_grasp_demo.launch.py'
-    # Reuse the actual launch home pose without another divergent pose default.
+    # 별도의 불일치하는 기본 자세를 만들지 않고 실제 launch의 home 자세를 재사용합니다.
     initial = {f'{name}_joint': float(value) for name, value in re.findall(
         r"'((?:left|right)_\w+|head_tilt)_initial': '(-?[0-9.]+)'", launch.read_text())}
     if len(initial) != 13:
@@ -55,7 +55,7 @@ def main() -> None:
             'physics_ms_per_step': [], 'render_ms_per_frame': {camera: [] for camera in (
                 'head_realsense_rgb', 'left_wrist_rgb', 'right_wrist_rgb')},
         }
-    # Alternate profile order to reduce warmup/order bias; never benchmark in parallel.
+    # 준비 및 순서 편향을 줄이도록 프로파일 순서를 번갈아 적용하며 병렬 측정하지 않습니다.
     for repeat in range(args.repeats):
         order = PERFORMANCE_PROFILES if repeat % 2 == 0 else PERFORMANCE_PROFILES[::-1]
         for name in order:

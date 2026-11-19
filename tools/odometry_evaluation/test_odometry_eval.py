@@ -109,14 +109,14 @@ def test_yaw_ccw_pattern() -> None:
 
 
 def test_box_pattern_diagonal_boundary() -> None:
-    # 2.0m x 2.0m box has diagonal sqrt(8) ~ 2.828m <= 3.0m
+    # 2.0×2.0m 상자 대각선은 sqrt(8) ≈ 2.828m로 3.0m 이하입니다.
     plan = PatternBuilder.build_box(side_m=2.0, speed_mps=0.5)
     assert plan.pattern_name == "box"
     assert plan.max_origin_distance_m < MAX_ALLOWED_ORIGIN_DISTANCE_M
     assert len(plan.segments) == 4
     assert plan.nominal_total_distance_m == 8.0
 
-    # 2.5m x 2.5m box has diagonal sqrt(12.5) ~ 3.535m > 3.0m -> must raise
+    # 2.5×2.5m 상자 대각선은 sqrt(12.5) ≈ 3.535m로 3.0m를 넘어 예외가 필요합니다.
     with pytest.raises(ValueError, match="exceeding max radius"):
         PatternBuilder.build_box(side_m=2.5)
 
@@ -145,7 +145,7 @@ def test_ground_truth_result_calculation() -> None:
         diagnostic_hint="Test hint",
     )
     assert pytest.approx(res.physical_position_error_norm_mm) == math.hypot(50.0, 20.0)
-    # 53.85mm / 5000mm * 100 ~ 1.077%
+    # 53.85mm / 5000mm × 100 ≈ 1.077%
     assert pytest.approx(res.error_rate_pct, rel=1e-2) == 1.077
     d = res.to_dict()
     assert d["pattern_name"] == "surge"
@@ -186,7 +186,7 @@ def test_odom_guard_normal_flow() -> None:
     t0 = 100.0
     p = guard.update(stamp_sec=10, stamp_nanosec=0, x=1.0, y=2.0, yaw=0.5, mono_time=t0)
     assert p.x_m == 1.0 and p.y_m == 2.0
-    # Within timeout
+    # 시간 제한 안입니다.
     p_fresh = guard.check_freshness(mono_time=t0 + 0.10)
     assert p_fresh == p
 
@@ -195,7 +195,7 @@ def test_odom_guard_stale_timeout() -> None:
     guard = OdomFreshnessGuard(timeout_s=0.15)
     t0 = 100.0
     guard.update(stamp_sec=10, stamp_nanosec=0, x=1.0, y=2.0, yaw=0.5, mono_time=t0)
-    # Stale by 0.16s (> 0.15s)
+    # 0.16초로 제한 0.15초를 초과했습니다.
     with pytest.raises(OdomGuardError, match="Odometry timeout"):
         guard.check_freshness(mono_time=t0 + 0.16)
     assert guard.is_tripped
@@ -217,18 +217,18 @@ def test_odom_guard_frozen_stamp_rejection() -> None:
     guard = OdomFreshnessGuard(timeout_s=0.15, max_consecutive_frozen_stamps=1)
     t0 = 100.0
     guard.update(stamp_sec=10, stamp_nanosec=500, x=1.0, y=2.0, yaw=0.5, mono_time=t0)
-    # Consecutive identical stamp
+    # 연속으로 같은 stamp입니다.
     with pytest.raises(OdomGuardError, match="Repeated frozen odom stamp"):
         guard.update(stamp_sec=10, stamp_nanosec=500, x=1.01, y=2.0, yaw=0.5, mono_time=t0 + 0.02)
     assert guard.is_tripped
 
 
 def test_odom_disconnect_while_mcu_ok_triggers_stop_and_blocks_nonzero_commands() -> None:
-    """Verify that when odometry drops while MCU feedback continues normally:
+    """MCU 피드백은 계속되지만 odometry가 끊긴 상황을 모사합니다.
 
-    1. Stale condition is detected within the configured timeout (0.15s).
-    2. Base driver enable is cleared (/base/enable = false).
-    3. Motion is aborted and NO nonzero commands are published afterward.
+    설정된 0.15초 제한 이후 첫 검사에서 오래된 입력을 검출하고,
+    구동 해제 및 정지 뒤에는 0이 아닌 명령을 보내지 않는지 확인합니다.
+    실제 하드웨어 정지 검증은 아닙니다.
     """
     guard = OdomFreshnessGuard(timeout_s=0.15)
     published_cmds: list[float] = []
@@ -236,40 +236,40 @@ def test_odom_disconnect_while_mcu_ok_triggers_stop_and_blocks_nonzero_commands(
     aborted = False
 
     t_start = 10.0
-    # Initial valid odom received at t=10.0
+    # t=10.0에 최초 유효 odom을 받습니다.
     guard.update(stamp_sec=10, stamp_nanosec=0, x=0.0, y=0.0, yaw=0.0, mono_time=t_start)
 
-    # Simulated MCU feedback continues up to t=10.30s at 50Hz (every 0.02s)
-    # But odom disconnects (no further guard.update calls)!
+    # 합성 MCU 피드백은 t=10.30초까지 50Hz(0.02초마다)로 계속되지만
+    # odom은 끊겨 추가 guard.update 호출이 없습니다.
     for step in range(1, 15):
         curr_t = t_start + step * 0.02
-        # MCU feedback arrived (simulated normal operation)
+        # 정상 동작을 모사하는 MCU 피드백이 도착했습니다.
         mcu_feedback_ok = True
 
         if aborted:
-            # Once aborted, any command publisher must strictly refuse nonzero speeds
+            # 중단 이후 모든 명령 publisher는 0이 아닌 속도를 거부해야 합니다.
             break
 
-        # Attempt to issue movement command (vx = 0.5 m/s)
+        # vx=0.5m/s 이동 명령을 시도합니다.
         try:
             guard.check_freshness(mono_time=curr_t)
-            # If freshness passed, issue command
+            # 최신성을 통과하면 명령을 보냅니다.
             published_cmds.append(0.5)
         except OdomGuardError:
-            # Safety trip: STOP immediately!
+            # 안전 조건 위반 시 즉시 STOP합니다.
             aborted = True
             base_enabled = False
-            published_cmds.append(0.0)  # Stop command
+            published_cmds.append(0.0)  # 정지 명령입니다.
 
-    # Must trip within 0.15s: at 0.16s (step 8), freshness check must fail
+    # 0.15초 제한 이후 첫 검사인 0.16초(step 8)에는 최신성 검사가 실패해야 합니다.
     assert aborted is True
     assert base_enabled is False
     assert guard.is_tripped is True
     assert "Odometry timeout" in guard.trip_reason
 
-    # All commands issued before timeout were 0.5, the command at trip was 0.0,
-    # and zero nonzero commands were issued after the trip!
+    # 시간 초과 전 명령은 모두 0.5, 실패 시 명령은 0.0이며
+    # 그 이후 0이 아닌 명령은 없어야 합니다.
     assert published_cmds[-1] == 0.0
-    # Exactly 7 steps (0.02s * 7 = 0.14s <= 0.15s) allowed, step 8 (0.16s) aborted!
+    # 0.02초 × 7 = 0.14초까지 일곱 step만 허용하고 step 8인 0.16초에 중단합니다.
     assert len(published_cmds) == 8
     assert published_cmds[:7] == [0.5] * 7

@@ -131,9 +131,9 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         package='cleany_mujoco_observer',
         executable='ros2_control_node',
         ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
-        # Keep the simulator's GLFW contexts out of the desktop IBus/XIM
-        # protocol: concurrent GUI/camera creation can stall in XCreateIC.
-        # This override is process-local; other applications retain their IM.
+        # 시뮬레이터 GLFW 컨텍스트를 데스크톱 IBus/XIM 프로토콜에서 제외합니다.
+        # GUI와 카메라를 동시에 만들면 XCreateIC에서 멈출 수 있습니다.
+        # 이 재정의는 해당 프로세스에만 적용하며 다른 앱의 입력기는 유지합니다.
         additional_env={
             'XMODIFIERS': LaunchConfiguration('sim_xmodifiers').perform(context),
         },

@@ -1,4 +1,4 @@
-"""Protect source-independent subscriptions, lossless bytes and policy boundaries."""
+"""소스에 독립적인 구독, 원본 바이트 보존과 정책 경계를 검사합니다."""
 import asyncio
 import json
 import sqlite3
@@ -361,7 +361,7 @@ def test_stop_closes_file_and_each_start_creates_a_separate_recording(tmp_path):
             assert first_path.read_bytes() == stopped
             response = await client.put(server.make_url('/api/recording/settings'), json=dict(settings, active=False))
             assert response.status == 200 and recorder.db is None
-            # Older clients setting active=True also start a new file.
+            # 이전 client도 active=True를 설정하면 새 파일을 시작합니다.
             response = await client.put(server.make_url('/api/recording/settings'), json=dict(settings, active=True))
             assert response.status == 200
             third = (await response.json())['session_id']

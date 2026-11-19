@@ -6,7 +6,7 @@
 namespace cleany_navigation::mppi {
 struct PlanarVelocity {float x{}, y{}, yaw{};};
 
-/// Interpolate the entire twist so axis and all four wheel accelerations agree.
+/// 차체 전체 twist를 같은 비율로 보간해 축별 및 네 바퀴 가속도 한계를 함께 지킵니다.
 inline PlanarVelocity boundedVelocityStep(
   const PlanarVelocity & from, const PlanarVelocity & target, float dt,
   float ax, float ay, float az, float wheel_acceleration, float radius, float lever)

@@ -457,7 +457,7 @@ class GraspMotionOperations(CartesianMotion, GripperOperations, GraspExecutionNo
         selected_index: int | None = None,
         selected_arm: str = '',
     ) -> None:
-        """Publish candidate pre-grasp and grasp TCP points over the RGB view."""
+        """RGB 화면 위에 후보 pregrasp와 grasp TCP 점을 발행합니다."""
         if not self.get_parameter('publish_grasp_debug_overlay').value:
             return
         source = self._debug_image
@@ -702,7 +702,7 @@ class GraspMotionOperations(CartesianMotion, GripperOperations, GraspExecutionNo
 
 
     def _begin_object_detection(self):
-        """Submit detection and return its handle/future without waiting for inference."""
+        """추론을 기다리지 않고 검출을 제출한 handle/future를 반환합니다."""
         goal = InspectScene.Goal()
         goal.query = str(self.get_parameter('query').value)
         goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
@@ -1280,15 +1280,15 @@ class GraspMotionOperations(CartesianMotion, GripperOperations, GraspExecutionNo
 
 
     def _on_grasp_contact(self, selected, attempt: ObjectAttempt) -> None:
-        """Optional consumer hook after settled contact and before attachment."""
+        """접촉 정착 후 부착 전에 사용하는 선택적 소비자 hook입니다."""
 
 
     def _on_lift_motion_complete(self) -> None:
-        """Optional observation freshness barrier before the stabilization hold."""
+        """안정화 유지 전에 적용하는 선택적 관측 최신성 확인입니다."""
 
 
     def _align_refreshed_pregrasp(self, selected, attempt: ObjectAttempt) -> None:
-        """A refreshed selection may have planned from a different pregrasp."""
+        """갱신된 선택이 다른 pregrasp에서 계획되었을 수 있습니다."""
         arm = selected.selected_arm
         current = self._tcp_pose(arm)
         goal = self._tcp_pose(arm, selected.grasp_joint_state)

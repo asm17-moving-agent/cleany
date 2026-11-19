@@ -1,4 +1,4 @@
-"""Exercise stop evidence through the real JointState callback, without DDS."""
+"""DDS 없이 실제 JointState 콜백으로 정지 근거를 검사합니다."""
 from concurrent.futures import Future
 from types import SimpleNamespace as NS
 
@@ -74,7 +74,7 @@ def test_partial_messages_cannot_refresh_old_joint_stop_evidence(feedback_node, 
     import cleany_manipulation_bt.ros_operations as module
 
     node, context, wall, publish, _ = feedback_node
-    wall[0] += 10.0  # The last full arm feedback is now ten seconds old.
+    wall[0] += 10.0  # 마지막 전체 팔 피드백이 이제 10초 전 데이터입니다.
 
     def spin(*_, **__):
         wall[0] += .05
@@ -163,7 +163,7 @@ def test_each_counted_round_requires_new_samples_from_every_joint(feedback_node,
     import cleany_manipulation_bt.ros_operations as module
 
     node, context, wall, publish, values = feedback_node
-    values['bt_stop_feedback_max_age_sec'] = 2.0  # Isolate sample reuse from expiry.
+    values['bt_stop_feedback_max_age_sec'] = 2.0  # 만료와 분리해 표본 재사용만 검사합니다.
     steps = [0]
 
     def spin(*_, **__):

@@ -89,7 +89,7 @@ TEST(KnownGeometry, PreservesAlreadyFreeCellsAndCurvedBoundary)
   const auto free_odds = tree.search(0.005, 0.005, 0.005)->getLogOdds();
   const shapes::Sphere shape(0.055);
   std::unique_ptr<bodies::Body> sphere(bodies::createBodyFromShape(&shape));
-  // Center is in the sphere, but the far cube corner is outside.
+  // 중심은 구 안에 있지만 먼 큐브 모서리는 밖에 있습니다.
   EXPECT_EQ(clearContainedOccupancy(tree, {sphere.get()}, 100).cleared, 0U);
   EXPECT_FLOAT_EQ(tree.search(0.005, 0.005, 0.005)->getLogOdds(), free_odds);
   EXPECT_TRUE(tree.isNodeOccupied(tree.search(0.045, 0.025, 0.005)));
@@ -126,7 +126,7 @@ TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset
       std::unique_ptr<bodies::Body> mesh(bodies::createBodyFromShape(shape_mesh.get()));
       mesh->setScale(scale);
       mesh->setPadding(0.015);
-      // Frame integration clears using a clone of the capture-time body.
+      // 프레임 통합은 촬영 시점 body의 복제본으로 공간을 지웁니다.
       auto placed_mesh = mesh->cloneAt(pose);
       auto primitive = box({0.12, 0.04, 0.04}, pose * local_offset, yaw);
       primitive->setScale(scale);
@@ -149,7 +149,7 @@ TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset
         ASSERT_NE(node, nullptr);
         EXPECT_EQ(mesh_tree.isNodeOccupied(node), primitive_tree.isNodeOccupied(*it));
       }
-      // An occupied cell beyond the configured padding is preserved.
+      // 설정 여유 밖의 점유 셀은 보존합니다.
       EXPECT_TRUE(mesh_tree.isNodeOccupied(mesh_tree.search(0.505, 0.085, 0.005)));
     }
 }

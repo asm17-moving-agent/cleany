@@ -1,5 +1,5 @@
-# Candidates must share snapshot_id, object_id, configured planning frame,
-# and target OBB.
+# 후보는 snapshot_id, object_id, 설정된 계획 좌표계와
+# 대상 OBB를 공유해야 합니다.
 GraspCandidate[] candidates
 # Empty keeps bilateral selection; reobservation can lock the previously selected arm.
 string required_arm

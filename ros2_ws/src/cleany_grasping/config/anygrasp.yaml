@@ -24,10 +24,10 @@ grasp_server:
     anygrasp_adaptive_minimum_object_extent_m: 0.015
     anygrasp_adaptive_maximum_context_ratio: 40.0
     debug_image_topic: grasp/debug_image
-    checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
-    license_path: ''     # Jetson-local AnyGrasp SDK license file.
-    maximum_gripper_width_m: 0.10  # Simulation value; replace after hardware calibration.
-    gripper_height_m: 0.03  # AnyGrasp collision-model finger height.
+    checkpoint_path: ''  # 라이선스가 필요한 Jetson 로컬 SDK 체크포인트이며 배포 시 설정합니다.
+    license_path: ''     # Jetson 로컬 AnyGrasp SDK 라이선스 파일입니다.
+    maximum_gripper_width_m: 0.10  # 시뮬레이션 값이며 하드웨어 보정 이후 교체합니다.
+    gripper_height_m: 0.03  # AnyGrasp 충돌 모델의 손가락 높이입니다.
     workspace_margin_m: 0.04
     target_contact_margin_m: 0.015
     geometric:
@@ -47,6 +47,6 @@ grasp_server:
       reject_robot_opposite_approach: false
       robot_reference_position: [0.0, 0.0, 0.0]
       maximum_candidates: 12
-    # GraspNet canonical +X approach / +Y closing -> Cleany TCP -Y / +X.
+    # GraspNet 기준 +X 접근 / +Y 닫힘을 Cleany TCP -Y / +X로 변환합니다.
     canonical_to_tcp_rotation: [0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
     tcp_approach_axis: [0.0, -1.0, 0.0]

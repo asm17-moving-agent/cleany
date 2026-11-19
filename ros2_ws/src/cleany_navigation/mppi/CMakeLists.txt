@@ -1,4 +1,4 @@
-# Tuned Humble MPPI implementation owned by cleany_navigation.
+# cleany_navigation에서 관리하는 Humble MPPI 구현입니다.
 option(CLEANY_MPPI_PORTABLE_BUILD "Use the fixed CI amd64 instruction set" OFF)
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)

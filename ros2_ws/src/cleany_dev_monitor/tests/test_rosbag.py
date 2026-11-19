@@ -1,4 +1,4 @@
-"""Check the storage boundary against native rosbag2, not a lookalike file."""
+"""유사 파일이 아닌 실제 rosbag2를 사용해 저장 경계를 검사합니다."""
 
 import asyncio
 import json
@@ -75,7 +75,7 @@ def test_camera_context_selection_and_tf_are_not_sampled(monkeypatch):
     } <= hub.recording.topics()
     monkeypatch.setattr("cleany_logger.recording.time.monotonic", lambda: 100.0)
     assert hub.recording.reserve("/tf")
-    assert hub.recording.reserve("/tf")  # Distinct transforms may arrive in a burst.
+    assert hub.recording.reserve("/tf")  # 서로 다른 변환이 한꺼번에 도착할 수 있습니다.
     assert hub.recording.reserve("/tf_static")
     assert hub.recording.reserve("/tf_static")
 
@@ -319,7 +319,7 @@ def test_raw_loss_totals_survive_setting_changes_without_double_counting(tmp_pat
     hub.recording.dropped("camera", 2)
     recorder.append_raw()
     with hub.recording.transition():
-        recorder.append_raw()  # Sealing tickets must not re-count old losses.
+        recorder.append_raw()  # 기록 마감 시 이전 손실을 다시 집계해서는 안 됩니다.
         hub.recording.configure(raw_settings())
     hub.recording.dropped("camera", 1)
     recorder.append_raw()

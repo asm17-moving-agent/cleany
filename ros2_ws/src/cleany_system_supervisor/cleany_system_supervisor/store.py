@@ -1,4 +1,4 @@
-"""Atomic JSON persistence for state that must survive a Supervisor restart."""
+"""Supervisor 재시작 후에도 유지해야 할 상태의 원자적 JSON 저장입니다."""
 import json
 import os
 from pathlib import Path
@@ -11,7 +11,7 @@ class LatchStore:
         self.path = Path(path).expanduser()
 
     def load(self) -> dict | None:
-        """None means no previous state. Unreadable state raises: callers must fail closed."""
+        """None은 이전 상태가 없다는 뜻입니다. 읽을 수 없으면 예외를 내며 호출자는 거부해야 합니다."""
         if not self.path.exists():
             return None
         data = json.loads(self.path.read_text(encoding='utf-8'))

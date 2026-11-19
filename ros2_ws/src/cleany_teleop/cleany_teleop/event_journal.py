@@ -1,4 +1,4 @@
-"""Bounded asynchronous control-event journal; disk I/O never runs in control callbacks."""
+"""크기 제한 비동기 제어 이벤트 journal이며 제어 콜백에서 디스크 I/O를 수행하지 않습니다."""
 
 from datetime import datetime, timezone
 import json

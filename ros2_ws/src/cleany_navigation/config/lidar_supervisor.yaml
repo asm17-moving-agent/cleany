@@ -1,4 +1,4 @@
-# Attended LiDAR-only demo. Depth and physical E-stop observations remain unverified, not fabricated.
+# 운영자가 지켜보는 LiDAR 전용 데모입니다. 깊이와 물리 E-stop 관측은 미검증으로 남기며 만들어 내지 않습니다.
 startup_grace_s: 5.0
 lease_s: 1.5
 heartbeat_timeout_s: 1.0
@@ -67,7 +67,7 @@ sources:
     severity: ERROR
     latched: false
     locks_operation: false
-    # The alignment owner also checks covariance; one fault owns the retry budget.
+    # 정렬 담당자가 공분산도 검사하며 하나의 fault가 재시도 예산을 관리합니다.
     recovery: ''
   navigation:
     stale_s: 1.5

@@ -67,7 +67,7 @@ def _rotation_from_quaternion(x: float, y: float, z: float, w: float) -> np.ndar
 
 
 def _transform_target_object(target_object, rotation, translation):
-    """Return a copy of an object OBB expressed in the destination frame."""
+    """물체 OBB를 목적 좌표계로 표현한 복사본을 반환합니다."""
     transformed = deepcopy(target_object)
     pose = transformed.obb_pose
     position = np.array(
@@ -179,28 +179,28 @@ def _predict_and_rank(
 
 
 class GraspNode(Node):
-    """Plan grasp candidates from a supplied observation without moving the robot.
+    """로봇을 움직이지 않고 제공된 관측으로 파지 후보를 계획합니다.
 
     Services:
-        grasp/plan (cleany_interfaces/srv/PlanGrasp): Server for candidate
-            prediction and filtering; service_name default.
+        grasp/plan (cleany_interfaces/srv/PlanGrasp): 후보 예측 및 필터링 Server.
+            service_name의 기본값입니다.
 
     Publishers:
-        grasp/debug_image (sensor_msgs/msg/Image): Candidate overlay.
+        grasp/debug_image (sensor_msgs/msg/Image): 후보 overlay.
         /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
-            Optional observed geometry when publish_collision_geometry is enabled.
-            Both topic names are configurable defaults.
+            publish_collision_geometry를 켠 경우 관측된 형상.
+            두 토픽 이름은 변경 가능한 기본값입니다.
 
     TF:
-        Resolves observation geometry into planning_frame, default base_link.
+        관측 형상을 planning_frame으로 변환하며 기본값은 base_link입니다.
 
     QoS:
-        Debug images and optional collision geometry are reliable and transient
-        local, with depths 1 and 16 respectively.
+        디버그 영상과 선택적 충돌 형상은 reliable, transient_local이며
+        depth는 각각 1과 16입니다.
 
     Notes:
-        Predictor selection and model/license validation occur at startup.
-        Request validation or planning failure is returned as a failed response.
+        시작 시 예측기를 선택하고 모델과 라이선스를 검사합니다.
+        요청 검증 또는 계획 실패는 실패 응답으로 반환합니다.
     """
     def __init__(self, predictor=None, **kwargs) -> None:
         super().__init__('grasp_server', **kwargs)
@@ -679,7 +679,7 @@ class GraspNode(Node):
         if not math.isclose(quaternion_norm, 1.0, abs_tol=1e-4):
             raise ValueError('target OBB quaternion must be normalized')
         if left.stamp.sec == 0 and left.stamp.nanosec == 0:
-            # TF interprets Time(0) as latest, never as capture at epoch zero.
+            # TF에서 Time(0)은 epoch 0의 촬영 시각이 아니라 최신 시각을 의미합니다.
             raise ValueError('cloud capture timestamp must be nonzero')
         if not 0 <= left.stamp.nanosec < 1_000_000_000:
             raise ValueError('cloud capture timestamp has invalid nanoseconds')

@@ -1,5 +1,5 @@
-# CAD wheel envelope 0.477 x 0.6548 m, with 0.05 m footprint padding.
-# Cleany-final.FCStd; no depth/upper-body clearance is represented.
+# CAD 바퀴 외곽 0.477 × 0.6548m에 footprint 여유 0.05m를 적용합니다.
+# Cleany-final.FCStd 기준이며 깊이나 상체 여유는 표현하지 않습니다.
 local_costmap:
   local_costmap:
     ros__parameters:

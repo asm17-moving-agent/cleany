@@ -129,7 +129,7 @@ async function main() {
     await page.waitForTimeout(400);
     assert.notEqual(await page.locator('canvas').evaluate(c => c.toDataURL()), frozen);
 
-    // A real 60Hz panel can run slightly above 60Hz. Avoid 3-frame/1-frame judder.
+    // 실제 60Hz 패널은 조금 더 빠를 수 있습니다. 3프레임/1프레임 흔들림을 피합니다.
     state = {mode: 'idle', connected: true, rendering: {max_fps: 30}};
     const cadencePage = await browser.newPage({viewport: {width: 640, height: 360}});
     await cadencePage.addInitScript(() => {

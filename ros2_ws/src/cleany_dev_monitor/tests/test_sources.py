@@ -45,7 +45,7 @@ def test_route_change_clears_live_and_replayed_stale_state(tmp_path):
     assert row['category'] == 'safety'
     summary = hub.put('navigation', 'scan', {'topic': '/scan'})
     assert summary['category'] == 'safety'
-    assert allowed(summary, defaults())  # Raw LiDAR remains OFF; summary is independent.
+    assert allowed(summary, defaults())  # 원본 LiDAR 기록은 OFF이며 요약 기록은 독립적입니다.
     settings = defaults()
     settings['enabled']['costmaps'] = False
     assert not allowed(hub.put('layer', 'map', {'topic': '/map'}), settings)

@@ -1,9 +1,8 @@
-"""Small ROS-message boundary for exact wrist-camera acquisition.
+"""손목 카메라의 정확 시각 취득을 위한 소형 ROS 메시지 경계입니다.
 
-The conversion functions are duck typed on purpose: importing this module and
-testing conversion does not require a ROS graph or even generated message type
-support.  A node only needs to connect its two subscription callbacks to
-``on_image`` and ``on_camera_info``.
+변환 함수는 duck typing을 사용하므로 모듈 import와 변환 검사에 ROS graph나
+생성된 메시지 타입 지원이 필요하지 않습니다. 노드는 두 구독 콜백을 on_image와
+on_camera_info에 연결하면 됩니다.
 """
 
 from __future__ import annotations
@@ -25,11 +24,11 @@ NANOSECONDS_PER_SECOND = 1_000_000_000
 
 
 class RosCameraMessageError(ValueError):
-    """A ROS message cannot be represented by the acquisition core."""
+    """ROS 메시지를 취득 core 모델로 표현할 수 없습니다."""
 
 
 def ros_stamp_to_ns(stamp: Any) -> int:
-    """Convert builtin_interfaces/Time-like ``sec``/``nanosec`` fields."""
+    """builtin_interfaces/Time 형태의 sec와 nanosec 필드를 변환합니다."""
 
     try:
         sec = stamp.sec
@@ -58,7 +57,7 @@ def ros_stamp_to_ns(stamp: Any) -> int:
 
 
 def image_frame_from_ros(message: Any) -> ImageFrame:
-    """Copy a sensor_msgs/Image-like object into the pure core model."""
+    """sensor_msgs/Image 형태의 객체를 순수 core 모델로 복사합니다."""
 
     try:
         header = message.header
@@ -86,7 +85,7 @@ def image_frame_from_ros(message: Any) -> ImageFrame:
 
 
 def camera_info_frame_from_ros(message: Any) -> CameraInfoFrame:
-    """Copy geometry-affecting sensor_msgs/CameraInfo fields."""
+    """영상 기하에 영향을 주는 sensor_msgs/CameraInfo 필드를 복사합니다."""
 
     try:
         header = message.header
@@ -110,7 +109,7 @@ def camera_info_frame_from_ros(message: Any) -> CameraInfoFrame:
 
 
 class RosExactCameraPairAdapter:
-    """ROS callback adapter implementing the camera acquisition port."""
+    """카메라 취득 포트를 구현하는 ROS 콜백 어댑터입니다."""
 
     def __init__(
         self,

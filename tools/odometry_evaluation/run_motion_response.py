@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Config-driven physical axial/diagonal/yaw P-response trials."""
+"""설정 기반 실물 축별, 대각선과 yaw 비례 응답 시험입니다."""
 from __future__ import annotations
 
 import argparse
@@ -86,7 +86,7 @@ def trial_validity(result: dict | None, require_valid_icp: bool) -> tuple[bool, 
 
 
 def close_resources(node, stack, probe, shutdown) -> list[str]:
-    """Attempt every cleanup even if STOP raises or only latches an abort."""
+    """STOP이 예외를 내거나 abort만 설정해도 모든 정리를 시도합니다."""
     errors = []
     operations = [node.stop_robot, node.destroy_node] if node is not None else []
     if shutdown is not None:
@@ -126,7 +126,7 @@ def bound_violation(pose, start, axis: str, target: float, guards: dict, session
 
 
 def run(config: dict, evaluation: dict, out: Path) -> int:
-    # Import ROS only for a real run.
+    # 실제 실행에서만 ROS를 import합니다.
     import rclpy
     from evaluation_results import write_data_json
     from motion_runtime import await_fresh_pose, request_abort
@@ -209,8 +209,8 @@ def run(config: dict, evaluation: dict, out: Path) -> int:
                                     "icp_min_inlier_ratio": node.matcher.min_inlier_ratio,
                                     "icp_convergence": node.matcher.convergence_settings.copy(),
                                     "extrinsic_calibration_applied": extrinsic.to_dict()}
-        # Discover the service and confirm STOP while still passive, before a
-        # command is armed. Initial DDS service discovery may exceed 150 ms.
+        # 명령 구동 허가 전에 수동 상태로 서비스를 탐색하고 STOP을 확인합니다.
+        # 초기 DDS 서비스 탐색은 150ms보다 오래 걸릴 수 있습니다.
         if not node.set_base_enabled(False):
             raise RuntimeError("Initial base disable handshake was not acknowledged")
         await_fresh_pose(node, timeout_s=5.0)

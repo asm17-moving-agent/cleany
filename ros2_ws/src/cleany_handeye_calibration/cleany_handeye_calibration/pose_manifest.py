@@ -1,10 +1,8 @@
-"""Strict materialized pose-manifest schema and motion preflight.
+"""엄격한 구체화 자세 manifest 스키마와 이동 전 검사입니다.
 
-The YAML schema keeps unresolved production decisions as explicit ``null``
-values.  Structural loading may be requested for tooling, but the default
-loader and :func:`preflight_pose_manifest` reject every unresolved value
-before motion.  No safety tolerance is inferred from the URDF or hidden in
-this module.
+YAML 스키마는 미결정 운영 값을 명시적인 null로 남깁니다. 도구에서 구조만
+읽을 수 있지만 기본 loader와 preflight_pose_manifest는 이동 전에 모든 미결정
+값을 거부합니다. URDF에서 안전 허용 오차를 추론하거나 이 모듈에 숨기지 않습니다.
 """
 
 from __future__ import annotations
@@ -54,11 +52,11 @@ _POSE_ID_PATTERN = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]*$')
 
 
 class PoseManifestError(ValueError):
-    """A pose manifest is malformed or unsafe to execute."""
+    """자세 manifest 형식이 잘못되었거나 실행하기에 안전하지 않습니다."""
 
 
 class UnresolvedRunConfiguration(PoseManifestError):
-    """Required run values are still explicit ``null`` placeholders."""
+    """필수 실행 값이 아직 명시적인 null 자리표시자입니다."""
 
     def __init__(self, field_paths: Sequence[str]) -> None:
         self.field_paths = tuple(field_paths)
@@ -251,7 +249,7 @@ class CartesianBounds:
 
 @dataclass(frozen=True, slots=True)
 class SoftJointLimits:
-    """Explicit calibration bounds for the exact canonical left-arm order."""
+    """정확한 기준 왼팔 관절 순서에 대한 명시적 보정 범위입니다."""
 
     joint_names: tuple[str, ...]
     lower_rad: tuple[float, ...]
@@ -303,7 +301,7 @@ class SoftJointLimits:
 
 @dataclass(frozen=True, slots=True)
 class RequiredStageTimeouts:
-    """All independently measured stage budgets; ``None`` blocks motion."""
+    """독립적으로 측정한 전체 단계 시간 예산이며 None이면 이동을 차단합니다."""
 
     ik_sec: float | None
     state_validity_sec: float | None
@@ -351,7 +349,7 @@ class RequiredStageTimeouts:
 
 @dataclass(frozen=True, slots=True)
 class PoseRunConfiguration:
-    """Safety values that must be materialized before any pose execution."""
+    """자세 실행 전에 반드시 구체화해야 하는 안전 값입니다."""
 
     max_retries: int | None
     stage_timeouts: RequiredStageTimeouts
@@ -821,7 +819,7 @@ def _validate_duplicates(
 
 
 def preflight_pose_manifest(manifest: PoseManifest) -> ValidatedPoseManifest:
-    """Prove a full pose set is ready before any ROS motion request."""
+    """ROS 이동 요청 전에 전체 자세 집합의 준비 상태를 검증합니다."""
 
     if not isinstance(manifest, PoseManifest):
         raise PoseManifestError('manifest must be a PoseManifest')
@@ -1440,7 +1438,7 @@ def write_pose_manifest(
     *,
     overwrite: bool = False,
 ) -> None:
-    """Atomically materialize a deterministic YAML pose manifest."""
+    """결정적인 YAML 자세 manifest를 원자적으로 저장합니다."""
 
     destination = Path(path)
     if destination.exists() and not overwrite:

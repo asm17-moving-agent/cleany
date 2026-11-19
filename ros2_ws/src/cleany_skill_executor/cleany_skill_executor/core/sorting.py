@@ -1,7 +1,7 @@
-"""Explicit simulation sorting rules and verified pick/place sequencing.
+"""명시적 시뮬레이션 분류 규칙과 확인된 집기 및 놓기 순서입니다.
 
-These label rules are a demo policy, not a claim about ownership or whether a
-real cup is disposable. Unknown, dangerous and uncertain items need review.
+label 규칙은 데모 정책이며 소유권이나 실제 컵의 폐기 가능성을 의미하지 않습니다.
+알 수 없거나 위험하거나 불확실한 물체는 검토가 필요합니다.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ COLLECTION_SKILLS = {'trash': 'collect_trash', 'lost_item': 'collect_lost_item'}
 def classify_model(label: str, confidence: float, category: str, reason: str, *,
                    hazardous_labels: frozenset[str], minimum_confidence: float,
                    trash_destination: str, lost_item_destination: str) -> Decision:
-    """Shared semantic gates; labels may veto safety, never grant permission."""
+    """공통 의미 판정입니다. label은 안전을 이유로 거부할 수 있지만 허가를 부여하지는 않습니다."""
     if normalize_label(label) in hazardous_labels:
         return Decision(label, Category.REVIEW, None, 'hazardous_label')
     if not math.isfinite(confidence) or not minimum_confidence <= confidence <= 1:
@@ -42,7 +42,7 @@ def bin_release_region(
     wall: float, top_z: float, radius: float, minimum_clearance: float,
     maximum_clearance: float, edge_margin: float,
 ) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
-    """Object-center bounds: the entire bounding sphere stays inside the opening."""
+    """전체 경계 구가 입구 안에 남도록 제한하는 물체 중심 범위입니다."""
     values = (*center_xy, *outside_size[:2], wall, top_z, radius,
               minimum_clearance, maximum_clearance, edge_margin)
     if (not all(math.isfinite(v) for v in values)
@@ -116,7 +116,7 @@ class SortingPolicy:
 
     def classify_model(self, label: str, confidence: float,
                        category: str, reason: str) -> Decision:
-        """Consume model semantics, retaining conservative safety vetoes only."""
+        """모델 의미를 사용하되 보수적 안전 거부 조건만 유지합니다."""
         return classify_model(label, confidence, category, reason,
             hazardous_labels=self.hazardous_labels, minimum_confidence=self.minimum_confidence,
             trash_destination=self.trash_destination, lost_item_destination=self.lost_item_destination)
@@ -164,12 +164,11 @@ def execute_sort(
     *,
     verify_placement: bool = True,
 ) -> bool:
-    """Do not report placement just because a gripper-open command succeeded.
+    """그리퍼 열기 명령이 성공했다는 이유만으로 배치 성공을 보고하지 않습니다.
 
-    Exceptions stop the sequence. In particular, a failed transport must not
-    trigger release over the floor. Recovery belongs to the physical port.
-    With verification disabled, True means the motion sequence finished only;
-    the distinct complete_unverified stage leaves placement to the operator.
+    예외는 순서를 중단합니다. 특히 운반 실패가 바닥 위 방출로 이어져서는 안 됩니다.
+    복구는 물리 포트가 담당합니다. 검증을 끄면 True는 이동 순서 완료만 의미하며
+    별도의 complete_unverified 단계로 배치 확인을 운영자에게 남깁니다.
     """
     if decision.category == Category.REVIEW or decision.destination is None:
         stage('review')
@@ -183,7 +182,7 @@ def execute_sort(
     stage('retreat')
     port.retreat(held, decision.destination)
     if not verify_placement:
-        # Operator-observed simulation: completed motion is not verified placement.
+        # 운영자가 관측하는 시뮬레이션입니다. 이동 완료는 배치 검증이 아닙니다.
         stage('complete_unverified')
         return True
     stage('verify')

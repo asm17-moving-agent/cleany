@@ -1,4 +1,4 @@
-"""Check installed detector selection and contained obstacles without motor drivers."""
+"""모터 드라이버 없이 설치된 검출기 선택과 내부에 포함된 장애물을 검사합니다."""
 from contextlib import contextmanager
 import json
 import os

@@ -51,7 +51,7 @@ function RosNode({ data }: NodeProps) {
 }
 const nodeTypes = { ros: RosNode };
 
-// Deterministic, bounded layout. It runs only when connection identities change.
+// 연결 식별자가 바뀔 때만 실행하는 결정적이고 제한된 크기의 배치입니다.
 function layout(ids: string[], links: [string, string][]): Map<string, Point> {
   const points = new Map<string, Point>();
   const adjacency = new Map(ids.map((id) => [id, new Set<string>()]));
@@ -96,7 +96,7 @@ function layout(ids: string[], links: [string, string][]): Map<string, Point> {
           forces[j].x -= fx;
           forces[i].y += fy;
           forces[j].y -= fy;
-          // Keep rectangular labels apart, including non-neighbor nodes.
+          // 인접하지 않은 노드까지 포함해 사각 label이 겹치지 않게 합니다.
           if (Math.abs(dx) < 230 && Math.abs(dy) < 100) {
             if (230 - Math.abs(dx) < 100 - Math.abs(dy)) {
               const push = (230 - Math.abs(dx)) * 0.15 * (dx >= 0 ? 1 : -1);

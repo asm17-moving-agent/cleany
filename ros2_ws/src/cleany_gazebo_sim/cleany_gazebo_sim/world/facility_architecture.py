@@ -1,4 +1,4 @@
-"""Facility table, framed glazing, and a ceiling visible only from below."""
+"""시설의 테이블, 유리창 프레임과 아래에서만 보이는 천장을 만듭니다."""
 
 from math import atan2, cos, hypot, radians, sin
 from pathlib import Path
@@ -23,7 +23,7 @@ def add_glazing(
     config: dict,
     angle_deg: float = 0,
 ) -> None:
-    """A static leaf rotated about its first endpoint; zero angle is closed."""
+    """첫 끝점을 중심으로 회전하는 정적 문짝이며 각도 0은 닫힌 상태입니다."""
     length = hypot(end[0] - start[0], end[1] - start[1])
     yaw = atan2(end[1] - start[1], end[0] - start[0]) + radians(angle_deg)
     link = static_body(
@@ -45,8 +45,8 @@ def add_glazing(
         link, "glass", (length, config["thickness_m"], height), (0, 0, 0, 0, 0, 0), tint
     )
     visual = link.find("visual[@name='glass_visual']")
-    # Keep collision solid. This is a display approximation of glass, not
-    # wavelength-dependent transmission/reflection for physical LiDAR.
+    # 충돌 형상은 불투명 solid로 유지합니다. 유리 표시는 시각적 근사이며
+    # 실물 LiDAR의 파장별 투과나 반사를 모사하지 않습니다.
     ET.SubElement(visual, "transparency").text = str(config["transparency"])
     ET.SubElement(visual, "cast_shadows").text = "false"
     ET.SubElement(visual.find("material"), "specular").text = "0.8 0.8 0.8 1"
@@ -93,8 +93,8 @@ def add_ceiling(world: ET.Element, layout, target: Path) -> None:
     width, depth = abs(b[0] - a[0]), abs(b[1] - a[1])
     x, y = width / 2, depth / 2
     mesh = target.with_suffix(".ceiling.dae")
-    # Clockwise triangles have downward normals. With ordinary backface
-    # culling, the ceiling disappears when the camera is above it.
+    # 시계 방향 삼각형의 법선은 아래를 향합니다. 일반적인 뒷면 제거를 적용하면
+    # 카메라가 위에 있을 때 천장이 보이지 않습니다.
     mesh.write_text(
         f"""<?xml version="1.0"?>
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">

@@ -1,4 +1,4 @@
-"""Scoped study-cafe lighting, shared by the GUI and rendered RGB-D cameras."""
+"""GUI와 RGB-D 카메라 렌더링이 공유하는 스터디카페 한정 조명입니다."""
 import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -54,11 +54,11 @@ def apply_study_cafe_lighting(scene: ET.Element, robot: ET.Element, path: Path) 
     half_extent = float(config['shadow_clip_half_extent_m'])
     if not all(math.isfinite(v) and v > 0 for v in (extent, half_extent)):
         raise ValueError('Shadow coverage and scene extent must be positive and finite')
-    # MuJoCo scales directional shadow clipping by the scene extent. Both the
-    # close-up manipulation scene and the room viewer need the same coverage.
+    # MuJoCo는 장면 범위로 방향성 그림자 절단면을 조정합니다.
+    # 근접 조작 장면과 방 viewer에 같은 조명 범위가 필요합니다.
     map_.set('shadowclip', str(half_extent / extent))
-    # Remove only the generic world lights from the materialized robot copy.
-    # Canonical robot MJCF and all other scenes remain unchanged.
+    # 구체화된 로봇 복사본의 일반 월드 조명만 제거합니다.
+    # 기준 로봇 MJCF와 다른 장면은 유지합니다.
     for light in list(robot_world.findall('light')):
         robot_world.remove(light)
     names = set()

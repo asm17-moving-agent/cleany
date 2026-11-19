@@ -1,4 +1,4 @@
-"""Read-only global-plan previews must not arm the base or revive older targets."""
+"""읽기 전용 전역 경로 미리보기는 베이스를 허가하거나 이전 목표를 되살리면 안 됩니다."""
 from concurrent.futures import Future
 import threading
 import time

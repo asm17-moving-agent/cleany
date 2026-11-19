@@ -37,8 +37,8 @@ esp_err_t Mpu6050::initialize() {
   busConfig.scl_io_num = config_.sclPin;
   busConfig.clk_source = I2C_CLK_SRC_DEFAULT;
   busConfig.glitch_ignore_cnt = 7;
-  // J_I2C1 requires module/external pull-ups. Internal pull-ups are not a
-  // substitute for verifying the actual 100 kHz bus rise time.
+  // J_I2C1에는 모듈 또는 외부 풀업이 필요합니다. 내부 풀업만으로 실제
+  // 100 kHz 버스의 상승 시간을 검증한 것으로 간주하지 않습니다.
   busConfig.flags.enable_internal_pullup = false;
   esp_err_t result = i2c_new_master_bus(&busConfig, &bus_);
   if (result != ESP_OK) return error("create_bus", result);
@@ -52,10 +52,10 @@ esp_err_t Mpu6050::initialize() {
   if (result != ESP_OK) return error("read_identity", result);
   if (identity_ != 0x68) return error("identity_mismatch", ESP_ERR_INVALID_RESPONSE);
 
-  result = writeRegister(0x6B, 0x80);  // DEVICE_RESET.
+  result = writeRegister(0x6B, 0x80);  // DEVICE_RESET 비트입니다.
   if (result != ESP_OK) return error("reset_sensor", result);
   vTaskDelay(pdMS_TO_TICKS(100));
-  // PLL with X gyro reference, temperature enabled, every sensor axis enabled.
+  // X 자이로를 기준으로 PLL을 사용하며 온도 센서와 모든 측정 축을 활성화합니다.
   const std::array<std::array<uint8_t, 2>, 7> settings{{
       {{0x6B, 0x01}}, {{0x6C, 0x00}}, {{0x19, 9}}, {{0x1A, 3}},
       {{0x1B, 0}}, {{0x1C, 0}}, {{0x38, 1}},
@@ -64,7 +64,7 @@ esp_err_t Mpu6050::initialize() {
     result = writeRegister(setting[0], setting[1]);
     if (result != ESP_OK) return error("configure_sensor", result);
   }
-  // Verify the range and divider before decoding with fixed SI scale factors.
+  // 고정 SI 환산 계수를 적용하기 전에 측정 범위와 분주기를 확인합니다.
   std::array<uint8_t, 4> readback{};
   result = readRegisters(0x19, readback.data(), readback.size());
   if (result != ESP_OK) return error("read_configuration", result);
@@ -92,7 +92,7 @@ Mpu6050ReadStatus Mpu6050::readSample(ImuSample& sample) {
     error("read_sample", result);
     return Mpu6050ReadStatus::kError;
   }
-  // This is MCU monotonic acquisition time, not ROS epoch.
+  // ROS epoch가 아닌 MCU 단조 증가 시계의 측정 시각입니다.
   sample = decodeMpu6050Sample(bytes, esp_timer_get_time());
   return Mpu6050ReadStatus::kFresh;
 }

@@ -1,4 +1,4 @@
-"""Opt-in shared observation checks with synthetic ROS execution records."""
+"""합성 ROS 실행 기록을 사용하는 선택적 공통 관측 검사입니다."""
 
 import os
 import time

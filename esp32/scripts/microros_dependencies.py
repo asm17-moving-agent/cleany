@@ -26,9 +26,9 @@ env["ENV"]["PATH"] = os.pathsep.join(
     path for path in env["ENV"].get("PATH", "").split(os.pathsep)
     if not path.startswith("/opt/ros/")
 )
-# ESP-IDF uses its own Python venv. Supply pinned modules to SCons actions;
-# cmake/microros_python.cmake restores this path for CMake configuration too,
-# because PlatformIO's ESP-IDF builder clears its process PYTHONPATH.
+# ESP-IDF는 자체 Python venv를 사용하므로 고정 모듈 경로를 SCons에 제공합니다.
+# PlatformIO 빌더가 PYTHONPATH를 지우기 때문에 cmake/microros_python.cmake가
+# CMake 구성 단계에서도 이 경로를 복구합니다.
 env["ENV"]["PYTHONPATH"] = str(controller / ".venv/lib/python3.10/site-packages")
 env.PrependENVPath("PATH", str(controller / ".venv/bin"))
 env.PrependENVPath("PATH", str(controller / "micro_ros/bin"))

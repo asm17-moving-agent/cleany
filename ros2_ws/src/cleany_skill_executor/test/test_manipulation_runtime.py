@@ -1,4 +1,4 @@
-"""Actual DDS ActionClient traffic, retained events and process crash recovery."""
+"""실제 DDS ActionClient 통신, 보관 이벤트와 프로세스 crash 복구를 검사합니다."""
 
 from pathlib import Path
 import subprocess
@@ -91,7 +91,7 @@ class RosHarness:
             raise AssertionError(f'Action server unavailable: {self.action_name}')
 
     def send(self, message):
-        # Action services can be discovered before the volatile feedback topic.
+        # Action 서비스는 volatile 피드백 토픽보다 먼저 발견될 수 있습니다.
         eventually(lambda: self.node.count_publishers(
             self.action_name + '/_action/feedback') > 0,
             description='Action feedback publisher discovery')
@@ -133,8 +133,8 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     message = goal()
     handle = harness.send(message)
     assert handle.accepted
-    # Humble removes the feedback callback when the result response arrives.
-    # Keep it registered until the full feedback sequence has been observed.
+    # Humble은 결과 응답이 도착하면 피드백 콜백을 제거합니다.
+    # 전체 피드백 순서를 관측할 때까지 등록을 유지합니다.
     eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback),
                description='FINALIZING Action feedback')
     result = response(handle.get_result_async())
@@ -150,7 +150,7 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     assert record.record.object_state == 'LEFT_GRIPPER' and record.record.placement_state == 'CONFIRMED'
     assert {'GraspObject', 'ConfirmGrasp', 'ConfirmRelease'} <= set(record.record.completed_substages)
     assert not harness.query('missing').found
-    # A fresh ROS context represents a monitor joining after the Action ended.
+    # 새 ROS 컨텍스트는 Action 종료 후 접속한 monitor를 나타냅니다.
     observer = ros(start=False)
     late_events = []
     subscriber = observer.node.create_subscription(ManipulationExecutionRecord,
@@ -401,7 +401,7 @@ def test_real_ros_record_failure_preserves_result_query_and_followup(ros, monkey
 
 def test_process_kill_restart_reports_interruption_without_action_result(ros, tmp_path):
     harness = ros(start=False, slow=True)
-    # Keep the mock in LIFTING until killed; DDS feedback arrival is asynchronous.
+    # 강제 종료할 때까지 mock을 LIFTING에 유지합니다. DDS 피드백은 비동기로 도착합니다.
     config = yaml.safe_load(harness.config.read_text())
     config['scenarios']['success']['stage_durations_sec'] = {'LIFTING': 30.0}
     config['motion_timeout_sec'] = 60.0

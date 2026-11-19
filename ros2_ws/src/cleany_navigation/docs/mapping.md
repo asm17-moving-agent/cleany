@@ -10,7 +10,7 @@ flowchart LR
   Ready --> Status["mapping/status / 준비 결과"]
 ```
 
-[실행 가이드](../../../../docs/RUNNING.md) · [하드웨어 프로필](../../cleany_bringup/docs/hardware-mapping.md)
+[실행 가이드](../../../../docs/implementation/how-to/mapping.md) · [하드웨어 프로필](../../cleany_bringup/docs/hardware-mapping.md)
 
 `mapping_scan_filter`는 `scan_raw` 원본을 보존하고 base 전방 180도 중 0.30m 초과 값을
 `scan`으로 발행합니다. 후방과 가까운 finite 값은 NaN이며 clearing ray로 바꾸지 않습니다.

@@ -1,4 +1,4 @@
-"""Bounded JSONL decoding and device-clock lag detection."""
+"""크기 제한 JSONL 디코딩과 장치 시계 지연 검출입니다."""
 import json
 import math
 
@@ -27,7 +27,7 @@ class Stream:
                     raise ValueError('record must be an object')
                 result.append(record)
             except (ValueError, UnicodeError):
-                # A corrupt line invalidates the batch, even if valid lines follow.
+                # 손상된 행이 있으면 뒤에 유효 행이 있어도 전체 묶음을 무효화합니다.
                 raise ValueError('invalid JSONL') from None
         return result
 
@@ -58,6 +58,6 @@ class Stream:
         if offset-self.offset > max_lag:
             raise ValueError('delayed USB frame')
         self.sequence, self.device_us = seq, stamp
-        # time_us is read completion, not exposure: include read time and period.
+        # time_us는 노출이 아닌 읽기 완료 시각이므로 읽기 시간과 주기를 포함합니다.
         acquisition = stamp/1e6+self.offset-read/1e6-1/15
         return acquisition

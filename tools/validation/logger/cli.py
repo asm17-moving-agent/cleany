@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the installed CLI against an independent logger with synthetic input."""
+"""합성 입력과 독립 logger로 설치된 CLI를 검사합니다."""
 import argparse
 import json
 import os
@@ -38,7 +38,7 @@ def main():
     path_pub = source.create_publisher(RosPath, '/cli/plan', 10)
     image_pub = source.create_publisher(Image, '/cli/image', 10)
     def slow_response(request, response):
-        time.sleep(1.5)  # Deliberately exceed the CLI response deadline.
+        time.sleep(1.5)  # 의도적으로 CLI 응답 마감을 초과합니다.
         return response
     source.create_service(RecordingControl, '/cli/slow/get_config', slow_response)
     sequence = 0
@@ -141,7 +141,7 @@ def main():
                 assert 0 < number <= sequence
                 actual[topic].append(number)
         assert all(actual.values())
-        # Closing each one-shot CLI above did not stop the independent writer.
+        # 위의 일회성 CLI를 각각 닫아도 독립 writer는 멈추지 않았습니다.
         second = cli('start')
         assert second['session_id'] != session
         cli('stop')

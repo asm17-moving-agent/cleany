@@ -1,4 +1,4 @@
-"""Strict experiment config and candidate-only CSV/YAML artifacts."""
+"""엄격한 실험 설정과 후보 전용 CSV/YAML 결과물입니다."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def validate_dataset_manifest(
     *,
     urdf_sha256: str,
 ) -> Mapping[str, Any]:
-    """Verify the committed dataset provenance used by the evaluator."""
+    """평가기에서 사용하는 확정 데이터셋의 출처 정보를 검증합니다."""
 
     manifest_path = Path(path).expanduser().resolve(strict=True)
     try:
@@ -526,7 +526,7 @@ def write_evaluation_artifacts(
     *,
     input_hashes: Mapping[str, str],
 ) -> tuple[Path, ...]:
-    """Write only candidate artifacts; never mutate URDF or profiles."""
+    """후보 결과물만 저장하며 URDF나 프로파일은 변경하지 않습니다."""
 
     directory = Path(output_directory).expanduser().resolve()
     if directory.exists() and (

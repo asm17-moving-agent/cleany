@@ -1,12 +1,12 @@
-# Detector prompt used by phase 1. Empty selects the configured default.
-# Phase 2 uses the cached detections and ignores this field.
+# 1단계 검출기 프롬프트입니다. 빈 값이면 설정된 기본값을 사용합니다.
+# 2단계는 캐시된 검출 결과를 사용하며 이 필드를 무시합니다.
 string query
 
-# Same fixed-base desk task uses the same session. Empty disables tracking.
+# 베이스가 고정된 같은 책상 작업에는 같은 session을 사용합니다. 빈 값이면 추적을 끕니다.
 string tracking_session_id
 
-# Both fields are empty/zero for detector-only phase 1. Phase 2 supplies the
-# snapshot ID returned by phase 1 and one of its object IDs.
+# 검출만 수행하는 1단계에서는 두 필드가 빈 값 또는 0입니다. 2단계에서는
+# 1단계가 반환한 snapshot ID와 해당 snapshot의 물체 ID 하나를 제공합니다.
 string snapshot_id
 uint32 selected_object_id
 ---
@@ -27,16 +27,16 @@ bool success
 uint8 error_code
 string message
 
-# All numbered phase-1 detections. Phase 2 repeats the cached array so clients
-# can correlate the selected ID without retaining a separate ROS message.
+# 번호가 부여된 1단계 전체 검출 결과입니다. client가 별도 ROS 메시지를 보관하지
+# 않아도 선택 ID를 연결할 수 있도록 2단계에서도 캐시된 배열을 반복합니다.
 DetectedObject2DArray detections
 
-# Empty in phase 1; contains only the selected object in phase 2.
+# 1단계에서는 비어 있으며 2단계에서는 선택된 물체만 포함합니다.
 DetectedObject3DArray objects
 
-# Empty in phase 1. Phase 2 clouds share the configured target frame and capture
-# timestamp with objects.header. target_cloud contains selected-mask points;
-# context_cloud includes the configured local crop around the object.
+# 1단계에서는 비어 있습니다. 2단계 점군은 objects.header와 설정된 대상 좌표계 및
+# 촬영 시각을 공유합니다. target_cloud는 선택 마스크의 점을 담고,
+# context_cloud는 물체 주변의 설정된 국소 영역을 포함합니다.
 sensor_msgs/PointCloud2 target_cloud
 sensor_msgs/PointCloud2 context_cloud
 ---
@@ -48,8 +48,8 @@ uint8 STAGE_TRANSFORMING=4
 
 uint8 stage
 
-# Counts known at this stage. detections_2d includes all phase-1 detections;
-# objects_3d is zero until the selected object has been reconstructed.
+# 이 단계에서 확인된 개수입니다. detections_2d는 1단계 전체 검출을 포함하며
+# objects_3d는 선택한 물체를 재구성하기 전까지 0입니다.
 uint32 detections_2d
 uint32 objects_3d
 string message

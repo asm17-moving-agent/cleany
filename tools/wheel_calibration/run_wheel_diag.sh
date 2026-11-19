@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runner for wheel tracking diagnosis
+# 바퀴 추종 진단 실행기입니다.
 set -eo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

@@ -1,4 +1,4 @@
-"""Deterministic, metre-scale tabletop geometry; no downloaded image/mesh assets."""
+"""결정적인 미터 단위 탁상 형상이며 다운로드한 영상이나 메시 asset을 사용하지 않습니다."""
 from dataclasses import dataclass
 import math
 from typing import Iterable, Mapping, Sequence
@@ -86,9 +86,8 @@ def cup_vertices(size: tuple[float, ...], shape: TabletopShape, *,
     clearance = 0.0
     if collision:
         clearance = shape.parameters.get('collision_bottom_clearance_m', 0.0)
-    # Let the bottom disk support an upright cup instead of generating a
-    # coplanar support contact on every wall panel. Keep the tapered side at
-    # the same radius above this sub-millimetre clearance and retain the base.
+    # 각 벽 패널에 같은 평면의 지지 접촉을 만들지 않고 바닥 원판으로 선 컵을 받칩니다.
+    # 1mm 미만의 이 간격 위에서는 경사진 옆면의 반경과 바닥을 유지합니다.
     lower_radius = bottom + (radius-bottom)*clearance/height
     rings = ((lower_radius, clearance), (radius, height),
              (radius-wall, height), (bottom-wall, wall))
@@ -139,7 +138,7 @@ def add_shape_assets(asset: ET.Element, name: str, size: tuple[float, ...], shap
         vertices, _ = cup_vertices(size, shape, collision=True)
         count = len(vertices)//4
         for i in range(count):
-            # Each convex wall panel is separate, preserving the open interior.
+            # 각 볼록 벽 패널을 분리해 열린 내부를 보존합니다.
             panel = [vertices[ring*count+j] for ring in range(4) for j in (i, (i+1) % count)]
             _mesh(asset, f'{name}_wall_mesh_{i}', panel,
                 ((0,1,3),(0,3,2),(2,3,5),(2,5,4),(4,5,7),(4,7,6),
@@ -179,6 +178,6 @@ def add_shape_geoms(body: ET.Element, name: str, size: tuple[float, ...],
                                   pos=pos, size=stud_size, **attributes)
     else:
         ET.SubElement(body, 'geom', name=f'{name}_visual', type='mesh', mesh=f'{name}_mesh', **visual)
-        # MuJoCo uses the convex hull for contact; the rendered surface retains its folds.
+        # MuJoCo 접촉은 볼록 껍질을 사용하며 렌더링 표면은 접힌 모양을 유지합니다.
         ET.SubElement(body, 'geom', name=f'{name}_collision', type='mesh', mesh=f'{name}_mesh',
                       mass=str(mass), **collision)

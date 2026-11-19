@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ros-dev-tools && \
     rm -rf /var/lib/apt/lists/*
 
-# JetPack 6.2 / CUDA 12.6 wheels built for Python 3.10 on aarch64.
+# aarch64의 Python 3.10용 JetPack 6.2 / CUDA 12.6 wheel을 사용합니다.
 RUN python3 -m pip install --no-cache-dir \
       'Cython<3' filelock fsspec hydra-core iopath jinja2 networkx \
       'numpy==1.26.4' pillow scipy sympy tqdm typing-extensions && \
@@ -45,8 +45,8 @@ RUN python3 -m pip install --no-cache-dir \
       'https://pypi.jetson-ai-lab.io/jp6/cu126/+f/62a/1beee9f2f1470/torch-2.8.0-cp310-cp310-linux_aarch64.whl#sha256=62a1beee9f2f147076a974d2942c90060c12771c94740830327cae705b2595fc' \
       'https://pypi.jetson-ai-lab.io/jp6/cu126/+f/907/c4c1933789645/torchvision-0.23.0-cp310-cp310-linux_aarch64.whl#sha256=907c4c1933789645ebb20dd9181d40f8647978e6bd30086ae7b01febb937d2d1'
 
-# AnyGrasp's CUDA 12.x guide applies the nvcc/libstdc++ shared_ptr fix below.
-# CUDA 12.6 with the PyTorch 2.8 CCCL headers needs it as well.
+# AnyGrasp CUDA 12.x 안내의 nvcc/libstdc++ shared_ptr 수정입니다.
+# CUDA 12.6과 PyTorch 2.8 CCCL 헤더 조합에도 이 수정이 필요합니다.
 WORKDIR /opt/src
 RUN git clone https://github.com/chenxi-wang/MinkowskiEngine.git && \
     cd MinkowskiEngine && \
@@ -91,8 +91,8 @@ RUN python3 -m pip install --no-cache-dir --upgrade \
     python3 -m pip install --no-cache-dir \
       'git+https://github.com/ultralytics/CLIP.git@a13192f8cb767260d7dfd98c843b0716593169e7'
 
-# graspnetAPI imports IPython from its Dex-Net compatibility modules while the
-# licensed detector is being constructed, even for headless inference.
+# graspnetAPI는 화면 없는 추론에서도 라이선스 검출기를 생성하는 동안
+# Dex-Net 호환 모듈에서 IPython을 가져옵니다.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3-ipython && \
     rm -rf /var/lib/apt/lists/*

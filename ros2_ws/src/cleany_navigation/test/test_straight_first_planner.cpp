@@ -79,7 +79,7 @@ TEST(StraightFirstPlanner, PrefixDoesNotCutThroughObstacleOrReverseBehindRobot) 
   }
   ASSERT_TRUE(cleany_navigation::sweptPathCollisionFree(route,map,footprint));
   unsigned int x,y;map.worldToMap(.25,0.,x,y);map.setCost(x,y,254);
-  // The obstacle is off the original route but intersects the shortcut's body.
+  // 장애물은 원래 경로 밖에 있지만 지름길의 body와 교차합니다.
   EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(route,map,footprint));
   EXPECT_EQ(cleany_navigation::checkedShortcutPathPrefix(route,map,footprint,1.),route);
   map.setCost(x,y,0);
@@ -103,8 +103,8 @@ TEST(StraightFirstPlanner, HolonomicRearAndSideMotionPreserveOrientationAndFullB
   EXPECT_TRUE(cleany_navigation::checkedHolonomicPath(a,b,map,footprint).poses.empty());
   map.setCost(x,y,0);
   EXPECT_TRUE(cleany_navigation::checkedHolonomicPath(a,b,map,footprint,[]{return true;}).poses.empty());
-  // Both endpoint rotation locations are blocked, even though center-line
-  // translation is clear. The full swept body must veto both strategies.
+  // 중심선 병진은 가능해도 양 끝점의 회전 위치가 막혀 있습니다.
+  // 전체 body sweep이 두 전략 모두 거부해야 합니다.
   footprint.clear();
   for(auto xy:std::vector<std::pair<double,double>>{{-.1,-.5},{.1,-.5},{.1,.5},{-.1,.5}}) {
     geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
@@ -178,8 +178,8 @@ TEST(StraightFirstPlanner, FixedHeadingDetourRefusesCorridorThatNeedsRotation) {
   }
   EXPECT_TRUE(cleany_navigation::pathCollisionFree(route,map,footprint));
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingPath(route,map,footprint).poses.empty());
-  // Extend the side obstacles to the map boundary: a fixed body yaw cannot
-  // detour around them, while the original rotated body fits the passage.
+  // 측면 장애물을 지도 경계까지 늘리면 고정 body yaw로는 우회할 수 없지만
+  // 원래 회전된 body는 통로에 들어맞습니다.
   for(unsigned int x=0;x<map.getSizeInCellsX();++x)for(unsigned int y=116;y<124;++y) {
     double wx,wy;map.mapToWorld(x,y,wx,wy);
     if(std::abs(wx)>=.25)map.setCost(x,y,254);
@@ -205,7 +205,7 @@ TEST(StraightFirstPlanner, FixedHeadingAcceptanceRetainsRequiredPaddingWithoutSe
   unsigned int x,y;ASSERT_TRUE(map.worldToMap(1.375,.5,x,y));map.setCost(x,y,254);
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingPath(route,map,searched).poses.empty());
   EXPECT_FALSE(cleany_navigation::checkedFixedHeadingPath(route,map,required).poses.empty());
-  // A full occupied cell touched only by required padding must still veto.
+  // 필수 여유만 점유 셀에 닿아도 거부해야 합니다.
   ASSERT_TRUE(map.worldToMap(1.325,.5,x,y));map.setCost(x,y,254);
   EXPECT_FALSE(cleany_navigation::checkedFixedHeadingPath(route,map,body).poses.empty());
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingPath(route,map,required).poses.empty());
@@ -235,7 +235,7 @@ TEST(StraightFirstPlanner, FixedHeadingGridSearchFindsBodySafeDetourAndChecksEnd
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,body,0.,5.,[&]{return ++polls>30;}).poses.empty());
   for(unsigned int y=0;y<100;++y)map.setCost(50,y,255);
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,body,0.,5.).poses.empty());
-  // Closed endpoint rotation: safe unrotated body but its corner sweeps an occupied cell.
+  // 회전하지 않은 body는 안전하지만 끝점 회전 중 모서리가 점유 셀을 통과합니다.
   map.resetMap(0,0,100,100);unsigned int x,y;map.worldToMap(-.75,.2,x,y);map.setCost(x,y,254);
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,body,M_PI/2,5.).poses.empty());
 }
@@ -255,8 +255,8 @@ TEST(StraightFirstPlanner, HalfTurnUsesContinuousSubintervalsAndStillRejectsCorn
   int polls=0;
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.,
     [&]{return ++polls>4;}).poses.empty());
-  // Both endpoint orientations are free, but the rotating corner contacts
-  // this cell between them. Continuous subintervals must retain that veto.
+  // 양 끝점 방향은 모두 비어 있지만 중간 회전 모서리가 이 셀과 접촉합니다.
+  // 연속 하위 구간도 이 거부를 유지해야 합니다.
   ASSERT_TRUE(map.worldToMap(.375,.125,x,y));map.setCost(x,y,254);
   nav_msgs::msg::Path turn;turn.header=start.header;turn.poses={start,start};
   turn.poses.back().pose.orientation.z=1.;turn.poses.back().pose.orientation.w=0.;
@@ -296,8 +296,8 @@ TEST(StraightFirstPlanner, LiveSweepValidatesChosenHeadingWithoutReorientingTheR
   EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(chosen,map,body));
   EXPECT_EQ(chosen,original);
   unsigned int x,y;ASSERT_TRUE(map.worldToMap(1.,.325,x,y));map.setCost(x,y,254);
-  // The chosen goal-yaw route is newly occupied. A different yaw would fit,
-  // but validation must reject this route rather than silently choose it.
+  // 선택한 목표 yaw 경로에 새 장애물이 생겼습니다. 다른 yaw는 들어맞더라도
+  // 검증 단계는 조용히 바꿔 선택하지 않고 이 경로를 거부해야 합니다.
   EXPECT_FALSE(cleany_navigation::sweptPathCollisionFree(chosen,map,body));
   EXPECT_FALSE(cleany_navigation::checkedFixedHeadingPath(chosen,map,body).poses.empty());
   EXPECT_EQ(chosen,original);
@@ -305,8 +305,8 @@ TEST(StraightFirstPlanner, LiveSweepValidatesChosenHeadingWithoutReorientingTheR
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingPath(malformed,map,body).poses.empty());
 }
 
-// A child process also verifies full teardown and process-exit static
-// destructors. _Exit would hide duplicate upstream heuristic-table teardown.
+// 자식 프로세스로 전체 정리와 종료 시 정적 소멸자까지 검사합니다.
+// _Exit는 upstream 휴리스틱 표의 중복 정리 문제를 숨깁니다.
 static bool blockedSearchReleasesLiveMapAndSharesBudget() {
   rclcpp::init(0,nullptr);
   auto parent=std::make_shared<rclcpp_lifecycle::LifecycleNode>("snapshot_planner_test");
@@ -349,8 +349,8 @@ static bool blockedSearchReleasesLiveMapAndSharesBudget() {
   const auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
   writer.join();
   if(!(path.poses.empty() && elapsed>.05 && elapsed<.9 && wait_s<.1 && live->getCost(10,10)==254))return false;
-  // Failure evidence must retain the searched bytes, not replace them with
-  // the live update that happened during exploration.
+  // 실패 근거에는 탐색한 바이트를 보관해야 하며 탐색 중 발생한 실시간
+  // 갱신으로 대체하지 않습니다.
   std::ifstream metadata(evidence/"failure.json");nlohmann::json record;metadata>>record;
   if(record["attempts"].empty() || record["search"]["fnv1a64"]==record["live"]["fnv1a64"])return false;
   const auto read=[&](const std::string &name) {
@@ -361,8 +361,8 @@ static bool blockedSearchReleasesLiveMapAndSharesBudget() {
   const auto index=10*live->getSizeInCellsX()+10;
   if(searched.size()!=live->getSizeInCellsX()*live->getSizeInCellsY() ||
      updated.size()!=searched.size() || searched[index]!=0 || updated[index]!=254)return false;
-  // A path that exists in a snapshot must still be vetoed when an observer
-  // occupies the live map during search. A behind-robot goal forces lattice.
+  // snapshot에 존재하는 경로도 탐색 중 실시간 지도에 장애물이 관측되면
+  // 거부해야 합니다. 로봇 뒤 목표를 사용해 lattice를 강제합니다.
   live->resetMap(0,0,live->getSizeInCellsX(),live->getSizeInCellsY());
   for(unsigned int x=0;x<live->getSizeInCellsX();++x)
     for(unsigned int y=0;y<live->getSizeInCellsY();++y)live->setCost(x,y,0);
@@ -391,9 +391,9 @@ static bool blockedSearchReleasesLiveMapAndSharesBudget() {
 #endif
   observer.join();
   if(!stale.poses.empty())return false;
-  // A continuous pose can be safe while its nearest angle/grid seed collides.
-  // A behind-robot goal forces lattice search; the returned plan
-  // must retain the real pose and safely rotate before reaching another seed.
+  // 연속 자세는 안전해도 가장 가까운 각도/격자 seed는 충돌할 수 있습니다.
+  // 로봇 뒤 목표로 lattice 탐색을 강제합니다. 반환 계획은 실제 자세를 유지하고
+  // 다른 seed에 도달하기 전에 안전하게 회전해야 합니다.
   for(unsigned int x=0;x<live->getSizeInCellsX();++x)
     for(unsigned int y=0;y<live->getSizeInCellsY();++y)live->setCost(x,y,0);
   unsigned int mx,my;live->worldToMap(.125,.525,mx,my);live->setCost(mx,my,254);
@@ -413,7 +413,7 @@ static bool blockedSearchReleasesLiveMapAndSharesBudget() {
   if(alternate.poses.empty() || !cleany_navigation::pathCollisionFree(alternate,*live,map->getRobotFootprint()))return false;
   if(std::hypot(alternate.poses.front().pose.position.x-a.pose.position.x,
                 alternate.poses.front().pose.position.y-a.pose.position.y)>1e-12)return false;
-  // An occupied real start must never be escaped by snapping somewhere free.
+  // 점유된 실제 시작점을 빈 위치로 맞춰 탈출시켜서는 안 됩니다.
   live->worldToMap(.375,-.225,mx,my);live->setCost(mx,my,254);
   if(cleany_navigation::pathCollisionFree(stationary,*live,map->getRobotFootprint()))return false;
 #if CLEANY_NAV2_CANCEL_CHECKER
@@ -430,8 +430,8 @@ static bool blockedSearchReleasesLiveMapAndSharesBudget() {
 
 TEST(StraightFirstPlanner, BlockedSearchSharesDeadlineAndDoesNotBlockLiveMapUpdates) {
   ASSERT_EXIT({
-    // Exit status/stderr are sufficient for this regression. A deliberately
-    // reproduced crash must not start a host crash analyzer during live tests.
+    // 이 회귀 검사에는 종료 상태와 stderr로 충분합니다. 의도적으로 재현하는
+    // crash가 실시간 테스트 중 호스트 crash 분석기를 시작하지 않게 합니다.
     const rlimit no_core{};
     if(setrlimit(RLIMIT_CORE,&no_core)!=0)std::exit(2);
     std::exit(blockedSearchReleasesLiveMapAndSharesBudget()?0:1);
@@ -470,7 +470,7 @@ TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
     EXPECT_FALSE(translating && rotating);
   }
   int calls=0;EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.,[&]{return ++calls>100;}).poses.empty());
-  // A complete barrier cannot be bypassed by changing body yaw.
+  // 완전한 장벽은 body yaw 변경으로 우회할 수 없습니다.
   for(unsigned int x=0;x<120;++x)for(unsigned int y=50;y<52;++y)map.setCost(x,y,254);
   EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.).poses.empty());
 }

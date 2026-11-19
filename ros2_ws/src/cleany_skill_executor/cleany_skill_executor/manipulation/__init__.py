@@ -1,1 +1,1 @@
-"""ROS-independent, single-object manipulation execution."""
+"""ROS에 독립적인 단일 물체 조작 실행입니다."""

@@ -1,4 +1,4 @@
-# Approximate simulation approach poses; arm reach is unvalidated.
+# 근사 시뮬레이션 접근 자세이며 팔 도달 가능성은 검증되지 않았습니다.
 schema_version: 1
 map_id: facility_integration
 frame_id: map

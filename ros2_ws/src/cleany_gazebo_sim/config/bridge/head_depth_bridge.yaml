@@ -1,4 +1,4 @@
-# Fortress depth inputs for the navigation safety profile.
+# 주행 안전 프로파일에 사용하는 Fortress 깊이 입력입니다.
 - ros_topic_name: /camera/head/depth/image_raw
   gz_topic_name: /model/cleany_mecanum/head_camera/depth/image
   ros_type_name: sensor_msgs/msg/Image

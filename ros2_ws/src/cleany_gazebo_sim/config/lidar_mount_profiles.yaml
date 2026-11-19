@@ -2,9 +2,9 @@ schema_version: 1
 parent_frame_id: base_link
 lidar_frame_id: lidar_link
 
-# Experimental simulation candidates for SCRUM-316. These coordinates are
-# not approved hardware dimensions. Keep the same profile for every repeated
-# route trial and materialize both SDF and TF parameters with the evaluator.
+# SCRUM-316의 시뮬레이션 실험 후보입니다. 이 좌표는
+# 승인된 하드웨어 치수가 아닙니다. 반복 경로 시험에서는 같은 프로파일을
+# 유지하고 평가 도구로 SDF와 TF 파라미터를 함께 생성합니다.
 profiles:
   floor_16p5cm:
     description: Scan center 0.165 m above the world floor.

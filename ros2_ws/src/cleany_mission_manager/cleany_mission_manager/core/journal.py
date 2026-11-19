@@ -1,4 +1,4 @@
-"""Durable admission and immutable terminal outcomes; no ROS dependency."""
+"""영속 수락 기록과 불변 종료 결과이며 ROS 의존성이 없습니다."""
 
 import json
 import sqlite3
@@ -9,10 +9,10 @@ from .runtime_models import RuntimeReport, RuntimeRequest
 
 
 class MissionJournal:
-    """Persist admissions and one terminal outcome per mission in SQLite.
+    """임무 수락과 임무별 종료 결과 하나를 SQLite에 저장합니다.
 
-    Use from the creating thread. Mutations commit synchronously; filesystem
-    and database errors propagate to the caller.
+    생성한 스레드에서 사용해야 합니다. 변경은 동기적으로 commit하며
+    파일 시스템과 데이터베이스 오류는 호출자에게 전달합니다.
     """
     def __init__(self, path: str = ":memory:") -> None:
         if path != ":memory:":
@@ -37,10 +37,10 @@ class MissionJournal:
         )
 
     def accept(self, request: RuntimeRequest, profile: dict | None = None) -> None:
-        """Atomically store a new request and its execution profile.
+        """새 요청과 실행 프로파일을 원자적으로 저장합니다.
 
         Raises:
-            sqlite3.IntegrityError: The mission ID has already been admitted.
+            sqlite3.IntegrityError: 같은 mission ID가 이미 수락된 경우.
         """
         with self.db:
             self.db.execute("INSERT INTO missions VALUES(?,?,NULL)", (
@@ -54,10 +54,10 @@ class MissionJournal:
         return json.loads(self.value("profile:" + mission_id, "{}"))
 
     def finish(self, report: RuntimeReport) -> None:
-        """Commit the first terminal report for an admitted mission.
+        """수락된 임무의 첫 종료 보고서를 저장 확정합니다.
 
         Raises:
-            RuntimeError: The mission is unknown or already has a terminal outcome.
+            RuntimeError: 알 수 없는 임무이거나 이미 종료 결과가 있는 경우.
         """
         with self.db:
             updated = self.db.execute(

@@ -8,7 +8,7 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 GEOMETRY_PYTHON ?= python3
 SORTING_ARGS ?=
-# Keep data and generated outputs outside the source worktree.
+# 데이터와 생성물은 소스 worktree 밖에 보관합니다.
 CLEANY_DATA_ROOT ?= $(if $(wildcard $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../../cleany-data),$(abspath $(REPO_ROOT)/../cleany-data))
 CLEANY_BUILD_ROOT ?= $(if $(XDG_CACHE_HOME),$(XDG_CACHE_HOME),$(HOME)/.cache)/cleany/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
 CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
@@ -450,7 +450,7 @@ test-mission: test-mission-core
 SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
 SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
 SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/platform/$(CLEANY_RUN_DATE)_supervision/latency.json
-# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+# E2E 그래프는 별도 Navigation 빌드의 Nav2 lifecycle 복구 노드를 사용합니다.
 build-supervision: build-navigation
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \

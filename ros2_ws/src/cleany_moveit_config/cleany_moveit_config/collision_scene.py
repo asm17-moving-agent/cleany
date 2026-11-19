@@ -12,7 +12,7 @@ SCHEMA_VERSION = 'cleany.moveit_collision_objects/v1'
 
 
 class CollisionSceneError(ValueError):
-    """Raised when collision-object configuration is unsafe or ambiguous."""
+    """충돌 물체 설정이 안전하지 않거나 모호하면 발생합니다."""
 
 
 @dataclass(frozen=True)
@@ -170,7 +170,7 @@ def load_collision_scene(path: Path) -> CollisionSceneSpec:
 
 
 def build_planning_scene(spec: CollisionSceneSpec):
-    """Build a MoveIt diff; every primitive pose is explicit in base_link."""
+    """모든 기본 도형 자세를 base_link로 명시한 MoveIt diff를 만듭니다."""
 
     from geometry_msgs.msg import Pose
     from moveit_msgs.msg import CollisionObject, PlanningScene

@@ -1,4 +1,4 @@
-"""Core data and transform contracts for Cleany hand-eye calibration."""
+"""Cleany 손-눈 보정의 핵심 데이터와 변환 계약입니다."""
 
 from cleany_handeye_calibration.camera_acquisition import (
     CameraContract,

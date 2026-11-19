@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Temporary ROS 2 command source; does not flash or reset the ESP32."""
+"""임시 ROS 2 명령 소스이며 ESP32를 flash하거나 reset하지 않습니다."""
 
 from __future__ import annotations
 
@@ -143,7 +143,7 @@ def main() -> int:
         )
 
     def stop_and_confirm():
-        # STOP ignores deadlines and is also attempted after stale/reboot errors.
+        # STOP은 마감을 무시하며 오래된 데이터나 재부팅 오류 후에도 시도합니다.
         message = send(WheelCommand.STOP)
         end = time.monotonic() + 0.6
         while time.monotonic() < end:
@@ -164,8 +164,8 @@ def main() -> int:
     result = 0
     try:
         if args.action == "stop":
-            # A manual STOP must still be attempted with missing feedback or
-            # while another command source is present. Never issue ENABLE here.
+            # 피드백이 없거나 다른 명령 소스가 있어도 수동 STOP을 시도해야 합니다.
+            # 여기서는 ENABLE을 내지 않습니다.
             owns_commands = True
             end = time.monotonic() + 1.0
             while (
@@ -215,7 +215,7 @@ def main() -> int:
                     raise RuntimeError("initial STOP was not confirmed")
                 check()
                 enable = send(WheelCommand.ENABLE)
-                # Retransmit identical ENABLE; never extend its original deadline.
+                # 동일한 ENABLE을 재전송하며 원래 마감을 연장하지 않습니다.
                 end = time.monotonic() + 0.10
                 while not (state.enabled and acknowledged(enable.sequence)):
                     spin(0.01)

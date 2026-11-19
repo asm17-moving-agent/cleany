@@ -1,4 +1,4 @@
-"""Final ToF safety limit after the existing Nav2 safety chain."""
+"""기존 Nav2 안전 경로 뒤의 최종 ToF 안전 제한입니다."""
 import json
 import math
 import time
@@ -12,11 +12,11 @@ from .ros_support import Inputs, SupervisorView, settings, steady_timer, twist, 
 
 
 class ProximityGuard(Node):
-    """Consume proximity/input and publish cmd_vel at 30 Hz (Twist, depth 1).
+    """proximity/input을 받아 30Hz로 cmd_vel(Twist, depth 1)을 발행합니다.
 
-    tof/frame and odom must be fresh. proximity/status (String, depth 1) reports
-    local limiting reasons only; this node owns no Mission or Supervisor state.
-    The motor driver's independent command watchdog covers process death.
+    tof/frame과 odom이 최신이어야 합니다. proximity/status(String, depth 1)는
+    로컬 제한 이유만 보고하며 이 노드는 Mission이나 Supervisor 상태를 소유하지
+    않습니다. 프로세스 종료는 모터 드라이버의 독립 명령 watchdog이 처리합니다.
     """
     def __init__(self, **kwargs):
         super().__init__('proximity_guard', **kwargs)
@@ -35,7 +35,7 @@ class ProximityGuard(Node):
         steady_timer(self, 1/30, self.tick)
 
     def check_graph(self):
-        # Detect accidental launch composition with a second final velocity owner.
+        # launch 구성 실수로 두 번째 최종 속도 소유자가 생겼는지 검출합니다.
         self.graph_ok = self.count_publishers('cmd_vel') == 1 and self.count_publishers('proximity/input') == 1
 
     def on_command(self, msg):

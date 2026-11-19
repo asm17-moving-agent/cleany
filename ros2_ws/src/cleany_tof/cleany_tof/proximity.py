@@ -1,4 +1,4 @@
-"""ROI obstacle confirmation and final distance/velocity limiting."""
+"""ROI 장애물 확인과 최종 거리 및 속도 제한입니다."""
 from dataclasses import dataclass
 import math
 import numpy as np
@@ -7,7 +7,7 @@ from .observation import Observation
 
 
 def clearance(points: np.ndarray, settings: Settings) -> np.ndarray:
-    """Return planar footprint clearance after the configured uncertainty margin."""
+    """설정된 불확실성 여유 이후의 평면 footprint 여유 거리를 반환합니다."""
     outside = np.maximum(np.abs(points[:, :2])-[settings.half_length, settings.half_width], 0)
     return np.linalg.norm(outside, axis=1)-settings.margin-3*settings.max_sigma_m
 
@@ -22,11 +22,11 @@ class Detection:
 
 
 class ProximityDetector:
-    """Confirm adjacent ROI returns across fresh frames; latch close singletons.
+    """최신 프레임들에서 인접 ROI 반사값을 확인하며 가까운 단일 반사값은 유지합니다.
 
-    Call once per received frame using its monotonic receipt time in seconds.
-    Missing confirmed returns briefly stop motion instead of reusing old points
-    in a moving base frame. NO_RETURN alone never starts an obstacle track.
+    수신 프레임마다 단조 수신 시각(초)으로 한 번 호출합니다. 확인된 반사값이
+    없으면 움직이는 베이스 좌표계에서 이전 점을 재사용하지 않고 잠시 정지합니다.
+    NO_RETURN만으로 장애물 추적을 시작하지 않습니다.
     """
     def __init__(self, settings: Settings):
         self.s = settings
@@ -92,7 +92,7 @@ class ProximityDetector:
 
 def limit_velocity(command, measured, detection: Detection, age_s: float,
                    settings: Settings):
-    """Limit only detected obstacles, preserving direction and command curvature."""
+    """방향과 명령 곡률을 유지하며 검출된 장애물만으로 제한합니다."""
     zero = (0., 0., 0.)
     if (not settings.calibrated or not detection.available or not math.isfinite(age_s)
             or not 0 <= age_s <= settings.source_timeout_s

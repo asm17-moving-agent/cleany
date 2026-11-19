@@ -102,8 +102,8 @@ def test_rgbd_navigation_profile_has_all_inputs_without_duplicate_publishers():
     assert len(topics) == len(set(topics))
     assert NAVIGATION_TOPICS | {'/camera/head/color/image_raw', '/camera/head/depth/image_raw',
                                 '/camera/head/depth/camera_info'} <= set(topics)
-    # RGB work starts on demand; safety depth inputs stay eager even before
-    # downstream lifecycle activation so readiness cannot depend on a viewer.
+    # RGB 처리는 수요가 있을 때 시작하지만 안전용 깊이 입력은 하위 lifecycle
+    # 활성화 전부터 유지해 준비 상태가 뷰어 실행 여부에 의존하지 않게 합니다.
     by_topic = {entry['ros_topic_name']: entry for entry in entries}
     assert by_topic['/camera/head/color/image_raw'].get('lazy') is True
     for topic in ('/camera/head/depth/image_raw', '/camera/head/depth/camera_info'):

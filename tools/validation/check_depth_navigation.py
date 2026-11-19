@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture stationary depth/costmap evidence; optionally restore a saved pose."""
+"""정지 깊이 및 costmap 근거를 수집하며 선택적으로 저장된 자세를 복구합니다."""
 
 import argparse
 import json
@@ -66,7 +66,7 @@ def main() -> None:
             rclpy.spin_once(node, timeout_sec=.1)
         if not amcl_subscribed():
             raise RuntimeError('No AMCL initial-pose subscriber')
-        # Discovery of another consumer is not confirmation that AMCL received it.
+        # 다른 소비자 발견이 AMCL의 수신 확인은 아닙니다.
         for _ in range(3):
             message.header.stamp = node.get_clock().now().to_msg()
             publisher.publish(message)

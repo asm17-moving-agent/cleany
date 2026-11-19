@@ -1,4 +1,4 @@
-"""ROS executable for a fresh, preflighted 20+5 pose MuJoCo run."""
+"""새로운 20+5 자세 MuJoCo 실행을 사전 검사하는 ROS 실행 파일입니다."""
 
 from __future__ import annotations
 
@@ -127,7 +127,7 @@ def validate_multi_pose_runtime_profile(
     manifest: PoseManifest,
     runtime: SinglePoseRuntimeConfig,
 ) -> None:
-    """Reject duplicated profile values that disagree before ROS motion."""
+    """ROS 이동 전에 중복된 프로파일 값이 일치하지 않으면 거부합니다."""
 
     run = manifest.run_config.require_ready()
     if runtime.dataset_manifest.source_hashes.pose_manifest_sha256 != _sha256(

@@ -1,4 +1,4 @@
-"""Separate MoveIt PLAN and EXECUTE action adapters for calibration motion."""
+"""보정 이동의 MoveIt PLAN과 EXECUTE를 분리한 action 어댑터입니다."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def _canonical_left_pose(pose: JointPose) -> JointPose:
 
 
 class MotionStatus(str, Enum):
-    """Stable action transport, status, and MoveIt result categories."""
+    """action 전송, 상태와 MoveIt 결과의 고정 분류입니다."""
 
     SUCCESS = 'success'
     ACTION_UNAVAILABLE = 'action_unavailable'
@@ -71,7 +71,7 @@ class MotionStatus(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class PlannedMotion:
-    """A plan-only trajectory tied to the resolved joint-space goal."""
+    """계산된 관절 공간 목표에 연결된 계획 전용 궤적입니다."""
 
     validated_goal: ValidatedJointGoal
     trajectory: Any
@@ -132,7 +132,7 @@ class ExecutionResult:
 
 @dataclass(frozen=True, slots=True)
 class MotionResult:
-    """PLAN/EXECUTE result; feedback settle remains a separate gate."""
+    """PLAN/EXECUTE 결과이며 피드백 정착은 별도로 판정합니다."""
 
     plan_result: PlanResult
     execution_result: ExecutionResult | None = None
@@ -152,7 +152,7 @@ class MotionResult:
 
     @property
     def success(self) -> bool:
-        """Whether actions succeeded, not whether feedback has settled."""
+        """action 성공 여부이며 피드백 정착 여부가 아닙니다."""
 
         return (
             self.plan_result.success
@@ -162,7 +162,7 @@ class MotionResult:
 
     @property
     def ready_for_sample(self) -> bool:
-        """Action success alone never authorizes image acquisition."""
+        """action 성공만으로는 영상 취득을 허용하지 않습니다."""
 
         return False
 
@@ -178,7 +178,7 @@ class _ActionOutcome:
 
 
 class MoveItMotionAdapter:
-    """Plan with ``MoveGroup(plan_only=True)`` then execute explicitly."""
+    """MoveGroup(plan_only=True)로 계획한 뒤 명시적으로 실행합니다."""
 
     def __init__(
         self,
@@ -196,7 +196,7 @@ class MoveItMotionAdapter:
             DEFAULT_DUAL_ARM_JOINT_CONTRACT
         ),
     ) -> None:
-        # Reject right scope before constructing either ROS ActionClient.
+        # 두 ROS ActionClient를 만들기 전에 오른팔 범위를 거부합니다.
         validate_calibration_scope(planning_group, tip_link)
         if node is None:
             raise ValueError('node is required')
@@ -263,7 +263,7 @@ class MoveItMotionAdapter:
         *,
         current_state: ValidatedCurrentState,
     ) -> PlanResult:
-        """Create a joint goal and obtain a trajectory without executing."""
+        """관절 목표를 만들고 실행 없이 궤적을 구합니다."""
 
         if not isinstance(validated_goal, ValidatedJointGoal):
             raise ValueError(
@@ -319,7 +319,7 @@ class MoveItMotionAdapter:
         *,
         current_state: ValidatedCurrentState,
     ) -> ExecutionResult:
-        """Execute only a trajectory returned by the separate PLAN stage."""
+        """분리된 PLAN 단계에서 반환한 궤적만 실행합니다."""
 
         if not isinstance(planned_motion, PlannedMotion):
             raise ValueError('planned_motion must be a PlannedMotion')
@@ -353,7 +353,7 @@ class MoveItMotionAdapter:
         *,
         current_state: ValidatedCurrentState,
     ) -> MotionResult:
-        """Run PLAN then EXECUTE, never conflating either with settle."""
+        """PLAN 이후 EXECUTE를 실행하며 어느 결과도 정착 판정과 혼동하지 않습니다."""
 
         plan_result = self.plan(
             validated_goal,

@@ -1,4 +1,4 @@
-# Request a mode for an active execution. Normal Action cancel uses CHECKPOINT.
+# 실행 중인 작업에 취소 모드를 요청합니다. 일반 Action cancel은 CHECKPOINT를 사용합니다.
 string IMMEDIATE=IMMEDIATE
 string CHECKPOINT=CHECKPOINT
 string RETURN_ARM=RETURN_ARM

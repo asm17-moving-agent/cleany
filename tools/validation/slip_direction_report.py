@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot recorded command direction against wheel and LiDAR displacement in one bag."""
+"""bag 하나의 기록 명령 방향과 바퀴 및 LiDAR 변위를 비교해 그립니다."""
 from __future__ import annotations
 
 import argparse
@@ -16,7 +16,7 @@ KST = timezone(timedelta(hours=9))
 
 
 def direction(vector, minimum=0.015):
-    """Return body-frame degrees only when displacement is large enough to orient."""
+    """방향을 정할 만큼 변위가 클 때만 body 좌표계 각도(도)를 반환합니다."""
     x, y = vector[:2]
     if not all(math.isfinite(v) for v in (x, y)) or math.hypot(x, y) < minimum:
         return None
@@ -24,11 +24,11 @@ def direction(vector, minimum=0.015):
 
 
 def command_displacement(samples, odom, t0, t1, maximum_hold=.3):
-    """Integrate recorded body commands in the window's initial odometry frame.
+    """구간 초기 odometry 좌표계에서 기록된 body 명령을 적분합니다.
 
-    Commands have receive timestamps, odometry has header timestamps. A sample
-    is held for at most maximum_hold seconds so recording gaps do not invent
-    intent. Wheel yaw aligns the command frames; it is not translation truth.
+    명령은 수신 시각, odometry는 header 시각을 사용합니다. 기록 공백에서 의도를
+    만들어 내지 않도록 각 표본을 최대 maximum_hold초만 유지합니다. 바퀴 yaw는
+    명령 좌표계 정렬에 사용하며 병진 참값이 아닙니다.
     """
     if not samples or len(odom) < 2 or odom[0][0] > t0 or odom[-1][0] < t1:
         return None, 0.
