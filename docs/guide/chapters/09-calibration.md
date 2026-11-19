@@ -6,7 +6,7 @@
 
 설계 파일의 센서 위치는 실제 조립 위치와 조금 다를 수 있습니다. **보정**(calibration)은 측정을 사용해 모델의 관계나 파라미터를 추정하는 과정입니다. 손목과 카메라 사이 관계를 찾는 작업이 **hand-eye calibration**입니다.
 
-앞 장의 고정 카메라 캔 데모와 이번 장의 카메라는 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
+Head RGB-D의 물체 복원과 손목 카메라 보정은 입력과 목적이 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
 
 ```mermaid
 flowchart TD
@@ -41,7 +41,7 @@ base_T_gripper @ gripper_T_camera @ camera_T_target = base_T_target
 | `camera_T_target` | 영상 코너의 PnP |
 | `CalibrationSample` | 두 변환을 묶은 관측과 calibration/held-out 구분 |
 
-[models.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/models.py)와 `RigidTransform.compose()`를 함께 보세요. 변환에는 숫자뿐 아니라 `parent_frame`, `child_frame`도 들어 있습니다. 잘못된 frame 사슬을 검사하기 위해서입니다.
+[models.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/models.py)와 `RigidTransform.compose()`를 함께 보세요. 변환에는 숫자뿐 아니라 `parent_frame`, `child_frame`도 들어 있습니다. 잘못된 좌표계 사슬을 검사하기 위해서입니다.
 
 ## 09.3 관절 피드백과 영상 동기화
 
@@ -106,18 +106,18 @@ PYTHON
 
 [single_pose_orchestrator.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/single_pose_orchestrator.py)의 `SinglePoseOrchestrator.run()` 후반은 다음 순서로 읽습니다. 아래는 호출 흐름 요약입니다.
 
-```text
-영상 획득·보관
-→ detect_target() : 코너와 PnP
-→ compute_feedback_fk() : 영상 시각의 관절 피드백으로 FK
-→ record_sample() : 관측과 출처를 함께 기록
+```mermaid
+flowchart TD
+  Image["영상 획득과 보관"] --> Detect["detect_target / 코너와 PnP"]
+  Detect --> FK["compute_feedback_fk / 영상 시각의 피드백 FK"]
+  FK --> Save["record_sample / 관측과 출처 기록"]
 ```
 
 앞부분에는 IK·계획·이동·정지 확인 단계도 있습니다. 이 장의 실습은 저장된 코드 읽기와 순수 계산으로 제한하고, 이 수집 runner는 실행하지 않습니다.
 
 ## 09.5 Hand-eye solver와 독립 평가
 
-[solver.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/solver.py)의 `_prepare_opencv_inputs()`는 frame과 sample split을 검사합니다. calibration 표본만 solver 입력으로 허용하고, 최소 표본 수는 3입니다. 이는 입력 하한이고 세 표본이면 충분히 좋은 보정이 된다는 보장은 아닙니다.
+[solver.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/solver.py)의 `_prepare_opencv_inputs()`는 좌표계과 sample split을 검사합니다. calibration 표본만 solver 입력으로 허용하고, 최소 표본 수는 3입니다. 이는 입력 하한이고 세 표본이면 충분히 좋은 보정이 된다는 보장은 아닙니다.
 
 `_run_method()`에서 OpenCV를 호출하는 연속된 실제 발췌입니다. 오류 처리와 출력 검증은 뒤에 이어집니다.
 
@@ -140,27 +140,29 @@ try:
 
 보드가 고정되어 있다면 held-out 표본에서 계산한 `base_T_target`도 서로 비슷해야 합니다. 이 일관성 오차와 시뮬레이션의 정답 대비 오차는 다른 지표입니다. MuJoCo ground truth는 평가용이며 solver에 넣지 않습니다. 평가 조건은 [evaluation.template.yaml](../../../ros2_ws/src/cleany_handeye_calibration/config/evaluation.template.yaml)과 패키지 README를 함께 읽습니다.
 
-출력 보정 변환은 검토할 artifact입니다. 패키지가 결과를 자동으로 calibration TF에 적용하지는 않습니다.
+출력 보정 변환은 검토할 결과 파일입니다. 패키지가 결과를 자동으로 보정 TF에 적용하지는 않습니다. 공통 CAD의 카메라 위치와 기존 `jetson_20261009` 보정은 장착 조건을 구분해야 합니다. 데이터에 기록된 모델과 수집 조건을 확인하고 [보정 적용 절차](../../implementation/calibration.md)를 따릅니다.
 
 ## 09.6 보정 데이터 추적 실습
 
 한 관측이 결과까지 가는 경로를 파일로 따라가 보세요.
 
-```text
-ROS 영상·관절 피드백
-→ JointStateRingBuffer.interpolate()
-→ 코너 검출 → solve_planar_pnp()
-→ 피드백 FK → CalibrationSample
-→ calibration split → solve_all_hand_eye_methods()
-→ held-out / ground-truth 평가 → 결과 artifact
+```mermaid
+flowchart TD
+  Image["ROS 영상"] --> PnP["코너 검출 / solve_planar_pnp"]
+  Joints["관절 피드백"] --> Sync["JointStateRingBuffer.interpolate"] --> FK["피드백 FK"]
+  PnP --> Sample["CalibrationSample"]
+  FK --> Sample
+  Sample --> Train["calibration 표본 / solver"] --> Evaluate["held-out / ground-truth 평가"]
+  Sample --> Evaluate
+  Evaluate --> Result["결과 파일"]
 ```
 
 1. `interpolate()`에서 전후 표본이 오래되었을 때의 반환값을 찾습니다.
 2. `_prepare_opencv_inputs()`에서 held-out 표본이 거부되는 부분을 찾습니다.
-3. `RigidTransform.compose()`에서 연결되는 두 frame 이름을 확인합니다.
+3. `RigidTransform.compose()`에서 연결되는 두 좌표계 이름을 확인합니다.
 4. README의 평가 항목 중 held-out 일관성과 정답 대비 오차를 구분합니다.
 
-**확인 질문:** 카메라와 gripper frame의 보정이 끝나면 실제 손가락의 잡기 위치도 검증된 걸까요?
+**확인 질문:** 카메라와 gripper 좌표계의 보정이 끝나면 실제 손가락의 잡기 위치도 검증된 걸까요?
 
 <details><summary>생각을 비교해 보기</summary>
 

@@ -6,7 +6,7 @@
 
 - 이 저장소는 끌리니(Cleany) 로봇 엣지 시스템 구현 레포다.
 - 핵심 구현은 `ros2_ws/`의 ROS 2 workspace에 둔다.
-- 기본 개발환경은 Ubuntu 22.04 VM의 native ROS 2 Humble이다. 신규 환경 구성은 `docs/DEVELOPMENT_SETUP.md`를 따른다.
+- 기본 개발환경은 Ubuntu 22.04 VM의 native ROS 2 Humble이다. 신규 환경 구성은 `docs/implementation/development-setup.md`를 따른다.
 - `docs/cleany-docs/`는 기획/예비설계 KB submodule이다. 비어 있거나 누락되었으면 먼저 실행한다.
 
 ```bash
@@ -25,12 +25,19 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 구현 문서 갱신
 
-- 실행, 테스트, 캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
-- ROS endpoint를 변경하면 해당 패키지 `docs/interfaces.md`를 갱신한다. 노드 추가, 삭제와 실행 파일 변경은 `docs/ROS_INTERFACES.md` 색인에도 반영한다.
+- 전역 설계·구현 문서는 `docs/implementation/`, 신입용 학습 문서는 `docs/guide/`에서 관리한다. `docs/index.md`는 두 문서 묶음의 공통 입구다. 패키지별 구현 계약은 해당 패키지의 `docs/`에 유지한다. 문서 파일명은 소문자와 하이픈을 사용하되 `README.md`, `AGENTS.md`, 외부 원본과 라이선스 파일명은 유지한다. 순서가 필요한 학습 장에만 파일명 번호를 사용한다.
+
+- 실행 절차는 `docs/implementation/running.md`의 색인과 연결된 `docs/implementation/how-to/`, 테스트는 `docs/implementation/testing.md`와 상세 참조, 캘리브레이션은 `docs/implementation/calibration.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/implementation/integration.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
+- ROS endpoint를 변경하면 해당 패키지 `docs/interfaces.md`를 갱신한다. 노드 추가, 삭제와 실행 파일 변경은 `docs/implementation/ros-interfaces.md` 색인에도 반영한다.
+- 구현 문서와 학습 가이드의 본문은 `~합니다` 문체로 통일한다. 표의 명칭, 값과 조건은 짧게 쓰고 동작 설명은 완전한 문장으로 쓴다. 개념은 처음 등장할 때 한국어와 원어를 연결하고, 이후 같은 용어를 사용한다. 실제 코드 식별자는 바꾸지 않는다.
+- 전역 실행 문서는 준비와 실행 순서, 정상 결과와 실패 확인을 소유한다. 패키지 문서는 정확한 인터페이스, 설정과 제약을 소유한다. 가이드는 개념, 구현을 읽는 방법과 작은 실습을 연결하며 실행 설정을 복제하지 않는다. 축약 예제는 학습용임을 표시하고 실제 발췌는 원본과 대조한다. 제한은 영향을 받는 절차나 옵션 가까이에 둔다.
 - 구현 문서는 내용에 맞는 서술 형식을 선택한다. 역할과 정상 동작은 짧은 완전한 문장으로 설명하고, 흐름은 도식, 인터페이스, 단위와 조건은 표, 실행 절차는 번호와 명령 블록으로 정리한다. 목록은 독립적인 확인 항목에 사용한다. 나열에는 쉼표나 자연스러운 접속 표현을 사용하고 가운뎃점으로 단어를 연결하지 않는다. 고정 템플릿의 빈 항목, 코드 해설, 작업 일지, 중복 설명은 추가하지 않는다.
 - 폴더마다 README를 만들지 않는다. 독립 배포, 사용 절차가 필요한 도구, 펌웨어와 asset 출처와 라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록, 코드 요약, 현재 테스트 점수, 작업 일지를 README에 복제하지 않는다.
-- 과거 실행 근거는 `docs/EVIDENCE.md`에서 찾고 새 결과에는 commit, 환경, 입력, 실패, 원본 위치를 남긴다.
-- 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`에서 관리한다.
+- 구현 문서는 현재 사용법, 구현 계약과 제약사항을 설명한다. 날짜별 작업 일지, 일회성 실행 결과와 에이전트 인수인계 내용을 누적하지 않는다.
+- 작업 가이드는 필요한 화면, 동작 순서와 정상 결과를 먼저 보여준다. 연결과 상태 흐름은 편집 가능한 다이어그램을 사용하고, 명령과 설정은 복사·검색 가능한 텍스트로 유지한다. 화면과 영상은 실물, 시뮬레이션, 합성 입력을 구분한다.
+- 문서 사이트의 원본은 Markdown과 `docs/site.template.html`이다. 변경 후 `python3 tools/docs/build_site.py`로 갱신하고 `--check`로 일치 여부를 확인한다.
+- 변경별 검증은 PR과 CI 결과에 남긴다. 별도 실험 보고서나 대용량 자료가 필요하면 팀이 합의한 공유 위치를 사용하며, 개인 디렉터리를 팀 문서의 필수 근거로 연결하지 않는다.
+- 개발환경 설치와 system dependency 기준은 `docs/implementation/development-setup.md`에서 관리한다.
 - KB에서 아직 검토 중인 전제는 코드나 구현 문서에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
 
 ## 3. 코드 작성 규칙
@@ -44,7 +51,7 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 주석과 Docstring
 
-- Python은 Google-style Docstring, C++은 Doxygen을 사용한다. 코드의 주석과 Docstring은 간결하고 자연스러운 영어로 작성한다.
+- Python은 Google-style Docstring, C++은 Doxygen을 사용한다. 코드의 설명 주석과 Docstring은 간결하고 자연스러운 한국어로 작성한다. 코드 식별자, 표준 섹션 이름과 Doxygen 태그, 검사·빌드 지시자, 라이선스와 외부 원본은 보존한다.
 - 주석의 양보다 새로운 개발자가 역할, 설계 이유, 인터페이스 계약과 제약사항을 이해하는 데 도움이 되는지를 우선한다. 함수명, 변수명, 타입 힌트와 구현에서 자명한 동작을 반복하지 않는다.
 - 단순한 함수는 Docstring을 생략하고, 설명이 필요하면 한 줄부터 시작한다. 핵심 알고리즘과 Public API는 필요한 단위, 좌표계, 반환 조건, 부작용과 예외를 설명한다. `Args`, `Returns`, `Raises`는 유의미한 추가 정보가 있을 때만 작성한다.
 - ROS 콜백은 중요한 처리 조건과 예외 동작을 짧게 설명하고, Node 클래스에 적은 토픽과 메시지 정보를 반복하지 않는다. 함수 내부 주석은 비직관적인 구현 이유, 불변 조건과 제약사항에만 사용한다.
@@ -63,22 +70,22 @@ ROS 2 Node 클래스는 역할을 먼저 설명하고, 다음 항목 중 실제�
 
 ```python
 class WheelOdometryNode(Node):
-    """Estimate planar odometry from cumulative wheel angles.
+    """누적 바퀴 각도로 평면 odometry를 추정합니다.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): All four wheel positions
-            in radians; input_topic default. QoS: sensor_data.
+        joint_states (sensor_msgs/msg/JointState): 네 바퀴 전체 위치(rad).
+            input_topic 기본값이며 QoS는 sensor_data입니다.
 
     Publishers:
-        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
-            base_link; topic and frame names are parameter defaults.
+        wheel/odom (nav_msgs/msg/Odometry): odom의 자세와 base_link의 속도.
+            토픽과 좌표계 이름은 파라미터 기본값입니다.
 
     TF:
-        Does not broadcast; the odometry relay owns odom -> base_link.
+        발행하지 않습니다. odometry relay가 odom -> base_link를 소유합니다.
 
     Notes:
-        The first sample, non-increasing time and velocity-window warm-up
-        produce no message. Invalid wheel values raise a validation error.
+        첫 표본, 증가하지 않은 시각과 속도 계산창 준비 중에는 발행하지 않습니다.
+        무효한 바퀴 값은 검증 오류를 발생시킵니다.
     """
 ```
 
@@ -91,7 +98,7 @@ class WheelOdometryNode(Node):
 - ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.
 - 여러 패키지 경계나 ROS interface를 바꿨으면 전체 workspace test까지 고려한다.
 - 반복 빌드와 테스트는 루트 Makefile을 사용하고, 세부 옵션은 해당 launch의 `--show-args`와 Makefile을 따른다.
-- 공통 빌드는 `docs/DEVELOPMENT_SETUP.md`, 실행은 `docs/RUNNING.md`, 검증은 `docs/TESTING.md`를 따른다.
+- 공통 빌드는 `docs/implementation/development-setup.md`, 실행은 `docs/implementation/running.md`, 검증은 `docs/implementation/testing.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 
 ## 5. 대화 기반 plan과 KB 기록
@@ -106,7 +113,7 @@ plan은 실행 계획이고, Decision은 실제로 확정한 선택과 이유다
 
 - Planning과 Technical의 `출처`에는 Raw 근거를, `관련 결정`에는 Decision을 연결한다. Decision의 `출처`에는 결정 근거를 표준 Markdown 링크로 연결한다.
 - 결정 변경은 새 Decision과 `supersedes`, `superseded_by`로 기록하고 관련 기준 문서도 갱신한다.
-- 실행 절차는 `docs/RUNNING.md`, 구현 계약은 패키지 `docs/`에 둔다. KB 편집은 명시 요청과 해당 submodule의 `AGENTS.md`를 따른다.
+- 실행 절차는 `docs/implementation/running.md`, 구현 계약은 패키지 `docs/`에 둔다. KB 편집은 명시 요청과 해당 submodule의 `AGENTS.md`를 따른다.
 
 ## 6. Jira와 GitHub
 
@@ -132,3 +139,12 @@ plan은 실행 계획이고, Decision은 실제로 확정한 선택과 이유다
 - PR에는 변경 범위, 검증 결과와 관련 Jira issue를 연결한다.
 - CI 통과, 사람 승인, `main` 병합과 실물 검증을 구분해 보고한다. 병합 조건은 현재 브랜치 보호 규칙과 팀 운영 기준을 확인한다.
 - commit, push, PR 생성과 병합은 사용자가 요청한 범위에서 수행한다.
+
+## 개발 데이터 보관
+
+- 실행할 분석·검증·시각화 도구는 이 Git 저장소의 `tools/` 또는 담당 패키지에 작성한다. 외부 데이터 폴더를 별도 코드 개발 공간으로 사용하지 않는다.
+- `CLEANY_DATA_ROOT`는 실행 환경별 로컬 데이터 경로이며 팀 공유 저장소를 의미하지 않는다. 외부 데이터 루트에는 `datasets/`, `runs/`, `assets/`, `archive/`만 사용한다. 새 실행의 설정·명령·입력 식별자·결과는 하나의 실행 ID 아래 모으고, 팀 공유가 필요한 자료의 위치와 접근 방법은 별도로 합의한다.
+- 기존 실행의 소스·설정 스냅샷은 근거로 보존하고 현재 실행 코드와 구분한다. 원본과 파생 데이터, 실물·시뮬레이션 결과를 구분한다.
+- 빌드·다운로드·임시 생성물은 사용자 캐시에 둔다. 중복처럼 보여도 원본·미반영 소스·실패 근거를 자동 삭제하지 않는다.
+
+- `runs/`는 `navigation`, `mapping`, `hardware`, `manipulation`, `platform`, `project`로 묶고 실행 폴더명은 `YYYY-MM-DD[_HHMMSS]_실험명`을 사용한다. 주행은 필요에 따라 `planning`, `control`, `traction`, `integration`으로 나눈다. 기존 자료의 날짜가 불명확하면 정리 날짜를 넣지 않고 `undated_`로 표시한다.

@@ -1,4 +1,4 @@
-# Fixed-size micro-ROS contract v2. Logical signs, wheel order FL, FR, RL, RR.
+# 고정 크기 micro-ROS 계약 v2입니다. 논리적 부호와 FL, FR, RL, RR 순서를 사용합니다.
 uint8 PROTOCOL_VERSION=2
 uint8 STOPPED=0
 uint8 VELOCITY=1
@@ -6,15 +6,15 @@ uint8 REVERSE_WAIT=2
 uint8 TIMEOUT_STOP=4
 uint32 FAULT_COMMAND_TIMEOUT=1
 uint8 protocol_version
-# Reboot/encoder baseline detection only; not a command authorization token.
+# 재부팅과 encoder 기준점 변경 감지용이며 명령 허가 토큰이 아닙니다.
 uint32 boot_id
 uint32 sequence
 uint32 last_command_sequence
-# MCU monotonic time, not ROS epoch. Adapter stamps JointState at receipt.
+# MCU 단조 증가 시각이며 ROS epoch가 아닙니다. 어댑터는 수신 시각으로 JointState를 표시합니다.
 uint64 timestamp_us
 uint32 counts_per_revolution
 float32 max_velocity_rad_s
-# Maximum permitted command lifetime; expiry uses valid_until_us only.
+# 허용하는 명령 수명의 최댓값입니다. 실제 만료는 valid_until_us만 사용합니다.
 uint16 watchdog_ms
 uint16 command_age_ms
 uint8 control_mode

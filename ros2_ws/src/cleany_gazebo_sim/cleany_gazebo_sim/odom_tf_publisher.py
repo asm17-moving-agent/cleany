@@ -11,17 +11,17 @@ from tf2_ros import TransformBroadcaster
 
 
 class GazeboOdomTfPublisher(Node):
-    """Expose simulator odometry in configured canonical frames.
+    """시뮬레이터 odometry를 설정한 기준 좌표계 이름으로 제공합니다.
 
     Subscriptions:
-        gazebo_odom (nav_msgs/msg/Odometry): Source pose; input_topic default.
+        gazebo_odom (nav_msgs/msg/Odometry): 원본 위치이며 input_topic의 기본값입니다.
 
     Publishers:
-        odom (nav_msgs/msg/Odometry): Relabeled copy when publish_odometry is true.
+        odom (nav_msgs/msg/Odometry): publish_odometry가 true이면 이름을 바꾼 사본을 발행합니다.
 
     TF:
-        Broadcasts odom -> base_link even when odometry publication is disabled.
-        Both frame names are parameter defaults; coordinates are not converted.
+        odometry 발행을 꺼도 odom → base_link를 발행합니다. 두 좌표계 이름은
+        파라미터 기본값이며 좌표값 자체는 변환하지 않습니다.
     """
     def __init__(self) -> None:
         super().__init__('gazebo_odom_tf_publisher')
@@ -70,5 +70,5 @@ def main(args: list[str] | None = None) -> None:
             if rclpy.ok():
                 rclpy.shutdown()
         except KeyboardInterrupt:
-            # ros2 launch can signal the process again while rclpy tears down.
+            # rclpy 정리 중에도 ros2 launch가 종료 신호를 다시 보낼 수 있습니다.
             pass

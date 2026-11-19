@@ -1,4 +1,4 @@
-"""Estimate a stopped robot pose from a live scan and a saved occupancy map."""
+"""실시간 스캔과 저장된 점유 지도로 정지 로봇 자세를 추정합니다."""
 import argparse,json,math,time
 from pathlib import Path
 import numpy as np

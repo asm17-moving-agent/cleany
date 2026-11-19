@@ -50,8 +50,8 @@ int main(int argc,char**argv){
  std::cout<<"step,x,y,yaw,vx,vy,wz\n";
  for(;steps<2400;++steps){
    const double dx=goal.pose.position.x-pose.pose.position.x,dy=goal.pose.position.y-pose.pose.position.y;
-   // ControllerServer checks the global path endpoint, which Smac quantizes.
-   // Report the separate requested-goal error rather than hiding quantization.
+   // ControllerServer는 Smac이 양자화한 전역 경로 끝점을 검사합니다.
+   // 양자화를 숨기지 않고 원래 요청 목표의 오차를 별도로 보고합니다.
    if(!path.poses.empty()) {
      const auto &end=path.poses.back().pose;
      if(std::hypot(end.position.x-pose.pose.position.x,end.position.y-pose.pose.position.y)<.03 &&

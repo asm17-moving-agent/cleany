@@ -1,10 +1,9 @@
-"""Version-1 synchronized hand-eye sample schema.
+"""동기화된 손-눈 표본의 버전 1 스키마입니다.
 
-The row intentionally carries every input needed to repeat PnP and the later
-noise experiments.  In particular, it records the exact camera calibration,
-ordered ChArUco correspondences, complete dual-arm feedback, interpolation
-provenance, and both transforms.  Persistence and image integrity are handled
-by :mod:`dataset_writer`.
+각 행은 PnP와 후속 잡음 실험을 반복하는 데 필요한 모든 입력을 담습니다.
+정확한 카메라 보정값, 순서가 있는 ChArUco 대응점, 전체 양팔 피드백,
+보간 출처와 두 변환을 기록합니다. 영속 저장과 영상 무결성은 dataset_writer가
+담당합니다.
 """
 
 from __future__ import annotations
@@ -101,7 +100,7 @@ def _points_equal(
 def camera_calibration_to_mapping(
     camera_info: CameraInfoFrame,
 ) -> dict[str, Any]:
-    """Return the exact geometry fields used by PnP."""
+    """PnP에서 사용하는 정확한 기하 필드를 반환합니다."""
 
     if not isinstance(camera_info, CameraInfoFrame):
         raise ValueError('camera_info must be a CameraInfoFrame')
@@ -119,7 +118,7 @@ def camera_calibration_to_mapping(
 
 
 def camera_calibration_sha256(camera_info: CameraInfoFrame) -> str:
-    """Hash a canonical JSON representation of the PnP camera inputs."""
+    """PnP 카메라 입력을 정규 JSON으로 표현해 해시를 계산합니다."""
 
     payload = json.dumps(
         camera_calibration_to_mapping(camera_info),
@@ -211,7 +210,7 @@ def _validate_image_path(sample_id: str, image_path: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class CalibrationSampleRecord:
-    """One fully materialized, synchronized sample before persistence."""
+    """영속 저장 전 완전히 구체화하고 동기화한 표본 하나입니다."""
 
     sample: CalibrationSample
     calibration_arm: str
@@ -437,7 +436,7 @@ def transform_from_mapping(values: Mapping[str, Any]) -> RigidTransform:
 def sample_record_to_mapping(
     record: CalibrationSampleRecord,
 ) -> dict[str, Any]:
-    """Return the version-1 row using only JSON-compatible values."""
+    """JSON 호환 값만 사용해 버전 1 행을 반환합니다."""
 
     if not isinstance(record, CalibrationSampleRecord):
         raise ValueError('record must be a CalibrationSampleRecord')
@@ -537,7 +536,7 @@ def _camera_info_from_mapping(
 def sample_record_from_mapping(
     values: Mapping[str, Any],
 ) -> CalibrationSampleRecord:
-    """Parse and validate one complete version-1 dataset row."""
+    """완전한 버전 1 데이터셋 행 하나를 읽고 검증합니다."""
 
     if not isinstance(values, Mapping):
         raise ValueError('sample record must be a mapping')

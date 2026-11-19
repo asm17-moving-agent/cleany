@@ -12,12 +12,12 @@ from cleany_grasping.core.models import PointCloud, RawGrasp
 
 @dataclass(frozen=True)
 class GeometricGraspConfig:
-    """Configuration for deterministic top-down parallel-jaw candidates."""
+    """결정적인 하향 평행 그리퍼 후보의 설정입니다."""
 
     maximum_gripper_width_m: float = 0.10
     opening_margin_m: float = 0.008
     grasp_depth_m: float = 0.025
-    maximum_top_contact_depth_m: float = 0.0  # Zero retains volume-center contact.
+    maximum_top_contact_depth_m: float = 0.0  # 0이면 부피 중심의 접촉점을 유지합니다.
     finger_thickness_m: float = 0.010
     finger_length_m: float = 0.045
     palm_depth_m: float = 0.018
@@ -212,10 +212,10 @@ def _minimum_width_axis(
 
 
 def _longitudinal_contacts(center, lateral, normal, target, config):
-    """Search along thin objects with an explicit optional height correction.
+    """명시적으로 선택한 높이 보정을 적용하며 가느다란 물체를 따라 탐색합니다.
 
-    Keep a full finger-length footprint inside the observed robust extent.
-    This is candidate generation, not a force-closure or reachability claim.
+    관측에서 강건하게 추정한 범위 안에 손가락 전체 길이의 footprint를 유지합니다.
+    후보 생성 단계이며 힘에 의한 구속이나 도달 가능성을 보장하지 않습니다.
     """
     if config.longitudinal_offset_fractions == (0.0,):
         return (center,)
@@ -273,7 +273,7 @@ def _collides(
 
 
 class GeometricGraspPredictor:
-    """Generate top-down candidates from segmented RGB-D point clouds."""
+    """분할된 RGB-D 점군에서 하향 파지 후보를 생성합니다."""
 
     def __init__(self, config: GeometricGraspConfig | None = None) -> None:
         self._config = config or GeometricGraspConfig()
@@ -300,9 +300,8 @@ class GeometricGraspPredictor:
                 for tilt in (self._config.approach_tilt_options or (self._config.approach_tilt_degrees,))
                 for direction in directions
             ]
-            # Round-robin preserves approach diversity under the candidate
-            # cap. Pull lazily so discarded tails never run point-cloud
-            # collision checks.
+            # 후보 수가 제한되어도 접근 방향의 다양성을 유지하도록 순환 선택합니다.
+            # 지연 생성으로 버려질 뒤쪽 후보의 점군 충돌 검사를 피합니다.
             diverse: list[RawGrasp] = []
             while len(diverse) < self._config.maximum_candidates:
                 added = False
@@ -331,9 +330,9 @@ class GeometricGraspPredictor:
         normal, plane_center = _fit_support_plane(target, context, self._config)
         collision_context = context
         if self._config.defer_support_plane_collision:
-            # Only the fitted plane is deferred, never other context objects.
-            # Caller must register a perceived support patch for full-robot
-            # open-jaw and closure-sweep collision checks before execution.
+            # 맞춘 평면만 검사를 미루며 다른 주변 물체는 제외하지 않습니다.
+            # 호출자는 실행 전에 인식된 지지면 패치를 등록해 전체 로봇의
+            # 벌린 그리퍼와 닫힘 구간 충돌을 검사해야 합니다.
             collision_context = context[
                 np.abs((context-plane_center) @ normal) > self._config.plane_distance_threshold_m]
         target_min = target.min(axis=0) - self._config.collision_clearance_m
@@ -465,8 +464,8 @@ class GeometricGraspPredictor:
                         )
                     )
         if len(self._config.longitudinal_offset_fractions) > 1:
-            # Prefer the volume center over tapered tips at equal quality.
-            # Reachability still evaluates shifted contacts if central ones fail.
+            # 품질이 같으면 가늘어지는 끝보다 부피 중심을 우선합니다.
+            # 중앙 후보가 실패하면 이동된 접촉점도 도달 가능성을 검사합니다.
             def center_distance(candidate):
                 contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
                 delta = contact - center
@@ -474,8 +473,8 @@ class GeometricGraspPredictor:
                 return float(np.linalg.norm(delta))
             generated.sort(key=center_distance)
         if self._config.prefer_upward_closing_axis:
-            # For this asymmetric tool, +closing is the fixed-jaw side.
-            # Only break equal-quality ties; do not inflate confidence scores.
+            # 이 비대칭 도구에서는 +closing 쪽이 고정 손가락입니다.
+            # 품질이 같은 경우의 순서만 정하며 신뢰도 점수를 높이지 않습니다.
             generated.sort(key=lambda candidate: (
                 round(candidate.score, 10), float(candidate.rotation[:, 1] @ normal)), reverse=True)
         else:

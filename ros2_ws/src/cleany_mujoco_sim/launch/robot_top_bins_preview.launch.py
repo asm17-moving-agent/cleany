@@ -1,4 +1,4 @@
-"""Stationary layout preview; intentionally starts no autonomous executor."""
+"""고정 배치 미리보기이며 자율 실행기를 시작하지 않습니다."""
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource

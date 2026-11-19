@@ -1,4 +1,4 @@
-"""Verify wrist optical registration and visible rays without an OpenGL context."""
+"""OpenGL context 없이 손목 optical 좌표 등록과 가시 광선을 확인합니다."""
 from __future__ import annotations
 
 import json
@@ -30,7 +30,7 @@ def registration() -> np.ndarray:
 def test_canonical_wrist_optics_follow_v8_registration(
     model: mujoco.MjModel, registration: np.ndarray, side: str, pose: tuple[float, ...],
 ) -> None:
-    """Keep rendered pixels and optical coordinates at the mounted lens."""
+    """렌더링 픽셀과 optical 좌표를 장착 렌즈 기준으로 유지합니다."""
     expected = registration
     data = mujoco.MjData(model)
     jaw = model.body('Fixed_Jaw' if side == 'left' else 'Fixed_Jaw_2').id
@@ -57,7 +57,7 @@ def test_canonical_wrist_optics_follow_v8_registration(
 def test_wrist_mount_does_not_occlude_camera_frustum(
     model: mujoco.MjModel, side: str,
 ) -> None:
-    """Trace visible rays beyond the near plane, including the image centre."""
+    """영상 중심을 포함해 near plane 바깥의 보이는 광선을 추적합니다."""
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     camera = model.camera(f'{side}_wrist_rgb').id

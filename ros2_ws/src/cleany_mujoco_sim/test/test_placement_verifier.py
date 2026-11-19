@@ -117,7 +117,7 @@ def test_individual_verification_never_uses_another_cup_already_in_bin():
     assert PlacementVerifier._verify(node, verify, VerifyPlacement.Response()).success
     verify.verification_id = 'unknown'
     assert not PlacementVerifier._verify(node, verify, VerifyPlacement.Response()).success
-    # Duplicate labels have no legacy body mapping and cannot fall back.
+    # 중복 label에는 기존 body 대응이 없으므로 대체 경로를 사용할 수 없습니다.
     verify.verification_id, verify.label = '', 'cup'
     assert not PlacementVerifier._verify(node, verify, VerifyPlacement.Response()).success
 
@@ -225,7 +225,7 @@ def test_mujoco_physics_cup_in_bin_does_not_verify_registered_cup_on_desk():
         low, high = np.min(lows,axis=0), np.max(highs,axis=0)
         return now[0], tuple((low+high)/2), tuple(high-low)
 
-    # Read-only outcome observations follow actual physics steps; no target welds.
+    # 읽기 전용 결과 관측은 실제 물리 step을 따르며 타깃 weld를 사용하지 않습니다.
     for _ in range(50):
         mujoco.mj_step(model, data)
     mujoco.mj_forward(model, data)
@@ -250,7 +250,7 @@ def test_mujoco_physics_cup_in_bin_does_not_verify_registered_cup_on_desk():
     verify = VerifyPlacement.Request(verification_id=registered.verification_id,
                                     destination_id='trash_right', after_stamp_ns=barrier)
     assert not PlacementVerifier._verify(node, verify, VerifyPlacement.Response()).success
-    # Establish that the other cup really has settled in the bin.
+    # 다른 컵이 실제로 수거함 안에서 정착했는지 먼저 확인합니다.
     node._bodies['cup'] = 'study_cafe_cup_b'
     other = VerifyPlacement.Request(label='cup', destination_id='trash_right', after_stamp_ns=barrier)
     result = PlacementVerifier._verify(node, other, VerifyPlacement.Response())
@@ -339,7 +339,7 @@ def test_mujoco_registered_lost_item_requires_its_own_body_in_the_correct_bin(la
     verify.destination_id = 'trash_right'
     assert not PlacementVerifier._verify(node, verify, VerifyPlacement.Response()).success
     verify.destination_id, verify.after_stamp_ns = 'lost_items_left', now[0]
-    # Clear the other object to keep the final placement independent of collisions.
+    # 최종 배치를 충돌과 독립적으로 검사하도록 다른 물체를 치웁니다.
     put_in_bin(other_name, 'trash_right')
     put_in_bin(body_name, 'lost_items_left')
     settle_and_sample()
@@ -347,9 +347,9 @@ def test_mujoco_registered_lost_item_requires_its_own_body_in_the_correct_bin(la
     if label == 'lego brick':
         assert result.success, result.message
     else:
-        # The rotated local mouse-mesh box extends below the bin floor even
-        # though the mesh vertices are inside. Preserve conservative rejection;
-        # improving the observer's mesh bounds is separate from Planner routing.
+        # 메시 정점이 수거함 안에 있어도 회전된 마우스 로컬 경계 상자는 바닥 아래로
+        # 뻗을 수 있습니다. 보수적인 거부를 유지하며 관측기의 메시 경계 개선은
+        # Planner 경로 선택과 별도 작업입니다.
         assert not result.success and 'not inside' in result.message
         body = model.body(body_name).id
         vertices = []

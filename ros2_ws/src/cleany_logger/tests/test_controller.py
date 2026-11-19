@@ -1,4 +1,4 @@
-"""Session ownership and recovery contracts without ROS or a web application."""
+"""ROS나 웹 애플리케이션 없이 session 소유권과 복구 계약을 검사합니다."""
 import sqlite3
 
 import pytest

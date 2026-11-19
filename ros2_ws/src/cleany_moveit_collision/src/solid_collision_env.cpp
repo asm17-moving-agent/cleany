@@ -23,8 +23,8 @@ std::vector<std::unique_ptr<fcl::Convexd>> solid_components(const shapes::Mesh& 
 {
   if (mesh.vertex_count < 4 || mesh.triangle_count < 4)
     throw std::invalid_argument("Solid collision mesh is empty or degenerate");
-  // STL readers may keep separate vertices for face normals. Welding identical
-  // positions restores topology without moving any point or closing a gap.
+  // STL reader가 면 법선별로 별도 정점을 둘 수 있습니다. 같은 위치를 용접해
+  // 점을 이동하거나 틈을 메우지 않고 연결 구조를 복원합니다.
   std::map<std::array<double, 3>, int> lookup;
   std::vector<Eigen::Vector3d> vertices;
   std::vector<int> indices(mesh.vertex_count);
@@ -139,7 +139,7 @@ void SolidCollisionEnv::checkGroupedSelf(const collision_detection::CollisionReq
     const collision_detection::AllowedCollisionMatrix* acm) const
 {
   using namespace collision_detection;
-  // Distance requests retain FCL's distance traversal and result semantics.
+  // 거리 요청은 FCL의 거리 순회와 결과 의미를 유지합니다.
   if (req.distance)
   {
     CollisionEnvFCL::checkSelfCollisionHelper(req, res, state, acm);
@@ -158,8 +158,8 @@ void SolidCollisionEnv::checkGroupedSelf(const collision_detection::CollisionReq
   data.enableGroup(getRobotModel());
   std::vector<Group> groups;
   groups.reserve(robot_model_->getLinkModelsWithCollisionGeometry().size());
-  // Robot components and each attached body's components are contiguous. These
-  // bounds are rebuilt from this query's state; no prior collision result is reused.
+  // 로봇과 각 부착 물체의 구성요소는 연속 배치됩니다. 이 범위는
+  // 현재 조회 상태에서 다시 계산하며 이전 충돌 결과를 재사용하지 않습니다.
   for (std::size_t i = 0; i < robot.collision_objects_.size(); ++i)
   {
     const auto& object = robot.collision_objects_[i];
@@ -243,8 +243,8 @@ void SolidCollisionEnv::rebuild()
     if (!geometry) throw std::runtime_error("Unable to construct solid collision geometry");
     objects.push_back(std::make_shared<const fcl::CollisionObjectd>(geometry->collision_geometry_));
   }
-  // FCL constructs each state object from this metadata, not the vector index.
-  // Preparing both vectors first leaves the old geometry intact on rejection.
+  // FCL은 벡터 인덱스가 아닌 이 메타데이터로 각 상태 객체를 구성합니다.
+  // 먼저 두 벡터를 준비해 거부 시 기존 형상을 유지합니다.
   robot_geoms_.swap(geometries);
   robot_fcl_objs_.swap(objects);
   solid_components_ = count;

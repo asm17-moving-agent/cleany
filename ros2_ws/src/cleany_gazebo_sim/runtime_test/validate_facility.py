@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Capture real Fortress renders/scans and optionally drive a bounded facility route.
+"""Fortress 렌더링과 스캔을 수집하고 선택적으로 제한된 시설 경로를 주행합니다.
 
-Run inside the Humble environment after make build-gazebo. Each run owns its
-ROS domain, Gazebo partition and child process groups; it never moves hardware.
+make build-gazebo 이후 Humble 환경에서 실행합니다. 실행마다 자체 ROS domain,
+Gazebo partition과 자식 프로세스 그룹을 사용하며 실물 하드웨어를 움직이지 않습니다.
 """
 
 from __future__ import annotations
@@ -86,8 +86,8 @@ def stop(process):
     except ProcessLookupError:
         pass
     finally:
-        # ros2 launch may exit before a stalled Gazebo child. The process group
-        # was created exclusively for this run, so reap its remaining children.
+        # ros2 launch가 멈춘 Gazebo 자식보다 먼저 종료될 수 있습니다.
+        # 이 실행 전용으로 만든 프로세스 그룹의 남은 자식도 회수합니다.
         try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
@@ -95,20 +95,20 @@ def stop(process):
 
 
 class Observer(Node):
-    """Collect facility simulation evidence and provide a test command publisher.
+    """시설 시뮬레이션 결과를 수집하고 시험 명령을 발행합니다.
 
     Subscriptions:
-        /ground_truth/odom (nav_msgs/msg/Odometry): Actual pose.
-        /scan (sensor_msgs/msg/LaserScan) and /joint_states
-            (sensor_msgs/msg/JointState): Sensor-data QoS feedback.
-        /review/{name} (sensor_msgs/msg/Image): First frame from each requested camera.
+        /ground_truth/odom (nav_msgs/msg/Odometry): 시뮬레이터의 실제 자세.
+        /scan (sensor_msgs/msg/LaserScan), /joint_states
+            (sensor_msgs/msg/JointState): sensor_data QoS의 피드백.
+        /review/{name} (sensor_msgs/msg/Image): 요청한 각 카메라의 첫 프레임.
 
     Publishers:
-        /cmd_vel (geometry_msgs/msg/Twist): Explicit commands from the review driver.
+        /cmd_vel (geometry_msgs/msg/Twist): 검토용 구동기가 명시적으로 보낸 명령.
 
     Notes:
-        Saves camera PNGs and sampled pose traces under the supplied output path.
-        This fixture is an active simulation test, not a passive production observer.
+        지정된 출력 경로에 카메라 PNG와 표본 자세 궤적을 저장합니다.
+        수동적인 운영 관측기가 아니라 시뮬레이션을 구동하는 시험 fixture입니다.
     """
     def __init__(self, names, output):
         super().__init__('facility_runtime_review')
@@ -255,7 +255,7 @@ def main():
         material = ET.SubElement(ground_visual, 'material')
         ET.SubElement(material, 'ambient').text = '.65 .67 .68 1'
         ET.SubElement(material, 'diffuse').text = '.65 .67 .68 1'
-    # GPU lidar observes visual geometry, not contact collision proxies.
+    # GPU LiDAR는 접촉용 충돌 형상이 아닌 렌더링 형상을 관측합니다.
     ET.ElementTree(root).write(world_path, encoding='unicode', xml_declaration=True)
     os.environ['ROS_DOMAIN_ID'] = str(100 + os.getpid() % 100)
     os.environ['ROS_LOCALHOST_ONLY'] = '1'

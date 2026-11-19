@@ -1,4 +1,4 @@
-"""An operation is started once, polled without blocking, and explicitly cancelled."""
+"""작업은 한 번 시작하고 비블로킹으로 polling하며 명시적으로 취소합니다."""
 
 from typing import Callable, Protocol
 from uuid import uuid4
@@ -15,14 +15,14 @@ class OperationPort(Protocol):
 
 
 class ExecutorPort(OperationPort, Protocol):
-    """Physical stop and permission to move the base are different facts."""
+    """물리적 정지와 베이스 이동 허가는 서로 다른 사실입니다."""
 
     def safe_to_drive(self) -> tuple[bool, str]: ...
     def maintain(self) -> None: ...
 
 
 class DeferredPort:
-    """Deterministic asynchronous adapter for tests and explicitly mock desk work."""
+    """테스트와 명시적인 mock 책상 작업을 위한 결정적 비동기 어댑터입니다."""
 
     def __init__(self, handler: Callable[[object], ModuleResult], polls: int = 2) -> None:
         self.handler = handler

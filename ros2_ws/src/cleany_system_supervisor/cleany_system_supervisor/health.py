@@ -1,4 +1,4 @@
-"""Health acquisition and freshness only; monitors never change system state."""
+"""상태 취득과 최신성만 담당하며 monitor는 시스템 상태를 바꾸지 않습니다."""
 from .models import Availability, HealthReport
 
 
@@ -9,7 +9,7 @@ class HealthMonitoring:
         self.reports: dict[str, HealthReport] = {}
         self.good_since: dict[str, float] = {}
         self.bad_since: dict[str, float] = {}
-        self.verified: set[str] = set()  # Sources that have reported AVAILABLE at least once.
+        self.verified: set[str] = set()  # AVAILABLE을 한 번 이상 보고한 소스입니다.
 
     def observe(self, report: HealthReport) -> None:
         if report.source not in self.sources:
@@ -20,7 +20,7 @@ class HealthMonitoring:
         self.reports[report.source] = report
         if report.status == Availability.AVAILABLE:
             self.verified.add(report.source)
-            # A gap must break healthy hysteresis even when both samples are good.
+            # 양쪽 표본이 양호해도 공백이 있으면 양호 상태의 연속 확인을 끊어야 합니다.
             if previous is None or previous.status != report.status or (
                 report.observed_at - previous.observed_at > self.sources[report.source]['stale_s']
             ):

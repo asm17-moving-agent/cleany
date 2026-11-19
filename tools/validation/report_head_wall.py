@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render an inspectable head wall-comparison series from saved results."""
+"""저장 결과에서 검토 가능한 헤드 벽 비교 시리즈를 렌더링합니다."""
 
 import argparse
 import hashlib

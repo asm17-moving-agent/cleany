@@ -1,4 +1,4 @@
-"""Combine camera-specific YOLO datasets without copying RGB or labels."""
+"""RGB나 label을 복사하지 않고 카메라별 YOLO 데이터셋을 합칩니다."""
 from __future__ import annotations
 
 import argparse

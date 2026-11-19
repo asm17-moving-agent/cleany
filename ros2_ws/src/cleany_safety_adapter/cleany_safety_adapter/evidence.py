@@ -1,4 +1,4 @@
-"""ROS-independent evaluation of independent-safety evidence. Missing evidence is unsafe."""
+"""독립 안전 근거의 ROS 독립 평가입니다. 근거 누락은 안전하지 않은 상태입니다."""
 from dataclasses import dataclass
 from math import isfinite
 
@@ -36,16 +36,16 @@ class SafetyEvidence:
         self.base = (still, now)
 
     def joints(self, names, velocities, now: float) -> None:
-        # A joint without a velocity value gives no stop evidence.
+        # 속도값이 없는 관절은 정지 근거가 될 수 없습니다.
         for index, name in enumerate(names):
             value = velocities[index] if index < len(velocities) else float('nan')
             self.joint_samples[name] = (isfinite(value) and abs(value) <= self.joint_radps, now)
 
     def awaiting_first_evidence(self) -> bool:
-        """True until each configured hardware source has reported once.
+        """설정된 각 하드웨어 소스가 한 번씩 보고할 때까지 True입니다.
 
-        Publishing "unsafe" before then would make the Supervisor latch at every boot; a
-        silent adapter is instead treated as missing evidence with the boot grace.
+        그 전에 unsafe를 발행하면 부팅마다 Supervisor fault가 유지됩니다.
+        대신 어댑터가 발행을 보류하면 부팅 유예가 있는 근거 누락으로 처리합니다.
         """
         return ((self.estop_configured and self.released is None) or
                 (self.protection_configured and self.protection is None))

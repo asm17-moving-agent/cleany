@@ -1,4 +1,4 @@
-"""Coordinate and map persistence checks for the parallel extension tool."""
+"""병렬 지도 확장 도구의 좌표와 지도 영속 저장을 검사합니다."""
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace as S

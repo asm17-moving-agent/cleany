@@ -27,7 +27,7 @@ bool inside(double x, double y, const std::vector<geometry_msgs::msg::Point> &f)
       x<(f[j].x-f[i].x)*(y-f[i].y)/(f[j].y-f[i].y)+f[i].x) result=!result;
   return result;
 }
-// Nav2's boundary checker alone can miss a small obstacle inside the body.
+// Nav2 경계 검사만으로는 body 내부의 작은 장애물을 놓칠 수 있습니다.
 bool footprintPoseFree(nav2_costmap_2d::Costmap2D &map,
   nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> &checker,
   const std::vector<geometry_msgs::msg::Point> &footprint,double x,double y,double theta) {
@@ -72,9 +72,9 @@ bool sweptPoseConnectionFree(const nav2_costmap_2d::Costmap2D &map,
     if(!std::isfinite(p.x) || !std::isfinite(p.y))return false;
     radius=std::max(radius,std::hypot(p.x,p.y));
   }
-  // Each interval retains the full-cell SAT and arc-deviation bound. This
-  // tightens that bound for large rotations; it does not sample away motion
-  // between endpoints or change the required footprint.
+  // 각 구간은 전체 셀 SAT와 원호 편차 한계를 유지합니다. 큰 회전에서
+  // 한계를 더 조일 뿐이며 끝점 사이 움직임을 표본화로 누락하거나
+  // 필수 footprint를 바꾸지 않습니다.
   const double steps=std::ceil(radius*std::abs(b.theta-a.theta)/(map.getResolution()/2.));
   if(!std::isfinite(steps) || steps>std::numeric_limits<unsigned int>::max())return false;
   const auto count=std::max(1u,static_cast<unsigned int>(steps));
@@ -112,8 +112,8 @@ nav_msgs::msg::Path checkedFixedHeadingPath(const nav_msgs::msg::Path &route,
   const std::function<bool()> &cancel) {
   nav_msgs::msg::Path empty;empty.header=route.header;
   if(!validSweptInput(route,footprint,cancel))return empty;
-  // This is an alternative-path constructor. Live-map verification instead
-  // calls sweptPathCollisionFree so it cannot rewrite an accepted heading.
+  // 대체 경로 생성기입니다. 실시간 지도 검증은 sweptPathCollisionFree를
+  // 호출하므로 이미 수락한 방향을 다시 쓸 수 없습니다.
   for(const double heading:{yaw(route.poses.front().pose.orientation),
                             yaw(route.poses.back().pose.orientation)}) {
     if(cancel())return empty;
@@ -152,8 +152,8 @@ bool pathCollisionFree(const nav_msgs::msg::Path &path, nav2_costmap_2d::Costmap
   return true;
 }
 
-// Reuse Nav2's lattice search while keeping a private conservative footprint.
-// The public costmap and the executor's footprint remain unchanged.
+// 전용 보수적 footprint를 유지하면서 Nav2 lattice 탐색을 재사용합니다.
+// 공개 costmap과 executor footprint는 유지합니다.
 class ConservativeLatticePlanner : public nav2_smac_planner::SmacPlannerLattice {
 public:
   void configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr &parent, std::string name,
@@ -219,8 +219,8 @@ public:
     const auto deadline=std::chrono::steady_clock::now()+
       std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(_max_planning_time));
     const auto expired=[&] {return cancel() || std::chrono::steady_clock::now()>=deadline;};
-    // Copy bytes and geometry together, then release the live map for updates,
-    // IsPathValid and heartbeat callbacks throughout the expensive search.
+    // 바이트와 기하를 함께 복사한 뒤 실시간 지도 잠금을 해제해 비용이 큰 탐색 중에도
+    // 지도 갱신, IsPathValid와 heartbeat 콜백을 처리합니다.
     {
       std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock(*live_costmap_->getMutex());
       *snapshot_=*live_costmap_;
@@ -269,9 +269,9 @@ public:
     if(cancel() || !_costmap->worldToMap(start.pose.position.x,start.pose.position.y,sx,sy) ||
        !_costmap->worldToMap(goal.pose.position.x,goal.pose.position.y,gx,gy))return finish("cancelled_or_outside_map");
     if(holonomic_) {
-      // A tangent-oriented lattice route can be too close to a corner to
-      // reorient safely. Search XY for the desired body heading directly.
-      // Reserve roughly half the shared budget for the rotating fallback.
+      // 접선 방향 lattice 경로가 모서리에 너무 가까우면 안전하게 방향을 바꿀 수
+      // 없으므로 원하는 body 방향에서 XY를 직접 탐색합니다.
+      // 회전 대체 경로를 위해 공유 예산의 약 절반을 남깁니다.
       for(const double heading:holonomicTravelHeadings(start,goal,forward_distance_)) {
         const auto heading_deadline=std::min(deadline,std::chrono::steady_clock::now()+
           std::chrono::duration_cast<std::chrono::steady_clock::duration>(
@@ -298,15 +298,15 @@ public:
         return candidate;
       }
     }
-    // Additional search clearance is optional. The robot footprint and its
-    // configured safety padding are required for every returned path.
+    // 추가 탐색 여유는 선택적입니다. 반환하는 모든 경로에는 로봇 footprint와
+    // 설정된 안전 여유를 반드시 적용합니다.
     std::vector<double> margins{padding_,std::max(0.,padding_-_costmap->getResolution()/2),0.};
     margins.erase(std::unique(margins.begin(),margins.end()),margins.end());
     for(size_t attempt=0;attempt<margins.size();++attempt) {
       if(expired())return finish("cancelled_or_budget_expired");
       const double margin=margins[attempt];
-      // Reserve a fair share for smaller clearance attempts rather than spend
-      // the entire budget on the most conservative optional margin.
+      // 가장 보수적인 선택 여유에 전체 예산을 쓰지 않고 더 작은 여유의 시도에도
+      // 예산을 공평하게 남깁니다.
       const double remaining=std::chrono::duration<double>(deadline-std::chrono::steady_clock::now()).count();
       if(remaining<=0.)return finish("budget_expired");
 #if !CLEANY_NAV2_CANCEL_CHECKER
@@ -316,9 +316,9 @@ public:
       auto conservative=footprint;nav2_costmap_2d::padFootprint(conservative,margin);
       _collision_checker.setFootprint(conservative,false,0.0);
       _a_star->setCollisionChecker(&_collision_checker);
-      // Snapping a valid continuous pose to the closest lattice angle can
-      // rotate its corners into an obstacle. Try other heading seeds only
-      // through a collision-checked rotation/translation from the real pose.
+      // 유효한 연속 자세를 가장 가까운 lattice 각도로 맞추면 모서리가 장애물 안으로
+      // 회전할 수 있습니다. 실제 자세에서 충돌 검사를 통과한 회전과 병진을
+      // 통해서만 다른 방향 seed를 시도합니다.
       std::vector<unsigned int> headings(_metadata.heading_angles.size());
       std::iota(headings.begin(),headings.end(),0u);
       std::stable_sort(headings.begin(),headings.end(),[&](unsigned int a,unsigned int b) {
@@ -386,8 +386,8 @@ public:
         p.pose.orientation=nav2_smac_planner::getWorldOrientation(i->theta);plan.poses.push_back(p);
       }
       plan.poses.insert(plan.poses.begin(),connection.poses.begin(),connection.poses.end());
-      // A tolerance endpoint is useful during search, but desk arrival needs
-      // the original requested pose. Validate its connecting sweep as well.
+      // 허용 오차 끝점은 탐색에 유용하지만 책상 도착에는 원래 요청 자세가 필요합니다.
+      // 원래 자세로 연결하는 sweep도 검증합니다.
       if(exact_goal_)plan.poses.push_back(goal);
       if(pathCollisionFree(plan,*_costmap,footprint,expired)) {
         if(!holonomic_ && shortcut_distance_>0.) {
@@ -396,22 +396,22 @@ public:
             return shortcut;
         }
         if(holonomic_) {
-          // Extra lattice clearance guides search; it is not the acceptance
-          // footprint. Apply the same configured body/padding as the original
-          // route, otherwise a safe fixed-yaw route can be discarded while
-          // the rotating route below is accepted with less padding.
+          // 추가 lattice 여유는 탐색을 유도하며 수락용 footprint가 아닙니다.
+          // 원래 경로와 같은 body 및 여유 설정을 적용합니다. 그렇지 않으면 안전한
+          // 고정 yaw 경로를 버리면서 아래 회전 경로는 더 작은 여유로
+          // 수락하는 불일치가 생길 수 있습니다.
           auto fixed=checkedFixedHeadingPath(plan,*_costmap,footprint,expired);
           if(!fixed.poses.empty()) {
-            // Independently check the same route on the latest live map. Its
-            // endpoint orientations still encode any necessary final rotation.
+            // 최신 실시간 지도에서 같은 경로를 독립적으로 검사합니다.
+            // 끝점 방향은 필요한 최종 회전을 계속 나타냅니다.
             if(sweptPathCollisionFree(fixed,*live_costmap_,footprint,expired)) {
               RCLCPP_INFO(_logger,"Using fixed body heading on collision-checked lattice XY route (%zu poses)",fixed.poses.size());
               return fixed;
             }
           }
         }
-        // A snapshot is for search only. Newly observed live obstacles must
-        // still veto the entire continuous body sweep before returning it.
+        // snapshot은 탐색 전용입니다. 반환 전에 새로 관측된 실시간 장애물로
+        // 전체 연속 body sweep을 다시 거부할 수 있어야 합니다.
         if(pathCollisionFree(plan,*live_costmap_,footprint,expired))return plan;
         plan.poses.clear();
         return finish("live_sweep_rejected_or_budget_expired");
@@ -457,8 +457,8 @@ nav_msgs::msg::Path checkedStraightPath(
   const auto &a=start.pose.position;const auto &b=goal.pose.position;
   const double distance=std::hypot(b.x-a.x,b.y-a.y);
   const double heading=distance>1e-6?std::atan2(b.y-a.y,b.x-a.x):yaw(start.pose.orientation);
-  // The heading critic may follow a path behind the robot in reverse. Leave
-  // those goals to the lattice so its body orientation remains authoritative.
+  // 방향 critic은 로봇 뒤의 경로를 후진으로 따를 수 있습니다. 이런 목표는
+  // lattice에 맡겨 lattice의 body 방향이 기준이 되게 합니다.
   if (distance>1e-6 && std::abs(wrap(heading-yaw(start.pose.orientation)))>M_PI/2) return path;
   auto rotate=[&](double x,double y,double from,double to) {
     const double delta=wrap(to-from);
@@ -509,7 +509,7 @@ std::vector<double> holonomicTravelHeadings(
   const double dx=goal.pose.position.x-start.pose.position.x,dy=goal.pose.position.y-start.pose.position.y;
   std::vector<double> headings;
   if(forward_distance>0. && std::hypot(dx,dy)>forward_distance) {
-    // Long transfers prefer forward travel. Short lateral docking stays holonomic.
+    // 장거리 이동은 전진을 선호하며 짧은 횡방향 도킹은 전방향을 유지합니다.
     headings.push_back(std::atan2(dy,dx));
   }
   for(double h:{from,to}) {

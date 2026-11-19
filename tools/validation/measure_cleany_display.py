@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure the visible kiosk; optional modes override only its HTTP response."""
+"""표시된 kiosk를 측정하며 선택 모드에서는 HTTP 응답만 재정의합니다."""
 import argparse
 import json
 from pathlib import Path

@@ -40,21 +40,21 @@ TEST(SlipRecoveryBT, HaltsBrakesLatchesRetriesAndFailsOnNewSlip) {
     gate->publish(geometry_msgs::msg::Twist());
     std::this_thread::sleep_for(std::chrono::milliseconds(15));return tree.tickRoot();
   };
-  tree.tickRoot();EXPECT_EQ(Drive::normal,0); // No evidence on startup.
+  tree.tickRoot();EXPECT_EQ(Drive::normal,0); // 시작 시 근거가 없습니다.
   while(elapsed()<.3)send("clear");
   ASSERT_GT(Drive::normal,0);const auto normal_before=Drive::normal;
   while(elapsed()<.45)send("confirmed");
   EXPECT_EQ(Drive::normal,normal_before);EXPECT_GT(Drive::halts,0);
-  // Stationary clear windows cannot return the tree to the normal child.
+  // 정지 상태의 정상 구간만으로 트리를 일반 자식으로 되돌릴 수 없습니다.
   while(elapsed()<.65)send("clear");
   ASSERT_GT(Drive::retry,0);EXPECT_EQ(Drive::normal,normal_before);
-  // A delayed pre-retry confirmation cannot consume the retry budget.
+  // 재시도 이전의 지연된 확인으로 재시도 예산을 소모할 수 없습니다.
   const auto old=node->now().seconds()-1.;
   while(elapsed()<.85)send("confirmed",old);
   EXPECT_EQ(Drive::normal,normal_before);EXPECT_EQ(tree.rootNode()->status(),BT::NodeStatus::RUNNING);
   while(elapsed()<1.15)send("clear");
   const auto retry_before=Drive::retry;
-  // A new post-retry comparison causes a second brake, then terminal failure.
+  // 재시도 이후 새 비교가 두 번째 제동과 최종 실패를 유발합니다.
   const auto new_start=node->now().seconds()-.1;
   BT::NodeStatus result=BT::NodeStatus::RUNNING;
   while(elapsed()<1.45 && result==BT::NodeStatus::RUNNING)result=send("confirmed",new_start);

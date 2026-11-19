@@ -1,4 +1,4 @@
-# Tuned Humble MPPI implementation owned by cleany_navigation.
+# cleany_navigation에서 관리하는 Humble MPPI 구현입니다.
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
 # xsimd's SSE2 rounding uses ordered additions. -ffast-math reassociates them

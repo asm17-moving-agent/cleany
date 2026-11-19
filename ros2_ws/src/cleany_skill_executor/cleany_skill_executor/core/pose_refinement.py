@@ -1,4 +1,4 @@
-"""Bounded numerical pose refinement; no robot commands or collision claims."""
+"""범위 제한 수치 자세 정밀화이며 로봇 명령이나 충돌 보장이 아닙니다."""
 from collections.abc import Callable
 import numpy as np
 

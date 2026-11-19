@@ -208,7 +208,7 @@ class GyroCalibration {
   }
 
   bool durationValid(const WindowStatistics& w) const {
-    // Require at least 90% of the nominal elapsed window duration.
+    // 명목 수집 구간 길이의 최소 90%가 지나야 합니다.
     const long double expected =
         static_cast<long double>(w.samples - 1) * config_.nominalPeriodUs *
         0.9L;
@@ -218,7 +218,7 @@ class GyroCalibration {
 
   static void update(const std::array<double, 3>& x,
                      std::array<double, 3>& mean, Matrix& m2, size_t n) {
-    // Welford's two-delta update accumulates the full covariance online.
+    // Welford의 두 차이값 갱신으로 전체 공분산을 온라인 누적합니다.
     std::array<double, 3> delta{}, after{};
     for (size_t i = 0; i < 3; ++i) {
       delta[i] = x[i] - mean[i];
@@ -233,7 +233,7 @@ class GyroCalibration {
   }
 
   void assess() {
-    // Collect both windows for diagnostics, but never accept unreviewed limits.
+    // 진단을 위해 두 구간을 수집하지만 검토되지 않은 한계값으로 승인하지 않습니다.
     if (!config_.limitsReviewed) {
       result_.error = CalibrationError::kLimitsNotReviewed;
       return;

@@ -59,7 +59,7 @@ PUBLIC_INFO_TOPIC = '/left_wrist_camera/camera_info'
 
 
 class CameraContractError(ValueError):
-    """Raised when a camera manifest cannot guarantee the public contract."""
+    """카메라 manifest가 공개 계약을 보장하지 못하면 발생합니다."""
 
 
 @dataclass(frozen=True)
@@ -270,7 +270,7 @@ def default_camera_contract_path() -> Path:
 
 
 def load_camera_contract(path: Path) -> CameraContract:
-    """Load renderer intrinsics and topics without a calibration scene."""
+    """보정 장면 없이 렌더러 내부 파라미터와 토픽을 읽습니다."""
     try:
         data = _mapping(yaml.safe_load(path.read_text(encoding='utf-8')), 'camera config')
     except (OSError, yaml.YAMLError) as error:

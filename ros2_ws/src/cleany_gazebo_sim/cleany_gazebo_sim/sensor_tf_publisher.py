@@ -11,16 +11,16 @@ from cleany_gazebo_sim.static_transform import StaticTransformSpec
 
 
 class GazeboSensorTfPublisher(Node):
-    """Publish the fixed LiDAR and IMU mounts for a Gazebo model.
+    """Gazebo 모델의 고정 LiDAR 및 IMU 장착 변환을 발행합니다.
 
     TF:
-        Broadcasts static transforms from parent_frame_id to lidar_frame_id and
-        imu_frame_id. Frames, translations in meters and xyzw quaternions must
-        be supplied as parameters; the class provides no mounting defaults.
+        parent_frame_id에서 lidar_frame_id와 imu_frame_id로의 정적 변환을 발행합니다.
+        좌표계 이름, 위치(m), quaternion(xyzw)을 파라미터로 지정해야 합니다.
+        이 클래스는 장착 위치 기본값을 제공하지 않습니다.
 
     Notes:
-        Transform specifications are validated before the static broadcast.
-        Camera pan is owned separately by GazeboPanTfPublisher.
+        발행 전에 변환 설정을 검증합니다. 카메라 pan은 GazeboPanTfPublisher가
+        별도로 담당합니다.
     """
     def __init__(self) -> None:
         super().__init__('gazebo_sensor_tf_publisher')

@@ -1,4 +1,4 @@
-"""Nonblocking System Supervisor lease client for the Mission Runtime."""
+"""Mission Runtime을 위한 비블로킹 System Supervisor 임대 client입니다."""
 
 import time
 
@@ -12,22 +12,22 @@ OPERABLE = ("OPERATIONAL", "DEGRADED")
 
 
 class RosSupervision:
-    """Acquire, renew and release one Supervisor lease without blocking the tick.
+    """tick을 막지 않고 Supervisor 임대 하나를 취득, 갱신하고 반환합니다.
 
     Subscriptions:
-        system/heartbeat (cleany_interfaces/msg/SystemHeartbeat): Liveness and epoch.
-        system/state (cleany_interfaces/msg/SystemState): Operating state and
-            revocations. QoS: reliable, transient-local depth 1.
-        system/capabilities (cleany_interfaces/msg/SystemCapabilities): Availability
-            used for the admission precheck. QoS: reliable, transient-local depth 1.
+        system/heartbeat (cleany_interfaces/msg/SystemHeartbeat): 생존 상태와 epoch.
+        system/state (cleany_interfaces/msg/SystemState): 운영 상태와 권한 회수.
+            QoS는 reliable, transient_local, depth 1입니다.
+        system/capabilities (cleany_interfaces/msg/SystemCapabilities):
+            수락 사전 검사에 사용하는 가용성. QoS는 reliable, transient_local, depth 1입니다.
 
     Services:
         system/check_permission (cleany_interfaces/srv/CheckPermission): Client.
 
     Notes:
-        Retained snapshots never grant authority: the lease deadline counts from
-        request dispatch on the local monotonic clock and a stale heartbeat or a
-        new epoch invalidates it. A late reply cannot revive an expired lease.
+        보관된 snapshot 자체는 권한을 부여하지 않습니다. 임대 마감은 로컬 단조 시계의
+        요청 전송 시점부터 계산하며 오래된 heartbeat나 새 epoch는 임대를 무효화합니다.
+        늦은 응답은 만료된 임대를 되살리지 못합니다.
     """
 
     def __init__(self, node, capabilities: list[str], *, heartbeat_timeout: float,
@@ -52,7 +52,7 @@ class RosSupervision:
 
     def _heartbeat(self, message) -> None:
         if message.epoch != self.epoch:
-            # A Supervisor restart invalidates every lease of the previous epoch.
+            # Supervisor가 재시작하면 이전 epoch의 모든 임대가 무효화됩니다.
             self.epoch, self.operating = message.epoch, ""
             self.available_capabilities = set()
             self.deadline = 0.0
@@ -101,7 +101,7 @@ class RosSupervision:
         sent_at, identity = time.monotonic(), (self.mission_id, self.lease_id, self.version)
         future = self.client.call_async(request)
         if release:
-            return  # Authority is already gone locally; the reply is informational.
+            return  # 로컬에서는 이미 권한이 사라졌으므로 응답은 정보 확인용입니다.
         self.pending, self.pending_sent = future, sent_at
         future.add_done_callback(lambda done: self._reply(done, sent_at, identity, acquire))
 
@@ -120,9 +120,9 @@ class RosSupervision:
             self.denied, self.deadline = response.reason or "permission denied", 0.0
             return
         if not acquire and time.monotonic() >= self.deadline:
-            return  # Expired locally while the renewal was in flight.
+            return  # 갱신 요청이 진행되는 동안 로컬에서 만료되었습니다.
         self.lease_id, self.version, self.lease_epoch = response.lease_id, response.version, response.epoch
-        # Network delay can only shorten the lifetime.
+        # 네트워크 지연은 유효 시간을 줄일 수만 있습니다.
         self.deadline = sent_at + response.valid_for_s
         self.renew_at = sent_at + response.valid_for_s / 3
 
@@ -149,7 +149,7 @@ class RosSupervision:
         if not self.mission_id or self.pending is not None or self.denied:
             return
         if not self.lease_id:
-            self._send(acquire=True)  # The service was not ready at admission.
+            self._send(acquire=True)  # 수락 시점에 서비스가 준비되지 않았습니다.
         elif self._valid() and now >= self.renew_at:
             self._send()
 

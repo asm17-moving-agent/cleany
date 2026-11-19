@@ -346,16 +346,16 @@ def test_desks_follow_3_2_3_wall_touching_layout(tmp_path: Path) -> None:
     assert xs == [-5.53, -4.33, -3.13, -0.6, 0.6, 3.13, 4.33, 5.53]
     assert ys == [-3.555, -2.785, -0.385, 0.385, 2.785, 3.555]
 
-    # The first and last desk sides touch the side-wall faces.
+    # 첫 번째와 마지막 책상 측면은 측벽 면에 닿습니다.
     assert round(xs[0] - 0.6, 2) == -6.13
     assert round(xs[-1] + 0.6, 2) == 6.13
-    # Desk blocks are 3-2-3 with measured 1.33 m clear horizontal aisles.
+    # 책상은 3-2-3 블록이며 수평 통로의 측정 유효 폭은 1.33m입니다.
     clear_aisles = [
         round(xs[index + 1] - xs[index] - 1.2, 2)
         for index in (2, 4)
     ]
     assert clear_aisles == [1.33, 1.33]
-    # Each two-row block touches back-to-back.
+    # 각 두 줄 블록은 뒤쪽 면끼리 맞닿습니다.
     assert [round(ys[index + 1] - ys[index], 2) for index in (0, 2, 4)] == [
         0.77, 0.77, 0.77
     ]
@@ -364,7 +364,7 @@ def test_desks_follow_3_2_3_wall_touching_layout(tmp_path: Path) -> None:
         for index in (1, 3)
     ]
     assert clear_row_gaps == [1.63, 1.63]
-    # Measured edge-to-wall clearance at the north and south rows is 1.53 m.
+    # 북쪽과 남쪽 줄의 가장자리에서 벽까지 측정 간격은 1.53m입니다.
     assert round(5.47 - (ys[-1] + 0.385), 2) == 1.53
     assert round((ys[0] - 0.385) - (-5.47), 2) == 1.53
 
@@ -389,13 +389,13 @@ def test_chairs_overlap_tabletop_edge_by_33_cm(
         assert desk is not None
         chair_y = float(chair.findtext('pose', '').split()[1])
         desk_y = float(desk.findtext('pose', '').split()[1])
-        # Tabletop half-depth is 0.385 m. The chair seat front reaches
-        # 0.23 m forward from its origin after accounting for its -0.03 m
-        # local offset and 0.52 m front-to-back collision size.
+        # 상판 반깊이는 0.385m입니다. 의자 좌판의 로컬 오프셋 -0.03m와
+        # 앞뒤 충돌 길이 0.52m를 반영하면
+        # 좌판 앞끝은 원점에서 전방으로 0.23m에 위치합니다.
         edge_to_seat_front = abs(chair_y - desk_y) - 0.385 - 0.23
         assert round(edge_to_seat_front, 2) == -0.33
 
-    # Backrests extend 0.40 m away from the chair origin.
+    # 등받이는 의자 원점에서 뒤쪽으로 0.40m까지 뻗습니다.
     chair_back_extent = 0.40
     cross_aisles = (
         chair_ys[2] - chair_back_extent

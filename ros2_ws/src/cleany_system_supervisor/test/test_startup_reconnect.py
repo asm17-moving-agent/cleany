@@ -1,4 +1,4 @@
-"""A persisted link failure can clear only with fresh, disarmed startup evidence."""
+"""저장된 연결 실패는 최신의 구동 해제 시작 근거가 있을 때만 해제할 수 있습니다."""
 import json
 from copy import deepcopy
 
@@ -40,13 +40,13 @@ def test_restored_link_fault_clears_once_after_stable_disarmed_startup(tmp_path)
     system = restored(tmp_path)
     for _ in range(8):
         advance(system)
-    assert active(system)  # Valid samples alone cannot skip the full stability interval.
+    assert active(system)  # 유효 표본만으로 전체 안정 구간을 건너뛸 수 없습니다.
     for _ in range(8):
         advance(system)
     assert not active(system)
     assert sum(e.kind == 'BASE_STARTUP_RECONCILED' for e in system.events) == 1
     assert json.loads(system.store.path.read_text())['faults'] == []
-    assert system.permissions.leases == {}  # No automatic goal/lease resumption.
+    assert system.permissions.leases == {}  # 목표나 임대를 자동 재개하지 않습니다.
     assert permission(system, mission_id='new-user-goal').granted
 
 

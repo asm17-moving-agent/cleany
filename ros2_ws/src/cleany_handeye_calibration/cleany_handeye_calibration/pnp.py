@@ -1,4 +1,4 @@
-"""Planar ChArUco PnP with explicit IPPE candidate diagnostics."""
+"""IPPE 후보 진단을 명시적으로 제공하는 평면 ChArUco PnP입니다."""
 
 from __future__ import annotations
 
@@ -283,7 +283,7 @@ def evaluate_pnp_candidate(
     camera_frame: str,
     target_frame: str,
 ) -> PnpCandidate:
-    """Validate and VVS-refine one raw IPPE candidate."""
+    """원본 IPPE 후보 하나를 검증하고 VVS로 정밀화합니다."""
 
     try:
         raw_pose, raw_rotation, raw_translation = _pose_from_vectors(
@@ -402,7 +402,7 @@ def evaluate_pnp_candidate(
 def select_pnp_candidates(
     candidates: Sequence[PnpCandidate],
 ) -> PnpResult:
-    """Select the lowest-RMSE valid candidate or reject ambiguity."""
+    """유효 후보 중 RMSE가 가장 낮은 후보를 선택하거나 모호한 결과를 거부합니다."""
 
     candidate_tuple = tuple(candidates)
     valid_candidates = sorted(
@@ -465,7 +465,7 @@ def solve_planar_pnp(
     camera_frame: str,
     target_frame: str,
 ) -> PnpResult:
-    """Run two-solution IPPE, refine both candidates, and select by RMSE."""
+    """두 해를 구하는 IPPE를 실행하고 두 후보를 정밀화한 뒤 RMSE로 선택합니다."""
 
     if not isinstance(detection, CharucoDetection) or not detection.valid:
         return _invalid_result(PnpFailure.INVALID_DETECTION)

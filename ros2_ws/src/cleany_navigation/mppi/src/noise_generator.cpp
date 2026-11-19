@@ -32,7 +32,7 @@ void NoiseGenerator::initialize(
   auto getParam = param_handler->getParamGetter(name);
   getParam(regenerate_noises_, "regenerate_noises", false);
 
-  // The first optimization must see a complete batch, even under CPU load.
+  // CPU 부하가 있어도 첫 최적화가 완성된 표본 묶음을 사용하도록 합니다.
   reset(settings, is_holonomic);
   if (regenerate_noises_) {
     noise_thread_ = std::thread(std::bind(&NoiseGenerator::noiseThread, this));
@@ -75,7 +75,7 @@ void NoiseGenerator::setNoisedControls(
 
 void NoiseGenerator::reset(cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic)
 {
-  // Settings, model selection and buffers form one atomic generation.
+  // 설정, 모델 선택과 버퍼를 하나의 세대로 원자적으로 갱신합니다.
   std::lock_guard<std::mutex> guard(noise_lock_);
   settings_ = settings;
   is_holonomic_ = is_holonomic;

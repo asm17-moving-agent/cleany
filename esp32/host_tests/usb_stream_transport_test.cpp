@@ -46,8 +46,8 @@ int main() {
   port.readLimit = 1;
   assert(transport.read(bytes, 4, 10) == 3);
   assert(bytes[0] == 1 && bytes[2] == 3);
-  // Empty reads advance the fake clock; a multi-byte deadline read preserves
-  // bytes already received rather than waiting forever.
+  // 빈 읽기는 모의 시계를 진행하며 여러 바이트를 읽을 때 제한 시간이 지나도
+  // 이미 받은 바이트를 보존하고 무한히 기다리지 않습니다.
   port.input = {9};
   port.readLimit = 1;
   assert(transport.read(bytes, 4, 2) == 1 && bytes[0] == 9);

@@ -1,4 +1,4 @@
-"""Permanent hardware graph; the parent runtime owns and shuts down this launch."""
+"""상위 runtime이 시작과 종료를 관리하는 상시 하드웨어 그래프입니다."""
 
 import math
 from pathlib import Path

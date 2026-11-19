@@ -1,4 +1,4 @@
-"""Camera-to-observed-OBB envelope for pregrasp self-occlusion checks."""
+"""pregrasp 자체 가림 검사에 사용하는 카메라부터 관측 OBB까지의 외곽입니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,11 +26,11 @@ def enclosing_visibility_cone(
     padding_m: float = 0.003,
     sides: int = 16,
 ) -> VisibilityCone:
-    """Enclose all eight OBB corner rays, without object ground truth.
+    """물체 참값 없이 OBB 모서리 ray 여덟 개를 모두 둘러쌉니다.
 
-    The disc is perpendicular to the camera-center ray. Perspective projection
-    accounts for the near corners appearing larger. Circumscribing the polygon
-    keeps its flat sides outside the requested circular envelope.
+    원판은 카메라 중심 ray에 수직입니다. 원근 투영으로 가까운 모서리가 더 크게
+    보이는 효과를 반영합니다. 다각형을 외접시켜 평평한 변도 요청된 원형 외곽
+    밖에 유지합니다.
     """
     if (len(camera) != 3 or len(center) != 3 or len(size) != 3 or len(orientation) != 4
             or not all(math.isfinite(v) for v in (*camera, *center, *size, *orientation, padding_m))
@@ -54,7 +54,7 @@ def enclosing_visibility_cone(
             raise ValueError('observed target crosses the camera plane')
         projected = tuple(c+v*distance/depth-t for c, v, t in zip(camera, ray, center))
         radius = max(radius, math.sqrt(sum(v*v for v in projected)))
-    # Quaternion rotating local +Z to the disc normal toward the camera.
+    # 로컬 +Z를 카메라 쪽 원판 법선으로 회전하는 quaternion입니다.
     if normal[2] < -1. + 1e-12:
         rotation = (1., 0., 0., 0.)
     else:

@@ -11,7 +11,7 @@ function LocalizationStatus({value}:{value?:Localization}) {
  const score=value.score;
  return <p role="status" className="text-xs">{label}{score&&Number.isFinite(score.inlier_ratio)?` · 일치 ${(score.inlier_ratio*100).toFixed(0)}%`:''}</p>;
 }
-// Unlike randomUUID, getRandomValues is available on the phone's HTTP LAN URL.
+// randomUUID와 달리 getRandomValues는 핸드폰의 HTTP LAN URL에서도 사용할 수 있습니다.
 const requestId=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
 export function NavigationPanel(){
  const [map,setMap]=useState<MapData|null>(null),[state,setState]=useState<State>({phase:'unavailable',ready:false,reason:'주행 모드 대기'}),[goal,setGoal]=useState<number[]|null>(null),[initial,setInitial]=useState(false),[showGlobalPath,setShowGlobalPath]=useState(true),[error,setError]=useState('');

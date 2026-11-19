@@ -1,1 +1,1 @@
-"""Read-only developer observability for Cleany."""
+"""Cleany 개발 상태를 읽기 전용으로 관찰합니다."""

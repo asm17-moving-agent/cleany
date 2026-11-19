@@ -1,4 +1,4 @@
-"""Attach wrist optics from the selected assembly registration."""
+"""선택한 조립체의 등록 정보에 따라 손목 카메라 광학계를 부착합니다."""
 from __future__ import annotations
 
 import json
@@ -18,7 +18,7 @@ def _pose(transform: np.ndarray, parent: str) -> ET.Element:
 
 
 def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
-    """Reuse canonical visuals; legacy navigation retains its collision envelope."""
+    """기준 렌더링 형상을 재사용하며, 기존 주행 모델은 충돌 외곽을 유지합니다."""
     urdf = ET.fromstring(xacro.process_file(
         str(description / 'urdf/cleany.urdf.xacro'), mappings={'model_profile':'jetson_20261009'}).toxml())
     base = model.find("link[@name='base_link']")
@@ -56,10 +56,10 @@ def _replace_legacy_visuals(model: ET.Element, description: Path) -> None:
 def apply_wrist_cameras(
     model: ET.Element, description: Path, *, legacy_visuals: bool = False,
 ) -> None:
-    """Align present sensors and optical frames; do not add excluded CAD arms."""
+    """존재하는 센서와 광학 좌표계를 맞추고 제외된 CAD 팔은 추가하지 않습니다."""
     registration = json.loads(
         (description / 'config/geometry/wrist_mount_v8.json').read_text())
-    # Gazebo +X forward / +Y left / +Z up, optical +Z forward / +X right / +Y down.
+    # Gazebo는 +X 전방, +Y 왼쪽, +Z 위쪽이며 광학 좌표계는 +Z 전방, +X 오른쪽, +Y 아래쪽입니다.
     cv_from_sensor = np.array([[0., -1., 0.], [0., 0., -1.], [1., 0., 0.]])
     names = {element.get('name') for element in model if element.tag in ('link', 'frame')}
     for side in ('left', 'right'):

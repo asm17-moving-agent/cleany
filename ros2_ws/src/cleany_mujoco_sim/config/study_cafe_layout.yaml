@@ -5,20 +5,20 @@ scene:
   background_rgba: [0.82, 0.83, 0.84, 1.0]
 
 robot:
-  # x, y, z, roll, pitch, yaw in the world frame.
+  # 월드 좌표계의 x, y, z, roll, pitch, yaw입니다.
   spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
 
 mujoco:
-  # Preserve the robot pose after chair centers moved 0.10 m toward the desks.
+  # 의자 중심을 책상 쪽으로 0.10m 옮긴 뒤에도 로봇 자세는 유지합니다.
   robot_center_rearward_offset_m: 0.32
-  # Keep all four objects within the 640x480 head RGB camera at 1.00 rad tilt.
-  # At this robot spawn yaw, desk -X is robot-left: lost items left, trash right.
-  # Test arrangement only; classification and arm selection still use perception.
+  # 물체 네 개가 모두 tilt 1.00rad의 640×480 헤드 RGB 카메라 안에 들어오게 합니다.
+  # 이 로봇 시작 yaw에서는 책상 -X가 로봇 왼쪽입니다. 분실물은 왼쪽, 쓰레기는 오른쪽입니다.
+  # 시험 배치일 뿐이며 분류와 팔 선택은 여전히 인식 결과를 사용합니다.
   tabletop_objects:
     - name: cup
       xy_offset_from_desk_center_m: [0.12, -0.175]
       yaw_rad: 0.20
-      # Empty paper cup; mass is a simulation assumption, not a measured sample.
+      # 빈 종이컵입니다. 질량은 시뮬레이션 가정이며 측정 표본이 아닙니다.
       mass_kg: 0.008
       rgba: [0.92, 0.87, 0.74, 1.0]
       visual_type: paper_cup
@@ -26,22 +26,22 @@ mujoco:
         bottom_diameter_m: 0.0396
         wall_thickness_m: 0.000504
         segments: 32
-        # Let the bottom disk support the cup; avoid 32 coplanar wall contacts.
-        # Collision only: keep the RGB mesh and the upper gripping surface.
+        # 같은 평면의 벽 접촉 32개 대신 바닥 원판이 컵을 받치게 합니다.
+        # 충돌에만 적용하며 RGB 메시와 위쪽 파지 표면은 유지합니다.
         collision_bottom_clearance_m: 0.00025
       collision:
         type: compound
-        # Additional 0.9x scaling (0.72x original); retain mass/friction.
-        # top diameter, height; open hollow tapered walls plus bottom
+        # 추가로 0.9배 축소하며 원본의 0.72배입니다. 질량과 마찰은 유지합니다.
+        # 상단 지름과 높이이며 열린 경사 중공 벽과 바닥으로 구성합니다.
         size_m: [0.0612, 0.0684]
     - name: mouse
-      # Move 8 cm toward the robot while retaining the left-side placement.
+      # 왼쪽 배치를 유지하면서 로봇 쪽으로 8cm 옮깁니다.
       xy_offset_from_desk_center_m: [-0.14, -0.095]
       yaw_rad: -0.18
       mass_kg: 0.12
       rgba: [1.0, 1.0, 1.0, 1.0]
       collision:
-        # Wireless mouse; convex hull of the imported visual mesh.
+        # 무선 마우스이며 가져온 렌더링 메시의 볼록 껍질을 사용합니다.
         type: mesh
         size_m: [0.110, 0.065, 0.035]
     - name: tissue
@@ -71,8 +71,8 @@ mujoco:
         stud_height_m: 0.00396
       collision:
         type: compound
-        # 2x standard 2x4 footprint, with height increased by 10%; 25.08 mm including studs.
-        # Keep mass unchanged to isolate geometry in the grasp comparison.
+        # 표준 2×4 footprint의 2배이며 높이는 10% 증가합니다. 돌기 포함 25.08mm입니다.
+        # 파지 비교에서 형상의 영향만 분리하도록 질량을 유지합니다.
         size_m: [0.0636, 0.0316, 0.02112]
 
 room:
@@ -83,7 +83,7 @@ room:
   wall_roughness: 0.92
 
 desk_layout:
-  # Eight columns form the measured 3-2-3 blocks.
+  # 8개 열을 측정 배치에 따라 3-2-3 블록으로 구성합니다.
   x_positions_m: [-5.53, -4.33, -3.13, -0.60, 0.60, 3.13, 4.33, 5.53]
   row_pair_centers_y_m: [3.17, 0.0, -3.17]
   rows:

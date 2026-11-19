@@ -1,4 +1,4 @@
-"""Exercise ROS depth messages and optical TF, without a simulator."""
+"""시뮬레이터 없이 ROS 깊이 메시지와 optical TF를 검사합니다."""
 from types import SimpleNamespace
 
 import numpy as np
@@ -35,7 +35,7 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         image.step = 2*np.dtype(dtype).itemsize
         image.data = (np.array([2., 2.])*scale).astype(dtype).tobytes()
         node.on_depth(image)
-        assert not outputs  # Never guess the optical transform.
+        assert not outputs  # 광학 변환을 추측하지 않습니다.
         tf = TransformStamped()
         tf.header.frame_id, tf.child_frame_id = 'head_camera_depth_frame', info.header.frame_id
         tf.transform.rotation.x, tf.transform.rotation.y = -.5, .5
@@ -47,14 +47,14 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         body.transform.rotation.w = 1.
         node.buffer.set_transform_static(body, 'test_backend')
         assert node.pending is image
-        node.retry_depth()  # Original frame survives while matching TF arrives.
+        node.retry_depth()  # 대응 TF가 도착할 때까지 원래 프레임을 유지합니다.
         assert len(outputs) == 1
         np.testing.assert_allclose(cloud_xyz(outputs[-1]), [[2.1, 0., 0.], [2.1, -1., 0.]])
         assert outputs[-1].header.frame_id == 'head_camera_depth_frame'
         assert outputs[-1].header.stamp == image.header.stamp
-        assert image.header.frame_id == info.header.frame_id  # Input message is not mutated.
-        # A raycast surface 0.15 mm outside the CAD box must be recognized as
-        # self geometry; a separate point one meter to the side stays observed.
+        assert image.header.frame_id == info.header.frame_id  # 입력 메시지는 변경하지 않습니다.
+        # CAD 상자보다 0.15mm 바깥의 raycast 표면도 자체 형상으로 인식해야 하며
+        # 옆으로 1m 떨어진 별도 점은 관측으로 남아야 합니다.
         node.self_boxes = [BodyBox('left_arm/visual', np.array([2., 0., 0.]),
                                    np.eye(3), np.array([.09985, .1, .1]))]
         base = TransformStamped()

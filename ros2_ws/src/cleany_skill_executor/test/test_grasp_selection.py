@@ -198,7 +198,7 @@ def test_occluded_pregrasp_falls_back_before_planning():
     result = selector.select([candidate(0, y=.2)])
     assert result.arm == 'right'
     assert not any(c[0].startswith('plan') and c[1] == 'left' for c in port.calls)
-    assert sum(c[0] == 'visible' for c in port.calls) == 2  # Never at grasp endpoint.
+    assert sum(c[0] == 'visible' for c in port.calls) == 2  # grasp 끝점에서는 수행하지 않습니다.
 
 
 def test_visibility_default_does_not_change_generic_selection():

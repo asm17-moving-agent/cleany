@@ -46,7 +46,7 @@ TEST(SortingObserverPlugin, RootOverrideWorksThroughLoaderSubNode)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   ASSERT_NE(received, nullptr);
-  ASSERT_EQ(received->status.size(), 2U);  // Summary and one floor/cup contact.
+  ASSERT_EQ(received->status.size(), 2U);  // 요약과 바닥/컵 접촉 하나입니다.
   EXPECT_EQ(received->header.frame_id, "base_link");
   EXPECT_EQ(received->status[0].name, "simulation_contact_snapshot");
   EXPECT_EQ(received->status[0].level, diagnostic_msgs::msg::DiagnosticStatus::OK);

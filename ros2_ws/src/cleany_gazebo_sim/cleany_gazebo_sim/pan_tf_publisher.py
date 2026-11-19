@@ -1,4 +1,4 @@
-"""Gazebo-only TF for the measured pan of the frozen CAD navigation model."""
+"""고정된 CAD Navigation 모델에서 관측한 pan 각도를 반영하는 Gazebo 전용 TF입니다."""
 from __future__ import annotations
 
 import numpy as np
@@ -20,21 +20,21 @@ def quaternion(matrix: np.ndarray) -> tuple[float, float, float, float]:
 
 
 class GazeboPanTfPublisher(Node):
-    """Publish the simulated camera mount transform from measured head pan.
+    """관측한 head pan 각도로 시뮬레이션 카메라 장착 변환을 발행합니다.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): head_pan_joint angle in radians.
+        joint_states (sensor_msgs/msg/JointState): head_pan_joint 각도(rad).
 
     TF:
-        Broadcasts base_link -> head_camera_depth_frame at the joint timestamp,
-        rotating configured mount geometry about pan_pivot.
+        관절 시각으로 base_link → head_camera_depth_frame을 발행합니다.
+        설정된 장착 형상을 pan_pivot 주위로 회전합니다.
 
     QoS:
-        Joint input uses sensor_data.
+        관절 입력은 sensor_data를 사용합니다.
 
     Notes:
-        Missing or non-finite pan positions are ignored. Use only when this node
-        owns the camera transform instead of a robot-state publisher.
+        pan 위치가 없거나 유한하지 않으면 무시합니다. robot_state_publisher 대신
+        이 노드가 카메라 변환을 소유하는 구성에서만 사용합니다.
     """
     def __init__(self) -> None:
         super().__init__('gazebo_pan_tf_publisher')

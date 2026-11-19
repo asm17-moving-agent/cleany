@@ -16,7 +16,7 @@ mission_runtime:
     stopped_angular_speed: 0.05
     navigation_settle_timeout: 3.0
     lifecycle_timeout: 3.0
-    # Only the teammate's mock action server is enabled by this fixture.
+    # 이 fixture는 협업 대상 mock action 서버만 활성화합니다.
     manipulation_backend: action_mock
     manipulation_action: mock/manipulation/execute_skill
     manipulation_query: mock/manipulation/get_execution

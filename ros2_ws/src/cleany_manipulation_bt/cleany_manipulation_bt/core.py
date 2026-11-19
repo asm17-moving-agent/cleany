@@ -1,4 +1,4 @@
-"""Action lifecycle and runtime observations. Physical order belongs to the XML tree."""
+"""Action 생명주기와 런타임 관측입니다. 물리 작업 순서는 XML 트리가 관리합니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
@@ -39,6 +39,15 @@ class FaultShutdown:
 
 
 class ExecutionCore:
+    """단일 물체 실행 기록과 native BT의 비동기 작업 생명주기를 관리합니다.
+
+    물리 작업 순서는 XML 트리가 소유합니다. 호출자는 공유 상태에 접근할 때
+    lock으로 직렬화하며 backend 연산은 신속히 반환해야 합니다. 생성 시 journal을
+    복구하고 미확인 물리 상태가 남으면 새 실행을 금지합니다.
+    BT 취소, worker 종료와 정지 확인을 구분하며 기한 초과도 정지 근거로 간주하지
+    않습니다. 런타임 fault가 나면 손상된 트리 대신 별도 정지 절차를 진행합니다.
+    """
+
     def __init__(self, backend: Backend, store: BTExecutionStore, tree_xml: str,
                  runner_factory: Callable, *, timeout_sec: float = 180.0,
                  stop_timeout_sec: float = 15.0, clock: Callable = time.monotonic,
@@ -149,8 +158,8 @@ class ExecutionCore:
             now = time.time_ns()
             record = Record(goal, execution_profile=self.execution_profile, accepted_at_ns=now,
                             updated_at_ns=now, message='Accepted; awaiting BT validation')
-            # Construct before acceptance, so malformed XML cannot leave an
-            # accepted goal without an executable tree. No nodes are ticked here.
+            # 잘못된 XML 때문에 실행할 트리 없는 목표가 수락되지 않도록 수락 전에 생성합니다.
+            # 여기서는 어떤 노드도 tick하지 않습니다.
             tree = self.runner_factory(self.tree_xml, weakref.proxy(self), goal.execution_id)
             self.store.save(record, create=True)
         except DuplicateExecution as error:
@@ -174,7 +183,7 @@ class ExecutionCore:
         try:
             self.backend.begin(goal)
         except Exception as error:
-            # The reserved execution still receives its final Action Result.
+            # 예약된 실행에도 최종 Action Result를 전달합니다.
             self._begin_fault(error)
         return True, ''
 
@@ -210,8 +219,8 @@ class ExecutionCore:
         self.events.append(record)
 
     def _fail(self, node: str, observation: Observation) -> None:
-        # An actual failure supersedes provisional cancellation; a fault also
-        # supersedes an ordinary failure. Never demote an already observed fault.
+        # 실제 실패는 잠정 취소보다, fault는 일반 실패보다 우선합니다.
+        # 이미 관측한 fault를 더 낮은 상태로 바꾸지 않습니다.
         if (self.failure is None
                 or (self.failure.error == Error.CANCELED and observation.error != Error.CANCELED)
                 or (observation.error in FATAL_ERRORS and self.failure.error not in FATAL_ERRORS)):
@@ -271,6 +280,12 @@ class ExecutionCore:
         return token
 
     def poll(self, token: str) -> str:
+        """작업 관측을 BT 상태로 바꾸고 취소된 worker의 후속 결과도 추적합니다.
+
+        시간 초과나 선점은 FAILURE를 만들 수 있지만 worker 종료를 입증하지 않습니다.
+        아직 결과가 없는 취소 작업은 별도 대기 집합에 남기며 정지 노드는 독립 평가합니다.
+        """
+
         node, started, operation = self.ops[token]
         if token in self.completed_ops:
             return 'FAILURE' if node == self.failed_substage and node not in STOP_NODES else 'SUCCESS'
@@ -290,7 +305,7 @@ class ExecutionCore:
             if isinstance(operation, str):
                 self.backend.cancel(operation)
                 if observed is None:
-                    # Logical BT cancellation does not mean the worker ended.
+                    # 논리적 BT 취소가 worker 종료를 의미하지는 않습니다.
                     self._pending_cancel_results.add(token)
             observation = Observation(False, Error.CANCELED, 'Current operation canceled',
                 object_state=(observed.object_state if observed is not None and observed.object_state is not None
@@ -345,8 +360,8 @@ class ExecutionCore:
                 continue
             self._pending_cancel_results.remove(token)
             if observation.success:
-                # Preserve physical completion, but assess stop independently
-                # after the cancellation rather than using earlier evidence.
+                # 물리적 완료 상태는 보존하되 취소 전 근거를 재사용하지 않고
+                # 취소 후 정지를 별도로 평가합니다.
                 self._record_success(node, replace(observation, stop_confirmed=None))
             else:
                 self._record_failure(node, observation)
@@ -375,16 +390,16 @@ class ExecutionCore:
         self.completed_ops.add(token)
         self._save(stop_confirmed=observation.success and observation.stop_confirmed is True,
                    message=observation.message)
-        # Even failed stop evidence must reach FinalizeFailure and an honest Result.
+        # 정지 근거가 실패해도 FinalizeFailure까지 도달해 실제 결과를 반환해야 합니다.
         return 'SUCCESS'
 
     def cancel(self, token: str) -> None:
-        # Native halt callbacks must finish resetting their nodes, including
-        # during C++ destruction. Handle the failure once back outside the BT.
+        # C++ 소멸 중에도 native halt 콜백은 노드 초기화를 마쳐야 합니다.
+        # BT 밖으로 돌아온 뒤 실패를 처리합니다.
         try:
             node, _, operation = self.ops[token]
             if self._fault_shutdown is not None and node in STOP_NODES:
-                return  # Keep an existing physical assessment running.
+                return  # 이미 진행 중인 물리 상태 평가는 계속 유지합니다.
             if isinstance(operation, str):
                 self.backend.cancel(operation)
         except Exception as error:
@@ -460,6 +475,12 @@ class ExecutionCore:
             self._fault_shutdown.issues.append(message)
 
     def _begin_fault(self, error: Exception) -> None:
+        """새 실행을 금지하고 손상된 BT 밖에서 제한된 정지 절차를 시작합니다.
+
+        token 반환 전 시작된 작업도 컨텍스트 abort로 중단 요청합니다. 기존 정지 작업이
+        있으면 재사용하며 추가 오류가 나도 정지 마감을 연장하지 않습니다.
+        """
+
         if self.record.result is not None:
             return
         if self._fault_shutdown is not None:
@@ -477,8 +498,8 @@ class ExecutionCore:
         self._fail(self.record.substage or 'ValidateGoal', Observation(
             False, Error.INTERNAL_ERROR, fault.issues[0]))
         self._save(stop_confirmed=False, human_confirmation_required=True)
-        # This context-wide signal also covers a submission that started work
-        # before throwing, without returning an operation token to the core.
+        # 컨텍스트 전체에 적용하는 이 신호는 작업을 시작한 뒤 예외가 발생해
+        # core에 작업 token을 반환하지 못한 제출도 처리합니다.
         try:
             self.backend.abort()
         except Exception as abort_error:
@@ -498,7 +519,7 @@ class ExecutionCore:
                 self.tree.halt()
         except Exception as halt_error:
             self._fault_issue('BT halt', halt_error)
-        # All further execution is owned here; the damaged BT is never ticked.
+        # 이후 실행은 여기서 전담하며 손상된 BT를 다시 tick하지 않습니다.
         self._save(stage=Stage.STOPPING, substage='StopAndAssess', message=fault.issues[0])
         if fault.stop_operation is None:
             try:

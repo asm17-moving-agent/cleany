@@ -4,6 +4,6 @@ pan_motion_gate:
     settle_s: 0.2
     source_timeout_s: 0.5
     command_timeout_s: 0.5
-    # Reverse still requires rear-facing pan, settling and fresh depth.
+    # 후진도 후방을 향한 pan, 정착과 최신 깊이가 필요합니다.
     allow_reverse: true
     allow_lateral: false

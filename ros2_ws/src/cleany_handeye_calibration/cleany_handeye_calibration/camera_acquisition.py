@@ -1,8 +1,8 @@
-"""ROS-independent wrist-camera acquisition contracts.
+"""ROS에 독립적인 손목 카메라 취득 계약입니다.
 
-ROS timestamps select data, while a monotonic wall clock bounds waiting.  The
-module intentionally has no ROS imports so exact-pair and settle-gate behavior
-can be exercised without creating a ROS graph.
+ROS 시각으로 데이터를 선택하고 단조 증가 경과 시계로 대기 시간을 제한합니다.
+ROS import를 사용하지 않으므로 ROS graph 없이 정확한 시각 쌍과
+정착 판정 동작을 검사할 수 있습니다.
 """
 
 from __future__ import annotations
@@ -99,7 +99,7 @@ def _finite_tuple(
 
 @dataclass(frozen=True, slots=True)
 class CameraContract:
-    """Expected runtime CameraInfo and raw RGB image profile."""
+    """런타임에서 기대하는 CameraInfo와 원본 RGB 영상 프로파일입니다."""
 
     frame_id: str = CAMERA_FRAME_ID
     encoding: str = CAMERA_ENCODING
@@ -193,7 +193,7 @@ DEFAULT_CAMERA_CONTRACT = CameraContract()
 
 @dataclass(frozen=True, slots=True)
 class ImageFrame:
-    """A copied ROS Image payload at the core boundary."""
+    """core 경계에서 복사한 ROS Image payload입니다."""
 
     stamp_ns: int
     frame_id: str
@@ -246,7 +246,7 @@ class ImageFrame:
 
 @dataclass(frozen=True, slots=True)
 class CameraInfoFrame:
-    """CameraInfo fields that affect image geometry and PnP."""
+    """영상 기하와 PnP에 영향을 주는 CameraInfo 필드입니다."""
 
     stamp_ns: int
     frame_id: str
@@ -406,7 +406,7 @@ def validate_camera_pair(
     contract: CameraContract = DEFAULT_CAMERA_CONTRACT,
     settled_stamp_ns: int | None = None,
 ) -> CameraPairValidation:
-    """Return an exact compatible pair or one explicit rejection reason."""
+    """정확히 호환되는 쌍 또는 명시적인 거부 이유 하나를 반환합니다."""
 
     if not isinstance(image, ImageFrame):
         raise ValueError('image must be an ImageFrame')
@@ -525,7 +525,7 @@ class CameraQueueUpdate:
 
 
 class ExactCameraPairBuffer:
-    """Bounded exact-stamp Image/CameraInfo queues."""
+    """타임스탬프가 정확히 같은 Image/CameraInfo를 위한 크기 제한 큐입니다."""
 
     def __init__(
         self,
@@ -666,7 +666,7 @@ class ExactCameraPairBuffer:
         self,
         settled_stamp_ns: int,
     ) -> CameraPairValidation | None:
-        """Discard pre-settle pairs and return the earliest eligible pair."""
+        """정착 이전의 쌍을 버리고 조건을 만족하는 가장 이른 쌍을 반환합니다."""
 
         settled = _non_negative_integer(
             settled_stamp_ns,
@@ -691,7 +691,7 @@ class ExactCameraPairBuffer:
 
 
 class MonotonicDeadline:
-    """Injectable monotonic deadline used only for bounded wall waits."""
+    """경과 시간 대기 제한에만 사용하는 주입 가능한 단조 시계 마감 시각입니다."""
 
     def __init__(
         self,
@@ -725,7 +725,7 @@ class MonotonicDeadline:
 
 
 class CameraAcquisitionTimeout(TimeoutError):
-    """No compatible post-settle pair arrived before the wall deadline."""
+    """경과 시간 제한 안에 정착 이후의 호환 가능한 쌍이 도착하지 않았습니다."""
 
     def __init__(
         self,
@@ -738,7 +738,7 @@ class CameraAcquisitionTimeout(TimeoutError):
 
 
 class ExactCameraPairPort:
-    """Thread-safe callback-to-blocking-port bridge with bounded queues."""
+    """크기 제한 큐로 콜백과 블로킹 포트를 연결하는 스레드 안전 브리지입니다."""
 
     def __init__(
         self,

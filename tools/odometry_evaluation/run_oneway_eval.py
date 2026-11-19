@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Automated One-Way (편도) Holonomic Odometry Evaluation via 2D LiDAR ICP Ground Truth.
+"""2D LiDAR ICP 상대 추정으로 편도 전방향 odometry를 자동 평가합니다.
 
-Measures displacement differences during axial, diagonal and rotation motion
-without error cancellation from round-trip return legs.
+왕복 복귀 구간에서 오차가 상쇄되는 영향을 피하고 축별, 대각선과 회전 이동의
+변위 차이를 측정합니다. ICP는 스캔 기반 기준 추정이며 독립 참값이 아닙니다.
 """
 
 from __future__ import annotations
@@ -170,7 +170,7 @@ def transform_lidar_to_base(
     lever_arm_x_m: float = 0.029,
     lever_arm_y_m: float = 0.0,
 ) -> tuple[float, float, float]:
-    """Transform relative displacement from LiDAR frame to Base frame."""
+    """LiDAR 좌표계의 상대 변위를 베이스 좌표계로 변환합니다."""
     c_e = math.cos(extrinsic_yaw_rad)
     s_e = math.sin(extrinsic_yaw_rad)
     R_e = np.array([[c_e, -s_e], [s_e, c_e]])
@@ -178,7 +178,7 @@ def transform_lidar_to_base(
     p_l = np.array([dx_l, dy_l])
     p_b_trans = R_e @ p_l
 
-    # Lever arm displacement due to in-place yaw rotation
+    # 제자리 yaw 회전으로 인한 lever arm 변위입니다.
     c_y = math.cos(dyaw_l)
     s_y = math.sin(dyaw_l)
     R_yaw = np.array([[c_y, -s_y], [s_y, c_y]])
@@ -190,12 +190,12 @@ def transform_lidar_to_base(
 
 
 def compute_relative_odom(p_from: Pose2D, p_to: Pose2D) -> tuple[float, float, float]:
-    """Compute relative displacement (dx, dy, dyaw) in p_from robot coordinate frame."""
+    """p_from 로봇 좌표계의 상대 변위 (dx, dy, dyaw)를 계산합니다."""
     dx_world = p_to.x_m - p_from.x_m
     dy_world = p_to.y_m - p_from.y_m
     c = math.cos(p_from.yaw_rad)
     s = math.sin(p_from.yaw_rad)
-    # Rotate world delta into p_from robot frame
+    # 월드 변위를 p_from 로봇 좌표계로 회전합니다.
     dx_local = c * dx_world + s * dy_world
     dy_local = -s * dx_world + c * dy_world
     dyaw = (p_to.yaw_rad - p_from.yaw_rad + math.pi) % (2.0 * math.pi) - math.pi
@@ -220,7 +220,7 @@ def match_with_base_guess(
     node: Any, reference: np.ndarray, target: np.ndarray,
     base_delta: tuple[float, float, float],
 ) -> ScanMatchResult:
-    """ICP operates in laser axes, not the odometry/base coordinate frame."""
+    """ICP는 odometry 또는 베이스 좌표계가 아닌 laser 축에서 동작합니다."""
     return node.matcher.match(
         reference, target, initial_guess=node.extrinsic.base_to_lidar(*base_delta)
     )
@@ -233,10 +233,10 @@ def run_single_oneway_test(
     displacement: float,
     plot_prefix: Path,
 ) -> dict[str, Any] | None:
-    """Execute one-way outbound and return inbound test, evaluating ICP for each leg."""
+    """나가는 편도와 복귀 편도를 실행하고 각 구간의 ICP를 평가합니다."""
     is_rotation = pattern == "rotation"
     (out_vx, out_vy, out_wz), (in_vx, in_vy, in_wz) = motion_vectors(pattern, speed)
-    # Wait for odom
+    # odom을 기다립니다.
     wait_deadline = time.monotonic() + 5.0
     while node.current_pose is None and time.monotonic() < wait_deadline:
         rclpy.spin_once(node, timeout_sec=0.1)
@@ -244,7 +244,7 @@ def run_single_oneway_test(
         node.get_logger().error("No odom received before test")
         return None
 
-    # Step 1: Baseline Scan at Origin (S0)
+    # 1단계: 원점 기준 스캔 S0
     node.current_stage = "start_scan"
     node.get_logger().info("Capturing Start Scan (S0) at Origin...")
     s0_pts = node.capture_scan_burst(duration_s=1.2, min_scans=6)
@@ -255,7 +255,7 @@ def run_single_oneway_test(
     p0_odom = node.current_pose
     assert p0_odom is not None
 
-    # Step 2: Outbound Leg (편도 가는 길)
+    # 2단계: 나가는 편도 구간
     node.current_stage = "outbound_motion"
     node.get_logger().info(f"--> Executing Outbound Leg [{pattern}]: speed={speed:.2f}, target={displacement:.3f}")
     out_ok, out_stop_stats = node.execute_leg(out_vx, out_vy, out_wz, displacement, is_rotation, dwell_after_s=1.5)
@@ -263,7 +263,7 @@ def run_single_oneway_test(
         node.stop_robot()
         return None
 
-    # Step 3: Destination Scan (S1)
+    # 3단계: 목적지 스캔 S1
     node.current_stage = "destination_scan"
     node.get_logger().info("Capturing Mid Scan (S1) at Destination...")
     s1_pts = node.capture_scan_burst(duration_s=1.2, min_scans=6)
@@ -273,11 +273,11 @@ def run_single_oneway_test(
         return None
     save_scan_capture(node, s1_pts, plot_prefix.parent / f"{plot_prefix.name}_destination.npz")
 
-    # Compute Outbound Odometry & ICP Ground Truth
+    # 나가는 구간의 odometry와 ICP 기준 추정 계산
     odom_out_dx, odom_out_dy, odom_out_dyaw = compute_relative_odom(p0_odom, p1_odom)
     node.get_logger().info(f"Outbound Odom Delta: dx={odom_out_dx*1000:+.1f}mm, dy={odom_out_dy*1000:+.1f}mm, dyaw={math.degrees(odom_out_dyaw):+.2f}°")
 
-    # Match S1 to S0 with initial guess from odometry
+    # odometry 초기 추정으로 S1을 S0에 정합합니다.
     node.current_stage = "outbound_icp"
     out_icp = match_with_base_guess(
         node, s0_pts, s1_pts, (odom_out_dx, odom_out_dy, odom_out_dyaw)
@@ -289,7 +289,7 @@ def run_single_oneway_test(
             title=f"One-Way Outbound [{pattern.upper()} {speed:.2f}]",
         )
 
-    # Step 4: Inbound Leg (원점 복귀 편도)
+    # 4단계: 원점으로 복귀하는 편도 구간
     node.current_stage = "inbound_motion"
     node.get_logger().info(f"--> Executing Inbound Leg (Return): speed={speed:.2f}, target={displacement:.3f}")
     in_ok, in_stop_stats = node.execute_leg(in_vx, in_vy, in_wz, displacement, is_rotation, dwell_after_s=1.5)
@@ -298,7 +298,7 @@ def run_single_oneway_test(
         return None
     node.stop_robot()
 
-    # Step 5: Final Returned Scan (S2)
+    # 5단계: 최종 복귀 스캔 S2
     node.current_stage = "returned_scan"
     node.get_logger().info("Capturing Final Scan (S2) after Return...")
     s2_pts = node.capture_scan_burst(duration_s=1.2, min_scans=6)
@@ -307,7 +307,7 @@ def run_single_oneway_test(
         return None
     save_scan_capture(node, s2_pts, plot_prefix.parent / f"{plot_prefix.name}_returned.npz")
 
-    # Compute Inbound Odometry & ICP Ground Truth
+    # 복귀 구간의 odometry와 ICP 기준 추정 계산
     node.current_stage = "inbound_and_loop_icp"
     odom_in_dx, odom_in_dy, odom_in_dyaw = compute_relative_odom(p1_odom, p2_odom)
     in_icp = match_with_base_guess(
@@ -320,7 +320,7 @@ def run_single_oneway_test(
             title=f"One-Way Inbound Return [{pattern.upper()} {speed:.2f}]",
         )
 
-    # Full Round-Trip Loop Closure (S0 vs S2)
+    # 전체 왕복 폐루프 비교 S0 대 S2
     odom_loop_dx, odom_loop_dy, odom_loop_dyaw = compute_relative_odom(p0_odom, p2_odom)
     loop_icp = match_with_base_guess(
         node, s0_pts, s2_pts, (odom_loop_dx, odom_loop_dy, odom_loop_dyaw)
@@ -368,7 +368,7 @@ def generate_oneway_comparison_plots(
     results_by_pattern: dict[str, list[dict[str, Any]]],
     save_path: Path,
 ) -> None:
-    """Plot axial, optional diagonal and rotation odom-versus-ICP differences."""
+    """축별, 선택적 대각선과 회전의 odom-ICP 차이를 그립니다."""
     if not HAVE_MATPLOTLIB:
         return
 
@@ -376,7 +376,7 @@ def generate_oneway_comparison_plots(
     fig, axes = plt.subplots(3 if has_diagonals else 2, 2,
                              figsize=(14, 15 if has_diagonals else 10), dpi=150)
 
-    # Subplot 1: Surge One-Way Error vs Speed
+    # 첫 번째 패널: 전후 편도 오차와 속도
     ax_surge = axes[0, 0]
     surge_runs = [r for r in results_by_pattern.get("surge", []) if r.get("is_valid", False)]
     if surge_runs:
@@ -393,7 +393,7 @@ def generate_oneway_comparison_plots(
         ax_surge.grid(True, linestyle=":", alpha=0.6)
         ax_surge.legend(fontsize=8)
 
-    # Subplot 2: Sway One-Way Error vs Speed
+    # 두 번째 패널: 좌우 편도 오차와 속도
     ax_sway = axes[0, 1]
     sway_runs = [r for r in results_by_pattern.get("sway", []) if r.get("is_valid", False)]
     if sway_runs:
@@ -410,7 +410,7 @@ def generate_oneway_comparison_plots(
         ax_sway.grid(True, linestyle=":", alpha=0.6)
         ax_sway.legend(fontsize=8)
 
-    # Subplot 3: Rotation One-Way Error vs Angular Speed
+    # 세 번째 패널: 회전 편도 오차와 각속도
     ax_rot = axes[1, 0]
     rot_runs = [r for r in results_by_pattern.get("rotation", []) if r.get("is_valid", False)]
     if rot_runs:
@@ -425,7 +425,7 @@ def generate_oneway_comparison_plots(
         ax_rot.grid(True, linestyle=":", alpha=0.6)
         ax_rot.legend(fontsize=8)
 
-    # Subplot 4: Relative Error Rate (%) Comparison
+    # 네 번째 패널: 상대 오차율(%) 비교
     ax_bar = axes[1, 1]
     categories = []
     rates = []

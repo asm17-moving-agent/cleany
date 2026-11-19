@@ -1,4 +1,4 @@
-"""Sensor-driven pick and place with configurable semantic sorting rules."""
+"""설정 가능한 의미 분류 규칙으로 센서 기반 집기와 놓기를 수행합니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -581,7 +581,7 @@ class SortingOperations(GraspMotionOperations):
 
 
     def _verify_head_redetection(self, attempt, *, minimum_center_z_m=None):
-        """Associate a new YOLOE mask by measured 3D position, not Gemini wording."""
+        """Gemini 표현이 아닌 측정 3D 위치로 새 YOLOE mask를 대응시킵니다."""
         held = self._held_object
         if held is None:
             raise RuntimeError('No attachment reference for head RGB-D reobservation')
@@ -663,7 +663,7 @@ class SortingOperations(GraspMotionOperations):
 
 
     def _confirm_held_contact(self, held: HeldObject) -> None:
-        """Require consecutive post-request motor feedback while the arm is held."""
+        """팔을 유지한 상태에서 요청 이후의 연속 모터 피드백을 요구합니다."""
         duration = float(self.get_parameter('sorting_wrist_contact_confirmation_sec').value)
         timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
         maximum_age = float(self.get_parameter('sorting_gripper_feedback_max_age_sec').value)
@@ -782,7 +782,7 @@ class SortingOperations(GraspMotionOperations):
 
 
     def _fixed_release_ik(self, arm, point, offset, wrist):
-        """Reuse only an exactly matching pose, with fresh FK and scene validation."""
+        """정확히 같은 자세만 재사용하며 최신 FK와 장면 검증을 적용합니다."""
         key = (arm, tuple(point), tuple(offset), tuple(sorted(wrist.items())))
         self._transport_adapter.set_current_state(self._feedback_state())
         solution = self._fixed_release_cache.get(key)

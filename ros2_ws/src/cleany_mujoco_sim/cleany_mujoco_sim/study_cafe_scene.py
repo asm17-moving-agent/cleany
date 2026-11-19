@@ -24,8 +24,8 @@ _COLLISION_ATTRIBUTES = {
     'conaffinity': '1',
     'condim': '4',
     'friction': '1 0.005 0.0001',
-    # Group 2 is enabled in MuJoCo's default viewer. These primitives are
-    # intentionally both the visual and the static collision geometry.
+    # MuJoCo 기본 viewer는 그룹 2를 표시합니다. 이 기본 도형은
+    # 렌더링과 고정 충돌 형상을 함께 담당하도록 구성합니다.
     'group': '2',
 }
 
@@ -756,8 +756,8 @@ def build_study_cafe_environment(layout: StudyCafeLayout) -> str:
             * layout.desks.monitor_y_offset_from_desk_center_m,
             station.front_sign,
         )
-        # The study-cafe simulation omits chairs; retain station chair offsets
-        # only as the existing robot docking reference.
+        # 스터디카페 시뮬레이션은 의자를 제외하며 station의 의자 오프셋은
+        # 기존 로봇 도킹 기준으로만 유지합니다.
     for item in layout.tabletop_objects:
         _add_tabletop_object(environment, robot_station, item)
 
@@ -816,8 +816,8 @@ def apply_study_cafe_layout(
     for item in layout.tabletop_objects:
         if item.shape is not None:
             add_shape_assets(assets, f'study_cafe_{item.name}', item.collision_size_m, item.shape)
-    # Apply each explicitly configured jaw contact policy to every convex part
-    # of that object, not just the bottom of the hollow paper cup or LEGO body.
+    # 명시한 그리퍼 접촉 정책을 빈 종이컵이나 LEGO 본체의 바닥뿐 아니라
+    # 해당 물체의 모든 볼록 구성요소에 적용합니다.
     contacts = scene_root.find('contact')
     if contacts is not None:
         for pair in list(contacts):

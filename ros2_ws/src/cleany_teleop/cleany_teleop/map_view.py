@@ -1,4 +1,4 @@
-"""Map geometry and occupied-cell checks shared by the phone display and goals."""
+"""핸드폰 표시와 목표가 공유하는 지도 기하 및 점유 셀 검사입니다."""
 from dataclasses import dataclass
 import hashlib
 import math

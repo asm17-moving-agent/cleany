@@ -1,4 +1,4 @@
-"""Observable operations within the existing execution stages."""
+"""기존 실행 단계 안에서 관측 가능한 작업입니다."""
 
 from dataclasses import dataclass
 

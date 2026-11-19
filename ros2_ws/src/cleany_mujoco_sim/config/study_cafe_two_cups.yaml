@@ -1,4 +1,4 @@
-# Simulation validation layout: two distinct free paper cups.
+# 서로 다른 자유 종이컵 두 개를 둔 시뮬레이션 검증 배치입니다.
 schema_version: 1
 scene:
   ambient_rgba:
@@ -20,7 +20,7 @@ robot:
   - 0.0
   - 1.5708
 mujoco:
-  # Retain the existing MuJoCo partition height as a simulation override.
+  # 기존 MuJoCo 칸막이 높이를 시뮬레이션 재정의로 유지합니다.
   partition_center_z_m: 0.66
   robot_center_rearward_offset_m: 0.22
   tabletop_objects:

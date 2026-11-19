@@ -1,4 +1,4 @@
-# Uncalibrated values for device-free mock mode only.
+# 장치 없는 Mock 모드에만 사용하는 미보정 값입니다.
 mode: synthetic
 geometry:
   wheel_radius_m: 0.05

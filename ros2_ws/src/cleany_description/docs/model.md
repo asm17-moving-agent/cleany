@@ -20,3 +20,12 @@ CAD 끝점 보간은 실측된 중간 개구 폭 곡선이 아니다. 원본 형
 이 모델의 계산 일치도는 실물 TCP 정확도나 동역학 검증을 뜻하지 않는다.
 
 `cleany.urdf.xacro`, control xacro와 `mjcf/cleany.xml`은 기존 시뮬레이션에서도 사용한다. 원본 CAD 입력과 과거 측정 기록은 재현 근거로 보존한다.
+
+## 보존된 시뮬레이션 모델
+
+기존 시뮬레이션은 `model_profile:=jetson_20261009`를 사용한다. Gazebo의 `cad_frame`은
+이 xacro를 SDF로 변환하고, MuJoCo는 `mjcf/cleany.xml`을 읽는다. 실물 런타임의
+보정된 CAD와 구분하며, 관절과 센서 좌표는 [이전 모델 reference](legacy-model-runtime.md)를 따른다.
+
+실물 충돌 자산은 `meshes/cad_runtime_collision/`에서 관리한다.
+시뮬레이션 모델 선택은 이 자산과 실물 `urdf/cleany.urdf`를 변경하지 않는다.

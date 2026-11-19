@@ -1,4 +1,4 @@
-"""Real ROS action transport, with synthetic control and Supervisor ports only."""
+"""실제 ROS action 전송을 검사하며 control과 Supervisor 포트만 합성입니다."""
 import math
 import threading
 import time

@@ -1,4 +1,4 @@
-"""Provide a private RViz TF tree using the extension SLAM pose."""
+"""확장 SLAM 자세로 전용 RViz TF 트리를 제공합니다."""
 import math
 import copy
 
@@ -16,7 +16,7 @@ def yaw(q):
 
 
 def correction(map_pose, odom_pose):
-    """Return map->odom from two poses of the same base frame."""
+    """같은 베이스 좌표계의 두 자세로 map -> odom을 반환합니다."""
     x, y, angle = map_pose
     ox, oy, oa = odom_pose
     a = angle-oa
@@ -24,7 +24,7 @@ def correction(map_pose, odom_pose):
 
 
 class ViewTF(Node):
-    """Forward odometry TF and add SLAM map->odom only on a private topic."""
+    """odometry TF를 전달하고 전용 토픽에만 SLAM map -> odom을 추가합니다."""
     def __init__(self):
         super().__init__('map_extension_view_tf')
         self.buffer = Buffer()
@@ -38,7 +38,7 @@ class ViewTF(Node):
         self.create_timer(.05, self.update)
 
     def trajectory(self, msg):
-        # This display-only copy does not alter the recorded Cartographer data.
+        # 표시 전용 복사본이며 기록된 Cartographer 데이터를 바꾸지 않습니다.
         display = copy.deepcopy(msg)
         for marker in display.markers:
             if marker.ns == 'Trajectory 0':

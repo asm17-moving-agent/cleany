@@ -1,4 +1,4 @@
-"""MuJoCo Action wrapper. Uses the existing contract and a separate persistent journal."""
+"""기존 계약과 별도의 영속 journal을 사용하는 MuJoCo Action 래퍼입니다."""
 from __future__ import annotations
 
 import os
@@ -72,8 +72,8 @@ class MujocoManipulationNode(ManipulationNode):
                                     callback_group=group)
         self._setup_cancel_service(group, action_name)
         self.monitor = LiveMonitor()
-        # Even the idle tree is a real native tree. It is never ticked or used
-        # for motion until an accepted execution creates its own context.
+        # 유휴 트리도 실제 native 트리입니다. 수락된 실행이 자기 컨텍스트를 만들기 전에는
+        # tick하거나 이동에 사용하지 않습니다.
         self.monitor.update(Runner(self.get_parameter('tree_xml').value, self.core, '').snapshot())
         self.zmq_context = zmq.Context()
         self.socket = self.zmq_context.socket(zmq.REP)
@@ -118,7 +118,7 @@ class MujocoManipulationNode(ManipulationNode):
             self._closing = True
             self._timer.cancel()
             self._action.destroy()
-            # Shutdown only halts work; the ACTIVE record remains for recovery.
+            # 종료 시 작업만 halt하며 복구를 위해 ACTIVE 기록은 남깁니다.
             if self.core.tree is not None and self.core.record.result is None:
                 self.core.tree.halt()
         self.backend.close()

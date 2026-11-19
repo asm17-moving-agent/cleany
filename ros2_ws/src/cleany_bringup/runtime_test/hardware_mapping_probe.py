@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Device-free installed-launch proof: guarded drive, mapping reset, save and bags."""
+"""장치 없이 설치된 launch의 보호된 주행, 매핑 초기화·저장과 bag 기록을 검증합니다."""
 
 from __future__ import annotations
 import argparse
@@ -134,7 +134,7 @@ def main():
         raise RuntimeError("Condition timed out; inspect runtime/device logs")
 
     def record_command_sample(client):
-        # Publish an explicit zero intent while recording; no mock displacement is needed.
+        # 기록 중 명시적인 속도 0을 발행하며 Mock 이동량은 필요하지 않습니다.
         seq = 1
         post(
             "/api/control",
@@ -193,8 +193,8 @@ def main():
         infos = node.get_publishers_info_by_topic("/base/wheel_command")
         assert len(infos) == 1 and infos[0].node_name == "cleany_base_driver"
         results["sole_wheel_publisher"] = infos[0].node_name
-        # Phone feedback and base-driver DDS discovery can complete at different times.
-        # Canonical odom proves that the driver has validated wheel feedback too.
+        # 휴대폰 피드백과 base driver의 DDS 발견은 서로 다른 시점에 끝날 수 있습니다.
+        # 기준 odom 수신으로 driver가 휠 피드백을 검증한 사실도 확인합니다.
         wait(
             lambda: (
                 odom_received[0] is not None

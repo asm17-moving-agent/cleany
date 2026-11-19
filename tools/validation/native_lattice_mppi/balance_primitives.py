@@ -1,4 +1,4 @@
-"""Correct straight primitive length metadata without changing lattice poses."""
+"""lattice 자세를 바꾸지 않고 직선 기본 경로의 길이 메타데이터를 보정합니다."""
 from __future__ import annotations
 
 import argparse

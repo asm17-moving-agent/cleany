@@ -3,10 +3,7 @@
     <xacro:if value="${float(rear_gap_m) != 0.05}">
       ${xacro.fatal('head_mast_rear_gap_m must be 0.05 to match the Jetson assembly and canonical MJCF')}
     </xacro:if>
-    <!-- 2026-10-09 assembly: smooth mast face points rearward and sits
-         rear_gap_m behind the CAD top plate's rear edge (base_link -X).
-         Plate: center X=0.1162, depth=0.16. Mast smooth face: local X=-0.131.
-         Rotate the rigid mast by pi relative to the previous assembly. -->
+    <!-- 2026-10-09 조립: 매끈한 마스트 면이 뒤를 향하고 CAD 상판 후면(base_link -X)보다 rear_gap_m만큼 뒤에 있습니다. 상판 중심 X=0.1162, 깊이 0.16이며 마스트 면의 local X=-0.131입니다. 이전 조립 대비 고정 마스트를 π만큼 회전합니다. -->
     <xacro:property name="plate_rear_x_m" value="${0.1162 - 0.16 / 2.0}"/>
     <xacro:property name="mast_smooth_face_x_m" value="${-0.131}"/>
     <link name="top_base_link">
@@ -27,7 +24,7 @@
     <joint name="head_pan_joint" type="revolute">
       <parent link="top_base_link" />
       <child link="head_pan_link" />
-      <!-- Reversed mast; 65 mm lower mount + 238 mm pillar. -->
+      <!-- 반전한 마스트입니다. 하부 마운트 65 mm와 기둥 238 mm를 사용합니다. -->
       <origin xyz="-0.103 0 0.3505" rpy="0 0 ${pi}" />
       <axis xyz="0 0 1" />
       <limit lower="-3.2" upper="3.2" effort="2.6477955" velocity="4.245" />

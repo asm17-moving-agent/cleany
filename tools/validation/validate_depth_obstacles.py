@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fit a stationary recorded floor and validate obstacle filtering on held-out frames."""
+"""기록된 정지 바닥을 적합하고 보류한 프레임으로 장애물 필터를 검증합니다."""
 
 import argparse
 import json

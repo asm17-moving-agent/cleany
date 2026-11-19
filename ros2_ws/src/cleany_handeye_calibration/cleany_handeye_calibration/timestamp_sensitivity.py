@@ -1,4 +1,4 @@
-"""Selected-method sensitivity to image/joint timestamp offsets."""
+"""선택한 방법의 영상 및 관절 시각 오프셋 민감도를 평가합니다."""
 
 from __future__ import annotations
 
@@ -278,7 +278,7 @@ def evaluate_timestamp_sensitivity(
     ground_truth: RigidTransform,
     solve_one: SingleMethodSolver = solve_hand_eye_method,
 ) -> TimestampSensitivityResult:
-    """Evaluate configured offsets for the one selected method only."""
+    """선택한 한 가지 방법에만 설정된 오프셋을 적용해 평가합니다."""
 
     if selection.status is not SelectionStatus.SELECTED:
         return TimestampSensitivityResult(

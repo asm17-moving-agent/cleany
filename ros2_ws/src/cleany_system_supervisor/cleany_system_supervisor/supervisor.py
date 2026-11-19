@@ -14,7 +14,7 @@ from .recovery import RecoveryCoordinator, UnsupportedRecovery
 
 
 class UnavailablePort:
-    """An absent transport is an explicit failure, never synthetic success."""
+    """전송 계층 누락은 명시적 실패이며 합성 성공이 아닙니다."""
     def request(self, *args):
         raise RuntimeError('mission stop transport unavailable')
 
@@ -57,8 +57,8 @@ class SystemSupervisor:
 
     def observe(self, source: str, status: Availability, detail: str = '', *, cause: str = '') -> None:
         self.health.observe(HealthReport(source, status, self.clock(), detail, cause))
-        # A later hardware/protocol failure must disqualify a restored link-only fault,
-        # even if its own debounce has not elapsed yet.
+        # 후속 하드웨어 또는 프로토콜 실패는 자체 debounce가 끝나기 전에도
+        # 복구된 연결 전용 fault의 해제 자격을 없애야 합니다.
         if source == 'base' and status != Availability.AVAILABLE and cause and cause != BASE_FEEDBACK_LOST:
             fault = self.faults.faults.get(self.config['sources']['base']['fault_code'])
             if fault and fault.active:
@@ -74,7 +74,7 @@ class SystemSupervisor:
         try:
             data = self.store.load()
         except Exception as exc:
-            # Unknown previous latches must not silently become "no latches".
+            # 알 수 없는 이전 latch를 조용히 latch 없음으로 바꾸지 않습니다.
             self.faults.raise_state_fault(now, f'persisted latch state unreadable: {exc}')
             self._emit('STATE_RESTORE_FAILED', code=STATE_FAULT, severity='CRITICAL', detail=str(exc))
             return
@@ -104,8 +104,8 @@ class SystemSupervisor:
         self.permissions.update(self.capabilities.states, self.state, now,
                                 self.stop_port, self.faults)
         self._reconcile_base_startup(now)
-        self._availability(now)  # Stop failure may have introduced an operation lock.
-        # Recovery cannot race an unconfirmed mission stop or unready independent safety.
+        self._availability(now)  # 정지 실패로 작업 잠금이 추가되었을 수 있습니다.
+        # 복구는 미확인 임무 정지나 준비되지 않은 독립 안전 상태와 경쟁할 수 없습니다.
         safe = (all(self.health.healthy(source, now) for source in self.config['safety_sources']) and
                 not any(f.active and (f.source in self.config['safety_sources'] or f.source == 'mission_stop')
                         for f in self.faults.faults.values()) and
@@ -119,7 +119,7 @@ class SystemSupervisor:
         self.revision += 1
 
     def _reconcile_base_startup(self, now: float) -> None:
-        """Clear only a restored link-loss latch after fresh, disarmed startup evidence."""
+        """최신의 구동 해제 시작 근거가 있을 때 복구된 연결 유실 latch만 해제합니다."""
         policy = self.config.get('startup_base_reconnect', {})
         if not policy.get('enabled', False):
             return
@@ -151,7 +151,7 @@ class SystemSupervisor:
         self.faults.prune(now, retention, {job.fault_code for job in self.recoveries.jobs.values()})
 
     def _record(self) -> None:
-        """Derive audit events from state differences, so no transition path can skip logging."""
+        """상태 차이에서 감사 이벤트를 생성해 어떤 전이 경로도 기록을 빠뜨리지 않게 합니다."""
         if self.state != self._seen_state:
             self._emit('STATE_CHANGED', detail=f'{self._seen_state.value} -> {self.state.value}')
             self._seen_state = self.state
@@ -198,7 +198,7 @@ class SystemSupervisor:
             self.store.save(state)
             self._persisted, self._persist_failed = state, False
         except Exception as exc:
-            # A latch that cannot be persisted could vanish on restart: lock instead.
+            # 저장할 수 없는 latch는 재시작 시 사라질 수 있으므로 대신 잠급니다.
             self.faults.raise_state_fault(now, f'latch state persistence failed: {exc}')
             if not self._persist_failed:
                 self._emit('STATE_PERSIST_FAILED', code=STATE_FAULT, severity='CRITICAL', detail=str(exc))
@@ -209,8 +209,8 @@ class SystemSupervisor:
         decision = self.permissions.check(**request, states=self.capabilities.states,
                                           operating=self.state, now=self.clock())
         self._record()
-        # Write-ahead: a grant becomes durable before the client can move under it, so a
-        # crash right after the reply still leaves an unconfirmed lease to re-verify.
+        # 쓰기 선행 방식입니다. client가 권한으로 움직이기 전에 허가를 영속 저장해
+        # 응답 직후 crash가 나도 재검증할 미확인 임대가 남게 합니다.
         self._persist(self.clock())
         if decision.granted and self._persist_failed:
             lease = self.permissions.leases[decision.lease_id]
@@ -234,8 +234,8 @@ class SystemSupervisor:
             if lease is None:
                 return False, 'unknown mission stop fault'
             if not lease.stopped:
-                # Re-query Mission through the same idempotent stop Action. The service
-                # itself never claims that a previous failed stop has completed.
+                # 동일한 멱등 정지 Action으로 Mission을 다시 조회합니다. 서비스 자체가
+                # 이전 실패한 정지를 완료된 것으로 보고하지 않습니다.
                 try:
                     self.stop_port.request(lease, self.epoch)
                 except Exception as exc:

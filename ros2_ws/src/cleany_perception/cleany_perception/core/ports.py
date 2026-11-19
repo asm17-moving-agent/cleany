@@ -17,7 +17,7 @@ class DetectorPort(Protocol):
         rgb: RgbArray,
         query: str,
     ) -> Sequence[Detection2D]:
-        """Return validated pixel-space detections for one RGB image."""
+        """RGB 영상 하나의 검증된 픽셀 공간 검출을 반환합니다."""
 
 
 class SemanticClassifierPort(Protocol):
@@ -35,7 +35,7 @@ class SegmenterPort(Protocol):
         rgb: RgbArray,
         detections: Sequence[Detection2D],
     ) -> Sequence[ObjectMask]:
-        """Return one mask for every detection, preserving input order."""
+        """입력 순서를 유지하며 검출마다 mask 하나를 반환합니다."""
 
 
 class ReferenceTrackerPort(Protocol):
@@ -51,4 +51,4 @@ class TransformPort(Protocol):
         source_frame: str,
         stamp_ns: int,
     ) -> RigidTransform:
-        """Return target-from-source transform at the capture timestamp."""
+        """촬영 시각의 target-from-source 변환을 반환합니다."""

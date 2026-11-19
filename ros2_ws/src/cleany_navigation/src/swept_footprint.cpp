@@ -54,13 +54,13 @@ bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &map,
     }
   }
   if(!std::isfinite(area) || std::abs(area)<1e-12)return false;
-  // Linear interpolation error of each rotating vertex is bounded by
-  // max|p''(t)|/8 = radius * delta_yaw^2/8. The endpoint hull expanded by this
-  // bound therefore contains every intermediate footprint, not just samples.
+  // 회전 정점 각각의 선형 보간 오차는
+  // max|p''(t)|/8 = radius * delta_yaw^2/8로 제한됩니다. 끝점의 볼록 껍질을
+  // 이 한계만큼 확장하면 표본뿐 아니라 모든 중간 footprint를 포함합니다.
   const double angle=b.theta-a.theta;
-  // An issued body-frame twist also curves the center while yaw changes.
-  // Relative to the Euler center segment, its deviation is bounded by
-  // segment_length * |delta_yaw|/2 for a constant twist over that interval.
+  // body 좌표계 twist를 내보내면 yaw 변화 중 중심도 곡선을 그립니다.
+  // 해당 구간에서 twist가 일정할 때 Euler 중심 선분과의 편차는
+  // segment_length * |delta_yaw|/2로 제한됩니다.
   const double padding=radius*angle*angle/8.+
     std::hypot(b.x-a.x,b.y-a.y)*std::abs(angle)/2.+
     1e-10*(1.+std::max({std::abs(min_x),std::abs(max_x),std::abs(min_y),std::abs(max_y)}));

@@ -1,6 +1,6 @@
-"""Explicit Gazebo-only check. Requires --simulation acknowledgement and isolated DDS domain.
+"""Gazebo 전용 명시 실행 검사입니다. --simulation 지정과 격리된 DDS domain이 필요합니다.
 
-Uses the configured Nav2/safety stack; never bypasses velocity guards.
+설정된 Nav2와 안전 구성을 사용하며 속도 보호 계층을 우회하지 않습니다.
 """
 
 import argparse
