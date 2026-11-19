@@ -8,11 +8,12 @@ import time
 
 import pytest
 
-os.environ['ROS_DOMAIN_ID'] = os.environ.get('BASE_TEST_ROS_DOMAIN_ID', '173')
 os.environ['ROS_LOCALHOST_ONLY'] = '1'
 
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from cleany_base_interfaces.msg import WheelState
+from diagnostic_msgs.msg import DiagnosticArray
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rcl_interfaces.srv import GetParameters
@@ -40,13 +41,13 @@ def test_fusion_uses_planar_wheel_twist_and_fixed_bias_gyro():
 
 
 @pytest.mark.parametrize(
-    'mode, imu_variance_scale, mount_roll, expected_yaw_rate',
-    [('shadow', .01, 0., .4), ('canonical', 100., 0., .2),
-     ('shadow', .01, math.pi, .4)],
+    'mode, imu_variance_scale, mount_roll, expected_yaw_rate, domain_offset',
+    [('shadow', .01, 0., .4, 0), ('canonical', 100., 0., .2, 1),
+     ('shadow', .01, math.pi, .4, 2)],
     ids=['shadow-imu-dominant', 'canonical-wheel-dominant', 'rotated-sensor'],
 )
 def test_installed_fusion_and_tf_ownership(
-        tmp_path, mode, imu_variance_scale, mount_roll, expected_yaw_rate):
+        tmp_path, mode, imu_variance_scale, mount_roll, expected_yaw_rate, domain_offset):
     diagonal = CONFIG['wheel_odometry']['ros__parameters']['twist_covariance_diagonal']
     profile = yaml.safe_load((SHARE / 'config/imu_bringup.yaml').read_text())
     params = profile['cleany_imu']['ros__parameters']
@@ -58,7 +59,10 @@ def test_installed_fusion_and_tf_ownership(
     imu_config.write_text(yaml.safe_dump(profile))
     output_topic = 'odom' if mode == 'canonical' else 'odometry/filtered'
     tf_owner = 'ekf_filter_node' if mode == 'canonical' else 'base_odom_relay'
-    env = dict(os.environ, ROS_LOG_DIR=str(tmp_path / 'ros'))
+    domain_base = os.environ.get('BASE_EKF_TEST_ROS_DOMAIN_ID',
+                                 os.environ.get('BASE_TEST_ROS_DOMAIN_ID', '173'))
+    domain = int(domain_base) + domain_offset
+    env = dict(os.environ, ROS_DOMAIN_ID=str(domain), ROS_LOG_DIR=str(tmp_path / 'ros'))
     with (tmp_path / 'launch.log').open('w+') as log:
         process = subprocess.Popen([
             'ros2', 'launch', 'cleany_base_driver', 'base_ekf.launch.py',
@@ -66,9 +70,13 @@ def test_installed_fusion_and_tf_ownership(
             f'base_config:={SHARE / "config/base_synthetic.yaml"}',
             'publish_imu_tf:=true', f'imu_roll:={mount_roll}', 'imu_pitch:=0.0', 'imu_yaw:=0.0',
         ], env=env, stdout=log, stderr=log, start_new_session=True)
-        rclpy.init(args=[])
+        rclpy.init(args=[], domain_id=domain)
         node = rclpy.create_node('ekf_graph_probe')
         fused, wheel, transforms, mounts, corrected, canonical = [], [], [], [], [], []
+        wheel_states, diagnostics = [], []
+        node.create_subscription(WheelState, 'base/wheel_state', wheel_states.append,
+                                 qos_profile_sensor_data)
+        node.create_subscription(DiagnosticArray, 'diagnostics', diagnostics.append, 10)
         node.create_subscription(Odometry, output_topic, fused.append, 10)
         node.create_subscription(Odometry, 'wheel/odom', wheel.append, 10)
         node.create_subscription(Imu, 'imu/data_raw', corrected.append, qos_profile_sensor_data)
@@ -82,22 +90,27 @@ def test_installed_fusion_and_tf_ownership(
         enable = node.create_client(SetBool, 'base/enable')
         sensor_sign = -1. if mount_roll else 1.
 
-        def pump(duration, command=None):
+        command = None
+
+        def publish_inputs():
+            packet = Imu()
+            packet.header.stamp = node.get_clock().now().to_msg()
+            packet.header.frame_id = 'imu_link'
+            packet.orientation_covariance[0] = -1.
+            packet.angular_velocity.x, packet.angular_velocity.y = bias[:2]
+            packet.angular_velocity.z = bias[2] + sensor_sign * .4
+            packet.linear_acceleration.z = sensor_sign * 9.80665
+            imu.publish(packet)
+            if command is not None:
+                commands.publish(command)
+
+        node.create_timer(.02, publish_inputs)
+
+        def pump(duration):
             end = time.monotonic() + duration
             while time.monotonic() < end:
                 assert process.poll() is None, 'fusion launch exited'
-                packet = Imu()
-                packet.header.stamp = node.get_clock().now().to_msg()
-                packet.header.frame_id = 'imu_link'
-                packet.orientation_covariance[0] = -1.
-                packet.angular_velocity.x, packet.angular_velocity.y = bias[:2]
-                packet.angular_velocity.z = bias[2] + sensor_sign * .4
-                packet.linear_acceleration.z = sensor_sign * 9.80665
-                imu.publish(packet)
-                if command is not None:
-                    commands.publish(command)
-                rclpy.spin_once(node, timeout_sec=.01)
-                time.sleep(.005)
+                rclpy.spin_once(node, timeout_sec=.02)
 
         def owners(topic):
             return [p.node_name for p in node.get_publishers_info_by_topic(topic)]
@@ -106,37 +119,61 @@ def test_installed_fusion_and_tf_ownership(
             return [t for msg in transforms for t in msg.transforms
                     if t.header.frame_id == 'odom' and t.child_frame_id == 'base_link']
 
-        def observations_ready():
-            # Topic samples, graph discovery and TF can become available separately.
-            return bool(enable.service_is_ready() and fused and wheel and corrected and canonical
-                        and owners('base/wheel_state') == ['mock_base_mcu'] and odom_edges()
-                        and any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
-                                for msg in mounts for t in msg.transforms))
+        def imu_mount_ready():
+            return any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
+                       for msg in mounts for t in msg.transforms)
+
+        def ready():
+            wheel_command_subscribers = [p.node_name for p in
+                                         node.get_subscriptions_info_by_topic('base/wheel_command')]
+            return (enable.service_is_ready() and commands.get_subscription_count() == 1
+                    and fused and wheel and corrected and canonical and wheel_states
+                    and odom_edges() and imu_mount_ready()
+                    and owners('base/wheel_state') == ['mock_base_mcu']
+                    and owners('base/wheel_command') == ['cleany_base_driver']
+                    and wheel_command_subscribers == ['mock_base_mcu'])
+
+        def driver_diagnostic():
+            return next((status.message for message in reversed(diagnostics)
+                         for status in message.status if status.name == 'base_driver'),
+                        'no base driver diagnostic received')
 
         try:
             end = time.monotonic() + 15
-            while time.monotonic() < end and not observations_ready():
+            while time.monotonic() < end and not ready():
                 pump(.05)
-            assert observations_ready(), {
+            assert ready(), {
                 'enable': enable.service_is_ready(), 'fused': len(fused), 'wheel': len(wheel),
                 'imu': len(corrected), 'odom': len(canonical), 'tf': len(odom_edges()),
-                'wheel_state_owners': owners('base/wheel_state'), 'mounts': len(mounts),
+                'wheel_state_owners': owners('base/wheel_state'), 'imu_mount': imu_mount_ready(),
+                'wheel_command_owners': owners('base/wheel_command'), 'wheel_states': len(wheel_states),
             }
             future = enable.call_async(SetBool.Request(data=True))
             end = time.monotonic() + 2
             while not future.done() and time.monotonic() < end:
                 pump(.02)
             assert future.done() and future.result().success
+            end = time.monotonic() + 2.
+            while time.monotonic() < end and not wheel_states[-1].enabled:
+                pump(.02)
+            assert wheel_states[-1].enabled, driver_diagnostic()
+
             command = Twist()
             command.linear.x, command.linear.y, command.angular.z = .1, -.05, .2
-            pump(2.5, command)
+            pump(2.5)
+            assert wheel_states[-1].enabled, driver_diagnostic()
             velocity = fused[-1].twist.twist
             assert velocity.linear.x == pytest.approx(.1, abs=.025)
             assert velocity.linear.y == pytest.approx(-.05, abs=.02)
             assert velocity.angular.z == pytest.approx(expected_yaw_rate, abs=.02)
-            def stamp_seconds(message):
+
+            def stamp_key(message):
                 stamp = message.header.stamp
-                return stamp.sec + stamp.nanosec * 1e-9
+                return stamp.sec, stamp.nanosec
+
+            def stamp_seconds(message):
+                sec, nanosec = stamp_key(message)
+                return sec + nanosec * 1e-9
 
             # Encoder quantization and receipt-time jitter affect single samples.
             recent = [m for m in wheel if stamp_seconds(m) >= stamp_seconds(wheel[-1]) - 1.]
@@ -154,7 +191,7 @@ def test_installed_fusion_and_tf_ownership(
             end = time.monotonic() + 3.
             while time.monotonic() < end and (
                     owners(output_topic) != ['ekf_filter_node'] or owners('odom') != [tf_owner]):
-                pump(.05, command)
+                pump(.05)
             assert owners(output_topic) == ['ekf_filter_node']
             assert owners('odom') == [tf_owner]
             # Broadcaster endpoints also exist when publish_tf=false in Humble.
@@ -163,18 +200,27 @@ def test_installed_fusion_and_tf_ownership(
             future = client.call_async(GetParameters.Request(names=['publish_tf']))
             end = time.monotonic() + 2.
             while not future.done() and time.monotonic() < end:
-                pump(.02, command)
+                pump(.02)
             assert future.done() and future.result().values[0].bool_value == (mode == 'canonical')
-            edges = odom_edges()
-            assert edges and canonical
-            transform = edges[-1].transform
-            pose = canonical[-1].pose.pose
+            earliest_stamp = stamp_key(canonical[-1])
+
+            def matching_transform():
+                poses = {stamp_key(m): m.pose.pose for m in canonical if stamp_key(m) >= earliest_stamp}
+                return next(((t.transform, poses[stamp_key(t)])
+                             for t in reversed(odom_edges()) if stamp_key(t) in poses), None)
+
+            end = time.monotonic() + 3.
+            observed = matching_transform()
+            while time.monotonic() < end and observed is None:
+                pump(.05)
+                observed = matching_transform()
+            assert observed is not None
+            transform, pose = observed
             assert transform.translation.x == pytest.approx(pose.position.x, abs=.02)
             assert transform.translation.y == pytest.approx(pose.position.y, abs=.02)
             assert transform.rotation.z == pytest.approx(pose.orientation.z, abs=.02)
             assert transform.rotation.w == pytest.approx(pose.orientation.w, abs=.02)
-            assert any(t.header.frame_id == 'base_link' and t.child_frame_id == 'imu_link'
-                       for msg in mounts for t in msg.transforms)
+            assert imu_mount_ready()
             assert ('base_odom_relay' in node.get_node_names()) == (mode == 'shadow')
         except Exception:
             log.flush()
@@ -182,20 +228,12 @@ def test_installed_fusion_and_tf_ownership(
             print(log.read())
             raise
         finally:
-            # A failed launch may exit before its mock child nodes do.
-            try:
+            if process.poll() is None:
                 os.killpg(process.pid, signal.SIGINT)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=8)
-            except subprocess.TimeoutExpired:
-                pass
-            finally:
                 try:
+                    process.wait(timeout=8)
+                except subprocess.TimeoutExpired:
                     os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
+                    process.wait()
             node.destroy_node()
             rclpy.shutdown()

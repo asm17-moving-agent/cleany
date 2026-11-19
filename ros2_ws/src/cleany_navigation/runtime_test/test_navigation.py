@@ -211,9 +211,14 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
     (tmp_path/'map.yaml').write_text(yaml.safe_dump(dict(image='map.pgm', resolution=.05,
         origin=[-3.1, -3.1, 0.], negate=0, occupied_thresh=.65, free_thresh=.2)))
     from ament_index_python.packages import get_package_share_directory
+    from cleany_description.cad_coordinates import CadCoordinates
     from cleany_description.runtime_state import initial_positions
     description = Path(get_package_share_directory('cleany_description'))
-    joints = initial_positions((description/'urdf/cleany.urdf').read_text())
+    model = (description/'urdf/cleany.urdf').read_text()
+    cad = CadCoordinates.from_urdf(model)
+    assert cad is not None
+    joints = initial_positions(model)
+    assert joints.keys().isdisjoint(cad.dependent_names)
     joints['head_pan_joint'] = 0.
     (tmp_path/'body.yaml').write_text(yaml.safe_dump({'park_joints': joints, 'dynamic_pan': True}))
     robot = load_parameters(root/'config/nav2_safety.yaml')

@@ -66,7 +66,7 @@ CI는 Ubuntu 22.04 amd64에서 전체 workspace 검사, ESP32 motor core와 합�
 
 CI 검사 대상 패키지를 하나의 작업 큐에서 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
 
-각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain이 필요한 ToF의 10–25와 Supervisor의 190–224는 해당 패키지 전용으로 유지합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
+각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain은 ToF에 10–25, 베이스 EKF에 26–28, Supervisor에 190–224를 배정합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
 
 | 단계 | 범위 |
 |---|---|
@@ -140,6 +140,7 @@ Dockerfile의 `DEPENDENCY_REVISION`만 올리면 같은 버전으로 이미지�
 
 MPPI는 CPU별 allocator ABI가 달라지는 `-march=native`와 xsimd SSE2 수학 결과를
 손상시키는 `-ffast-math`를 사용하지 않습니다. `-O3`와 SIMD는 유지합니다.
+amd64 CI는 `CLEANY_MPPI_PORTABLE_BUILD=ON`으로 MPPI 라이브러리와 이를 링크하는 대상에 같은 `-march=x86-64-v2`를 적용합니다.
 `mppi_simd_math_test`는 라이브러리와 동일한 최적화 옵션에서 반올림, critic 비용의
 거듭제곱과 optimizer 가중치의 지수 함수를 scalar 결과와 비교합니다.
 

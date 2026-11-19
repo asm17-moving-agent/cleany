@@ -1,4 +1,5 @@
 # cleany_navigation에서 관리하는 Humble MPPI 구현입니다.
+option(CLEANY_MPPI_PORTABLE_BUILD "Use the fixed CI amd64 instruction set" OFF)
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
 # xsimd's SSE2 rounding uses ordered additions. -ffast-math reassociates them
@@ -33,8 +34,10 @@ foreach(target cleany_mppi_controller cleany_mppi_critics)
     $<INSTALL_INTERFACE:include> ${xsimd_INCLUDE_DIRS})
   # xtensor::optimize adds -march=native. Its CPU-dependent allocator alignment
   # changes tensor ABI across cached objects from different CI runners.
-  # Keep SIMD enabled with the compiler's target baseline for every consumer.
   target_link_libraries(${target} xtensor xtensor::use_xsimd)
+  if(CLEANY_MPPI_PORTABLE_BUILD AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    target_compile_options(${target} PUBLIC -march=x86-64-v2)
+  endif()
   target_link_options(${target} PRIVATE -Wl,--no-undefined)
   ament_target_dependencies(${target} ${mppi_dependencies})
 endforeach()

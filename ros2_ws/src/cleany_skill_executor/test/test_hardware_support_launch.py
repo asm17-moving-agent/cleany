@@ -23,9 +23,10 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         'hardware_support_launch', package / 'launch/pregrasp_hardware_support.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    model = tmp_path / 'model.urdf'
+    model.write_text('<robot name="synthetic"/>')
     monkeypatch.setattr(module, 'prepare_state_profile',
-                        lambda *args: SimpleNamespace(camera_serial='TEST',
-            model=package.parent/'cleany_description/urdf/cleany.urdf.xacro'))
+                        lambda *args: SimpleNamespace(camera_serial='TEST', model=model))
     monkeypatch.setattr(module, 'get_package_share_directory',
                         lambda name: str(root / 'ros2_ws/src' / name))
     records = []

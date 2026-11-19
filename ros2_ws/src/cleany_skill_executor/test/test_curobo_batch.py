@@ -149,8 +149,8 @@ def test_iteration_budget_configures_gradient_total_not_outer_replays(monkeypatc
     engine._world_keys = {('right', 'right_grasp_tcp'): repr({})}
     engine.config = SimpleNamespace(num_seeds=16, ik_position_threshold_m=.001, use_cuda_graph=True)
     engine.tensor = SimpleNamespace(to_device=np.asarray)
-    engine.model = SimpleNamespace(robot_config=lambda *args: {'kinematics': {'lock_joints': {}}},
-                                   kinematic_state=lambda state: dict(state))
+    engine.model = SimpleNamespace(kinematic_state=dict,
+        robot_config=lambda *args: {'kinematics': {'lock_joints': {}}})
     engine._solver('right', 'right_grasp_tcp', {}, {})
     assert configurations[0]['grad_iters'] == 50
 
@@ -183,8 +183,8 @@ def test_shared_world_revision_refreshes_cached_solver_after_other_arm_changes_s
     engine._urdf = 'robot.urdf'
     engine.config = SimpleNamespace(num_seeds=16, ik_position_threshold_m=.001,use_cuda_graph=True)
     engine.tensor = SimpleNamespace(to_device=np.asarray)
-    engine.model = SimpleNamespace(robot_config=lambda *args: {'kinematics': {'lock_joints': {}}},
-                                   kinematic_state=lambda state: dict(state))
+    engine.model = SimpleNamespace(kinematic_state=dict,
+        robot_config=lambda *args: {'kinematics': {'lock_joints': {}}})
     scene_a, scene_b = {'scene':'a'}, {'scene':'b'}
     left = engine._solver('left','left_grasp_tcp',{},scene_a)
     right = engine._solver('right','right_grasp_tcp',{},scene_b)

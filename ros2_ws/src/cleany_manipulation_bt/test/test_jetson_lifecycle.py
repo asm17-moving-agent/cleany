@@ -8,8 +8,8 @@ import pytest
 import rclpy
 from rclpy.context import Context
 from rclpy.executors import SingleThreadedExecutor
-from sensor_msgs.msg import JointState
 from control_msgs.msg import DynamicJointState, InterfaceValue
+from sensor_msgs.msg import JointState
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 import zmq
@@ -103,21 +103,21 @@ def test_actual_guard_position_output_can_confirm_idle_physical_stop(tmp_path):
             parameter_overrides=overrides(tmp_path, free_port()))
         source = Node('synthetic_position_broadcaster', context=context)
         publisher = source.create_publisher(JointState, '/joint_states', 10)
-        guard = NS(fault='', max_age=.25, last_stamp=None,
-                   cad_coordinates=None, expected_joint_names=EXPECTED_JOINTS,
-                   require_driver_fault=True,
+        guard = NS(fault='', max_age=.25, last_stamp=None, expected_joint_names=EXPECTED_JOINTS,
+                   require_driver_fault=True, cad_coordinates=None,
                    publisher=publisher, get_clock=source.get_clock,
                    latch=lambda reason: pytest.fail(reason))
         guard.feedback_is_fresh = lambda stamp: ControlStateGuard.feedback_is_fresh(guard, stamp)
+
         def publish():
-            stamp = source.get_clock().now().nanoseconds
+            stamp = float(source.get_clock().now().nanoseconds)
             names = sorted(EXPECTED_JOINTS)
             rows = [InterfaceValue(interface_names=['position'], values=[0.])
-                    if name.startswith('head_') else InterfaceValue(
-                        interface_names=['position', 'feedback_stamp_ns', 'hardware_fault'],
-                        values=[0., float(stamp), 0.]) for name in names]
-            ControlStateGuard.receive_hardware(guard, DynamicJointState(
-                joint_names=names, interface_values=rows))
+                    if name.startswith('head_') else
+                    InterfaceValue(interface_names=['position', 'feedback_stamp_ns', 'hardware_fault'],
+                                   values=[0., stamp, 0.]) for name in names]
+            ControlStateGuard.receive_hardware(
+                guard, DynamicJointState(joint_names=names, interface_values=rows))
         source.create_timer(.02, publish)
         for node in (server, server.operations, source):
             executor.add_node(node)
