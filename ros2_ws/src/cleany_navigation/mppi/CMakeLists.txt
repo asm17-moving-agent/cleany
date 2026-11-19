@@ -1,4 +1,5 @@
 # Tuned Humble MPPI implementation owned by cleany_navigation.
+option(CLEANY_MPPI_PORTABLE_BUILD "Use the fixed CI amd64 instruction set" OFF)
 find_package(xtensor REQUIRED)
 find_package(xsimd REQUIRED)
 set(mppi_dependencies
@@ -27,7 +28,12 @@ foreach(target cleany_mppi_controller cleany_mppi_critics)
   target_include_directories(${target} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     $<INSTALL_INTERFACE:include> ${xsimd_INCLUDE_DIRS})
-  target_link_libraries(${target} xtensor xtensor::optimize xtensor::use_xsimd)
+  target_link_libraries(${target} xtensor xtensor::use_xsimd)
+  if(CLEANY_MPPI_PORTABLE_BUILD AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    target_compile_options(${target} PUBLIC -march=x86-64-v2)
+  else()
+    target_link_libraries(${target} xtensor::optimize)
+  endif()
   ament_target_dependencies(${target} ${mppi_dependencies})
 endforeach()
 install(TARGETS cleany_mppi_controller cleany_mppi_critics

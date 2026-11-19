@@ -66,6 +66,8 @@ class ParallelWorkspaceTest(unittest.TestCase):
             self.assertEqual(env['SUPERVISOR_GRAPH_DOMAIN_BASE'], '190')
             self.assertEqual(env['SUPERVISOR_E2E_DOMAIN_BASE'], '200')
             self.assertEqual(env['CTEST_PARALLEL_LEVEL'], '1')
+            base_env = WORKSPACE.package_environment(Path(directory), 'cleany_base_driver', 1)
+            self.assertEqual(base_env['BASE_EKF_TEST_ROS_DOMAIN_ID'], '26')
             with self.assertRaises(ValueError):
                 WORKSPACE.package_environment(Path(directory), 'overflow', 60)
         self.assertEqual(dict(os.environ), before)
