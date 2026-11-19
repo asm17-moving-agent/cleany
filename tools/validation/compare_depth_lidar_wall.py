@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare stationary wall fits; never tune or publish calibration automatically."""
+"""정지 벽 적합을 비교하며 보정값을 자동 조정하거나 발행하지 않습니다."""
 
 import argparse
 import json
@@ -20,10 +20,10 @@ def rotation(xyzw: list[float]) -> np.ndarray:
 
 
 def fit_wall(points: np.ndarray, tolerance: float = 0.025) -> dict:
-    """Fit a front-facing line/plane with RANSAC and TLS, in metres.
+    """미터 단위로 전방 선 또는 평면을 RANSAC과 TLS로 맞춥니다.
 
-    The normal points forward (+X). Fits require >= 50% support; this is a
-    measurement validity check, not a robot safety or calibration threshold.
+    법선은 전방 +X입니다. 최소 50% 지지가 필요하며 이는 측정 유효성 검사이지
+    로봇 안전 또는 보정 임계값이 아닙니다.
     """
     dim = points.shape[1]
     if len(points) < 30:
@@ -68,7 +68,7 @@ def fit_wall(points: np.ndarray, tolerance: float = 0.025) -> dict:
 
 
 def camera_pose(data: dict, stamp: float, fallback: dict) -> tuple[np.ndarray, np.ndarray]:
-    """Resolve the fresh measured head chain, or the explicit nominal snapshot."""
+    """최신 측정 헤드 체인이나 명시한 명목 snapshot을 해석합니다."""
     optical = data['tf_static']['d435_depth_optical_frame']
     chain = [optical, data['tf_static']['d435_depth_frame']]
     dynamic = data.get('tf_dynamic', [])
@@ -112,7 +112,7 @@ def analyze(capture: Path, mount: Path) -> dict:
     depths = np.load(capture/'depth.npz')['depth_mm'].astype(float)*0.001
     k = np.asarray(data['camera_info']['k']).reshape(3, 3)
     h, w = depths.shape[1:]
-    # Central image ROI reduces side furniture and floor; retains vertical extent.
+    # 중앙 영상 ROI로 측면 가구와 바닥을 줄이며 수직 범위는 유지합니다.
     vv, uu = np.mgrid[int(h*.2):int(h*.8):4, int(w*.2):int(w*.8):4]
     frames, failure, pairs = [], [], []
     for index, item in enumerate(data['depth_times']):

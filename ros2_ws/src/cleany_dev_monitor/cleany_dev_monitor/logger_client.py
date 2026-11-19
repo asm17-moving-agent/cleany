@@ -1,4 +1,4 @@
-"""ROS client for recording control. No local writer or offline write fallback."""
+"""기록 제어용 ROS client이며 로컬 writer나 연결 실패 시의 대체 기록 기능은 없습니다."""
 import asyncio
 import copy
 import threading
@@ -55,7 +55,7 @@ class LoggerClient:
         deadline = time.monotonic() + self.timeout
         while not future.done():
             if time.monotonic() >= deadline:
-                # Timeout is not a stop acknowledgement; retain the last observed state.
+                # 시간 초과는 정지 수신 확인이 아니므로 마지막 관측 상태를 유지합니다.
                 client.remove_pending_request(future)
                 raise LoggerUnavailable('logger 응답 대기 시간이 초과됐습니다. 상태를 다시 확인하세요.')
             await asyncio.sleep(.02)
@@ -76,7 +76,7 @@ class LoggerClient:
         return dict(status, settings=settings)
 
     async def get_view(self):
-        # Configuration may be changed by another ROS client.
+        # 다른 ROS client가 설정을 바꿀 수 있습니다.
         return await self.call('get_config')
 
     async def change(self, settings, *, new_session=False):

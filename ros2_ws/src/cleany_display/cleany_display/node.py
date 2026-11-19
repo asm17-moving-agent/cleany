@@ -1,4 +1,4 @@
-"""ROS subscription bridge for the local face display."""
+"""로컬 얼굴 화면에 ROS 구독 상태를 전달합니다."""
 
 import argparse
 import json
@@ -19,7 +19,7 @@ from std_msgs.msg import String
 from .server import StateStore, make_server
 from .state import DisplayState
 
-# Avoid converting nested observations and reports that the display never uses.
+# 화면에서 쓰지 않는 중첩 관측과 보고서까지 변환하지 않습니다.
 DISPLAY_FIELDS = {
     'mission': ('mission_id', 'state', 'bt_stage'),
     'result': ('mission_id', 'outcome', 'needs_human_review', 'completed_tasks'),
@@ -30,21 +30,21 @@ DISPLAY_FIELDS = {
 
 
 class DisplayNode(Node):
-    """Observe robot state and serve a face on loopback HTTP.
+    """로봇 상태를 관찰하고 loopback HTTP로 얼굴 화면을 제공합니다.
 
     Subscriptions:
-        /mission/status (cleany_interfaces/msg/MissionStatus): Mission FSM state.
-        /mission/result (cleany_interfaces/msg/MissionResult): Final mission report.
+        /mission/status (cleany_interfaces/msg/MissionStatus): Mission FSM 상태.
+        /mission/result (cleany_interfaces/msg/MissionResult): 최종 미션 보고.
         /manipulation/execution_events (cleany_interfaces/msg/ManipulationExecutionRecord):
-            Collection progress. These three use reliable, transient-local QoS.
-        /wheel/odom (nav_msgs/msg/Odometry): Measured planar velocity; sensor QoS.
-        /battery_state (sensor_msgs/msg/BatteryState): Charge state; sensor QoS.
-        /cleany/display/state (std_msgs/msg/String): JSON display-only override;
-            volatile sensor QoS. All topic names are configuration defaults.
+            수거 진행 상태. 위 세 토픽은 reliable, transient-local QoS를 사용합니다.
+        /wheel/odom (nav_msgs/msg/Odometry): 측정 평면 속도. sensor QoS를 사용합니다.
+        /battery_state (sensor_msgs/msg/BatteryState): 충전 상태. sensor QoS를 사용합니다.
+        /cleany/display/state (std_msgs/msg/String): 화면만 바꾸는 JSON 요청.
+            volatile sensor QoS이며 모든 토픽 이름은 설정 기본값입니다.
 
     Notes:
-        No robot commands, service calls or action goals are issued. Event-driven
-        state stays valid while its publisher exists; sensor data expires.
+        로봇 명령, 서비스 호출이나 action goal은 보내지 않습니다. 이벤트 기반 상태는
+        발행자가 존재하는 동안 유지하고 센서 데이터에는 만료 시간을 적용합니다.
     """
 
     def __init__(self, config: dict, store: StateStore) -> None:

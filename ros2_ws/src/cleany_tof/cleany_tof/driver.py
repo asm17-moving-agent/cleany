@@ -1,4 +1,4 @@
-"""Native USB bridge for the supplied VL53L7CH ESP32 JSONL firmware."""
+"""제공된 VL53L7CH ESP32 JSONL 펌웨어의 native USB 브리지입니다."""
 import time
 import serial
 import rclpy
@@ -11,10 +11,10 @@ from .transport import Stream
 
 
 class TofDriver(Node):
-    """Publish tof/frame (TofFrame, reliable depth 1), never substitute invalid data.
+    """tof/frame(TofFrame, reliable, depth 1)을 발행하며 무효 데이터를 대체하지 않습니다.
 
-    Serial errors close the port and force a fresh stop/config/start handshake.
-    A steady timer bounds retry and stale USB queues are rejected by device time.
+    serial 오류 시 포트를 닫고 새로운 stop/config/start 연결 절차를 강제합니다.
+    steady timer로 재시도를 제한하며 장치 시각으로 오래된 USB 큐를 거부합니다.
     """
     def __init__(self, **kwargs):
         super().__init__('tof_driver', **kwargs)
@@ -30,7 +30,7 @@ class TofDriver(Node):
 
     def close(self):
         if self.port:
-            # Invalidate a still-fresh cached frame before waiting for timeout.
+            # 시간 초과를 기다리기 전에 아직 최신인 캐시 프레임을 무효화합니다.
             msg = TofFrame()
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = 'tof_link'
@@ -61,7 +61,7 @@ class TofDriver(Node):
                         self.stream = Stream()
                         self.port.write(b'cnh off\nconfig 64 15 400000\nstart\n')
                         self.state, self.deadline = 'starting', now+15.
-                        break  # Discard every pre-session frame from this read.
+                        break  # 이번 읽기에서 session 이전 프레임은 모두 버립니다.
                 elif self.state == 'starting':
                     if record.get('type') == 'info' and record.get('state') == 'running':
                         self.state, self.last_frame = 'running', now

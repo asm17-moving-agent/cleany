@@ -1,4 +1,4 @@
-"""ROS observation routes using the shared logger source schema."""
+"""공통 logger 소스 스키마를 사용하는 ROS 관측 경로입니다."""
 
 from .sources import (
     SCHEMA,

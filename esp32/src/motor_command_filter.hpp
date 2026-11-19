@@ -43,11 +43,12 @@ inline float encoderVelocityRadPerSecond(int32_t deltaCount,
 }
 
 /**
- * @brief Slew PWM commands and require measured standstill before reversal.
+ * @brief PWM 변화를 제한하고 방향 반전 전에 측정된 정지를 확인합니다.
  *
- * Slew is applied per step(), so the caller owns the update cadence.
- * Target and result are signed PWM percent; feedback uses rad/s and MCU
- * monotonic microseconds. forceStop() bypasses slew but retains direction history.
+ * slewStepIntervalUs가 양수이면 해당 간격이 지난 step()에서만 PWM을 갱신합니다.
+ * 간격이 0 이하이면 호출마다 갱신하므로 호출자가 주기를 관리해야 합니다.
+ * 목표와 결과는 부호 있는 PWM %, 피드백은 rad/s, 시각은 MCU 단조 증가 μs입니다.
+ * forceStop()은 증분 제한을 우회하지만 이전 구동 방향은 보존합니다.
  */
 class MotorCommandFilter {
  public:

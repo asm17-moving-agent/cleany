@@ -110,7 +110,7 @@ def test_command_monitor_clock_failure_stops_and_reset_latches():
 def test_clock_reset_latches_before_sensor_or_tf_validation():
     w = fresh_watchdog()
     w.tick(10., 100.)
-    # The adapter ticks first, even if a following TF lookup would throw.
+    # 뒤의 TF 조회가 예외를 던지더라도 어댑터 tick을 먼저 수행합니다.
     with pytest.raises(ValueError, match='CLOCK_RESET'):
         w.tick(9., 100.1)
     with pytest.raises(ValueError, match='CLOCK_RESET'):

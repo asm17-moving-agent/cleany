@@ -1,4 +1,4 @@
-"""Run the recorder independently of the developer dashboard."""
+"""개발자 대시보드와 독립적으로 recorder를 실행합니다."""
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription

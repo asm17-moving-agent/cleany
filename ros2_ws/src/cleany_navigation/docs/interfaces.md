@@ -64,7 +64,7 @@ flowchart LR
 | Retry lifecycle | 별도 `traction_retry` namespace, global costmap과 manager |
 | 입력 | `/map`, `/scan` |
 
-[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#omni-주행의-슬립-복구)을 따릅니다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 참고합니다.
+[슬립 복구 실행 설정](../../../../docs/implementation/how-to/phone-navigation.md#omni-주행의-슬립-복구)을 따릅니다. Endpoint의 QoS 약어와 자동 ROS 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 참고합니다.
 
 ## cleany_collision_monitor
 
@@ -329,6 +329,11 @@ flowchart LR
 이 문맥은 분석용이며 감지 판정이나 BT 입력이 아닙니다. Logger는 slip 5 Hz, traction_recovery 수신 이벤트를 기존 CDR bag과 용량·보존 정책으로 기록합니다.
 
 ## depth_obstacles_preview
+
+<figure class="contract-figure" data-visual-id="depth-mask">
+<img src="assets/depth-mask.png" alt="D435 preview의 고정 자기 필터는 어떤 부피를 덮나?" loading="lazy">
+<figcaption>현재 d435_fixed_body_boxes.json의 고정 AABB를 측면(XZ, 위)과 전면(YZ, 아래)으로 투영했습니다. 움직이는 팔은 포함하지 않습니다. 이 그림은 D435 preview의 고정 자기 필터이고 전체 3D 안전 모델이 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
+</figure>
 
 실행 파일 `depth_obstacles_preview`는 촬영 시점 pan/tilt TF로 깊이 점을
 `base_link`로 변환하는 미리보기 노드입니다. costmap, clearing, 주행 명령은 발행하지 않습니다.

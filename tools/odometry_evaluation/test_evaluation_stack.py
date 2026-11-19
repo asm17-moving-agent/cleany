@@ -64,7 +64,7 @@ class EvaluationStackTests(unittest.TestCase):
         self.spawn = patch.object(stack.subprocess, "Popen", Proc)
         self.spawn.start()
         self.addCleanup(self.spawn.stop)
-        # These tests must never signal real host processes, even for fake PID reuse.
+        # 가짜 PID 재사용 조건에서도 실제 호스트 프로세스에 신호를 보내지 않습니다.
         for name in ("kill", "killpg"):
             patcher = patch.object(stack.os, name)
             patcher.start()

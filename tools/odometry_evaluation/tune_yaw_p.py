@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Yaw P-gain Response Calibration Tool for Cleany Mobile Base.
+"""Cleany 이동 베이스의 yaw P 이득 응답을 비교합니다.
 
-Executes step heading changes for multiple Kp candidates, logs high-frequency
-time-series response (heading, velocity, tracking error), evaluates settling time
-and overshoot, and generates publication-grade response plots.
+여러 Kp 후보로 방향 step을 실행하고 방향, 속도와 추종 오차 시계열을 기록해
+정착 시간과 overshoot를 계산하고 응답 그림을 만듭니다.
+실제 실행은 로봇을 움직이며 dry-run은 합성 응답만 사용합니다.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ class GainMetrics:
     peak_yaw_deg: float
     overshoot_deg: float
     overshoot_pct: float
-    settling_time_s: float  # time to enter and stay within tolerance
+    settling_time_s: float  # 기록 구간 끝까지 허용 오차 안에 남기 시작한 시각입니다.
     steady_state_error_deg: float
     samples: list[ResponseSample]
 
@@ -170,7 +170,7 @@ class YawCalibrationNode(Node if HAVE_ROS else object):  # type: ignore[misc]
             error_deg = target_deg - curr_deg
             error_rad = target_rad - accumulated_yaw_rad
 
-            # Log sample
+            # 표본 기록
             samples.append(
                 ResponseSample(
                     t_sec=elapsed,
@@ -182,7 +182,7 @@ class YawCalibrationNode(Node if HAVE_ROS else object):  # type: ignore[misc]
                 )
             )
 
-            # Settling condition: must stay within tolerance band for settle_hold_s
+            # 정착 조건은 settle_hold_s 동안 허용 오차 범위를 유지하는 것입니다.
             if abs(error_deg) <= tolerance_deg and abs(self.current_wz_rad_s) <= self.motion_config.stop_angular_speed_rad_s:
                 if settled_start_time is None:
                     settled_start_time = now
@@ -194,7 +194,7 @@ class YawCalibrationNode(Node if HAVE_ROS else object):  # type: ignore[misc]
             else:
                 settled_start_time = None
 
-            # P controller
+            # P 제어기
             target_wz = kp * error_rad
             if abs(target_wz) > max_wz:
                 target_wz = math.copysign(max_wz, target_wz)
@@ -207,7 +207,7 @@ class YawCalibrationNode(Node if HAVE_ROS else object):  # type: ignore[misc]
             self.cmd_vel_pub.publish(twist)
             time.sleep(dt)
 
-        # Stop and dwell
+        # 정지 후 대기
         zero_twist = Twist()
         for _ in range(10):
             self.cmd_vel_pub.publish(zero_twist)
@@ -225,7 +225,7 @@ def calculate_metrics(samples: list[ResponseSample], kp: float, target_deg: floa
     times = [s.t_sec for s in samples]
     is_positive = target_deg >= 0
 
-    # Peak & Overshoot
+    # 최댓값과 overshoot
     if is_positive:
         peak_yaw = max(yaws)
         overshoot_deg = max(0.0, peak_yaw - target_deg)
@@ -234,7 +234,7 @@ def calculate_metrics(samples: list[ResponseSample], kp: float, target_deg: floa
         overshoot_deg = max(0.0, target_deg - peak_yaw)
     overshoot_pct = (overshoot_deg / abs(target_deg)) * 100.0 if target_deg != 0 else 0.0
 
-    # Rise time (10% to 90%)
+    # 10%에서 90%까지 상승 시간
     t_90_target = abs(target_deg) * 0.90
     rise_time = 0.0
     for s in samples:
@@ -242,7 +242,7 @@ def calculate_metrics(samples: list[ResponseSample], kp: float, target_deg: floa
             rise_time = s.t_sec
             break
 
-    # Settling time (stays permanently within +-1.0 deg of target)
+    # 기록된 나머지 표본이 목표 ±1.0도 안에 남는 정착 시간입니다.
     tol = 1.0
     settling_time = times[-1]
     for i in range(len(samples) - 1, -1, -1):
@@ -250,7 +250,7 @@ def calculate_metrics(samples: list[ResponseSample], kp: float, target_deg: floa
             settling_time = samples[min(i + 1, len(samples) - 1)].t_sec
             break
 
-    # Steady state error (average of last 5 samples)
+    # 마지막 표본 다섯 개의 평균 정상 상태 오차
     tail = samples[-5:] if len(samples) >= 5 else samples
     steady_state_error = sum(s.error_yaw_deg for s in tail) / len(tail)
 
@@ -278,7 +278,7 @@ def plot_gain_comparison(metrics_list: list[GainMetrics], output_path: Path) -> 
     target_deg = metrics_list[0].target_deg
     colors = ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#9467bd"]
 
-    # Target line & tolerance band
+    # 목표선과 허용 오차 범위
     ax_pos.axhline(target_deg, color="black", linestyle="--", linewidth=1.5, label=f"Target ({target_deg:.1f}°)")
     ax_pos.axhspan(target_deg - 1.0, target_deg + 1.0, color="gray", alpha=0.15, label="±1.0° Tolerance")
 
@@ -312,19 +312,19 @@ def plot_gain_comparison(metrics_list: list[GainMetrics], output_path: Path) -> 
 
 
 def simulate_synthetic_response(kp: float, target_deg: float, max_wz: float) -> list[ResponseSample]:
-    """Simulates realistic 2nd-order mobile base response for dry-run/testing."""
+    """dry-run 및 테스트용 합성 2차 이동 베이스 응답을 모사합니다."""
     dt = 0.02
     target_rad = math.radians(target_deg)
     yaw_rad = 0.0
     actual_wz = 0.0
     cmd_wz = 0.0
-    slew_rate = 0.50 * 5.0  # max wz slew
-    tau = 0.12  # motor response time constant
+    slew_rate = 0.50 * 5.0  # wz 최대 변화율
+    tau = 0.12  # 모터 응답 시정수
 
     samples: list[ResponseSample] = []
     settled_count = 0
 
-    for step in range(250):  # 5 seconds
+    for step in range(250):  # 5초
         t = step * dt
         error_rad = target_rad - yaw_rad
         error_deg = math.degrees(error_rad)
@@ -356,7 +356,7 @@ def simulate_synthetic_response(kp: float, target_deg: float, max_wz: float) -> 
         elif abs(error_deg) <= 1.0:
             desired_wz = 0.0
 
-        # Slew limit
+        # 변화율 제한
         wz_diff = desired_wz - cmd_wz
         max_step = slew_rate * dt
         if abs(wz_diff) > max_step:
@@ -364,7 +364,7 @@ def simulate_synthetic_response(kp: float, target_deg: float, max_wz: float) -> 
         else:
             cmd_wz = desired_wz
 
-        # Motor 1st-order response
+        # 모터 1차 응답
         actual_wz += (cmd_wz - actual_wz) * (dt / (tau + dt))
         yaw_rad += actual_wz * dt
 
@@ -429,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
                 metrics_list.append(m)
                 print(f"  -> Rise time: {m.rise_time_s:.2f}s, Settling: {m.settling_time_s:.2f}s, Overshoot: {m.overshoot_deg:.2f}°")
 
-                # Return turn back to 0° to maintain workspace
+                # 작업 공간을 유지하도록 다시 0도로 회전합니다.
                 print(f"  -> Returning to initial heading...")
                 node.step_turn(-args.angle_deg, kp=2.0, max_wz=args.max_wz)
                 if node.aborted:
@@ -446,11 +446,11 @@ def main(argv: list[str] | None = None) -> int:
         print("No valid completed yaw response; no gain recommendation.", file=sys.stderr)
         return 1
 
-    # Generate plot
+    # 그림 생성
     plot_gain_comparison(metrics_list, plot_file)
     print(f"\nSaved response plot to: {plot_file}")
 
-    # Summary table
+    # 요약표
     print("\n" + "=" * 78)
     print(f"{'Kp':<6} | {'Rise Time (s)':<14} | {'Settling Time (s)':<18} | {'Overshoot (deg)':<16} | {'SS Error (deg)':<14}")
     print("-" * 78)
@@ -458,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     best_score = float("inf")
 
     for m in metrics_list:
-        # Score = settling_time + 3.0 * overshoot
+        # 점수 = settling_time + 3.0 * overshoot
         score = m.settling_time_s + 3.0 * m.overshoot_deg
         if score < best_score:
             best_score = score
@@ -467,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
     print("=" * 78)
     print(f"Optimal Gain Recommendation: Kp = {best_m.kp:.1f} (Settling: {best_m.settling_time_s:.2f}s, Overshoot: {best_m.overshoot_deg:.2f}°)")
 
-    # Save JSON
+    # JSON 저장
     json_data = {
         "target_deg": args.angle_deg,
         "max_wz_rad_s": args.max_wz,

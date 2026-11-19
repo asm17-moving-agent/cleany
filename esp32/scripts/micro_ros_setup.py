@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch immutable micro-ROS sources and generate the ESP-IDF component."""
+"""고정된 micro-ROS 소스를 가져와 ESP-IDF 컴포넌트를 생성합니다."""
 from __future__ import annotations
 
 import argparse
@@ -15,12 +15,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CONTROLLER = ROOT / "esp32"
 LOCK = CONTROLLER / "micro_ros.lock.json"
-OUTPUT = CONTROLLER / "micro_ros"  # ignored bootstrap output
+OUTPUT = CONTROLLER / "micro_ros"  # 버전 관리에서 제외하는 초기 준비 출력입니다.
 PIO_VENV = CONTROLLER / ".venv"
 
 
 def component_fingerprint(project: Path, environment: str) -> str:
-    """Include authoritative interfaces, metadata and ESP-IDF build identity."""
+    """인터페이스 원본, 메타데이터와 ESP-IDF 빌드 환경 식별자를 포함합니다."""
     digest = hashlib.sha256()
     digest.update(f"{project.resolve()}:{environment}".encode())
     files = [LOCK, CONTROLLER / "app-colcon.meta",
@@ -35,13 +35,13 @@ def component_fingerprint(project: Path, environment: str) -> str:
 
 
 def refresh_component(project: Path, environment: str) -> None:
-    """Regenerate derived type support when inputs or IDF build context change."""
+    """입력이나 IDF 빌드 환경이 바뀌면 파생 타입 지원 코드를 재생성합니다."""
     component = OUTPUT / "micro_ros_espidf_component"
     defaults = hashlib.sha256((CONTROLLER / "sdkconfig.defaults").read_bytes()).hexdigest()
     defaults_stamp = project / ".pio/cleany-sdkconfig-defaults"
     if not defaults_stamp.exists() or defaults_stamp.read_text() != defaults:
-        # sdkconfig.defaults only applies at initial generation, not to an
-        # existing sdkconfig. Reset our derived config on reviewed defaults changes.
+        # sdkconfig.defaults는 최초 생성에만 적용되고 기존 sdkconfig에는 반영되지 않습니다.
+        # 검토된 기본값이 바뀌면 파생 설정을 초기화합니다.
         config = project / f"sdkconfig.{environment}"
         if config.exists():
             config.unlink()
@@ -53,15 +53,15 @@ def refresh_component(project: Path, environment: str) -> None:
     fingerprint = component_fingerprint(project, environment)
     stamp = component / ".cleany-build-fingerprint"
     if stamp.exists() and stamp.read_text() == fingerprint:
-        # Upstream uses the install directory itself as a make target. Failed
-        # colcon builds can leave that directory behind, suppressing the retry.
+        # upstream은 install 디렉터리 자체를 make 대상으로 사용합니다.
+        # colcon 실패 후 남은 디렉터리가 재시도를 막을 수 있습니다.
         if not (component / "libmicroros.a").exists() or not (component / "include").is_dir():
             incomplete = component / "micro_ros_src/install"
             if incomplete.is_dir():
                 shutil.rmtree(incomplete)
         return
-    # Upstream builds libmicroros/includes during CMake configuration. A
-    # project/environment switch must rerun it even with unchanged sdkconfig.
+    # upstream은 CMake 구성 중 libmicroros/includes를 빌드합니다.
+    # 프로젝트나 환경이 바뀌면 sdkconfig가 같아도 다시 구성해야 합니다.
     cache = project / ".pio/build" / environment / "CMakeCache.txt"
     if cache.exists():
         cache.unlink()
@@ -72,7 +72,7 @@ def refresh_component(project: Path, environment: str) -> None:
             shutil.rmtree(path)
         elif path.exists():
             path.unlink()
-    # Upstream only copies extra packages during the initial clone phase.
+    # upstream은 최초 clone 단계에서만 추가 패키지를 복사합니다.
     source = component / "micro_ros_src/src"
     if source.exists():
         package = source / "extra_packages/cleany_base_interfaces"
@@ -119,7 +119,7 @@ def link_generated_config(link: Path, source: Path, previous_source: Path | None
 
 
 def link_git_wrapper(link: Path) -> None:
-    """Migrate only the two known repository layouts to the firmware helper."""
+    """알려진 두 저장소 배치만 펌웨어 보조 도구 구조로 이전합니다."""
     source = Path(__file__).with_name("micro_ros_git.py")
     for previous in (ROOT / "tools/micro_ros_git.py",
                      ROOT / "tools/micro_ros/micro_ros_git.py"):
@@ -179,8 +179,8 @@ def main() -> None:
         "catkin_pkg==1.1.1", "colcon-common-extensions==0.3.0",
         "colcon-core==0.21.3", "vcstool==0.3.0", "lark-parser==0.12.0",
         "empy==3.3.4")
-    # The micro-ROS component's makefile copies these ROS source packages into
-    # its private colcon workspace; keep the interface source authoritative.
+    # micro-ROS 컴포넌트의 Makefile이 ROS 소스 패키지를 자체 colcon workspace로
+    # 복사하므로 인터페이스의 기준은 계속 이 소스에 둡니다.
     for project in (CONTROLLER, CONTROLLER / "microros_smoke"):
         package_dir = project / "extra_ros_packages" / "cleany_base_interfaces"
         package_dir.parent.mkdir(parents=True, exist_ok=True)

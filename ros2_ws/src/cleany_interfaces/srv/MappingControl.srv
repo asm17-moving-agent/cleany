@@ -1,4 +1,4 @@
-# reset starts a new serialized session; stop finalizes it without restarting.
+# reset은 새 직렬 session을 시작하고 stop은 재시작 없이 해당 session을 마무리합니다.
 string request_id
 string operation
 ---

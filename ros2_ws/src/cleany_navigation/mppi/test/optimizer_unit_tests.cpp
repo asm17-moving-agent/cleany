@@ -82,7 +82,7 @@ public:
       EXPECT_LE((std::abs(control_sequence_.vx(i))+std::abs(control_sequence_.vy(i))+.47*std::abs(control_sequence_.wz(i)))/.0635,4.00001);
       previous={control_sequence_.vx(i),control_sequence_.vy(i),control_sequence_.wz(i)};
     }
-    // Switching to a turn brakes translation in the scored and emitted sequence.
+    // 회전으로 전환할 때 평가 궤적과 출력 궤적 모두에서 병진 속도를 줄입니다.
     acceleration_origin_={.15,0,0};path_rotation_active_=true;
     applyControlSequenceConstraints();
     EXPECT_GT(control_sequence_.vx(0),.13);EXPECT_NEAR(control_sequence_.vx(79),0.,1e-6);
@@ -106,7 +106,7 @@ public:
     control_sequence_.vx=xt::ones<float>({120})*.5;
     control_sequence_.vy=xt::zeros<float>({120});control_sequence_.wz=xt::zeros<float>({120});
     acceleration_origin_={0,0,0};applyControlSequenceConstraints();
-    EXPECT_NEAR(control_sequence_.vx(119),.5,1e-5);  // Not the previous 4 rad/s cap.
+    EXPECT_NEAR(control_sequence_.vx(119),.5,1e-5);  // 이전의 4 rad/s 제한이 남지 않아야 합니다.
     control_sequence_.vx.fill(.5);control_sequence_.vy.fill(.5);control_sequence_.wz.fill(.7);
     applyControlSequenceConstraints();
     for(size_t t=0;t<120;++t) {
@@ -125,7 +125,7 @@ public:
     path_.x=xt::xtensor<float,1>{.1f};path_.y=xt::xtensor<float,1>{0.f};
     updateBodyLimits();EXPECT_NEAR(effective_translation_limit_,.06,1e-6);EXPECT_NEAR(effective_yaw_limit_,.15,1e-6);
     PlanarVelocity prior{.4,0,0};float x=.5,y=0,w=0;constrainMotion(x,y,w,prior);
-    EXPECT_GT(x,.38);EXPECT_LT(x,.4);  // A newly smaller target produces deceleration, not a jump.
+    EXPECT_GT(x,.38);EXPECT_LT(x,.4);  // 낮아진 목표 속도로 감속해야 하며 즉시 그 값으로 뛰어서는 안 됩니다.
     settings_.constraints.vx_max=settings_.constraints.vy=.03;
     settings_.constraints.wz=.08;updateBodyLimits();
     EXPECT_LE(effective_translation_limit_,.030001);EXPECT_LE(effective_yaw_limit_,.080001);
@@ -140,7 +140,7 @@ public:
     state_.cvy.fill(.1f);state_.cvx.fill(0.f);state_.cwz.fill(0.f);generated_trajectories_.yaws.fill(0.f);
     for(size_t t=0;t<10;++t){state_.cvx(1,t)=.03f;state_.cvx(2,t)=-.03f;}
     scoreMotionContinuity();EXPECT_LT(costs_(0),costs_(1));EXPECT_LT(costs_(0),costs_(2));
-    // Off-path motion back toward the line remains preferred over rigid vx=0.
+    // vx를 0으로 고정하기보다 경로 쪽으로 복귀하는 이동을 선호해야 합니다.
     state_.pose.pose.position.x=.03;costs_.fill(0);scoreMotionContinuity();
     EXPECT_LT(costs_(2),costs_(0));
   }
@@ -215,7 +215,7 @@ public:
     control_sequence_.vx = 0.15f * xt::ones<float>({80});
     control_sequence_.vy = 0.10f * xt::ones<float>({80});
     control_sequence_.wz = 0.14f * xt::ones<float>({80});
-    // The negative filter taps multiply opposing, but still bounded, values.
+    // 음수 필터 계수에 반대 부호의 값이 곱해지지만 입력 자체는 한계 안에 있습니다.
     control_sequence_.vx(4) = -0.15f;
     control_sequence_.vy(4) = -0.10f;
     control_sequence_.wz(4) = -0.14f;
@@ -249,7 +249,7 @@ public:
     for (size_t batch = 0; batch < settings_.batch_size; ++batch) {
       EXPECT_NEAR(state_.vx(batch, 0), 0.03, 1e-6);
       EXPECT_NEAR(state_.vy(batch, 0), -0.02, 1e-6);
-      // Scoring includes the measured initial translation, not an idealized stop.
+      // 이상적인 정지가 아닌 실제 측정된 초기 병진 속도를 평가에 포함합니다.
       EXPECT_NEAR(generated_trajectories_.x(batch, 0), state_.pose.pose.position.x + 0.03 * 0.05, 1e-6);
       EXPECT_NEAR(generated_trajectories_.y(batch, 0), -0.02 * 0.05, 1e-6);
       for (size_t t = 1; t < settings_.time_steps; ++t) {

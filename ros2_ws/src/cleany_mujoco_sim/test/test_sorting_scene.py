@@ -153,7 +153,7 @@ def test_internal_tray_rejects_unsupported_bins(tmp_path):
 
 
 def test_internal_fixtures_clear_legacy_chassis_box_collisions():
-    """Check frame rails/electronics, not arbitrary arm poses or CAD meshes."""
+    """임의의 팔 자세나 CAD 메시가 아닌 프레임 레일과 전자부품을 검사합니다."""
     root = ET.parse(Path(__file__).parents[2] /
                     'cleany_description/urdf/legacy_20261009/physical_properties.xacro')
     fixtures = list(load_shelf_boxes(CONFIG))
@@ -165,7 +165,7 @@ def test_internal_fixtures_clear_legacy_chassis_box_collisions():
         if box is None:
             continue
         origin = collision.find('origin')
-        # This macro also contains articulated link geometry; use chassis frame IDs.
+        # 이 macro에는 가동 link 형상도 있으므로 차체 좌표계 ID를 사용합니다.
         name = collision.get('name', '')
         if not name.startswith('mjcf_geom_'):
             continue

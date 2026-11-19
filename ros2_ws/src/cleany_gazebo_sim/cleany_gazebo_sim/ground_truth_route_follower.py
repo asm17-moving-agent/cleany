@@ -19,17 +19,17 @@ from cleany_gazebo_sim.route_control import (
 
 
 class GroundTruthRouteFollower(Node):
-    """Follow configured world waypoints using simulation ground truth.
+    """시뮬레이션 정답 위치로 설정된 world 경유점을 따라갑니다.
 
     Subscriptions:
-        ground_truth/odom (nav_msgs/msg/Odometry): Actual simulator pose.
+        ground_truth/odom (nav_msgs/msg/Odometry): 시뮬레이터의 실제 위치.
 
     Publishers:
-        cmd_vel (geometry_msgs/msg/Twist): Body-frame waypoint commands.
+        cmd_vel (geometry_msgs/msg/Twist): 경유점으로 향하는 차체 좌표계 속도 명령.
 
     Notes:
-        waypoints_xy is required. This simulation-only follower bypasses Nav2;
-        stale odometry or route completion produces a stop command.
+        waypoints_xy를 지정해야 합니다. Nav2를 우회하는 시뮬레이션 전용 도구이며
+        odometry가 오래되었거나 경로를 완료하면 정지 명령을 보냅니다.
     """
     def __init__(self) -> None:
         super().__init__('ground_truth_route_follower')
@@ -168,9 +168,8 @@ def main(args: list[str] | None = None) -> None:
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
-        # The Gazebo command guard sends stop if launch has already
-        # invalidated the ROS context. Normal route completion publishes its
-        # own stop command before reaching this shutdown path.
+        # launch가 이미 ROS context를 무효화했다면 Gazebo command guard가 정지시킵니다.
+        # 정상 경로 완료 시에는 이 종료 경로에 도달하기 전에 자체 정지 명령을 발행합니다.
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

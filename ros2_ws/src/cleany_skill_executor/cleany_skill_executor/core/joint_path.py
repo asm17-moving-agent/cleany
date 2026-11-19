@@ -1,8 +1,8 @@
-"""Monotone cubic joint interpolation with analytical derivative bounds.
+"""해석적 미분 한계를 가진 단조 3차 관절 보간입니다.
 
-Positions + velocities reconstruct these same cubics in ROS 2 JTC's spline
-interpolator. Acceleration fields must remain empty (not quintic interpolation).
-This provides joint-rate bounds, not continuous Cartesian collision guarantees.
+위치와 속도로 ROS 2 JTC spline 보간기가 같은 3차식을 재구성합니다.
+5차 보간이 되지 않도록 가속도 필드는 비워야 합니다. 관절 속도 한계를
+제공하지만 연속 Cartesian 충돌 안전을 보장하지는 않습니다.
 """
 from __future__ import annotations
 

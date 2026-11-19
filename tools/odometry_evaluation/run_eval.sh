@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Holonomic Odometry Evaluation Runner
-# Automatically enters distrobox ros2-humble if on host OS.
+# 전방향 odometry 평가 실행기입니다.
+# 호스트 OS에서는 distrobox ros2-humble에 자동 진입합니다.
 set -eo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/../.." && pwd)
 container=${ROS2_CONTAINER:-ros2-humble}
 
-# Check if we need to enter distrobox
+# distrobox 진입 필요 여부를 확인합니다.
 in_ubuntu=false
 if [[ -f /etc/os-release ]]; then
     # shellcheck disable=SC1091
@@ -26,11 +26,11 @@ if [[ $in_ubuntu == false ]]; then
         "cd \"$repo_root\" && bash tools/odometry_evaluation/run_eval.sh \"\$@\"" -- "$@"
 fi
 
-# We are inside the Humble environment
+# Humble 환경 안에서 실행합니다.
 export PYTHONNOUSERSITE=1
 export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
 
-# Check for mock flag
+# mock 옵션을 확인합니다.
 domain=0
 for arg in "$@"; do
     if [[ $arg == "--mock" ]]; then

@@ -1,4 +1,4 @@
-"""ROS-independent contracts for the asynchronous mission runtime."""
+"""비동기 임무 런타임의 ROS 독립 계약입니다."""
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
@@ -31,7 +31,7 @@ class RuntimePolicy:
     cleaning_timeout: float = 180.0
     operation_timeout: float = 30.0
     cancel_timeout: float = 5.0
-    # Wait for a Supervisor lease before the first motion; ignored when unsupervised.
+    # 첫 이동 전에 Supervisor 임대를 기다립니다. 감독 없이 실행할 때는 무시합니다.
     permission_timeout: float = 3.0
     max_actions: int = 30
     max_skill_retries: int = 2

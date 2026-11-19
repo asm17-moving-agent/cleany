@@ -1,4 +1,4 @@
-"""Safety configuration and ROS-independent calibration preflight checks."""
+"""안전 설정과 ROS에 독립적인 보정 실행 전 검사입니다."""
 
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def _finite_tuple(
 
 @dataclass(frozen=True, slots=True)
 class StageTimeouts:
-    """Required monotonic-clock budgets for every Commit 12 stage."""
+    """각 실행 단계에 필요한 단조 시계 기준 시간 예산입니다."""
 
     ik_sec: float
     state_validity_sec: float
@@ -102,11 +102,11 @@ class StageTimeouts:
 
 @dataclass(frozen=True, slots=True)
 class MujocoMotionConfig:
-    """MuJoCo safety baseline plus run-specific required preconditions.
+    """MuJoCo 안전 기준과 실행별 필수 전제 조건입니다.
 
-    Freshness, right-arm park tolerance, and every stage timeout have no
-    defaults.  A caller must therefore materialize measured run budgets
-    instead of silently inheriting one common timeout.
+    최신성, 오른팔 주차 허용 오차와 각 단계 시간 제한에는 기본값이 없습니다.
+    호출자는 공통 시간 제한을 암묵적으로 물려받는 대신 측정에 근거한
+    실행 시간 예산을 구체적으로 제공해야 합니다.
     """
 
     current_state_max_age_sec: float
@@ -204,7 +204,7 @@ class MujocoMotionConfig:
 
 @dataclass(frozen=True, slots=True)
 class CalibrationScope:
-    """The only arm group and IK tip authorized for this workflow."""
+    """이 절차에서 허용하는 유일한 팔 그룹과 IK 끝점입니다."""
 
     planning_group: str
     tip_link: str
@@ -217,7 +217,7 @@ def validate_calibration_scope(
     planning_group: str,
     tip_link: str,
 ) -> None:
-    """Reject any non-left scope before an adapter can contact ROS."""
+    """어댑터가 ROS에 접속하기 전에 왼팔 이외의 범위를 거부합니다."""
 
     if planning_group != CALIBRATION_PLANNING_GROUP:
         raise ValueError(
@@ -232,7 +232,7 @@ def validate_calibration_scope(
 
 
 class StartupFailure(str, Enum):
-    """Stable safety-preflight rejection categories."""
+    """안전 사전 검사의 고정 거부 분류입니다."""
 
     INCOMPLETE_DUAL_ARM_STATE = 'incomplete_dual_arm_state'
     FUTURE_STATE_STAMP = 'future_state_stamp'
@@ -243,7 +243,7 @@ class StartupFailure(str, Enum):
 
 
 class StartupPreconditionError(RuntimeError):
-    """A motion-free startup rejection with an inspectable reason."""
+    """이동 없이 시작을 거부하며 이유를 확인할 수 있습니다."""
 
     def __init__(
         self,
@@ -259,7 +259,7 @@ class StartupPreconditionError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class ValidatedCurrentState:
-    """Complete feedback proven fresh and right-parked at a ROS stamp."""
+    """특정 ROS 시각에 최신성과 오른팔 주차 상태를 확인한 완전한 피드백입니다."""
 
     sample: TimedJointSample
     validated_at_stamp_ns: int
@@ -278,10 +278,10 @@ def validate_dual_arm_current_state(
         RIGHT_PARK_POSITIONS_RAD
     ),
 ) -> ValidatedCurrentState:
-    """Validate freshness, complete feedback, and stationary right park.
+    """최신성, 전체 피드백과 오른팔의 정지 주차 상태를 확인합니다.
 
-    ``now_stamp_ns`` and the sample stamp are ROS data time.  No wall clock is
-    consulted here; wall-clock monotonic time is reserved for bounded waits.
+    now_stamp_ns와 표본 stamp는 ROS 데이터 시각입니다. 여기서는 경과 시간 시계를
+    조회하지 않으며 단조 시계는 대기 시간 제한에만 사용합니다.
     """
 
     if not isinstance(sample, TimedJointSample):

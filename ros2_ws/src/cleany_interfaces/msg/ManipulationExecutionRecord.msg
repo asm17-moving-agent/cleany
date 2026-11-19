@@ -1,6 +1,6 @@
-# Latest durable progress; status/error fields are empty without a Result.
-# record_state: ACTIVE, FINISHED, INTERRUPTED, RECORDING_FAILED.
-# RECORDING_FAILED is an in-memory diagnostic; durability is not claimed.
+# 영속 기록된 최신 진행 상태입니다. Result가 없으면 status/error 필드는 비어 있습니다.
+# record_state 값: ACTIVE, FINISHED, INTERRUPTED, RECORDING_FAILED.
+# RECORDING_FAILED는 메모리 내 진단이며 영속 저장을 보장하지 않습니다.
 string mission_id
 string task_id
 string execution_id

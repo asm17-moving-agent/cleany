@@ -101,7 +101,7 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     np.testing.assert_allclose(meta['depth_camera_tf']['translation'], expected, atol=1e-9)
     assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + 0.03
 
-    # Resolve the converted SDF independently of the URDF-derived TF metadata.
+    # URDF에서 얻은 TF 메타데이터와 별도로 변환된 SDF를 해석합니다.
     entities = {e.get('name'): e for e in model if e.tag in ('link', 'joint', 'frame')}
 
     def local_pose(pose):
@@ -124,7 +124,7 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     for name in ('head_realsense_rgb', 'head_realsense_depth'):
         pose = model.find(f".//sensor[@name='{name}']/pose")
         camera = base_pose(pose.get('relative_to')) @ local_pose(pose)
-        # SDFormat rounds some fixed-frame RPY values during URDF conversion.
+        # SDFormat은 URDF 변환 중 일부 고정 좌표계 RPY 값을 반올림합니다.
         np.testing.assert_allclose(camera[:3, 3], expected, atol=1e-6)
         np.testing.assert_allclose(camera[:3, :3], rotation([0, angle, 0]), atol=1e-5)
 

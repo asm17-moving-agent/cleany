@@ -1,4 +1,4 @@
-"""Transactional target-OBB registration and ACM restoration."""
+"""트랜잭션 방식 타깃 OBB 등록과 ACM 복구입니다."""
 
 from __future__ import annotations
 
@@ -22,11 +22,10 @@ from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
 
 def support_patch_from_obb(candidate: Any, object_id: str, margin: float) -> CollisionObject:
-    """Finite support patch from the plane-aligned perception OBB bottom.
+    """평면에 정렬된 인식 OBB 바닥에서 유한 지지 패치를 만듭니다.
 
-    This is a local planar-support assumption, not simulator ground truth.
-    The perception contract constructs this OBB with its Z axis on the fitted
-    support normal and its bottom on that support plane.
+    국소 평면 지지 가정이며 시뮬레이터 참값이 아닙니다. 인식 계약은 OBB의
+    Z축을 적합된 지지 법선에 맞추고 바닥을 해당 지지 평면에 둡니다.
     """
     target = candidate.target_object
     pose = deepcopy(target.obb_pose)
@@ -57,11 +56,11 @@ def support_patch_from_obb(candidate: Any, object_id: str, margin: float) -> Col
 
 
 class TargetSceneTransaction:
-    """Manage temporary target geometry and allowed contacts in MoveIt's scene.
+    """MoveIt 장면의 임시 타깃 형상과 허용 접촉을 관리합니다.
 
-    Methods mutate the shared planning scene. The caller must invoke restore()
-    in its cleanup path; this object does not automatically roll back on error.
-    The saved collision matrix is restored, and temporary geometry is removed.
+    메서드는 공유 계획 장면을 변경합니다. 호출자는 정리 경로에서 restore()를
+    호출해야 하며 오류 시 자동 rollback하지 않습니다. 저장한 충돌 행렬을
+    복구하고 임시 형상을 제거합니다.
     """
     def __init__(
         self,
@@ -189,7 +188,7 @@ class TargetSceneTransaction:
             raise InfrastructureError('failed to register target OBB')
 
     def attach_to(self, arm: str) -> None:
-        """Move the perceived OBB from the world into MoveIt's robot state."""
+        """인식 OBB를 월드에서 MoveIt 로봇 상태로 옮깁니다."""
         if arm not in ('left', 'right'):
             raise ValueError("arm must be 'left' or 'right'")
         if self._collision_object is None or not self._object_id:
@@ -202,11 +201,9 @@ class TargetSceneTransaction:
         scene = PlanningScene()
         scene.is_diff = True
         scene.robot_state.is_diff = True
-        # MoveIt transfers an existing world object into robot state when an
-        # AttachedCollisionObject with the same id is added.  Sending an
-        # explicit world REMOVE in the same diff makes that transfer happen
-        # twice and ApplyPlanningScene reports failure even though the object
-        # ended up attached.
+        # 같은 ID의 AttachedCollisionObject를 추가하면 MoveIt이 기존 월드 물체를
+        # 로봇 상태로 옮깁니다. 같은 diff에 명시적 world REMOVE까지 보내면 이동을
+        # 두 번 수행해 실제로 부착되었어도 ApplyPlanningScene이 실패를 보고합니다.
         scene.robot_state.attached_collision_objects = [attached]
         if not self._apply(scene).success:
             raise InfrastructureError('failed to attach target OBB')
@@ -293,13 +290,13 @@ class TargetSceneTransaction:
                 and scene.allowed_collision_matrix == self._saved_acm)
 
     def restore(self) -> None:
-        """Remove temporary geometry and restore the saved allowed-collision matrix.
+        """임시 형상을 제거하고 저장한 허용 충돌 행렬을 복구합니다.
 
-        An attached object is detached before removing its resulting world copy.
-        On failure, retain transaction identity so the caller can retry cleanup.
+        부착 물체를 먼저 분리한 뒤 생긴 월드 복사본을 제거합니다. 실패 시 호출자가
+        정리를 재시도할 수 있도록 트랜잭션 식별자를 유지합니다.
 
         Raises:
-            InfrastructureError: MoveIt cannot confirm a required scene update.
+            InfrastructureError: MoveIt에서 필수 장면 갱신을 확인할 수 없는 경우.
         """
         if not self._object_id:
             return
@@ -335,15 +332,14 @@ class TargetSceneTransaction:
             # remains to be done despite the failed apply response.
             self._attached = False
         if self._attached:
-            # Humble DETACH puts the body back into the collision world. It
-            # does not remove a temporary grasp OBB. Remove that world copy
-            # in a subsequent diff, after the detach has succeeded.
+            # Humble DETACH는 body를 충돌 월드로 되돌리며 임시 파지 OBB를 제거하지는
+            # 않습니다. 분리 성공 이후 별도 diff로 해당 월드 복사본을 제거합니다.
             self._attached = False
             scene.robot_state.attached_collision_objects = []
             scene.world.collision_objects = [remove]
             if not self._apply(scene).success:
-                # Keep the id so retry removes the world copy, not an
-                # already detached robot-state object.
+                # 재시도 시 이미 분리한 로봇 상태 물체가 아닌 월드 복사본을
+                # 제거하도록 ID를 유지합니다.
                 raise InfrastructureError('failed to remove detached target OBB')
         self._object_id = ''
         self._saved_acm = None
@@ -354,7 +350,7 @@ class TargetSceneTransaction:
 
 
 class SceneAwarePort:
-    """Switch target ACM permissions when candidate evaluation changes arm."""
+    """후보 평가에서 팔이 바뀌면 타깃 ACM 접촉 허용도 전환합니다."""
 
     def __init__(self, adapter: Any, scene: TargetSceneTransaction) -> None:
         self._adapter = adapter

@@ -1,4 +1,4 @@
-"""Select a display expression from observed ROS state, without commanding motion."""
+"""관측한 ROS 상태로 표정을 선택하며 이동 명령은 보내지 않습니다."""
 
 from dataclasses import dataclass
 import math
@@ -15,7 +15,7 @@ class Sample:
 
 
 class DisplayState:
-    """Retain event-driven state while its publisher exists; expire sensor samples."""
+    """이벤트 상태는 발행자가 존재하는 동안 유지하고 센서 표본은 만료시킵니다."""
 
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
@@ -40,7 +40,7 @@ class DisplayState:
         self.samples[source] = Sample(data, now, changed)
 
     def override(self, data: dict[str, Any], now: float) -> bool:
-        """Accept a bounded, display-only override; malformed input has no effect."""
+        """시간이 제한된 화면 전용 변경을 수락하며 잘못된 입력은 반영하지 않습니다."""
         if not isinstance(data.get('mode'), str) or data['mode'] not in MODES:
             return False
         duration = data.get('duration_seconds', 5.0)
@@ -119,7 +119,7 @@ class DisplayState:
                 output['direction'] = ('left' if angular > c['angular_threshold_rad_s'] else
                                        'right' if angular < -c['angular_threshold_rad_s'] else 'forward')
                 return choose('moving', 'odometry')
-        # Durable success records must not replay a celebration on every restart.
+        # 영속 저장된 성공 기록 때문에 재시작할 때마다 축하 표정을 재생하지 않습니다.
         if manip and manip.data.get('has_result'):
             age = max(now - manip.changed, wall_time - manip.data.get('updated_at_ns', 0) / 1e9)
             status = manip.data.get('status')
@@ -127,7 +127,7 @@ class DisplayState:
                 return choose('complete', 'manipulation', '수거 완료!')
             if status in ('FAILED', 'BLOCKED', 'FATAL') and age < c['failure_seconds']:
                 return choose('help', 'manipulation', c['help_message'])
-        # MissionResult has no timestamp: only celebrate when this process observed its mission running.
+        # MissionResult에는 시각이 없으므로 이 프로세스가 해당 미션의 실행을 관측한 경우에만 축하합니다.
         result = active.get('result')
         if result and result.data.get('_observed_running') and now - result.changed < c['completion_seconds']:
             if result.data.get('needs_human_review') or result.data.get('outcome') not in ('SUCCESS', 'PARTIAL_SUCCESS'):

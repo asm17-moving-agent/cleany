@@ -236,7 +236,7 @@ class CartesianMotion:
         contact_target: Pose | None = None,
         joint_target: JointState | None = None,
     ) -> RobotTrajectory:
-        """Plan and validate without sending a controller command; safe retry boundary."""
+        """제어기 명령 없이 계획 및 검증하며 이 경계에서는 재시도할 수 있습니다."""
         self._wait_arm_stationary(arm)
         start = self._tcp_pose(arm)
         goal = (self._linear_goal(arm, target, label, velocity_scaling)

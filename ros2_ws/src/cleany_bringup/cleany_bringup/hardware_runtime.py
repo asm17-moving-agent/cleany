@@ -1,4 +1,4 @@
-"""Own installed device/session launches and finalize mapping before device shutdown."""
+"""장치와 세션 launch의 수명을 관리하고 장치 종료 전에 매핑 저장을 마칩니다."""
 
 from __future__ import annotations
 import argparse
@@ -61,7 +61,7 @@ def main():
         profile['navigation_enabled'] = True
     state = Path(profile["state_root"])
     state.mkdir(parents=True, exist_ok=True)
-    # A domain/state pair has one lifecycle owner, including across terminal restarts.
+    # 터미널이 재시작해도 같은 domain과 상태 경로 조합은 하나의 실행 관리자가 소유합니다.
     import fcntl
 
     lease = (state / "runtime.lock").open("a")
@@ -246,7 +246,7 @@ def main():
                     shutdown["stop_confirmed"] = latest.get("stop_confirmed", False)
                     shutdown["message"] = latest["message"]
                     break
-        # Mapping cleanup still has live device/teleop services here.
+        # 이 시점에는 매핑 정리에 필요한 장치와 teleop 서비스가 살아 있습니다.
         for name, process in reversed(children):
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGINT)

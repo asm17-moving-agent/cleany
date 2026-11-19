@@ -1,4 +1,4 @@
-"""Display measured depth obstacles without connecting to motion authority."""
+"""이동 권한에 연결하지 않고 측정 깊이 장애물을 표시합니다."""
 
 import json
 import time
@@ -23,31 +23,30 @@ from cleany_navigation.transforms import transform
 
 
 class DepthObstaclePreviewNode(Node):
-    """Publish timestamped obstacle previews using actual pan/tilt TF.
+    """실제 pan/tilt TF로 시각이 있는 장애물 미리보기를 발행합니다.
 
     Subscriptions:
-        /camera/d435/depth/image_rect_raw (Image): Rectified optical depth.
-        /camera/d435/depth/camera_info (CameraInfo): Matching rectified intrinsics.
-        /scan_raw (LaserScan): LiDAR visualization at nominal physical height.
+        /camera/d435/depth/image_rect_raw (Image): 왜곡 보정된 광학 깊이.
+        /camera/d435/depth/camera_info (CameraInfo): 대응하는 보정 내부 파라미터.
+        /scan_raw (LaserScan): 명목 물리 높이의 LiDAR 시각화.
 
     Publishers:
         /perception/depth/measured_points, obstacle_points, ground_points
-        (PointCloud2): Base-frame observed hits and spatially filtered subsets.
-        /perception/depth/filter_status (String): Counts and measurement state.
-        /perception/lidar/cad_points (PointCloud2): Nominal physical LiDAR layer.
+        (PointCloud2): 베이스 좌표계 관측 hit와 공간 필터링 부분 집합.
+        /perception/depth/filter_status (String): 개수와 측정 상태.
+        /perception/lidar/cad_points (PointCloud2): 명목 물리 LiDAR 레이어.
 
     TF:
-        Consumes capture-time base_link to optical TF. Publishes separate
-        d435_ground_preview and lidar_cad_preview static frames. Navigation
-        lidar_link is not changed. Preview floor is an observed plane, not
-        independent ground truth.
+        촬영 시각의 base_link에서 optical까지 TF를 사용합니다. 별도 고정 좌표계
+        d435_ground_preview와 lidar_cad_preview를 발행하며 주행용 lidar_link는
+        변경하지 않습니다. 미리보기 바닥은 관측 평면이며 독립 참값이 아닙니다.
 
     QoS:
-        Sensor data for images, scans and clouds; reliable depth 10 for status.
+        영상, 스캔과 점군은 sensor_data, 상태는 reliable, depth 10입니다.
 
     Notes:
-        No costmap, clearing or command outputs. Invalid/stale/missing TF drops
-        images; empty clouds after sensor silence remove stale preview points.
+        costmap, 공간 제거 또는 명령 출력이 없습니다. TF가 없거나 무효 또는 오래되면
+        영상을 버립니다. 센서가 끊긴 뒤에는 빈 점군으로 오래된 미리보기 점을 지웁니다.
     """
 
     def __init__(self) -> None:

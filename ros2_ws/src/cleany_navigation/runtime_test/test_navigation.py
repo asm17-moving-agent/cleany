@@ -1,7 +1,7 @@
-"""Real-clock ROS integration with a synthetic backend, without Gazebo dependencies.
+"""Gazebo 없이 합성 백엔드를 사용하는 실제 시계 ROS 통합 검사입니다.
 
-Opt in with make test-navigation-runtime. Fixtures are test assumptions, not a
-physical robot calibration. Every child process is shut down on failure.
+make test-navigation-runtime으로 명시 실행합니다. fixture는 시험 가정이며
+실물 로봇 보정값이 아닙니다. 실패 시 모든 자식 프로세스를 종료합니다.
 """
 from __future__ import annotations
 
@@ -67,29 +67,29 @@ def test_map_reload_preserves_evidence_and_geometry_fault_cannot_be_enabled(monk
 
 
 class Backend(Node):
-    """Supply synthetic sensors for navigation runtime contract tests.
+    """주행 런타임 계약 테스트에 합성 센서를 제공합니다.
 
     Subscriptions:
-        obstacle_memory/grid and global_costmap/costmap (nav_msgs/msg/OccupancyGrid):
-            Transient-local outputs under test.
-        {nav2,pan_ready,safety_2d}/cmd_vel and cmd_vel (geometry_msgs/msg/Twist):
-            Command stages under test.
-        head_pan/state and body_guard_3d/state (std_msgs/msg/String): Gate diagnostics.
+        obstacle_memory/grid, global_costmap/costmap (nav_msgs/msg/OccupancyGrid):
+            검사 대상 transient_local 출력.
+        {nav2,pan_ready,safety_2d}/cmd_vel, cmd_vel (geometry_msgs/msg/Twist):
+            검사 대상 명령 단계.
+        head_pan/state, body_guard_3d/state (std_msgs/msg/String): gate 진단.
 
     Publishers:
-        clock (rosgraph_msgs/msg/Clock): Optional synthetic clock.
+        clock (rosgraph_msgs/msg/Clock): 선택적 합성 시계.
         odom (nav_msgs/msg/Odometry), scan (sensor_msgs/msg/LaserScan), joint_states
             (sensor_msgs/msg/JointState), camera/head/depth/camera_info
-            (sensor_msgs/msg/CameraInfo) and camera/head/depth/image_raw
-            (sensor_msgs/msg/Image): Synthetic sensor_data samples.
-        initialpose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization seed.
+            (sensor_msgs/msg/CameraInfo), camera/head/depth/image_raw
+            (sensor_msgs/msg/Image): 합성 sensor_data 표본.
+        initialpose (geometry_msgs/msg/PoseWithCovarianceStamped): 위치 추정 seed.
 
     TF:
-        Broadcasts odom -> base_link and fixed LiDAR/depth-camera mounts.
+        odom -> base_link와 고정 LiDAR/깊이 카메라 장착 변환을 발행합니다.
 
     Notes:
-        Tests can stop the clock or sensor publication independently to exercise
-        stale-input handling. These samples do not model physical sensor accuracy.
+        시계와 센서 발행을 각각 멈춰 오래된 입력 처리를 검사할 수 있습니다.
+        이 표본은 물리 센서 정확도를 모델링하지 않습니다.
     """
     def __init__(self, simulated_clock=False):
         super().__init__('synthetic_navigation_backend')
@@ -120,8 +120,8 @@ class Backend(Node):
         transforms = []
         for child, z, quaternion, parent in [
             ('laser_frame', 0., (0., 0., 0., 1.), 'base_link'),
-            # Fixture mount must be outside the CAD frame. At z=.6 every
-            # synthetic ray was correctly rejected by the self-occlusion mask.
+            # fixture 장착 위치는 CAD 프레임 밖이어야 합니다. z=.6에서는
+            # 자체 가림 mask가 모든 합성 ray를 올바르게 거부했습니다.
             ('head_camera_depth_frame', 1.0, (0., 0., 0., 1.), 'base_link'),
             ('head_camera_depth_optical_frame', 0., (-.5, .5, -.5, .5), 'head_camera_depth_frame')]:
             tf = TransformStamped()
@@ -198,8 +198,8 @@ def near_origin_clear(grid):
 
 @pytest.mark.parametrize('simulated_clock', [False, True])
 def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeypatch, simulated_clock):
-    # Separate cases so DDS discovery from a just-shut-down lifecycle server
-    # cannot answer the next case's identically named service clients.
+    # 방금 종료한 lifecycle 서버의 DDS 탐색 정보가 다음 사례의 같은 이름
+    # 서비스 client에 응답하지 않도록 사례를 분리합니다.
     base_domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_BASE', '187'))
     monkeypatch.setenv('ROS_DOMAIN_ID', str(base_domain+2 if simulated_clock else base_domain))
     monkeypatch.setenv('ROS_LOCALHOST_ONLY', '1')
@@ -274,7 +274,7 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
             handle = future.result()
             assert handle.accepted, log.read_text()[-14000:]
             command_topics = ('nav2/cmd_vel', 'pan_ready/cmd_vel', 'safety_2d/cmd_vel', 'cmd_vel')
-            # Topic callbacks update independently; await movement across the chain.
+            # 토픽 콜백은 독립적으로 갱신되므로 전체 명령 경로의 이동을 기다립니다.
             wait(lambda: all(moving(backend.commands.get(name)) for name in command_topics), 40.)
             assert backend.count_publishers('cmd_vel') == 1
             assert all('gazebo' not in name for name in backend.get_node_names())
@@ -296,8 +296,8 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
                 return near_origin_clear(grid) and (
                     (grid.header.stamp.sec, grid.header.stamp.nanosec) >= (cleared.sec, cleared.nanosec))
             wait(costmap_cleared, 8.)
-            # Start a new action after obstacle clearing; no automatic recovery
-            # timing is assumed after intentionally disconnecting a source.
+            # 장애물 제거 후 새 action을 시작합니다. 소스를 의도적으로 끊은 뒤의
+            # 자동 복구 시점은 가정하지 않습니다.
             future = action.send_goal_async(goal)
             wait(future.done)
             second = future.result()

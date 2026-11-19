@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay captured mapping CDR in a separate mock-only ROS domain."""
+"""기록한 매핑 CDR을 별도의 Mock 전용 ROS domain에서 재생합니다."""
 
 import argparse
 from collections import Counter

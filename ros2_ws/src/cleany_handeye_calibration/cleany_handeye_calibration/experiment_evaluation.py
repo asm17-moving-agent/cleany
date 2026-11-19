@@ -1,4 +1,4 @@
-"""Deterministic 150-run hand-eye accuracy/stability experiment."""
+"""결정적인 150회 손-눈 보정 정확도 및 안정성 실험입니다."""
 
 from __future__ import annotations
 
@@ -235,7 +235,7 @@ def load_sample_records(
     *,
     allow_partial: bool = False,
 ) -> tuple[CalibrationSampleRecord, ...]:
-    """Load committed rows, optionally accepting an explicit partial set."""
+    """저장 확정된 행을 읽으며 명시적으로 허용한 경우에만 일부 집합을 받습니다."""
 
     path = Path(samples_jsonl).expanduser().resolve(strict=True)
     payload = path.read_bytes()
@@ -380,7 +380,7 @@ def prepare_noise_dataset(
     pnp_solver: PnpSolver = solve_planar_pnp,
     allow_partial: bool = False,
 ) -> PreparedNoiseDataset:
-    """Apply pixel/q noise, rerun PnP/FK, and never perturb transforms."""
+    """픽셀과 q에 잡음을 적용한 뒤 PnP/FK를 다시 계산하며 변환 자체에는 잡음을 넣지 않습니다."""
 
     values = validate_evaluation_records(
         records,
@@ -647,7 +647,7 @@ def _evaluated_row(
 
 
 def percentile_linear(values: Sequence[float], percentile: float) -> float:
-    """NumPy-1.21-compatible deterministic linear percentile."""
+    """NumPy 1.21과 호환되는 결정적 선형 백분위수를 계산합니다."""
 
     ordered = sorted(float(value) for value in values)
     if not ordered or any(not math.isfinite(value) for value in ordered):
@@ -853,7 +853,7 @@ def run_solver_experiment(
     solve_all: AllMethodSolver = solve_all_hand_eye_methods,
     allow_partial: bool = False,
 ) -> SolverExperimentResult:
-    """Execute exactly 5 methods x 3 conditions x 10 seed bundles."""
+    """정확히 5개 방법 × 3개 조건 × 10개 seed 묶음을 실행합니다."""
 
     values = validate_evaluation_records(
         records,

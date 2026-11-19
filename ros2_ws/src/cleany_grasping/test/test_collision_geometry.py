@@ -12,7 +12,7 @@ def test_observed_prism_preserves_circular_footprint_and_infers_support_bottom()
     assert mesh.vertices[:, 2].min() == pytest.approx(-.04)
     assert mesh.vertices[:, 2].max() == pytest.approx(.04)
     assert np.max(np.linalg.norm(mesh.vertices[:, :2], axis=1)) == pytest.approx(.04)
-    # Every undirected edge has two opposite uses: closed, consistently wound.
+    # 방향을 제외한 모든 모서리를 서로 반대 방향으로 두 번 사용하므로 닫힌 면의 방향이 일관됩니다.
     directed = [(int(a), int(b)) for face in mesh.triangles
                 for a, b in zip(face, np.roll(face, -1))]
     for a, b in directed:

@@ -10,21 +10,21 @@ from cleany_gazebo_sim.simulated_encoder import SimulatedQuadratureEncoder
 
 
 class SimulatedEncoderNode(Node):
-    """Quantize simulated wheel angles into synthetic encoder feedback.
+    """시뮬레이션 휠 각도를 양자화해 합성 encoder 피드백을 만듭니다.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): Cumulative simulated angles.
+        joint_states (sensor_msgs/msg/JointState): 시뮬레이션 누적 휠 각도.
 
     Publishers:
-        wheel_encoder/joint_states (sensor_msgs/msg/JointState): Quantized wheel
-            positions after configured scale and tick noise.
+        wheel_encoder/joint_states (sensor_msgs/msg/JointState): 설정된 배율과 tick 잡음을
+            적용한 양자화 휠 위치.
 
     QoS:
-        Both directions use sensor_data.
+        양방향 모두 sensor_data를 사용합니다.
 
     Notes:
-        Topic and joint names are configurable defaults. Missing wheel samples
-        are ignored; synthetic encoder data is not measured hardware feedback.
+        토픽과 관절 이름은 변경 가능한 기본값입니다. 누락된 휠 표본은 무시하며
+        합성 encoder 데이터를 실물 측정 피드백으로 해석하지 않습니다.
     """
 
     def __init__(self) -> None:

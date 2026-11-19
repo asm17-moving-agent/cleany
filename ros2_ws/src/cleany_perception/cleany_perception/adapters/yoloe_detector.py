@@ -67,7 +67,7 @@ def _same_instance(first: Detection2D, second: Detection2D, minimum_mask_iou: fl
 
 
 class YoloeDetector:
-    """Ultralytics YOLOE adapter with optional instance masks."""
+    """선택적 instance mask를 제공하는 Ultralytics YOLOE 어댑터입니다."""
 
     def __init__(
         self,
@@ -355,9 +355,9 @@ class YoloeDetector:
                 from ultralytics import YOLOE
 
                 factory = YOLOE
-            # Ultralytics resolves mobileclip2_b.ts relative to the process
-            # working directory. Restrict that global change to serialized
-            # one-time model setup and restore it immediately afterwards.
+            # Ultralytics는 프로세스 작업 디렉터리에서 mobileclip2_b.ts를 찾습니다.
+            # 전역 경로 변경을 직렬화된 일회성 모델 설정에만 한정하고
+            # 설정 직후 복구합니다.
             with _MODEL_SETUP_LOCK:
                 original_directory = Path.cwd()
                 try:
@@ -438,7 +438,7 @@ class YoloeDetector:
 
 
 class YoloeMaskSegmenter:
-    """Use masks from the matching YOLOE detection, without a second model call."""
+    """두 번째 모델 호출 없이 대응하는 YOLOE 검출의 mask를 사용합니다."""
 
     def prepare(self) -> None:
         pass

@@ -1,7 +1,7 @@
-"""Generate YOLO instance-segmentation labels from offline MuJoCo renders.
+"""오프라인 MuJoCo 렌더링에서 YOLO instance 분할 label을 생성합니다.
 
-The renderer's object IDs are used only while preparing training data. They
-are not available to, or used by, the running perception node.
+렌더러 물체 ID는 학습 데이터 준비에만 사용하며 실행 중인 인식 노드에는
+제공되지 않고 사용하지도 않습니다.
 """
 from __future__ import annotations
 

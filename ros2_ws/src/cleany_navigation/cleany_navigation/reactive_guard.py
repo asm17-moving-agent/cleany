@@ -1,4 +1,4 @@
-"""Direct-observation planar braking envelope; no voxel map or pan alignment."""
+"""직접 관측 기반 평면 제동 외곽이며 voxel 지도나 pan 정렬을 사용하지 않습니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,10 +10,10 @@ from cleany_navigation.voxel_guard import GuardConfig, twist_pose
 
 @dataclass
 class InputWatchdog:
-    """Check source stamps and receive ages in separate ROS and monotonic clocks.
+    """소스 stamp와 수신 경과 시간을 각각 ROS 시계와 단조 시계로 검사합니다.
 
-    All times use seconds. A ROS rewind beyond 10 ms latches a fault for this
-    instance; stalled ROS time is detected from monotonic elapsed time.
+    모든 시간 단위는 초입니다. ROS 시각이 10ms보다 크게 역행하면 이 인스턴스에
+    fault를 유지하며 멈춘 ROS 시각은 단조 경과 시간으로 검출합니다.
     """
     source_timeout_s: float = .5
     command_timeout_s: float = .5
@@ -51,11 +51,11 @@ class InputWatchdog:
 
 
 class PlanarBrakingGuard:
-    """Enclose the complete parked body in XY; retain existing braking bounds.
+    """기존 제동 한계를 유지하며 주차된 전체 body를 XY에서 둘러쌉니다.
 
-    Holding full speed for reaction + braking time overestimates proportional
-    braking distance. Sample padding also covers motion between sweep poses.
-    This checks observed surfaces, not unobserved space or moving obstacles.
+    반응 및 제동 시간 동안 전체 속도를 유지하면 비례 제동 거리보다 크게 잡습니다.
+    표본 여유는 sweep 자세 사이의 움직임도 덮습니다. 관측 표면을 검사하며
+    미관측 공간이나 움직이는 장애물을 검증하지 않습니다.
     """
     def __init__(self, low: np.ndarray, high: np.ndarray, config: GuardConfig):
         self.low, self.high = np.asarray(low, dtype=float), np.asarray(high, dtype=float)
@@ -88,21 +88,21 @@ class PlanarBrakingGuard:
 
     def evaluate(self, points: np.ndarray, command: np.ndarray, measured: np.ndarray,
                  source_age: float) -> tuple[np.ndarray, str]:
-        """Limit the requested twist and test commanded and measured braking sweeps.
+        """요청 twist를 제한하고 명령 및 측정 제동 sweep을 검사합니다.
 
         Args:
-            points: Observed Nx2 surface points in the current base frame, in metres.
-            command: Requested body-frame vx, vy in m/s and yaw rate in rad/s.
-            measured: Measured twist in the same frame and units, without command limiting.
-            source_age: Age of the observations in seconds, added to reaction time.
+            points: 현재 베이스 좌표계의 관측 표면점 Nx2이며 미터 단위입니다.
+            command: body 좌표계의 요청 vx, vy(m/s)와 yaw 속도(rad/s).
+            measured: 같은 좌표계와 단위의 측정 twist이며 명령 제한을 적용하지 않습니다.
+            source_age: 반응 시간에 더하는 관측 경과 시간(초).
 
         Returns:
-            A bounded, slowed or zero twist and the corresponding decision code.
-            Empty observations may pass; the caller must enforce sensor freshness
-            and coverage before interpreting this as permission to move.
+            제한, 감속 또는 0으로 설정한 twist와 대응 판정 코드입니다. 빈 관측도
+            통과할 수 있으므로 호출자는 이동 허가로 해석하기 전에 센서 최신성과
+            관측 범위를 확인해야 합니다.
 
         Raises:
-            ValueError: Inputs are invalid or the braking horizon is unbounded.
+            ValueError: 입력이 무효하거나 제동 예측 구간이 무제한인 경우.
         """
         points, command, measured = [np.asarray(a, dtype=float) for a in (points, command, measured)]
         if (points.ndim != 2 or points.shape[1] != 2 or command.shape != (3,)
@@ -110,8 +110,8 @@ class PlanarBrakingGuard:
                 or any(not np.isfinite(a).all() for a in (points, command, measured))):
             raise ValueError('Invalid collision input')
         c = self.config
-        # Use the serial guard's exact command limiting before collision tests.
-        # Actual measured velocity, including overshoot, remains in the sweep.
+        # 충돌 검사 전에 serial guard와 동일한 명령 제한을 적용합니다.
+        # 초과 속도를 포함한 실제 측정 속도는 sweep에 그대로 반영합니다.
         command = command.copy()
         command[:2] *= min(1., c.max_speed/max(np.linalg.norm(command[:2]), 1e-12))
         command[2] = np.clip(command[2], -c.max_yaw_rate, c.max_yaw_rate)

@@ -1,0 +1,448 @@
+# Cleany 개발환경 설치 가이드
+
+
+| 준비 범위 | 읽을 곳 | 완료 기준 |
+|---|---|---|
+| 모든 개발자 | 아래 1–6단계 | Humble 환경, 의존성 설치, 같은 checkout의 overlay |
+| Gazebo만 사용 | 5단계의 `deps-gazebo` | Fortress와 ROS bridge |
+| MCU / 실물 매핑 | [ESP32](#esp32), [실물 매핑 의존성](#실물-매핑-의존성) | firmware/Agent/driver를 각각 확인 |
+| Monitor 웹 개발 | [웹 도구](#monitor-웹) | frontend build; ROS 실행에는 Node 불필요 |
+| Fedora / Jetson 화면 | [선택 환경](#7-선택-환경), [얼굴 화면](#jetson-얼굴-디스플레이-환경) | 해당 호스트 조건 |
+
+새 Ubuntu native 환경은 1–6단계 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
+
+## KiCad PCB 검증 환경
+
+통합 컨트롤러는 KiCad 10 이상의 `kicad-cli`와 같은 설치본의 Python `pcbnew`,
+표준 심벌과 풋프린트 라이브러리를 사용합니다. 3D 검토에는 KiCad의 표준 3D 라이브러리와
+[프로젝트 모델의 설치 조건](../../esp32/pcb/integrated_controller/libraries/3dmodels/README.md)도 확인합니다.
+로컬 검증 환경은 Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10입니다.
+
+`make test-pcb`는 KiCad가 설치된 호스트에서 직접 실행하며 ROS 컨테이너를 사용하지 않습니다.
+`PCB_PYTHON` 기본값은 `/usr/bin/python3`입니다. 다른 Python을 사용하면 해당 실행 파일에서
+`import pcbnew`가 가능한지 확인합니다. 일반 Python venv만으로는 KiCad 모듈을 제공하지 않습니다.
+검증 명령과 출력 경로는 [PCB 검증 절차](reference/testing.md#통합-컨트롤러-pcb-검증)를 따릅니다.
+
+
+## 인식과 파지 후보 패키지
+
+`make build-perception-candidates`는 `cleany_interfaces`, `cleany_perception`,
+`cleany_grasping`을 현재 checkout의 외부 빌드 경로에 설치합니다. GPU 모델과
+실물 장치 없이 빌드할 수 있습니다. YOLOE와 AnyGrasp 추론용 환경은
+[비전 컨테이너](../../containers/vision/README.md), 모델 변환과 검증은
+[모델 설정](../../configs/models/README.md)을 따릅니다.
+
+`DetectedObject2D/3D`와 `PlanGrasp`의 필드가 추가되어 ROS 직렬화 형식이 바뀝니다.
+배포할 때는 이 인터페이스를 사용하는 native 노드와 비전 컨테이너를 모두
+같은 소스로 재빌드하고 함께 재시작합니다. 이전 rosbag은 기록 당시의 인터페이스로 읽습니다.
+
+## 기준 환경
+
+| 항목 | 기준 |
+|---|---|
+| OS | Ubuntu 22.04 LTS (Jammy) |
+| ROS | ROS 2 Humble Desktop |
+| Python | Ubuntu 기본 Python 3.10.x |
+| Gazebo | Fortress (Ignition Gazebo 6.x) |
+| Shell | Bash |
+| 기본 실행 방식 | VM의 native 환경 |
+
+ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
+
+기존 환경에서는 먼저 아래 버전을 확인합니다. Native 설치는 현재 APT 저장소를 사용하고, [CI](../../.github/workflows/ci.yml)는 snapshot/constraints를 고정하므로 세부 버전이 같다고 가정하지 않습니다. [CI 재현 기준](reference/testing.md#ci-실행과-재사용)을 따릅니다.
+
+```bash
+lsb_release -ds
+python3 --version
+```
+
+## FreeCAD 형상 내보내기 도구
+
+배포된 CAD 메시를 읽고 ROS 노드를 실행할 때는 FreeCAD나 OCP가 필요하지
+않습니다. 원본 FCStd에서 자산을 다시 만들 때만 별도 Python 3.12 가상환경에
+`numpy==2.5.4`, `cadquery-ocp==8.0.1.1.0`을 설치합니다. 이는 ROS runtime의
+system Python을 바꾸지 않는 오프라인 CAD 도구 환경입니다.
+
+```bash
+python3.12 -m venv /tmp/cleany-cad-export
+/tmp/cleany-cad-export/bin/pip install numpy==2.5.4 cadquery-ocp==8.0.1.1.0
+/tmp/cleany-cad-export/bin/python tools/export_freecad_model.py /absolute/path/Cleany-final.FCStd
+/tmp/cleany-cad-export/bin/python tools/extract_freecad_kinematics.py /absolute/path/Cleany-final.FCStd
+```
+
+다른 디렉터리에서 내보내기를 검토하려면 `--package /path/to/staging-package`를
+추가합니다. 도구는 저장된 형상만 읽고 FreeCAD 매크로나 expression을 실행하지
+않습니다. [모델 계약](../../ros2_ws/src/cleany_description/docs/freecad-model.md)에
+따라 원본 해시, 좌표 변환과 미확정 값도 함께 기록합니다.
+기존 출력에 다시 내보낼 때는 위 두 명령을 순서대로 실행해 정적 모델과 운동학
+모델을 함께 갱신합니다. 내보내기 도구는 이전 manifest와 해시가 일치하는
+미사용 메시를 정리합니다. 임의로 추가하거나 수정한 파일은 보존합니다.
+
+충돌 캐시 생성 도구는 같은 오프라인 Python 환경에 NumPy, SciPy와 trimesh가
+필요합니다. `--max-surface-error-m`으로 삼각형 감면을 선택할 때만 VTK가
+추가로 필요하며 `vtk==9.6.2`에서 검증했습니다. 생성된 GLB 캐시를 읽는 ROS와
+cuRobo runtime에는 VTK를 설치하지 않습니다.
+
+## 1. Ubuntu 기본 설정
+
+UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비합니다.
+
+```bash
+sudo apt update
+sudo apt install -y locales software-properties-common curl
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+sudo add-apt-repository universe
+```
+
+## 2. ROS 2 apt 저장소 등록
+
+ROS 공식 `ros2-apt-source` 패키지로 keyring과 apt source를 등록합니다.
+
+```bash
+ROS_APT_SOURCE_VERSION="$(
+  curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest \
+    | grep -F '"tag_name"' \
+    | awk -F'"' '{print $4}'
+)"
+curl -L -o /tmp/ros2-apt-source.deb \
+  "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo "${UBUNTU_CODENAME:-${VERSION_CODENAME}}")_all.deb"
+sudo dpkg -i /tmp/ros2-apt-source.deb
+```
+
+## 3. ROS 2 Humble과 개발도구 설치
+
+```bash
+sudo apt update
+sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
+```
+
+현재 terminal에 ROS 환경을 적용합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+새 terminal마다 자동 적용하려면 아래 한 줄을 `~/.bashrc`에 추가합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+설치 결과를 확인합니다.
+
+```bash
+test "${ROS_DISTRO}" = "humble"
+python3 --version
+command -v ros2 colcon rosdep
+ros2 doctor --report
+```
+
+Python 3.10.x와 `ROS_DISTRO=humble`을 확인합니다.
+
+## 4. 레포지토리 준비
+
+GitHub에 SSH key를 등록한 뒤 submodule과 함께 clone합니다.
+
+```bash
+git clone --recurse-submodules git@github.com:asm17-moving-agent/cleany.git
+cd cleany
+```
+
+이미 clone한 레포지토리에서는 submodule을 초기화합니다.
+
+```bash
+git submodule update --init --recursive
+```
+
+## 5. rosdep과 workspace 의존성 준비
+
+Machine에서 rosdep을 처음 사용한다면 초기화합니다. 이미 초기화됐다는 메시지가 나오면 이 단계를 건너뜁니다.
+
+```bash
+sudo rosdep init
+rosdep update
+```
+
+의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
+
+새 인식 경로의 `google-genai`와 물리 버스용 `feetech-servo-sdk`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
+
+```bash
+printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
+rosdep update
+```
+
+레포지토리 루트에서 workspace 의존성을 설치합니다.
+
+```bash
+make deps
+```
+
+| 기능 | `make deps`로 설치하는 의존성 |
+|---|---|
+| Native depth self-filter | Manifest의 `python3-dev` 개발 헤더 |
+| 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
+| MoveIt 내부 충돌 검사 | cleany_moveit_collision manifest의 libfcl-dev, geometric_shapes, pluginlib |
+| Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
+| 단일 물체 MuJoCo/Jetson Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
+| Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
+| 실물 IMU와 wheel 융합 | `robot_localization`; 공식 rosdep 키로 설치 |
+
+Gazebo만 준비할 때는 다음 target을 사용합니다.
+
+```bash
+make deps-gazebo
+```
+
+시설 CLI는 `cleany_gazebo_sim`에 포함됩니다. NumPy, SciPy, Pillow, PyYAML은 manifest와 rosdep으로 설치하며, 빌드 후 `ros2 run cleany_gazebo_sim`으로 실행합니다.
+
+`deps-gazebo`는 MuJoCo parity-test용 `python3-mujoco-pip` 키를 제외합니다. 전체 테스트를 준비할 때는 `make deps`를 사용합니다.
+
+일반 설치는 manifest 기반의 `make deps-gazebo`를 사용합니다. Rosdep이 Gazebo 의존성을 해석하지 못할 때는 아래 APT 패키지를 직접 확인합니다.
+
+```bash
+sudo apt update
+sudo apt install -y ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
+```
+
+## 6. 빌드와 출력 경로
+
+`CLEANY_BUILD_ROOT`는 빌드 캐시, `CLEANY_DATA_ROOT`는 실행 환경별 로컬 데이터
+경로입니다. 데이터 경로를 지정하지 않으면 Makefile이 인접한 `cleany-data` 경로를
+선택합니다. 이 기본값은 팀 공유 위치를 의미하지 않습니다. 실제 경로는
+`make -s print-build-root`와 `make -s print-data-root`로 확인합니다.
+입력 자료와 결과를 팀에 공유할 때는 별도로 합의한 위치와 접근 방법을 사용합니다.
+
+로컬 데이터 경로를 지정하려면 아래 값을 사용할 경로로 바꿉니다.
+
+```bash
+export CLEANY_DATA_ROOT="/path/to/local-data"
+```
+
+```bash
+make build
+source "$(make -s print-install-base)/setup.bash"
+make test
+```
+
+Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용합니다. Navigation overlay는 `make -s print-navigation-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
+
+다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
+
+| 설치 확인 | 정상 확인 기준 |
+|---|---|
+| `test "$ROS_DISTRO" = humble` | 종료 코드 0 |
+| `command -v ros2 colcon rosdep` | 현재 Ubuntu 환경의 실행 경로 |
+| `make -s print-install-base` | 이 checkout의 빌드 경로; 해당 `setup.bash` source |
+| `make test` | 실패 상세와 skip을 구분; [검사 결과 해석](reference/testing.md#실행-결과-읽기) |
+
+준비 후 [실행](running.md), [테스트](testing.md), [캘리브레이션](calibration.md) 가이드로 이동합니다. Gazebo 지원 조합은 Humble/Fortress입니다.
+
+## 7. 선택 환경
+
+### Jetson Orin USB 카메라 회전
+
+DECXIN `1M-2012V1` USB 카메라(`0bda:5844`)의 180도 회전은 native host에서
+초기화합니다. 설치 대상은 JetPack 6 계열의 Ubuntu 22.04 aarch64 Jetson Orin이며,
+system Python 3.10, systemd와 udev를 사용합니다. 별도 pip 패키지는 필요하지 않습니다.
+ROS workspace나 vision container 안에 설치하지 않습니다.
+
+저장소 루트에서 다음 명령을 실행합니다.
+
+```bash
+make test-camera-orientation
+make camera-host-install
+```
+
+설치기는 다음 파일을 root 소유로 복사하고 systemd와 udev 설정을 다시 읽습니다.
+작업 checkout은 실행 시 참조하지 않습니다.
+
+| 설치 경로 | 역할 |
+|---|---|
+| `/usr/local/libexec/cleany/camera-orientation.py` | USB 장치 확인, Roll 설정과 readback, 드라이버 복구 |
+| `/etc/systemd/system/cleany-camera-orientation@.service` | USB 장치별 일회성 초기화 |
+| `/etc/udev/rules.d/70-cleany-camera-orientation.rules` | 해당 VID/PID의 USB 연결 시 초기화 요청 |
+
+설치 명령은 실행 중인 카메라를 건드리지 않습니다. 설치 후 캡처 프로그램을 닫고 USB를
+재연결합니다. 이후 재연결과 부팅 시 udev가 초기화를 요청하므로 별도의
+`systemctl enable`은 사용하지 않습니다. 규칙은 동일 VID/PID를 가진 모든 카메라에
+적용됩니다. 이 모듈의 공통 serial 문자열로 여러 카메라를 구분하지 않습니다.
+
+호스트 설정을 바꾸지 않고 설치 결과만 확인하려면 별도 경로에 배치합니다.
+
+```bash
+python3 tools/camera/install.py install --root /tmp/cleany-camera-stage
+python3 tools/camera/install.py uninstall --root /tmp/cleany-camera-stage
+```
+
+제거는 Jetson 호스트에서 `make camera-host-uninstall`로 수행합니다.
+운영 중 조회, 수동 적용과 캡처 시작 순서는 [실행 가이드](how-to/sensors.md#jetson-usb-카메라-회전)를
+따릅니다.
+
+### 조작과 인식
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
+`behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.
+개별 설치와 빌드는 다음 명령을 사용합니다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev python3-zmq
+make build-manipulation-bt
+```
+
+Gemini 인식으로 MuJoCo Action을 실행할 터미널에는 `GEMINI_API_KEY`를 설정합니다.
+로컬 파일을 사용한다면 권한 `600`의 `~/.config/cleany/gemini.env`에 `export` 문을
+보관하고 실행 전에 source합니다. 모델 준비는 [인식 reference](../../ros2_ws/src/cleany_perception/docs/runtime.md#모델-준비)를 따릅니다.
+
+아래 명령으로 runtime package 설치를 확인합니다.
+
+```bash
+ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_kinematics
+ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix controller_manager
+ros2 pkg prefix joint_trajectory_controller
+ros2 pkg prefix mujoco_ros2_control
+```
+
+
+### Fedora
+
+Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. 호스트 Python과 Ubuntu ROS Python은 혼용하지 않습니다. GUI 실행에는 display와 OpenGL 전달도 필요합니다.
+
+### ESP32
+
+모터 펌웨어와 micro-ROS 준비는 [ESP32](../../esp32/README.md) 가이드를 따릅니다. 고정 버전은 [micro_ros.lock.json](../../esp32/micro_ros.lock.json)이 관리하며, firmware와 ROS/Agent의 shell 환경은 분리합니다. 장치 없는 빌드 이후 upload, serial 연결, 모터 구동은 각각 별도로 확인합니다.
+
+### Monitor 웹
+
+웹 빌드는 Node.js 22 이상과 pnpm 11을 사용합니다.
+
+```bash
+cd ros2_ws/src/cleany_dev_monitor/web
+pnpm install --frozen-lockfile
+pnpm build
+```
+
+`pnpm-lock.yaml`이 웹 dependency를 고정합니다. 빌드된 `web/dist`를 package 설치에 포함하므로 ROS 런타임에는 Node.js가 필요하지 않습니다. Playwright browser는 개발 검증 시 설치하며, ROS 쪽 aiohttp, Pillow 등은 package.xml과 rosdep으로 설치합니다.
+
+## 문제 해결
+
+| 증상 | 확인과 조치 |
+|---|---|
+| Python import 오류 | 같은 worktree를 빌드하고 해당 install overlay를 source |
+| Rosdep의 `python3-mujoco-pip` 키 오류 | `rosdep update`로 공식 규칙을 갱신 |
+| Gazebo 환경 검사 실패 | Ubuntu 22.04, Python 3.10, ROS humble, Ignition Gazebo major 6, ros_gz package 확인 |
+| Headless camera/GPU LiDAR 실패 | Server의 rendering context와 display/OpenGL 확인. `LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo`는 저속 진단용 fallback |
+| Viewer 실패 | VM 3D acceleration과 DISPLAY/socket 확인. Hand-eye 수집에는 viewer 필요; 화면 없는 환경에서는 `test-handeye`의 headless 검사 사용 |
+
+설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml, 공식 rosdep 규칙, lock 파일과 [CI](../../.github/workflows/ci.yml)가 관리합니다.
+
+## Jetson 실물 제어 패키지
+
+실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
+ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
+`cleany_robot_interface` 빌드는 Python 노드와 Feetech C++ 플러그인을 함께 설치합니다.
+Feetech 드라이버를 별도 패키지로 빌드한 환경에서 전환할 때는 새 `CLEANY_BUILD_ROOT`를
+사용하고 이전 install을 source하지 않은 셸에서 빌드합니다.
+
+rosdep의 pip 규칙에는 패키지 이름을 사용하고, CI의 Feetech SDK 1.0.0 고정은
+[`pip-constraints.txt`](../../containers/ci/pip-constraints.txt)에서 관리합니다. 같은 버전으로
+로컬 의존성을 준비하려면 `PIP_CONSTRAINT="$PWD/containers/ci/pip-constraints.txt" make deps`를 사용합니다.
+
+```bash
+make build-jetson-control
+source "$(make -s print-install-base)/setup.bash"
+```
+
+`CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
+`CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
+`INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
+호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
+`INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
+
+실물 실행은 [제어 실행 절차](how-to/manipulation.md#jetson-실물-실행-경로)를 따릅니다.
+
+Jetson에서 시스템 MoveIt과 버전을 맞춘 사용자 설치본을 사용하는 경우에는
+빌드 전에 해당 dependency overlay를 source합니다. 예를 들어 기존 MoveIt 2.5.9
+설치 환경은 아래 perception/Pilz overlay를 사용합니다. 없는 환경에서는 먼저 위
+rosdep 절차로 배포판 의존성을 준비합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$HOME/.local/share/cleany/moveit-scene-runtime/local_setup.bash"
+export LD_LIBRARY_PATH="$HOME/.local/share/cleany/moveit-perception/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH):${LD_LIBRARY_PATH:-}"
+make build-jetson-control
+```
+
+
+## 실물 모션 기반
+
+Jetson의 센서 장면과 동시 OctoMap 조회는 MoveIt 2.5.9에 맞춘 로컬 overlay를 사용한다.
+시스템 패키지를 교체하지 않고 `$HOME/.local/share/cleany` 아래에 설치한다.
+
+```bash
+make scene-mapping-setup
+make moveit-octomap-lock-setup
+source tools/scene-mapping-env
+make build-motion-foundation
+```
+
+설치 도구는 버전과 패치 입력 영수증을 확인한다. 이미 준비된 환경에서는 다시 설치할 필요가 없다.
+`CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_MOVEIT_PATCH_PREFIX`로 overlay 위치를 바꿀 수 있다.
+GPU IK는 별도의 [모션 컨테이너](../../containers/motion/README.md)를 사용하며 기본 MoveIt 경로는 CUDA를 요구하지 않는다.
+
+모션 기하 회귀 검사는 `trimesh`가 필요하다. `python3-trimesh`는 rosdep 키가 없으므로
+시스템 Python을 바꾸지 않는 테스트 환경에 설치한다. Jetson에 NumPy 1.26이 설치된
+경우 Ubuntu 22.04의 SciPy 1.8 대신 호환되는 SciPy 1.13.1을 이 환경에서 사용한다.
+`CLEANY_BUILD_ROOT`는 [검증 안내](reference/testing.md#실물-계획과-실행-기반-검증)처럼 운영 경로와 분리해 지정한다.
+
+```bash
+python3 -m venv --system-site-packages "$CLEANY_BUILD_ROOT/test-env"
+"$CLEANY_BUILD_ROOT/test-env/bin/python3" -m pip install --no-deps trimesh==4.5.3 scipy==1.13.1
+make test-motion-foundation MOTION_TEST_PYTHON="$CLEANY_BUILD_ROOT/test-env/bin/python3"
+```
+
+## 실물 매핑 의존성
+
+`cleany_bringup`의 실물 매핑은 native ROS 2 Humble의 설치된 패키지를 사용합니다.
+`make build-hardware-mapping`은 lockfile로 shadcn UI를 빌드한 뒤 관련 ROS 패키지를 빌드합니다.
+UI 빌드에는 Node.js 22.12 이상과 npm이 필요하며 실행 시 Node 서버나 외부 CDN은 필요 없습니다.
+
+| 하드웨어 매핑 의존성 | 준비 / 확인 |
+|---|---|
+| Cartographer / cartographer_ros_msgs / sllidar_ros2 / micro_ros_agent | 공식 ROS 의존성은 rosdep 우선 |
+| 공식 rosdep으로 준비되지 않는 외부 패키지 | 별도 고정 revision workspace에서 build, 설치 prefix 적용 |
+| micro-ROS Agent | make micro-ros-agent-build, [ESP32 안내](../../esp32/README.md) |
+| LiDAR 원본 / revision | [Slamtec/sllidar_ros2](https://github.com/Slamtec/sllidar_ros2), [hardware.repos](../../configs/dependencies/hardware.repos) |
+
+```bash
+# 별도 dependency workspace에서 실행
+vcs import src < /path/to/cleany/configs/dependencies/hardware.repos
+# 해당 workspace를 빌드하고 설치 overlay 적용 후
+ros2 pkg prefix sllidar_ros2
+```
+
+운영 노드는 실행 중 Git clone이나 colcon build를 수행하지 않습니다.
+
+센서 by-id, baud, 장착 TF와 scan mode는 `cleany_bringup/config/mapping_*.yaml`에서 관리합니다.
+장치가 없는 단위/모의 검사는 실물 드라이버 설치 없이 실행할 수 있지만 실물 launch에는 두 외부
+드라이버가 모두 설치돼 있어야 합니다. 이 통합은 MCU 펌웨어를 빌드하거나 업로드하지 않습니다.
+
+Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make deps`와 장치 없는 CI는
+`sllidar_ros2`, `micro_ros_agent`만 명시적으로 제외합니다. package.xml의 실행 의존성은 유지하고
+실물 실행 전 두 드라이버의 package prefix를 확인합니다. CI는 호스트 Node 24에서 조종 UI와
+입력 검사를 먼저 빌드한 뒤 ROS 컨테이너의 workspace에 설치합니다.
+
+## Jetson 얼굴 디스플레이 환경
+
+| 독립 디스플레이 환경 | 조건 |
+|---|---|
+| ROS | Humble, colcon, cleany_interfaces rosdep 의존성 |
+| Desktop | Python venv, Chromium, GNOME 세션 / gnome-session-inhibit, curl, Noto CJK |
+| 부팅 표시 | 그래픽 자동 로그인 필요; 설치기는 로그인 설정 미변경 |
+| Browser 설치 | install-browser.sh가 전용 폴더에 Playwright 1.64.1 / ARM64 browser 설치; 시스템 Python 미변경 |
+
+[디스플레이 운영](../../ros2_ws/src/cleany_display/README.md)을 따릅니다.

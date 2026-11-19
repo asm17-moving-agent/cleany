@@ -1,1 +1,1 @@
-"""ROS-independent grasp selection."""
+"""ROS에 독립적인 파지 후보 선택 로직입니다."""

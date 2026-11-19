@@ -1,4 +1,4 @@
-"""Check preview timestamps and stale TF handling on an isolated ROS domain."""
+"""격리된 ROS domain에서 미리보기 시각과 오래된 TF 처리를 검사합니다."""
 
 import json
 from types import SimpleNamespace
@@ -45,8 +45,8 @@ def test_missing_tf_clears_old_output_even_with_new_images(monkeypatch, tmp_path
         node.process_pending()
         assert len(cloud_xyz(outputs[-1])) > 0
         assert outputs[-1].header.stamp == image.header.stamp
-        # A continuing camera stream cannot keep old obstacles alive after TF loss.
-        # tf2 clear() retains static caches; use an empty buffer to model loss.
+        # 카메라가 계속 발행해도 TF 손실 후 오래된 장애물을 유지할 수 없습니다.
+        # tf2 clear()는 static cache를 보존하므로 빈 버퍼로 손실을 모사합니다.
         node.buffer = type(node.buffer)()
         node.last_good_at -= 1
         image.header.stamp = node.get_clock().now().to_msg()

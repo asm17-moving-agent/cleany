@@ -90,7 +90,7 @@ def initialize_joint_positions(
     names: Sequence[str],
     positions: Sequence[float],
 ) -> None:
-    """Set an opt-in initial pose and matching position-actuator targets."""
+    """선택적 초기 자세와 대응하는 위치 구동기 목표를 설정합니다."""
     if len(names) != len(positions):
         raise ValueError(
             'initial_joint_names and initial_joint_positions must have '
@@ -161,14 +161,14 @@ def odometry_msg(
     jnt_adr = model.body_jntadr[body_id]
     if model.body_jntnum[body_id] > 0 and model.jnt_type[jnt_adr] == mujoco.mjtJoint.mjJNT_FREE:
         dof_adr = model.jnt_dofadr[jnt_adr]
-        # MuJoCo stores free-joint linear velocity in the world frame, while
-        # nav_msgs/Odometry requires twist in child_frame_id (base_link).
+        # MuJoCo 자유 관절 선속도는 월드 좌표계지만 nav_msgs/Odometry의 twist는
+        # child_frame_id(base_link) 좌표계여야 합니다.
         body_rotation = data.xmat[body_id].reshape(3, 3)
         body_linear_velocity = body_rotation.T @ data.qvel[dof_adr:dof_adr + 3]
         msg.twist.twist.linear.x = float(body_linear_velocity[0])
         msg.twist.twist.linear.y = float(body_linear_velocity[1])
         msg.twist.twist.linear.z = float(body_linear_velocity[2])
-        # MuJoCo free-joint angular velocity is already body-local.
+        # MuJoCo 자유 관절 각속도는 이미 body 로컬 좌표계입니다.
         msg.twist.twist.angular.x = float(data.qvel[dof_adr + 3])
         msg.twist.twist.angular.y = float(data.qvel[dof_adr + 4])
         msg.twist.twist.angular.z = float(data.qvel[dof_adr + 5])

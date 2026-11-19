@@ -182,8 +182,8 @@ void Optimizer::setOffset(double controller_frequency)
 
 void Optimizer::reset()
 {
-  // Keep the arrival domain through an internal fallback retry; prepare()
-  // recomputes it from the current path and pose on the next control cycle.
+  // 내부 fallback 재시도에서는 도착 상태의 제약을 유지합니다. 다음 제어 주기의
+  // prepare()가 현재 경로와 자세로 이 상태를 다시 계산합니다.
   state_.reset(settings_.batch_size, settings_.time_steps);
   control_sequence_.reset(settings_.time_steps);
   control_history_[0] = {0.0, 0.0, 0.0};
@@ -220,10 +220,10 @@ geometry_msgs::msg::TwistStamped Optimizer::evalControl(
   } while (fallback(critics_data_.fail_flag));
 
   utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
-  // The Savitzky-Golay filter has negative coefficients and can overshoot.
+  // Savitzky-Golay 필터에는 음수 계수가 있어 입력 범위를 넘을 수 있습니다.
   applyControlSequenceConstraints();
-  // The filter carries prior translations. Clear those values before emission;
-  // this is the same zero-translation domain scored by all active critics.
+  // 필터에 남은 이전 병진 성분을 출력 전에 지웁니다. 이는 모든 활성 critic이
+  // 평가한 병진 속도 0의 제약과 일치합니다.
   if (!acceleration_limits_ && (goal_rotation_active_ || path_rotation_active_)) {
     control_sequence_.vx.fill(0.0f);
     control_sequence_.vy.fill(0.0f);
@@ -269,9 +269,9 @@ bool Optimizer::sequenceCollisionFree(const models::ControlSequence & sequence) 
 void Optimizer::validateOutput()
 {
   if (sequenceCollisionFree(control_sequence_)) {return;}
-  // A weighted mean of feasible trajectories need not be feasible in SE(2).
-  // Choose an already scored, native-checked proposal when averaging/filtering
-  // crosses an obstacle. No collision cost or footprint threshold is relaxed.
+  // 유효한 궤적들의 가중 평균도 SE(2)에서는 유효하지 않을 수 있습니다.
+  // 평균이나 필터 결과가 장애물을 통과하면 이미 점수와 충돌 검사를 통과한
+  // 후보를 선택합니다. 충돌 비용이나 footprint 임계값을 완화하지 않습니다.
   std::vector<size_t> order(costs_.size());std::iota(order.begin(),order.end(),0);
   std::sort(order.begin(),order.end(),[this](size_t a,size_t b){return costs_(a)<costs_(b);});
   for (const size_t row:order) {
@@ -395,16 +395,16 @@ void Optimizer::generateNoisedTrajectories()
       path.push_back({path_.x(j),path_.y(j),path_.yaws(j)});
     }
     const float yaw=tf2::getYaw(state_.pose.pose.orientation), dt=settings_.model_dt;
-    // The motion model's first sample is the measured velocity.
+    // 운동 모델의 첫 표본은 측정 속도입니다.
     SeedPose pose{static_cast<float>(state_.pose.pose.position.x)+dt*
       (std::cos(yaw)*static_cast<float>(state_.speed.linear.x)-std::sin(yaw)*static_cast<float>(state_.speed.linear.y)),
       static_cast<float>(state_.pose.pose.position.y)+dt*
       (std::sin(yaw)*static_cast<float>(state_.speed.linear.x)+std::cos(yaw)*static_cast<float>(state_.speed.linear.y)),
       yaw+dt*static_cast<float>(state_.speed.angular.z)};
     const size_t count=std::min(static_cast<size_t>(path_seed_count_),static_cast<size_t>(settings_.batch_size));
-    // Explore different short connectors onto the planner path, rather than
-    // repeating eight identical proposals. Every connector is evaluated by all
-    // critics and the native output checker; no map-specific pose is inserted.
+    // planner 경로에 합류하는 짧고 다양한 연결 구간을 탐색합니다.
+    // 모든 연결 후보는 전체 critic과 출력 충돌 검사를 거칩니다.
+    // 특정 지도에 맞춘 자세를 삽입하지 않습니다.
     size_t connector_end=0;float connector_arc=0;
     while (connector_end+1<path.size() && connector_end<15) {
       const float step=std::hypot(path[connector_end+1].x-path[connector_end].x,
@@ -424,8 +424,8 @@ void Optimizer::generateNoisedTrajectories()
     }
   }
 
-  // Constrain the sampled controls before rollout/collision scoring, rather than
-  // deleting XY from a trajectory that was evaluated as translating.
+  // 궤적 생성과 충돌 평가 전에 표본 속도에 제약을 적용합니다. 이동하는 궤적으로
+  // 평가한 뒤 XY 성분만 제거하면 평가와 실제 출력이 달라집니다.
   if (goal_rotation_active_ || path_rotation_active_) {
     state_.cvx.fill(0.0f);
     state_.cvy.fill(0.0f);
@@ -502,8 +502,8 @@ void Optimizer::constrainMotion(float &x,float &y,float &z,PlanarVelocity &previ
 float Optimizer::proximityWheelLimit() const
 {
   if(proximity_wheel_limit_<=0.f || !costmap_)return wheel_max_rad_s_;
-  // The padded footprint is 5 cm outside the wheels; orange starts another 11 cm away.
-  // This is anticipatory comfort control. Collision Monitor still owns hard limits.
+  // 설정된 footprint와 장애물의 여유 거리로 미리 바퀴 속도 상한을 낮춥니다.
+  // 승차감용 선제 감속이며 강제 안전 제한은 Collision Monitor가 담당합니다.
   const double braking=(wheel_max_rad_s_*wheel_max_rad_s_-proximity_wheel_limit_*proximity_wheel_limit_)*wheel_radius_m_/(2*wheel_acceleration_);
   const double clearance=obstacleClearance(proximity_clearance_+braking);
   return std::min(wheel_max_rad_s_,float(std::sqrt(proximity_wheel_limit_*proximity_wheel_limit_+
@@ -540,8 +540,8 @@ void Optimizer::updateBodyLimits()
   effective_translation_limit_=maximum;
   effective_yaw_limit_=translation_max_ > 0.f ? settings_.constraints.wz : 0.f;
   if (translation_max_ <= 0.f) {return;}
-  // This is a conservative deceleration for every planar direction, including
-  // diagonal wheel motion. The same wheel acceleration is enforced by rollout.
+  // 대각 이동을 포함한 모든 평면 방향에서 보수적인 감속도를 사용합니다.
+  // 후보 궤적에도 같은 바퀴 가속도 한계를 적용합니다.
   const double decel=std::min({double(ax_max_),double(ay_max_),
     wheel_acceleration_*wheel_radius_m_/std::sqrt(2.)});
   const double lever=.5*(wheelbase_m_+wheel_separation_m_);
@@ -574,8 +574,8 @@ void Optimizer::updateBodyLimits()
 void Optimizer::scoreMotionContinuity()
 {
   if(path_velocity_weight_<=0.f && control_variation_weight_<=0.f)return;
-  // Apply local cross-track velocity damping only on an approximately straight
-  // prefix; curved paths and in-place turns retain the existing critics.
+  // 경로의 시작 구간이 거의 직선일 때만 횡방향 오차 속도를 감쇠합니다.
+  // 곡선과 제자리 회전에서는 기존 critic의 평가를 유지합니다.
   bool straight=false;double nx=0,ny=0,error=0;
   if(path_.x.size()>1 && !goal_rotation_active_ && !path_rotation_active_) {
     size_t end=1;

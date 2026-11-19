@@ -1,4 +1,4 @@
-"""Depth-aware autonomous object ranking without ROS dependencies."""
+"""ROS 의존성 없이 깊이를 고려한 자율 물체 순위 결정입니다."""
 
 from __future__ import annotations
 
@@ -112,11 +112,10 @@ def rank_detections_by_distance(
     capture_transform: RigidTransform,
     config: ObjectRankingConfig = ObjectRankingConfig(),
 ) -> tuple[RankedDetection, ...]:
-    """Rank selectable detections by target-frame origin distance.
+    """대상 좌표계 원점과의 거리로 선택 가능한 검출을 정렬합니다.
 
-    Invalid-depth detections remain visible for diagnostics but are placed
-    after every selectable detection. Equal distances prefer higher detector
-    confidence and then retain the detector's original order.
+    깊이가 무효인 검출도 진단용으로 남기되 모든 선택 가능한 검출 뒤에 둡니다.
+    거리가 같으면 높은 검출 신뢰도를 우선하고 다음에는 원래 검출 순서를 유지합니다.
     """
 
     ranked: list[RankedDetection] = []

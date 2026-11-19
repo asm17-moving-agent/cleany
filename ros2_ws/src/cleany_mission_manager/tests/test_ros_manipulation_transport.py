@@ -1,4 +1,4 @@
-"""ROS diagnostics must not alter the existing outcome or accept stale feedback."""
+"""ROS 진단이 기존 결과를 바꾸거나 오래된 피드백을 수락해서는 안 됩니다."""
 
 from dataclasses import asdict
 from types import SimpleNamespace

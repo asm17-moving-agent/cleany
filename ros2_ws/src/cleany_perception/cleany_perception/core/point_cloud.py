@@ -30,7 +30,7 @@ def transform_colored_cloud(
     cloud: ColoredPointCloud,
     transform: RigidTransform,
 ) -> ColoredPointCloud:
-    """Express a colored point cloud in the transform destination frame."""
+    """색상 점군을 변환의 목적 좌표계로 표현합니다."""
     points = (
         cloud.points.astype(np.float64) @ transform.rotation.T
         + transform.translation

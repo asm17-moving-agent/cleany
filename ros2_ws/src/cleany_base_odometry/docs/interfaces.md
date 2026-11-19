@@ -1,6 +1,6 @@
 # cleany_base_odometry 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
 
 ## wheel_odometry
 
@@ -11,7 +11,7 @@
 | 토픽 구독 | `joint_states` | `sensor_msgs/msg/JointState` | Sensor; `input_topic` |
 | 토픽 발행 | `wheel/odom` | `nav_msgs/msg/Odometry` | R10; 유효 관측 구간 준비 후 입력 수신 시, `output_topic` |
 
-TF는 발행하지 않는다. 의미는 [Base odometry 계약](../../cleany_base_driver/docs/command-and-odometry.md)을 따른다.
+TF는 발행하지 않습니다. 의미는 [Base odometry 계약](../../cleany_base_driver/docs/command-and-odometry.md)을 따릅니다.
 
 `twist_covariance_diagonal`은 vx, vy, vz, wx, wy, wz 순서의 유한한 비음수 분산
 6개다. 단독 실행 기본값은 0이며 EKF bringup은 융합에 사용하는 축에 양의 분산을
@@ -19,6 +19,6 @@ TF는 발행하지 않는다. 의미는 [Base odometry 계약](../../cleany_base
 
 ## 원점 초기화
 
-`wheel_odometry/reset`은 private `~/reset`, `std_srvs/srv/Trigger` 서비스다.
-pose와 encoder baseline을 초기화하고 다음 fresh encoder 표본을 기다린다. 이 서비스는
-모터를 정지시키지 않으므로 매핑 관리자가 STOP을 확인하고 기존 SLAM을 종료한 뒤 호출한다.
+`wheel_odometry/reset`은 private `~/reset`, `std_srvs/srv/Trigger` 서비스입니다.
+pose와 encoder baseline을 초기화하고 다음 fresh encoder 표본을 기다립니다. 이 서비스는
+모터를 정지시키지 않으므로 매핑 관리자가 STOP을 확인하고 기존 SLAM을 종료한 뒤 호출합니다.

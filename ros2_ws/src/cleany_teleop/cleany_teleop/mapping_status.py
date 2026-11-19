@@ -1,4 +1,4 @@
-"""Freshness of mapping heartbeats, independent of HTTP connectivity."""
+"""HTTP 연결과 독립적인 mapping heartbeat 최신성입니다."""
 
 import math
 import time

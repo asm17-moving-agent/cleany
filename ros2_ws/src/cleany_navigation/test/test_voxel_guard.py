@@ -49,7 +49,7 @@ def test_nonfinite_input_and_invalid_size_rejected():
 
 @pytest.mark.parametrize('velocity', [(0., 0., 0.), (.15, -.04, .3), (-.1, .06, -.2)])
 def test_optimized_sweep_matches_corner_projection_sat(velocity):
-    """An independent corner-projection oracle protects the swept body volume."""
+    """독립적인 모서리 투영 판정기로 body sweep 부피를 검사합니다."""
     rng = np.random.default_rng(28)
     signs = np.array(list(product((-1., 1.), repeat=3)))
     roll = .31

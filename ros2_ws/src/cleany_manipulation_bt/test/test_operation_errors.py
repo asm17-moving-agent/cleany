@@ -1,4 +1,4 @@
-"""ROS operation exception classification through the real worker and native BT."""
+"""실제 worker와 native BT를 통해 ROS 작업 예외 분류를 검사합니다."""
 from dataclasses import dataclass, field
 from types import SimpleNamespace as NS
 import time
@@ -29,8 +29,8 @@ class OperationControl:
 @pytest.fixture
 def operation_execution(tmp_path):
     control = OperationControl()
-    # Instantiate the actual dispatcher without starting a ROS/DDS node. Only
-    # hardware calls are replaced; execute(), WorkerBackend and the BT are real.
+    # ROS/DDS 노드를 시작하지 않고 실제 dispatcher를 생성합니다.
+    # 하드웨어 호출만 대체하며 execute(), WorkerBackend와 BT는 실제 구현입니다.
     operations = object.__new__(MujocoOperations)
     operations.execution_context = None
     operations.handles, operations.submissions = [], []

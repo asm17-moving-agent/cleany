@@ -25,8 +25,8 @@ class CalibrationRunner {
     settling_ = true;
     updateSnapshot();
     const RunStarted acknowledgement{runId_, commandTriggered, command.requestId};
-    // start is called only when an acknowledgement slot is available.
-    // This is nonblocking even when serial output is stalled.
+    // 응답을 저장할 슬롯이 있을 때만 start를 호출합니다.
+    // serial 출력이 막혀도 이 호출은 대기하지 않습니다.
     (void)xQueueSend(channels_.started, &acknowledgement, 0);
     if (calibration_.state() == CalibrationState::kFailed) {
       sensor_.shutdown();
@@ -45,8 +45,8 @@ class CalibrationRunner {
   }
 
   void tick() {
-    // Defer restart consumption if its acknowledgement cannot be retained.
-    // Existing acquisition keeps running; the IMU task never waits for serial.
+    // 응답을 보관할 수 없으면 재시작 요청의 처리를 미룹니다.
+    // 기존 측정은 계속하며 IMU 태스크는 serial 처리를 기다리지 않습니다.
     if (uxQueueSpacesAvailable(channels_.started) != 0) {
       RestartCommand command{};
       if (xQueueReceive(channels_.restarts, &command, 0) == pdTRUE) {

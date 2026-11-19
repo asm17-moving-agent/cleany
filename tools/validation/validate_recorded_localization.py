@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare localization policies on causal recorded inputs without commanding a robot."""
+"""로봇 명령 없이 미래 입력을 제외한 기록으로 위치 추정 정책을 비교합니다."""
 from __future__ import annotations
 
 import argparse
@@ -83,7 +83,7 @@ def is_pose_reset(topic, message) -> bool:
 
 
 def reconstruct(events, settings, old_module, draft_module):
-    """Only transforms received by each simulated timer tick may be consumed."""
+    """각 합성 timer tick까지 수신된 변환만 사용할 수 있습니다."""
     buffer = Buffer(cache_time=Duration(seconds=30.))
     old_settings = old_module.AlignmentSettings(**{f.name:getattr(settings, f.name)
                                                   for f in fields(old_module.AlignmentSettings)})
@@ -99,8 +99,8 @@ def reconstruct(events, settings, old_module, draft_module):
             event = events[pointer];pointer += 1
             message = decode(event, classes);topic = event[1]
             if is_pose_reset(topic, message):
-                # Initialpose itself was not recorded. Conservatively drop trust at
-                # every received reset, regardless of manual/recovery ownership.
+                # initialpose 자체는 기록되지 않았습니다. 수동 또는 복구 주체와 무관하게
+                # reset을 받을 때마다 보수적으로 신뢰를 해제합니다.
                 old = old_module.AlignmentHealth(old_settings)
                 draft = draft_module.AlignmentHealth(draft_module.AlignmentSettings(**asdict(settings)))
                 new = AlignmentHealth(settings)
@@ -196,7 +196,7 @@ def summarize(rows):
 
 
 def native_window(events, rows, settings, output, resets):
-    """Replay a recorded window to the real node in an isolated DDS domain."""
+    """격리된 DDS domain에서 기록 구간을 실제 노드에 재생합니다."""
     from rclpy.node import Node
     from rclpy.executors import MultiThreadedExecutor
     from rclpy.parameter import Parameter

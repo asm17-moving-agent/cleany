@@ -12,7 +12,7 @@ inline bool finiteLimit(double value) {
   return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
 }
 
-/// Limit translation magnitude and yaw independently; zero disables a bound.
+/// 병진 크기와 yaw를 독립적으로 제한하며 0이면 해당 한계를 끕니다.
 template<typename T>
 inline void projectBodyVelocity(T & x, T & y, T & yaw, double translation, double rotation) {
   const double speed = std::hypot(x, y);
@@ -23,7 +23,7 @@ inline void projectBodyVelocity(T & x, T & y, T & yaw, double translation, doubl
   if (rotation > 0.) {yaw = std::clamp(yaw, T(-rotation), T(rotation));}
 }
 
-/// An absolute near-obstacle cap that preserves the requested twist curvature.
+/// 요청 twist 곡률을 유지하는 장애물 근처의 절대 속도 상한입니다.
 struct BodySpeedLimit {
   double translation, rotation;
   BodySpeedLimit(double linear, double angular) : translation(linear), rotation(angular) {
@@ -41,7 +41,7 @@ struct BodySpeedLimit {
   }
 };
 
-/// Cap speed using remaining distance, constant deceleration and reaction time.
+/// 남은 거리, 일정 감속도와 반응 시간으로 속도를 제한합니다.
 inline double approachingSpeed(double maximum, double near, double deceleration,
   double distance, double reaction) {
   const double delayed = deceleration * reaction;

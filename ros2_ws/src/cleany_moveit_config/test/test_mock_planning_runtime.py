@@ -346,8 +346,8 @@ def _assert_pilz_lin_is_cartesian(
     process: subprocess.Popen[bytes],
     log_path: Path,
 ) -> None:
-    # The grasp TCP differs from gripper_frame only by a fixed transform, so
-    # query its exact start orientation for the LIN pose constraint.
+    # grasp TCP와 gripper_frame은 고정 변환만 다르므로 LIN 자세 제약을 위해
+    # 정확한 시작 방향을 조회합니다.
     request = GetPositionFK.Request()
     request.header.frame_id = 'base_link'
     request.fk_link_names = ['left_grasp_tcp']

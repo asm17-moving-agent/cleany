@@ -1,1 +1,1 @@
-"""ROS telemetry adapters."""
+"""Read-only robot observations, independent of external consumers."""

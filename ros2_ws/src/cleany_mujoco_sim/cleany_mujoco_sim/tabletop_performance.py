@@ -1,4 +1,4 @@
-"""Reversible optimizations on temporary fixed-base scene copies only."""
+"""임시 고정 베이스 장면 복사본에만 되돌릴 수 있는 최적화를 적용합니다."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,7 +30,7 @@ def load_performance_profile(path: Path, name: str) -> TabletopPerformance | Non
     raw = config['profiles'][name]
     radius = raw['collision_keep_radius_m']
     shadow = raw['shadow_map_size']
-    # A lower radius requires a separate reachability audit, not a casual tweak.
+    # 반경을 줄이려면 별도 도달 가능성 검토가 필요하며 임의로 조정하지 않습니다.
     if (isinstance(radius, bool) or not isinstance(radius, (int, float))
             or not math.isfinite(radius) or radius < 2.0):
         raise ValueError('Collision keep radius must be finite and at least 2 m')
@@ -47,7 +47,7 @@ def _vector(element: ET.Element, key: str, default: str) -> tuple[float, ...]:
 
 
 def _static_body_radius(body: ET.Element) -> float | None:
-    """Conservative rotation-invariant bound; skip unfamiliar/nested bodies."""
+    """회전에 불변인 보수적 경계이며 알려지지 않았거나 중첩된 body는 건너뜁니다."""
     if body.get('mocap', 'false') != 'false' or any(
             body.find(tag) is not None for tag in ('joint', 'freejoint', 'body')):
         return None
@@ -61,7 +61,7 @@ def _static_body_radius(body: ET.Element) -> float | None:
         size = _vector(geom, 'size', '')
         if len(position) != 3 or not 1 <= len(size) <= 3 or min(size) <= 0:
             raise ValueError('Invalid background primitive dimensions')
-        # Sum also encloses a capsule's hemispherical caps. Intentionally loose.
+        # 합은 capsule의 반구 끝도 포함하며 의도적으로 여유 있게 잡습니다.
         bounds.append(math.sqrt(sum(v*v for v in position)) + sum(size))
     return max(bounds) if bounds else None
 
@@ -82,7 +82,7 @@ def apply_tabletop_performance(
     origin = _vector(chassis, 'pos', '0 0 0')
     if len(origin) != 3:
         raise ValueError('Chassis position requires three values')
-    # Explicit pairs bypass masks; preserve every geom used by any such pair.
+    # 명시적 접촉 쌍은 mask를 우회하므로 해당 쌍에서 사용하는 모든 geom을 보존합니다.
     paired = {pair.get(key) for root in (scene, robot)
               for pair in root.findall('./contact/pair') for key in ('geom1', 'geom2')}
     disabled: list[str] = []
@@ -109,5 +109,5 @@ def apply_tabletop_performance(
     if quality is None:
         raise ValueError('Study-cafe scene requires visual quality settings')
     quality.set('shadowsize', str(profile.shadow_map_size))
-    # No edits to robot, contact pairs, masses, friction, solver, or camera contract.
+    # 로봇, 접촉 쌍, 질량, 마찰, solver와 카메라 계약은 변경하지 않습니다.
     return ET.tostring(scene, encoding='unicode'), model_text, tuple(disabled)

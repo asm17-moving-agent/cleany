@@ -1,4 +1,4 @@
-"""ROS-independent proportional motion controller with stopping envelopes."""
+"""정지 외곽을 사용하는 ROS 독립 비례 이동 제어기입니다."""
 from __future__ import annotations
 
 import json

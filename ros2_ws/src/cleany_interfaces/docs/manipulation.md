@@ -1,6 +1,6 @@
 # 단일 객체 Manipulation 계약
 
-Mission은 승인한 객체를 실행 서버에 전달하고, 서버 내부 BT는 executor가 소유한다. 이 실행 계약은 reachable-grasp plan-only action과 별개다.
+Mission은 승인한 객체를 실행 서버에 전달하고, 서버 내부 BT는 executor가 소유합니다. 이 실행 계약은 reachable-grasp plan-only action과 별개입니다.
 
 ## 인터페이스
 
@@ -35,21 +35,21 @@ sequenceDiagram
     end
 ```
 
-Runtime은 wire object ID를 Planner 제안과 대조하며 표시 ID에서 숫자를 추정하지 않는다. Destination은 RuntimePolicy allowlist로 검사한다.
+Runtime은 wire object ID를 Planner 제안과 대조하며 표시 ID에서 숫자를 추정하지 않습니다. Destination은 RuntimePolicy allowlist로 검사합니다.
 
-행동마다 execution UUID를 발급하고 **전체 요청을 SQLite에 저장한 뒤 전송**한다. ROS goal UUID도 같은 값을 사용하므로 지연 수락, 재시작 취소는 정확한 goal만 대상으로 한다. 결과가 불명확하면 같은 execution ID로 조회하며 새 ID로 자동 재전송하지 않는다.
+행동마다 execution UUID를 발급하고 **전체 요청을 SQLite에 저장한 뒤 전송**합니다. ROS goal UUID도 같은 값을 사용하므로 지연 수락, 재시작 취소는 정확한 goal만 대상으로 합니다. 결과가 불명확하면 같은 execution ID로 조회하며 새 ID로 자동 재전송하지 않습니다.
 
-Action 이름을 remap하면 Mission client와 서버가 해결된 Action 이름을 사용하며 CancelGoal 경로도 함께 맞춘다. Record의 `accepted_at_ns`, `updated_at_ns`, `evidence_at_ns`는 서버 wall 시각의 nanosecond다. 실행 timeout은 별도 steady clock으로 처리한다.
+Action 이름을 remap하면 Mission client와 서버가 해결된 Action 이름을 사용하며 CancelGoal 경로도 함께 맞춥니다. Record의 `accepted_at_ns`, `updated_at_ns`, `evidence_at_ns`는 서버 wall 시각의 nanosecond입니다. 실행 timeout은 별도 steady clock으로 처리합니다.
 
 ## 성공 판정
 
-현재 peer는 BLOCKED도 ROS SUCCEEDED로 반환할 수 있다. 따라서 Runtime은 ROS terminal뿐 아니라 다음 payload 조건을 함께 검사한다.
+현재 peer는 BLOCKED도 ROS SUCCEEDED로 반환할 수 있습니다. 따라서 Runtime은 ROS terminal뿐 아니라 다음 payload 조건을 함께 검사합니다.
 
 - SUCCESS, 일치하는 execution ID와 mock 출처
 - LEFT_GRIPPER, CONFIRMED, placement 검증 완료
 - 팔 복귀와 정지 확인
 
-Feedback stage는 완료 증거가 아니다. 전체 결과와 task/execution/destination ID는 journal, report_json.actions에 보존하며, peer CANCELED는 Runtime CANCELLED로 변환한다.
+Feedback stage는 완료 증거가 아닙니다. 전체 결과와 task/execution/destination ID는 journal, report_json.actions에 보존하며, peer CANCELED는 Runtime CANCELLED로 변환합니다.
 
 ## 주행과 복구
 
@@ -61,16 +61,16 @@ Feedback stage는 완료 증거가 아니다. 전체 결과와 task/execution/de
 | 진행 중, INTERRUPTED, 불일치 결과 | Gate 유지 |
 | 재시작 | 저장 UUID의 취소, 조회만 수행; 미션 자동 재개 금지 |
 
-현재 peer에는 수동 팔 복구, 해제 계약이 없으므로 Runtime은 임의 복구를 수행하지 않는다. 진단은 journal의 manipulation_boundary metadata에 남긴다.
+현재 peer에는 수동 팔 복구, 해제 계약이 없으므로 Runtime은 임의 복구를 수행하지 않습니다. 진단은 journal의 manipulation_boundary metadata에 남깁니다.
 
 ## 진단과 보고 호환
 
-[Action](../action/ExecuteManipulationSkill.action)의 Result에는 `failed_substage`, `cancel_mode`, Feedback에는 `substage`가 있다. [Record](../msg/ManipulationExecutionRecord.msg)는 현재와 완료 substage, 취소 방식을 포함한다. 모든 제공자와 호출자를 하나의 install prefix에서 재빌드한다.
+[Action](../action/ExecuteManipulationSkill.action)의 Result에는 `failed_substage`, `cancel_mode`, Feedback에는 `substage`가 있습니다. [Record](../msg/ManipulationExecutionRecord.msg)는 현재와 완료 substage, 취소 방식을 포함합니다. 모든 제공자와 호출자를 하나의 install prefix에서 재빌드합니다.
 
-기존 `ManipulationOutcome`, `RuntimeReport.actions`, MissionResult와 Gateway payload는 유지한다. 추가 필드는 `manipulation_boundary`의 선택적 `details` metadata에 저장하고, 과거 metadata에 없으면 빈 값으로 읽는다. Mission DB schema는 바꾸지 않는다.
+기존 `ManipulationOutcome`, `RuntimeReport.actions`, MissionResult와 Gateway payload는 유지합니다. 추가 필드는 `manipulation_boundary`의 선택적 `details` metadata에 저장하고, 과거 metadata에 없으면 빈 값으로 읽습니다. Mission DB schema는 바꾸지 않습니다.
 
-Transport는 전송한 execution ID와 일치하는 최신 Feedback 하나만 보관한다. 새 실행 때 초기화하고 이전 실행이나 종료 후의 늦은 Feedback을 무시한다. `manipulation_feedback`, `manipulation_details`는 debug JSON의 선택적 정보이며 수신과 debug 발행 실패는 제어 흐름에 영향을 주지 않는다.
+Transport는 전송한 execution ID와 일치하는 최신 Feedback 하나만 보관합니다. 새 실행 때 초기화하고 이전 실행이나 종료 후의 늦은 Feedback을 무시합니다. `manipulation_feedback`, `manipulation_details`는 debug JSON의 선택적 정보이며 수신과 debug 발행 실패는 제어 흐름에 영향을 주지 않습니다.
 
-취소는 정확한 Goal UUID의 기본 CHECKPOINT 모드를 사용한다. 취소 ACK는 완료나 정지 증거가 아니다. `IMMEDIATE`, `RETURN_ARM`을 선택하는 Mission API는 제공하지 않는다. FATAL이나 정지 미확인은 ERROR를 유지하며, 팔 미복귀 시 이미 안착한 결과를 보존하면서 주행을 차단한다. 손상된 DB는 오류로 처리하고 자동 초기화하지 않는다.
+취소는 정확한 Goal UUID의 기본 CHECKPOINT 모드를 사용합니다. 취소 ACK는 완료나 정지 증거가 아닙니다. `IMMEDIATE`, `RETURN_ARM`을 선택하는 Mission API는 제공하지 않습니다. FATAL이나 정지 미확인은 ERROR를 유지하며, 팔 미복귀 시 이미 안착한 결과를 보존하면서 주행을 차단합니다. 손상된 DB는 오류로 처리하고 자동 초기화하지 않습니다.
 
-관련 안내: [Mission](mission.md), [검증](../../../../docs/TESTING.md).
+관련 안내: [Mission](mission.md), [검증](../../../../docs/implementation/testing.md).

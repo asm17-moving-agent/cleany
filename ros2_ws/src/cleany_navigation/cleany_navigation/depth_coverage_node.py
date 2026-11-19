@@ -1,4 +1,4 @@
-"""Shadow-only whole-body coverage observer. It cannot publish velocity or pan."""
+"""판정만 관측하는 전체 body 관측 범위 노드이며 속도나 pan을 발행하지 않습니다."""
 from __future__ import annotations
 import json
 import time
@@ -23,27 +23,27 @@ from cleany_navigation.voxel_guard_node import pose_matrix, twist_vector
 
 
 class DepthCoverageNode(Node):
-    """Measure whether recent depth observations cover the predicted body sweep.
+    """최근 깊이 관측이 예측된 body 이동 영역을 덮는지 측정합니다.
 
     Subscriptions:
-        camera/head/depth/image_raw (sensor_msgs/msg/Image) and
-        camera/head/depth/camera_info (sensor_msgs/msg/CameraInfo): Depth and calibration;
-            configurable defaults.
-        nav2/cmd_vel (geometry_msgs/msg/Twist): Requested motion.
-        odom (nav_msgs/msg/Odometry): Measured motion.
+        camera/head/depth/image_raw (sensor_msgs/msg/Image),
+        camera/head/depth/camera_info (sensor_msgs/msg/CameraInfo): 깊이와 보정값.
+            변경 가능한 기본값입니다.
+        nav2/cmd_vel (geometry_msgs/msg/Twist): 요청된 움직임.
+        odom (nav_msgs/msg/Odometry): 측정된 움직임.
 
     Publishers:
-        head_pan/coverage (std_msgs/msg/String): JSON coverage decision and evidence.
+        head_pan/coverage (std_msgs/msg/String): JSON 관측 범위 판정과 근거.
 
     TF:
-        Reads sensor and base transforms in fixed_frame, default odom.
+        fixed_frame에서 센서와 베이스 변환을 읽으며 기본값은 odom입니다.
 
     QoS:
-        Depth, calibration and odometry use sensor_data.
+        깊이, 보정값과 odometry는 sensor_data입니다.
 
     Notes:
-        Requires a body profile. This observer reports coverage; it does not
-        publish a gated velocity command.
+        body 프로파일이 필요합니다. 관측 범위만 보고하며 통과 여부를 적용한
+        속도 명령을 발행하지 않습니다.
     """
     def __init__(self):
         super().__init__('depth_coverage')

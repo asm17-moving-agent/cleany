@@ -1,4 +1,4 @@
-# Simulation regression goals; not physical robot missions.
+# 시뮬레이션 회귀 시험 목표이며 실물 로봇 임무가 아닙니다.
 real_time_factor: 2.0
 max_truth_error_m: 0.2
 max_truth_yaw_error_rad: 0.2

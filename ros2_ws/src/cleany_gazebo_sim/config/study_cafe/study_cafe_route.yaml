@@ -9,9 +9,9 @@ ground_truth_route_follower:
     turn_in_place_threshold: 0.15
     control_rate_hz: 20.0
     odom_timeout_sec: 0.5
-    # Measured 48-seat demo-room route. It sweeps the four horizontal
-    # corridors and connects them through the two vertical aisles before
-    # returning to the spawn point.
+    # 측정된 48석 데모 공간의 경로입니다. 수평 통로 네 개를 순회하고
+    # 수직 통로 두 개로 연결한 뒤
+    # 시작점으로 돌아옵니다.
     waypoints_xy: [
       -1.865, -4.705,
       -5.65, -4.705,

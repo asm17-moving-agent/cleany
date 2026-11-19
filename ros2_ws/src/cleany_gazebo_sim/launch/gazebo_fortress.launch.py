@@ -209,8 +209,8 @@ def _launch_setup(
     )
 
     return [
-        # Reuse the authoritative description meshes instead of
-        # committing duplicate, large STL assets to this package.
+        # 기준 description 메시를 재사용해 이 패키지에
+        # 큰 STL asset을 중복 저장하지 않습니다.
         AppendEnvironmentVariable(
             'IGN_GAZEBO_RESOURCE_PATH', str(description_share)
         ),

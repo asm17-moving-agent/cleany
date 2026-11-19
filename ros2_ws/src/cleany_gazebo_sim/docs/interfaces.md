@@ -1,6 +1,8 @@
 # cleany_gazebo_sim 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
+
+주행 launch의 설정 병합과 어댑터 구성은 [주행 연동](navigation.md)에서 관리합니다.
 
 ## gazebo_command_guard
 
@@ -11,7 +13,7 @@
 | 토픽 구독 | `cmd_vel` | `geometry_msgs/msg/Twist` | R10 |
 | 토픽 발행 | `gazebo_cmd_vel` | `geometry_msgs/msg/Twist` | R10; 명령 수신 또는 timeout 정지 시 |
 
-Timeout 검사는 `timeout_check_rate_hz` 기본 20 Hz다.
+Timeout 검사는 `timeout_check_rate_hz` 기본 20 Hz입니다.
 
 ## gazebo_feedback_sampler
 
@@ -24,7 +26,7 @@ Timeout 검사는 `timeout_check_rate_hz` 기본 20 Hz다.
 | 토픽 발행 | `/clock` | `rosgraph_msgs/msg/Clock` | R10 |
 | 토픽 발행 | `/joint_states` | `sensor_msgs/msg/JointState` | Sensor |
 
-Raw simulator feedback을 받아 샘플링한다. `publish_period_s` 기본 0.02초는 ROS stamp 간격 기준이며 wall-time 50 Hz를 보장하지 않는다.
+Raw 시뮬레이터 feedback을 받아 샘플링합니다. `publish_period_s` 기본 0.02초는 ROS stamp 간격 기준이며 wall-time 50 Hz를 보장하지 않습니다.
 
 ## gazebo_odom_tf_publisher
 
@@ -36,7 +38,7 @@ Raw simulator feedback을 받아 샘플링한다. `publish_period_s` 기본 0.02
 | 토픽 발행 | `odom` | `nav_msgs/msg/Odometry` | R10; `publish_odometry=true` |
 | 토픽 발행 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-입력 수신 시 `odom_frame_id → base_frame_id` TF를 발행한다. 기본 frame은 odom/base_link다.
+입력 수신 시 `odom_frame_id → base_frame_id` TF를 발행합니다. 기본 좌표계은 odom/base_link입니다.
 
 ## gazebo_pan_tf_publisher
 
@@ -47,7 +49,7 @@ Raw simulator feedback을 받아 샘플링한다. `publish_period_s` 기본 0.02
 | 토픽 구독 | `joint_states` | `sensor_msgs/msg/JointState` | Sensor |
 | 토픽 발행 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geometry는 노드 parameter를 따른다.
+Pan feedback에서 head camera TF를 발행합니다. Frame 이름과 장착 geometry는 노드 parameter를 따릅니다.
 
 ## gazebo_sensor_tf_publisher
 
@@ -57,7 +59,7 @@ Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geomet
 |---|---|---|---|
 | 토픽 발행 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-시작 시 설정된 sensor의 static TF를 보낸다. `parent_frame_id`와 sensor별 frame/translation/rotation parameter가 필요하다.
+시작 시 설정된 sensor의 static TF를 보냅니다. `parent_frame_id`와 sensor별 frame/translation/rotation parameter가 필요합니다.
 
 ## simulated_encoder
 
@@ -86,11 +88,11 @@ Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geomet
 | 토픽 구독 | `ground_truth/odom` | `nav_msgs/msg/Odometry` | R10 |
 | 토픽 발행 | `cmd_vel` | `geometry_msgs/msg/Twist` | R10; `control_rate_hz` 기본 20 Hz |
 
-별도 GT 주행 시험용이다. Nav2와 같은 cmd_vel 명령원을 동시에 실행하지 않는다.
+별도 GT 주행 시험용입니다. Nav2와 같은 cmd_vel 명령원을 동시에 실행하지 않습니다.
 
 ## ros_gz_bridge
 
-외부 실행 파일은 `ros_gz_bridge/parameter_bridge`다. [Sensor profile](../cleany_gazebo_sim/launch_helpers/sensor_profile.py)이 `gazebo_<group>_bridge`를 만들며 기본 `lidar_nav`는 core와 lidar 그룹을 사용한다. 아래는 [bridge 설정](../config/bridge)의 ROS 측 목록이다.
+외부 실행 파일은 `ros_gz_bridge/parameter_bridge`입니다. [Sensor 프로필](../cleany_gazebo_sim/launch_helpers/sensor_profile.py)이 `gazebo_<group>_bridge`를 만들며 기본 `lidar_nav`는 core와 lidar 그룹을 사용합니다. 아래는 [bridge 설정](../config/bridge)의 ROS 측 목록입니다.
 
 | 그룹 | 종류 / 방향 | ROS 기본 이름 | ROS 타입 | 조건 |
 |---|---|---|---|---|
@@ -109,17 +111,32 @@ Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geomet
 | `left_wrist` | 토픽 발행 | `/camera/left_wrist/color/image_raw` | `sensor_msgs/msg/Image` | 선택된 그룹에서 활성화 |
 | `right_wrist` | 토픽 발행 | `/camera/right_wrist/color/image_raw` | `sensor_msgs/msg/Image` | 선택된 그룹에서 활성화 |
 
-QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따른다. `/clock`과 `/joint_states`의 raw 입력은 `gazebo_feedback_sampler`가 정규 토픽으로 다시 발행한다. `bridge_config` override는 sampler와 이 remap을 사용하지 않고 지정 YAML로 단일 `gazebo_override_bridge`를 만든다.
+QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따릅니다. `/clock`과 `/joint_states`의 raw 입력은 `gazebo_feedback_sampler`가 정규 토픽으로 다시 발행합니다. `bridge_config` override는 sampler와 이 remap을 사용하지 않고 지정 YAML로 단일 `gazebo_override_bridge`를 만듭니다.
 
-`bridge.yaml`, `navigation_bridge.yaml`은 별도 통합 설정이며 위 profile 표와 동시에 활성화되는 것은 아니다. Gazebo wire type은 Fortress의 `ignition.msgs`를 사용한다. 서비스와 액션 bridge는 현재 설정에 없다.
+`bridge.yaml`, `navigation_bridge.yaml`은 별도 통합 설정이며 위 프로필 표와 동시에 활성화되는 것은 아닙니다. Gazebo wire type은 Fortress의 `ignition.msgs`를 사용합니다. 서비스와 액션 bridge는 현재 설정에 없습니다.
 
-생성된 Gazebo world의 손목 카메라는 description의
-`config/geometry/wrist_mount_v8.json`에서 렌즈 위치와 광학 방향을 읽는다.
-Gazebo의 +X 전방 축을 optical frame의 +Z 전방 축으로 변환하며, SDF의
-`*_wrist_rgb_optical_frame`도 같은 위치와 방향을 사용한다. 이 SDF frame은
-ROS TF 발행을 추가하지 않는다. 레거시 모델은 이전 카메라 케이스 visual을
-공유 v8 visual 6개로 교체하고 기존 주행용 상체 충돌 envelope를 유지한다.
-CAD 모델은 URDF의 v8 visual/collision을 사용한다. 기본 CAD 주행 설정은
-양팔과 손목 센서를 제외하며, 팔을 포함한 설정에서만 손목 센서가 생성된다.
-Gazebo의 기존 손목 RGB 계약은 640×360이고 MuJoCo의 640×480과 별도다.
-원본 SDF는 입력 템플릿이므로 launch 또는 world generator로 생성해 실행한다.
+| 손목 카메라 | 계약 |
+|---|---|
+| 형상 원본 | `description/config/geometry/wrist_mount_v8.json`의 기존 장착 좌표 |
+| 축 | Gazebo +X 전방을 optical +Z로 변환 |
+| SDF 좌표계 | *_wrist_rgb_optical_frame에 같은 pose; 추가 ROS TF 발행 없음 |
+| Legacy model | v8 visual 6개 사용, 기존 주행 상체 collision envelope 유지 |
+| CAD model | 최신 CAD visual / collision; 팔 포함 설정에서만 손목 센서 생성 |
+| 영상 크기 | Gazebo 640×360, MuJoCo 640×480과 별도 |
+| 실행 | 원본 SDF는 template; launch / world generator로 생성 |
+
+### 변환 모델 식별
+
+생성된 `*.model.json`은 변환에 사용한 모델을 식별합니다. `cad_frame`은
+설치된 `cleany_description`의 URDF를 읽으므로, 별도 CAD 파일을 바꿔도 자동 갱신되지 않습니다.
+
+| 필드 | 의미 |
+|---|---|
+| `description.expanded_urdf_sha256` | 변환 전 펼친 URDF의 해시 |
+| `description.mesh_sha256` | URDF가 참조한 각 메시 파일의 내용 해시 |
+| `description.sha256` | 위 모델 식별 정보를 합친 해시 |
+| `profile_sha256` | 적용한 CAD 변환 YAML 파일의 해시 |
+| `adapter_origin_commit` | 변환기 도입 이력; 현재 형상의 버전이 아님 |
+
+실제 변환 결과에는 `simulation_excluded_link_roots`, `park_joints`와
+`simulation_park_limits`도 적용됩니다. 원본 형상과 이 설정을 함께 비교해야 합니다.

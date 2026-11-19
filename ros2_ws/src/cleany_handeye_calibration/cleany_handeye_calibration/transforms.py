@@ -1,9 +1,8 @@
-"""Frame-aware rigid-transform primitives.
+"""좌표계를 명시하는 강체 변환 기본 연산입니다.
 
-``RigidTransform(parent_frame, child_frame, ...)`` represents
-``parent_T_child``: it maps coordinates expressed in ``child_frame`` into
-``parent_frame``.  Numeric values are stored as tuples so a frozen transform
-cannot be mutated through an aliased NumPy array.
+RigidTransform(parent_frame, child_frame, ...)는 parent_T_child를 뜻하며
+child_frame의 좌표를 parent_frame으로 변환합니다. 수치를 튜플로 저장하므로
+동일한 NumPy 배열을 참조해 동결된 변환을 변경할 수 없습니다.
 """
 
 from __future__ import annotations
@@ -64,7 +63,7 @@ def _finite_array(
 def validate_rotation_matrix(
     rotation_matrix: Sequence[Sequence[float]] | np.ndarray,
 ) -> np.ndarray:
-    """Return a validated float64 copy of a proper 3-D rotation matrix."""
+    """올바른 3차원 회전 행렬인지 검증한 float64 복사본을 반환합니다."""
 
     rotation = _finite_array(
         rotation_matrix,
@@ -91,7 +90,7 @@ def validate_rotation_matrix(
 def rotation_matrix_from_quaternion_xyzw(
     quaternion_xyzw: Sequence[float] | np.ndarray,
 ) -> np.ndarray:
-    """Convert a unit quaternion in ROS ``xyzw`` order to a matrix."""
+    """ROS xyzw 순서의 단위 quaternion을 행렬로 변환합니다."""
 
     quaternion = _finite_array(
         quaternion_xyzw,
@@ -131,7 +130,7 @@ def rotation_matrix_from_quaternion_xyzw(
 def quaternion_xyzw_from_rotation_matrix(
     rotation_matrix: Sequence[Sequence[float]] | np.ndarray,
 ) -> QuaternionXyzw:
-    """Convert a proper rotation matrix to a canonical unit quaternion."""
+    """올바른 회전 행렬을 부호가 정규화된 단위 quaternion으로 변환합니다."""
 
     rotation = validate_rotation_matrix(rotation_matrix)
     trace = float(np.trace(rotation))
@@ -170,8 +169,8 @@ def quaternion_xyzw_from_rotation_matrix(
     quaternion = np.array((x, y, z, w), dtype=np.float64)
     quaternion /= np.linalg.norm(quaternion)
 
-    # q and -q represent the same rotation.  A canonical sign keeps serialized
-    # records deterministic, including the 180-degree case where w is zero.
+    # q와 -q는 같은 회전입니다. 부호를 정규화해 w가 0인 180도 회전까지
+    # 직렬화 결과를 결정적으로 유지합니다.
     if quaternion[3] < 0.0 or (
         abs(quaternion[3]) <= np.finfo(np.float64).eps
         and next(
@@ -192,7 +191,7 @@ def quaternion_xyzw_from_rotation_matrix(
 def rotation_matrix_from_rodrigues(
     rodrigues_vector: Sequence[float] | np.ndarray,
 ) -> np.ndarray:
-    """Convert a three-element Rodrigues rotation vector to a matrix."""
+    """원소 세 개의 Rodrigues 회전 벡터를 행렬로 변환합니다."""
 
     vector = _finite_array(
         rodrigues_vector,
@@ -206,7 +205,7 @@ def rotation_matrix_from_rodrigues(
 def rodrigues_from_rotation_matrix(
     rotation_matrix: Sequence[Sequence[float]] | np.ndarray,
 ) -> Vector3:
-    """Convert a proper rotation matrix to a Rodrigues rotation vector."""
+    """올바른 회전 행렬을 Rodrigues 회전 벡터로 변환합니다."""
 
     rotation = validate_rotation_matrix(rotation_matrix)
     vector, _ = cv2.Rodrigues(rotation)
@@ -220,7 +219,7 @@ def rodrigues_from_rotation_matrix(
 
 @dataclass(frozen=True, slots=True)
 class RigidTransform:
-    """An immutable transform ``parent_T_child`` expressed in metres."""
+    """미터 단위의 불변 parent_T_child 변환입니다."""
 
     parent_frame: str
     child_frame: str
@@ -363,7 +362,7 @@ class RigidTransform:
         )
 
     def compose(self, child_transform: RigidTransform) -> RigidTransform:
-        """Compose ``parent_T_child @ child_T_descendant``."""
+        """parent_T_child @ child_T_descendant를 합성합니다."""
 
         if not isinstance(child_transform, RigidTransform):
             raise TypeError('child_transform must be a RigidTransform')

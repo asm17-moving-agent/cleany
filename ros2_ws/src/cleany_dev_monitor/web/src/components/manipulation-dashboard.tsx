@@ -174,7 +174,7 @@ export function ManipulationDashboard({
         : runs[0]);
   const record = selectedRun?.record || {};
   const current = currentExecution(selectedRun, observation);
-  // Extrapolate only a correlated live observation; freeze stale/finished evidence.
+  // 상관관계가 확인된 최신 관측만 외삽하며 오래되거나 종료된 관측은 고정합니다.
   const end =
     Number(record.updated_at_ns || 0) +
     (current && selectedRun ? age(timeAt, selectedRun.received_at) * 1e9 : 0);

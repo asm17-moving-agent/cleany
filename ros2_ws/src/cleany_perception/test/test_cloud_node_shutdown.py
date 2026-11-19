@@ -1,4 +1,4 @@
-"""Cloud nodes keep active failures visible and tolerate shutdown conversion races."""
+"""점군 노드는 활성 중 실패를 숨기지 않고 종료 시 변환 경쟁은 허용합니다."""
 from types import SimpleNamespace
 
 import pytest

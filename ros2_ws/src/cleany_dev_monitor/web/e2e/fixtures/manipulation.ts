@@ -24,7 +24,7 @@ const allSteps = [
 ];
 const topic = "/mock/manipulation/execution_events";
 
-// Keep protocol fixtures independent of production rendering definitions.
+// 프로토콜 fixture를 실제 렌더링 정의와 독립적으로 유지합니다.
 export function cleaningNodes() {
   return [
     ["ObserveBefore", "CleanDesk", "OperationLeaf", "SUCCESS"],
@@ -151,8 +151,8 @@ export function rows(
 export async function transport(page: Page, initial = rows()) {
   const commands: unknown[] = [];
   let send = (_rows: ReturnType<typeof rows>) => {};
-  // Replay mounts RecordingControls too; keep these fixtures independent of a
-  // local Monitor's live recording settings and the Vite API proxy.
+  // 재생 화면도 RecordingControls를 사용하므로 fixture는 로컬 Monitor의
+  // 실시간 기록 설정과 Vite API proxy에 의존하지 않게 합니다.
   await page.route("**/api/recording/settings", (route) =>
     route.fulfill({
       json: {

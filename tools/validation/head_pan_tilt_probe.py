@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish encoder-driven CAD TF; optionally run a bounded head-only wall probe."""
+"""엔코더 기반 CAD TF를 발행하며 선택적으로 제한된 헤드 전용 벽 시험을 실행합니다."""
 
 import argparse
 import json
@@ -40,7 +40,7 @@ def write_ram(port, motor: int, address: int, size: int, value: int) -> None:
 
 
 class HeadProbe:
-    """Read actual encoders and publish fresh dynamic TF without guessed hold values."""
+    """추측한 유지값 없이 실제 엔코더를 읽고 최신 동적 TF를 발행합니다."""
 
     def __init__(self, node, port, config: dict, log):
         self.node, self.port, self.config, self.log = node, port, config, log
@@ -150,7 +150,7 @@ class HeadProbe:
                         child.wait(timeout=5)
                 self.move(origin, origin)
         finally:
-            # Preserve original torque-off state. Never blindly drive home on a fault.
+            # 원래 torque-off 상태를 보존하며 fault 시 무조건 home으로 구동하지 않습니다.
             for motor in self.config['ids']:
                 try:
                     write_ram(self.port, motor, 40, 1, 0)
@@ -160,7 +160,7 @@ class HeadProbe:
                                                             'torque': read_register(self.port, m, 40, 1)} for m in self.config['ids']}, indent=2))
 
     def floor_view(self, degrees: float, output: Path) -> None:
-        """Aim tilt downward in bounded steps; restore its initial torque-off state."""
+        """제한된 step으로 tilt를 아래로 향하게 한 뒤 초기 torque-off 상태를 복구합니다."""
         if not 15 <= degrees <= 30:
             raise ValueError('Floor view requires 15 to 30 degrees down')
         raw = self.poll()

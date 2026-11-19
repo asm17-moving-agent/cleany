@@ -1,8 +1,8 @@
-"""ROS-independent orchestration for one eye-in-hand calibration pose.
+"""eye-in-hand 보정 자세 하나를 조율하는 ROS 독립 로직입니다.
 
-The reducer deliberately exposes every externally blocking operation as one
-stage.  ROS adapters may implement the effects, while unit tests use small
-fakes and can prove that no later effect runs after a failure.
+reducer는 외부에서 블로킹될 수 있는 각 작업을 별도 단계로 노출합니다.
+ROS 어댑터가 효과를 구현하고 단위 테스트는 작은 fake로 실패 이후의
+효과가 실행되지 않는지 검증합니다.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def _positive_finite(value: float, *, field_name: str) -> float:
 
 @dataclass(frozen=True, slots=True)
 class SinglePoseTimeouts:
-    """Required monotonic budgets for all nine single-pose stages."""
+    """단일 자세의 아홉 단계 모두에 필요한 단조 시계 시간 예산입니다."""
 
     resolve_position_ik_sec: float
     validate_resolved_pose_sec: float
@@ -121,7 +121,7 @@ class JointSoftLimit:
 
 @dataclass(frozen=True, slots=True)
 class SinglePoseSafetyProfile:
-    """Explicit decision-gate values; there are intentionally no defaults."""
+    """명시적 판정값이며 의도적으로 기본값을 두지 않습니다."""
 
     profile_id: str
     soft_joint_limits: tuple[JointSoftLimit, ...]
@@ -379,7 +379,7 @@ class MemoryStageJournal:
 
 
 class JsonlStageJournal:
-    """Durable append-only stage evidence inside one run directory."""
+    """하나의 실행 디렉터리 안에서 추가만 허용하는 영속 단계 기록입니다."""
 
     def __init__(self, path: str | os.PathLike[str]) -> None:
         self.path = Path(path).expanduser().resolve()

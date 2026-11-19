@@ -1,4 +1,4 @@
-"""Deterministic color perception adapter for rendered MuJoCo scenes."""
+"""렌더링된 MuJoCo 장면의 결정적인 색상 인식 어댑터입니다."""
 
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def _classes(profile: str) -> tuple[_ColorClass, ...]:
 
 
 class SimulationColorDetector:
-    """Return bboxes measured from rendered red and blue pixels."""
+    """렌더링된 빨강과 파랑 픽셀에서 측정한 bbox를 반환합니다."""
 
     def __init__(
         self,
@@ -130,7 +130,7 @@ class SimulationColorDetector:
 
 
 class SimulationColorSegmenter:
-    """Return full-resolution rendered color masks for selected bboxes."""
+    """선택한 bbox의 전체 해상도 렌더링 색상 mask를 반환합니다."""
 
     def __init__(self, profile: str = 'legacy') -> None:
         self._colors = _classes(profile)

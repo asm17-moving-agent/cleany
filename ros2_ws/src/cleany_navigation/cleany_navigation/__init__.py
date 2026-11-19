@@ -1,1 +1,1 @@
-"""Cleany navigation runtime shared by simulation and real backends."""
+"""시뮬레이션과 실물 백엔드가 공유하는 Cleany 주행 런타임입니다."""
