@@ -109,17 +109,22 @@ def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: i
     # 가장 긴 조작 검사를 먼저 배정해 마지막에 큰 검사 하나만 남는 일을 줄입니다.
     tasks.sort(key=lambda item: (item[2] != 'manipulation', item[0]))
     results = {group: [] for group in groups}
+    # The base fusion fixture exercises a real-clock mock MCU watchdog. Give its
+    # ROS processes the runner before starting the CPU-heavy package tests.
+    base = [task for task in tasks if task[0] == 'cleany_base_driver']
+    remaining = [task for task in tasks if task[0] != 'cleany_base_driver']
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        pending = {pool.submit(runner, root, package, index, group, started): (package, group)
-                   for package, index, group in tasks}
-        for future in as_completed(pending):
-            package, group = pending[future]
-            try:
-                result = future.result()
-            except Exception as error:
-                result = {'package': package, 'status': 'infrastructure_error', 'error': str(error)}
-                print(f'::error title={package}::{error}', flush=True)
-            results[group].append(result)
+        for batch in (base, remaining):
+            pending = {pool.submit(runner, root, package, index, group, started): (package, group)
+                       for package, index, group in batch}
+            for future in as_completed(pending):
+                package, group = pending[future]
+                try:
+                    result = future.result()
+                except Exception as error:
+                    result = {'package': package, 'status': 'infrastructure_error', 'error': str(error)}
+                    print(f'::error title={package}::{error}', flush=True)
+                results[group].append(result)
     elapsed = round(time.monotonic() - started, 3)
     failed = False
     for group, records in results.items():

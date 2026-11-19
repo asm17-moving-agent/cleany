@@ -20,7 +20,7 @@ spec.loader.exec_module(WORKSPACE)
 
 class ParallelWorkspaceTest(unittest.TestCase):
     def test_bounded_overlap_and_failure_do_not_skip_other_packages(self):
-        names = ['cleany_navigation', 'cleany_skill_executor', 'cleany_manipulation_bt', 'extra_a', 'extra_b', 'cleany_gazebo_sim']
+        names = ['cleany_navigation', 'cleany_skill_executor', 'cleany_manipulation_bt', 'extra_a', 'extra_b', 'cleany_gazebo_sim', 'cleany_base_driver']
         lock, barrier = threading.Lock(), threading.Barrier(2)
         active = peak = 0
         seen, environments = [], []
@@ -32,11 +32,10 @@ class ParallelWorkspaceTest(unittest.TestCase):
             with lock:
                 seen.append(package)
                 environments.append(env)
-                first_pair = len(seen) <= 2
                 active += 1
                 peak = max(peak, active)
             try:
-                if first_pair:
+                if package in ('cleany_manipulation_bt', 'cleany_skill_executor'):
                     barrier.wait(timeout=3)
                 return {'package': package, 'status': 'failed' if package == 'extra_a' else 'passed',
                         'started_seconds': begin, 'finished_seconds': time.monotonic() - started}
@@ -56,7 +55,10 @@ class ParallelWorkspaceTest(unittest.TestCase):
                 self.assertEqual(result['status'], 'failed' if group == 'workspace-rest' else 'passed')
             schedule = json.loads((root/'checks/workspace/schedule.json').read_text())
             self.assertEqual(schedule['workers'], 2)
-            self.assertEqual(len(schedule['packages']), len(names))
+            records = {p['package']: p for p in schedule['packages']}
+            self.assertEqual(len(records), len(names))
+            base = records.pop('cleany_base_driver')
+            self.assertLessEqual(base['finished_seconds'], min(p['started_seconds'] for p in records.values()))
 
     def test_environment_does_not_mutate_parent_and_reserves_fixture_domains(self):
         before = dict(os.environ)

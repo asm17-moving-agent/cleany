@@ -64,7 +64,7 @@ CI는 Ubuntu 22.04 amd64에서 전체 workspace 검사, ESP32 motor core와 합�
 
 전체 빌드 이후 검사를 아래 단계로 분리합니다. 한 검사 단계가 실패해도 빌드가 성공했다면 나머지 독립 검사를 실행합니다. 주요 패키지와 runtime 검사는 실패 표시를 유지하면서 후속 검사를 계속 실행합니다. UI와 카메라 검사에 사용하는 `continue-on-error`도 마지막 집계에서 실제 실패로 반영합니다. 마지막 집계는 실패, 중단과 결과 누락을 모두 실패로 처리합니다.
 
-CI 검사 대상 패키지를 하나의 작업 큐에서 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
+CI는 실시간 mock MCU watchdog을 사용하는 `cleany_base_driver` 검사를 단독으로 먼저 실행합니다. 나머지 패키지는 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
 
 각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain은 ToF에 10–25, 베이스 EKF에 26–28, Supervisor에 190–224를 배정합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
 
