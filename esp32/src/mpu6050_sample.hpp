@@ -6,7 +6,7 @@
 
 namespace cleany {
 
-// MPU6050의 ±2 g 및 ±250°/s 범위로 환산한 센서 좌표계 데이터입니다.
+// Sensor-frame data, decoded for MPU6050 ranges +/-2 g and +/-250 degrees/s.
 struct ImuSample {
   int64_t timestampUs = 0;
   std::array<double, 3> accelerationMps2{};

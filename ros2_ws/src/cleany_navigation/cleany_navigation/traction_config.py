@@ -1,4 +1,4 @@
-"""Omni 제어기를 바꾸지 않고 별도 전후 방향 재시도를 설치합니다."""
+"""Install a separate longitudinal retry without changing the Omni controller."""
 from copy import deepcopy
 from .runtime_config import merge_parameters
 
@@ -9,8 +9,8 @@ def configure_retry(parameters: dict, overlay: dict, lattice_path: str) -> dict:
     controller = parameters['controller_server']['ros__parameters']
     controller['Longitudinal'] = retry['controller_server']['ros__parameters']['FollowPath']
     controller['controller_plugins'] = list(dict.fromkeys([*controller['controller_plugins'], 'Longitudinal']))
-    # NodeLattice의 정적 motion table은 한 프로세스에서 두 기본 경로 집합을
-    # 유지할 수 없습니다. 별도 네임스페이스 서버가 재시도 표와 costmap을 소유합니다.
+    # NodeLattice's static motion table cannot retain two primitive sets in one
+    # process. A namespaced server owns the retry table and its own costmap.
     planner = deepcopy(retry['planner_server']['ros__parameters'])
     planner['Longitudinal'] = planner.pop('GridBased')
     planner['Longitudinal']['lattice_filepath'] = lattice_path

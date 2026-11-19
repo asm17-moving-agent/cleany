@@ -1,21 +1,21 @@
-# 사용자 제공 형상: 휠 지름 127 mm, 휠 중심 간 전후 거리 350 mm,
-# 좌우 거리 610 mm입니다.
-# 바퀴를 띄운 초기 시험용이며 바닥 주행 한계로 검증된 설정이 아닙니다.
+# User-supplied geometry: 127 mm wheel diameter; 350 mm front/rear and 610 mm
+# left/right wheel-center distances (center-to-center).
+# Initial lifted-wheel test profile, not a validated floor-driving limit.
 mode: hardware
 geometry:
-  # 지름 127 mm를 반지름 63.5 mm로 환산합니다.
+  # 127 mm diameter -> 63.5 mm radius.
   wheel_radius_m: 0.0635
   wheelbase_m: 0.350
-  # 바닥 주행의 유효 간격입니다. 실측 휠 중심 간격은 0.610 m입니다.
+  # Ground-run effective separation; measured wheel-center distance is 0.610 m.
   wheel_separation_m: 0.590
 limits:
-  # 입력 축별 상한입니다. 휠 목표에는 비례 축소 한계를 추가 적용합니다.
+  # Input-axis ceilings; proportional wheel scaling still limits the targets.
   linear_x_mps: 0.5
   linear_y_mps: 0.5
   angular_z_rad_s: 1.0
-  # MCU 프로토콜 최대값과 일치하는 독립적인 휠 속도 상한입니다.
+  # Independent wheel ceiling, matching the MCU protocol maximum.
   wheel_rad_s: 10.0
-  # MCU 명령 마감 시각과 별개인 호스트 cmd_vel 최신성 한계입니다.
+  # Host cmd_vel freshness limit, separate from the MCU command deadline.
   command_timeout_s: 0.3
 protocol:
   counts_per_revolution: 3172

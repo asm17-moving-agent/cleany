@@ -1,4 +1,4 @@
-"""격리된 ROS 그래프에서 ENABLE, 이동과 odometry 발행 책임을 검증합니다."""
+"""Isolated graph regression for ENABLE permission, motion and odom ownership."""
 import os
 import threading
 import time
@@ -69,7 +69,7 @@ def test_mocked_graph_end_to_end():
         pub = monitor.create_publisher(Twist, 'cmd_vel', 10)
         twist = Twist()
         twist.linear.x = .1
-        pub.publish(twist)  # 구동 해제 상태에서는 버려야 합니다.
+        pub.publish(twist)  # Must be discarded while disabled.
         assert not driver.enabled
         drop = monitor.create_client(Trigger, 'mock/drop_next_enable')
         _call(drop, Trigger.Request())
@@ -112,7 +112,7 @@ def test_mocked_graph_end_to_end():
         _wait(lambda: future.done())
         assert future.result().success
         _wait(lambda: not mock.enabled)
-        # 재부팅 시 odometry는 보존하고 구동 허가와 저장된 목표는 지웁니다.
+        # Reboot preserves odometry while clearing authority and cached targets.
         time.sleep(.08)
         before = received[-1].pose.pose.position
         reboot = monitor.create_client(Trigger, 'mock/reboot')

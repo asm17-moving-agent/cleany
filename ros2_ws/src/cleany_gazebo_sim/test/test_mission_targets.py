@@ -1,4 +1,4 @@
-"""시설과 모델 ID가 gateway 경계를 넘을 때의 회귀 동작을 검사합니다."""
+"""Regression coverage for facility/model IDs crossing the gateway boundary."""
 import pytest
 
 from cleany_gazebo_sim.world.mission_targets import canonical_seat_id, generate
@@ -41,7 +41,7 @@ def test_removed_chair_keeps_explicit_front_direction_and_uncertainty_clearance(
                                  localization_margin=0., reference_world=reference)
     assert targets['seats']['seat-43'][2] == round(math.pi/2, 6)
     assert not evidence['seat-43']['chair_present']
-    # 명목 형상에는 들어맞는 자세도 불확실성을 포함하면 너무 가깝습니다.
+    # A pose that fits nominal geometry is too close when uncertainty is included.
     with pytest.raises(ValueError, match='no safe desk-front goal'):
         generate(world, map_path, [1.,1.,0.], tmp_path, override,
                  localization_margin=.1, reference_world=reference)

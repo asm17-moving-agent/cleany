@@ -1,1 +1,1 @@
-"""ROS에 독립적인 인식 모델과 알고리즘입니다."""
+"""ROS-independent perception models and algorithms."""

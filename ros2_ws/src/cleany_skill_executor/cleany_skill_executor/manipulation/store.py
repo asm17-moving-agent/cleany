@@ -1,4 +1,4 @@
-"""프로세스 잠금을 사용하는 원자적 SQLite snapshot과 추가 전용 진행 journal입니다."""
+"""Atomic SQLite snapshots and an append-only progress journal, with process locking."""
 
 from __future__ import annotations
 
@@ -101,9 +101,10 @@ class ExecutionStore:
 
 
 class ExecutionJournal:
-    """런타임 상태는 메모리에 유지하며 영속 저장 오류는 진단으로 처리합니다.
+    """Keep runtime state in memory; persistence errors are diagnostic only.
 
-    중단된 물리 실행을 조용히 잊지 않도록 시작 시 기존 이력 로드는 필수입니다.
+    Loading existing history remains mandatory at startup so an interrupted
+    physical execution cannot be silently forgotten.
     """
 
     def __init__(self, store: ExecutionStore) -> None:
@@ -138,12 +139,12 @@ class ExecutionJournal:
             self._store.save(record, create=execution_id not in self._persisted)
         except DuplicateExecution as error:
             if create:
-                # 영속 ID 충돌은 무효 요청이며 쓰기 장애가 아닙니다.
+                # A conflicting durable ID is an invalid request, not a write outage.
                 del self._records[execution_id]
                 raise
             self._write_failed('execution', error)
         except Exception as error:
-            # 직렬화와 닫힌 연결 오류를 로봇 fault로 바꾸지 않습니다.
+            # Serialization and closed-connection errors must not become robot faults.
             self._write_failed('execution', error)
         else:
             self._persisted.add(execution_id)

@@ -1,4 +1,4 @@
-"""공통 ROS 좌표계, odometry와 파라미터 검증입니다."""
+"""Shared ROS frame, odometry and parameter validation."""
 from dataclasses import fields
 import math
 import time
@@ -51,7 +51,7 @@ class Inputs:
         if not msg.sensor_ready:
             self.frame = None
             return
-        # 재시작 시 새 순서 번호를 받기 전에 이전 표본을 만료시켜야 합니다.
+        # A restart must expire the old sample before a new sequence can be accepted.
         now = time.monotonic()
         if msg.sequence <= self.sequence and now-self.frame_at <= self.s.source_timeout_s:
             self.frame = None
@@ -82,7 +82,7 @@ class Inputs:
 
 
 class SupervisorView:
-    """최신 Supervisor 상태로 인터록하며 임대를 취득하거나 갱신하지 않습니다."""
+    """Interlock against fresh Supervisor state, never acquire or renew a lease."""
     def __init__(self, node):
         from cleany_interfaces.msg import SystemHeartbeat, SystemState
         from rclpy.qos import DurabilityPolicy

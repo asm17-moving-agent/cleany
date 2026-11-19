@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""센서 및 costmap 시각과 현재 장애물 지지 근거를 수동 관측합니다."""
+"""Passively measure sensor/costmap timing and current obstacle support."""
 
 import argparse
 from collections import defaultdict, deque

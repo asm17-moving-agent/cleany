@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""라이선스가 필요한 AnyGrasp 서비스의 실행 환경 식별자를 검사하며 불일치 시 차단합니다."""
+"""Fail-closed runtime identity checks for the licensed AnyGrasp service."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ _MAC_PATTERN = re.compile(r'^[0-9a-f]{2}(?::[0-9a-f]{2}){5}$')
 
 
 class PreflightError(RuntimeError):
-    """라이선스 서비스를 시작할 수 없는 조건에서 발생합니다."""
+    """Raised when the licensed service must not start."""
 
 
 @dataclass(frozen=True)

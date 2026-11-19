@@ -1,21 +1,21 @@
 nearest_pregrasp_coordinator:
   ros__parameters:
-    # 빈 값이면 PointCloud2를 직접 수신합니다. 센서 전용 launch는
-    # 전용 수신 확인 노드를 시작하고 reliable Header 토픽을 제공합니다.
+    # Empty keeps direct PointCloud2 reception. The sensor-only launch starts
+    # a dedicated receipt node and supplies its reliable Header topic.
     sensor_scene_receipt_topic: ''
-    # 손목 ROLL만 제한하며 pitch는 자유입니다. 파지 접촉 자세 대비 절대 편차입니다.
+    # Wrist ROLL only: pitch remains free. Absolute deviations from grasp contact.
     sorting_carry_wrist_tolerances_deg: [2.0, 5.0, 10.0, 20.0, 30.0]
-    # 손목 관절 유지가 TCP 월드 방향 고정을 뜻하지는 않습니다.
+    # Wrist joint hold does not imply a fixed TCP world orientation.
     sorting_carry_cartesian_rotation_limit_deg: 30.0
     sorting_fixed_release_wrist_tolerance_deg: 0.5
-    # 유효한 손목 프레임에서 타깃이 없는 경우만 재시도하며 매번 모터 접촉을 확인합니다.
+    # Retry only valid wrist frames with no target; confirm motor contact each time.
     sorting_wrist_check_attempts: 1
     sorting_wrist_contact_confirmation_sec: 0.3
     sorting_gripper_feedback_max_age_sec: 0.5
-    # base_link의 고정 물체 중심 목적지이며 무검사 TCP 낙하 명령이 아닙니다.
+    # Fixed OBJECT-center destinations in base_link; not blind TCP drop commands.
     sorting_fixed_release_lost_items_left_m: [-0.075, 0.105, 0.50]
     sorting_fixed_release_trash_right_m: [-0.075, -0.105, 0.50]
-    # 빈손 복귀에서는 STS3215 토크 포화와 속도 감쇠 때문에 yaw 속도 30%를 사용할 수 없습니다.
+    # Empty return: STS3215 torque saturation + velocity damping preclude 30% yaw speed.
     sorting_return_velocity_scaling: 0.12
     sorting_return_acceleration_scaling: 0.15
     inspection_action: /perception/inspect_scene

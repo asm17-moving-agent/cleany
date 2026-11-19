@@ -19,7 +19,7 @@ inline double projectProgress(const std::vector<ProgressPoint>& path,double x,do
 class PathProgressGate {
 public:
   void reset(){active_=false;anchor_=false;credit_=0.;}
-  // 재계획은 경로 좌표의 기준만 바꾸며 진행량이나 유예 시간을 추가하지 않습니다.
+  // Replanning rebases the route coordinate but does not grant time or progress.
   void replan(){anchor_=false;}
   bool observe(double now,double s,double yaw_error,bool terminal,double timeout,double distance){
     if(!active_){active_=true;last_time_=now;last_yaw_=yaw_error;}

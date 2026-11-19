@@ -1,4 +1,4 @@
-"""대각선 조정, 기하와 기준 유효성의 오프라인 회귀 검사입니다."""
+"""Offline regression checks for diagonal tuning, geometry and reference validity."""
 from copy import deepcopy
 import json
 import math
@@ -84,7 +84,7 @@ def test_endpoint_errors_separate_goal_error_and_odometry_bias(axis, reference_k
 
 
 def test_diagonal_plot_single_column(tmp_path):
-    # 중단된 시험에도 유효한 축 이름은 있지만 가짜 기록을 만들지 않습니다.
+    # Aborted trials still have a valid named axis, but no fabricated trace.
     output = tmp_path / "response.png"
     plot_responses([{"axis": "diagonal_left", "result": None}], output)
     assert output.is_file()

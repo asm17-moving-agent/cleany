@@ -14,9 +14,9 @@ test("observed FSM, topic subscription, correlated logs and recording replay", a
   await page.goto("/");
   await expect(page.getByRole("region", { name: "실행 그래프" })).toBeVisible();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  // 마지막 주기 snapshot 뒤에 최종 전이가 도착할 수 있습니다. UI와 같은
-  // 이벤트 경계에서 비교하며 HTTP 응답과 브라우저 WebSocket 갱신 사이에
-  // 진행 중인 전이가 반영될 시간을 허용합니다.
+  // A final transition may arrive after the last periodic snapshot. Compare
+  // the same observed event boundary as the UI and allow an active transition
+  // to settle between the HTTP response and the browser's WebSocket refresh.
   await expect
     .poll(async () => {
       const snapshot = await (await request.get("/api/snapshot")).json();
@@ -128,9 +128,9 @@ test("Gazebo map, TF and both costmaps render", async ({ page, request }) => {
         return changed / (after.length / 4);
       },
     );
-  // 시뮬레이터가 정지하고 실시간 위치 표시가 만료되면 유효한 점유 지도도
-  // 세 가지 색만 남을 수 있습니다. 움직이는 표시의 색상 수 대신 실제
-  // 지도 계층이 보이는지 검사합니다.
+  // A valid occupancy map can contain only three shades after the simulator
+  // stops and live pose overlays expire. Check real map-layer visibility
+  // instead of depending on the number of colors in moving overlays.
   await mapToggle.uncheck();
   await expect.poll(changedMapArea).toBeGreaterThan(0.02);
   await mapToggle.check();

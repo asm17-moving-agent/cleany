@@ -1,4 +1,4 @@
-"""Fortress 로봇 launch에 사용하는 ROS 노드 구성입니다."""
+"""ROS nodes for the Fortress robot launch."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 
 
 def robot_runtime_nodes(base_config: Path) -> list[Node]:
-    """launch 인자로 명령 제한, odometry 연결과 센서 TF를 구성합니다."""
+    """Command guard, odometry chain and sensor TF, configured by launch arguments."""
     command_guard = Node(
         package='cleany_gazebo_sim',
         executable='gazebo_command_guard',

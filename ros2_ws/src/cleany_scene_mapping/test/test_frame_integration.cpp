@@ -163,7 +163,7 @@ TEST_F(FrameIntegration, RejectsMissingCacheWithoutAnyTreeMutation)
 TEST_F(FrameIntegration, RejectsGeometryChangedDuringProviderEvenWithCompleteCache)
 {
   updater->setTransformCacheCallback([this](const auto&, const auto&, Cache& cache) {
-    // 변환 제공자가 형상 mutex 안에서 실행되면 교착됩니다.
+    // Would deadlock if the transform provider ran under the geometry mutex.
     const auto handle = addBox();
     cache[handle] = boxPose();
     return true;
@@ -260,7 +260,7 @@ TEST_F(FrameIntegration, MeshFacePaddingClearsStaleAndNewReturnsWithoutErasingOu
   shapes::ShapeConstPtr mesh(shapes::createMeshFromShape(shape));
   setBoxCache(updater->excludeShape(mesh));
   auto tree = monitor->getOcTreePtr();
-  // 양옆 voxel은 15mm 면 여유 안에 들지만 방사 메시 여유에는 들지 않습니다.
+  // Both side voxels fit the 15 mm face padding, but not radial mesh padding.
   tree->updateNode(0.505, -0.025, 0.005, true);
   tree->updateNode(0.005, 0.805, 0.005, true);
   const auto message = cloud({{0.505F, 0.035F, 0.005F}, {1.005F, 0.005F, 0.005F}});
@@ -423,8 +423,8 @@ TEST_F(FrameIntegration, TakesOnlyNewestCloudAfterExecutorBacklog)
     std::this_thread::sleep_for(10ms);
   ASSERT_EQ(publisher->get_subscription_count(), 1U);
 
-  // 단일 콜백 executor가 실행되지 않는 동안 DDS가 수신합니다.
-  // 실행을 재개하면 오래된 대기 촬영이 최신 촬영을 지연시키지 않아야 합니다.
+  // DDS receives these while the single callback executor is not running.
+  // Once execution resumes, stale queued captures must not delay the newest.
   for (int stamp = 10; stamp < 15; ++stamp)
   {
     auto message = cloud({{1.005F, 0.005F, 0.005F}});

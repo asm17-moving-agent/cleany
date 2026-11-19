@@ -147,7 +147,7 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     assert not (component / "include").exists()
     cache.write_text("matching runtime configure")
     setup.refresh_component(controller, "runtime")
-    assert cache.exists()  # 입력 지문이 같으면 유효한 빌드 캐시를 유지합니다.
+    assert cache.exists()  # Matching fingerprints retain a valid build cache.
     incomplete = component / "micro_ros_src/install"
     incomplete.mkdir(parents=True)
     (incomplete / "partial-marker").write_text("failed colcon configure")
@@ -158,7 +158,7 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     (component / "include").mkdir()
     incomplete.mkdir()
     setup.refresh_component(controller, "runtime")
-    assert incomplete.exists()  # 필요한 생성물이 모두 있으면 강제로 재생성하지 않습니다.
+    assert incomplete.exists()  # Complete artifacts do not force regeneration.
 
 
 def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
@@ -166,10 +166,10 @@ def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
     source.write_text("CONFIG_ESP_CONSOLE_NONE=y")
     previous = tmp_path / "previous.defaults"
     link = tmp_path / "generated.defaults"
-    link.symlink_to(previous)  # 통합 과정에서 이전 소스 위치를 제거했습니다.
+    link.symlink_to(previous)  # Previous source was removed by consolidation.
     setup.link_generated_config(link, source, previous)
     assert link.resolve() == source
-    setup.link_generated_config(link, source, previous)  # 다시 실행해도 결과가 같습니다.
+    setup.link_generated_config(link, source, previous)  # Idempotent.
     link.unlink()
     link.write_text("unexpected local config")
     with pytest.raises(RuntimeError, match="unexpected generated link"):

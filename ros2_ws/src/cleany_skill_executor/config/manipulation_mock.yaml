@@ -1,4 +1,4 @@
-# mock 검증 설정이며 실제 로봇 안전 한계가 아닙니다.
+# Mock verification settings only; these are not real robot safety limits.
 stage_duration_sec: 0.5
 stop_duration_sec: 0.1
 preparation_timeout_sec: 5.0

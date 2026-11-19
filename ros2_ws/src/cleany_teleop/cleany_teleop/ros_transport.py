@@ -1,4 +1,4 @@
-"""보호된 핸드폰 제어와 직렬 mapping 요청의 ROS 포트입니다."""
+"""ROS ports for guarded phone control and serialized mapping requests."""
 
 import threading
 import time
@@ -72,7 +72,7 @@ class MappingBridge:
 
 
 def bind(node, profile, lock, *, event_sink=None, mapping_status_timeout_s=1.0, command_topic="cmd_vel"):
-    """WheelCommand publisher를 만들지 않으며 base driver만 해당 토픽을 소유합니다."""
+    """Create no WheelCommand publisher: only the base driver owns that topic."""
     geo = profile["geometry"]
     geometry = Geometry(
         geo["wheel_radius_m"], geo["wheelbase_m"], geo["wheel_separation_m"]

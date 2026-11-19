@@ -1,4 +1,4 @@
-"""정렬된 RGB-D 및 TF 제공자에 YOLOE-seg와 Gemini를 연결합니다."""
+"""YOLOE-seg + Gemini on any aligned RGB-D / TF provider."""
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory

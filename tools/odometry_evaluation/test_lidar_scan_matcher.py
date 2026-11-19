@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""2D LiDAR 스캔 정합기를 검사합니다."""
+"""Test 2D LiDAR Scan Matcher."""
 
 import math
 import numpy as np
@@ -12,7 +12,7 @@ from lidar_scan_matcher import LidarScanMatcher, validate_scan_match
 def test_synthetic_scan_matching_convergence():
     matcher = LidarScanMatcher(voxel_size_m=0.01)
 
-    # 무작위 특징을 포함한 4×4m 정사각형 합성 방입니다.
+    # Synthetic room: 4x4m square box with some random features
     wall_x1 = np.column_stack((np.full(100, 2.0), np.linspace(-2.0, 2.0, 100)))
     wall_x2 = np.column_stack((np.full(100, -2.0), np.linspace(-2.0, 2.0, 100)))
     wall_y1 = np.column_stack((np.linspace(-2.0, 2.0, 100), np.full(100, 2.0)))
@@ -21,7 +21,7 @@ def test_synthetic_scan_matching_convergence():
 
     ref_points = np.vstack([wall_x1, wall_x2, wall_y1, wall_y2, pillar])
 
-    # 합성 참값 오프셋은 X +12.0mm, Y -18.0mm, yaw +2.5도입니다.
+    # True offset: +12.0 mm in X, -18.0 mm in Y, +2.5 degrees in Yaw
     true_dx = 0.012
     true_dy = -0.018
     true_yaw_deg = 2.5
@@ -31,11 +31,11 @@ def test_synthetic_scan_matching_convergence():
     s = math.sin(true_yaw_rad)
     R = np.array([[c, -s], [s, c]])
 
-    # 참값 움직임으로 대상 점을 변환합니다.
+    # Target points transformed by true motion
     # p_ref = R * p_target + t => p_target = R^T * (p_ref - t)
     target_points = (R.T @ (ref_points - np.array([true_dx, true_dy])).T).T
 
-    # 표준편차 1mm의 작은 Gaussian 잡음을 추가합니다.
+    # Add small Gaussian noise (1mm stddev)
     rng = np.random.default_rng(42)
     target_points += rng.normal(0, 0.001, target_points.shape)
 
@@ -43,36 +43,36 @@ def test_synthetic_scan_matching_convergence():
 
     assert result.converged
     assert result.inlier_ratio > 0.95
-    assert abs(result.delta_x_m - true_dx) < 0.002  # 오차 2mm 미만
-    assert abs(result.delta_y_m - true_dy) < 0.002  # 오차 2mm 미만
-    assert abs(result.delta_yaw_deg - true_yaw_deg) < 0.2  # 오차 0.2도 미만
+    assert abs(result.delta_x_m - true_dx) < 0.002  # error < 2mm
+    assert abs(result.delta_y_m - true_dy) < 0.002  # error < 2mm
+    assert abs(result.delta_yaw_deg - true_yaw_deg) < 0.2  # error < 0.2 deg
     assert result.rmse_mm < 3.0
     assert result.is_valid
     assert result.rejection_reason == "Valid scan match"
 
 
 def test_single_wall_degeneracy_rejection():
-    """병진 축을 관측할 수 없어 단일 직선 평면 벽이 거부되는지 확인합니다.
+    """Verify that a single straight planar wall is rejected due to unobservable translation axis.
 
-    특징 없는 벽을 따라 100mm 이동하면 낮은 RMSE와 높은 inlier 비율을 얻어도
-    Hessian 관측 가능성에서 실패하는 사례를 재현합니다.
+    Reproduces the failure case where a 100mm sliding displacement along a featureless wall
+    produces low RMSE and high inlier ratio but fails Hessian observability.
     """
     matcher = LidarScanMatcher(voxel_size_m=0.01)
 
-    # X=2.0m에서 Y축을 따라 -2.5m부터 +2.5m까지 뻗은 단일 직선 벽입니다.
+    # Single straight wall along Y axis at X = 2.0m (-2.5m to +2.5m)
     wall_y = np.linspace(-2.5, 2.5, 200)
     wall_x = np.full(200, 2.0)
     ref_points = np.column_stack((wall_x, wall_y))
 
-    # 합성 참값 움직임은 벽을 따라 Y 방향으로 100mm입니다.
+    # True motion: robot moves 100mm along the wall (Y direction)
     true_dx = 0.0
-    true_dy = 0.100  # 100mm 변위
+    true_dy = 0.100  # 100 mm displacement
     target_points = ref_points - np.array([true_dx, true_dy])
 
     result = matcher.match(ref_points, target_points)
 
-    # point-to-line 잔차가 수렴하거나 RMSE가 낮아도
-    # 병진 축 퇴화 때문에 무효로 거부해야 합니다.
+    # Even if Point-to-Line residual claims convergence or low RMSE,
+    # it must be REJECTED as invalid due to translation axis degeneracy!
     assert not result.is_valid
     assert "Degenerate translation" in result.rejection_reason
     assert result.min_translation_eigenvalue < 5.0 or result.translation_condition_number > 35.0
@@ -143,7 +143,7 @@ def square_room():
 def test_mixed_residual_jacobian_matches_additive_pose_finite_difference(pose):
     points = np.array([[1., 2.], [-.7, 1.3]])
     normals = np.array([[.6, .8], [.8, -.6]])
-    linearity = np.array([1., 0.])  # point-to-line과 point-to-point 모두 검사합니다.
+    linearity = np.array([1., 0.])  # Both point-to-line and point-to-point.
 
     def rotated(value):
         c, s = math.cos(value[2]), math.sin(value[2])
@@ -197,7 +197,7 @@ def test_noisy_scan_cycle_converges_without_relaxing_strict_step_tolerances():
     assert np.linalg.norm([result.delta_x_m - translation[0],
                            result.delta_y_m - translation[1]]) < .002
     assert abs(result.delta_yaw_rad - yaw) < math.radians(.1)
-    # 수렴은 품질 수락과 다릅니다.
+    # Convergence is not quality acceptance.
     result.inlier_ratio = .29
     assert not validate_scan_match(result, min_inlier_ratio=.30)[0]
     result.inlier_ratio = .9
@@ -219,7 +219,7 @@ def test_observability_uses_final_inliers_and_same_additive_jacobian(monkeypatch
     monkeypatch.setattr(lidar_scan_matcher, "_linearized_system", track)
     result = LidarScanMatcher(voxel_size_m=.005).match(room, np.vstack([room, outliers]))
     matrix, rotated_points = calls[-1]
-    assert len(calls[-2][0]) > len(matrix)  # 적합 범위는 40mm이며 최종 inlier 범위는 30mm입니다.
+    assert len(calls[-2][0]) > len(matrix)  # 40 mm fit versus 30 mm final inliers.
     trans_h = matrix[:, :2].T @ matrix[:, :2]
     eigenvalues = np.linalg.eigvalsh(trans_h)
     assert result.min_translation_eigenvalue == pytest.approx(eigenvalues[0])

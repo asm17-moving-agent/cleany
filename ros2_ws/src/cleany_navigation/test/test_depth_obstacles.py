@@ -1,4 +1,4 @@
-"""실물 센서 검증과 독립적인 합성 바닥 및 장애물 검사입니다."""
+"""Synthetic floor/obstacle checks independent of physical sensor validation."""
 
 import numpy as np
 import pytest

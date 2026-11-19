@@ -1,5 +1,5 @@
-# 패키지 밖으로 복사하고 백엔드 형상과 측정된 보수적 제동 한계로
-# 모든 null을 채웁니다. 이 템플릿은 의도적으로 그대로 실행할 수 없습니다.
+# Copy outside the package and fill every null using the backend geometry and
+# measured conservative braking bounds. This template intentionally cannot launch.
 voxel_guard:
   ros__parameters:
     profile: body_profile.yaml
@@ -10,17 +10,17 @@ voxel_guard:
     angular_deceleration: null
 obstacle_memory:
   ros__parameters:
-    floor_z: null  # map의 바닥 높이이며 미터 단위입니다.
+    floor_z: null  # floor height in map, meters
 local_costmap:
   local_costmap:
     ros__parameters:
-      footprint: null  # base_link의 [[x,y], ...] 형식 문자열입니다.
+      footprint: null  # string: [[x,y], ...], in base_link
       obstacle_layer:
         min_obstacle_height: null
         scan:
           min_obstacle_height: null
       depth_layer:
-        origin_z: null  # 로컬 costmap 좌표계의 바닥 높이입니다.
+        origin_z: null  # floor height in local costmap frame
         min_obstacle_height: null
         max_obstacle_height: null
 global_costmap:
@@ -34,7 +34,7 @@ global_costmap:
 collision_monitor:
   ros__parameters:
     StopZone:
-      points: null  # base_link의 [[x,y], ...] 형식 문자열입니다.
+      points: null  # string: [[x,y], ...], in base_link
     SlowZone:
       points: null
     depth:
@@ -46,5 +46,5 @@ depth_clearance:
     optical_frame: head_camera_depth_optical_frame
     positive_infinity_is_free: false
     allow_simulation_limits: false
-# 제어기 속도 및 가속도 한계와 깊이 범위도 백엔드에 맞춰 조정합니다.
-# AMCL은 초기 자세를 추측하지 않고 시작하며 활성화 후 initialpose를 발행해야 합니다.
+# Also tune controller velocity/acceleration bounds and depth range to the backend.
+# AMCL starts without a guessed initial pose; publish initialpose after activation.

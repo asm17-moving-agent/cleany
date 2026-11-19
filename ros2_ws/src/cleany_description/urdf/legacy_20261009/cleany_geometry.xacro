@@ -3,7 +3,7 @@
   <xacro:include filename="$(find cleany_description)/urdf/legacy_20261009/dual_arm.xacro" />
   <xacro:include filename="$(find cleany_description)/urdf/legacy_20261009/head_camera.xacro" />
   <xacro:macro name="cleany_robot_geometry" params="include_wheel_joints:=false head_mast_rear_gap_m:=0.05">
-    <!-- 고정 마스트는 controller TF 트리를 포함한 모든 모델에 속합니다. -->
+    <!-- Fixed mast belongs to every model, including the controller's TF tree. -->
     <xacro:cleany_head_mount rear_gap_m="${head_mast_rear_gap_m}"/>
     <link name="base_link">
       <xacro:cleany_link_properties link_name="base_link" />

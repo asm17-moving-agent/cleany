@@ -22,7 +22,7 @@ void near(double actual, double expected) {
 }  // namespace
 
 int main() {
-  // 부호 있는 big-endian 축 값을 SI 단위로 변환하고 측정 시각을 보존합니다.
+  // Decode signed big-endian axes into SI units and preserve acquisition time.
   const auto s = cleany::decodeMpu6050Sample(
       encode({{16384, -16384, -1, -340, 131, -131, -1}}), 12345);
   assert(s.timestampUs == 12345 && !s.saturated);
@@ -32,15 +32,15 @@ int main() {
   near(s.angularVelocityRadS[0], cleany::kDegreesToRadians);
   near(s.angularVelocityRadS[1], -cleany::kDegreesToRadians);
   near(s.angularVelocityRadS[2], -cleany::kDegreesToRadians / 131);
-  // MPU6050 변환식으로 부호 있는 온도 레지스터 값을 환산합니다.
+  // Convert the signed temperature register using the MPU6050 transfer formula.
   near(s.temperatureC, 35.53);
-  // 가속도계 ADC의 음수 끝값은 포화를 나타냅니다.
+  // An accelerometer's negative ADC endpoint indicates saturation.
   assert(cleany::decodeMpu6050Sample(
       encode({{-32768, 0, 0, 0, 0, 0, 0}}), 0).saturated);
-  // 자이로 ADC의 양수 끝값도 포화를 나타냅니다.
+  // A gyroscope's positive ADC endpoint also indicates saturation.
   assert(cleany::decodeMpu6050Sample(
       encode({{0, 0, 0, 0, 0, 0, 32767}}), 0).saturated);
-  // 온도 레지스터의 끝값은 가속도계나 자이로의 포화가 아닙니다.
+  // A temperature endpoint is not accelerometer/gyro saturation.
   assert(!cleany::decodeMpu6050Sample(
       encode({{0, 0, 0, -32768, 0, 0, 0}}), 0).saturated);
 }

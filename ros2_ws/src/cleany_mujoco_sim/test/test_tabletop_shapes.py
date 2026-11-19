@@ -26,8 +26,8 @@ def test_cup_is_physically_open_not_a_solid_collision_cylinder(model):
     cup = model.body('study_cafe_cup').id
     origin = data.xpos[cup]+np.array((0., 0., .12))
     hit = np.array([-1], dtype=np.int32)
-    # mj_ray는 충돌 그룹을 선택해도 alpha=0을 무시합니다. 이 형상 진단에만
-    # 보이도록 바꾸고 공유 fixture를 즉시 복구합니다.
+    # mj_ray ignores alpha=0 even for a selected collision group. Expose only
+    # for this geometry diagnostic, and restore the shared fixture immediately.
     alpha = model.geom_rgba[:,3].copy()
     try:
         model.geom_rgba[:,3] = 1.
@@ -60,7 +60,7 @@ def test_cup_support_clearance_preserves_visual_and_upper_gripping_surface():
     assert visual == cup_vertices(item.collision_size_m, legacy, collision=True)
     collision, _ = cup_vertices(item.collision_size_m, item.shape, collision=True)
     count = int(item.shape.number('segments'))
-    # 나머지 세 고리인 테두리와 내벽은 유지합니다.
+    # The other three rings (rim and inner wall) are untouched.
     assert collision[count:] == visual[0][count:]
     clearance = item.shape.number('collision_bottom_clearance_m')
     assert 0 < clearance < item.shape.number('wall_thickness_m')
@@ -104,7 +104,7 @@ def test_cup_stays_supported_with_fewer_floor_contacts():
         root = ET.Element('mujoco')
         ET.SubElement(root, 'option', timestep='.001', integrator='implicitfast',
                       iterations='100', noslip_iterations='20')
-        # MuJoCo의 더 부드러운 기본값이 아닌 장면에서 상속한 접촉 강성을 맞춥니다.
+        # Match the scene's inherited contact stiffness (not MuJoCo's softer default).
         ET.SubElement(ET.SubElement(root, 'default'), 'geom', solref='.005 1')
         assets = ET.SubElement(root, 'asset')
         add_shape_assets(assets, 'cup', item.collision_size_m, shape)
@@ -153,7 +153,7 @@ def test_tissue_mesh_is_deterministic_and_has_configured_external_size():
     np.testing.assert_allclose(np.ptp(vertices, axis=0), (.06,.05,.045), atol=1e-10)
     assert vertices[:,2].min() == 0.
     assert np.isfinite(vertices).all() and faces.min() == 0 and faces.max() == len(vertices)-1
-    # 퇴화하지 않은 삼각형이며 바깥 방향의 닫힌 표면은 양의 부피를 갖습니다.
+    # Nondegenerate triangles; outward oriented closed surface has positive volume.
     a, b, c = (vertices[faces[:,i]] for i in range(3))
     assert np.all(np.linalg.norm(np.cross(b-a,c-a), axis=1) > 1e-10)
     assert np.einsum('ij,ij->i',a,np.cross(b,c)).sum()/6 > 0

@@ -1,4 +1,4 @@
-"""네트워크 worker는 제한 시간이 있는 ROS RPC를 쓰며 ROS 콜백에서 소켓 I/O를 하지 않습니다."""
+"""Network worker uses bounded ROS RPCs; ROS callbacks never perform socket I/O."""
 
 import json
 import threading
@@ -15,18 +15,18 @@ from cleany_control_bridge.session import BridgeSession
 
 
 class ControlBridge(Node):
-    """Gateway WebSocket 명령을 journal을 사용하는 Mission Runtime에 연결합니다.
+    """Connect gateway WebSocket commands to the journaled mission runtime.
 
     Services:
-        mission/offer (cleany_interfaces/srv/OfferMission): 미션 수락 요청 client.
-        mission/cancel (cleany_interfaces/srv/CancelMission): 취소 요청 client.
-        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): 재연결 시 상태
-            대조와 heartbeat 상태 조회 client.
+        mission/offer (cleany_interfaces/srv/OfferMission): Client for admission.
+        mission/cancel (cleany_interfaces/srv/CancelMission): Client for cancellation.
+        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): Client for
+            reconciliation and heartbeat state.
 
     Notes:
-        소켓 I/O는 worker에서 수행하고 ROS executor는 RPC 응답을 처리합니다.
-        명령은 snapshot 확인을 기다립니다. RPC 시간 초과 시 전달 여부가 불확실하므로
-        거절 결과를 만들어내지 않고 재연결해 실제 상태를 대조합니다.
+        Socket I/O runs in a worker while the ROS executor handles RPC replies.
+        Commands wait for snapshot acknowledgement. RPC timeout leaves delivery
+        uncertain and triggers reconnection rather than fabricating rejection.
     """
     def __init__(self) -> None:
         super().__init__("control_bridge")
@@ -65,7 +65,7 @@ class ControlBridge(Node):
         done = threading.Event()
         future.add_done_callback(lambda _: done.set())
         if not done.wait(self.rpc_timeout):
-            # 전달과 수락 여부가 불확실하므로 재연결해 상태를 대조하며 거절로 단정하지 않습니다.
+            # Delivery/acceptance is uncertain. Reconnect and reconcile; never invent rejection.
             raise TimeoutError("mission runtime response unavailable")
         return future.result()
 
@@ -144,7 +144,7 @@ class ControlBridge(Node):
                         if self.synced:
                             for event in self.session.pending():
                                 self.socket.send(json.dumps(event))
-                            # 단계 증거를 먼저 적용한 뒤 최종 결과의 조회 가능 여부를 대조합니다.
+                            # Apply phase evidence first, then reconcile terminal availability.
                             self._send_snapshot(self.session.sync_event())
                         elif time.monotonic() - self.snapshot_sent_at > self.rpc_timeout:
                             raise TimeoutError("Backend snapshot acknowledgement unavailable")

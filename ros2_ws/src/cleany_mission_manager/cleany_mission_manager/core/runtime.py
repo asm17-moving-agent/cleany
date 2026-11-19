@@ -1,4 +1,4 @@
-"""단일 소유자 FSM입니다. tick()은 ROS action이나 네트워크 I/O를 기다리지 않습니다."""
+"""Single-owner FSM. tick() never waits for ROS actions or network I/O."""
 
 from dataclasses import asdict, replace, is_dataclass
 from collections import deque
@@ -16,16 +16,17 @@ from .supervision import Authorization, SupervisionPort
 
 
 class MissionRuntime:
-    """한 스레드에서 임무 수락, 진행과 정지 확인을 관리합니다.
+    """Own mission admission, progress and stop confirmation on one thread.
 
-    비블로킹 작업 포트와 함께 tick()을 정기적으로 호출합니다. 생성 시 미완료 journal
-    항목을 운영자 검토가 필요한 INTERRUPTED 결과로 바꿉니다. 수락과 종료 결과는
-    동기적으로 영속 저장합니다.
+    Call tick() regularly with nonblocking operation ports. Construction turns
+    unfinished journal entries into INTERRUPTED outcomes requiring operator
+    review. Admission and terminal outcomes are persisted synchronously.
 
-    supervision 포트가 있으면 System Supervisor가 시스템 fault와 capability를
-    관리합니다. 수락에는 가용성이, 이동에는 부여된 임대가 필요하며 권한을 잃으면
-    임무를 멈춥니다. 권한 상실은 Runtime 실행 오류가 아니므로 ERROR 진입 없이
-    종료합니다. 자체 작업의 정지 확인과 ERROR/reset 규칙은 Runtime이 계속 관리합니다.
+    With a supervision port the System Supervisor owns system faults and
+    capabilities: admission needs its availability, motion needs a granted lease
+    and lost authority stops the mission. Losing authority is not a Runtime
+    execution error, so it ends the mission without entering ERROR. The Runtime
+    still owns stop confirmation of its own operations and its ERROR/reset rules.
     """
     def __init__(self, *, navigator: OperationPort, perception: OperationPort,
                  planner: OperationPort, executor: ExecutorPort, clock: Callable[[], float],
@@ -104,10 +105,10 @@ class MissionRuntime:
         return True, ""
 
     def offer(self, request: RuntimeRequest) -> Admission:
-        """준비 상태 확인과 journal 저장 이후에만 지원하는 임무를 수락합니다.
+        """Admit a supported mission only after readiness and journal persistence.
 
-        동일 요청은 작업을 재시작하지 않고 기존 수락과 종료 보고서를 재전달합니다.
-        같은 mission ID에 다른 필드를 사용하면 거부합니다.
+        An identical request replays its admission and any terminal report without
+        restarting work. Reusing its mission ID with different fields is rejected.
         """
         if any(not value.strip() for value in (
             request.mission_id, request.target_id, request.requested_by,
@@ -145,10 +146,10 @@ class MissionRuntime:
         return Admission(True)
 
     def cancel(self, mission_id: str) -> Admission:
-        """취소를 요청하거나 기존 종료 보고서를 재전달합니다.
+        """Request cancellation or replay an existing terminal report.
 
-        수락은 요청 확인이며 물리적 정지가 아닙니다. tick()은 정지가 확인되거나
-        정지 마감 시각이 지날 때까지 어댑터를 계속 polling해야 합니다.
+        Acceptance confirms the request, not physical stop; tick() must continue
+        polling the adapters until stop is confirmed or the stop deadline expires.
         """
         existing = self.journal.get(mission_id)
         if existing and existing[1]:
@@ -195,7 +196,7 @@ class MissionRuntime:
             self._enter(RuntimeState.ERROR)
 
     def safety_released(self, code: FailureCode) -> Admission:
-        # 안전 소유자의 알림이 있어야 이후 운영자가 명시적으로 reset할 수 있습니다.
+        # A notification from the safety owner permits a later explicit operator reset.
         if (self.state != RuntimeState.ERROR or self.error_code != code.value
                 or code not in (FailureCode.E_STOP, FailureCode.HARDWARE_ERROR)):
             return Admission(False, "NO_MATCHING_SAFETY_FAULT")
@@ -206,10 +207,10 @@ class MissionRuntime:
         return Admission(True)
 
     def supervisor_stop(self, mission_id: str, reason: str) -> Admission:
-        """활성 또는 종료된 임무에 대한 Supervisor 정지 요청을 받습니다.
+        """Accept a Supervisor stop request for the active or a finished mission.
 
-        재시작한 Runtime이나 Supervisor가 이전 임대의 확인을 필요로 할 수 있으므로
-        여기서 실행 중이지 않은 임무는 정지 근거만으로 응답합니다.
+        A mission not running here is answered from stop evidence only, because a
+        restarted Runtime or Supervisor may still need confirmation of an old lease.
         """
         if self.request is None:
             return Admission(True)
@@ -220,11 +221,11 @@ class MissionRuntime:
         return Admission(True)
 
     def supervisor_stop_confirmed(self, mission_id: str) -> bool:
-        """여기서 실행 중인 작업이 없고 모든 작업이 정지를 보고할 때만 True입니다."""
+        """True only when no work runs here and every operation reports stopped."""
         return self.request is None and self._stopped()
 
     def tick(self) -> None:
-        """ROS 또는 네트워크 응답을 기다리지 않고 대기 중인 작업을 진행합니다."""
+        """Advance pending operations without waiting for ROS or network replies."""
         try:
             self._tick()
         except Exception as exc:
@@ -233,7 +234,7 @@ class MissionRuntime:
                     FailureCode.UNKNOWN_ERROR, message=f"adapter failure: {exc}"
                 )
                 if self.state == RuntimeState.CANCELLING:
-                    # 어댑터 예외가 반복되어도 취소 시간 예산을 늘리지 않습니다.
+                    # Repeated adapter exceptions cannot extend the cancellation budget.
                     if self.clock() - self.started_at >= self.policy.cancel_timeout:
                         self._finish(failure, force_error=True)
                 else:
@@ -258,7 +259,7 @@ class MissionRuntime:
         if self.state != RuntimeState.CANCELLING and not self._authorized():
             return
         if self.state == RuntimeState.CANCELLING:
-            # 취소도 polling합니다. 취소 요청만으로 정지를 확인하지 않습니다.
+            # Poll cancellation too: a cancel request alone is never a stopped acknowledgement.
             if self.operation_id:
                 result = self.navigator.poll(self.operation_id)
                 if result:
@@ -347,7 +348,7 @@ class MissionRuntime:
                 self._finish()
 
     def _authorized(self) -> bool:
-        """모든 활성 tick에서 Supervisor 임대를 확인하며 첫 이동 전에만 취득을 기다립니다."""
+        """Gate every active tick on the Supervisor lease; wait only before first motion."""
         if self.supervision is None:
             return True
         status, reason = self.supervision.authorization()
@@ -439,8 +440,8 @@ class MissionRuntime:
         self.last_report = report
         if self.supervision is not None:
             try:
-                # 정지가 확인된 경우에만 임대를 반환합니다. 그렇지 않으면 Supervisor가
-                # 임대를 만료시키고 직접 정지를 검증합니다.
+                # Only confirmed stops return the lease; otherwise the Supervisor
+                # lets it expire and verifies the stop itself.
                 self.supervision.release() if self._stopped() else self.supervision.abandon()
             except Exception:
                 pass
@@ -494,7 +495,7 @@ class MissionRuntime:
             return {"error": str(exc)}
 
     def observe(self, kind: str, data: dict) -> None:
-        """범위가 제한된 메모리 내 관측이며 소비자가 I/O나 임무 제어를 수행하지 않습니다."""
+        """Bounded in-memory observation; no I/O or mission control from consumers."""
         self.debug_sequence += 1
         proposal = self.cleaning.context.proposal if self.cleaning else None
         self.debug_events.append({

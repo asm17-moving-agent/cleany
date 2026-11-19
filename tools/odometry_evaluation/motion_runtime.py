@@ -1,4 +1,4 @@
-"""보정 이동의 공통 ROS 실행 경로이며 보고서는 생성하지 않습니다."""
+"""Shared ROS execution path for calibration motion; no report generation."""
 
 import math
 import time
@@ -25,7 +25,7 @@ def init_motion_runtime(node: Any, config: MotionConfig | None = None) -> None:
 
 
 def request_abort(node: Any, reason: str) -> None:
-    """콜백에서 안전한 STOP입니다. 중첩 spin 없이 0을 발행하고 구동 해제를 요청합니다."""
+    """Callback-safe STOP: publish zero and request disable without nested spinning."""
     node.aborted = True
     node.last_failure = reason
     node.cmd_vel_pub.publish(Twist())
@@ -46,7 +46,7 @@ def receive_odometry(node: Any, msg: Any) -> None:
         if hasattr(node, "get_clock"):
             stamp_ns = msg.header.stamp.sec * 1_000_000_000 + msg.header.stamp.nanosec
             age_s = (node.get_clock().now().nanoseconds - stamp_ns) / 1e9
-            # 큐에 쌓인 이전 패킷으로 수신 watchdog을 갱신하지 않습니다.
+            # Queued old packets do not refresh the receipt watchdog.
             if abs(age_s) > node.guard.timeout_s:
                 return
         if not all(math.isfinite(v) for v in values):
@@ -76,7 +76,7 @@ def stop_motion(node: Any) -> None:
 
 
 def await_fresh_pose(node: Any, timeout_s: float = 1.0) -> Any:
-    """수동 관측의 오래된 데이터는 회복할 수 있지만 기존 안전 latch는 자동 해제하지 않습니다."""
+    """Passive stale data may recover; an existing safety latch may not."""
     deadline = time.monotonic() + timeout_s
     while rclpy.ok() and not node.aborted and time.monotonic() < deadline:
         rclpy.spin_once(node, timeout_sec=0.02)

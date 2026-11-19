@@ -1,10 +1,10 @@
-"""운영용 감독 및 임무 노드를 합성 환경과 연결한 전체 ROS graph 검사입니다.
+"""End-to-end ROS graph: production supervision and mission nodes against a synthetic plant.
 
-실제 노드는 SupervisorNode, SafetyAdapter, BaseDriver + MockMcu, 감독되는
-Nav2 백엔드의 MissionRuntimeNode이며, 주행 설치 환경을 source하면
-LifecycleRecovery도 포함합니다. SyntheticPlant가 센서, 위치 추정 TF, Nav2
-action server와 lifecycle 서비스, 안전 하드웨어 근거를 대체합니다. 응답은
-합성이므로 이 호스트의 소프트웨어 계약과 지연을 검증하며 물리 정지를 입증하지 않습니다.
+Real nodes: SupervisorNode, SafetyAdapter, BaseDriver + MockMcu, MissionRuntimeNode (Nav2
+backend, supervised) and, when the navigation install base is sourced, LifecycleRecovery.
+`SyntheticPlant` stands in for sensors, localization TF, the Nav2 action server, Nav2
+lifecycle services and safety-hardware evidence. Its responses are synthetic: these tests
+prove software contracts and latencies on this host, not physical stopping.
 """
 import json
 import os
@@ -49,7 +49,7 @@ from cleany_system_supervisor.node import SupervisorNode
 
 try:
     from cleany_navigation.lifecycle_recovery_node import LifecycleRecovery
-except ImportError:  # 주행 설치 환경은 별도로 빌드합니다.
+except ImportError:  # The navigation install base is built separately.
     LifecycleRecovery = None
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -70,7 +70,7 @@ def wait(predicate, timeout=8., message='condition did not become true'):
 
 
 class SyntheticPlant(Node):
-    """합성 센서, 위치 추정, Nav2 서버와 안전 하드웨어 근거입니다."""
+    """Synthetic sensors, localization, Nav2 servers and safety-hardware evidence."""
 
     def __init__(self):
         super().__init__('synthetic_plant')
@@ -105,7 +105,7 @@ class SyntheticPlant(Node):
 
     def _manage(self, manager, request, response):
         self.lifecycle_commands.append((manager, request.command))
-        sleep(.2)  # lifecycle 전이에 시간이 걸리므로 소유자가 복구를 겹쳐 실행하면 안 됩니다.
+        sleep(.2)  # A lifecycle transition takes time; the owner must not overlap recoveries.
         if request.command == ManageLifecycleNodes.Request.STARTUP and manager.endswith('navigation'):
             self.bad.discard('navigation')
         response.success = True
@@ -125,7 +125,7 @@ class SyntheticPlant(Node):
                 return NavigateToPose.Result()
             if not self.hold and not goal.is_cancel_requested and monotonic() - started > .2:
                 self.pose, self.moving = goal.request.pose.pose, False
-                sleep(.05)  # 결과 전에 정지 피드백을 발행합니다.
+                sleep(.05)  # Stopped feedback is published before the result.
                 goal.succeed()
                 return NavigateToPose.Result()
             sleep(.005)
@@ -206,7 +206,7 @@ class Graph:
         wait(lambda: self.mission is not None)
 
     def _run_mission(self, parameters):
-        # 운영의 rclpy.spin처럼 Runtime과 SQLite journal은 한 스레드에서 동작합니다.
+        # The Runtime and its SQLite journal live on one thread, as with rclpy.spin in production.
         node = MissionRuntimeNode(parameter_overrides=parameters)
         self.mission_executor.add_node(node)
         self.mission = node
@@ -221,7 +221,7 @@ class Graph:
         return node
 
     def remove(self, node):
-        # 제거한 노드의 진행 중 콜백이 끝난 뒤 handle을 파괴합니다.
+        # Let in-flight callbacks of the removed node finish before its handles are destroyed.
         self.executor.remove_node(node)
         self.nodes.remove(node)
         sleep(.3)
@@ -266,8 +266,8 @@ class Graph:
             node.destroy_node()
 
 
-# 테스트마다 새 DDS domain을 사용합니다. 종료된 graph participant가 탐색에
-# 남으면 다음 graph에서 신뢰하지 않는 publisher로 보일 수 있습니다.
+# A fresh DDS domain per test: participants of a finished graph can linger in discovery
+# and would otherwise appear as untrusted publishers to the next graph.
 _DOMAINS = iter(range(int(os.environ.get('SUPERVISOR_E2E_DOMAIN_BASE', '200')), 225))
 
 
@@ -305,7 +305,7 @@ def record(name, values):
 def test_boot_waits_for_mcu_link_and_runtime_admission_follows_the_supervisor(graph):
     g = graph(mcu=False)
     sleep(3.)
-    assert 'BASE_UNAVAILABLE' not in g.core.faults.faults  # MCU 대기는 latch가 아닙니다.
+    assert 'BASE_UNAVAILABLE' not in g.core.faults.faults  # Waiting for the MCU is not a latch.
     assert g.core.capabilities.states['BASE_MOTION'] == Availability.UNKNOWN
     ready, reason = g.runtime.readiness()
     assert not ready and reason in ('SYSTEM_INITIALIZING', 'CAPABILITY_UNAVAILABLE:NAVIGATION')
@@ -332,7 +332,7 @@ def test_mcu_link_gaps_transient_blocks_motion_persistent_latches(graph):
     wait(lambda: 'BASE_UNAVAILABLE' in g.core.faults.faults, 3.)
     assert g.call(transport, SetBool.Request(data=True)).success
     sleep(1.)
-    assert g.core.state == OperatingState.FAULT_LOCKED  # 운영자가 reset할 때까지 latch를 유지합니다.
+    assert g.core.state == OperatingState.FAULT_LOCKED  # Latched until an operator reset.
     assert not g.runtime.readiness()[0]
     response = g.reset('BASE_UNAVAILABLE')
     assert response.reset, response.reason
@@ -347,7 +347,7 @@ def test_restarted_supervisor_reconciles_link_latch_after_disarmed_feedback(grap
     wait(lambda: 'BASE_UNAVAILABLE' in g.core.faults.faults, 3.)
     assert g.call(transport, SetBool.Request(data=True)).success
     wait(lambda: g.core.health.healthy('base_disarmed', monotonic()))
-    assert g.core.faults.faults['BASE_UNAVAILABLE'].active  # 현재 fault를 자동 reset하지 않습니다.
+    assert g.core.faults.faults['BASE_UNAVAILABLE'].active  # No live-fault auto-reset.
     assert not g.runtime.readiness()[0]
     g.restart_supervisor()
     admissible(g)
@@ -365,7 +365,7 @@ def test_cmd_vel_timeout_is_a_safe_disable_not_a_base_fault(graph):
     wait(lambda: g.driver.enabled, 2.)
     g.observer.create_publisher(Twist, 'cmd_vel', 10).publish(Twist())
     wait(lambda: g.driver.diagnostic_error == 'cmd_vel timeout', 3.)
-    sleep(1.)  # 전체 구간에서 진단 수준은 ERROR입니다.
+    sleep(1.)  # The diagnostics level stays ERROR for the whole period.
     assert 'BASE_UNAVAILABLE' not in g.core.faults.faults
     assert g.core.capabilities.states['BASE_MOTION'] == Availability.AVAILABLE
 
@@ -432,7 +432,7 @@ def test_supervisor_crash_stops_the_mission_and_restart_reconfirms_the_old_lease
     wait(lambda: g.runtime.state == RuntimeState.IDLE and g.runtime.last_report is not None, 6.)
     assert g.runtime.last_report.failure_code == 'PERMISSION_REVOKED'
     record('supervisor_crash_to_nav2_cancel', {'nav2_cancel_s': latency})
-    assert latency < 1.7  # heartbeat 시간 제한 1.0초에 Runtime tick 한 번과 DDS 전달 시간을 더합니다.
+    assert latency < 1.7  # Heartbeat timeout 1.0 s plus one Runtime tick and DDS delivery.
     g.supervisor = g.add(SupervisorNode(config=deepcopy(g.config)))
     wait(lambda: lease_id in g.core.permissions.leases and g.core.permissions.leases[lease_id].stopped, 8.,
          lambda: f'restored lease {g.core.permissions.leases.get(lease_id)}, runtime {g.runtime.state.value}')
@@ -451,9 +451,9 @@ def test_stop_failure_escalates_and_faults_reset_by_their_owners(graph):
     code = 'MISSION_STOP_FAILED:' + lease_id
     wait(lambda: code in g.core.faults.faults and g.core.faults.faults[code].active, 6.)
     assert g.core.state == OperatingState.FAULT_LOCKED
-    assert g.runtime.state == RuntimeState.ERROR  # Runtime 자체 정지 마감 규칙입니다.
+    assert g.runtime.state == RuntimeState.ERROR  # The Runtime's own stop-deadline rule.
     g.plant.bad.discard('lidar')
-    g.plant.ignore_cancel = False  # 베이스가 마침내 정지합니다.
+    g.plant.ignore_cancel = False  # The base finally stops.
     response = g.reset(code)
     assert not response.reset and 'verification requested' in response.reason
     wait(lambda: not g.core.faults.faults[code].active, 8.)
@@ -479,7 +479,7 @@ def test_navigation_recovery_via_lifecycle_manager_and_unsupported_lidar(graph):
     wait(lambda: all(result.done() for result in results), 20.)
     outcomes = [result.result().result for result in results]
     assert all(outcome.restored for outcome in outcomes), [o.detail for o in outcomes]
-    assert outcomes[0].job_id == outcomes[1].job_id  # 중복 요청은 같은 작업에 합류합니다.
+    assert outcomes[0].job_id == outcomes[1].job_id  # A duplicate request joins the same job.
     assert [command for _, command in g.plant.lifecycle_commands] == [
         ManageLifecycleNodes.Request.RESET, ManageLifecycleNodes.Request.STARTUP]
     admissible(g)
@@ -498,7 +498,7 @@ def test_restart_keeps_estop_latch_until_operator_reset(graph):
     admissible(g)
     g.plant.estop_released = False
     wait(lambda: g.core.faults.faults.get('ESTOP') is not None and g.core.faults.faults['ESTOP'].active, 3.)
-    # 수락은 snapshot 하나 뒤처질 수 있는 캐시 사전 검사이며 실제 권한은 임대입니다.
+    # Admission is a cached precheck (one snapshot behind); the lease is the authority.
     wait(lambda: g.runtime.readiness()[1] == 'SYSTEM_FAULT_LOCKED', 2.)
     assert g.offer().reason == 'SYSTEM_FAULT_LOCKED'
     g.plant.estop_released = True

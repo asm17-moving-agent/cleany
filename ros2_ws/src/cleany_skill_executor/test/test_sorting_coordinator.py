@@ -298,7 +298,7 @@ def test_pregrasp_opens_only_selected_gripper_in_same_checked_motion(monkeypatch
         _execution_scene=SimpleNamespace(begin=lambda *_: events.append('scene'),
             disallow_target_contacts=lambda: events.append('forbid_contact'), restore=lambda: events.append('restore')),
         _move_to=move, _verify_feedback=lambda state: events.append(('feedback', len(state.name))))
-    # super()의 장면 트랜잭션을 검사하도록 실제 하위 클래스 인스턴스를 사용합니다.
+    # Use a real subclass instance so the super() scene transaction is exercised.
     actual = object.__new__(SortingCoordinator)
     actual.__dict__.update(node.__dict__)
     actual._execute_pregrasp(selected, SimpleNamespace(object_id=1))
@@ -307,7 +307,7 @@ def test_pregrasp_opens_only_selected_gripper_in_same_checked_motion(monkeypatch
 
 
 def sorting_loop(attempts=(), *, maximum=2, stage=None, **overrides):
-    """루프 harness 하나를 사용하며 각 시나리오는 관측과 효과만 제공합니다."""
+    """One loop harness; each scenario supplies only its observations and effects."""
     root = Path(__file__).parents[2]
     values = dict(sorting_maximum_objects=maximum,
                   sorting_required_categories=[], sorting_empty_confirmations=2)
@@ -695,7 +695,7 @@ def test_carry_replans_endpoint_and_retries_only_plan_failures(monkeypatch, fail
     else:
         assert node._plan_linear_motion('right', pose, 'reverse grasp retreat', **kwargs) == 'validated trajectory'
         assert [a for a, _ in calls] == pytest.approx(np.deg2rad([2.,5.]))
-        assert all(list(q) == [.3] for _, q in calls)  # 이전 1rad 목표를 재사용하지 않습니다.
+        assert all(list(q) == [.3] for _, q in calls)  # old 1-radian goal is never reused
 
 
 def test_carry_execution_error_is_never_retried(monkeypatch):
@@ -883,7 +883,7 @@ def test_release_requires_fixed_point_wrist_feedback_and_opening_fit(size, feedb
         assert node._held_object is None
 
 
-# 벡터 전체의 같은 유한성 검사가 모든 축과 비유한 값 종류를 처리합니다.
+# The same vector-wide finite check covers every axis and nonfinite kind.
 @pytest.mark.parametrize('axis,value', [('x', float('nan')), ('y', float('inf')), ('z', -float('inf'))])
 def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, value):
     pose = Pose()
@@ -977,7 +977,7 @@ def test_distant_same_label_observation_is_not_proof_of_held_object(monkeypatch)
         node._verify_lift_height(object(), minimum_center_z_m=.46)
 
 
-# IK 실패 시 두 번째 접촉 검사 전에 멈춥니다.
+# Failed IK stops before the second contact check.
 @pytest.mark.parametrize('valid_ik,contact_after', [(True, True), (True, False), (False, True)])
 def test_reobservation_checks_scene_ik_execution_and_contact(valid_ik, contact_after):
     node, values, _ = recovery_node()

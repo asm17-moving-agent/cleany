@@ -1,4 +1,4 @@
-"""합성 lifecycle manager 서비스로 lifecycle 복구 소유자를 검사합니다."""
+"""Lifecycle recovery owner against a synthetic lifecycle manager service."""
 from threading import Thread
 from time import monotonic, sleep
 
@@ -64,7 +64,7 @@ def test_reset_then_startup_and_conflicting_goal_rejected(graph):
     assert client.wait_for_server(timeout_sec=5.)
     first = send(client)
     assert first.accepted
-    assert not send(client, 'other').accepted  # 한 번에 복구 하나만 수행합니다.
+    assert not send(client, 'other').accepted  # One recovery at a time.
     result = first.get_result_async()
     wait(result.done)
     assert result.result().result.success

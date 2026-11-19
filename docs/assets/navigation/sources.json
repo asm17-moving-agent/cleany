@@ -1,8 +1,0 @@
-{
-  "phone-preview.png": {
-    "kind": "Cleany UI screenshot with synthetic inputs",
-    "description": "Phone path preview; no robot connected and no movement goal sent.",
-    "source_id": "2026-11-06_phone-path-preview-lan/reports/preview-ui.png",
-    "sha256": "b9bd77511e67db9527e735361811f38d839c056f8fb3764cd3e71936c33a89f1"
-  }
-}

@@ -1,4 +1,4 @@
-"""로봇 토픽 없이 격리된 합성 스캔으로 실제 monitor를 검사합니다."""
+"""Exercise the real monitor with isolated synthetic scans, never robot topics."""
 import math
 import os
 from pathlib import Path

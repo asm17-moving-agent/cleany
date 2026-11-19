@@ -1,4 +1,4 @@
-"""기존 Nav2 lifecycle manager에 위임하는 컴포넌트 소유자 측 Supervisor 복구입니다."""
+"""Owner-side Supervisor recovery that delegates to the existing Nav2 lifecycle managers."""
 from threading import Event, Lock
 from time import monotonic
 
@@ -12,22 +12,22 @@ from rclpy.node import Node
 
 
 class LifecycleRecovery(Node):
-    """lifecycle manager 하나를 RESET 후 STARTUP해 RecoverComponent 목표를 처리합니다.
+    """Serve RecoverComponent goals by RESET then STARTUP of one lifecycle manager.
 
     Actions:
         navigation/recover, localization/recover (cleany_interfaces/action/RecoverComponent):
-            Server이며 actions 기본값입니다. 모든 action을 통틀어 목표 하나만 처리합니다.
+            Servers; actions default. One goal at a time across all actions.
 
     Services:
         lifecycle_manager_navigation/manage_nodes,
         lifecycle_manager_localization/manage_nodes (nav2_msgs/srv/ManageLifecycleNodes):
-            action과 대응하는 Client이며 lifecycle_managers 기본값입니다.
+            Clients paired with actions; lifecycle_managers default.
 
     Notes:
-        reset은 lifecycle manager가 수행하며 이 노드는 프로세스를 재시작하거나
-        Nav2 BT 복구를 호출하지 않습니다. 취소는 단계 사이에 적용합니다.
-        성공은 manager의 성공 보고만 뜻하며 Supervisor가 이후 최신 lifecycle과
-        위치 추정 상태로 복구를 검증합니다.
+        The lifecycle manager performs the reset; this node does not restart
+        processes or call Nav2 BT recoveries. A cancel takes effect between steps.
+        Success only means the manager reported success: the Supervisor verifies
+        recovery with fresh lifecycle and localization health afterwards.
     """
 
     def __init__(self, **kwargs):
@@ -49,7 +49,7 @@ class LifecycleRecovery(Node):
                 callback_group=self.group))
 
     def _goal(self, _request):
-        # Supervisor 재시도를 포함해 어느 lifecycle manager든 충돌하는 복구를 거부합니다.
+        # Conflicting recovery (any lifecycle manager) is rejected, including Supervisor retries.
         return GoalResponse.ACCEPT if self.busy.acquire(blocking=False) else GoalResponse.REJECT
 
     def _call(self, client, command):
@@ -80,7 +80,7 @@ class LifecycleRecovery(Node):
                     goal.abort()
                     return RecoverComponent.Result(success=False, detail=detail)
             goal.succeed()
-            # 성공은 lifecycle manager의 성공 보고이며 상태 확인은 Supervisor가 담당합니다.
+            # Success means the lifecycle manager reported success; health is verified by the Supervisor.
             return RecoverComponent.Result(success=True, detail='lifecycle reset and startup reported success')
         finally:
             self.busy.release()

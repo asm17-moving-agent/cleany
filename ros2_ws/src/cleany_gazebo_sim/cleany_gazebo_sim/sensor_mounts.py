@@ -1,4 +1,4 @@
-"""시뮬레이션 launch가 공유하는 LiDAR 장착 프로필과 센서 TF 설정입니다."""
+"""LiDAR mount profiles and sensor TF configuration shared by simulation launches."""
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path

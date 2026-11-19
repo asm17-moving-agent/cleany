@@ -1,4 +1,4 @@
-"""ROS에 독립적인 ChArUco 타깃 검출과 대응점 검사입니다."""
+"""ROS-independent ChArUco target detection and correspondence checks."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ class DetectionFailure(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class CharucoTargetSpec:
-    """고정된 Cleany 보정 타깃 계약입니다."""
+    """The fixed Cleany calibration target contract."""
 
     squares_x: int = SQUARES_X
     squares_y: int = SQUARES_Y
@@ -83,7 +83,7 @@ class CharucoTargetSpec:
 
 @dataclass(frozen=True, slots=True)
 class CharucoDetection:
-    """검출한 대응점과 결정적인 검증 결과입니다."""
+    """Detected correspondences and their deterministic validation result."""
 
     valid: bool
     failure_reason: DetectionFailure | None
@@ -102,7 +102,7 @@ class CharucoDetection:
 def create_charuco_board(
     spec: CharucoTargetSpec | None = None,
 ):
-    """OpenCV 4.5.4 Python API로 보드를 생성합니다."""
+    """Create the board through the OpenCV 4.5.4 Python API."""
 
     target = spec or CharucoTargetSpec()
     if not hasattr(cv2, 'aruco'):
@@ -139,7 +139,7 @@ def create_charuco_board(
 def charuco_object_points_m(
     spec: CharucoTargetSpec | None = None,
 ) -> np.ndarray:
-    """ChArUco 모서리 ID를 인덱스로 하는 물체 좌표점을 반환합니다."""
+    """Return object points indexed by ChArUco corner ID."""
 
     board = create_charuco_board(spec)
     return np.asarray(board.chessboardCorners, dtype=np.float64).copy()
@@ -212,7 +212,7 @@ def analyze_charuco_corners(
     *,
     spec: CharucoTargetSpec | None = None,
 ) -> CharucoDetection:
-    """ID, 순서, 최소 개수와 보드 영역 분포를 검사합니다."""
+    """Validate IDs, ordering, minimum count, and board-region coverage."""
 
     target = spec or CharucoTargetSpec()
     ids = _normalized_corner_ids(corner_ids)
@@ -272,7 +272,7 @@ def analyze_charuco_corners(
 
 
 class CharucoTargetDetector:
-    """ROS 메시지 타입을 노출하지 않는 OpenCV 4.5.4 검출기입니다."""
+    """OpenCV 4.5.4 detector that exposes no ROS message types."""
 
     def __init__(self, spec: CharucoTargetSpec | None = None) -> None:
         self.spec = spec or CharucoTargetSpec()

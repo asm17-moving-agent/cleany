@@ -1,4 +1,4 @@
-"""선택적 관측 충돌 메시의 정확한 출처를 보관하는 크기 제한 캐시입니다."""
+"""Bounded, exact-provenance cache for optional observed collision meshes."""
 from collections import Counter, OrderedDict
 from copy import deepcopy
 import threading
@@ -7,7 +7,7 @@ import numpy as np
 
 
 def candidate_bounding_radius(candidate, cache=None) -> float:
-    """OBB와 출처가 정확히 일치하는 관측 로컬 메시를 모두 둘러쌉니다."""
+    """Enclose both the OBB and the exact-provenance observed local mesh."""
     size = candidate.target_object.obb_size
     dimensions = np.array((size.x, size.y, size.z), dtype=float)
     if not np.isfinite(dimensions).all() or np.any(dimensions <= 0):
@@ -40,10 +40,10 @@ def subscribe_collision_geometry(node, cache, *, callback_group=None, record=Fal
 
 
 class CollisionGeometryCache:
-    """검증된 닫힌 볼록 메시 복사본을 크기 제한 안에서 콜백 간 보관합니다.
+    """Retain bounded copies of validated, closed convex meshes across callbacks.
 
-    조회에는 snapshot 및 물체 식별, header와 OBB 자세가 일치해야 합니다.
-    출처가 없거나 다르면 다른 메시로 대체하지 않고 None을 반환합니다.
+    Lookup requires matching snapshot/object identity, header and OBB pose;
+    missing or mismatched provenance returns None rather than substituting a mesh.
     """
     def __init__(self, capacity: int = 64) -> None:
         if capacity < 1:

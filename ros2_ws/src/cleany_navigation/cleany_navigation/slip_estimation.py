@@ -1,4 +1,4 @@
-"""ROS나 제어 부작용 없이 공유하는 바퀴/LiDAR 비교입니다."""
+"""Shared wheel/LiDAR comparison, with no ROS or control side effects."""
 from __future__ import annotations
 from dataclasses import asdict, dataclass
 import math
@@ -52,7 +52,7 @@ def relative_pose(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 def odom_delta(odom: np.ndarray, t0: float, t1: float, maximum_gap: float) -> np.ndarray:
-    """양쪽 header stamp 사이를 보간하며 큰 간격과 자세 불연속은 거부합니다."""
+    """Interpolate bracketing header stamps; reject gaps and pose discontinuities."""
     if len(odom) < 2 or not np.all(np.isfinite(odom)):
         raise ValueError('invalid_odometry')
     if t0 < odom[0, 0] or t1 > odom[-1, 0] or t1 <= t0:
@@ -75,7 +75,7 @@ def odom_delta(odom: np.ndarray, t0: float, t1: float, maximum_gap: float) -> np
 
 
 def classify(wheel: np.ndarray, lidar: np.ndarray, valid: bool, config: Settings) -> dict[str, Any]:
-    """지속적인 구동 불일치를 표시하며 물리적 미끄럼 원인이 입증되었다는 뜻은 아닙니다."""
+    """Flag persistent traction disagreement, not a proven physical slip cause."""
     if not valid or not np.all(np.isfinite(np.r_[wheel, lidar])):
         return {'status': 'unknown', 'kind': 'unreliable_measurement'}
     error = wheel-lidar
@@ -105,7 +105,7 @@ def classify(wheel: np.ndarray, lidar: np.ndarray, valid: bool, config: Settings
 
 
 def events(rows: list[dict[str, Any]], config: Settings) -> list[dict[str, Any]]:
-    """신뢰 가능한 의심 구간이 연속되어야 하며 미확인 표본은 이벤트를 끊습니다."""
+    """Require consecutive reliable suspect windows; unknown samples break events."""
     result, active = [], []
     def finish() -> None:
         if len(active) >= config.minimum_consecutive_windows:

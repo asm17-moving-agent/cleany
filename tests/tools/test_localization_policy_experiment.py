@@ -1,4 +1,4 @@
-"""근거 구간의 공백이나 모호한 정합을 복구 성공으로 바꾸면 안 됩니다."""
+"""Evidence windows must not turn gaps or ambiguous matches into recovery success."""
 import importlib.util
 from pathlib import Path
 import sys

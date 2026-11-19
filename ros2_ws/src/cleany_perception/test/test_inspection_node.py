@@ -91,7 +91,7 @@ def _sensor_messages(scene, stamp_ns):
     snapshot = scene['snapshot']
     color = Image()
     color.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
-    # 이 fixture는 깊이가 이미 색상 영상에 정렬된 상태를 나타냅니다.
+    # This fixture represents depth already registered to the color image.
     color.header.frame_id = snapshot.source_frame
     color.width = snapshot.intrinsics.width
     color.height = snapshot.intrinsics.height

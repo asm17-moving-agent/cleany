@@ -1,4 +1,4 @@
-"""영속 journal과 함께 mock 네임스페이스에서 조작 Action을 실행합니다."""
+"""Launch the manipulation Action in a mock namespace with a persistent journal."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument

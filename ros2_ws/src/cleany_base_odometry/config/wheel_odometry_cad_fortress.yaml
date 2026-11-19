@@ -1,6 +1,6 @@
-# CAD-frame Fortress 시설 프로필의 시뮬레이션 전용 보정입니다.
-# 물리 step은 0.0066667 s이며 odometry 잡음을 주입하지 않습니다. 실물 보정이 아닙니다.
-# 시각을 맞춘 GT로 독립 실행 두 번에서 yaw gain 1.0465와 1.0469를 측정했습니다.
+# Simulation-only calibration for the CAD-frame Fortress facility profile.
+# Physics step 0.0066667 s; no injected odometry noise. Not a physical-robot calibration.
+# Two independent runs measured yaw gains 1.0465 and 1.0469 using stamp-aligned GT.
 wheel_odometry:
   ros__parameters:
     base_frame_id: base_link

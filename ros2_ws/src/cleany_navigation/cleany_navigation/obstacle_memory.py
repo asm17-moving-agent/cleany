@@ -1,4 +1,4 @@
-"""지속적인 map 좌표 격자에 센서별로 분리해 보관하는 범위 제한 voxel 근거입니다."""
+"""Bounded, sensor-separated voxel evidence with a persistent map-frame grid."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -37,15 +37,15 @@ class ObstacleMemory:
         self.evidence = np.zeros((2, *geometry.shape), dtype=np.int8)
         self.last_seen = np.zeros((2, geometry.height, geometry.width), dtype=np.float64)
         self.hit_count = np.zeros_like(self.last_seen, dtype=np.uint32)
-        # 성긴 타임스탬프와 미확인 인덱스로 두 번째 조밀한 3D float 격자를 피합니다.
+        # Sparse timestamps and unknown indices avoid a second dense 3-D float grid.
         self.occupied_at: list[dict[int, float]] = [{}, {}]
         self.expired: list[set[int]] = [set(), set()]
 
     def rebind_map(self, geometry: MemoryGeometry) -> None:
-        """관측 장애물을 잊지 않고 정적 지도 식별 정보를 갱신합니다.
+        """Refresh a static-map identity without forgetting observed obstacles.
 
-        원점, 해상도나 범위가 바뀌면 기존 voxel 인덱스를 재사용할 수 없습니다.
-        호출자는 근거를 조용히 재해석하지 말고 mapping을 멈춰야 합니다.
+        A new origin/resolution/extent cannot reuse existing voxel indices. The
+        caller must stop mapping rather than silently reinterpret evidence.
         """
         old, new = asdict(self.geometry), asdict(geometry)
         old.pop('map_id');new.pop('map_id')
@@ -62,11 +62,11 @@ class ObstacleMemory:
 
     def observe(self, source: str, sensor: np.ndarray, endpoints: np.ndarray, hits: np.ndarray, timestamp: float,
                 all_hit_endpoints: np.ndarray | None = None) -> None:
-        """voxel 반 간격으로 ray를 표본화하며 한 프레임에서는 hit가 빈 공간 ray보다 우선합니다.
+        """Ray sampling at half a voxel; hits win over free rays in one frame.
 
-        이 소스의 ray가 통과한 3D voxel만 지웁니다. FOV 전체나 투영 바닥을 일괄
-        제거하지 않습니다. 만료된 근거는 같은 소스가 정확히 그 voxel을 재관측할 때까지
-        미확인으로 남습니다.
+        Only this source's traversed 3-D voxels are cleared. No FOV-wide or
+        projected-floor clearing. Expired evidence stays unknown until this source
+        observes that exact voxel again.
         """
         channel = self.sources.index(source)
         endpoints = np.asarray(endpoints, dtype=float).reshape(-1, 3)
@@ -80,7 +80,7 @@ class ObstacleMemory:
         g = self.geometry
         delta = endpoints-sensor
         steps = np.maximum(1, np.ceil(np.max(np.abs(delta)/[g.resolution, g.resolution, g.z_resolution], axis=1)*2).astype(int))
-        # 잘못되거나 범위 없는 ray가 무제한 할당을 유발해서는 안 됩니다.
+        # A malformed/unbounded ray must not cause unbounded allocation.
         if steps.max() > 4096:
             raise ValueError('Observation ray exceeds bounded workspace')
         samples = np.arange(int(steps.max())+1)
@@ -109,10 +109,10 @@ class ObstacleMemory:
         counts[occupied_xy] = np.minimum(counts[occupied_xy].astype(np.uint64)+1, np.iinfo(np.uint32).max)
 
     def expire(self, now: float, ttl_s: float) -> int:
-        """점유 voxel을 개별 만료시키며 다른 소스의 근거는 보존합니다.
+        """Expire occupied voxels individually; other-source evidence survives.
 
-        0이면 만료를 끕니다. 미확인 voxel은 원래 센서의 ray가 통과하거나 다시
-        표시할 때까지 충돌 후보로 남습니다.
+        Zero disables expiry. Unknown voxels remain collision candidates until
+        a ray from the originating sensor traverses them or marks them anew.
         """
         if not np.isfinite(now) or not np.isfinite(ttl_s) or ttl_s < 0:
             raise ValueError('Invalid memory expiry time')
@@ -125,7 +125,7 @@ class ObstacleMemory:
             self.evidence[channel].reshape(-1)[old] = 0
             for i in old:
                 del timestamps[i]
-            # 빈 공간 정보도 만료되지만 충돌 장애물은 아닙니다.
+            # Free-space knowledge also expires, but is not a collision obstacle.
             old_xy = (self.last_seen[channel] > 0) & (
                 (now-self.last_seen[channel] >= ttl_s) | (self.last_seen[channel] > now))
             self.last_seen[channel][old_xy] = 0
@@ -138,7 +138,7 @@ class ObstacleMemory:
         high = g.max_z if max_z is None else max_z
         if not np.isfinite([low, high]).all() or low >= high:
             raise ValueError('Invalid projection height range')
-        # 중심점뿐 아니라 교차하는 voxel 부피를 포함합니다.
+        # Include intersecting voxel volumes, not just their centers.
         return slice(max(0, int(np.floor((low-g.min_z)/g.z_resolution))),
                      max(0, min(g.shape[0], int(np.ceil((high-g.min_z)/g.z_resolution)))))
 
@@ -166,7 +166,7 @@ class ObstacleMemory:
 
     def occupied_centers(self, source: str | None = None, *, center: np.ndarray | None = None,
                          radius: float | None = None, include_expired: bool = False) -> np.ndarray:
-        """빠른 충돌 검사를 위해 전역 복사 없이 로컬 창만 추출합니다."""
+        """Extract only a local window for fast collision checks; no global copy."""
         channels = slice(None) if source is None else slice(self.sources.index(source), self.sources.index(source)+1)
         g = self.geometry
         x0, y0, x1, y1 = 0, 0, g.width, g.height
@@ -177,7 +177,7 @@ class ObstacleMemory:
             y0 = max(0, min(g.height, int(np.floor((center[1]-radius-g.origin_y)/g.resolution))))
             x1 = max(x0, min(g.width, int(np.ceil((center[0]+radius-g.origin_x)/g.resolution))))
             y1 = max(y0, min(g.height, int(np.ceil((center[1]+radius-g.origin_y)/g.resolution))))
-        # 성긴 점유 키를 재사용하며 추출 시 전체 부피를 검색하지 않습니다.
+        # Reuse sparse occupied keys; extraction must not scan the full volume.
         indices = set()
         for channel in (range(2) if source is None else [self.sources.index(source)]):
             indices.update(self.occupied_at[channel])
@@ -216,8 +216,8 @@ class ObstacleMemory:
                     raise ValueError(f'Invalid snapshot array: {key}')
                 setattr(result, key, actual.copy())
             for c in range(2):
-                # 복구한 관측은 이전 실행과 시계에 속합니다. 시작 시 최신으로 표시하지 않고
-                # 재관측할 때까지 미확인으로 유지합니다.
+                # Restored observations belong to a previous run/clock. Retain them
+                # as unknown until reobserved, never stamp them fresh at startup.
                 result.expired[c].update(map(int, np.flatnonzero(result.evidence[c] > 0)))
                 if int(data['schema']) == 2:
                     indices = data[f'expired_{c}']
@@ -232,10 +232,10 @@ class ObstacleMemory:
 def local_observation(sensor: np.ndarray, endpoints: np.ndarray, hits: np.ndarray,
                       all_hits: np.ndarray | None, center: np.ndarray, radius: float
                       ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-    """공간 제거 ray를 근처 원으로 자르며 모든 로컬 장애물 hit는 유지합니다.
+    """Clip clearing rays to a nearby circle; preserve every local marking hit.
 
-    먼 끝점의 ray도 가까운 구간을 지웁니다. 통째로 버리면 사라진 가까운 장애물이
-    계속 점유 상태로 남으므로 그렇게 처리하지 않습니다.
+    Far endpoints still clear the near portion of their ray. They must not be
+    dropped wholesale or a disappeared near obstacle would remain occupied.
     """
     offset = sensor[:2]-center[:2]
     if np.linalg.norm(offset) >= radius:

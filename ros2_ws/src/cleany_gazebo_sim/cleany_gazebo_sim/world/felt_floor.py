@@ -1,4 +1,4 @@
-"""균일한 무광 펠트 시각 형상이며 접촉 파라미터는 독립적으로 정의합니다."""
+"""Uniform matte felt visual; contact parameters remain independently defined."""
 
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -12,7 +12,7 @@ def apply_felt_floor(
     output: Path,
     tile_m: float,
 ) -> None:
-    # 명시적인 UV로 시설 크기가 바뀌어도 섬유 배율을 일정하게 유지합니다.
+    # Explicit UVs keep fibre scale constant as facility dimensions change.
     x, y = width / 2, depth / 2
     u, v = width / tile_m, depth / tile_m
     mesh_path = output.with_suffix('.floor.dae')

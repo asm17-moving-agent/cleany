@@ -1,7 +1,7 @@
-"""사진을 참고해 재구성한 ROLY 표면으로, 치수는 가구 설정을 따릅니다.
+"""Photo-reconstructed ROLY surfaces; dimensions come from the furniture config.
 
-부드러운 법선과 UV를 COLLADA에 보관하고 고정 인스턴스 48개가 공유합니다.
-제품 사진, 다운로드한 CAD 또는 Blender 의존성을 포함하지 않습니다.
+Smooth normals and UVs are kept in COLLADA, shared by all 48 static instances.
+No product photograph, downloaded CAD, or Blender dependency is embedded.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ class Mesh:
 
         def point(i, j):
             angle = 2 * pi * j / sides
-            # 원형 관 대신 모서리가 둥근 사각 사출 단면을 사용합니다.
+            # Rounded rectangular injection-moulded section, not round tubing.
             a = (1 if cos(angle) >= 0 else -1) * abs(cos(angle)) ** exponent * depths[i]
             b = (1 if sin(angle) >= 0 else -1) * abs(sin(angle)) ** exponent * widths[i]
             return tuple(
@@ -95,7 +95,7 @@ class Mesh:
         self.faces += [(end, end + j, end + j + 1) for j in range(1, sides - 1)]
 
     def cushion(self, center, size, rotate=0, fabric=False):
-        # 동심형 융기 고리로 쿠션 앞쪽이 부드럽게 내려오는 모양을 만듭니다.
+        # Concentric crown rings give the cushion a soft waterfall front edge.
         rings = [
             (-0.5, 0.06),
             (-0.47, 0.85),
@@ -114,7 +114,7 @@ class Mesh:
             x = (1 if cos(t) >= 0 else -1) * abs(cos(t)) ** 0.42 * r * size[0] / 2
             y = (1 if sin(t) >= 0 else -1) * abs(sin(t)) ** 0.42 * r * size[1] / 2
             if fabric:
-                # 좌면을 완만하게 파고 앞쪽 끝을 약간 낮춥니다.
+                # Gently dished sitting surface and a slightly lower front lip.
                 z -= 0.10 * (1 - r * r) if i > 4 else 0
                 z -= 0.09 * max(x / (size[0] / 2), 0) if i > 3 else 0
             return (
@@ -293,8 +293,8 @@ def make_meshes(config_json: str):
         lambda i, j: back_point(c, i / 32, 2 * j / 32 - 1),
         lambda i, j: (j / 32 * 3, i / 32 * 3),
     )
-    # 렌더러의 양면 기본값에 의존하지 않도록 뒤집은 면에 후면 법선을 지정합니다.
-    # 두께 2mm로 팽팽한 직물의 형태를 유지합니다.
+    # Reverse face gives the rear an explicit normal without relying on renderer
+    # double-sided defaults. A 2 mm thickness preserves the stretched textile.
     back.grid(
         33,
         33,
@@ -310,7 +310,7 @@ def make_meshes(config_json: str):
         + [back_point(c, 0, 1 - 2 * j / 32) for j in range(1, 33)]
     )
     frame.sweep(outline, [0.009] * len(outline), [0.012] * len(outline), 16)
-    # 뒤에서 보이는 허리 지지대와 부드럽게 둥근 패드를 추가합니다.
+    # Rear lumbar bridge and softly rounded pad, visible from behind.
     lumbar_path = curve(
         [(-0.265, -0.19, 0.61), (-0.245, 0, 0.605), (-0.265, 0.19, 0.61)]
     )
@@ -321,7 +321,7 @@ def make_meshes(config_json: str):
     lumbar.vertices.extend((-0.263 - z, y, 0.604 + x) for x, y, z in pad.vertices)
     lumbar.faces.extend(tuple(start + i for i in face) for face in pad.faces)
     lumbar.uv.extend(pad.uv)
-    # 연속된 측면 받침이 좌판 앞쪽 레일, 등받이와 고정 팔걸이를 연결합니다.
+    # Continuous side cradle joins front seat rail to the back and fixed arm.
     for side in (-1, 1):
         y = side * c['arm_half_width_m']
         cradle = curve(
@@ -335,7 +335,7 @@ def make_meshes(config_json: str):
             ]
         )
         frame.sweep(cradle, [0.015] * len(cradle), [0.022] * len(cradle))
-        # 사출 팔걸이 지지대가 넓어지며 얕은 안장 모양의 고정 패드로 이어집니다.
+        # Moulded arm stem widens into the fixed, shallow saddle pad.
         stem = curve(
             [
                 (-0.225, y, c['arm_top_m'] - 0.12),
@@ -349,7 +349,7 @@ def make_meshes(config_json: str):
             (-0.13, y, c['arm_top_m'] - 0.013),
             (c['arm_length_m'], c['arm_pad_width_m'], c['arm_pad_thickness_m']),
         )
-        # 좌판 아래 후면 연결부와 작은 조절 레버를 추가합니다.
+        # Rear connection and small adjustment paddle below the seat.
         metal.cushion((0.08, side * 0.19, bottom - 0.028), (0.085, 0.043, 0.018))
     rear_bridge = curve(
         [
@@ -364,7 +364,7 @@ def make_meshes(config_json: str):
     )
     frame.sweep(rear_bridge, [0.019] * len(rear_bridge), [0.022] * len(rear_bridge))
     frame.cushion((-0.045, 0, bottom - 0.094), (0.22, 0.17, 0.09))
-    # 기울기 조절 장치 아래의 노출된 보강 리브를 추가합니다.
+    # Exposed underside ribs of the tilt mechanism.
     for y in (-0.075, -0.045, -0.015, 0.015, 0.045, 0.075):
         frame.sweep(
             [(0.01, y, bottom - 0.083), (0.08, y, bottom - 0.032)],
@@ -416,7 +416,7 @@ def make_meshes(config_json: str):
 def add_visuals(link, config, output: Path):
     output.mkdir(parents=True, exist_ok=True)
     config_json = json.dumps(config.values, sort_keys=True)
-    # 재구성 코드를 바꾼 뒤 이전 형상을 재사용하지 않도록 소스 해시를 사용합니다.
+    # Source hash prevents stale shapes after changes to the reconstruction.
     digest = hashlib.sha256(
         config_json.encode() + Path(__file__).read_bytes()
     ).hexdigest()[:16]

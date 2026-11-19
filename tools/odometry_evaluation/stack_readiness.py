@@ -1,4 +1,4 @@
-"""수동적인 실시간 데이터 준비 검사이며 베이스 허가나 명령 발행을 하지 않습니다."""
+"""Passive, live-data readiness checks; never enable the base or publish commands."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -83,7 +83,7 @@ class ReadinessState:
         fresh = {
             "odom": self.odom.fresh(now, self.odom_timeout_s),
             "scan": self.scan.fresh(now, self.scan_timeout_s),
-            # MCU 피드백 경과 시간 제한은 베이스 프로토콜의 250ms입니다.
+            # MCU feedback stale deadline is the base protocol's 250 ms.
             "wheel": self.wheel.fresh(now, .25),
         }
         errors = []
@@ -101,13 +101,13 @@ class ReadinessState:
         return {
             "ready": not errors, "errors": errors, "enable_available": enable_available,
             "publishers": publishers, **{f"{name}_fresh": value for name, value in fresh.items()},
-            # 장면 기하가 좋지 않은 실시간 스캔 때문에 드라이버를 재시작하면 안 됩니다.
+            # A live scan with poor scene geometry must not trigger a driver restart.
             "scan_fresh": self.scan_delivery.fresh(now, self.scan_timeout_s),
         }
 
 
 class RosReadinessProbe:
-    """ROS import와 초기화는 실제 실행에서만 하며 dry-run에서는 하지 않습니다."""
+    """ROS imports/initialization occur only for a real run, never for dry-run."""
 
     def __init__(self, odom_topic: str, odom_timeout_s: float,
                  scan_timeout_s: float, min_range_m: float):
@@ -131,7 +131,7 @@ class RosReadinessProbe:
         self.state = ReadinessState(odom_timeout_s, scan_timeout_s, min_range_m)
         self.topics = {"cmd_vel": "/cmd_vel", "wheel_command": "/base/wheel_command",
                        "wheel_state": "/base/wheel_state", "odom": odom_topic, "scan": "/scan"}
-        # 평가기의 reliable odom 구독과 일치시키며 telemetry는 best_effort를 사용합니다.
+        # Match evaluator's reliable odom subscription; telemetry uses best effort.
         telemetry = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.subscriptions = [
             self.node.create_subscription(

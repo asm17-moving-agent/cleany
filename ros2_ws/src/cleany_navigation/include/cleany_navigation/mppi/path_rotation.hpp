@@ -5,7 +5,7 @@
 #include "cleany_navigation/mppi/models/path.hpp"
 
 namespace cleany_navigation::mppi {
-/// 로봇 근처에서 시작하는 동일 XY 회전 구간의 마지막 yaw를 반환합니다.
+/// Return the end yaw of a leading equal-XY turn near the robot.
 inline std::optional<float> leadingRotationYaw(
   const models::Path & path, const geometry_msgs::msg::Pose & pose, float position_tolerance)
 {

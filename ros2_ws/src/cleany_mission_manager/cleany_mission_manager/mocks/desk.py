@@ -1,4 +1,4 @@
-"""상태가 있는 mock 책상입니다. 카메라, 팔, VLA 또는 실물 청소를 수행하지 않습니다."""
+"""Stateful mock desk. No camera, arm, VLA, or physical cleaning is claimed."""
 
 from typing import Callable
 from uuid import uuid4
@@ -55,5 +55,5 @@ class MockDesk:
         return ModuleResult.success(message="mock collection completed")
 
     def manipulation_succeeded(self, goal: dict) -> None:
-        # 명시적 mock 상태 기록이며 카메라나 물리적 근거로 사용하지 않습니다.
+        # Explicit mock bookkeeping, never used as camera/physical evidence.
         self.objects = [obj for obj in self.objects if obj.wire_object_id != goal["object_id"]]

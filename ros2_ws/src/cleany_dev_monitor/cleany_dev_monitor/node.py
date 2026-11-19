@@ -1,4 +1,4 @@
-"""실시간 ROS·웹 관측과 독립 기록 노드의 client를 담당합니다."""
+"""Live ROS/web observer and client of the independent recording node."""
 import threading
 
 import rclpy

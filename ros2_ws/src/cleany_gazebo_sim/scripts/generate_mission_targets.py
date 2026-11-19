@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""시뮬레이션 접근 목표와 여유 거리 근거를 생성합니다."""
+"""Generate simulation approach targets and their clearance evidence."""
 from __future__ import annotations
 
 import argparse

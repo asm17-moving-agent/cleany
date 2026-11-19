@@ -1,4 +1,4 @@
-"""이미 실행 중인 베이스 드라이버를 읽기 전용으로 관찰하는 rqt 화면입니다."""
+"""Observation-only rqt views for an already-running base driver."""
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction

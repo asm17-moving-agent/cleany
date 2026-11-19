@@ -117,5 +117,5 @@ launch 설정 전달은 실제 launch 인자를 평가해 selector·coordinator 
 ## 참고
 
 - [현재 구현과 개발 진입점](../README.md)
-- [Workspace 테스트 명령](implementation/development-setup.md)
+- [Workspace 테스트 명령](DEVELOPMENT_SETUP.md)
 - [과거 실행 원본 위치](EVIDENCE.md)

@@ -1,4 +1,4 @@
-"""크기 제한 실시간 이력과 지속성을 확인한 시각별 미끄럼 관측입니다."""
+"""Bounded live history and persistent, timestamped slip observations."""
 from __future__ import annotations
 
 from collections import deque
@@ -44,7 +44,7 @@ def compare_clouds(a: np.ndarray, b: np.ndarray, far_a: np.ndarray, far_b: np.nd
 
 
 class ObservationHistory:
-    """순서가 연속되고 구간이 겹치지 않는 결과만 지속성에 사용합니다."""
+    """Use only consecutive, non-overlapping-in-order results for persistence."""
 
     def __init__(self, config: Settings):
         self.config = config
@@ -65,7 +65,7 @@ class ObservationHistory:
 
 
 class ScanHistory:
-    """센서 header 4초 분량을 유지하며 시계나 좌표계 불연속은 거부합니다."""
+    """Keep four seconds of sensor headers; reject clock/frame discontinuities."""
 
     def __init__(self, config: Settings):
         self.config = config

@@ -22,21 +22,21 @@ struct WheelGateConfig {
 };
 
 /**
- * @brief 구동 허가, 명령 순서와 MCU 시각 기준 만료를 검사합니다.
+ * @brief Enforce motion permission, sequence ordering and MCU-time expiry.
  *
- * STOP은 오래되거나 프로토콜이 잘못된 명령이어도 항상 구동을 해제합니다.
- * ENABLE은 목표 속도 0을 요구하고 VELOCITY는 기존 허가가 있어야 합니다.
- * 호출자는 만료와 연결 해제 시점에 각각 expire()와 disconnect()를 호출해야 합니다.
+ * STOP always disarms, including stale or malformed protocol commands.
+ * ENABLE requires zero targets; VELOCITY requires existing permission.
+ * The caller must invoke expire() and disconnect() on their respective events.
  */
 class WheelCommandGate {
  public:
   explicit WheelCommandGate(WheelGateConfig config) : config_(config) {}
 
   /**
-   * @brief 명령을 검사하고 수락된 명령의 허가와 목표를 갱신합니다.
-   * @param nowUs validUntilUs와 같은 MCU 단조 증가 시계의 현재 시각(μs).
-   * 명령 순서는 uint32 반범위 규칙으로 비교합니다.
-   * @return 거부 시 false이며 gate 상태는 바뀌지 않습니다.
+   * @brief Validate a command and update permission and targets on acceptance.
+   * @param nowUs Current MCU monotonic time in microseconds, in the same clock
+   * as validUntilUs. Sequence ordering uses the uint32 half-range rule.
+   * @return False for rejected commands; rejection leaves gate state unchanged.
    */
   bool accept(const WheelCommand& c, uint64_t nowUs) {
     if (c.mode == WheelMode::kStop) {

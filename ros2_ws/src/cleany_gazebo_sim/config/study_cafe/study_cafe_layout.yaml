@@ -5,7 +5,7 @@ scene:
   background_rgba: [0.82, 0.83, 0.84, 1.0]
 
 robot:
-  # 월드 좌표계의 x, y, z, roll, pitch, yaw입니다.
+  # x, y, z, roll, pitch, yaw in the world frame.
   spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
 
 room:
@@ -16,7 +16,7 @@ room:
   wall_roughness: 0.92
 
 desk_layout:
-  # 8개 열을 측정 배치에 따라 3-2-3 블록으로 구성합니다.
+  # Eight columns form the measured 3-2-3 blocks.
   x_positions_m: [-5.53, -4.33, -3.13, -0.60, 0.60, 3.13, 4.33, 5.53]
   row_pair_centers_y_m: [3.17, 0.0, -3.17]
   rows:

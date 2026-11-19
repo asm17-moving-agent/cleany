@@ -1,4 +1,4 @@
-"""범위가 제한된 ROS 독립 Nav2 런타임 BT 설명과 관측입니다."""
+"""Bounded, ROS-independent description and observation of the runtime Nav2 BT."""
 from __future__ import annotations
 
 from collections import deque
@@ -16,7 +16,7 @@ CONTROL = {'Sequence', 'ReactiveSequence', 'PipelineSequence', 'Fallback',
 
 
 def describe_tree(xml: str, source: str) -> tuple[str, dict]:
-    """Nav2가 로드하기 전에 모든 인스턴스에 이름을 붙이며 포트나 구조는 바꾸지 않습니다."""
+    """Name every instance before Nav2 loads it; never change ports or topology."""
     if len(xml.encode()) > MAX_XML_BYTES:
         raise ValueError('BT XML exceeds observation limit')
     root = ET.fromstring(xml)
@@ -49,10 +49,10 @@ def describe_tree(xml: str, source: str) -> tuple[str, dict]:
 
 
 class TreeTrace:
-    """현재 전체 snapshot과 크기 제한 이벤트 이력이며 미관측은 IDLE과 다릅니다.
+    """A current full snapshot plus bounded event history; unseen != IDLE.
 
-    표준 Nav2 이벤트에는 goal UUID가 없습니다. 목표 연결은 명시적으로 수신 시점의
-    컨텍스트일 뿐 각 이벤트가 해당 목표에 속한다는 근거는 아닙니다.
+    Standard Nav2 events carry no goal UUID. Goal association is explicitly
+    receipt-time context, not proof that each event belongs to that goal.
     """
     def __init__(self, manifest: dict):
         self.manifest = deepcopy(manifest)
@@ -103,7 +103,7 @@ class TreeTrace:
             self.goal_id = None
             self.goal_status = None
         self.last_ros = ros_time
-        # 외부 또는 사용자 정의 트리를 설정된 구조로 간주하지 않습니다.
+        # Never attribute a foreign/custom tree to the configured topology.
         if any(c['node'] not in self.states or c['status'] not in STATUSES for c in changes):
             self.reset('설정 XML과 다른 노드 또는 알 수 없는 상태를 수신했습니다.')
             self.incomplete = True
@@ -119,8 +119,8 @@ class TreeTrace:
             if not self.incomplete:
                 self.reason = ''
             pair = (change['node'], change.get('previous', ''), change['status'])
-            # 모든 실패와 action 전이를 보존합니다. 빠른 success/idle 조건 반복은
-            # 현재 상태가 아닌 이력에서만 합칩니다.
+            # Preserve every failure and action transition. Coalesce rapid
+            # success/idle condition chatter in history only, never in states.
             node = next(n for n in self.manifest['nodes'] if n['id'] == change['node'])
             important = change['status'] == 'FAILURE' or node['type'] in ('ComputePathToPose', 'FollowPath', 'YieldWait')
             if important or now-self.repeated.get(pair, -float('inf')) >= 1:

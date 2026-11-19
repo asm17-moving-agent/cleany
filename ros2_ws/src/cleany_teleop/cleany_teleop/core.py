@@ -1,4 +1,4 @@
-"""MCU 프로토콜 v2 시운전 도구의 호스트 전용 보조 기능입니다."""
+"""Host-only helpers for the MCU protocol-v2 commissioning tool."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ def newer(sequence: int, previous: int) -> bool:
 
 
 def wheel_targets(direction: str, speed: float) -> tuple[float, ...]:
-    # 논리 바퀴 순서는 FL, FR, RL, RR이며 PCB나 엔코더 부호 보정은 없습니다.
+    # Logical wheel order FL, FR, RL, RR; no PCB/encoder sign corrections.
     signs = {
         "forward": (1, 1, 1, 1),
         "backward": (-1, -1, -1, -1),
@@ -26,7 +26,7 @@ def wheel_targets(direction: str, speed: float) -> tuple[float, ...]:
 
 
 def joystick_targets(vector, speed: float) -> tuple[float, ...]:
-    """정규화된 전방, 왼쪽과 반시계 의도이며 바퀴 한계에서 비율을 유지합니다."""
+    """Normalized forward/left/CCW intent; preserve ratios at the wheel limit."""
     if not isinstance(vector, (list, tuple)) or len(vector) != 3:
         raise ValueError("잘못된 조이스틱 입력")
     if any(
@@ -89,6 +89,6 @@ class FeedbackClock:
         lifetime_us = min(150_000, watchdog_ms * 1000 - 50_000)
         if lifetime_us < 20_000:
             raise RuntimeError("MCU watchdog too short for this tool")
-        # 실제 시각이나 ROS epoch가 아닌 MCU 단조 시각입니다. 전송 지연으로 추정이
-        # 보수적이며 갱신된 모든 명령도 MCU에서 만료됩니다.
+        # MCU monotonic time, never wall/ROS epoch. Transport delay makes the
+        # estimate conservative; every refreshed command still expires on MCU.
         return self.timestamp_us + int((now - self.received_at) * 1e6) + lifetime_us

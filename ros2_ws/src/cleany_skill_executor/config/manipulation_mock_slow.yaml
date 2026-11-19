@@ -1,5 +1,5 @@
-# 로컬 시각화용으로 하위 단계당 약 3초, 총 51초입니다.
-# 모든 근거는 mock이며 실제 로봇 안전 한계가 아닙니다.
+# Local visualization: approximately 3 seconds per substage, 51 seconds in total.
+# All evidence is mock; these values are not real robot safety limits.
 stage_duration_sec: 3.0
 preparation_timeout_sec: 30.0
 verification_timeout_sec: 15.0

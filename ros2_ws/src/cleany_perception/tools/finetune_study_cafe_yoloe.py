@@ -1,7 +1,7 @@
-"""스터디카페 시뮬레이션 데이터셋으로 YOLOE-seg를 미세 조정합니다.
+"""Fine-tune YOLOE-seg for the study-cafe simulation dataset.
 
-오프라인으로 실행하며 로봇은 MuJoCo segmentation ID를 읽지 않습니다.
-데이터셋과 결과 체크포인트는 구현 저장소 밖에 둡니다.
+Run this offline; the robot never reads MuJoCo segmentation IDs. Keep the
+dataset and resulting checkpoint outside the implementation repository.
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def main() -> None:
     project.mkdir(parents=True, exist_ok=True)
     original_dir = Path.cwd()
     try:
-        # Ultralytics는 작업 디렉터리에서 텍스트 encoder를 찾습니다.
+        # Ultralytics resolves the text encoder from the working directory.
         os.chdir(encoder_dir)
         model = YOLOE(str(checkpoint))
         model.train(

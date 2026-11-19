@@ -84,7 +84,7 @@ nav_msgs::msg::Path checkedFixedHeadingGridPath(
       const double step=std::hypot(dx,dy)*map.getResolution();
       const double candidate=current.cost+step*(1.+cost_penalty*map.getCost(nx,ny)/252.);
       if(candidate>=distance[next] || !traversable(next))continue;
-      // 끝점 검사만으로 대각선 edge나 모서리 접촉을 검증할 수 없습니다.
+      // Endpoint checks alone do not certify diagonal edges or corner contact.
       if(!sweptFootprintFree(map,footprint,from,center(next)))continue;
       distance[next]=candidate;parent[next]=current.index;
       open.push({candidate+heuristic(next),candidate,next});

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""로봇 제어기 없이 격리된 토픽으로 display를 검사합니다."""
+"""Exercise the display on isolated topics without starting robot controllers."""
 import argparse
 import json
 import os
@@ -70,7 +70,7 @@ def main() -> None:
             mission.publish(MissionStatus(state='IDLE'))
             completed = ManipulationExecutionRecord(record_state='FINISHED', has_result=True, status='SUCCESS', updated_at_ns=time.time_ns())
             expect('complete', lambda: manip.publish(completed))
-            # display 자체는 유지하며 관측된 모든 publisher를 제거합니다.
+            # Remove all observed publishers, retaining the display itself.
             node.destroy_publisher(mission); node.destroy_publisher(battery); node.destroy_publisher(manip)
             lost = expect('help', seconds=18)
             assert lost['source'] == 'disconnected'

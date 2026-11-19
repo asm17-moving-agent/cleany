@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""사용자 평면도 위에 추적한 벽의 SVG overlay를 결정적으로 렌더링합니다."""
+"""Render a deterministic SVG overlay of traced walls on the user's floor plan."""
 
 from __future__ import annotations
 

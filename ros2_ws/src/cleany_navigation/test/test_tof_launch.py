@@ -1,4 +1,4 @@
-"""launch 구성만 검사하며 로봇 형상은 합성이고 프로세스는 시작하지 않습니다."""
+"""Launch assembly only; robot geometry is synthetic and no processes start."""
 from xml.dom.minidom import parseString
 import pytest
 import yaml

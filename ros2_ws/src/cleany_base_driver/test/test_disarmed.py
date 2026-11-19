@@ -1,4 +1,4 @@
-"""베이스 정지 진단을 STOP 수신 확인으로 대신하지 않는지 검사합니다."""
+"""Base standstill diagnostics never substitute for STOP acknowledgement."""
 from types import SimpleNamespace
 
 import pytest

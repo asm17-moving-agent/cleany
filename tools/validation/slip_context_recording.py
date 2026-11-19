@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""하드웨어와 분리된 ROS domain에서 native 진단 CDR 기록을 검증합니다."""
+"""Verify native diagnostic CDR recording on a non-hardware ROS domain."""
 import argparse
 import json
 import os

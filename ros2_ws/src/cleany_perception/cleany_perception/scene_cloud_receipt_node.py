@@ -1,4 +1,4 @@
-"""필터링된 점군 수신을 coordinator action 콜백과 분리합니다."""
+"""Separate filtered-cloud reception from the coordinator's action callbacks."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -12,7 +12,7 @@ from std_msgs.msg import Header
 
 
 def receipt_for_cloud(cloud: PointCloud2) -> Header | None:
-    """실제 비어 있지 않은 완전한 점군의 촬영 시각만 그대로 전달합니다."""
+    """Forward only an actual nonempty complete cloud's unchanged capture time."""
     stamp = cloud.header.stamp.sec*1_000_000_000 + cloud.header.stamp.nanosec
     if (stamp <= 0 or not cloud.header.frame_id or cloud.width <= 0 or cloud.height <= 0
             or cloud.point_step <= 0 or cloud.row_step < cloud.width*cloud.point_step
@@ -22,21 +22,21 @@ def receipt_for_cloud(cloud: PointCloud2) -> Header | None:
 
 
 class SceneCloudReceiptNode(Node):
-    """데이터를 복사하지 않고 완전한 필터링 점군 수신을 확인합니다.
+    """Acknowledge reception of complete filtered clouds without copying their data.
 
     Subscriptions:
-        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): mapping 출력.
+        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): Mapping output.
 
     Publishers:
-        /perception/scene_cloud_receipt (std_msgs/msg/Header): 구조가 유효하고 비어
-            있지 않은 점군의 촬영 stamp와 좌표계를 그대로 전달합니다.
+        /perception/scene_cloud_receipt (std_msgs/msg/Header): Unchanged capture
+            stamp and frame of a structurally valid, nonempty cloud.
 
     QoS:
-        입력은 best_effort, depth 1이며 수신 확인 출력은 reliable, depth 1입니다.
+        Input uses best-effort depth 1; receipt output uses reliable depth 1.
 
     Notes:
-        토픽 이름은 변경 가능한 기본값입니다. 수신 확인은 메시지 도착의 근거이며
-        MoveIt이 계획 장면에 점군을 반영했다는 뜻은 아닙니다.
+        Topic names are configurable defaults. Receipt proves message reception,
+        not that MoveIt has committed the cloud to its planning scene.
     """
     def __init__(self) -> None:
         super().__init__('scene_cloud_receipt')
@@ -63,8 +63,8 @@ def main(args: list[str] | None = None) -> None:
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     except RuntimeError:
-        # Humble은 컨텍스트 종료 중 점군을 변환하는 take_message를 중단할 수 있습니다.
-        # ROS가 활성인 동안의 런타임 실패는 숨기지 않습니다.
+        # Humble can interrupt take_message while converting a cloud during
+        # context shutdown. Keep runtime failures visible while ROS is active.
         if rclpy.ok():
             raise
     finally:

@@ -1,4 +1,4 @@
-"""주행 도착 범위이며 조작 도달 가능성을 보증하지 않습니다."""
+"""Navigation arrival bounds; these do not certify manipulation reachability."""
 from dataclasses import dataclass
 import math
 

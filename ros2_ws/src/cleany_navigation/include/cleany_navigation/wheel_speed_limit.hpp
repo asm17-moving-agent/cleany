@@ -18,7 +18,7 @@ struct WheelSpeedLimit {
     }
   }
 
-  /// 요청 twist 방향을 유지하며 작은 명령을 증폭하지 않습니다.
+  /// Preserve the requested twist direction and never amplify a small command.
   double ratio(double x, double y, double yaw) const {
     if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(yaw)) {return 0.;}
     const double peak = (std::abs(x) + std::abs(y) +

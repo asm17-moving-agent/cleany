@@ -129,7 +129,7 @@ function Badge({
   );
 }
 
-// 표시에만 적용하며 runtime 준비 상태, 결과와 안전 지표는 지연시키지 않습니다.
+// Presentation only: never delay runtime readiness, results, or safety indicators.
 function useVisibleFsmState(state: string): string {
   const [visible, setVisible] = useState(state);
   const playback = useRef({
@@ -284,7 +284,7 @@ function FsmEdge(props: EdgeProps) {
 const runtimeNodeTypes = { fsm: FsmNode };
 const runtimeEdgeTypes = { fsm: FsmEdge };
 
-// telemetry 시각이나 무관한 필드가 바뀌어도 그래프를 재구성하지 않습니다.
+// Telemetry timestamps and unrelated fields must not rebuild the graph.
 const MemoDiagram = React.memo(function Diagram({
   spec,
   onSelect,
@@ -297,7 +297,7 @@ const MemoDiagram = React.memo(function Diagram({
   const runtime: Data = useMemo(() => JSON.parse(spec), [spec]);
   const states: string[] = runtime.fsm_states || [];
   const btNodes: Data[] = runtime.bt_nodes || [];
-  // 부모를 leaf들의 가운데에 배치하고 잘못된 구조나 순환 트리도 처리 범위를 제한합니다.
+  // Center each parent over its leaves; keep malformed/cyclic trees bounded.
   const positions = new Map<string, { x: number; y: number }>();
   const visited = new Set<string>();
   let leaf = 0;
@@ -321,7 +321,7 @@ const MemoDiagram = React.memo(function Diagram({
     "POST_MISSION",
     "RETURN_HOME",
   ];
-  // 엄격한 격자 없이 방향을 유지하도록 작고 고정된 간격을 사용합니다.
+  // Fixed small offsets preserve direction without a rigid grid.
   const mainPositions = [
     { x: 0, y: 3.6 },
     { x: 310, y: -3.2 },
@@ -574,7 +574,7 @@ function RosView({
   const topics: Data[] = graph.topics || [];
   const item = topics.find((t) => t.name === topic);
   const sample = rows.find((r) => r.key === topic && r.kind === "sample");
-  // 발행률, 시각, QoS 갱신과 endpoint 발견 순서는 그래프 연결 구조가 아닙니다.
+  // Rates, timestamps, QoS refreshes and endpoint discovery order are not topology.
   const graphSpec = JSON.stringify(
     (topic
       ? topics.filter((t) => t.name === topic)

@@ -1,4 +1,4 @@
-"""불변 보정 자세 manifest의 명령행 사전 검사입니다."""
+"""Command-line preflight for immutable calibration pose manifests."""
 
 from __future__ import annotations
 

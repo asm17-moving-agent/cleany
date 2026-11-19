@@ -3,25 +3,25 @@
 #include "geometry_msgs/msg/pose2_d.hpp"
 #include "nav2_core/global_planner.hpp"
 namespace cleany_navigation {
-/// 짧은 각도 구간의 보수적 sweep으로 중심과 yaw의 전체 선형 연결을 검증합니다.
-/// 호출자가 costmap mutex를 잡아야 합니다.
+/// Certify the entire linear center/yaw connection with conservative sweeps
+/// on short angular intervals. The caller holds the costmap mutex.
 bool sweptPoseConnectionFree(const nav2_costmap_2d::Costmap2D &,
   const std::vector<geometry_msgs::msg::Point> &,
   const geometry_msgs::msg::Pose2D &,const geometry_msgs::msg::Pose2D &,
   const std::function<bool()> &cancel = [] {return false;});
-/// 다른 yaw 전략을 선택하지 않고 제공된 정확한 자세를 검증합니다.
+/// Validate the exact supplied poses, without choosing another yaw strategy.
 bool sweptPathCollisionFree(const nav_msgs::msg::Path &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
   const std::function<bool()> &cancel = [] {return false;});
-/// 고정 body yaw에서 XY를 탐색합니다. 탐색 중 mutex를 잡아 계획 지도를 불변으로
-/// 사용하며 끝점 회전, 격자 연결과 모든 edge를 sweep 검사합니다.
+/// Search XY at a fixed body yaw. Use an immutable planning map: search holds
+/// its mutex. Endpoint rotations, grid connections and every edge are swept.
 nav_msgs::msg::Path checkedFixedHeadingGridPath(
   const geometry_msgs::msg::PoseStamped &,const geometry_msgs::msg::PoseStamped &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
   double heading,double cost_penalty,
   const std::function<bool()> &cancel = [] {return false;});
-/// 연속적인 전체 footprint로 병진과 제자리 yaw를 탐색합니다.
-/// 가중 A*는 가능한 경로를 선택하며 최소 비용 경로를 보장하지 않습니다.
+/// Search translation and in-place yaw with the full continuous footprint.
+/// Weighted A* chooses a feasible route, not a guaranteed minimum-cost route.
 nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const geometry_msgs::msg::PoseStamped &,const geometry_msgs::msg::PoseStamped &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
@@ -38,12 +38,12 @@ nav_msgs::msg::Path checkedStraightPath(
   const geometry_msgs::msg::PoseStamped &goal,
   nav2_costmap_2d::Costmap2D &map, const std::vector<geometry_msgs::msg::Point> &footprint,
   const std::function<bool()> &cancel = [] {return false;});
-/// lattice seed 회전을 검증된 직접 연결 앞부분으로 바꾸되 막힌 경로는 유지합니다.
+/// Replace lattice seed turns with a checked direct prefix; retain blocked routes.
 nav_msgs::msg::Path checkedShortcutPathPrefix(
   const nav_msgs::msg::Path &, nav2_costmap_2d::Costmap2D &,
   const std::vector<geometry_msgs::msg::Point> &, double maximum_distance,
   const std::function<bool()> &cancel = [] {return false;});
-/// 선호 이동 방향이며 최종 yaw는 끝점 제약입니다.
+/// Preferred travel headings; final yaw is an endpoint constraint.
 std::vector<double> holonomicTravelHeadings(
   const geometry_msgs::msg::PoseStamped &, const geometry_msgs::msg::PoseStamped &,
   double forward_distance);
@@ -54,9 +54,9 @@ nav_msgs::msg::Path checkedHolonomicPath(
   const std::function<bool()> &cancel = [] {return false;},
   double forward_distance = 0.0);
 /**
- * @brief 대체 planner 호출 전에 footprint를 검사한 직접 경로를 시도합니다.
- * Nav2 lifecycle과 costmap 소유권 안에서 동작하며 속도 명령을 발행하거나
- * 하위 충돌 검사를 완화하지 않습니다.
+ * @brief Try footprint-checked direct paths before invoking the fallback planner.
+ * Operates inside Nav2's lifecycle and costmap ownership; this plugin does not
+ * publish velocity commands or relax downstream collision checks.
  */
 class StraightFirstPlanner : public nav2_core::GlobalPlanner {
 public:

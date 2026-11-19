@@ -2,8 +2,8 @@ simulated_odometry_error:
   ros__parameters:
     input_topic: wheel/odom_raw
     output_topic: wheel/odom
-    # 이상적 조건에서 합성 스트레스 프로파일까지 1/3만큼 보간합니다.
-    # 강건성 시험 입력이며 측정된 하드웨어 데이터가 아닙니다.
+    # One-third interpolation from ideal to the synthetic stress profile.
+    # These values are robustness-test inputs, not measured hardware data.
     forward_scale: 1.0033333333
     lateral_scale: 0.9833333333
     rotation_scale: 1.0066666667

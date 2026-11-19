@@ -2,7 +2,7 @@
 
 승인된 물체 하나를 실행하는 `execution_profile=mujoco` 서버의 상세 계약이다.
 실행 명령과 ROS 경로는 [패키지 README](../README.md)를 따른다.
-Goal·Feedback·Result 필드는 [공통 Action 명세](../../cleany_skill_executor/docs/execute-manipulation-skill-action-spec.md)에 있다.
+Goal·Feedback·Result 필드는 [공통 Action 명세](../../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)에 있다.
 
 | 확인할 내용 | 위치 |
 |---|---|

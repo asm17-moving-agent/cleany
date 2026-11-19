@@ -1,4 +1,4 @@
-"""ROS에 독립적인 관절별 최신성과 연속 정지 근거입니다."""
+"""Per-joint freshness and continuous stationary evidence, independent of ROS."""
 from __future__ import annotations
 
 from collections import Counter
@@ -62,8 +62,8 @@ class JointFeedback:
                       'non_finite_velocity' if not math.isfinite(velocity) else '')
             previous = self.samples.get(name)
             if previous is not None and stamp_ns <= previous.stamp_ns:
-                # 재생되거나 순서가 뒤바뀐 피드백은 수신 시각을 갱신하거나 오래된 0으로
-                # 움직임을 덮어쓸 수 없으며 새 표본으로도 세지 않습니다.
+                # Replayed or out-of-order feedback cannot refresh its receipt
+                # time, overwrite motion with an old zero, or count as a sample.
                 reason = 'repeated_stamp' if stamp_ns == previous.stamp_ns else 'backward_stamp'
                 self.samples[name] = JointSample(previous.stamp_ns, previous.received_at, math.nan, reason)
             else:
@@ -103,7 +103,7 @@ class JointFeedback:
 
 
 class StationaryWindow:
-    """모든 필수 관절이 새 표본을 제공한 회차를 셉니다."""
+    """Count rounds in which every required joint has supplied a new sample."""
     def __init__(self, *, barrier_ns: int, started_at: float, max_age_sec: float,
                  maximum_velocity: float, required_samples: int, minimum_duration_sec: float) -> None:
         for name, value in (('max_age_sec', max_age_sec), ('minimum_duration_sec', minimum_duration_sec)):

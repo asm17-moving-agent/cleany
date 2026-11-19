@@ -1,4 +1,4 @@
-"""ROS import 없이 ROS 어댑터가 공유하는 점 변환입니다."""
+"""Point transforms shared by ROS adapters, without a ROS import."""
 from __future__ import annotations
 
 import numpy as np

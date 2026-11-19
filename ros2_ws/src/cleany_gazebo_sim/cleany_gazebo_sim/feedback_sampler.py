@@ -1,4 +1,4 @@
-"""일관된 Gazebo 시계·관절 snapshot을 제한된 주기로 발행합니다."""
+"""Gazebo adapter: publish coherent clock/joint snapshots at bounded frequency."""
 from __future__ import annotations
 import rclpy
 from rclpy.clock import Clock as RosClock, ClockType
@@ -9,22 +9,23 @@ from sensor_msgs.msg import JointState
 
 
 class FeedbackSampler(Node):
-    """표본의 최신성을 꾸미지 않고 Gazebo 피드백 발행률을 제한합니다.
+    """Throttle Gazebo feedback without inventing fresh samples.
 
     Subscriptions:
-        /gazebo/raw_clock (rosgraph_msgs/msg/Clock): 시뮬레이터 시각.
-        /gazebo/raw_joint_states (sensor_msgs/msg/JointState): 시뮬레이터 관절 상태.
+        /gazebo/raw_clock (rosgraph_msgs/msg/Clock): Simulator time.
+        /gazebo/raw_joint_states (sensor_msgs/msg/JointState): Simulator joints.
 
     Publishers:
-        /clock (rosgraph_msgs/msg/Clock): 가장 최근에 변경된 시뮬레이터 시각.
-        /joint_states (sensor_msgs/msg/JointState): 발행한 시계보다 미래가 아닌 최신 관절 표본.
+        /clock (rosgraph_msgs/msg/Clock): Latest changed simulator time.
+        /joint_states (sensor_msgs/msg/JointState): Latest joint sample no newer
+            than the published clock.
 
     QoS:
-        원본 입력과 관절 출력은 sensor_data, 시계 출력은 reliable을 사용합니다.
+        Raw inputs and joint output use sensor_data; clock output is reliable.
 
     Notes:
-        단조 증가 타이머로 발행률을 제한하고 원본 stamp를 유지합니다.
-        바뀌지 않은 시뮬레이션 데이터를 최신 피드백처럼 다시 발행하지 않습니다.
+        A steady timer bounds publication rate. Original stamps are preserved;
+        unchanged simulation data is not republished as fresh feedback.
     """
     def __init__(self) -> None:
         super().__init__('gazebo_feedback_sampler')
@@ -74,7 +75,7 @@ class FeedbackSampler(Node):
             if joint <= stamp and joint != self.last_joint:
                 self.joint_pub.publish(self.coherent_joints)
                 self.last_joint = joint
-        # 정지한 시뮬레이터의 데이터에 새 시각을 붙이거나 최신 피드백처럼 반복 발행하지 않습니다.
+        # Never restamp or repeat a stopped simulator's data as fresh feedback.
 
 
 def main(args=None) -> None:

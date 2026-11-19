@@ -1,7 +1,7 @@
-"""전용 분류 시뮬레이션에 열린 수거함을 구성합니다.
+"""Materialize open collection bins in a dedicated sorting simulation.
 
-베이스 기준 위치는 설정된 수거 fixture이며 분류 물체의 인식 참값이 아닙니다.
-타깃을 고정하는 weld는 없습니다.
+The base-relative locations describe the configured collection fixture, not
+perception ground truth for the items being sorted. No target welds exist.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class BinGeometry:
         return self.bottom_z + self.outside_size[2]
 
     def boxes(self):
-        """뚜껑 없는 충돌 상자 다섯 개이며 전체 길이와 베이스 좌표계 중심을 사용합니다."""
+        """Five collision boxes (full extents, base-frame centers), no lid."""
         x, y = self.center_xy
         sx, sy, sz = self.outside_size
         t = self.wall
@@ -106,7 +106,7 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
     if not isinstance(ignore_mast, bool):
         raise ValueError('simulation_ignore_mast_collision must be a boolean')
     if ignore_mast:
-        # 고정 기둥에만 적용하며 움직이는 카메라 자식이나 팔에는 적용하지 않습니다.
+        # Only the fixed mast, never its articulated camera children or the arms.
         mast = root.find(".//body[@name='top_base_link']")
         if mast is not None:
             for geom in mast.findall('geom'):
@@ -142,7 +142,7 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
 
 
 def load_shelf_boxes(path: str | Path) -> tuple:
-    """계획용 공통 fixture 상자를 base_link 좌표로 반환합니다."""
+    """Return shared fixture boxes for planning, in base_link coordinates."""
     raw = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
     parent = ET.Element('body')
     if 'internal_tray' in raw:
@@ -155,7 +155,7 @@ def load_shelf_boxes(path: str | Path) -> tuple:
 
 def _add_internal_tray(parent: ET.Element, config: dict,
                        bins: tuple[BinGeometry, ...]) -> None:
-    """차체 장착 지지판이며 구조 체결부는 모델링하지 않습니다."""
+    """Chassis-mounted support plate; structural fasteners are not modeled."""
     x, y = (float(v) for v in config['center_xy_m'])
     sx, sy = (float(v) for v in config['size_xy_m'])
     top = float(config['top_z_m'])
@@ -181,7 +181,7 @@ def _add_internal_tray(parent: ET.Element, config: dict,
 
 
 def _add_bin_rim(body: ET.Element, bin_: BinGeometry) -> None:
-    """기존 벽 외곽 안의 둥근 색상 마감이며 렌더링 전용입니다."""
+    """Rounded color trim inside the existing wall envelope; visual only."""
     x, y = bin_.center_xy
     sx, sy, _ = bin_.outside_size
     radius = bin_.wall / 2

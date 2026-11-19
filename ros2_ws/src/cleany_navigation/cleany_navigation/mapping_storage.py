@@ -1,4 +1,4 @@
-"""OccupancyGrid의 평면 원점을 보존하는 원자적 지도 snapshot입니다."""
+"""Atomic map snapshots with the OccupancyGrid's planar origin preserved."""
 
 from __future__ import annotations
 from pathlib import Path
@@ -77,7 +77,7 @@ def save_grid(
     atomic_bytes(
         output / "map.yaml", yaml.safe_dump(document, sort_keys=False).encode()
     )
-    # 쓰기 중단 시에도 YAML은 항상 불변 영상을 참조합니다.
+    # The YAML always references an immutable image, including across interrupted writes.
     for old in output.glob("map-*.pgm"):
         if old.name != name:
             old.unlink()

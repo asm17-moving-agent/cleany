@@ -1,7 +1,7 @@
-<!-- 앞으로의 1.5m 경로가 무효화되면 즉시 재계획합니다.
-대체 경로를 계산하는 동안 FollowPath를 halt합니다.
-최초 계획과 planner/controller 실패에는 짧은 0.2초 재시도 대기를 적용합니다.
-장애물 지도를 지우지 않으며 가능한 우회 경로 앞에 고정 대기를 두지 않습니다. -->
+<!-- Replan immediately when the upcoming 1.5 m path becomes invalid.
+     FollowPath is halted while the replacement path is computed.
+     Initial planning and a failed planner/controller receive a short 0.2 s retry backoff.
+     No obstacle-map clearing and no fixed wait before a feasible detour. -->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <Sequence name="PlanThenNavigate">

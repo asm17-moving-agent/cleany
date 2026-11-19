@@ -70,7 +70,7 @@ class ReplayTests(unittest.TestCase):
             self.assertEqual(rows[0]["applied_min_inlier_ratio"], .55)
             self.assertEqual(rows[0]["applied_max_iterations"], 12)
             self.assertEqual(summary.read_bytes(), before)
-            # 루프 합성: (1,0,90도) 이후 (1,0,0)이면 (1,1,90도)입니다.
+            # Loop composition: (1,0,90deg) then (1,0,0) => (1,1,90deg).
             expected = replay.PlanarExtrinsic(30, .2, -.1).base_to_lidar(1, 1, math.pi / 2)
             for actual, value in zip(spy.guesses[2], expected):
                 self.assertAlmostEqual(actual, value)

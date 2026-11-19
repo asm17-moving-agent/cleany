@@ -1,4 +1,4 @@
-"""장치 없이 base_showcase.sh의 CLI와 console 안전을 검사합니다."""
+"""Device-free CLI and console safety tests for base_showcase.sh."""
 
 from pathlib import Path
 import os

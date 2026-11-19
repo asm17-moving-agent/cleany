@@ -1,4 +1,4 @@
-"""편도 평가 패턴의 순수 속도 벡터입니다."""
+"""Pure velocity vectors for one-way evaluation patterns."""
 
 import math
 
@@ -11,7 +11,7 @@ PATTERN_DIRECTIONS = {
 
 
 def motion_vectors(pattern: str, speed: float) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
-    """나가는 방향과 정확히 반대인 복귀 방향의 (vx, vy, wz) 명령을 반환합니다."""
+    """Return outbound and exact-opposite inbound (vx, vy, wz) commands."""
     if pattern == "rotation":
         if not math.isfinite(speed) or speed <= 0:
             raise ValueError("speed must be finite and positive")

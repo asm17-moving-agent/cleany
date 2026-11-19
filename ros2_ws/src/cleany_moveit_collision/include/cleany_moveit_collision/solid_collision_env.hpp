@@ -7,18 +7,16 @@
 
 namespace cleany
 {
-/**
- * 닫힌 볼록 구성요소 메시를 요소 사이의 틈을 채우지 않고 입체로 분리합니다.
- * 좌표 단위는 미터입니다. 잘못되거나 열렸거나 오목한 구성요소는 예외를 던집니다.
- * 임의 CAD 표면에서 볼록 껍질을 추론하지 않으며 면 방향은 바깥쪽으로 정규화합니다.
+/** Split a closed convex-component mesh into solids without filling component gaps.
+ * Coordinates are metres. Invalid, open or concave components throw; no hull is
+ * inferred from an arbitrary CAD surface. Winding is normalized outwards.
  */
 std::vector<std::unique_ptr<fcl::Convexd>> solid_components(const shapes::Mesh& mesh);
 
-/**
- * 입체 로봇 메시로 FCL을 조회하며 world, ACM과 attachment 처리는 유지합니다.
- * 각 구성요소는 원래 link와 충돌 형상 변환 인덱스를 유지합니다.
- * 자기 충돌 조회는 구성요소를 순회하기 전에 겹치지 않거나 허용된 link 쌍을 제외합니다.
- * FCL 콜백, 거리 조회와 장면 복사는 기존 의미를 유지합니다.
+/** FCL queries with solid robot meshes and unchanged world/ACM/attachment handling.
+ * Every component retains its original link and collision-shape transform index.
+ * Self queries reject disjoint or allowed link pairs before visiting components.
+ * FCL callbacks, distance queries and scene copies preserve their normal semantics.
  */
 class SolidCollisionEnv : public collision_detection::CollisionEnvFCL
 {

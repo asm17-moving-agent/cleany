@@ -26,15 +26,15 @@ def _default_config_path() -> str:
 
 
 class CollisionSceneApplier(Node):
-    """MoveIt을 사용할 수 있게 되면 설정된 충돌 장면을 적용합니다.
+    """Apply a configured collision scene once MoveIt becomes available.
 
     Services:
-        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): Client.
-            scene_config의 기본 서비스 경로이며 설정에서 바꿀 수 있습니다.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): Client;
+            default service path from scene_config, which can override it.
 
     Notes:
-        검증된 장면 명세에서 형상과 좌표계를 가져옵니다.
-        apply()는 service_wait_timeout_sec 안에서 대기하고 응답을 확인합니다.
+        Scene geometry and frame come from the validated scene specification.
+        apply() waits within service_wait_timeout_sec and checks the response.
     """
     def __init__(self) -> None:
         super().__init__('collision_scene_applier')

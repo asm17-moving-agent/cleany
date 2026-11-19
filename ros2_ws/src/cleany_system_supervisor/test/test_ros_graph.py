@@ -1,4 +1,4 @@
-"""합성 상대 노드를 쓰는 Supervisor 전용 ROS graph입니다. 임무 통합은 test_e2e.py에 있습니다."""
+"""Supervisor-only ROS graph with synthetic peers; mission integration is in test_e2e.py."""
 import os
 from pathlib import Path
 from threading import Thread
@@ -112,7 +112,7 @@ def graph():
     config['ros']['localization_nodes'] = ['synthetic_amcl']
     config['ros']['lifecycle_poll_s'] = .1
     config['lease_s'], config['heartbeat_timeout_s'], config['stop_timeout_s'] = .5, .3, .7
-    config['persistence']['state_file'] = ''  # 운영자의 실제 latch 상태를 건드리지 않습니다.
+    config['persistence']['state_file'] = ''  # Never touch the operator's real latch state.
     config['ros']['trusted_publishers'] = {topic: ['/synthetic_supervisor_peers']
                                            for topic in config['ros']['trusted_publishers']}
     for entry in config['sources'].values():

@@ -71,9 +71,9 @@ void PathAngleCritic::score(CriticData & data)
     return;
   }
 
-  // lattice의 제자리 회전은 XY가 같고 yaw만 변하므로 점을 향하는 방위각만으로는
-  // 회전을 표현할 수 없습니다. 시작 회전 구간의 마지막 방향을 평가합니다.
-  // 목표 위치에 도달한 뒤의 방향 정렬은 최종 목표 각도 critic이 담당합니다.
+  // Lattice turns have equal XY and changing yaw. A bearing to those points
+  // cannot express the turn, so score the end heading of the leading turn.
+  // Once position is reached, the final-goal angle critic owns orientation.
   if (respect_in_place_rotations_ && data.path.x.size() > 0 &&
     utils::withinPositionGoalTolerance(data.goal_checker, data.state.pose.pose, data.path))
   {
@@ -90,8 +90,8 @@ void PathAngleCritic::score(CriticData & data)
     }
   }
 
-  // 현재 병진 구간의 차체 yaw를 따릅니다. 이후 도착 회전이나 이동 방위각을
-  // 미리 따르지 않으므로 차체 방향을 유지한 횡이동도 가능합니다.
+  // Follow the current translation segment's body yaw, not a future arrival
+  // rotation or the travel bearing. This also permits true lateral travel.
   if (rotation_only_) {
     if(!follow_segment_heading_)return;
     for(size_t i=1;i<data.path.x.size();++i) {

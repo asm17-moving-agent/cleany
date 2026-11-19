@@ -134,7 +134,7 @@ def test_confirmation_rejects_invalid_box_geometry(extent):
         NearestPregraspCoordinator._obb_corners(box)
 
 
-# 호환되지 않는 후보의 도달 가능성은 조회하지 않습니다.
+# Reachability is never queried for an incompatible candidate.
 @pytest.mark.parametrize('reachable,compatible', [(True, True), (False, True), (False, False)])
 @pytest.mark.parametrize('reworded', [True, False])
 def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compatible, reworded):
@@ -155,7 +155,7 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
 
     def select(*args, **kwargs):
         assert args[0] == [candidate]
-        # 이제 선택기는 새 타깃 충돌 OBB를 정확히 하나 등록할 수 있습니다.
+        # The selector may now register exactly one new target collision OBB.
         assert events == ['restore']
         events.append('select')
         return selected if reachable else None
@@ -371,8 +371,8 @@ def test_controller_contact_uses_reference_minus_feedback():
     assert sample.tcp_distance_m == 0.0
 
 
-# 부착 확인 실패는 두 들기 모드 모두 시작 전에 멈춥니다. 추가 들기는
-# 직접 모드에서만 읽으므로 이를 사용하는 모든 성공 조합을 유지합니다.
+# A failed attachment barrier stops before either lift mode. Extra lift is
+# read only in direct mode; keep all successful combinations that use it.
 @pytest.mark.parametrize('sensor_ready,count_retreat,retreat_rise,direct_vertical,direct_extra', [
     (False, True, 0.0, False, 0.0),
     (False, False, 0.0, True, 0.02),

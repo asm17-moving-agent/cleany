@@ -1,4 +1,4 @@
-"""오프라인 ROS 어댑터 검사이며 노드 초기화나 하드웨어 명령이 없습니다."""
+"""Offline ROS-adapter tests: no node initialization or hardware commands."""
 
 from types import SimpleNamespace
 import math

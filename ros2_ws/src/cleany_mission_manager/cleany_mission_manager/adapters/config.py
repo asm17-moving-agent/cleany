@@ -1,4 +1,4 @@
-"""제품 및 하드웨어 결정과 분리된 검증된 배포 설정입니다."""
+"""Validated deployment settings, separate from product and hardware decisions."""
 
 import math
 import re
@@ -82,7 +82,7 @@ def load_runtime_parameters(path: str) -> dict:
 
 
 def validate_manipulation_fixture(parameters: dict, path: str, scenario: str | None = None) -> dict:
-    """executor에 의존하지 않고 공통 논리 책상 fixture를 검사합니다."""
+    """Check the shared logical desk fixture, without a dependency on the executor."""
     fixture = yaml.safe_load(Path(path).expanduser().read_text())
     if not isinstance(fixture, dict):
         raise ValueError("manipulation fixture must be a mapping")

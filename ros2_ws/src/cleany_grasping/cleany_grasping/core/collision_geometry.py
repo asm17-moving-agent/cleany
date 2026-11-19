@@ -1,7 +1,7 @@
-"""관측된 볼록 footprint를 인식된 지지 평면까지 확장한 형상입니다.
+"""Observed convex footprint extruded to a perceived support plane.
 
-제공된 관측만 둘러싸며 가려진 미지의 표면은 포함하지 않습니다.
-시뮬레이터에서 추출한 물체 메시가 아니며 내부 빈 공간도 모델링하지 않습니다.
+This encloses the supplied observations, not unknown hidden surfaces. It is
+not an object mesh recovered from the simulator and does not model cavities.
 """
 from dataclasses import dataclass
 
@@ -17,7 +17,7 @@ class ConvexPrism:
 def observed_convex_prism(points: np.ndarray, center: np.ndarray,
                           rotation: np.ndarray, height: float,
                           maximum_vertices: int = 512) -> ConvexPrism:
-    """OBB 로컬 좌표계의 정점과 바깥쪽으로 감기는 면을 반환합니다."""
+    """Return vertices in the OBB's local frame and outward-wound faces."""
     points, center, rotation = map(lambda x: np.asarray(x, dtype=float), (points, center, rotation))
     if (points.ndim != 2 or points.shape[1] != 3 or len(points) < 3
             or center.shape != (3,) or rotation.shape != (3, 3)

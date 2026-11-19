@@ -1,4 +1,4 @@
-"""인식과 의도적으로 분리한 시뮬레이션 전용 결과 판정기입니다."""
+"""Simulation-only outcome oracle, deliberately separate from perception."""
 from collections import defaultdict, deque
 from pathlib import Path
 import time
@@ -26,20 +26,20 @@ DEFAULT_LABEL_BODIES = {
 
 
 class PlacementVerifier(Node):
-    """시뮬레이터 근거로 정착된 배치를 검증합니다.
+    """Verify settled placement from simulator evidence.
 
     Subscriptions:
         /simulation/sorting_ground_truth (visualization_msgs/msg/MarkerArray):
-            base_link의 물체 경계이며 다른 좌표계는 무시합니다.
+            Object bounds in base_link; other frames are ignored.
 
     Services:
-        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): 요청 시각
-            이후의 최신 표본, 수거함 포함 여부와 설정된 정착 구간의 이동 한계를
-            확인하는 Server.
+        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): Server
+            checking fresh samples after the requested timestamp, bin containment
+            and bounded drift over the configured settling interval.
 
     Notes:
-        시뮬레이션 결과 판정기이며 인식이나 파지 자세의 입력 소스가 아닙니다.
-        근거가 부족하면 실패 응답을 반환합니다.
+        This is a simulation outcome oracle, not a perception or grasp-pose source.
+        Insufficient evidence returns an unsuccessful response.
     """
     def __init__(self):
         super().__init__('simulation_placement_verifier')
@@ -59,7 +59,7 @@ class PlacementVerifier(Node):
         self._body_candidates = defaultdict(set)
         for label, body in zip(labels, bodies):
             self._body_candidates[label].add(body)
-        # 설정된 body가 하나일 때만 label 전용 호환 경로를 허용합니다.
+        # Label-only compatibility is allowed only for a single configured body.
         self._bodies = {label: next(iter(values)) for label, values in self._body_candidates.items()
                         if len(values) == 1}
         self.declare_parameter('registration_maximum_distance_m', 0.05)
@@ -150,7 +150,7 @@ class PlacementVerifier(Node):
         self._registrations[key] = (body, request.destination_id, signature, wall, request.execution_id)
         self._execution_registrations[request.execution_id] = key
         response.success, response.verification_id = True, key
-        # 시뮬레이터 식별자는 이 평가기 내부에서만 사용합니다.
+        # Simulator identity is private to this evaluator.
         response.message = 'Individual placement target registered'
         return response
 
@@ -193,7 +193,7 @@ class PlacementVerifier(Node):
             bin_.center_xy[1] + bin_.outside_size[1] / 2 - bin_.wall,
             bin_.top_z,
         ))
-        # 부드러운 접촉 물리에서는 작은 접촉 침투가 발생할 수 있습니다.
+        # Small contact penetration is expected from soft contact physics.
         if (not np.isfinite(sizes).all() or np.any(sizes <= 0)
                 or not np.all(low >= inside_low - 0.002)
                 or not np.all(high <= inside_high + 0.002)):

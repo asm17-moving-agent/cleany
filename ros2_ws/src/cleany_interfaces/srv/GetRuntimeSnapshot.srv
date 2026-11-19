@@ -1,3 +1,3 @@
 ---
-# 현재 상태, boot ID, 활성 요청과 가장 최근 영속 종료 보고서입니다.
+# Current status, boot ID, active request and most recent durable terminal report.
 string snapshot_json

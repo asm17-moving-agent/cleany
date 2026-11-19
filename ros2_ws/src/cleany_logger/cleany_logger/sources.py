@@ -1,4 +1,4 @@
-"""기록 소스 스키마와 publisher 한계이며 DDS 구독을 포함하지 않습니다."""
+"""Recording source schema and publisher bounds; no DDS subscriptions."""
 from copy import deepcopy
 import re
 
@@ -71,8 +71,8 @@ def validate_source_enabled(value):
     return deepcopy(value)
 
 
-# 기록 한계는 관측 주기와 payload 비용을 따릅니다.
-# None이면 추가 시간 필터 없이 수신한 이벤트 기록을 보존합니다.
+# Recording bounds follow the monitor's observation cadence and payload cost.
+# None preserves received event records without an additional time-based filter.
 SOURCE_DEFAULT_HZ = {
     'slip_topic': 5., 'traction_recovery_topic': None,
     'localization_status_topic': 2.,
@@ -118,8 +118,8 @@ for key, spec in SCHEMA.items():
 
 
 
-# publisher 참고 한계이며 기록 및 UI 처리 제한과 별개입니다.
-# 이벤트나 입력에 따라 동작하는 토픽은 계획용 추정값이며 물리적 절대 한계가 아닙니다.
+# Publisher reference bounds, separate from recording and UI processing limits.
+# Event/input-driven topics have planning estimates, not physical hard limits.
 SOURCE_MAX_HZ = {
     'slip_topic': (5., 'code', 'Slip monitor heartbeat: 0.2 s'),
     'traction_recovery_topic': (100., 'estimate', 'BT tick and state transitions'),

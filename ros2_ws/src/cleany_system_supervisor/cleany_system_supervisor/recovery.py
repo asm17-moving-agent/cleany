@@ -1,4 +1,4 @@
-"""충돌하는 reset을 막도록 직렬화한 범위 제한 컴포넌트 소유 복구입니다."""
+"""Bounded component-owned recovery, serialized to prevent conflicting resets."""
 from uuid import uuid4
 
 from .models import RecoveryJob, RecoveryState
@@ -7,7 +7,7 @@ TERMINAL = (RecoveryState.SUCCEEDED, RecoveryState.FAILED, RecoveryState.CANCELE
 
 
 class UnsupportedRecovery(ValueError):
-    """이 fault의 복구를 구현한 소유자가 없으며 재시도 가능한 실패가 아닙니다."""
+    """No owner implements recovery for this fault; never a retryable failure."""
 
 
 class RecoveryCoordinator:
@@ -20,7 +20,7 @@ class RecoveryCoordinator:
             raise ValueError('fault is not active')
         if not fault.recovery_policy:
             raise UnsupportedRecovery(f'{fault.code} has no component-owned recovery; operator action required')
-        # 수동 요청을 포함해 하나의 fault 구간에 하나의 제한된 예산을 적용합니다.
+        # A single fault episode gets one bounded budget, including manual requests.
         for job in self.jobs.values():
             if job.fault_code == fault.code and job.started_at >= fault.first_seen:
                 return job
@@ -38,7 +38,7 @@ class RecoveryCoordinator:
             try:
                 self.port.cancel(job)
             except Exception:
-                pass  # 전송 유실 중에도 종료 결과까지 리소스를 점유합니다.
+                pass  # Keep resource held until terminal result, including on transport loss.
 
     def _retry_or_fail(self, job, now, detail):
         job.resource_held, job.verify_after, job.cancel_at = False, None, None
@@ -58,7 +58,7 @@ class RecoveryCoordinator:
                 job.finished_at = now
 
     def prune(self, faults, now: float, retention_s: float) -> list[RecoveryJob]:
-        """예산을 유지하도록 fault 구간이 끝난 뒤에만 완료 작업을 잊습니다."""
+        """Forget finished jobs only after their fault episode ended, preserving the budget."""
         removed = []
         for job in list(self.jobs.values()):
             fault = faults.get(job.fault_code)
@@ -86,7 +86,7 @@ class RecoveryCoordinator:
                 if result in ('SUCCEEDED', 'FAILED', 'CANCELED'):
                     self._retry_or_fail(job, now, 'component completed after cancel/timeout')
                 elif now - job.cancel_at >= job.policy['cancel_timeout_s']:
-                    # 이전 작업이 아직 실행 중일 수 있으면 다른 reset을 보내지 않습니다.
+                    # Never dispatch another reset while the old operation might still run.
                     job.state, job.detail = RecoveryState.FAILED, 'cancel unconfirmed; resource quarantined'
                 continue
             if job.verify_after is not None:
@@ -104,7 +104,7 @@ class RecoveryCoordinator:
             elif (now - job.attempt_at >= job.policy['attempt_timeout_s'] or
                   now - job.started_at >= job.policy['total_timeout_s']):
                 self.cancel(job, now)
-                job.cancel_requested = False  # 시간 초과는 재시도할 수 있지만 명시적 사용자 취소는 재시도하지 않습니다.
+                job.cancel_requested = False  # Timeout may retry, explicit user cancel may not.
             elif not allow_continue:
                 self.cancel(job, now)
         if any(job.resource_held for job in self.jobs.values()) or not allow_dispatch:

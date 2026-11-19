@@ -27,7 +27,7 @@ async function main() {
     const page = await browser.newPage({viewport: {width: 1280, height: 720}});
     const errors = [], results = {};
     page.on('pageerror', error => errors.push(error.message));
-    // 결정적 프레임 사이에서 실제 API를 갱신하고 렌더링된 픽셀을 검사합니다.
+    // Drive real API updates between deterministic frames; inspect the rendered pixels.
     await page.addInitScript(() => {
       Math.random = () => .5;
       let pending = [], frame = 0, firstTranslation = true;
@@ -131,7 +131,7 @@ async function main() {
     await page.waitForFunction(() => document.querySelector('.cd-dreams').hidden, null, {polling: 10});
     results.dreams = fadingDreams;
 
-    // 텍스트 전환을 완료 전에 중단하며 이전 콜백이 이를 복구하지 못하게 합니다.
+    // Interrupt a text swap before it finishes; an older callback must never restore it.
     await fresh('moving', 60);
     await page.waitForTimeout(400);
     await select('checking'); await advance(1);

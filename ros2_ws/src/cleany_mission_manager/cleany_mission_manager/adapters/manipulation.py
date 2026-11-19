@@ -1,4 +1,4 @@
-"""ROS 전송만 담당합니다. executor의 BT와 단계 순서는 Mission이 제어하지 않습니다."""
+"""ROS transport only; executor BT/stage order is not part of Mission control."""
 
 from action_msgs.srv import CancelGoal
 from rclpy.action import ActionClient
@@ -78,7 +78,7 @@ class ROSManipulationTransport:
                 "execution_id", "stage", "substage", "selected_arm", "message",
             )}
         except Exception:
-            # 피드백은 관측 전용이며 잘못된 메시지가 제어를 중단할 수 없습니다.
+            # Feedback is observation only; a malformed message cannot stop control.
             return
 
     def ready(self) -> bool:

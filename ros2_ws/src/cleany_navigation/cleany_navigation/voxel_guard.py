@@ -1,7 +1,7 @@
-"""평면에서 움직이는 고정 자세 로봇의 관측 voxel 충돌 검사입니다.
+"""Observed-voxel collision checks for a planar, fixed-posture robot.
 
-voxel은 큐브 부피를 유지하며 중심점만 점 장애물로 취급하지 않습니다.
-이 평가기는 미확인 공간이 비어 있다고 보증하지 않습니다.
+Voxel cubes retain their extent; centers are not treated as point obstacles.
+Unknown space is not certified free by this evaluator.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from cleany_navigation.body_geometry import BodyBox
 
 def voxel_box_hits(centers: np.ndarray, voxel_size: np.ndarray, box: BodyBox,
                    margin: float = 0.) -> np.ndarray:
-    """지도 축 정렬 voxel 상자와 방향을 가진 body 상자의 분리축 검사입니다."""
+    """Separating-axis test: map-aligned voxel boxes against an oriented body box."""
     centers = np.asarray(centers, dtype=float).reshape(-1, 3)
     size = np.asarray(voxel_size, dtype=float)
     if size.shape != (3,) or not np.isfinite(size).all() or np.any(size <= 0):
@@ -25,9 +25,9 @@ def voxel_box_hits(centers: np.ndarray, voxel_size: np.ndarray, box: BodyBox,
 
 def _box_hits(centers: np.ndarray, size: np.ndarray, center: np.ndarray,
               rotation: np.ndarray, half: np.ndarray) -> np.ndarray:
-    """이미 검증한 형상에 SAT를 적용하며 자세마다 BodyBox를 다시 만들지 않습니다."""
+    """SAT on already validated geometry; avoid rebuilding BodyBox per pose."""
     delta = centers-center
-    # 나머지 분리축 전에 저비용 지도 축 기준의 넓은 검사를 적용합니다.
+    # Cheap map-axis broad phase before the remaining separating axes.
     active = np.flatnonzero((np.abs(delta) <= np.abs(rotation)@half+size/2+1e-10).all(axis=1))
     result = np.zeros(len(centers), dtype=bool)
     if not len(active):
@@ -87,10 +87,10 @@ class VoxelGuard:
 
     def sweep(self, centers: np.ndarray, size: np.ndarray, base_in_map: np.ndarray,
               velocity: np.ndarray, extra_s: float = 0.) -> np.ndarray:
-        """고정 곡률에서 비례 제동하는 보수적 경로 길이입니다.
+        """Conservative path length for proportional braking at fixed curvature.
 
-        임의 미끄럼, 축별 독립 제동이나 이동 장애물을 제한하지는 않습니다.
-        이 전제들은 별도의 실물 로봇 검증이 필요합니다.
+        This does not bound arbitrary slip, independent-axis braking or moving
+        obstacles. Those assumptions require separate real-robot validation.
         """
         c = self.config
         centers = np.asarray(centers, dtype=float).reshape(-1, 3)
@@ -106,7 +106,7 @@ class VoxelGuard:
         if not np.isfinite(horizon) or horizon > 5 or horizon < 0:
             raise ValueError('Unbounded prediction horizon')
         times = [0.] if np.all(velocity == 0) else np.linspace(0, horizon, int(np.ceil(horizon/c.step_s))+1)
-        # 표본 사이 최대 표면 이동량을 body 범위에 더합니다.
+        # Maximum surface travel between samples, added to the body extent.
         padding = (speed+abs(velocity[2])*self.radius)*c.step_s/2
         hits = np.zeros(len(centers), dtype=bool)
         for seconds in times:
@@ -144,7 +144,7 @@ class VoxelGuard:
 def local_window_covers(center: np.ndarray, local_radius: float, near_radius: float,
                         robot_xy: np.ndarray, sweep_radius: float,
                         cloud_stamp: float, status_stamp: float) -> bool:
-    """잘린 점군은 메타데이터가 일치하고 전체 sweep을 포함할 때만 사용할 수 있습니다."""
+    """A cropped cloud is usable only with matching metadata and a full sweep."""
     center = np.asarray(center, dtype=float)
     if center.shape != (2,) or not np.isfinite(center).all():
         return False

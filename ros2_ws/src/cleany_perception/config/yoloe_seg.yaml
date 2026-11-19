@@ -1,4 +1,4 @@
-# 정렬된 RGB-D의 로컬 YOLOE instance 분할입니다.
+# Local YOLOE instance segmentation for aligned RGB-D.
 perception_inspector:
   ros__parameters:
     detector_type: yoloe

@@ -144,7 +144,7 @@ def test_historical_submap_images_and_poses_survive_rate_limit_and_live_mutation
         if isinstance(topic, str)
     }
     recorder = Recorder(tmp_path, controls=hub.recording)
-    # 소스 갱신을 의도적으로 늦춰도 texture와 목록의 일관성을 잃지 않아야 합니다.
+    # Deliberately slow source setting must not drop texture/list coherence.
     settings = defaults()
     settings["source_hz"]["slam_submaps_topic"] = 0.1
     hub.recording.configure(settings)

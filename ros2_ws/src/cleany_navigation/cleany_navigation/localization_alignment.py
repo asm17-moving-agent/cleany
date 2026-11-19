@@ -1,4 +1,4 @@
-"""ROS에 독립적인 스캔/지도 일관성 검사와 범위 제한 정지 자세 탐색입니다."""
+"""ROS-independent scan/map consistency and bounded stationary pose search."""
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
@@ -80,7 +80,7 @@ def transform(points: np.ndarray, pose: np.ndarray) -> np.ndarray:
 
 
 class AlignmentMap:
-    """불변 미터 단위 거리장입니다. 미확인 또는 범위 밖 끝점은 불일치로 남습니다."""
+    """Immutable metric distance field; unknown/outside endpoints remain mismatches."""
 
     def __init__(self, cells: np.ndarray, resolution: float, origin: tuple[float, float, float]):
         cells = np.asarray(cells)
@@ -112,7 +112,7 @@ class AlignmentMap:
         if len(points) == 0:
             return AlignmentScore(0, 0., settings.distance_cap, settings.distance_cap, 0.)
         values, known = self.residuals(points, pose, settings.distance_cap)
-        # 제한된 동적 장애물 영향을 허용하도록 가장 큰 1/4만 제외합니다.
+        # Trim only the largest quarter, to tolerate limited dynamic clutter.
         trimmed = np.sort(values)[:max(1, int(math.ceil(len(values)*.75)))]
         return AlignmentScore(len(points), float(np.mean(values <= settings.inlier_distance)),
                               float(np.mean(trimmed)), float(np.median(values)), float(np.mean(known)))
@@ -126,7 +126,7 @@ class AlignmentMap:
 
 
 class AlignmentHealth:
-    """시간과 속도를 제한한 재수렴 동안 검증된 자세를 유지합니다."""
+    """Retain a verified pose through bounded, speed-limited reconvergence."""
 
     def __init__(self, settings: AlignmentSettings):
         self.settings = settings
@@ -139,7 +139,7 @@ class AlignmentHealth:
         self.reason = 'unverified'
 
     def invalidate(self) -> None:
-        """누락되거나 잘못된 근거에는 재수렴 유예를 적용하지 않습니다."""
+        """Missing or malformed evidence never receives reconvergence grace."""
         self.state, self.trusted, self.reason = 'unknown', False, 'unverified'
         self.good_since = self.bad_since = self.severe_since = self.progress_at = None
         self.best_distance, self.best_ratio = math.inf, 0.
@@ -154,8 +154,8 @@ class AlignmentHealth:
             self.invalidate()
         elif score.acceptable(self.settings):
             self.severe_since = None
-            # 안정 양호 구간이 끝나기 전에도 유효한 정합은 진전입니다.
-            # 양호와 불량의 반복으로 예산이 늘지 않도록 bad_since를 유지합니다.
+            # A valid match is progress even before the stable-good interval ends.
+            # Keep bad_since so alternating good/bad samples cannot extend the budget.
             self.progress_at = stamp
             if self.good_since is None:
                 self.good_since = stamp
@@ -198,10 +198,10 @@ class AlignmentHealth:
 def search_pose(model: AlignmentMap, points: np.ndarray, seed: np.ndarray,
                 settings: AlignmentSettings, canceled: Callable[[], bool] = lambda: False,
                 *, require_improvement: bool = True) -> dict:
-    """보류한 beam으로 범위 안의 유일한 SE(2) 정합을 검증합니다.
+    """Validate a unique bounded SE(2) match using held-out beams.
 
-    신뢰도만 회복하는 경우 이미 정렬된 자세를 유지할 수 있지만, 더 엄격한
-    복구 점수와 모호하지 않은 공간 정합은 여전히 필요합니다.
+    Confidence-only recovery may retain an already aligned pose; it still needs
+    the stricter recovery score and an unambiguous spatial match.
     """
     points, seed = np.asarray(points, dtype=float), np.asarray(seed, dtype=float)
     if (points.ndim != 2 or points.shape[1] != 2 or len(points) < 2*settings.min_points or
@@ -246,7 +246,7 @@ def search_pose(model: AlignmentMap, points: np.ndarray, seed: np.ndarray,
     alternative = next((score for score, pose in candidates[1:] if
                         np.linalg.norm(pose[:2]-best[:2]) >= settings.ambiguity_distance or
                         abs(wrap(pose[2]-best[2])) >= settings.ambiguity_yaw), None)
-    # 최적화기 수렴이 모호성을 숨기지 않도록 정밀화 전 거친 대안도 포함합니다.
+    # Include unrefined coarse alternatives, so optimizer convergence cannot hide ambiguity.
     alternatives = [score for score, pose in coarse if
                     np.linalg.norm(pose[:2]-best[:2]) >= settings.ambiguity_distance or
                     abs(wrap(pose[2]-best[2])) >= settings.ambiguity_yaw]

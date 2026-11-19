@@ -1,4 +1,4 @@
-"""스터디카페 조작이 공유하는 카메라 투영과 파지 overlay입니다."""
+"""Camera projection and grasp overlays shared by study-cafe manipulation."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def rotation_matrix_from_quaternion(
     z: float,
     w: float,
 ) -> np.ndarray:
-    """xyzw quaternion에서 정규화한 3×3 회전 행렬을 반환합니다."""
+    """Return a normalized 3x3 rotation matrix for an xyzw quaternion."""
     quaternion = np.asarray((x, y, z, w), dtype=float)
     norm = float(np.linalg.norm(quaternion))
     if not np.isfinite(quaternion).all() or norm <= 1.0e-12:
@@ -83,7 +83,7 @@ def render_grasp_overlay(
     pregrasp_offset_m: float = 0.08,
     title: str = 'CAN GRASP',
 ) -> np.ndarray:
-    """렌더링된 RGB 영상 위에 파지 방향과 수치 각도를 그립니다."""
+    """Draw grasp directions and numeric angles over the rendered RGB image."""
 
     positions = np.asarray(tcp_positions, dtype=float)
     approaches = np.asarray(approach_directions, dtype=float)

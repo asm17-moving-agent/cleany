@@ -1,4 +1,4 @@
-"""여유를 더한 베이스와 상자 fixture 사이의 평면 거리를 계산합니다."""
+"""Planar clearance of the configured padded base and a box test fixture."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ def rectangle_clearance(
     obstacle_xy: tuple[float, float],
     obstacle_half_size: tuple[float, float],
 ) -> float:
-    """사각형 사이 거리(m)를 반환하며 접촉하거나 겹치면 0입니다.
+    """Return metres between rectangles; zero includes contact/overlap.
 
-    장애물은 평가 지도 축과 정렬됩니다. footprint 지표이며 Gazebo 접촉 센서
-    측정이나 팔의 3차원 충돌 검사는 아닙니다.
+    The obstacle is aligned with the evaluation map. This is a footprint
+    metric, not a Gazebo contact-sensor measurement or a 3-D arm check.
     """
     def vertices(center, half_size, angle):
         c, s = math.cos(angle), math.sin(angle)

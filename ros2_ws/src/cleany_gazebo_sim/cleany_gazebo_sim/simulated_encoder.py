@@ -10,7 +10,7 @@ WHEEL_COUNT = 4
 
 @dataclass(frozen=True)
 class EncoderReading:
-    """양자화한 네 휠의 encoder 표본 한 개입니다."""
+    """One quantized four-wheel encoder sample."""
 
     counts: tuple[int, int, int, int]
     positions_rad: tuple[float, float, float, float]
@@ -18,7 +18,7 @@ class EncoderReading:
 
 
 class SimulatedQuadratureEncoder:
-    """이상적인 누적 휠 각도를 합성 encoder 측정값으로 바꿉니다."""
+    """Convert ideal cumulative wheel angles into synthetic encoder readings."""
 
     def __init__(
         self,
@@ -53,7 +53,7 @@ class SimulatedQuadratureEncoder:
         positions_rad: tuple[float, float, float, float],
         stamp_s: float,
     ) -> EncoderReading:
-        """tick 미만의 이동량을 보존하며 이상적인 관절 표본 한 개를 양자화합니다."""
+        """Quantize one ideal joint sample, preserving fractional tick motion."""
         if len(positions_rad) != WHEEL_COUNT or not all(
             isfinite(position) for position in positions_rad
         ):

@@ -1,4 +1,4 @@
-"""controller plugin 정리를 포함해 설치된 MoveIt 프로세스를 검사합니다."""
+"""Exercise the installed MoveIt process, including controller plugin teardown."""
 from __future__ import annotations
 
 import os
@@ -55,7 +55,7 @@ def test_move_group_exits_cleanly_after_sigint(tmp_path):
                 assert process.poll() is None, log.read_text()
                 rclpy.spin_once(node, executor=executor, timeout_sec=.1)
             assert client.service_is_ready(), log.read_text()
-            # 콜백 그룹을 정리하기 전에 capability를 실행합니다.
+            # Exercise the capability before tearing down its callback groups.
             request = GetStateValidity.Request()
             request.robot_state.is_diff = True
             future = client.call_async(request)

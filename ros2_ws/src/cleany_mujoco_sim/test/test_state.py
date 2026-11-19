@@ -163,10 +163,10 @@ def test_odometry_twist_is_expressed_in_base_link(model_data):
         0.0,
         math.sin(half_yaw),
     )
-    # MuJoCo 자유 관절 선속도는 월드 좌표계입니다. yaw가 +90도이면
-    # world +Y가 base_link +X입니다.
+    # MuJoCo free-joint linear velocity is world-frame: world +Y is
+    # base_link +X after a +90 degree yaw.
     data.qvel[qvel_address:qvel_address + 3] = (0.0, 2.0, 0.0)
-    # 자유 관절 각속도는 이미 body 로컬 좌표계입니다.
+    # Free-joint angular velocity is already body-local.
     data.qvel[qvel_address + 3:qvel_address + 6] = (0.1, 0.2, 0.3)
     mujoco.mj_forward(model, data)
 

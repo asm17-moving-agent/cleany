@@ -1,15 +1,15 @@
 schema_version: 1
 
-# 기록된 seed가 정확히 열 개 필요합니다. 조건별 스트림은 NumPy PCG64를
-# 사용하며 생성된 동일 묶음을 다섯 방법 모두가 공유합니다.
+# Exactly ten recorded seeds are required.  The condition-specific streams
+# use NumPy PCG64 and the same generated bundle is shared by all five methods.
 random_seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-# 실행 전에 검토된 로봇 및 카메라 형상에서 구체화합니다.
-# solver 출력의 유효 범위이며 보정 수락 임계값이 아닙니다.
+# Materialize from the reviewed robot/camera geometry before running.  This is
+# a solver-output validity bound, not a calibration acceptance threshold.
 max_translation_norm_m: null
 
-# 연속 이동 관측은 정지 표본 20+5개와 별도 결과물입니다.
-# 오프셋과 보간 거리를 선택하고 검토해야 합니다.
+# Continuous-motion observations are a separate artifact from the 20+5
+# stationary samples.  Choose and review offsets and interpolation distance.
 timestamp:
   offsets_ns: null
   max_joint_sample_distance_ns: null

@@ -1,4 +1,4 @@
-"""ROS나 대시보드 없이 CLI 상태 보호와 정책 수정을 검사합니다."""
+"""CLI state guards and policy patching without ROS or a dashboard."""
 import copy
 import json
 import subprocess

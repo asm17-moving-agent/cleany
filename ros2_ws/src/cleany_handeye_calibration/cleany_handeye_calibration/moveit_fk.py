@@ -1,4 +1,4 @@
-"""시각이 있는 관절 피드백과 MoveIt 피드백 FK의 ROS 어댑터입니다."""
+"""ROS adapters for timestamped joint feedback and MoveIt feedback FK."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ _MAX_ROS_TIME_SECONDS = 2_147_483_647
 
 
 def ros_stamp_to_nanoseconds(stamp: Any) -> int:
-    """경과 시간 시계를 조회하지 않고 ROS 기본 시간값을 변환합니다."""
+    """Convert a ROS builtin time value without consulting a wall clock."""
 
     try:
         seconds = stamp.sec
@@ -53,7 +53,7 @@ def ros_stamp_to_nanoseconds(stamp: Any) -> int:
 
 
 def timed_joint_sample_from_message(message: Any) -> TimedJointSample:
-    """JointState의 ROS header stamp를 데이터 시각으로 사용해 변환합니다."""
+    """Convert a ``JointState`` using its ROS header stamp as data time."""
 
     try:
         stamp = message.header.stamp
@@ -76,7 +76,7 @@ def timed_joint_sample_from_message(message: Any) -> TimedJointSample:
 
 
 class ForwardKinematicsFailure(str, Enum):
-    """동기식 MoveIt 경계의 고정 실패 분류입니다."""
+    """Stable failure categories for the synchronous MoveIt boundary."""
 
     SERVICE_UNAVAILABLE = 'service_unavailable'
     TIMEOUT = 'timeout'
@@ -86,7 +86,7 @@ class ForwardKinematicsFailure(str, Enum):
 
 
 class ForwardKinematicsError(RuntimeError):
-    """MoveIt 서비스 또는 응답 계약 위반입니다."""
+    """A MoveIt service or response contract failure."""
 
     def __init__(
         self,
@@ -101,12 +101,13 @@ class ForwardKinematicsError(RuntimeError):
 
 
 class MoveItForwardKinematicsAdapter:
-    """피드백 관절값으로 base_link_T_left_gripper_frame을 계산합니다.
+    """Compute ``base_link_T_left_gripper_frame`` from feedback joints.
 
-    요청에는 항상 보간된 전체 상태를 넣고 RobotState.is_diff를 false로 지정합니다.
-    ROS header stamp는 데이터 시각이며 제한된 서비스 대기에는 주입된 단조 시계만
-    사용합니다. client와 spin_once를 주입할 수 있어 ROS graph를 시작하지 않고
-    요청 및 응답 동작을 검사할 수 있습니다.
+    The request always contains the complete interpolated state and explicitly
+    sets ``RobotState.is_diff`` false.  ROS header stamps remain data time;
+    the bounded service wait uses only the injected monotonic wall clock.
+    ``client`` and ``spin_once`` are injectable so request/response behavior is
+    testable without starting a ROS graph.
     """
 
     def __init__(
@@ -168,7 +169,7 @@ class MoveItForwardKinematicsAdapter:
         *,
         timeout_sec: float,
     ) -> RigidTransform:
-        """영상 데이터 시각에 보간한 전체 상태로 MoveIt FK를 호출합니다."""
+        """Call MoveIt FK with a full state interpolated at image data time."""
 
         if not isinstance(joints, InterpolatedJointState):
             raise ValueError(

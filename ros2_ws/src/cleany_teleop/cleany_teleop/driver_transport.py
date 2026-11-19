@@ -1,4 +1,4 @@
-"""보호된 바퀴 이동 의도를 유일한 base driver의 Twist/permission 포트로 변환합니다."""
+"""Adapt guarded wheel intent to the sole base driver's Twist/permission port."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class Geometry:
 def limit_wheel_velocity(
     axes: tuple[float, float, float], geometry: Geometry, maximum_rad_s: float
 ) -> tuple[float, float, float]:
-    """모든 mecanum 바퀴 속도를 rad/s 한계 안에 두도록 body twist를 균일 축소합니다."""
+    """Scale a body twist uniformly to bound every mecanum wheel in rad/s."""
     if not isfinite(maximum_rad_s) or maximum_rad_s <= 0:
         raise ValueError('Wheel speed limit must be finite and positive')
     if not all(isfinite(value) for value in axes):
@@ -47,7 +47,7 @@ def body_velocity(
 
 
 class DriverTransport:
-    """RPC만으로 판단하지 않고 허가 응답을 최신 MCU 피드백과 연결합니다."""
+    """Correlate permission RPC replies with fresh MCU feedback, never RPC alone."""
 
     def __init__(self, request, velocity, geometry: Geometry):
         self.request, self.velocity, self.geometry = request, velocity, geometry
@@ -110,8 +110,8 @@ class DriverTransport:
             self.permission_status["stage"] = "mcu_feedback_missing"
             return False
         if reply.boot_id == 0 and state.boot_id and command.mode == Control.STOP:
-            # 시작 STOP이 드라이버의 첫 MCU 표본보다 앞설 수 있습니다. 실제 boot
-            # 식별자를 받은 뒤 새로 대응되는 STOP 응답을 받습니다.
+            # The startup STOP can precede the driver's first MCU sample. Obtain a
+            # new, correlated STOP reply once a real boot identity is available.
             self.sequence += 1
             self.permission_status.update(stage="rpc_pending", request_sequence=self.sequence)
             try:
@@ -161,7 +161,7 @@ class DriverControl(Control):
         return result
 
     def tick(self):
-        # MCU 피드백이 없어도 RPC 진단은 계속 관측할 수 있어야 합니다.
+        # RPC diagnostics must remain observable even when MCU feedback is absent.
         self.ack()
         super().tick()
 

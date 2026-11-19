@@ -44,7 +44,7 @@ junit*.xml
 calibration_data/
 ros2_ws/slam_results/
 
-# 선택적 로컬 데이터 경로 재정의이며 빌드 출력 기본값은 사용자 캐시입니다.
+# Optional local data overrides; build outputs default to the user cache.
 /cleany-data/
 ros2_ws/build-*/
 ros2_ws/install-*/
@@ -94,6 +94,6 @@ containers/vision/models/
 *.sqlite
 *.sqlite3
 
-# Cleany display 출력과 로컬 검증 촬영물입니다.
+# Cleany display exports and local validation captures.
 /output/cleany-display/
 /output/cleany-display-jetson/

@@ -18,7 +18,7 @@ procedural_assets:
   crumpled_tissue:
     description: Original deterministic folded surface, not an imported paper model.
     collision: convex hull of the rendered mesh; no paper deformation
-# 현재 장면에서 사용하는 가져온 메시입니다.
+# Imported mesh used by the current scene.
 assets:
   mouse:
     active: true

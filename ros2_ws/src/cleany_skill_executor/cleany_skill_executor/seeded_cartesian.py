@@ -1,7 +1,7 @@
-"""일반 MoveIt IK/FK/충돌 서비스로 seed 기반 Cartesian 경로를 생성합니다.
+"""Seeded Cartesian path generation using normal MoveIt IK/FK/collision services.
 
-여기서는 제어기 명령을 보내지 않습니다. 호출자는 실행 전에 Cartesian 기하를
-검증하고 Cartesian 속도 및 가속도 감속을 적용해야 합니다.
+No controller command is sent here. The caller must validate Cartesian geometry
+and apply its Cartesian speed/acceleration slowdown before execution.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
 
 class CartesianPlanningError(RuntimeError):
-    """실행 가능한 Cartesian 경로가 없으며 제어기 명령은 보내지 않았습니다."""
+    """No executable Cartesian path; no controller command has been sent."""
 
 
 @dataclass(frozen=True)
@@ -85,22 +85,23 @@ class SeededCartesianPlanner:
 
     def plan(self, request: MotionPlanRequest, start: CartesianPose,
              target: CartesianPose) -> tuple[RobotTrajectory, list[CartesianPose]]:
-        """Cartesian 통로를 통과하는 관절 경로를 계획하고 표본화합니다.
+        """Plan and sample a joint path through a Cartesian corridor.
 
         Args:
-            request: is_diff를 설정한 전체 피드백 상태, 관절 목표 하나와 Cartesian
-                위치 통로 하나. 팔 외 관절과 부착물은 유지합니다.
-            start: 통로 좌표계의 TCP 자세이며 미터와 XYZW quaternion을 사용합니다.
-            target: 같은 좌표계와 단위의 TCP 끝점.
+            request: Full feedback state with is_diff set, one joint goal and one
+                Cartesian position corridor. Non-arm joints and attachments are retained.
+            start: TCP pose in the corridor frame, in metres and an XYZW quaternion.
+            target: TCP endpoint in the same frame and units.
 
         Returns:
-            표본 충돌 및 제약 검사를 통과하고 관절 한계를 적용한 궤적과 대응 FK 자세.
-            호출자는 실행 전에 Cartesian 기하 검증과 속도 및 가속도 제한을 적용해야 합니다.
+            A joint-limited trajectory and corresponding FK poses after sampled
+            collision/constraint checks. The caller must still validate Cartesian
+            geometry and apply Cartesian speed/acceleration limits before execution.
 
         Raises:
-            ValueError: 요청, 배율이나 표본 예산이 잘못된 경우.
-            CartesianPlanningError: IK, 관절 범위나 표본 유효성 검사가 실패한 경우.
-            RuntimeError: 필수 모델 또는 서비스 출력이 없거나 일치하지 않는 경우.
+            ValueError: The request, scaling or sampling budget is invalid.
+            CartesianPlanningError: IK, joint bounds or sampled validity checks fail.
+            RuntimeError: Required model or service output is unavailable or inconsistent.
         """
         if (not request.start_state.is_diff or len(request.goal_constraints) != 1 or
                 len(request.path_constraints.position_constraints) != 1):
@@ -162,7 +163,7 @@ class SeededCartesianPlanner:
             merged = dict(current)
             merged.update(zip(names, values, strict=True))
             state.joint_state.position = [merged[name] for name in full_names]
-            return state  # is_diff와 모든 부착물 필드를 유지합니다.
+            return state  # is_diff and all attachment fields are preserved
 
         for index in range(1, count):
             fraction = index/count
@@ -173,8 +174,8 @@ class SeededCartesianPlanner:
                     positions = dict(current)
                     positions.update(zip(names, values, strict=True))
                     p, _ = chain.pose(positions)
-                    # 중복 자유도 관절을 끝점 보간 근처에 유지합니다.
-                    # 이 약한 정규화보다 위치 오차가 우선합니다.
+                    # Keep redundant joints near the endpoint interpolation;
+                    # position dominates this weak regularization.
                     return np.concatenate((p-target_p, 1e-4*(np.asarray(values)-seed)))
                 values = refine_pose(residual, seed,
                     [bounds[n] for n in names],
@@ -182,7 +183,7 @@ class SeededCartesianPlanner:
                 if np.linalg.norm(residual(values)[:3]) > self.config.validation_step_m/2:
                     raise CartesianPlanningError(f'Local Cartesian position refinement failed at {index}/{count}')
                 knots.append(values)
-                continue  # 아래에서 전체 MoveIt 충돌, 제약과 FK 검사를 수행합니다.
+                continue  # Full MoveIt collision/constraint/FK checks follow below.
             query = GetPositionIK.Request()
             ik = query.ik_request
             ik.group_name, ik.ik_link_name = request.group_name, tip

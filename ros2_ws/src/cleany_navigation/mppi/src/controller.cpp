@@ -154,7 +154,7 @@ void MPPIController::setPlan(const nav_msgs::msg::Path & path)
       std::abs(angles::shortest_angular_distance(tf2::getYaw(a.orientation),tf2::getYaw(b.orientation)))>0.01;
   }
   if (new_goal) {progress_gate_.reset(); progress_path_=path;}
-  // 주기적인 재계획 중에도 경로 호 길이 기준을 연속적으로 유지합니다.
+  // Keep a stable reference arc coordinate across periodic replanning.
   path_handler_.setPath(path);
 }
 

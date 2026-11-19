@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""주행 costmap을 바꾸지 않고 최신 단일 레이어 costmap을 관측합니다."""
+"""Observe fresh single-layer costmaps without changing the navigation costmap."""
 
 import argparse
 from copy import deepcopy

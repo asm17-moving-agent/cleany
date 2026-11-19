@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Feetech 헤드 레지스터만 읽으며 토크, 목표나 EEPROM을 쓰지 않습니다."""
+"""Read Feetech head registers only; no torque, goal or EEPROM writes."""
 
 import argparse
 import json
@@ -10,7 +10,7 @@ import serial
 
 
 def read_register(port, motor: int, address: int, count: int) -> int:
-    """protocol-1 READ를 보내고 전체 상태 응답을 검증합니다."""
+    """Send a protocol-1 READ and validate the complete status reply."""
     payload = bytes([motor, 4, 2, address, count])
     request = b'\xff\xff' + payload + bytes([(~sum(payload)) & 255])
     port.reset_input_buffer()

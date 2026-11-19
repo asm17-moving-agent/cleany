@@ -26,7 +26,7 @@ class Mpu6050 {
   Mpu6050(const Mpu6050&) = delete;
   Mpu6050& operator=(const Mpu6050&) = delete;
 
-  // 고정 측정 계약: 100 Hz, ±2 g, ±250°/s, 자이로 DLPF 42 Hz.
+  // Fixed sample contract: 100 Hz, +/-2 g, +/-250 degrees/s, gyro DLPF 42 Hz.
   esp_err_t initialize();
   Mpu6050ReadStatus readSample(ImuSample& sample);
   void shutdown();

@@ -1,4 +1,4 @@
-"""가짜 시계로 물리 진행, 실패, 취소와 crash 복구를 검사합니다."""
+"""Physical progress, failure, cancellation and crash recovery with a fake clock."""
 
 from dataclasses import replace
 from pathlib import Path
@@ -494,7 +494,7 @@ def test_crash_after_physical_evidence_keeps_that_evidence_before_step_completio
     core, port, store, clock = harness()
     core.accept(goal())
     reach(core, port, clock, Stage.GRASPING)
-    # 접촉 근거가 journal에 도달한 직후의 중단을 모사합니다.
+    # Emulate interruption immediately after contact evidence reaches the journal.
     from cleany_skill_executor.manipulation.ports import Evidence
     core._apply(Evidence(object_state=ObjectState.HELD, message='Fresh contact evidence'))
     before = store.get(goal().execution_id)
@@ -567,7 +567,7 @@ def test_record_failure_preserves_success_motion_and_runtime_lookup(harness, mon
         assert store.get(goal().execution_id).result is None
     assert core.accept(goal('new'))[0]
     assert finish(core, clock).status == Status.SUCCESS
-    # 새 Goal이 core.record를 교체해도 이전 결과를 계속 조회할 수 있습니다.
+    # The previous result stays queryable after another Goal replaces core.record.
     assert core.get(goal().execution_id).result == result
 
 
@@ -686,7 +686,7 @@ def test_database_ownership_uniqueness_and_atomic_journal(harness):
     store.save(record, create=True)
     with pytest.raises(DuplicateExecution):
         store.save(record, create=True)
-    # journal 충돌은 해당 snapshot 갱신을 rollback해야 합니다.
+    # Journal conflict must roll back the corresponding snapshot update.
     with pytest.raises(StoreError):
         store.save(replace(record, object_state=ObjectState.HELD))
     assert store.get(goal().execution_id).object_state == ObjectState.NOT_TOUCHED

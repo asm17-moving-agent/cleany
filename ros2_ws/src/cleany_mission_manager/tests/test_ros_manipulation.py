@@ -1,4 +1,4 @@
-"""하나의 prefix에서 선택적으로 import한 Mock Action과의 선택적 통합 검사입니다."""
+"""Opt-in integration with the selectively imported Mock Action in one prefix."""
 
 import os
 import time
@@ -21,8 +21,8 @@ def manipulation_runtime(tmp_path, request):
     from cleany_mission_manager.node import MissionRuntimeNode
 
     root = Path(__file__).parents[1]
-    # 계약 회귀 검사는 같은 논리 fixture의 시간을 단축합니다.
-    # Gazebo smoke test는 기본 40초 관측 프로파일을 사용합니다.
+    # Contract regressions use the same logical fixture with accelerated timing.
+    # The Gazebo smoke test exercises the default 40-second observation profile.
     fixture = yaml.safe_load((root / "config/manipulation_server_fixture.yaml").read_text())
     fixture.update(stage_duration_sec=0.5, stage_durations_sec={})
     fixture_path = tmp_path / "fast_manipulation_fixture.yaml"
@@ -133,14 +133,14 @@ def test_peer_cancel_while_holding_object_blocks_home_reset_and_next_mission(man
 def test_peer_native_succeeded_blocked_payload_is_preserved(manipulation_runtime):
     from cleany_mission_manager.core.runtime_models import RuntimeRequest
     node, server, spin = manipulation_runtime.runtime, manipulation_runtime.server, manipulation_runtime.spin
-    # 목표 검증은 성공하며 백엔드 VALIDATING 단계가 BLOCKED payload를 만듭니다.
+    # Goal validation is successful; backend VALIDATING produces BLOCKED payload.
     server.core.port.scenario["stage_errors"] = {"VALIDATING": "VERIFICATION_UNAVAILABLE"}
     assert node.runtime.offer(RuntimeRequest("blocked", "seat-12", "test")).accepted
     spin(lambda: node.runtime.last_report is not None)
     report = node.runtime.last_report
     assert report.outcome == "BLOCKED"
     assert report.actions[0].manipulation.status == "BLOCKED"
-    assert node.runtime.state.value == "ERROR"  # 팔 복구가 확인되지 않았습니다.
+    assert node.runtime.state.value == "ERROR"  # arm recovery is not established
     assert not report.completed_tasks
     assert node.navigator.commands == ["seat-12"]
 

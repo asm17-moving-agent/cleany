@@ -1,4 +1,4 @@
-"""외부 로봇 센서 및 TF 백엔드를 사용하는 Cleany 주행입니다."""
+"""Cleany navigation using external robot sensor/TF backends."""
 from cleany_navigation.launch_runtime import navigation_launch_description
 
 def generate_launch_description():

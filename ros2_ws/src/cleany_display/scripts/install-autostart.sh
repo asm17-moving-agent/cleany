@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="${CLEANY_DISPLAY_HOME:-$HOME/cleany-display}"
-# 이 설치기는 지정된 사용자 unit 두 개와 desktop entry 하나만 관리합니다.
+# This installer only owns two named user units and one desktop entry.
 mkdir -p "$HOME/.config/systemd/user" "$HOME/.config/autostart"
 cat > "$HOME/.config/systemd/user/cleany-display.service" <<EOF
 [Unit]

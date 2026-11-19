@@ -1,4 +1,4 @@
-"""왜곡 보정된 깊이 투영과 명시적 시뮬레이션 무반사 정책입니다."""
+"""Rectified depth projection and explicit simulation no-return policy."""
 
 from __future__ import annotations
 
@@ -16,10 +16,11 @@ except ImportError:
 
 def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
                           boxes: list[BodyBox], margin: float) -> np.ndarray:
-    """유한 선분이 고정 자체 형상과 교차하지 않는 ray만 유지합니다.
+    """Keep rays whose finite segment does not intersect fixed self geometry.
 
-    경계의 혼합 픽셀은 레일 뒤쪽 hit를 보고할 수 있습니다. hit 위치만 검사하면
-    자체 가림을 놓치므로 로봇 뒤 공간을 비었다고 판단하는 대신 해당 ray를 버립니다.
+    A mixed edge pixel can report a hit behind a rail. Checking only the hit
+    position misses this self occlusion. Discard the ray instead of certifying
+    any space behind the robot as free.
     """
     if not math.isfinite(margin) or margin < 0:
         raise ValueError('Self-filter margin must be finite and nonnegative')
@@ -35,7 +36,7 @@ def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
 
 def _self_observation_mask_python(points: np.ndarray, sensor_origin: np.ndarray,
                           boxes: list[BodyBox], margin: float) -> np.ndarray:
-    """self_observation_mask()의 ray 선분 계약을 구현한 Python 대체 경로입니다."""
+    """Python fallback for the ray-segment contract of self_observation_mask()."""
     if not math.isfinite(margin) or margin < 0:
         raise ValueError('Self-filter margin must be finite and nonnegative')
     keep = np.isfinite(points).all(axis=1)
@@ -44,9 +45,9 @@ def _self_observation_mask_python(points: np.ndarray, sensor_origin: np.ndarray,
         origin = (sensor_origin-box.center)@box.rotation
         direction = rays@box.rotation
         half = box.half_size+margin
-        # 닫힌 선분과 slab의 같은 교차 검사를 축별로 누적합니다.
-        # 상자마다 여러 N×3 임시 배열을 할당하고 축약하는 비용을 피하며
-        # 평행 ray와 경계 접촉의 보수적 의미는 유지합니다.
+        # Accumulate the same closed-segment slab intersection by axis. This
+        # avoids allocating/reducing several N x 3 temporary arrays per box;
+        # parallel rays and boundary contact keep their conservative semantics.
         outside = np.zeros(len(points), dtype=bool)
         enter = np.zeros(len(points), dtype=direction.dtype)
         leave = np.ones(len(points), dtype=direction.dtype)
@@ -66,7 +67,7 @@ def _self_observation_mask_python(points: np.ndarray, sensor_origin: np.ndarray,
 
 def decode_depth_image(data: bytes, width: int, height: int, step: int,
                        encoding: str, is_bigendian: bool = False) -> np.ndarray:
-    """행 padding을 포함한 REP-118 깊이를 미터 단위로 디코딩합니다."""
+    """Decode REP-118 depth, including padded rows, to meters."""
     formats = {'32FC1': ('f4', 4, 1.), '16UC1': ('u2', 2, .001)}
     if encoding not in formats:
         raise ValueError('Expected 32FC1 or 16UC1 depth')
@@ -79,7 +80,7 @@ def decode_depth_image(data: bytes, width: int, height: int, step: int,
 
 
 def rectified_intrinsics(k, p) -> tuple[float, float, float, float] | None:
-    """단안 보정 P가 발행되면 해당 fx, fy, cx, cy를, 없으면 K를 사용하며 무효 P에는 None을 반환합니다."""
+    """fx, fy, cx, cy from a monocular rectified P when published, else K; None for an invalid P."""
     if not any(p):
         return k[0], k[4], k[2], k[5]
     if not np.isfinite(p).all() or abs(p[3])+abs(p[7]) > 1e-9:
@@ -95,7 +96,7 @@ def project_depth_image(
     positive_infinity_is_free: bool = False,
     clearing_distance: float = 5.0,
 ) -> np.ndarray:
-    """왜곡 없는 광학 Z 깊이를 X 전방 카메라 XYZ로 투영합니다."""
+    """Project undistorted optical Z-depth to camera X-forward XYZ."""
     if depth.ndim != 2 or pixel_stride < 1:
         raise ValueError('Expected a 2-D depth image and positive pixel stride')
     fx, fy, cx, cy = intrinsics
@@ -121,11 +122,11 @@ def prepare_depth_points(
     positive_infinity_is_free: bool = False,
     clearing_distance: float = 5.0,
 ) -> np.ndarray:
-    """유한 hit를 유지하고 선택적으로 Gazebo +inf 픽셀에 유한 ray 끝점을 부여합니다.
+    """Keep finite hits; optionally give Gazebo +inf pixels finite ray ends.
 
-    Gazebo Ogre2는 원거리 밖을 +inf, 근거리 안쪽을 -inf로 인코딩합니다. 명시적으로
-    활성화한 +inf만 빈 공간으로 취급합니다. NaN, -inf와 0 이하 깊이는 공간 제거
-    관측이 되지 않습니다. 끝점은 장애물 표시 범위 밖에 있어야 합니다.
+    Gazebo Ogre2 encodes beyond-far as +inf and below-near as -inf. Only
+    explicitly enabled +inf is free. NaN, -inf and nonpositive depth never
+    become clearing observations. Endpoints must lie beyond marking range.
     """
     fx, fy, cx, cy = intrinsics
     if not all(math.isfinite(v) for v in intrinsics) or fx <= 0 or fy <= 0:
@@ -146,7 +147,7 @@ def prepare_depth_points(
 
 
 def obstacle_height_mask(body_points: np.ndarray, min_z: float, max_z: float) -> np.ndarray:
-    """원래 공간 제거 ray를 유지하며 base_link에서 장애물 hit를 선택합니다."""
+    """Select obstacle hits in base_link while retaining original clearing rays."""
     if not math.isfinite(min_z) or not math.isfinite(max_z) or min_z >= max_z:
         raise ValueError('Require finite ordered obstacle height bounds')
     return np.isfinite(body_points).all(axis=1) & (body_points[:, 2] >= min_z) & (body_points[:, 2] <= max_z)

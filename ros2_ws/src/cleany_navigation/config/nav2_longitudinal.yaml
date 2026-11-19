@@ -5,7 +5,7 @@ controller_server:
       xy_goal_tolerance: 0.03
       yaw_goal_tolerance: 0.10
     FollowPath:
-      # 별도 재시도 제어기로 합칠 때 기존 바퀴 외곽을 유지합니다.
+      # Keep the legacy wheel envelope when merged as the separate retry controller.
       translation_max: 0.0
       proximity_translation_max: 0.0
       proximity_yaw_max: 0.0

@@ -1,5 +1,5 @@
-# Gazebo/Nav2가 베이스를 구동하며 외부 Action은 논리 MockDesk만 갱신합니다.
-# 초기 mock 안전 설정은 빈 Mission journal에만 적용합니다.
+# Gazebo/Nav2 drives the base; the external Action updates the logical MockDesk only.
+# Initial mock safety applies only to an empty Mission journal.
 mission_runtime:
   ros__parameters:
     navigation_backend: nav2

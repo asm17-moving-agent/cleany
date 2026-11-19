@@ -1,4 +1,4 @@
-"""장면 참값이 아닌 인식 기하에서 카메라 시야 안의 제한된 목표를 생성합니다."""
+"""Bounded camera-frustum targets from perceived geometry, not scene truth."""
 from __future__ import annotations
 
 import math
@@ -10,7 +10,7 @@ from cleany_skill_executor.core.rgbd_projection import CameraProjection
 
 def sphere_in_view(center: np.ndarray, radius: float, camera: CameraProjection,
                    width: int, height: int, margin_px: float) -> bool:
-    """전체 구를 원근 시야의 측면 평면 네 개와 대조합니다."""
+    """Test the entire sphere against the four perspective side planes."""
     optical = np.asarray(camera.rotation_base_from_optical).reshape(3, 3).T @ (
         center - np.asarray(camera.translation_base))
     x, y, z = optical
@@ -27,11 +27,12 @@ def reobservation_centers(camera: CameraProjection, width: int, height: int,
                          minimum_z_m: float, margin_px: float,
                          maximum_translation_m: float, maximum_lowering_m: float = 0.,
                          height_clearance_m: float = 0.02) -> tuple[np.ndarray, ...]:
-    """중앙 ray 세 개와 들어 올린 상태의 높이 평면 최대 세 개를 교차시킵니다.
+    """Three central rays intersect up to three still-lifted height planes.
 
-    구는 어떤 방향에서든 관측 OBB를 둘러쌉니다. 후보 제안이며 도달 가능성이나
-    충돌 검증 또는 물체 유지의 근거가 아닙니다. 선택적으로 낮추더라도 기존 필수
-    들림 높이와 여유의 합 아래로 내리지 않습니다. 모든 후보는 새 관측 높이 검사가 필요합니다.
+    The sphere encloses the observed OBB at any orientation. These are proposals,
+    NOT reachability/collision certificates or evidence of object retention.
+    Optional lowering never crosses the unchanged required lift height plus a
+    clearance. All candidates still require a fresh observed-height check.
     """
     center = np.asarray(current_center, dtype=float)
     scalars = (radius_m, minimum_z_m, margin_px, maximum_translation_m,

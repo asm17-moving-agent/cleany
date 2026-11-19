@@ -20,7 +20,7 @@ jobs:
   build-and-unit:
     name: build-and-unit
     runs-on: ubuntu-22.04
-    # 의존성 이미지는 처음에 빌드하고 일반 실행에서는 재사용합니다.
+    # Image creation is a cold path; ordinary runs reuse the dependency image.
     timeout-minutes: 40
     permissions:
       contents: read

@@ -26,7 +26,7 @@ def test_candidates_preserve_lift_height_and_fit_whole_sphere():
     for center in result:
         assert center[2] == pytest.approx(.5)
         assert sphere_in_view(center, .035, CAMERA, 640, 480, 24.)
-        # 무작위 구 표면점을 독립적으로 투영하면 안쪽 여유 영역에 들어옵니다.
+        # Random sphere surface points independently project into the inset.
         rays = np.random.default_rng(7).normal(size=(5000, 3))
         points = center + .035 * rays / np.linalg.norm(rays, axis=1)[:, None]
         optical = (points - CAMERA.translation_base) @ np.array(CAMERA.rotation_base_from_optical).reshape(3, 3)

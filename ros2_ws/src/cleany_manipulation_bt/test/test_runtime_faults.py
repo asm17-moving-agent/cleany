@@ -1,4 +1,4 @@
-"""예상하지 못한 런타임 오류는 BT에 의존하지 않고 정지 후 종료해야 합니다."""
+"""Unexpected runtime errors must stop and finish without relying on the BT."""
 from types import SimpleNamespace as NS
 import threading
 import time
@@ -29,7 +29,7 @@ def execution(tmp_path):
         try:
             tree.halt()
         except Exception:
-            pass  # 일부 테스트는 의도적으로 native 트리가 halt할 수 없는 상태를 남깁니다.
+            pass  # Some tests deliberately leave the native tree unable to halt.
         store.close()
 
 

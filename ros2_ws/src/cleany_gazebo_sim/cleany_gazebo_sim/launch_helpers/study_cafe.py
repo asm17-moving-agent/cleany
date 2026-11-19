@@ -1,4 +1,4 @@
-"""Fortress study-cafe 및 전체 시설 world의 launch 구성입니다."""
+"""Launch construction for Fortress study-cafe and facility worlds."""
 
 from pathlib import Path
 
@@ -145,7 +145,7 @@ def _launch_simulation(
 
 
 def study_cafe_launch_description(*, facility: bool = False) -> LaunchDescription:
-    """Fortress study-cafe 또는 전체 시설의 launch description을 만듭니다."""
+    """Build a Fortress study-cafe or full-facility launch description."""
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     odometry_share = Path(
         get_package_share_directory('cleany_base_odometry')

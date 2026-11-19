@@ -1,4 +1,4 @@
-"""센서 전용 선택, 근거 보존과 정상 native 종료를 검사합니다."""
+"""Sensor-only selection, evidence preservation and graceful native shutdown."""
 import importlib.util
 from pathlib import Path
 import signal

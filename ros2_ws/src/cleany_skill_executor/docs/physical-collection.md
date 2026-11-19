@@ -73,7 +73,7 @@ URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 
 
 ## 명시 실행
 
-1. [개발환경](../../../../docs/implementation/development-setup.md)과 [실행 안내](../../../../docs/RUNNING.md)에 따라 설치를 준비한다.
+1. [개발환경](../../../../docs/DEVELOPMENT_SETUP.md)과 [실행 안내](../../../../docs/RUNNING.md)에 따라 설치를 준비한다.
 2. 로봇별 프로필 경로를 지정한다.
 
    ```bash

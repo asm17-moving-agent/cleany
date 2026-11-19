@@ -85,7 +85,7 @@ test("absolute timeline seeks sessions, distinguishes pauses, pans without seeki
   );
   await page.mouse.up();
   await expect.poll(() => requests.at(-1)).toContain(b);
-  // 빈 영역도 이동 대상으로 삼되 전체 보기 창의 위치는 바꾸지 않습니다.
+  // Empty areas now seek too, without moving the overview window.
   const windowEnd = await pointer.getAttribute("aria-valuemax");
   box = (await bar.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2);
@@ -224,7 +224,7 @@ test("precision hover preserves playback; clicks and edge drags seek tenths of a
   await expect(popup).toBeVisible();
   expect(requests).toHaveLength(0);
   const fb = (await fine.boundingBox())!;
-  // 떠 있는 막대 안으로 이동하며 기존 중심은 유지합니다.
+  // Move into the floating bar, retaining its original center.
   await page.mouse.move(fb.x + fb.width / 2, fb.y + fb.height / 2);
   const start = +(await fine.getAttribute("data-start"))!;
   await page.mouse.move(fb.x + fb.width * 0.98, fb.y + fb.height / 2);

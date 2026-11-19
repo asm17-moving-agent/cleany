@@ -1,1 +1,1 @@
-"""외부 검출기, 분할기와 변환 어댑터입니다."""
+"""External detector, segmenter, and transform adapters."""

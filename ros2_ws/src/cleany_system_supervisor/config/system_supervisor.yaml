@@ -1,23 +1,23 @@
-# 보수적인 하드웨어 프로파일이며 안전 또는 팔 어댑터 누락은 성공이 아닙니다.
-# 임계값은 초기 통합 정책이며 인증된 물리 안전 한계가 아닙니다.
+# Conservative hardware profile: missing safety/arm adapters do NOT imply success.
+# Thresholds are initial integration policy, not certified physical safety limits.
 startup_grace_s: 5.0
 lease_s: 1.5
 heartbeat_timeout_s: 1.0
-# Mission Runtime의 cancel_timeout 5초와 응답 여유 0.5초보다 커야 합니다.
-# 그렇지 않으면 Runtime이 제때 정지를 확인해도 잠금으로 확대될 수 있습니다.
+# Must exceed the Mission Runtime cancel_timeout (5 s) plus its 0.5 s answer margin,
+# otherwise a stop that the Runtime still confirms in time escalates to a lock.
 stop_timeout_s: 6.0
-# 완료된 임대 및 복구 작업과 해제된 fault는 이 시간이 지나면 정리합니다.
+# Finished leases/recovery jobs and cleared faults are forgotten after this time.
 retention_s: 300.0
 persistence:
-  # 활성 latched fault와 미확인 임대는 Supervisor 재시작 후에도 유지합니다.
+  # Active latched faults and unconfirmed leases survive a Supervisor restart.
   state_file: ~/.ros/cleany/system_supervisor_state.json
 essential_capabilities: [BASE_MOTION]
 safety_sources: [safety, estop, publisher_trust]
 recovery_safety_sources: [stopped]
 sources:
   base:
-    # 부팅 유예는 micro-ROS agent/MCU 연결 시간을 포함하며 측정 전 초기값입니다.
-    # raise_s는 단일 피드백 공백을 걸러내지만 BASE_MOTION은 즉시 차단합니다.
+    # Grace covers micro-ROS agent/MCU connection at boot (unmeasured initial value).
+    # raise_s filters single feedback gaps; BASE_MOTION is still blocked immediately.
     {stale_s: 0.3, raise_s: 0.3, clear_s: 0.5, startup_grace_s: 15.0, fault_code: BASE_UNAVAILABLE,
      severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
   lidar:
@@ -45,26 +45,26 @@ sources:
     {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: ESTOP,
      severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
   publisher_trust:
-    # 안전 또는 상태 토픽에 ros.trusted_publishers 밖의 publisher가 있는 경우입니다.
+    # A publisher outside ros.trusted_publishers on a safety/health topic.
     {stale_s: 3.0, raise_s: 0.0, clear_s: 0.5, fault_code: UNTRUSTED_PUBLISHER,
      severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
   stopped:
-    # 움직임 자체는 fault가 아닙니다. 이 근거는 복구 요청 전송만 제한합니다.
+    # Motion itself is not a fault. This evidence gates recovery dispatch only.
     {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: STOP_UNVERIFIED,
      severity: WARNING, latched: false, locks_operation: false, recovery: '', monitor_only: true}
 capabilities:
-  # TODO(KB review): KB 초기 표는 베이스 이동을 허용하는 팔 상태를 BASE_MOTION에
-  # 포함합니다. 현재 팔 상태의 베이스 이동 가능 여부는 여기서 정하지 않고
-  # Mission Runtime이 이동마다 조작 결과 safe_to_drive로 판단합니다.
+  # TODO(KB review): the KB's initial table puts "arm state that permits base motion" under
+  # BASE_MOTION. Whether the base may move with the current arm state is decided per drive
+  # by the Mission Runtime from the manipulation outcome (safe_to_drive), not here.
   BASE_MOTION: {sources: [base], depends_on: []}
   NAVIGATION: {sources: [lidar, localization, navigation], depends_on: [BASE_MOTION]}
   MANIPULATION: {sources: [arm], depends_on: []}
   VISUAL_PERCEPTION: {sources: [camera, perception], depends_on: []}
   MOBILE_MANIPULATION:
     {sources: [], depends_on: [NAVIGATION, MANIPULATION, VISUAL_PERCEPTION]}
-# Nav2 lifecycle 관리 컴포넌트만 소유자 복구(nav2_lifecycle_recovery)를 제공합니다.
-# LiDAR, 카메라, 인식과 팔에는 없으므로 요청은 UNSUPPORTED를 반환합니다.
-# 로봇에서 lifecycle reset을 검증할 때까지 자동 요청을 끕니다.
+# Only Nav2 lifecycle-managed components have an owner recovery (nav2_lifecycle_recovery).
+# LiDAR, camera, perception and arm have none: requests return UNSUPPORTED.
+# Automatic dispatch stays off until the lifecycle reset is validated on the robot.
 recovery_policies:
   localization: &recovery
     {action: localization/recover, automatic: false, max_attempts: 2,
@@ -79,7 +79,7 @@ ros:
   component_sources: [arm, perception]
   safety_topic: safety/status
   stop_action: mission/stop
-  # 감독 계층이 이 검사를 맡기 전에 Mission Runtime이 요구하던 동일 노드입니다.
+  # Same nodes the Mission Runtime required before supervision owned this check.
   navigation_nodes: [planner_server, controller_server, bt_navigator, collision_monitor]
   localization_nodes: [map_server, amcl]
   lifecycle_poll_s: 0.5
@@ -87,7 +87,7 @@ ros:
   minimum_scan_valid_ratio: 0.1
   max_sensor_age_s: 1.0
   diagnostics_period_s: 1.0
-  # graph 수준 허용 목록이며 노드 이름을 인증하지 않습니다. README / SROS2를 참고합니다.
+  # Graph-level allowlist (node names are not authenticated; see README / SROS2).
   trusted_publishers:
     safety/status: [/safety_adapter]
     system/component_health: [/arm_health_monitor, /perception_inspector]

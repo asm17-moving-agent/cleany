@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""정지 의자 관측과 해당 실시간 로컬 costmap을 함께 그립니다."""
+"""Plot stationary chair observations alongside their live local costmaps."""
 
 import argparse
 import base64
@@ -21,7 +21,7 @@ def main() -> None:
     args = parser.parse_args()
     fig, axes = plt.subplots(2, 2, figsize=(11, 10), constrained_layout=True)
     results = {}
-    # 기록된 중앙 깊이 점군의 의자 주변 고정 ROI입니다.
+    # Fixed ROI around the chair seen in the recorded central depth cloud.
     roi = [.7, 1.4, -.35, .35]
     core = [.8, 1.2, -.4, .15]
     for col, stem in enumerate(('chair-present', 'chair-removed')):

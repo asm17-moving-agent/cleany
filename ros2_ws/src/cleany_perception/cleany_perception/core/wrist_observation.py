@@ -1,4 +1,4 @@
-"""RGB 전용 투영 및 대응 검사이며 RGB에서 미터 단위 깊이를 추론하지 않습니다."""
+"""RGB-only projection/association guards. Never infer metric depth from RGB."""
 from dataclasses import dataclass, fields
 from itertools import product
 import numpy as np

@@ -1,4 +1,4 @@
-# 실험적 구동 복구이며 독립적인 collision STOP은 하위에 유지합니다.
+# Experimental traction recovery; independent collision STOP remains downstream.
 recovery:
   unknown_timeout: 3.0
   observation_timeout: 1.5

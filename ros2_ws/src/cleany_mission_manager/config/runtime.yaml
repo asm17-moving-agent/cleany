@@ -9,8 +9,8 @@ mission_runtime:
     cleaning_timeout: 180.0
     operation_timeout: 30.0
     cancel_timeout: 5.0
-    # System Supervisor가 시스템 fault, capability와 Nav2 lifecycle 가용성을
-    # 관리합니다. disabled는 독립 mock과 시뮬레이션 실행 전용입니다.
+    # The System Supervisor owns system faults, capabilities and Nav2 lifecycle
+    # availability; disabled is for standalone mock and simulation runs only.
     supervision_mode: required
     supervision_capabilities: [NAVIGATION]
     permission_timeout: 3.0

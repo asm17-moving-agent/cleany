@@ -1,4 +1,4 @@
-"""공통 주행 추정기의 호환 import입니다."""
+"""Compatibility import for the shared navigation estimator."""
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'ros2_ws/src/cleany_navigation'))

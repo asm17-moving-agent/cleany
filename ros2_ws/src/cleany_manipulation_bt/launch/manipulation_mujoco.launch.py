@@ -1,4 +1,4 @@
-"""기존 센서 기반 분류 스택을 사용하는 단일 물체 BT Action 실행입니다."""
+"""One-object BT Action execution using the existing sensor-driven sorting stack."""
 from pathlib import Path
 import os
 from ament_index_python.packages import get_package_share_directory

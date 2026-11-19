@@ -1,7 +1,7 @@
-"""합성 방 스캔 → 실제 Cartographer → Logger 관측 → 영속 재생을 검사합니다.
+"""Synthetic room scans -> actual Cartographer -> logger observations -> durable replay.
 
-격리된 ROS_DOMAIN_ID에서만 실행합니다. 센서·odometry·TF fixture를 발행하며
-명령, 목표나 actuator 메시지는 발행하지 않습니다. 실물 검증은 아닙니다.
+Run only in an isolated ROS_DOMAIN_ID. Publishes sensor/odometry/TF fixtures;
+never publishes commands, goals, or actuator messages. No physical validation.
 """
 
 import argparse
@@ -124,7 +124,7 @@ def main():
                     angle = heading + scan.angle_min + i * scan.angle_increment
                     dx, dy = math.cos(angle), math.sin(angle)
                     hits = []
-                    # 한쪽 벽에 오목한 공간이 있는 비대칭 닫힌 방입니다.
+                    # Asymmetric bounded room, with a niche along one wall.
                     for wall in (-4.0, 5.0):
                         if abs(dx) > 1e-9:
                             d = (wall - x) / dx

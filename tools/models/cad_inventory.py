@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""macro 실행이나 CAD 변경 없이 저장된 FreeCAD BREP 형상을 검사합니다.
+"""Inspect saved FreeCAD BREP geometry without executing macros or changing the CAD.
 
-cadquery-ocp가 필요하며 좌표는 저장된 BREP의 밀리미터 단위입니다.
-importer가 상위 조립체 배치를 두 번 적용하지 않도록 배치를 명시적으로 보고합니다.
+Requires cadquery-ocp. Coordinates are saved BREP millimetres. Parent assembly
+placements are reported explicitly so an importer cannot silently apply them twice.
 """
 from __future__ import annotations
 

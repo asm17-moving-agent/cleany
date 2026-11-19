@@ -1,4 +1,4 @@
-"""결정적 후보 생성과 회전 다양성을 고려한 자세 선택입니다."""
+"""Deterministic candidate generation and rotation-diverse pose selection."""
 
 from __future__ import annotations
 
@@ -99,7 +99,7 @@ class EvaluatedPoseCandidate:
 
 
 class PoseCandidateEvaluator(Protocol):
-    """표본 목표와 seed 하나를 MoveIt/FK로 풀고 검증합니다."""
+    """Resolve and validate one sampled target/seed through MoveIt/FK."""
 
     def evaluate(
         self,
@@ -109,7 +109,7 @@ class PoseCandidateEvaluator(Protocol):
 
 
 class PoseTargetSampler(Protocol):
-    """무작위 IK seed 하나를 조건으로 제한 범위의 무작위 목표를 뽑습니다."""
+    """Sample a bounded random target conditional on one random IK seed."""
 
     def sample_target(
         self,
@@ -132,7 +132,7 @@ class PoseGenerationConfig:
     seed_sampling_limits: SoftJointLimits | None = None
 
     def __post_init__(self) -> None:
-        # manifest 레코드의 엄격한 seed, 후보군과 epsilon 검증을 재사용합니다.
+        # Reuse the manifest record's strict seed/pool/epsilon validation.
         GeneratorRecord(
             random_seed=self.random_seed,
             random_engine=RANDOM_ENGINE,
@@ -221,7 +221,7 @@ def select_diverse_candidates(
     log_det_epsilon: float,
     multistart_count: int = 8,
 ) -> tuple[EvaluatedPoseCandidate, ...]:
-    """지정된 사전식 점수로 결정적인 부분 집합을 선택합니다."""
+    """Select a deterministic subset using the approved lexicographic score."""
 
     ordered = tuple(
         sorted(candidates, key=lambda item: item.request.candidate_id)
@@ -255,8 +255,8 @@ def select_diverse_candidates(
             selected.append(chosen)
             available.remove(chosen)
 
-        # 결정적인 단일 교환 국소 개선으로 하나의 탐욕적 삽입 순서에 의존하지 않게 하며
-        # 생성 작업의 범위는 제한합니다.
+        # A deterministic one-swap local improvement avoids depending on one
+        # greedy insertion order while keeping generation bounded.
         while True:
             current_key = (
                 *_objective(
@@ -427,7 +427,7 @@ def generate_pose_manifest(
     evaluator: PoseCandidateEvaluator,
     target_sampler: PoseTargetSampler | None = None,
 ) -> PoseManifest:
-    """크기가 제한된 후보군에서 20+5 자세를 선택하고 결과를 사전 검사합니다."""
+    """Sample a bounded pool, select 20+5 poses, and preflight the result."""
 
     if not isinstance(config, PoseGenerationConfig):
         raise ValueError('config must be PoseGenerationConfig')

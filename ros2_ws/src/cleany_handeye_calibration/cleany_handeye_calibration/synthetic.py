@@ -1,4 +1,4 @@
-"""테스트용으로 결정적이며 수학적으로 일관된 eye-in-hand 데이터셋을 생성합니다."""
+"""Deterministic, mathematically consistent eye-in-hand datasets for tests."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def generate_synthetic_hand_eye_dataset(
     random_seed: int = 42,
     frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
 ) -> SyntheticHandEyeDataset:
-    """bTg @ gTc @ cTt == bTt를 정확히 만족하는 표본을 생성합니다."""
+    """Generate samples satisfying ``bTg @ gTc @ cTt == bTt`` exactly."""
 
     if calibration_pose_count < 3:
         raise ValueError('calibration_pose_count must be at least 3')

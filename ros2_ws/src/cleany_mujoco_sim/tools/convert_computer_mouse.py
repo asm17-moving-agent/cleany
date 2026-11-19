@@ -1,7 +1,7 @@
-"""고정한 CreativeTrio CC0 마우스 GLB를 MuJoCo OBJ/PNG asset으로 변환합니다.
+"""Convert the pinned CreativeTrio CC0 mouse GLB to MuJoCo OBJ/PNG assets.
 
-사용법: python3 tools/convert_computer_mouse.py source.glb output_directory
-NumPy가 필요하며 기존 asset 덮어쓰기는 거부합니다.
+Usage: python3 tools/convert_computer_mouse.py source.glb output_directory
+Requires NumPy; refuses to overwrite existing assets.
 """
 from pathlib import Path
 import hashlib
@@ -31,7 +31,7 @@ def convert(source: Path, destination: Path) -> None:
             strides=(v.get('byteStride', width*size), size))
 
     primitive = scene['meshes'][0]['primitives'][0]
-    # 원본은 Y가 위쪽, Z가 긴 축입니다. 순환 치환으로 면 방향을 유지합니다.
+    # Source is Y-up, long axis Z. Cyclic permutation retains winding.
     vertices = accessor(primitive['attributes']['POSITION'])[:, [2, 0, 1]].astype(float)
     vertices -= vertices.min(axis=0)
     vertices *= np.array([.110, .065, .035]) / np.ptp(vertices, axis=0)

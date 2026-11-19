@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="880" viewBox="0 0 1440 880" role="img" aria-labelledby="title description">
+  <title id="title">Logger가 녹화를 독립적으로 담당합니다</title>
+  <desc id="description">ROS 입력을 독립 logger_node가 구독하여 원문은 rosbag2에, 가공 데이터는 SQLite에 저장합니다. CLI와 대시보드는 ROS 서비스로 제어하고 상태를 확인합니다. 대시보드는 ROS를 실시간 구독하고 SQLite의 가공 기록을 읽습니다. 대시보드를 종료해도 Logger는 같은 세션을 계속 기록합니다.</desc>
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#d6e0ea" stroke-width="1"/></pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#4d6074" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="blue-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#145f99" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+  <style>
+    text {font-family:'Noto Sans','NanumGothic',sans-serif;fill:#0f1a26;font-kerning:normal;}
+    .heading {font-size:40px;font-weight:600;}
+    .label {font-size:25px;font-weight:600;}
+    .sub {font-size:22px;fill:#4d6074;}
+    .edge-label {font-size:21px;fill:#4d6074;paint-order:stroke;stroke:#f2f6fa;stroke-width:8;stroke-linejoin:round;}
+    .edge {fill:none;stroke:#4d6074;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrow);}
+    .write {stroke:#145f99;stroke-width:3;marker-end:url(#blue-arrow);}
+    .control {stroke-dasharray:7 6;marker-start:url(#arrow);}
+    .box {fill:#fff;stroke:#818f9e;stroke-width:1.75;rx:4;}
+    .store {fill:#fff;stroke:#818f9e;stroke-width:1.75;}
+  </style>
+  <rect width="1440" height="880" fill="#fff"/>
+  <text x="64" y="66" class="sub" style="font-size:20px;letter-spacing:1px">SCRUM-486 / 녹화 기능 분리</text>
+  <text x="64" y="124" class="heading">녹화는 Logger가 독립적으로 담당합니다</text>
+  <rect x="40" y="160" width="1360" height="640" rx="4" fill="#f2f6fa" stroke="#d6e0ea"/>
+  <rect x="40" y="160" width="1360" height="640" rx="4" fill="url(#grid)" opacity=".35"/>
+
+  <!-- Data flows: original and derived data have separate stores. -->
+  <path class="edge" d="M330 290H470"/>
+  <text x="400" y="273" text-anchor="middle" class="edge-label">구독</text>
+  <path class="edge write" d="M850 264H950V240H1060"/>
+  <text x="966" y="220" class="edge-label">원문 기록</text>
+  <path class="edge write" d="M850 312H950V410H1060"/>
+  <text x="966" y="390" class="edge-label">가공 기록</text>
+
+  <!-- Each client controls an independently running process over ROS. -->
+  <path class="edge control" d="M550 600V360"/>
+  <text x="571" y="470" class="edge-label">시작 / 정지 / 설정</text>
+  <text x="571" y="501" class="edge-label">상태 조회</text>
+  <path class="edge control" d="M820 600V360"/>
+  <text x="841" y="470" class="edge-label">제어 / 상태</text>
+
+  <!-- Dashboard archive access is read-only. -->
+  <path class="edge" d="M1220 467V659H950"/>
+  <text x="1020" y="639" class="edge-label">가공 기록 조회</text>
+  <text x="1032" y="690" class="sub" style="font-size:19px">ArchiveReader</text>
+  <path class="edge" d="M200 360V758H820V718"/>
+  <text x="370" y="739" class="edge-label">실시간 구독</text>
+
+  <!-- Process nodes. -->
+  <rect x="70" y="220" width="260" height="140" class="box"/>
+  <text x="94" y="265" class="label">ROS 입력</text>
+  <text x="94" y="303" class="sub">카메라, 점군, TF</text>
+  <text x="94" y="334" class="sub">지도, 경로, 상태 등</text>
+
+  <rect x="446" y="184" width="428" height="200" rx="4" fill="none" stroke="#145f99" stroke-width="1.5" stroke-dasharray="6 6"/>
+  <text x="470" y="209" class="sub" style="font-size:17px;fill:#145f99">cleany_logger / 독립 프로세스</text>
+  <rect x="470" y="232" width="380" height="128" rx="4" fill="#e9f1f8" stroke="#145f99" stroke-width="2.75"/>
+  <text x="494" y="277" class="label" style="fill:#145f99;font-size:30px">logger_node</text>
+  <text x="494" y="319" class="sub" style="fill:#0f1a26">수집, 가공, 세션과 저장 관리</text>
+
+  <!-- Datastores use cylinders, not process rectangles. -->
+  <path class="store" d="M1060 223V287C1060 312 1380 312 1380 287V223Z"/>
+  <ellipse cx="1220" cy="223" rx="160" ry="18" class="store"/>
+  <text x="1084" y="265" class="label">rosbag2</text>
+  <text x="1084" y="294" class="sub">ROS 메시지 원문 CDR</text>
+  <text x="1084" y="337" class="sub" style="font-size:19px">표준 sqlite3 storage (.db3)</text>
+
+  <path class="store" d="M1060 383V447C1060 472 1380 472 1380 447V383Z"/>
+  <ellipse cx="1220" cy="383" rx="160" ry="18" class="store"/>
+  <text x="1084" y="425" class="label">SQLite</text>
+  <text x="1084" y="454" class="sub">가공 데이터, 조회 index</text>
+
+  <rect x="470" y="600" width="170" height="118" class="box"/>
+  <text x="494" y="644" class="label">CLI</text>
+  <text x="494" y="683" class="sub">logger 명령</text>
+  <rect x="690" y="600" width="260" height="118" class="box"/>
+  <text x="714" y="644" class="label">대시보드</text>
+  <text x="714" y="683" class="sub">실시간 표시, 기록 조회</text>
+
+  <text x="64" y="845" class="sub" style="font-size:23px;fill:#0f1a26">대시보드를 종료해도 Logger는 같은 세션을 계속 기록합니다.</text>
+</svg>

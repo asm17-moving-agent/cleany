@@ -1,4 +1,4 @@
-"""단일 ROS 노드이며 제한된 콜백, 비동기 전송과 단조 시계 정책을 사용합니다."""
+"""Single ROS node: bounded callbacks, asynchronous transports, monotonic policy."""
 import json
 from dataclasses import asdict
 from threading import RLock
@@ -37,39 +37,6 @@ DIAGNOSTIC_LEVEL = {OperatingState.OPERATIONAL: DiagnosticStatus.OK, OperatingSt
 
 
 class SupervisorNode(Node):
-    """입력 상태를 종합해 시스템 fault, 이동 임대와 컴포넌트 복구를 관리합니다.
-
-    Subscriptions:
-        diagnostics (diagnostic_msgs/msg/DiagnosticArray): 베이스 구동 및 통신 상태.
-        scan (sensor_msgs/msg/LaserScan), amcl_pose (geometry_msgs/msg/PoseWithCovarianceStamped),
-        camera/head/color/image_raw (sensor_msgs/msg/Image): 센서 및 위치 추정 근거.
-        system/component_health (cleany_interfaces/msg/ComponentHealth): 컴포넌트 가용성.
-        safety/status (cleany_interfaces/msg/SafetyStatus): 독립 보호 및 물리 해제 근거.
-            위 이름은 설정 파일의 기본값입니다.
-
-    Publishers:
-        system/{state,capabilities,faults,recoveries}: 각각 cleany_interfaces/msg의
-            SystemState, SystemCapabilities, SystemFaults, SystemRecoveries.
-            reliable, transient_local, depth 1로 현재 상태를 보관합니다.
-        system/heartbeat, system/events: 같은 패키지의 SystemHeartbeat와 SystemEvent.
-        diagnostics (diagnostic_msgs/msg/DiagnosticArray): 시스템 진단. 설정 기본값입니다.
-
-    Services:
-        system/check_permission (cleany_interfaces/srv/CheckPermission): 임대 Server.
-        system/request_fault_reset (cleany_interfaces/srv/RequestFaultReset): reset 요청 Server.
-        {lifecycle 노드}/get_state (lifecycle_msgs/srv/GetState): 가용성 확인 Client.
-
-    Actions:
-        system/request_recovery (cleany_interfaces/action/RequestRecovery): 복구 요청 Server.
-        mission/stop (cleany_interfaces/action/StopMission): 정지 확인 Client의 설정 기본값.
-        설정된 컴포넌트 복구 action (cleany_interfaces/action/RecoverComponent): Client.
-
-    Notes:
-        센서 stamp는 ROS 시각으로, 정책 마감과 주기는 단조 시계로 검사합니다.
-        공유 core 접근은 잠금으로 보호하며 action 전송은 비동기입니다. reset 요청은
-        물리 해제 근거를 만들지 않으며 이 노드가 E-stop을 직접 구동하지 않습니다.
-    """
-
     def __init__(self, *, config=None, parameter_overrides=None):
         super().__init__('system_supervisor', parameter_overrides=parameter_overrides or [])
         self.declare_parameter('config_file', get_package_share_directory('cleany_system_supervisor') +
@@ -147,7 +114,7 @@ class SupervisorNode(Node):
     def _component(self, msg):
         with self.lock:
             if msg.source not in self.settings['component_sources']:
-                return  # 일반 보고가 독립 안전이나 내장 monitor를 사칭하지 못하게 합니다.
+                return  # Generic reports cannot impersonate independent safety or built-in monitors.
             status = {msg.AVAILABLE: Availability.AVAILABLE, msg.UNAVAILABLE: Availability.UNAVAILABLE}
             value = status.get(msg.status, Availability.UNKNOWN)
             if not self._fresh('component:' + msg.source, msg.header):
@@ -159,7 +126,7 @@ class SupervisorNode(Node):
             fresh = self._fresh('safety', msg.header)
             detail = ': ' + msg.detail if msg.detail else ''
             self._observe('safety', fresh and msg.protection_ready, 'independent protection verification' + detail)
-            # reset 서비스가 물리적 해제 근거를 만들어 낼 수는 없습니다.
+            # The reset service cannot invent physical release evidence.
             self._observe('estop', fresh and not msg.estop_engaged and msg.physical_release_confirmed,
                           'physical e-stop release verification' + detail)
             self._observe('stopped', fresh and msg.protection_ready and msg.stopped,
@@ -181,8 +148,8 @@ class SupervisorNode(Node):
                                       values.get('disarmed') == 'True',
                                       'fresh disabled MCU, zero targets/PWM and stopped wheel feedback')
                     if fresh and values.get('feedback_received') == 'False' and not values.get('fault'):
-                        # 첫 검증 피드백 전에는 미검증으로 부팅 유예를 적용하고
-                        # 이후에는 연결 유실로 처리합니다.
+                        # Before the first verified feedback this is unverified (boot grace),
+                        # afterwards it is a lost link.
                         if 'base' in self.core.health.verified:
                             self.core.observe('base', Availability.UNAVAILABLE, 'MCU feedback lost',
                                               cause=BASE_FEEDBACK_LOST)
@@ -191,8 +158,8 @@ class SupervisorNode(Node):
                         continue
                     within = 0 <= age <= self.core.config['sources']['base']['stale_s']
                     if 'fault' in values:
-                        # STOP 요청이나 cmd_vel 시간 초과는 진단 수준을 높이지만 베이스는 안전하고
-                        # 사용 가능한 상태입니다. fault 사유만 사용 불가를 의미합니다.
+                        # A STOP request or cmd_vel timeout raises the diagnostic level but is a
+                        # safe, available base; only `fault` reasons mean unavailability.
                         valid = fresh and within and not values['fault']
                         reason = values['fault']
                         cause = ('base_hardware_or_protocol_fault' if reason and reason != 'stale wheel feedback'
@@ -205,7 +172,7 @@ class SupervisorNode(Node):
                                           status.message, cause='' if valid else 'base_unverified')
 
     def _check_publishers(self):
-        """graph 허용 목록은 잘못되거나 예상 밖인 보고자를 검출하며 인증된 위장 방지는 아닙니다."""
+        """Graph allowlist: detects misconfigured or unexpected reporters, not authenticated spoofing."""
         untrusted = []
         namespace = self.get_namespace().rstrip('/')
         for topic, allowed in self.settings.get('trusted_publishers', {}).items():
@@ -249,7 +216,7 @@ class SupervisorNode(Node):
     def _tick(self):
         with self.lock:
             now = monotonic()
-            # 부팅 중 전혀 관측되지 않은 소스는 UNKNOWN이며 명시적 불량 상태는 불량으로 유지합니다.
+            # Leave entirely unobserved sources UNKNOWN during boot; explicit bad states remain bad.
             if self.lifecycle:
                 self._observe('navigation', self._lifecycle_available(self.settings['navigation_nodes'], now),
                               'all required Nav2 lifecycle nodes active and responding')
@@ -305,7 +272,7 @@ class SupervisorNode(Node):
         while self.core.events:
             event = self.core.events.popleft()
             record = {'epoch': self.core.epoch, **asdict(event)}
-            # 영속 기록은 cleany_logger가 담당하며 이 로그는 실시간 디버깅용입니다.
+            # Persistent recording belongs to cleany_logger; this log line is for live debugging.
             self.get_logger().debug('event ' + json.dumps(record, sort_keys=True))
             msg = messages.SystemEvent(epoch=self.core.epoch, sequence=event.sequence,
                                        monotonic_s=event.monotonic_s, kind=event.kind, code=event.code,
@@ -358,7 +325,7 @@ class SupervisorNode(Node):
     def _recovery_goal(self, request):
         with self.lock:
             fault = self.core.faults.faults.get(request.fault_code)
-            # 지원되지 않는 fault도 수락해 왜 작업하지 않았는지 결과로 설명합니다.
+            # Unsupported faults are accepted so the result can explain why nothing runs.
             return (GoalResponse.ACCEPT if request.epoch == self.core.epoch and fault and fault.active
                     else GoalResponse.REJECT)
 

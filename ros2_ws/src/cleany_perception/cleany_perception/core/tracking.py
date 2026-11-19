@@ -1,4 +1,4 @@
-"""보수적인 고정 베이스 3D 대응이며 시뮬레이터 식별자나 ROS 타입이 없습니다."""
+"""Conservative fixed-base 3D association. No simulator identities or ROS types."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -24,7 +24,7 @@ class TrackingConfig:
     ambiguity_margin_m: float = .01
     session_ttl_seconds: float = 600.
     maximum_sessions: int = 32
-    # 명시적 별칭은 유형만 식별하며 처분 권한을 부여하지 않습니다.
+    # Explicit aliases identify types only, never disposal permission.
     label_aliases: tuple[tuple[str, str], ...] = (
         ('paper cup', 'cup'), ('disposable paper cup', 'cup'),
         ('computer mouse', 'mouse'), ('wireless mouse', 'mouse'),
@@ -80,8 +80,8 @@ class _Session:
     tracks: dict[str, _Track] = field(default_factory=dict)
     last_snapshot: str = ''
     last_output: TrackingOutput | None = None
-    # 무효 깊이에 이전 미추적 물체가 가려질 수 있습니다. 새 ID를 만들지 않고
-    # 호출자가 새 session을 시작할 때까지 불확실성을 유지합니다.
+    # Invalid depth can hide a previously untracked object. Keep that
+    # uncertainty until the caller starts a new session, rather than minting IDs.
     uncertain_labels: set[str] = field(default_factory=set)
     uncertain_references: dict[str, TrackReference] = field(default_factory=dict)
 
@@ -161,8 +161,8 @@ class ObjectTracker:
                 track_id = tracks[assigned[i]].reference.track_id
                 state = TrackingState.TRACKED
             else:
-                # 누락되거나 대응하지 않은 이전 물체가 이곳으로 이동했을 수 있습니다.
-                # 실패 이력을 우회하는 새 ID를 만들지 않습니다.
+                # A missing or unmatched prior object may have moved here.
+                # Never create a fresh ID that bypasses its failure history.
                 unresolved = any(t.label == keys[i] and j not in assigned.values()
                                  for j, t in enumerate(tracks))
                 crowded = any(k != i and keys[k] == keys[i] and p is not None

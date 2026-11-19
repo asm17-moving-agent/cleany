@@ -1,16 +1,16 @@
-# 스터디카페 렌더러 전용이며 보정된 실물 카메라 조명 모델이 아닙니다.
+# Study-cafe renderer only; not a calibrated real-camera illumination model.
 schema_version: 1
 shadow_map_size: 4096
 shadow_scale: 1.0
-# 각 장면 viewer 범위와 독립적인 월드 공간 그림자 범위입니다.
+# World-space shadow coverage, independent of each scene's viewer extent.
 shadow_clip_half_extent_m: 12.0
 headlight:
   ambient: [0.12, 0.12, 0.12]
   diffuse: [0.08, 0.08, 0.08]
   specular: [0.0, 0.0, 0.0]
 lights:
-  # 인접 책상 여섯 개의 좌표는 X=-5.53/-4.33/-3.13, Y=-2.785/-3.555입니다.
-  # 얇은 천장 조명 하나가 블록을 덮어 그림자 texel을 집중합니다.
+  # Six adjoining desks: X=-5.53/-4.33/-3.13, Y=-2.785/-3.555.
+  # One flat-profile ceiling light covers the block, concentrating shadow texels.
   - name: study_cafe_work_area_key
     position_m: [-4.33, -3.17, 3.30]
     direction: [0.0, 0.0, -1.0]

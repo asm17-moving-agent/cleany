@@ -1,4 +1,4 @@
-"""Monitor나 ROS 없이 기록 정책 호환성과 큐 한계를 검사합니다."""
+"""Recording policy compatibility and queue bounds, without Monitor or ROS."""
 
 import pytest
 from cleany_logger import Recorder, RecordingControls
@@ -118,7 +118,7 @@ def test_legacy_checkbox_presets_migrate_without_resetting_selections_or_rates()
 
 def test_profile_rates_stay_within_publisher_and_collection_bounds(monkeypatch):
     from cleany_logger.sources import SCHEMA, raw_maximum_references
-    # publisher 한계 변경은 maximum label뿐 아니라 모든 프로파일에 반영되어야 합니다.
+    # A changed publisher bound must affect every profile, not only the maximum label.
     monkeypatch.setitem(SCHEMA['path_topic'], 'maximum', {'hz': .5})
     profiles = rate_profiles(resource_interval_s=2.)
     for profile in profiles.values():

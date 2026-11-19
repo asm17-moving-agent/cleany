@@ -1,4 +1,4 @@
-"""원시 센서 토픽을 유지하며 설정된 베이스 전방 스캔을 발행합니다."""
+"""Publish the configured base-front scan while retaining the raw sensor topic."""
 
 from copy import deepcopy
 import math
@@ -13,12 +13,12 @@ import yaml
 
 
 class ScanFilter(Node):
-    """보관된 원시 스캔을 바꾸지 않고 근거리 및 후방 반사값을 가립니다.
+    """Mask near/rear returns without altering the retained raw scan.
 
     Subscriptions:
-        scan_raw (LaserScan): sensor_data QoS, 원래 센서 좌표계와 stamp.
+        scan_raw (LaserScan): Sensor-data QoS, original sensor frame and stamp.
     Publishers:
-        scan (LaserScan): sensor_data QoS이며 가린 ray는 NaN입니다.
+        scan (LaserScan): Sensor-data QoS; masked rays are NaN.
     """
 
     def __init__(self):

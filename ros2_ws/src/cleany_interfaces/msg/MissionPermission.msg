@@ -3,6 +3,6 @@ string lease_id
 uint64 version
 string[] capabilities
 bool granted
-# snapshot 발행 시점의 남은 유효 시간입니다. client는 자체 단조 시계를 사용합니다.
+# Remaining lifetime at snapshot publication. Clients use their monotonic clock.
 float64 valid_for_s
 string reason

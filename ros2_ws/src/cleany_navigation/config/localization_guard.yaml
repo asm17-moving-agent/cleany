@@ -1,4 +1,4 @@
-# 운영자 감독 데모의 초기 임계값입니다. 미검증 또는 모호한 정합은 NAVIGATION을 차단합니다.
+# Initial attended-demo thresholds; an unverified or ambiguous match blocks NAVIGATION.
 localization_guard:
   ros__parameters:
     min_points: 60

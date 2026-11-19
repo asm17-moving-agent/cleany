@@ -1,4 +1,4 @@
-"""Nav2 로그, lifecycle과 action 상태를 관측해 읽기 전용 BT snapshot을 발행합니다."""
+"""Observe Nav2 logs/lifecycle/action status and publish a read-only BT snapshot."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -16,22 +16,22 @@ from .bt_trace import TreeTrace
 
 
 class BtTraceNode(Node):
-    """Nav2 행동 트리 이벤트를 버전이 있는 트리 명세와 대조합니다.
+    """Reconcile Nav2 behavior-tree events with a versioned tree descriptor.
 
     Subscriptions:
-        behavior_tree_log (nav2_msgs/msg/BehaviorTreeLog): 노드 전이.
+        behavior_tree_log (nav2_msgs/msg/BehaviorTreeLog): Node transitions.
         bt_navigator/transition_event (lifecycle_msgs/msg/TransitionEvent): Lifecycle.
-        navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray): 목표 상태.
+        navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray): Goal state.
 
     Publishers:
-        navigation/bt_trace (std_msgs/msg/String): 관측기용 JSON 트리 상태.
+        navigation/bt_trace (std_msgs/msg/String): JSON tree state for observers.
 
     QoS:
-        Action 상태와 trace는 reliable, transient_local, depth 1입니다.
+        Action status and trace use reliable, transient-local depth 1.
 
     Notes:
-        endpoint 이름은 파라미터 기본값입니다. 시작 시 XML과 manifest 해시가
-        일치해야 하며 trace는 navigator를 제어하지 않습니다.
+        Endpoint names are parameter defaults. Startup requires matching XML and
+        manifest hashes; the trace does not control the navigator.
     """
     def __init__(self):
         super().__init__('nav2_bt_trace')
@@ -63,8 +63,8 @@ class BtTraceNode(Node):
     def logs(self, msg):
         if not msg.event_log:
             return
-        # 탐색 전에 Nav2가 활성화될 수 있습니다. 유효한 로그는 활동 근거이지만
-        # 전체 트리의 초기 상태 snapshot은 아닙니다.
+        # Nav2 can be activated before discovery. A valid log proves activity,
+        # but is not a snapshot of the entire tree's initial state.
         if not self.trace.active:
             if self.lifecycle_known:
                 return

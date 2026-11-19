@@ -1,4 +1,4 @@
-"""비블로킹 ROS Action client이며 종료 결과와 수락을 구분합니다."""
+"""Nonblocking ROS Action clients; terminal results are distinct from acceptance."""
 from threading import RLock
 
 from action_msgs.msg import GoalStatus
@@ -37,7 +37,7 @@ class ActionCalls:
                 if call['cancel']:
                     handle.cancel_goal_async()
             except Exception:
-                # 알 수 없는 원격 결과는 시간 초과 처리 후에도 격리를 유지합니다.
+                # Unknown remote outcome must time out and remain quarantined.
                 call['status'] = 'UNKNOWN'
 
     def _result(self, call, future):

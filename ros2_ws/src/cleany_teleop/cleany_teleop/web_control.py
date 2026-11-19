@@ -1,4 +1,4 @@
-"""단일 소유자의 만료되는 웹 제어 의도를 MCU 프로토콜 v2로 연결합니다."""
+"""Single-owner, expiring web-control intent mapped to MCU protocol v2."""
 
 from __future__ import annotations
 

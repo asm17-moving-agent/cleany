@@ -1,4 +1,4 @@
-"""일회성 logger CLI의 시간 제한 동기식 ROS 전송입니다."""
+"""Bounded synchronous ROS transport for the one-shot logger CLI."""
 from __future__ import annotations
 
 import math

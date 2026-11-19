@@ -74,9 +74,9 @@ public:
   void setNoisedControls(models::State & state, const models::ControlSequence & control_sequence);
 
   /**
-   * @brief 설정과 운동 모델에 맞는 전체 표본 묶음을 동기적으로 준비합니다.
-   * @param settings controller 설정
-   * @param is_holonomic 횡이동을 지원하는 베이스인지 여부
+   * @brief Synchronously prepare a complete batch with settings and model types
+   * @param settings Settings of controller
+   * @param is_holonomic If base is holonomic
    */
   void reset(cleany_navigation::mppi::models::OptimizerSettings & settings, bool is_holonomic);
 
@@ -102,7 +102,7 @@ protected:
   cleany_navigation::mppi::models::OptimizerSettings settings_;
   bool is_holonomic_;
 
-  // 병렬 controller 인스턴스가 xtensor의 공유 난수 엔진에 의존하지 않도록 합니다.
+  // Keep parallel controller instances independent of xtensor's shared engine.
   std::mt19937 random_engine_;
   std::thread noise_thread_;
   std::condition_variable noise_cond_;

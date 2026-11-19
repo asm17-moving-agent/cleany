@@ -10,7 +10,7 @@ from cleany_system_supervisor.store import LatchStore
 from cleany_system_supervisor.supervisor import SystemSupervisor
 
 OPERATOR = 'synthetic_operator'
-# 로봇 프로파일 복구 마감과 독립적인 고정 테스트 시간입니다.
+# Fixed test timings, independent of the robot profile's recovery deadlines.
 RECOVERY = dict(automatic=False, max_attempts=2, attempt_timeout_s=5., total_timeout_s=20.,
                 verify_timeout_s=3., cancel_timeout_s=2.)
 
@@ -124,7 +124,7 @@ def test_fault_hysteresis_multiple_faults_and_conjunctive_reset(system):
     for _ in range(8):
         advance(system)
     assert system.state == O.FAULT_LOCKED
-    assert not system.reset_fault(system.epoch, 'ESTOP')[0]  # 운영자 식별 정보는 필수입니다.
+    assert not system.reset_fault(system.epoch, 'ESTOP')[0]  # Operator identity is mandatory.
     assert system.reset_fault(system.epoch, 'ESTOP', OPERATOR)[0]
     assert system.state == O.FAULT_LOCKED
     assert system.reset_fault(system.epoch, 'BASE_UNAVAILABLE', OPERATOR)[0]
@@ -160,7 +160,7 @@ def test_expiry_epoch_and_identity_cannot_reauthorize(system):
     restarted = SystemSupervisor(deepcopy(system.config), clock=system.clock)
     assert restarted.epoch != system.epoch and restarted.state == O.INITIALIZING
     assert not permission(restarted, epoch=system.epoch, lease_id=lease.lease_id, version=lease.version).granted
-    assert not permission(system).granted  # 이전 정지가 확인되지 않았습니다.
+    assert not permission(system).granted  # Previous stop is unconfirmed.
 
 
 def make_recovery(system, source='navigation'):
@@ -331,7 +331,7 @@ def test_operation_lock_is_independent_of_recovery_job_state(system):
     job = system.request_recovery(system.epoch, 'BASE_UNAVAILABLE')
     system.tick()
     assert system.state == O.FAULT_LOCKED
-    assert job.state == R.RUNNING  # 최신 독립 안전 근거가 있으면 잠금 중에도 컴포넌트 복구를 허용합니다.
+    assert job.state == R.RUNNING  # Fresh independent safety permits component recovery while locked.
 
 
 def test_tof_requirement_revokes_motion_without_turning_obstacles_into_faults():
@@ -341,7 +341,7 @@ def test_tof_requirement_revokes_motion_without_turning_obstacles_into_faults():
     ready(system)
     lease = permission(system)
     assert lease.granted
-    # 장애물 제한 중에도 상태는 AVAILABLE입니다. 보호 기능 가용성만 보고합니다.
+    # Obstacle limiting leaves health AVAILABLE. Only protection availability is reported.
     advance(system, bad=('tof_proximity',))
     advance(system, bad=('tof_proximity',))
     assert system.capabilities.states['BASE_MOTION'] == A.UNAVAILABLE

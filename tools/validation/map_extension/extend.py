@@ -1,4 +1,4 @@
-"""AMCL/Nav2 옆에서 관측 전용 Cartographer 지도 확장을 실행합니다."""
+"""Run observation-only Cartographer map extension beside AMCL/Nav2."""
 import argparse
 import hashlib
 import json
@@ -30,7 +30,7 @@ def relative_pose(x, y, yaw, origin):
 
 
 def write_grid(grid, directory):
-    """ROS 행을 영상 순서로 뒤집어 map server 호환 영상을 저장합니다."""
+    """Write a map-server-compatible image; flip ROS rows into image order."""
     w, h = grid.info.width, grid.info.height
     pixels = bytes(205 if p < 0 else round(254*(100-p)/100) for p in grid.data)
     image = b''.join(pixels[y*w:(y+1)*w] for y in range(h-1, -1, -1))
@@ -45,7 +45,7 @@ def write_grid(grid, directory):
 
 
 class OdomContinuity:
-    """odometry 기준 변경이 확장 궤적에 도달하기 전에 거부합니다."""
+    """Reject odometry rebases before they reach the extension trajectory."""
     def __init__(self, max_gap=2.0, max_step=.25, max_yaw_step=.35):
         self.limits = max_gap, max_step, max_yaw_step
         self.previous = None

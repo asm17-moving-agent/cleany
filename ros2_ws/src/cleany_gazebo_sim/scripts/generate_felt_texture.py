@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""측정 스캔이 아닌, 결정적이고 이음매 없는 회색 펠트 근사 텍스처를 만듭니다."""
+"""Create a deterministic seamless grey felt approximation (not a measured scan)."""
 
 from pathlib import Path
 import argparse

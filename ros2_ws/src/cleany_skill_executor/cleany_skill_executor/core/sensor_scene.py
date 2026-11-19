@@ -1,4 +1,4 @@
-"""조건이 없으면 거부하는 전제 검사이며 보이지 않는 공간의 안전 보장이 아닙니다."""
+"""Fail-closed prerequisites, not a guarantee of unseen-space safety."""
 import math
 
 

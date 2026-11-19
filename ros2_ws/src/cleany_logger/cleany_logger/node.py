@@ -1,4 +1,4 @@
-"""독립적인 화면 없는 기록 노드이며 웹이나 Monitor를 import하지 않습니다."""
+"""Independent headless recording node; no web or Monitor imports."""
 import rclpy
 import signal
 import threading
@@ -20,26 +20,6 @@ from .wire import config_dict, config_message, status_message
 
 
 class LoggerNode(ObservationNode):
-    """관측 입력과 별도 worker를 연결해 기록 session의 생명주기를 소유합니다.
-
-    Subscriptions:
-        센서, TF와 런타임 관측은 ObservationNode의 설정된 소스 선택을 따릅니다.
-
-    Publishers:
-        ~/status (cleany_interfaces/msg/RecordingStatus): 현재 session과 설정 revision.
-            reliable, transient_local, depth 1입니다.
-
-    Services:
-        ~/{start,stop,configure,get_config} (cleany_interfaces/srv/RecordingControl):
-            기록 제어 Server. stop에는 현재 session_id가 필요하며 요청은 worker로
-            전달하고 비동기 결과를 기다립니다.
-
-    Notes:
-        RecordingWorker가 저장소를, ResourceWorker가 호스트 지표 수집을 담당합니다.
-        노드 종료는 worker를 닫고 기록을 flush한 후 ROS를 정리합니다. 웹 UI 없이
-        동작하며 Monitor의 생존 기간에 기록을 묶지 않습니다.
-    """
-
     def __init__(self, **kwargs):
         super().__init__(node_name='cleany_logger', record=True, slam_factory=SlamReader,
             extra_defaults={'record_on_start': True}, **kwargs)
@@ -111,7 +91,7 @@ class LoggerNode(ObservationNode):
 
 
 def main(args=None):
-    # launch 종료 시에도 writer가 flush할 때까지 ROS를 유지합니다.
+    # Keep ROS alive until the writer has flushed, including on launch shutdown.
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     closed = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: closed.set())
@@ -125,7 +105,7 @@ def main(args=None):
             try:
                 executor.spin_once(timeout_sec=0.1)
             except InvalidHandle:
-                # Humble에서는 탐색이 구독을 교체하기 전에 콜백이 큐에 들어갈 수 있습니다.
+                # Humble can queue a callback before discovery replaces its subscription.
                 node.get_logger().debug(
                     "Discarded a callback for a retired subscription"
                 )

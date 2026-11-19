@@ -16,7 +16,7 @@ def test_whole_cube_requires_every_pixel_and_rejects_occlusion_and_invalid_depth
     for value in (0., np.nan, np.inf, -np.inf, 1.9, 2.06):
         depth = np.full((80, 100), 4.); depth[40, 50] = value
         assert not view(depth).covers(center, .1, np.eye(4)).any()
-    # 빈 ray 하나가 주변 큐브 전체를 비우지는 않습니다.
+    # A single clear ray does not clear the surrounding cube.
     depth = np.zeros((80, 100)); depth[40, 50] = 4.
     assert not view(depth).covers(center, .1, np.eye(4)).any()
 
@@ -46,8 +46,8 @@ def test_unknown_side_and_measured_braking_cannot_be_ignored():
     box = BodyBox('body', np.array([1.5, 0., 2.]), np.eye(3), np.full(3, .1))
     coverage = SweptDepthCoverage([box], GuardConfig())
     coverage.observe(view())
-    # 측정된 관성이 남아 있으므로 요청 속도가 0이어도 영상 경계 밖의
-    # 새 측면 공간은 미확인으로 남습니다.
+    # New side space beyond the image boundary remains unknown even with zero
+    # requested velocity, since the body still has measured inertia.
     result = coverage.evaluate(1.1, np.eye(4), np.zeros(3), np.array([.15, 0., .3]))
     assert not result['covered']
     coverage.clear()

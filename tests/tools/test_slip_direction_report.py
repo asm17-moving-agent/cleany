@@ -1,4 +1,4 @@
-"""기록된 방향별 미끄럼 보고서의 표본화와 좌표를 검사합니다."""
+"""Sampling and coordinate checks for recorded directional-slip reports."""
 import importlib.util
 import math
 from pathlib import Path

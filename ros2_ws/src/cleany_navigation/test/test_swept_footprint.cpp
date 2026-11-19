@@ -58,7 +58,7 @@ static bool recordedCommandRejectedUnderSweptCellModel() {
     {"sim_time",2.},{"time_granularity",.05}})node->declare_parameter("FollowPath."+key,value);
   node->declare_parameter("FollowPath.discretize_by_time",true);
   node->declare_parameter("FollowPath.limit_vel_cmd_in_traj",true);
-  node->declare_parameter("FollowPath.use_elapsed_command_time",false); // 기록된 이전 rollout입니다.
+  node->declare_parameter("FollowPath.use_elapsed_command_time",false); // recorded legacy rollout
   node->declare_parameter("FollowPath.preserve_translation_direction",false);
   const auto options=rclcpp::NodeOptions().use_global_arguments(false).parameter_overrides({
     rclcpp::Parameter("plugins",std::vector<std::string>{}),rclcpp::Parameter("global_frame","odom"),

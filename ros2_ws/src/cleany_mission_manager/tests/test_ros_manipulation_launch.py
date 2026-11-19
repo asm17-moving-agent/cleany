@@ -1,4 +1,4 @@
-"""시뮬레이터 launch action을 반환하기 전에 구성 사전 검사로 오류를 거부합니다."""
+"""Composition preflight rejects errors before returning simulator launch actions."""
 
 import importlib.util
 from pathlib import Path
@@ -134,5 +134,5 @@ def test_supervision_flag_selects_runtime_mode_and_supervision_stack(composition
     stacks = [arguments for arguments in includes if "estop_released_topic" in arguments]
     assert len(stacks) == (1 if supervision == "true" else 0)
     if stacks:
-        # 시뮬레이션에는 안전 하드웨어가 없으므로 기본으로 근거 토픽을 만들지 않습니다.
+        # Simulation has no safety hardware: no evidence topic is invented by default.
         assert stacks[0]["estop_released_topic"] == stacks[0]["protection_ready_topic"] == ""

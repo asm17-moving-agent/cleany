@@ -1,4 +1,4 @@
-"""session reset을 직렬화하며 하드웨어 작업은 좁은 포트 뒤에 둡니다."""
+"""Serialized session resets; hardware operations live behind a narrow port."""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ class SessionController:
                 raise Busy("초기화를 진행 중입니다.")
             operation_id = str(uuid.uuid4())
             self.history[key] = operation_id
-            # 서비스 생존 기간 동안 중복 제거를 유지해 이전 재시도가 다시 reset하지 않게 합니다.
+            # Keep deduplication for the lifetime of this service. No old retry can reset again.
             self.operation = operation
             self.state.phase = "queued"
             self.state.message = "초기화 요청을 받았습니다."
@@ -135,7 +135,7 @@ class SessionController:
             self.fail(error)
 
     def perform_reset(self) -> None:
-        """한 번에 작업 하나만 실행하며 결정적인 생명주기 테스트를 위해 별도로 노출합니다."""
+        """One operation at a time; exposed separately for deterministic lifecycle tests."""
         self.pending.clear()
         try:
             if (

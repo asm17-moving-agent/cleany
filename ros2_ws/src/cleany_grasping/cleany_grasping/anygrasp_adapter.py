@@ -40,7 +40,7 @@ def _working_directory(path: Path):
 
 
 class AnyGraspPredictor:
-    """라이선스가 필요한 AnyGrasp aarch64 SDK를 지연 로드하는 경계입니다."""
+    """Lazy boundary around the licensed AnyGrasp aarch64 SDK."""
 
     def __init__(
         self,
@@ -160,7 +160,7 @@ class AnyGraspPredictor:
                 max_gripper_width=self._maximum_gripper_width_m,
                 gripper_height=self._gripper_height_m,
             )
-            # 2026 SDK는 현재 작업 디렉터리를 기준으로 license/licenseCfg.json을 찾습니다.
+            # The 2026 SDK resolves license/licenseCfg.json relative to cwd.
             with _working_directory(license_dir.parent):
                 model = create_detector(configuration)
             if model is None:

@@ -76,6 +76,7 @@
       <child link="${side}_pregrasp_aim_tip" />
       <origin xyz="0 -0.140 0" rpy="0 0 0" />
     </joint>
-    <!-- 실측 손목 optical 좌표계는 선택한 보정 프로필이 추가합니다. MJCF의 정답 카메라 좌표계는 실행 TF와 분리합니다. -->
+    <!-- Measured wrist optical frames are added by the optional calibration profile.
+         MJCF ground-truth camera frames remain separate from runtime TF. -->
   </xacro:macro>
 </robot>

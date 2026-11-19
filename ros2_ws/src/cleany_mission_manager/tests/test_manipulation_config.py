@@ -1,4 +1,4 @@
-"""시뮬레이션 구성 전에 일치하지 않는 논리 책상 fixture를 거부합니다."""
+"""Reject mismatched logical desk fixtures before composing a simulation."""
 
 from pathlib import Path
 

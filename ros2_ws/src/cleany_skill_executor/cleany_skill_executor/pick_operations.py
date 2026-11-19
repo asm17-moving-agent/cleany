@@ -1,4 +1,4 @@
-"""기존 분류와 단일 물체 BT 백엔드가 공유하는 체크포인트 데이터입니다."""
+"""Checkpoint data shared by legacy sorting and the single-object BT backend."""
 from dataclasses import dataclass
 from typing import Any
 

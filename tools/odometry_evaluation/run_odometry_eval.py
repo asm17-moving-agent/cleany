@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""전방향 odometry를 자동 검증하고 기준 관측과 비교합니다."""
+"""Run automated holonomic odometry verification and ground-truth comparison."""
 
 from __future__ import annotations
 

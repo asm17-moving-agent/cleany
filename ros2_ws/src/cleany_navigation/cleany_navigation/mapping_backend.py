@@ -1,4 +1,4 @@
-"""설치 workspace의 mapping 생명주기이며 상시 하드웨어는 bringup이 소유합니다."""
+"""Installed-workspace mapping lifecycle; permanent hardware is owned by bringup."""
 
 from __future__ import annotations
 import hashlib
@@ -14,7 +14,7 @@ from .mapping_storage import atomic_json, planar_origin, save_grid
 
 
 def mapping_recording_settings(settings: dict, profile: dict) -> dict:
-    """지도 reset 전후로 저장된 기록 정책을 보존하고 첫 실행에는 기본값을 넣습니다."""
+    """Preserve saved recording policy across map resets; seed first-run defaults."""
     from copy import deepcopy
 
     settings = deepcopy(settings)
@@ -47,7 +47,7 @@ def mapping_recording_settings(settings: dict, profile: dict) -> dict:
 
 
 class LoggerPort:
-    """중첩 컨텍스트나 executor 없이 mapping executor의 ROS client를 사용합니다."""
+    """Use the mapping executor's ROS clients; no nested contexts or executors."""
 
     def __init__(self, backend):
         self.backend = backend
@@ -190,7 +190,7 @@ class MappingBackend:
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired as error:
-            # 소유권과 결과물을 유지하며 기존 실행 위에 대체 실행을 시작하지 않습니다.
+            # Leave ownership and artifacts intact; never start a replacement over it.
             raise RuntimeError(
                 "Owned mapping child did not exit; restart blocked"
             ) from error
@@ -285,7 +285,7 @@ class MappingBackend:
         if self.output is None:
             return
         if self.process is not None:
-            # 저장 오류가 나면 명시적으로 재시도할 수 있도록 SLAM과 logger를 유지합니다.
+            # Save errors retain SLAM and logger for an explicit retry.
             if (
                 self.ready_once
                 and self.grid_at >= self.started
@@ -483,7 +483,7 @@ class MappingBackend:
                 "SLAM readiness timed out: fresh scan-time TF, odom and new map required"
             )
         except Exception as startup_error:
-            # 정리 자체도 실패하면 두 traceback을 모두 보존합니다.
+            # Retain both tracebacks if cleanup itself fails.
             try:
                 self.stop()
             except Exception as cleanup_error:

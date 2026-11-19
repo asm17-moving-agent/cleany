@@ -6,8 +6,8 @@
 #include <algorithm>
 namespace cleany_navigation::mppi
 {
-// 네 바퀴 부호 조합에서 max|omega|=(|vx|+|vy|+lever*|wz|)/radius입니다.
-// 모든 축을 함께 축소하면 차체 twist의 방향을 보존할 수 있습니다.
+// These four wheel signs imply max|omega|=(|vx|+|vy|+lever*|wz|)/radius.
+// Scaling all axes together preserves the complete body twist direction.
 inline void projectWheelTwist(float & vx, float & vy, float & wz,
   float radius, float lever, float maximum)
 {

@@ -1,4 +1,4 @@
-"""실제 드라이버에 합성 패킷 유실과 MCU watchdog 상태를 적용하며 물리 이동은 하지 않습니다."""
+"""Production driver, synthetic packet loss and MCU watchdog state; no physical motion."""
 from threading import Thread
 from time import monotonic, sleep
 
@@ -75,7 +75,7 @@ def test_lost_stop_packets_are_retried_with_same_sequence_without_enable(graph):
     assert not driver.enabled and not mcu.enabled and mcu.enables == 0
     count = len(mcu.stops)
     sleep(.15)
-    assert len(mcu.stops) <= count + 1  # 수신 확인을 관측하면 재전송을 종료합니다.
+    assert len(mcu.stops) <= count + 1  # Retry stops after observed acknowledgement.
     first_sequence = driver._stop_sequence
     future = client.call_async(SetBool.Request(data=False))
     wait(future.done)

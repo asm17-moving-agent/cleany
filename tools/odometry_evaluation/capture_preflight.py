@@ -1,4 +1,4 @@
-"""이동 허가 없이 정지 하드웨어 telemetry와 ICP 품질을 수집합니다."""
+"""Capture stationary hardware telemetry and ICP quality without enabling motion."""
 
 import argparse
 from dataclasses import asdict

@@ -17,7 +17,7 @@ constexpr size_t kSampleRateHz = 100;
 static_assert(portNUM_PROCESSORS >= 2, "Calibration diagnostic requires two cores");
 
 struct RestartCommand {
-  // 호스트가 만든 nonce로 새 요청과 버퍼에 남은 이전 ACK를 구분합니다.
+  // A host-generated nonce distinguishes a new request from old buffered acks.
   std::array<char, 17> requestId{};
 };
 
@@ -34,7 +34,7 @@ struct Snapshot {
   CalibrationConfig config{};
   CalibrationResult result{};
   esp_err_t sensorError = ESP_OK;
-  const char* sensorOperation = "none";  // 드라이버가 소유하는 정적 문자열 리터럴입니다.
+  const char* sensorOperation = "none";  // Driver-owned static string literals.
   uint8_t identity = 0;
 
   bool terminal() const {
@@ -46,14 +46,14 @@ struct Snapshot {
   }
 };
 
-// FreeRTOS 큐는 고정 크기 스냅샷을 복사하며 변경 중인 보정 객체를 공유하지 않습니다.
+// FreeRTOS queues copy fixed-size snapshots, never a live mutable calibrator.
 static_assert(std::is_trivially_copyable<Snapshot>::value);
 static_assert(std::is_trivially_copyable<RunStarted>::value);
 static_assert(std::is_trivially_copyable<RestartCommand>::value);
 struct Channels {
-  QueueHandle_t latest = nullptr;     // 길이 1, 덮어쓰기 전용 IMU → serial 큐입니다.
-  QueueHandle_t restarts = nullptr;   // 길이 4, serial → IMU 큐입니다.
-  QueueHandle_t started = nullptr;    // 길이 4, IMU → serial 응답 큐입니다.
+  QueueHandle_t latest = nullptr;     // Length 1, overwrite-only IMU -> serial.
+  QueueHandle_t restarts = nullptr;   // Length 4, serial -> IMU.
+  QueueHandle_t started = nullptr;    // Length 4, IMU -> serial acknowledgements.
 };
 
 inline CalibrationConfig calibrationConfig() {

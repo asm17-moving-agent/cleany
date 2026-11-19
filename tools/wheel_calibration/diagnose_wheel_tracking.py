@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""바퀴별 속도 추종과 정상 상태 PWM 기반 FF 추정값을 진단합니다.
+"""Diagnose per-wheel velocity tracking and estimate ground-loaded PI+FF parameters.
 
-0.5m 전후 및 좌우 왕복 시험과 네 바퀴 응답 그림을 지원합니다.
-추종 비율만으로 폐루프 PI 이득을 바꾸지 않으며 측정 결과를 자동 보정으로
-적용하지 않습니다. 실제 시험은 로봇을 움직입니다.
+Supports round-trip 0.5m surge/sway tests, plots 4-wheel tracking responses,
+and computes optimal FF scales and PI gains to eliminate wheel speed asymmetry.
 """
 
 from __future__ import annotations
@@ -154,10 +153,9 @@ def analyze_samples(
     for idx, name in enumerate(WHEEL_NAMES):
         current_cfg = (configs or CURRENT_CONFIGS)[name]
 
-        # 정상 상태 조건:
-        # 1. 목표 속도가 활성입니다(|target| > 0.5rad/s).
-        # 2. 명령 속도가 목표에 도달해 변화율 제한 구간이 끝났습니다.
-        #    |commanded - target| < 0.05rad/s여야 합니다.
+        # Steady state condition:
+        # 1. Target speed is active (|target| > 0.5 rad/s)
+        # 2. Commanded speed has reached target within tolerance (slew phase finished): |commanded - target| < 0.05 rad/s
         ordered = sorted(samples, key=lambda sample: sample.time_s)
         steady_samples: list[WheelSample] = []
         transient_duration_s = 0.0
@@ -239,24 +237,24 @@ def analyze_samples(
         a_mean = sum(actuals) / len(actuals)
         pwm_mean = sum(pwms) / len(pwms)
 
-        # step 목표가 아닌 변화율 제한을 적용한 commanded_rad_s로 추종 오차를 평가합니다.
+        # Evaluate tracking error against slew-filtered commanded_rad_s (not the step target!)
         errors = [abs(s.commanded_rad_s[idx] - s.velocity_rad_s[idx]) for s in steady_samples]
         err_mean = sum(errors) / len(errors)
         rmse = math.sqrt(sum(e * e for e in errors) / len(errors))
         rel_err_pct = (err_mean / c_mean * 100.0) if c_mean > 0.1 else 0.0
 
-        # 정상 상태 도달 전 변화율 제한에 소요된 과도 응답 지연을 추정합니다.
+        # Transient response delay estimate (time spent slewing before reaching steady-state)
         transient_delay_ms = transient_duration_s * 1000.0
 
-        # 정상 상태 PWM만으로 FF를 추정합니다.
+        # FF estimate based strictly on steady-state PWM
         if pwm_mean > 1.0 and a_mean > 0.1:
             ground_ff = (a_mean / pwm_mean) * 100.0
         else:
             ground_ff = None
 
-        # 정상 상태 추종 오차가 2.0% 및 0.10rad/s 미만이면 현재 이득을 유지합니다.
-        # 정상적인 과도 가속 지연 때문에 이득을 높이지 않습니다.
-        # 추종 오차만으로 폐루프 PI 이득을 재조정할 근거는 부족합니다.
+        # If steady-state tracking error is negligible (< 2.0% and < 0.10 rad/s), KEEP CURRENT GAINS!
+        # Do NOT mistakenly increase gains due to normal transient acceleration lag!
+        # Tracking error alone is not enough evidence to retune closed-loop PI gains.
         adj_factor = 1.0
 
         sug_kp = round(current_cfg["kp"] * adj_factor, 3)
@@ -303,7 +301,7 @@ def format_table(stats: list[WheelStats], title: str = "STEADY-STATE WHEEL TRACK
             )
     lines.append("-" * 105)
 
-    # 비대칭 평가
+    # Assess asymmetry
     actual_speeds = [s.actual_mean for s in stats if s.actual_mean > 0.1]
     if len(actual_speeds) == 4:
         diff_max = max(actual_speeds) - min(actual_speeds)
@@ -339,7 +337,7 @@ def plot_wheel_tracking(samples: list[WheelSample], stats: list[WheelStats], pat
         actuals = [s.velocity_rad_s[idx] for s in samples]
         pwms = [s.pwm_percent[idx] for s in samples]
 
-        # 왼쪽 축: 속도(rad/s)
+        # Left axis: Velocities (rad/s)
         ax.plot(times, targets, label="Target (rad/s)", color=colors["target"], linestyle="--", linewidth=1.5)
         ax.plot(times, actuals, label="Actual (rad/s)", color=colors["actual"], linewidth=1.8)
         ax.set_ylabel("Speed (rad/s)", fontsize=10, fontweight="bold")
@@ -348,13 +346,13 @@ def plot_wheel_tracking(samples: list[WheelSample], stats: list[WheelStats], pat
                      fontsize=11, fontweight="bold")
         ax.grid(True, linestyle=":", alpha=0.6)
 
-        # 오른쪽 축: PWM(%)
+        # Right axis: PWM (%)
         ax_pwm = ax.twinx()
         ax_pwm.plot(times, pwms, label="PWM (%)", color=colors["pwm"], linestyle=":", alpha=0.5, linewidth=1.2)
         ax_pwm.set_ylabel("PWM (%)", color=colors["pwm"], fontsize=9)
         ax_pwm.tick_params(axis="y", labelcolor=colors["pwm"])
 
-        # 범례
+        # Legends
         if idx == 0:
             lines_1, labels_1 = ax.get_legend_handles_labels()
             lines_2, labels_2 = ax_pwm.get_legend_handles_labels()
@@ -626,7 +624,7 @@ def main() -> int:
 
     rclpy.shutdown()
 
-    # 두 패턴을 모두 평가했다면 FF와 PI의 결합 가중 평균을 계산합니다.
+    # If both patterns were evaluated, compute combined weighted average FF and PI
     direction_stats = {
         pattern: {
             direction: analyze_samples(direction_samples, configs)
@@ -653,7 +651,7 @@ def main() -> int:
         for name in WHEEL_NAMES:
             s_surge = surge_map[name]
             s_sway = sway_map[name]
-            # 측정은 진단 근거이며 자동 재조정의 충분한 근거가 아닙니다.
+            # Measurements are diagnostic evidence, not sufficient grounds for automatic retuning.
             balanced_ff = s_surge.current_ff_scale
             avg_kp, avg_ki = s_surge.suggested_kp, s_surge.suggested_ki
 

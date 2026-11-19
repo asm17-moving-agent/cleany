@@ -1,8 +1,8 @@
-"""이동 권한이 없는 보수적인 깊이 영상 관측 범위 진단입니다.
+"""Conservative depth-image coverage diagnostics, with no motion authority.
 
-큐브를 투영한 사각형 전체에서 유한하고 더 먼 깊이가 확인될 때만 빈 공간으로
-판정합니다. FOV만의 판단, 성긴 ray, +inf와 과거 점유 기록은 빈 공간 근거가
-아닙니다. 왜곡 보정된 픽셀 모델이며 물리 센서의 보장이 아닙니다.
+Cubes are certified only when their entire projected rectangle has finite,
+farther depth. FOV alone, sparse rays, +inf and persisted occupancy never count
+as free. This is a rectified pixel model, not a physical sensor guarantee.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -32,7 +32,7 @@ class DepthView:
                 or not np.allclose(pose[:3, :3].T@pose[:3, :3], np.eye(3))
                 or not np.isclose(np.linalg.det(pose[:3, :3]), 1)):
             raise ValueError('Invalid rectified depth observation')
-        d[~np.isfinite(d) | (d <= 0)] = 0  # 시뮬레이션 +inf를 포함한 미확인 상태입니다.
+        d[~np.isfinite(d) | (d <= 0)] = 0  # Unknown, including simulated +inf.
         d.setflags(write=False); pose.setflags(write=False)
         object.__setattr__(self, 'depth', d)
         object.__setattr__(self, 'optical_in_fixed', pose)
@@ -51,14 +51,14 @@ class DepthView:
         hi = np.ceil(uv.max(axis=1)).astype(int)+pixel_margin
         height, width = self.depth.shape
         valid &= (lo >= 0).all(axis=1) & (hi < [width, height]).all(axis=1)
-        # 투영 사각형 어디든 새 정보가 생기면 이전 빈 공간 근거를 대체합니다.
-        # 무효 픽셀이나 새 가림 물체도 포함합니다.
+        # New information anywhere in the projected rectangle supersedes old
+        # free-space evidence, including invalid pixels or a new occluder.
         visible = ((hi >= 0).all(axis=1) & (lo < [width, height]).all(axis=1)
                    & (p[:, :, 2] > 0).any(axis=1))
         result = np.zeros(len(p), dtype=bool)
         far = p[:, :, 2].max(axis=1)+depth_margin
         for i in np.flatnonzero(valid):
-            # 모든 픽셀과 가림 경계를 포함하며 표본 ray 사이를 채우지 않습니다.
+            # Includes every pixel and occlusion boundary; no sampled-ray fill.
             result[i] = self.depth[lo[i, 1]:hi[i, 1]+1, lo[i, 0]:hi[i, 0]+1].min() > far[i]
         return visible, result
 
@@ -68,7 +68,7 @@ class DepthView:
 
 
 class SweptDepthCoverage:
-    """guard 제동 형상을 재사용하는 크기 제한 임시 관측 이력입니다."""
+    """Bounded, transient observation history; reused guard braking geometry."""
     def __init__(self, boxes: list[BodyBox], config: GuardConfig, *, cell_size: float = .1,
                  timeout: float = .5, max_cells: int = 20000, max_views: int = 8,
                  pose_jump_m: float = .25, pose_jump_rad: float = .3):
@@ -138,8 +138,8 @@ class SweptDepthCoverage:
         required = np.zeros(len(cells), dtype=bool)
         for v in velocities:
             required |= self.guard.sweep(cells, np.full(3, size), np.eye(4), v, extra_s=age)
-        # 현재 물리적 body 안에 완전히 포함된 셀만 제외합니다. 일부만 걸친 셀,
-        # 안전 여유와 새로 진입하는 선두 표면에는 깊이 관측이 필요합니다.
+        # Only cells wholly inside the current physical body are exempt. Partial
+        # cells, safety margin and the entering leading surfaces require depth.
         inside = np.zeros(len(cells), dtype=bool)
         for b in self.guard.boxes:
             local = (cells-b.center)@b.rotation

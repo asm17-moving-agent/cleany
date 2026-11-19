@@ -1,6 +1,7 @@
-"""바퀴 odometry 평가 ROS graph의 런타임 관리자입니다.
+"""Runtime supervisor for the wheel odometry evaluation ROS graph.
 
-모듈 import는 rclpy와 독립적이며 호출자가 ROS 초기화를 소유하는 probe를 제공합니다.
+Importing this module is deliberately independent of rclpy; callers supply a
+probe which owns ROS initialization.
 """
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ def _serial(value: Any, name: str) -> None:
 
 
 def validate_runtime_config(data: dict, root: Path) -> dict:
-    """장치를 건드리지 않고 런타임 스택 설정을 검증하고 해석합니다."""
+    """Validate and resolve runtime stack configuration without touching devices."""
     if not isinstance(data, dict):
         raise ValueError("runtime config must be an object")
     expected = {"schema_version", "startup_timeout_s", "discovery_s", "shutdown_timeout_s",
@@ -70,7 +71,7 @@ def validate_runtime_config(data: dict, root: Path) -> dict:
 
 
 def describe_commands(config: dict, root: Path) -> dict:
-    """각 스택 컴포넌트의 셸 문자열이 아닌 인자 벡터를 반환합니다."""
+    """Return argument vectors (never shell strings) for each stack component."""
     base_config = (root / config["base"]["config"]).resolve()
     return {
         "agent": ["ros2", "run", "micro_ros_agent", "micro_ros_agent", "serial",
@@ -105,10 +106,10 @@ def _proc_entries() -> list[tuple[int, str, str]]:
 
 
 def _pid_identity(pid: int) -> str | None:
-    """PID 재사용으로 잘못 신호를 보내지 않도록 /proc 시작 시각 token을 사용합니다."""
+    """Stable /proc start-time token used to guard signals against PID reuse."""
     try:
         fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
-        return fields[19]  # proc(5)의 22번 필드이며 suffix는 3번 필드부터 시작합니다.
+        return fields[19]  # field 22 in proc(5); suffix begins at field 3
     except (OSError, IndexError):
         return None
 
@@ -120,9 +121,9 @@ def _group_owned(pgid: int, identity: str | None) -> bool:
     if current_identity == identity:
         return True
     if current_identity is not None:
-        return False  # PID가 재사용되었으므로 새 프로세스 그룹은 소유 대상이 아닙니다.
-    # ros2 래퍼가 끝나도 자식이 session에 남을 수 있습니다.
-    # 원래 session ID로 해당 자식들이 소유 그룹임을 식별합니다.
+        return False  # PID was reused; its new process group is not ours.
+    # The ros2 wrapper may exit while children remain in its session. The
+    # original session ID still identifies those descendants as our group.
     for item in Path("/proc").iterdir():
         if not item.name.isdigit():
             continue
@@ -304,7 +305,7 @@ class EvaluationStack:
         for process, pgid, identity in reversed(self.processes):
             for sig, timeout in ((signal.SIGINT, self.config["shutdown_timeout_s"]),
                                  (signal.SIGTERM, .5), (signal.SIGKILL, .5)):
-                process.poll()  # 자식을 확인하기 전에 래퍼를 회수합니다.
+                process.poll()  # Reap the wrapper before inspecting descendants.
                 if not _group_owned(pgid, identity):
                     break
                 try:

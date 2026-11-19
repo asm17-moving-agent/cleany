@@ -1,4 +1,4 @@
-"""ROS와 소켓에 독립적인 Gateway v1 이벤트 변환과 영속 재전송입니다."""
+"""Gateway v1 event mapping and durable replay, independent of ROS and sockets."""
 
 import json
 import sqlite3
@@ -13,7 +13,7 @@ def utc_now() -> str:
 
 
 def observation_reference(reference: str, profile: dict) -> str | None:
-    # Mock 장면 식별자는 진단 기록이며 사진이나 실물 관측 증거가 아닙니다.
+    # Mock scene identifiers are diagnostic records, not photographs or observed evidence.
     if profile.get("perception") == "mock" or reference.startswith("mock://"):
         return None
     return reference or None
@@ -117,7 +117,7 @@ class BridgeSession:
         request = snapshot["active_request"]
         state = snapshot["robot_state"]
         if state == "IDLE" and not snapshot["ready"]:
-            state = "ERROR"  # 로컬 준비 상태가 확인되기 전에는 미션을 제안하지 않습니다.
+            state = "ERROR"  # No offers until local readiness is confirmed.
         return {"boot_id": snapshot["boot_id"], "state": state,
                 "active_mission_id": request["mission_id"] if request else None}
 

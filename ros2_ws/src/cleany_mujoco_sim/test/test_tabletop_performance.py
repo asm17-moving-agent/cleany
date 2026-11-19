@@ -46,7 +46,7 @@ def test_prebuilt_scene_cannot_silently_ignore_profile():
 
 @pytest.fixture(scope='module')
 def scenes():
-    # 새 YAML 파일을 설치하기 전에도 소스 설정을 사용합니다.
+    # Source config is used even before installing the newly added YAML file.
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(scene_loader, '_package_share', lambda package: PACKAGE.parent / package)
         paths = {profile: scene_loader.materialize_control_scene(
@@ -68,7 +68,7 @@ def test_only_distant_static_masks_and_shadow_quality_change(scenes):
         disabled = []
         for before, after in zip(original.iter(), fast.iter(), strict=True):
             if before.tag == 'include':
-                continue  # 임시 include 경로만 다릅니다.
+                continue  # Only the temporary include path differs.
             if before.tag == 'quality':
                 assert after.get('shadowsize') == ('4096' if name == 'tabletop_collision' else '2048')
                 after.set('shadowsize', before.get('shadowsize'))

@@ -1,4 +1,4 @@
-"""참값 정확도와 학습에 쓰지 않은 표본의 일관성 지표입니다."""
+"""Ground-truth accuracy and held-out consistency metrics."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def transform_error_metrics(
     estimate: RigidTransform,
     reference: RigidTransform,
 ) -> TransformErrorMetrics:
-    """같은 방향의 변환을 미터와 라디안 단위로 비교합니다."""
+    """Compare transforms with identical directions, in metres and radians."""
 
     if not isinstance(estimate, RigidTransform) or not isinstance(
         reference,
@@ -94,7 +94,7 @@ def evaluate_hand_eye_result(
     result: HandEyeResult,
     ground_truth: RigidTransform,
 ) -> HandEyeEvaluation:
-    """유효 결과 하나를 평가하며 참값은 solver API에 전달하지 않습니다."""
+    """Evaluate one valid result; ground truth never enters the solver API."""
 
     if not isinstance(result, HandEyeResult) or not result.valid:
         raise ValueError('only a valid HandEyeResult can be evaluated')
@@ -115,7 +115,7 @@ def held_out_base_target_consistency(
     samples: Sequence[CalibrationSample],
     gripper_T_camera: RigidTransform,
 ) -> HeldOutConsistencyMetrics:
-    """보류한 표본의 모든 쌍에 대해 base_T_target 불일치를 측정합니다."""
+    """Measure all pairwise held-out ``base_T_target`` disagreements."""
 
     held_out_samples = tuple(samples)
     if len(held_out_samples) < 2:

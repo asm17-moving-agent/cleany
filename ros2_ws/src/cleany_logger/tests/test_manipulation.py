@@ -1,4 +1,4 @@
-"""실행 시간과 재생은 서버가 제공한 근거의 관측으로 남아야 합니다."""
+"""Execution timing and replay must remain observations of server evidence."""
 
 import pytest
 

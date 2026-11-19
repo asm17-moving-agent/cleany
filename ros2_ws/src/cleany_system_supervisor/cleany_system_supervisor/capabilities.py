@@ -14,7 +14,7 @@ class CapabilityManager:
                 return resolved[name]
             entry = self.definitions[name]
             evidence = [health.status(source, now) for source in entry['sources']]
-            # 최초 부팅에서도 AVAILABLE에는 안정된 근거가 필요합니다.
+            # AVAILABLE requires stable evidence, including at initial boot.
             evidence = [value if value != Availability.AVAILABLE or health.healthy(source, now)
                         else Availability.UNKNOWN for source, value in zip(entry['sources'], evidence)]
             evidence += [resolve(dependency) for dependency in entry['depends_on']]
@@ -35,7 +35,7 @@ def operating_state(config, capabilities, health, faults, now, started_at):
     required = [capabilities[name] for name in config['essential_capabilities']]
     required += [Availability.AVAILABLE if health.healthy(source, now) else health.status(source, now)
                  for source in config['safety_sources']]
-    # 표시 상태가 available이어도 안정된 상태 근거가 필요합니다.
+    # Stable health is required even if status is nominally available.
     ready = (all(value == Availability.AVAILABLE for value in required) and
              all(health.healthy(source, now) for source in config['safety_sources']))
     if not ready:

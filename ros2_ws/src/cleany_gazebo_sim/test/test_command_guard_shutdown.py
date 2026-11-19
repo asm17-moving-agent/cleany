@@ -1,4 +1,4 @@
-"""실제 ROS 자식 프로세스에서 명령 전달과 SIGINT 정리를 검사합니다."""
+"""Exercise command delivery and SIGINT cleanup in a real ROS child process."""
 from __future__ import annotations
 
 import signal
@@ -42,7 +42,7 @@ def test_sigint_exits_cleanly_while_receiving_commands(tmp_path):
                 executor.spin_once(timeout_sec=.005)
             assert output, log_path.read_text()
             assert output[-1].linear.x == pytest.approx(.3)
-            # 종료 요청 중에도 수신 콜백을 처리할 수 있게 유지합니다.
+            # Keep incoming callbacks ready across the shutdown request.
             for _ in range(50):
                 publisher.publish(command)
             child.send_signal(signal.SIGINT)

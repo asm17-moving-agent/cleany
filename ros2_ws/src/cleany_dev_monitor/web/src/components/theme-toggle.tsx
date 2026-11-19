@@ -14,9 +14,7 @@ export function ThemeToggle() {
       try {
         saved = localStorage.getItem(key);
       } catch {
-        /*
-         * 저장소에 접근할 수 없을 수 있습니다.
-         */
+        /* Storage can be unavailable. */
       }
       const next = saved === "dark" || (saved !== "light" && media.matches);
       document.documentElement.classList.toggle("dark", next);
@@ -43,9 +41,7 @@ export function ThemeToggle() {
         try {
           localStorage.setItem(key, next ? "dark" : "light");
         } catch {
-          /*
-           * 메모리에 있는 선택값을 유지합니다.
-           */
+          /* Keep the in-memory choice. */
         }
       }}
     >

@@ -66,8 +66,8 @@ def test_current_evaluation_settings_apply_p6_in_every_direction(pattern, leg, h
         c, s = math.cos(heading), math.sin(heading)
         pose = Pose2D(c * bx - s * by, s * bx + c * by, heading)
     step = controller.step(pose, 0, 0, 0)
-    # 정지 허용 오차 밖이며 속도나 제동 외곽으로 잘리지 않는 조건입니다.
-    # 직렬화된 설정만이 아닌 실제 적용된 P를 확인합니다.
+    # Outside the stop tolerance, with neither speed nor braking-envelope clipping:
+    # assert the applied P, not just the serialized settings.
     scale = 6. * error / speed
     assert (step.vx_mps, step.vy_mps, step.wz_rad_s) == pytest.approx(
         (vx * scale, vy * scale, wz * scale)

@@ -1,4 +1,4 @@
-# 읽기 전용 조회이며 캐시 TTL이나 촬영 시각을 갱신하지 않습니다.
+# Read-only lookup. Does not refresh cache TTL or capture time.
 string snapshot_id
 ---
 bool found

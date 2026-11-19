@@ -198,12 +198,12 @@ def test_noise_is_applied_to_pixels_and_feedback_q_before_pnp_and_fk():
 
     original_q = records[0].interpolated_joints.positions_rad
     original_points = records[0].target_detection.image_points_array()
-    # 앞선 250회 호출은 이상적 조건이며 호출 인덱스 250부터 명목 조건을 적용합니다.
+    # First 250 calls are ideal; nominal starts at call 250.
     assert fk.calls[0][1] == original_q
     np.testing.assert_array_equal(pnp.points[0], original_points)
     assert fk.calls[250][1] != original_q
     assert not np.array_equal(pnp.points[250], original_points)
-    # 왼팔 잡음 모델은 오른팔과 그리퍼를 변경하지 않습니다.
+    # Right arm and grippers are never perturbed by the left-arm noise model.
     assert fk.calls[250][1][5:] == original_q[5:]
 
 

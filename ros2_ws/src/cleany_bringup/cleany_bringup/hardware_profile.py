@@ -1,4 +1,4 @@
-"""설치된 패키지 색인으로 하드웨어 설정 경로를 찾습니다."""
+"""Resolve hardware configuration through the installed package index."""
 
 from __future__ import annotations
 import math

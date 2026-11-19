@@ -19,18 +19,18 @@ from cleany_gazebo_sim.command_limits import (
 
 
 class GazeboCommandGuard(Node):
-    """Gazebo에 전달하기 전에 평면 속도 명령을 제한합니다.
+    """Bound planar commands before they reach Gazebo.
 
     Subscriptions:
-        cmd_vel (geometry_msgs/msg/Twist): 차체 좌표계의 평면 속도 요청.
+        cmd_vel (geometry_msgs/msg/Twist): Body-frame planar velocity request.
 
     Publishers:
-        gazebo_cmd_vel (geometry_msgs/msg/Twist): 제한한 명령. 입력이 무효하거나
-            명령 시간이 초과되면 0을 발행합니다.
+        gazebo_cmd_vel (geometry_msgs/msg/Twist): Limited command, or zero on
+            invalid input or command timeout.
 
     Notes:
-        지원하지 않는 축은 무시합니다. 명령 경과 시간은 단조 증가 시계로 계산하지만
-        시간 초과 콜백은 노드 타이머를 사용하므로 해당 시계가 진행되어야 합니다.
+        Unsupported axes are ignored. Command age uses monotonic time, but
+        timeout callbacks run on the node timer and depend on its clock advancing.
     """
     def __init__(self) -> None:
         super().__init__('gazebo_command_guard')
@@ -128,8 +128,8 @@ def main(args: list[str] | None = None) -> None:
         nonlocal stop_requested
         stop_requested = True
 
-    # Humble의 take_message 변환 중 KeyboardInterrupt를 발생시키면 RuntimeError로
-    # 나타날 수 있어 콜백이 끝난 뒤 ROS를 종료합니다.
+    # Raising KeyboardInterrupt inside Humble's take_message conversion can
+    # surface as RuntimeError. Finish the callback before tearing ROS down.
     previous_sigint = signal.signal(signal.SIGINT, request_stop)
     try:
         while rclpy.ok() and not stop_requested:
@@ -143,7 +143,7 @@ def main(args: list[str] | None = None) -> None:
             if rclpy.ok():
                 rclpy.shutdown()
         except KeyboardInterrupt:
-            # rclpy 정리 중에도 ros2 launch가 종료 신호를 다시 보낼 수 있습니다.
+            # ros2 launch can signal the process again while rclpy tears down.
             pass
         finally:
             signal.signal(signal.SIGINT, previous_sigint)

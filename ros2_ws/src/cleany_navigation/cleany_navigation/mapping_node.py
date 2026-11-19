@@ -1,4 +1,4 @@
-"""ROS mapping session endpoint이며 프로세스 및 저장 작업은 executor 밖에서 실행합니다."""
+"""ROS mapping session endpoint; process and save operations run off the executor."""
 
 from pathlib import Path
 import signal
@@ -31,18 +31,18 @@ from .mapping_storage import planar_origin, save_grid
 
 
 class MappingNode(Node):
-    """비동기 mapping 작업과 최신 센서 및 session 상태를 제공합니다.
+    """Expose asynchronous mapping operations and fresh sensor/session state.
 
     Subscriptions:
-        scan (LaserScan), odom (Odometry), map (OccupancyGrid),
-        teleop/status (TeleopStatus): 준비 상태와 최종 저장 입력.
+        scan (LaserScan), odom (Odometry), map (OccupancyGrid), and
+        teleop/status (TeleopStatus): Readiness and final-save inputs.
     Publishers:
-        mapping/status (MappingStatus): reliable, transient_local session 상태.
+        mapping/status (MappingStatus): Reliable transient-local session state.
     Services:
-        mapping/control (MappingControl): reset/stop 작업 수락.
+        mapping/control (MappingControl): Accept reset/stop operations.
     Notes:
-        lifecycle RPC는 session worker에서 실행해 executor가 확인 응답을 계속
-        처리할 수 있게 합니다. 상시 하드웨어는 bringup 런타임이 소유합니다.
+        Lifecycle RPCs run in the session worker; the executor remains available
+        for acknowledgements. The bringup runtime owns permanent hardware.
     """
 
     def __init__(self):

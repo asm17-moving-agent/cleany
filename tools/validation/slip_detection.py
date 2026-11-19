@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""제어하지 않는 읽기 전용 bag 바퀴/LiDAR 움직임 불일치 진단입니다."""
+"""Read-only bag diagnostics for wheel/LiDAR motion disagreement, never control."""
 from __future__ import annotations
 
 import argparse
@@ -35,7 +35,7 @@ def header_time(message: Any) -> float:
 
 
 def extract(bag: Path, start: float, end: float, output: Path) -> dict[str, Any]:
-    """ROS 노드를 만들지 않고 읽기 전용 SQLite snapshot을 역직렬화합니다."""
+    """Deserialize a read-only SQLite snapshot without creating a ROS node."""
     from rclpy.serialization import deserialize_message
     from rosidl_runtime_py.utilities import get_message
     scans, points, offsets, odom, wheels, transforms = [], [], [0], [], [], {}

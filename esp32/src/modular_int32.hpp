@@ -17,8 +17,8 @@ inline int32_t modularAdd(int32_t value, int32_t delta) {
 }
 
 /**
- * @brief 부호 있는 정수 오버플로 없이 encoder 변화량을 복원합니다.
- * 두 표본 사이 실제 count 변화는 int32 반범위 안에 있어야 합니다.
+ * @brief Recover a signed encoder delta without signed-overflow arithmetic.
+ * The true count change must fit the int32 half-range between samples.
  */
 inline int32_t modularDifference(int32_t newer, int32_t older) {
   return signedFromModularBits(static_cast<uint32_t>(newer) -

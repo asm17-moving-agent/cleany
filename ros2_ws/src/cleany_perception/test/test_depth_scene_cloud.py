@@ -62,7 +62,7 @@ def test_missing_depth_not_filled_and_stride_samples_full_view():
 ])
 def test_reject_incompatible_calibration(fault):
     depth, info = messages([[1, 1]])
-    # 좌표계 불일치 테스트를 위해 공유 Header를 교체합니다.
+    # Replace the shared Header for the frame-mismatch test.
     if fault == 'frame':
         from std_msgs.msg import Header
         info.header = Header(frame_id='wrong_camera')

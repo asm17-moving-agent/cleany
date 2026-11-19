@@ -1,4 +1,4 @@
-"""순수 결과 구성입니다. 거부된 관측을 오차 추정값으로 바꾸지 않습니다."""
+"""Pure result construction: rejected observations never become error estimates."""
 
 from dataclasses import asdict
 import math
@@ -38,7 +38,7 @@ def match_metadata(match: ScanMatchResult) -> dict[str, Any]:
 
 
 def write_data_json(path: Path, value: Any) -> None:
-    """기존 실행을 덮어쓰지 않고 완전한 표준 JSON을 원자적으로 저장합니다."""
+    """Publish complete standard JSON atomically, without replacing an existing run."""
     encoded = json.dumps(json_finite(value), indent=2, allow_nan=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None

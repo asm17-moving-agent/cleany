@@ -1,4 +1,4 @@
-"""선택적으로 출력만 하는 ROS 서비스 요청 및 완료 시간 기록입니다."""
+"""Optional output-only ROS service requests and completion timings."""
 from __future__ import annotations
 
 import json

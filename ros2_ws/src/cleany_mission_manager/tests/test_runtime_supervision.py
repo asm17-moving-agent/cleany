@@ -1,4 +1,4 @@
-"""스크립트 임대 포트를 사용해 System Supervisor 권한 아래 Mission Runtime을 검사합니다."""
+"""Mission Runtime under System Supervisor authority, with a scripted lease port."""
 import pytest
 
 from cleany_mission_manager.core.operations import DeferredPort
@@ -11,7 +11,7 @@ from test_runtime import Clock, drive, request
 
 
 class Lease:
-    """가용성, 임대 판정과 호출 기록을 제공하는 스크립트 Supervisor 상태입니다."""
+    """Scripted Supervisor view: availability, lease decisions and call record."""
 
     def __init__(self):
         self.system = (True, "")
@@ -75,7 +75,7 @@ def test_no_motion_before_grant_and_denial_ends_without_runtime_error():
     drive(runtime, clock)
     report = runtime.last_report
     assert report.outcome == "BLOCKED" and report.failure_code == "PERMISSION_REVOKED"
-    assert runtime.state == RuntimeState.IDLE  # 시스템 fault는 Runtime 실행 오류가 아닙니다.
+    assert runtime.state == RuntimeState.IDLE  # A system fault is not a Runtime execution error.
     assert not nav.commands
 
 
@@ -99,7 +99,7 @@ def test_revocation_during_navigation_cancels_and_confirms_stop_before_finishing
     assert runtime.state == RuntimeState.CANCELLING and not nav.pending
     drive(runtime, clock)
     assert runtime.last_report.outcome == "BLOCKED"
-    assert nav.commands == ["seat-12"]  # 권한을 잃었을 때 자동으로 복귀하지 않습니다.
+    assert nav.commands == ["seat-12"]  # No automatic return home on lost authority.
     assert lease.calls[-1] == ("release", None)
 
 
@@ -127,7 +127,7 @@ def test_supervisor_stop_request_and_confirmation_contract():
 def test_unconfirmed_stop_abandons_the_lease_instead_of_releasing():
     class Stuck(DeferredPort):
         def cancel(self, operation_id):
-            pass  # 이 작업은 정지를 확인하지 않습니다.
+            pass  # The operation never confirms its stop.
     clock, lease = Clock(), Lease()
     desk = MockDesk(clock)
     nav = Stuck(lambda _: ModuleResult.success(), polls=10_000)
@@ -138,7 +138,7 @@ def test_unconfirmed_stop_abandons_the_lease_instead_of_releasing():
     runtime.tick()
     lease.status = (Authorization.DENIED, "operation locked")
     drive(runtime, clock)
-    assert runtime.state == RuntimeState.ERROR  # Runtime 자체 정지 시간 제한 규칙입니다.
+    assert runtime.state == RuntimeState.ERROR  # The Runtime's own stop-timeout rule.
     assert lease.calls[-1] == ("abandon", None)
     assert not runtime.supervisor_stop_confirmed("one")
 

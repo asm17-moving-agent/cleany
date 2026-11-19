@@ -1,4 +1,4 @@
-"""불변 패키지 해시와 마감을 기준으로 mirror 대체 경로를 검사합니다."""
+"""Check mirror fallback against the immutable package hash and deadline."""
 
 import hashlib
 from importlib.machinery import SourceFileLoader

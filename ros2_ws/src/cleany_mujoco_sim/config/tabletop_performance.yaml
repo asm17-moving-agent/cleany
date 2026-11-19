@@ -1,4 +1,4 @@
-# 선택적 고정 베이스 스터디카페 조작 전용이며 주행 프로파일이 아닙니다.
+# Opt-in, fixed-base study-cafe manipulation only. Never a navigation profile.
 schema_version: 1
 profiles:
   tabletop_collision:

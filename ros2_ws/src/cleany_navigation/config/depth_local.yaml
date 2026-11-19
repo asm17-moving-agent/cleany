@@ -1,4 +1,4 @@
-# 실물 D435 overlay이며 로컬 계획과 기존 2D 정지 monitor에만 적용합니다.
+# Physical D435 overlay: local planning and the existing 2-D stop monitor only.
 local_costmap:
   local_costmap:
     ros__parameters:

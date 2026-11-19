@@ -187,7 +187,7 @@ TEST_F(AxisTest, PlannedBodyHeadingIsRequiredDespiteDiagonalTravelAllowance) {
   EXPECT_LT(critic.scoreTrajectory(turning),critic.scoreTrajectory(stopped));
   pose.theta=0.;critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);moving.poses={pose};
   EXPECT_NO_THROW(critic.scoreTrajectory(moving));
-  // 명시적 회전 waypoint에서는 최종 body 방향을 사용합니다.
+  // At an explicit rotation waypoint, use its final body orientation.
   reference=pose;auto rotated=reference;rotated.theta=-M_PI/2;goal.y=-2.;goal.x=0.;goal.theta=-M_PI/2;
   path.poses={reference,rotated,goal};critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
   EXPECT_THROW(critic.scoreTrajectory(moving),dwb_core::IllegalTrajectoryException);

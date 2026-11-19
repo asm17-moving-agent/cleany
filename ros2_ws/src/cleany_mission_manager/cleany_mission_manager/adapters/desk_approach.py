@@ -1,4 +1,4 @@
-"""journal을 사용하는 DeskApproach client입니다. 불확실한 종료는 정지 근거가 아닙니다."""
+"""Journaled DeskApproach client; uncertain termination cannot certify a stop."""
 import time
 from uuid import uuid4
 from action_msgs.msg import GoalStatus
@@ -36,8 +36,8 @@ class DeskApproachPort:
         if self.recovery_future is not None and self.recovery_future.done():
             try:
                 response = self.recovery_future.result()
-                # 취소 수락은 취소 완료가 아닙니다. 서버가 목표의 종료 또는 미확인을 보고하고
-                # odometry도 정지할 때까지 재시도합니다.
+                # An accepted cancel is not completed cancellation. Retry until the
+                # server reports the goal terminal/unknown AND odometry is stopped.
                 if response.return_code in (CancelGoal.Response.ERROR_GOAL_TERMINATED,
                                             CancelGoal.Response.ERROR_UNKNOWN_GOAL_ID) and self.base_stopped():
                     self.recovery_goal = ''

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Logger 가공과 독립적으로 native rosbag2로 mapping 입력을 기록합니다."""
+"""Record mapping inputs with native rosbag2, independently of Logger shaping."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,7 @@ def command(output: Path, cache_mib: int = 64) -> list[str]:
 
 
 def record(output: Path, duration_s: float, cache_mib: int = 64) -> int:
-    """시간 초과 또는 Ctrl-C 시 소유한 recorder에 SIGINT를 보내 flush합니다."""
+    """Flush the owned recorder with SIGINT on timeout or Ctrl-C."""
     if not math.isfinite(duration_s) or duration_s <= 0:
         raise ValueError('duration_s must be positive')
     arguments = command(output, cache_mib)

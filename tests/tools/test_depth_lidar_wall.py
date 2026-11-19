@@ -1,4 +1,4 @@
-"""합성 기하 검사이며 물리 보정을 검증하지 않습니다."""
+"""Synthetic geometry checks; these do not validate physical calibration."""
 
 import importlib.util
 from pathlib import Path

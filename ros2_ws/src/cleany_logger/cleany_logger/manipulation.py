@@ -1,4 +1,4 @@
-"""범위가 제한된 실행 관측이며 action/service client나 안전 판정을 포함하지 않습니다."""
+"""Bounded execution observations; no action/service clients or safety decisions."""
 
 from collections import OrderedDict
 from copy import deepcopy

@@ -1,4 +1,4 @@
-"""범위가 제한된 ROS 독립 직렬화와 실시간 이벤트 캐시입니다."""
+"""Bounded, ROS-independent serialization and live event cache."""
 
 import math
 import threading
@@ -13,7 +13,7 @@ from .recording import RecordingControls
 
 
 def preview(value: Any, *, budget: int = 2048, depth: int = 10) -> Any:
-    """큰 ROS 시퀀스를 펼치기 전에 공유 원소 예산을 차감합니다."""
+    """Spend a shared element budget BEFORE expanding large ROS sequences."""
     remaining = [budget]
 
     def walk(item, level):
@@ -65,7 +65,7 @@ def grid_origin(origin: list[float], transform: list[float]) -> list[float]:
 
 
 class ObservationBuffer:
-    """생성자는 브라우저나 디스크를 기다리지 않습니다. telemetry는 최신값으로 합치고 이벤트는 ring에 보관합니다."""
+    """Producer never waits for browser or disk. Telemetry coalesces; events have a ring."""
 
     def __init__(self, event_limit=2048):
         self.recording = RecordingControls()

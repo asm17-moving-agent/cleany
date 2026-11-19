@@ -3,7 +3,7 @@ string mission_id
 string lease_id
 string reason
 ---
-# 목표 수락과 취소 확인은 정지 근거가 아닙니다.
+# Goal acceptance and cancel acknowledgement never constitute stop proof.
 bool stopped
 string detail
 ---

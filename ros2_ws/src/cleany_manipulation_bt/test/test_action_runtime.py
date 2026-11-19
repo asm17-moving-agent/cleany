@@ -1,4 +1,4 @@
-"""실제 native BT가 느린 fake 작업을 기다리는 동안 실제 DDS 통신을 검사합니다."""
+"""Real DDS traffic while the actual native BT waits on slow fake operations."""
 import socket
 import threading
 import time
@@ -44,7 +44,7 @@ def wait(future):
     (False, None, 'all'),
     (False, None, 'final'),
     (False, None, 'transitions'),
-    # 쓰기 장애 중 복구와 ROS 취소를 함께 검사합니다.
+    # Exercise recovery and ROS cancellation together during a write outage.
     (True, 'RETURN_ARM', 'all'),
 ])
 def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mode, write_failure,
@@ -62,7 +62,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
             grasp_started.set()
             # Keep the checkpoint active until DDS acknowledges the cancel request.
             assert release_grasp.wait(8.), 'Cancel was not acknowledged during grasp'
-        time.sleep(.03)  # 의도적으로 일부 BT tick보다 오래 걸립니다.
+        time.sleep(.03)  # Intentionally outlasts some BT ticks.
         values = {
             'SelectArmAndPath': dict(selected_arm='right'),
             'ConfirmGrasp': dict(object_state=ObjectState.HELD),

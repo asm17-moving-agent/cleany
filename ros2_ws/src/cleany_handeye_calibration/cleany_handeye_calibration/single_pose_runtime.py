@@ -1,4 +1,4 @@
-"""단일 자세 core를 MoveIt과 MuJoCo에 연결하는 ROS 실행 파일입니다."""
+"""ROS executable that wires the single-pose core to MoveIt and MuJoCo."""
 
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ REQUIRED_COLLISION_OBJECT_IDS = {
 
 
 class SinglePoseRuntimeEffects:
-    """백그라운드 ROS executor가 진행시키는 동기식 외부 작업입니다."""
+    """Synchronous effects driven by a background ROS executor."""
 
     def __init__(
         self,
@@ -119,8 +119,8 @@ class SinglePoseRuntimeEffects:
         self._camera = RosExactCameraPairAdapter()
         self._detector = CharucoTargetDetector()
 
-        # executor 스레드가 ROS future와 구독 콜백을 처리하므로
-        # 어댑터 polling은 호출자 스레드의 실행권만 양보합니다.
+        # The executor thread resolves ROS futures and subscription callbacks.
+        # Adapter polling therefore only yields the caller thread.
         def poll(timeout: float) -> None:
             time.sleep(min(float(timeout), 0.01))
 

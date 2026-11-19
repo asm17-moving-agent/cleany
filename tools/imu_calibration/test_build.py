@@ -1,4 +1,4 @@
-"""독립 프로젝트 격리와 기준 설정을 검사합니다."""
+"""Standalone project isolation and authoritative configuration checks."""
 from __future__ import annotations
 
 import configparser

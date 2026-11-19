@@ -17,7 +17,7 @@ TEST(ControlCycle, DelayDuringReadKeepsOneStampAndCannotProduceDuplicateFeedback
     std::vector<int64_t> feedback;
     void read(int64_t stamp, int64_t period) {
       calls.push_back({0, stamp, period});
-      clock += 28;  // 하드웨어 읽기가 지연되는 동안 물리는 진행됩니다.
+      clock += 28;  // Physics advances while the hardware read is delayed.
     }
     void update(int64_t stamp, int64_t period) {
       calls.push_back({1, stamp, period});
@@ -31,8 +31,8 @@ TEST(ControlCycle, DelayDuringReadKeepsOneStampAndCannotProduceDuplicateFeedback
   auto first = gate.take(clock);
   ASSERT_TRUE(first);
   first->execute(manager);
-  // 이전 루프는 update 시각을 138로 찍고 이미 지난 120까지 대기한 다음
-  // 다시 138을 찍을 수 있습니다. 주기 시각을 한 번만 읽어 고정합니다.
+  // The old loop stamps update at 138, sleeps until 120 (already past),
+  // then can stamp the next update at 138 again. Capture the cycle time once.
   auto second = gate.take(clock);
   ASSERT_TRUE(second);
   second->execute(manager);
@@ -47,7 +47,7 @@ TEST(ControlCycle, DelayDuringReadKeepsOneStampAndCannotProduceDuplicateFeedback
     EXPECT_EQ(manager.calls[offset][2], manager.calls[offset + 1][2]);
     EXPECT_EQ(manager.calls[offset][2], manager.calls[offset + 2][2]);
   }
-  EXPECT_EQ(manager.calls[3][2], 28);  // 실행 지연 후 실제 경과 시간입니다.
+  EXPECT_EQ(manager.calls[3][2], 28);  // Actual elapsed time after the overrun.
 }
 
 TEST(ControlCycle, FrozenClockDoesNotRunControllersOrRefreshFeedback)

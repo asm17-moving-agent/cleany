@@ -1,4 +1,4 @@
-"""실제 native 노드 전이를 기록하는 MuJoCo journal 확장입니다."""
+"""MuJoCo journal extension for actual native node transitions."""
 import sqlite3
 import time
 import hashlib

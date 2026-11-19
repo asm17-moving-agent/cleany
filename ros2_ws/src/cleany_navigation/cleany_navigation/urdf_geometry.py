@@ -1,4 +1,4 @@
-"""공통 URDF 변환과 선택적 고정 관절 변환입니다."""
+"""Shared URDF transforms and optional fixed-joint conversion."""
 from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
@@ -28,8 +28,8 @@ def rotation(rpy: list[float]) -> np.ndarray:
 
 
 def rpy(matrix: np.ndarray) -> list[float]:
-    # pitch가 +/-pi/2이면 yaw +/- roll만 관측할 수 있습니다. 0에 가까운
-    # 행렬 성분으로 두 각도에 방향을 나눠 담지 않습니다.
+    # At pitch +/-pi/2 only yaw +/- roll is observable. Avoid dividing the
+    # orientation between two angles using near-zero matrix entries.
     horizontal = np.hypot(matrix[0, 0], matrix[1, 0])
     if horizontal < 1e-10:
         return [0., float(np.arctan2(-matrix[2, 0], horizontal)),
@@ -48,7 +48,7 @@ def origin(element: ET.Element | None) -> np.ndarray:
 
 
 def apply_simulation_geometry(urdf: ET.Element, profile: dict, *, allowed: bool) -> dict:
-    """명시적으로 선택한 시뮬레이션 하위 트리와 대응하는 주차 항목을 제거합니다."""
+    """Remove explicitly selected simulation subtrees and their park entries."""
     result = deepcopy(profile)
     roots = result.get('simulation_excluded_link_roots', [])
     if not roots:

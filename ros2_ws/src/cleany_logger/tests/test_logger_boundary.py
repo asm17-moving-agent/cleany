@@ -1,4 +1,4 @@
-"""웹 애플리케이션과 ROS Python 런타임 없이 기록 엔진을 사용합니다."""
+"""Use the recording engine without the web application or ROS Python runtime."""
 
 import subprocess
 import sys
@@ -36,7 +36,7 @@ def test_producer_snapshots_reopen_with_the_same_session_and_limits(tmp_path):
     session = recorder.session_id
     recorder.close()
 
-    # 다른 애플리케이션도 기존 Hub 없이 archive를 읽을 수 있습니다.
+    # Another embedding application can read the archive without the old Hub.
     reader = Recorder(tmp_path)
     assert reader.replay(session, 12.0)["rows"] == [row]
     assert reader.replay(session, 11.0)["rows"] == []

@@ -1,8 +1,8 @@
 slam_toolbox:
   ros__parameters:
-    # SCRUM-315 비교 후보인 slam_toolbox online async 프로파일입니다.
-    # 알고리즘 선정 결과를 의미하지 않습니다.
-    # External input must provide /scan and the odom -> base_link -> sensor TF chain.
+    # SCRUM-315 comparison candidate: slam_toolbox online async. This profile
+    # does not represent an algorithm selection result.
+    # The frame and scan names below are part of the Gazebo navigation contract.
     odom_frame: odom
     map_frame: map
     base_frame: base_link
@@ -18,8 +18,8 @@ slam_toolbox:
     ceres_dogleg_type: TRADITIONAL_DOGLEG
     ceres_loss_function: HuberLoss
 
-    # 온라인 비동기 mapping은 시뮬레이션이나 스캔 정합이 뒤처질 때 큐가
-    # 무제한 늘지 않도록 오래된 스캔을 버립니다.
+    # Online asynchronous mapping drops stale scans instead of allowing an
+    # unbounded queue to grow when simulation or scan matching falls behind.
     throttle_scans: 1
     scan_queue_size: 1
     transform_publish_period: 0.05
@@ -32,7 +32,7 @@ slam_toolbox:
     stack_size_to_use: 40000000
     enable_interactive_mode: false
 
-    # Accepted scan range in metres; match these bounds to the active sensor.
+    # Match the simulated 360-degree LiDAR contract in both Gazebo profiles.
     min_laser_range: 0.15
     max_laser_range: 12.0
 

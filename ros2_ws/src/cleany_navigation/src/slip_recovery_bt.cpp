@@ -20,7 +20,7 @@
 #include "cleany_navigation/slip_recovery_policy.hpp"
 
 namespace cleany_navigation {
-/// 제동 전에 Nav2 활성 자식을 halt하며 미끄럼에서는 일반 복구를 우회합니다.
+/// Halt Nav2's active child before braking; bypass generic recovery on slip.
 class SlipRecovery : public BT::ControlNode {
 public:
   SlipRecovery(const std::string & name, const BT::NodeConfiguration & config)

@@ -1,4 +1,4 @@
-# 각 endpoint는 하나의 작업에 연결되며 임의의 ROS 서비스를 호출하지 않습니다.
+# Each endpoint binds one operation; no arbitrary ROS service dispatch.
 string request_id
 string session_id
 uint64 expected_revision

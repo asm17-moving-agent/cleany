@@ -53,8 +53,8 @@ def _shoulder_reference_positions(model_profile: str = 'jetson_20261009') -> lis
 
 
 def _application_log_arguments(*logger_names: str) -> list:
-    # 전역 DEBUG는 rcl의 고빈도 wait-set trace도 활성화합니다.
-    # middleware는 INFO로 유지하고 요청된 애플리케이션 logger만 활성화합니다.
+    # A global DEBUG level also enables rcl's high-frequency wait-set trace.
+    # Keep middleware at INFO and enable only the application loggers requested.
     arguments = ['--log-level', 'info']
     for name in logger_names:
         arguments.extend(['--log-level', [name + ':=', LaunchConfiguration('log_level')]])
@@ -118,8 +118,8 @@ def _preflight(context):
     if value('fastdds_profiles_file') and not Path(value('fastdds_profiles_file')).is_file():
         raise RuntimeError('Fast DDS profiles file does not exist')
     if value('start_perception') == 'false':
-        # 외부 인식 프로세스가 모델 파일, 자격 증명과 CUDA 런타임을 소유합니다.
-        # 위 기하 및 시뮬레이션 검증은 호스트에도 계속 적용합니다.
+        # External perception owns its model files, credentials and CUDA runtime.
+        # Geometry / simulation validation above still applies to the host.
         return []
     if value('perception_detector_type') in ('yoloe', 'yoloe_gemini'):
         keys = ('yoloe_model_path', 'yoloe_text_encoder_directory')
@@ -187,7 +187,7 @@ def generate_launch_description() -> LaunchDescription:
     grasp_approach_offset = ParameterValue(
         LaunchConfiguration('grasp_approach_offset_m'), value_type=float
     )
-    # 파라미터 mapping 하나로 선택 IK와 실행 깊이를 일치시킵니다.
+    # One parameter mapping keeps selection IK and execution depth identical.
     grasp_depth_parameters = {
         'deeper_grasp_labels': [
             'mouse', 'computer mouse', 'wireless mouse',
@@ -227,13 +227,13 @@ def generate_launch_description() -> LaunchDescription:
     skill_share = Path(get_package_share_directory('cleany_skill_executor'))
     profile_path = perception_share / 'config' / 'yoloe_seg.yaml'
     profile = load_model_profile(profile_path)
-    # 검출기를 명시적으로 재정의한 경우에만 YOLOE asset 기본값을 유지합니다.
-    # Gemini는 이를 로드하거나 로컬 검출기로 조용히 대체하지 않습니다.
+    # Keep YOLOE asset defaults only for an explicit detector override; Gemini
+    # does not load them or silently fall back to a local detector.
     profile.update(load_model_profile(
         perception_share / 'config' / 'yoloe_seg_gemini.yaml'))
     profile.update(detector_type='yoloe_gemini', segmenter_type='yoloe_seg')
-    # 이 스터디카페 시뮬레이션은 자체 카메라 렌더링으로 미세 조정한 체크포인트를
-    # 사용합니다. 공통 YOLOE 프로파일은 범용 체크포인트를 유지합니다.
+    # This study-cafe simulation uses a checkpoint fine-tuned on its camera
+    # renders. The shared YOLOE profile keeps the general-purpose checkpoint.
     profile.update(
         yoloe_model_path='yoloe/study_cafe_sim_yoloe26s_seg.pt',
         wrist_yoloe_model_path='yoloe/study_cafe_sim_all_views_yoloe26s_seg.pt',
@@ -472,8 +472,8 @@ def generate_launch_description() -> LaunchDescription:
                     ]), value_type=float,
                 ),
                 'geometric.approach_tilt_direction': [1.0, 0.0, 0.0],
-                # 측정 평면 법선에는 작은 수평 잡음이 있을 수 있습니다.
-                # 전후 필터는 기울어진 접근에서만 의미가 있습니다.
+                # A measured plane normal can have tiny horizontal noise. The
+                # front/back filter is meaningful only for tilted approaches.
                 'geometric.reject_robot_opposite_approach': ParameterValue(PythonExpression([
                     "'", LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool),
                 'geometric.robot_reference_position': [0.0, 0.0, 0.0],
@@ -522,8 +522,8 @@ def generate_launch_description() -> LaunchDescription:
                 'joint_limit_margin_rad': ParameterValue(
                     PythonExpression(["0.005 if '", sorting_mode, "' == 'true' else 0.0"]),
                     value_type=float),
-                # pregrasp의 헤드 가시성은 헤드 전용 분기만 요구하며
-                # 손목 handoff는 자체 최신 영상 검사를 수행합니다.
+                # Head visibility at pregrasp is only required by the head-only
+                # branch; wrist handoff performs its own current-image gate.
                 'require_pregrasp_visibility': ParameterValue(PythonExpression([
                     "'", sorting_mode, "' == 'true' and '",
                     LaunchConfiguration('sorting_use_wrist_camera'), "' != 'true'",

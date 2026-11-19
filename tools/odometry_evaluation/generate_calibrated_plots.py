@@ -11,12 +11,12 @@ json_path = Path("artifacts/odometry_evaluation/oneway_evaluation_summary_202610
 with open(json_path) as f:
     data = json.load(f)
 
-# LiDAR 외부 보정값: alpha = -7.85도
+# LiDAR Extrinsic calibration: alpha = -7.85 deg
 alpha = math.radians(-7.85)
 c, s = math.cos(alpha), math.sin(alpha)
 R_L_to_B = np.array([[c, -s], [s, c]])
 
-# 전후 이동 데이터 추출
+# Extract surge data
 surge_runs = data["results"]["surge"]
 surge_speeds = [r["speed"] for r in surge_runs]
 surge_raw_norms = [r["outbound"]["one_way_error"]["error_norm_mm"] for r in surge_runs]
@@ -36,7 +36,7 @@ for r in surge_runs:
     surge_calib_eys.append(abs(float(err_B[1])))
     surge_error_rates.append(norm_B / 500.0 * 100.0)
 
-# 좌우 이동 데이터 추출
+# Extract sway data
 sway_runs = data["results"]["sway"]
 sway_speeds = [r["speed"] for r in sway_runs]
 sway_raw_norms = [r["outbound"]["one_way_error"]["error_norm_mm"] for r in sway_runs]
@@ -56,17 +56,17 @@ for r in sway_runs:
     sway_calib_exs.append(abs(float(err_B[0])))
     sway_error_rates.append(norm_B / 500.0 * 100.0)
 
-# 회전 데이터 추출
+# Extract rotation data
 rot_runs = data["results"]["rotation"]
 rot_speeds = [r["speed"] for r in rot_runs]
 rot_yaw_errs = [r["outbound"]["one_way_error"]["error_yaw_deg"] for r in rot_runs]
 rot_lever_arms = [math.hypot(r["outbound"]["icp_ground_truth"]["dx_m"], r["outbound"]["icp_ground_truth"]["dy_m"]) / math.sqrt(2) * 1000.0 for r in rot_runs]
 rot_error_rates = [abs(err) / 90.0 * 100.0 for err in rot_yaw_errs]
 
-# 그래프 생성
+# Plotting
 fig, axes = plt.subplots(2, 2, figsize=(15, 11), dpi=200)
 
-# 첫 번째 패널: 전후 이동
+# 1. Surge Subplot
 ax1 = axes[0, 0]
 ax1.plot(surge_speeds, surge_raw_norms, "o--", color="#888888", linewidth=1.8, label="Raw LiDAR (Uncalibrated, ~8° skew)")
 ax1.plot(surge_speeds, surge_calib_norms, "s-", color="#1f77b4", linewidth=2.4, label="True Wheel Error Norm (Calibrated)")
@@ -80,7 +80,7 @@ ax1.legend(fontsize=9, loc="center left")
 for x, y in zip(surge_speeds, surge_calib_norms):
     ax1.annotate(f"{y:.1f}mm", (x, y), textcoords="offset points", xytext=(0, 8), ha="center", fontsize=9, fontweight="bold", color="#1f77b4")
 
-# 두 번째 패널: 좌우 이동
+# 2. Sway Subplot
 ax2 = axes[0, 1]
 ax2.plot(sway_speeds, sway_raw_norms, "o--", color="#888888", linewidth=1.8, label="Raw LiDAR (Uncalibrated, ~8° skew)")
 ax2.plot(sway_speeds, sway_calib_norms, "s-", color="#d62728", linewidth=2.4, label="True Wheel Error Norm (Calibrated)")
@@ -94,7 +94,7 @@ ax2.legend(fontsize=9, loc="center left")
 for x, y in zip(sway_speeds, sway_calib_norms):
     ax2.annotate(f"{y:.1f}mm", (x, y), textcoords="offset points", xytext=(0, 8), ha="center", fontsize=9, fontweight="bold", color="#d62728")
 
-# 세 번째 패널: 이중 축 회전
+# 3. Rotation Subplot (Dual Axis)
 ax3 = axes[1, 0]
 color_yaw = "#9467bd"
 ax3.plot(rot_speeds, rot_yaw_errs, "o-", color=color_yaw, linewidth=2.2, label="Heading Error (deg)")
@@ -116,7 +116,7 @@ for x, y in zip(rot_speeds, rot_lever_arms):
     ax3_r.annotate(f"{y:.1f}mm", (x, y), textcoords="offset points", xytext=(0, -14), ha="center", fontsize=9, color=color_arm)
 ax3.set_title("ROTATION (One-Way 90°): Heading Accuracy & Mount Lever Arm", fontsize=12, fontweight="bold")
 
-# 네 번째 패널: 오차율 막대그래프
+# 4. Error Rates Bar Chart
 ax4 = axes[1, 1]
 labels = [
     "Surge 0.20", "Surge 0.35", "Surge 0.50",

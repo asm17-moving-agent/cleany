@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-# MuJoCo import 전에 스터디카페 렌더러에 EGL을 설정합니다. launch를 실행하지 않는
-# 직접 pytest와 화면 없는 CI에서도 같은 계약을 적용합니다.
+# Use EGL for the study-cafe renderer before importing MuJoCo. Mirror that contract
+# for direct pytest and headless CI runs, which do not execute the launch file.
 os.environ.setdefault('MUJOCO_GL', 'egl')
 
 from cleany_mujoco_sim.scene_loader import load_model, materialize_scene

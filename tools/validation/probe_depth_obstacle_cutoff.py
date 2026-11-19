@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""로봇 명령 없이 실시간 베이스 좌표계 장애물 경계를 기록합니다."""
+"""Record live base-frame obstacle bounds without commanding the robot."""
 
 import argparse
 import json

@@ -1,1 +1,1 @@
-"""ROS에 독립적인 Mission Manager core입니다."""
+"""ROS-independent Mission Manager core."""

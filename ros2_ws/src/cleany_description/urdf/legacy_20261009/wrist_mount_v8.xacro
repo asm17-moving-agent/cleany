@@ -1,5 +1,8 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <!-- mjcf/wrist_mount_v8.xml(원본 커밋 e78ac14)의 형상을 Fixed_Jaw 좌표계의 m 단위로 사용합니다. 병합 visual STL은 solid가 아니므로 부품별 collision을 유지합니다. 부착 시 CAD 반올림 오차(1.3 μm 및 3 μrad 미만)는 무시합니다. 카메라 외부 파라미터, 관절 좌표계와 관성은 별도로 관리합니다. -->
+  <!-- Geometry from mjcf/wrist_mount_v8.xml (handoff e78ac14), in Fixed_Jaw metres.
+       Keep separate component collisions; the merged visual STL is not a solid.
+       Attachment ignores the CAD export rounding (<1.3 um, <3 urad).
+       Camera extrinsics, joint frames and inertias are managed separately. -->
   <xacro:macro name="cleany_wrist_mount_v8" params="side">
     <visual name="${side}_wrist_mount_v8_mount_visual">
       <origin xyz="0 0 0" rpy="0 0 0" />

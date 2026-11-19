@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// 브라우저 통신 fixture는 표시와 재생을 검사하며 주행 성공을 검증하지 않습니다.
+// Browser transport fixtures exercise presentation/replay, not navigation success.
 const config = {
   map_frame: "map",
   velocity_topics: ["/nav2/cmd_vel", "/safety_2d/cmd_vel", "/cmd_vel"],
@@ -96,7 +96,7 @@ function rows(now: number, replay = false) {
     0.011,
     1.4,
   ]);
-  history[0][4] = 380; // 시작 시 이상값을 숨기지 않으면서 정상 움직임의 변화도 읽을 수 있어야 합니다.
+  history[0][4] = 380; // A startup outlier must stay visible without flattening normal motion.
   const geometry = (topic: string, points: number[][]) => ({
     topic,
     valid: true,

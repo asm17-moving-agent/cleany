@@ -1,7 +1,7 @@
 #pragma once
 #include "dwb_core/trajectory_critic.hpp"
 namespace cleany_axis_controller {
-/// 연속 방향 비용은 XY가 그대로여도 제자리 회전에 이득을 부여합니다.
+/// Continuous heading cost gives in-place rotation a benefit even when XY is unchanged.
 class PathHeadingCritic : public dwb_core::TrajectoryCritic {
 public:
   void onInit() override;

@@ -91,7 +91,7 @@ def test_visibility_checks_complete_state_and_requires_an_evaluation_result():
         adapter.pregrasp_is_visible('left', joint)
     constraint = VisibilityConstraint(target_radius=.08, cone_sides=16)
     adapter.set_visibility_constraint(constraint)
-    constraint.target_radius = .01  # 호출자의 변경으로 검사 범위가 줄어들어서는 안 됩니다.
+    constraint.target_radius = .01  # Caller mutation must not shrink the check.
     assert adapter.pregrasp_is_visible('left', joint)
     request = client.requests[-1]
     assert request.constraints.visibility_constraints[0].target_radius == .08
@@ -189,7 +189,7 @@ def test_carry_ik_preserves_scene_attachments_and_complete_joint_feedback():
     adapter = make_adapter(config=MoveItAdapterConfig(preserve_scene_attachments=True), ik=ik)
     adapter.solve_position_ik('left', (0.2, 0.5, 0.4), None)
     state = ik.requests[0].ik_request.robot_state
-    assert state.is_diff  # 빈 attachment 배열이 적재물을 분리해서는 안 됩니다.
+    assert state.is_diff  # Empty attachment array must not detach the payload.
     assert tuple(state.joint_state.name) == REQUIRED_JOINT_NAMES
     assert list(state.joint_state.position) == list(current_state().position)
 
@@ -422,7 +422,7 @@ def test_asymmetric_pregrasp_also_rejects_closing_axis_sign_flip() -> None:
         solution=solution,
     ))
     response = _fk_response((0.5, 0.34, 0.8), (0.5, 0.2, 0.8))
-    # 로컬 Y를 중심으로 반 바퀴 회전하면 접근 방향은 같지만 고정 손가락은 뒤집힙니다.
+    # A half-turn around local Y preserves approach but reverses the fixed jaw.
     response.pose_stamped[0].pose.orientation.y = 1.0
     response.pose_stamped[0].pose.orientation.w = 0.0
     fk = ServiceClient(response)
@@ -435,7 +435,7 @@ def test_asymmetric_pregrasp_also_rejects_closing_axis_sign_flip() -> None:
             (0.5, 0.34, 0.8), seed,
         )
         assert bool(result) is symmetric
-        # 같은 비대칭 모드라도 방향이 올바른 그리퍼는 계속 수락해야 합니다.
+        # The same asymmetric mode must still accept a correctly directed jaw.
         response.pose_stamped[0].pose.orientation.y = 0.0
         response.pose_stamped[0].pose.orientation.w = 1.0
         assert adapter.solve_aimed_pregrasp_ik(
@@ -669,7 +669,7 @@ def test_held_region_ik_includes_offset_and_checks_collision(valid, rotated, fro
                                         accept_solution=accept)
     assert checked
     if valid:
-        assert len(accepted) == 2  # 첫 끝점을 거부하면 다음 후보를 시도해야 합니다.
+        assert len(accepted) == 2  # rejecting the first endpoint must try the next candidate
         if frozen:
             assert tuple(result.positions[-2:]) == (-.005, .005)
         assert abs(result.positions[-1]) <= .02

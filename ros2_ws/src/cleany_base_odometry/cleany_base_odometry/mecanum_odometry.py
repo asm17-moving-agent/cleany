@@ -7,7 +7,7 @@ from math import atan2, cos, isfinite, sin
 
 @dataclass(frozen=True)
 class MecanumGeometry:
-    """4륜 메카넘 기구학에 사용하는 물리 치수입니다."""
+    """Physical dimensions used by four-wheel Mecanum kinematics."""
 
     wheel_radius_m: float
     wheelbase_m: float
@@ -24,13 +24,13 @@ class MecanumGeometry:
 
     @property
     def center_to_wheel_sum_m(self) -> float:
-        """차체 중심에서 휠까지의 전후·좌우 거리 합을 반환합니다."""
+        """Return the longitudinal plus lateral center-to-wheel offsets."""
         return (self.wheelbase_m + self.wheel_separation_m) / 2.0
 
 
 @dataclass(frozen=True)
 class WheelPositions:
-    """누적 휠 회전량이며 단위는 rad입니다."""
+    """Cumulative wheel angles in radians."""
 
     front_left: float
     front_right: float
@@ -52,7 +52,7 @@ class WheelPositions:
 
 @dataclass(frozen=True)
 class OdometryEstimate:
-    """적분한 평면 위치와 차체 좌표계의 속도입니다."""
+    """Integrated planar pose and body-frame velocity."""
 
     x_m: float
     y_m: float
@@ -63,7 +63,7 @@ class OdometryEstimate:
 
 
 class MecanumOdometry:
-    """누적 휠 위치를 적분해 평면 odometry를 추정합니다."""
+    """Integrate cumulative wheel positions into a planar odometry estimate."""
 
     def __init__(self, geometry: MecanumGeometry, *, velocity_window_s: float = 0.0,
                  yaw_scale: float = 1.0) -> None:
@@ -86,21 +86,21 @@ class MecanumOdometry:
         positions: WheelPositions,
         stamp_s: float,
     ) -> OdometryEstimate | None:
-        """중간 방향각을 사용하는 메카넘 odometry로 휠 변위를 적분합니다.
+        """Integrate wheel displacement using midpoint-heading mecanum odometry.
 
-        시각이 증가하지 않으면 표본 기준만 초기화하고 위치는 유지합니다.
-        속도 창을 사용하는 경우 속도 초기화 구간에도 위치 적분은 계속합니다.
+        A non-increasing timestamp resets the sample baseline, not the pose.
+        With a velocity window, pose continues integrating during velocity warm-up.
 
         Args:
-            positions: 누적 휠 회전량(rad).
-            stamp_s: 한 시계에서 얻은 유한한 표본 시각(s).
+            positions: Cumulative wheel angles in radians.
+            stamp_s: Finite sample time in seconds from one clock.
 
         Returns:
-            odom 좌표계의 위치와 차체 좌표계의 속도. 첫 표본, 시간 초기화 또는
-            속도 창에 표본이 부족한 경우 None입니다.
+            Pose in the odometry frame and velocity in the body frame, or None for
+            the initial sample, a time reset or an incomplete velocity window.
 
         Raises:
-            ValueError: 시각이 유한하지 않은 경우.
+            ValueError: The timestamp is not finite.
         """
         if not isfinite(stamp_s):
             raise ValueError('Sample timestamp must be finite')
@@ -140,8 +140,9 @@ class MecanumOdometry:
         velocity_delta = (forward_m, lateral_m, yaw_delta_rad)
         velocity_dt = dt_s
         if self._velocity_window_s:
-            # 위치는 받은 encoder 표본마다 적분합니다. 속도만 더 긴 관측 구간의 누적
-            # count로 계산해 tick 양자화가 번갈아 튀는 순간 속도로 나타나지 않게 합니다.
+            # Pose still integrates every received encoder sample. Only twist
+            # uses cumulative counts over a longer observation interval; tick
+            # quantization must not become alternating instantaneous speeds.
             if dt_s > self._velocity_window_s:
                 self._velocity_history.clear()
             self._velocity_history.append((stamp_s, positions))
@@ -151,8 +152,8 @@ class MecanumOdometry:
             old_stamp, old_positions = self._velocity_history[0]
             velocity_dt = stamp_s - old_stamp
             if velocity_dt + 1e-9 < self._velocity_window_s:
-                # 시작 직후, 시계 초기화 또는 데이터 공백 뒤에는 관측할 수 없는 속도를
-                # 최신 측정값 0으로 보고하지 않습니다.
+                # After startup/clock reset/data gap, do not label an
+                # unobservable velocity as a fresh measured zero.
                 return None
             velocity_delta = self._body_delta(positions, old_positions)
 
@@ -168,7 +169,7 @@ class MecanumOdometry:
     def _body_delta(
         self, current: WheelPositions, previous: WheelPositions
     ) -> tuple[float, float, float]:
-        """두 휠 표본 사이의 전방·횡방향 변위와 yaw 변화량을 계산합니다."""
+        """Forward, lateral and yaw displacement between two wheel samples."""
         front_left, front_right, rear_left, rear_right = (
             now - before
             for now, before in zip(current.as_tuple(), previous.as_tuple())

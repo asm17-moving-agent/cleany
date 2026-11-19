@@ -1,4 +1,4 @@
-"""기존 collision monitor 앞의 명령 경로에 적용하는 점진적 속도 변경입니다."""
+"""An inline command ramp upstream of the existing collision monitor."""
 from __future__ import annotations
 from dataclasses import dataclass
 import math

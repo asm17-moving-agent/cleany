@@ -72,12 +72,12 @@ _FUEL_VISUALS = {
 
 
 def _unique_runtime_target(prefix: str, filename: str) -> Path:
-    """현재 프로세스가 소유하는 실행 디렉터리를 확보하고 내부 파일 경로를 반환합니다."""
+    """Reserve a process-owned runtime directory and return a file in it."""
     return Path(mkdtemp(prefix=prefix)) / filename
 
 
 def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
-    """제어할 수 없는 휠 롤러의 고정 visual을 생성합니다."""
+    """Generate one wheel's fixed, non-controllable roller visuals."""
     fragments: list[str] = []
     for index in range(12):
         angle = index * pi / 6.0
@@ -99,7 +99,7 @@ def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
 
 
 def _freeze_folded_arms(robot: ElementTree.Element) -> None:
-    """actuator 충격 없이 대기 각도를 고정 관절에 반영합니다."""
+    """Bake the standby angles into fixed joints without actuator impulse."""
     controllers = {
         plugin.findtext('joint_name'): plugin
         for plugin in robot.findall('plugin')
@@ -132,7 +132,7 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
 def _collapse_fixed_upper_body(
     robot: ElementTree.Element,
 ) -> None:
-    """별도 물리 body 없이 상체 좌표계와 visual을 유지합니다."""
+    """Keep upper-body frames and visuals without separate physics bodies."""
     removed = 0
     for link_name in _FOLDED_ARM_LINKS:
         link = robot.find(f"link[@name='{link_name}']")
@@ -238,7 +238,7 @@ def materialize_mecanum_wheel_world(
     sensor_render_engine: str = 'ogre2',
     robot_model: str = 'cad_frame',
 ) -> Path:
-    """롤러 관절을 노출하지 않는 간결한 메카넘 visual을 생성합니다."""
+    """Materialize compact mecanum visuals without exposing roller joints."""
     if sensor_render_engine not in {'ogre', 'ogre2'}:
         raise ValueError('sensor render engine must be ogre or ogre2')
     template = template_path.read_text(encoding='utf-8')
@@ -397,7 +397,7 @@ def _add_box_part(
     *,
     with_collision: bool = True,
 ) -> None:
-    """상세 visual과 필요시 대응하는 collision을 추가합니다."""
+    """Add a detailed visual and, when requested, matching collision."""
     pose_text = ' '.join(map(str, pose))
     size_text = ' '.join(map(str, size))
     element_names = (
@@ -427,7 +427,7 @@ def _add_cylinder_part(
     *,
     with_collision: bool = True,
 ) -> None:
-    """상세 visual과 필요시 대응하는 collision을 추가합니다."""
+    """Add a detailed visual and, when requested, matching collision."""
     pose_text = ' '.join(map(str, pose))
     element_names = (
         ('collision', 'visual') if with_collision else ('visual',)
@@ -453,16 +453,16 @@ def _add_demo_desk(
     pose: tuple[float, float, float, float, float, float],
     front_sign: float,
 ) -> None:
-    """소형 A형 지지대 두 개가 달린 폭 1.2m의 흰색 책상을 추가합니다."""
+    """Add the 1.2 m white desk with two compact A-frame supports."""
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
     ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
     link = ElementTree.SubElement(model, 'link', {'name': 'body'})
     white = '0.92 0.93 0.94 1'
 
-    # 주행에는 가구가 차지하는 부피가 필요합니다. 책상마다 고정 충돌 형상
-    # 아홉 개를 검사하는 대신 보수적인 단일 기본 도형을 사용하며,
-    # 상세 렌더링 형상은 유지합니다.
+    # Navigation only needs the furniture's occupied volume. One conservative
+    # primitive avoids iterating nine separate static collision geometries for
+    # every repeated desk while keeping the detailed visual unchanged.
     _add_box_collision(
         link, 'desk_envelope_collision', (1.2, 0.77, 0.72),
         (0.0, 0.0, 0.36),
@@ -470,9 +470,9 @@ def _add_demo_desk(
 
     corner_radius = 0.06
     tabletop_half_depth = 0.385
-    # 칸막이 쪽 모서리는 직각으로 두고 의자 쪽 두 모서리만 둥글게 만듭니다.
-    # 상자 두 개와 원기둥 두 개의 합집합을 사용해 렌더링 형상과 충돌 형상의
-    # 바닥 투영을 일치시킵니다.
+    # Keep the partition-side corners square and round only the two corners
+    # on the chair-facing edge. The union of two boxes and two cylinders
+    # gives visual and collision geometry the same footprint.
     _add_box_part(
         link, 'tabletop_back', (1.2, 0.77 - corner_radius, 0.04),
         (
@@ -517,7 +517,7 @@ def _add_demo_desk(
         )
     leg_bottom_z = 0.02
     leg_top_z = 0.67
-    # 지지대는 상판의 각 가장자리에서 안쪽으로 8cm 떨어져 있습니다.
+    # Supports sit 8 cm inboard from every tabletop edge.
     for support_name, x in (('left', -0.52), ('right', 0.52)):
         for side_name, bottom_y in (
             ('front', tabletop_half_depth - 0.08),
@@ -555,7 +555,7 @@ def _add_rounded_partition(
     name: str,
     pose: tuple[float, float, float, float, float, float],
 ) -> None:
-    """X-Z 평면에서 네 모서리가 둥근 얇은 칸막이를 추가합니다."""
+    """Add a thin divider with four rounded corners in the X-Z plane."""
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
     ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
@@ -606,7 +606,7 @@ def _add_desk_monitor(
     pose: tuple[float, float, float, float, float, float],
     front_sign: float,
 ) -> None:
-    """지정된 의자를 향하는 검은색 27인치 16:9 모니터 하나를 추가합니다."""
+    """Add one black 27-inch 16:9 monitor facing its chair."""
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
     ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
@@ -644,7 +644,7 @@ def _add_desk_monitor(
     )
     geometry = ElementTree.SubElement(screen, 'geometry')
     box = ElementTree.SubElement(geometry, 'box')
-    # 0.598 × 0.336m는 화면비 16:9인 27인치 대각선에 해당합니다.
+    # 0.598 x 0.336 m is a 27-inch diagonal at 16:9.
     ElementTree.SubElement(box, 'size').text = '0.598 0.002 0.336'
     material = ElementTree.SubElement(screen, 'material')
     ElementTree.SubElement(material, 'ambient').text = screen_color
@@ -656,7 +656,7 @@ def _add_office_chair(
     name: str,
     pose: tuple[float, float, float, float, float, float],
 ) -> None:
-    """고정 의자의 렌더링 표면과 접촉 표면에 같은 저다각형 메시를 사용합니다."""
+    """Use the same low-poly mesh for the static chair's visible and contact surfaces."""
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
     ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
@@ -665,7 +665,7 @@ def _add_office_chair(
     visual = ElementTree.SubElement(
         link, 'visual', {'name': 'office_chair_visual'}
     )
-    # Fuel 의자는 -Y를 향하므로 모델의 +X가 정면이 되도록 회전합니다.
+    # Fuel's chair faces -Y. Rotate it so the model's +X is the front.
     ElementTree.SubElement(visual, 'pose').text = (
         '0 0 0 0 0 1.5707963267948966'
     )
@@ -676,9 +676,10 @@ def _add_office_chair(
     ]
     ElementTree.SubElement(mesh, 'scale').text = '0.9 0.9 0.9'
 
-    # 기존 단일 외곽 형상은 좌판 아래와 다리 사이의 빈 공간까지 채웠습니다.
-    # Fuel의 *_Col.obj 역시 거친 단일 충돌 형상입니다. 이 고정 렌더링 메시는
-    # 정점 240개와 OBJ 면 221개이므로 볼록 껍질 최적화 없이 오목한 부분을 보존합니다.
+    # The old solid envelope filled the empty space beneath the seat and
+    # between the legs. Fuel's *_Col.obj is also a coarse solid proxy.
+    # This static visual mesh is only 240 vertices / 221 OBJ faces; preserve
+    # its concavities rather than requesting convex-hull optimization.
     collision = ElementTree.SubElement(
         link, 'collision', {'name': 'chair_surface_collision'}
     )
@@ -690,7 +691,7 @@ def _chair_pose_toward(
     chair_xy: tuple[float, float],
     table_xy: tuple[float, float],
 ) -> tuple[float, float, float, float, float, float]:
-    """WoodenChair의 로컬 +X 정면이 지정된 책상을 향하도록 배치합니다."""
+    """Point WoodenChair's local +X front toward its assigned table."""
     chair_x, chair_y = chair_xy
     table_x, table_y = table_xy
     yaw = atan2(table_y - chair_y, table_x - chair_x)
@@ -712,7 +713,7 @@ def materialize_study_cafe_world(
     chair_model: str = 'legacy',
     chair_config_path: Path | None = None,
 ) -> Path:
-    """통로가 넓고 계산 부담이 적은 스터디카페 평가 월드를 구성합니다."""
+    """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
         raise ValueError('max step size must be within (0, 0.01] seconds')
     if not isfinite(real_time_factor) or real_time_factor <= 0.0:
@@ -858,8 +859,8 @@ def materialize_study_cafe_world(
     partition_index = 1
     for pair_center in layout.desks.row_pair_centers_y_m:
         for desk_x in layout.desks.x_positions_m:
-            # 칸막이 높이 72cm를 유지하면서 바닥 간격 26cm를 반영합니다.
-            # 높이 범위는 z=0.26..0.98m입니다.
+            # Keep the 72 cm divider height while matching the measured
+            # 26 cm floor clearance: z=0.26..0.98 m.
             _add_rounded_partition(
                 world,
                 f'desk_partition_{partition_index:02d}',

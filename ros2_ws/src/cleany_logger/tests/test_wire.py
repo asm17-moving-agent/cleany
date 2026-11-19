@@ -1,4 +1,4 @@
-"""전송 계약은 잘못된 설정이 writer에 도달하기 전에 거부합니다."""
+"""Wire contracts reject malformed settings before they reach a writer."""
 import pytest
 
 pytest.importorskip('cleany_interfaces.msg._recording_config')

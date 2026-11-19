@@ -1,4 +1,4 @@
-// 경로 기반 초기 후보도 모든 MPPI critic의 평가를 거칩니다.
+// Experiment: coherent path proposals, still evaluated by every MPPI critic.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -21,8 +21,8 @@ inline std::vector<SeedControl> pathSeed(
     if (path.empty()) {result.push_back({0,0,0}); continue;}
     const float dx=path[target].x-current.x, dy=path[target].y-current.y;
     const float da=wrapSeedAngle(path[target].yaw-current.yaw);
-    // 세 좌표를 같은 비율로 보간해 lattice 자세로 이어지는 이동과 회전의 결합을
-    // 유지합니다. 병진 이동 없이 제자리 회전만 먼저 수행하지 않습니다.
+    // Interpolate all three coordinates with one fraction, preserving the
+    // coupled connector to the lattice pose, instead of rotating in place.
     const float duration=std::max({dt,std::hypot(dx,dy)/speed,std::abs(da)/yaw_speed});
     const float wx=dx/duration, wy=dy/duration;
     SeedControl u{std::cos(current.yaw)*wx+std::sin(current.yaw)*wy,

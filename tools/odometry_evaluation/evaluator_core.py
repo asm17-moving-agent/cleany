@@ -9,16 +9,16 @@ from typing import Any
 
 
 class OdomGuardError(RuntimeError):
-    """odometry 최신성, 시각 단조성 또는 숫자 유효성 검사 실패입니다."""
+    """Raised when odometry freshness, timestamp monotonicity, or numeric validity fails."""
     pass
 
 
 @dataclass
 class OdomFreshnessGuard:
-    """오래되거나 멈췄거나 무효한 odometry 프레임을 막는 엄격한 watchdog입니다.
+    """Strict watchdog protecting against stale, frozen, or invalid odometry frames.
 
-    timeout_s 안에 odometry가 도착하고 연속 메시지의 stamp가 고정되지 않으며
-    자세 좌표에 NaN이나 무한대가 없는지 확인합니다.
+    Ensures that odometry is received within timeout_s, timestamp is not frozen across
+    consecutive incoming messages, and pose coordinates contain no NaN or Infinite values.
     """
     timeout_s: float = 0.15
     max_consecutive_frozen_stamps: int = 1
@@ -64,13 +64,13 @@ class OdomFreshnessGuard:
             self._trip_reason = "Odometry timestamp moved backwards"
             raise OdomGuardError(self._trip_reason)
 
-        # NaN 또는 무한대 검사
+        # Check NaN or Inf
         if any(math.isnan(v) or math.isinf(v) for v in (x, y, yaw)):
             self._is_tripped = True
             self._trip_reason = f"NaN or Inf pose detected: x={x}, y={y}, yaw={yaw}"
             raise OdomGuardError(self._trip_reason)
 
-        # 반복되어 멈춘 stamp 검사
+        # Check frozen repeated stamps
         if (
             self._last_stamp_sec is not None
             and stamp_sec == self._last_stamp_sec
@@ -195,7 +195,7 @@ class EvaluationPlan:
 
 
 class PatternBuilder:
-    """원점 거리 3.0m 이하 제한을 지키는 전방향 시험 궤적을 구성합니다."""
+    """Build holonomic test trajectories respecting origin distance limit <= 3.0m."""
 
     @staticmethod
     def build_surge(distance_m: float = 2.5, speed_mps: float = 0.5) -> EvaluationPlan:
@@ -341,7 +341,7 @@ class PatternBuilder:
 
     @staticmethod
     def build_box(side_m: float = 2.0, speed_mps: float = 0.5) -> EvaluationPlan:
-        # 원점 대각 거리는 sqrt(2)*side_m이며 3.0m 이하여야 합니다.
+        # Diagonal from origin is sqrt(2)*side_m. Must be <= 3.0m
         diagonal = math.hypot(side_m, side_m)
         if side_m <= 0 or diagonal > MAX_ALLOWED_ORIGIN_DISTANCE_M:
             raise ValueError(
@@ -374,7 +374,7 @@ class PatternBuilder:
         if distance_m <= 0 or distance_m > MAX_ALLOWED_ORIGIN_DISTANCE_M:
             raise ValueError(f"Diagonal distance must be within (0, {MAX_ALLOWED_ORIGIN_DISTANCE_M}]m")
         speed = min(abs(speed_mps), MAX_LINEAR_VELOCITY_MPS)
-        # 45도 병진: vx = vy = speed * cos(45)
+        # 45 deg translation: vx = vy = speed * cos(45)
         v_comp = speed / math.sqrt(2.0)
         segments = [
             MotionSegment(name="diagonal_forward", vx_mps=v_comp, vy_mps=v_comp, wz_rad_s=0.0,
@@ -403,7 +403,7 @@ class GroundTruthResult:
     odom_delta_x_m: float
     odom_delta_y_m: float
     odom_delta_yaw_deg: float
-    # 바닥 원점 기준 비교 오차이며 줄자 또는 LiDAR ICP 추정값을 사용합니다.
+    # Physical measured error relative to floor origin (tape or LiDAR ICP)
     physical_error_x_mm: float | None
     physical_error_y_mm: float | None
     physical_error_yaw_deg: float | None

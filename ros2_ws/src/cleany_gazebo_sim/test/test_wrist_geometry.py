@@ -1,4 +1,4 @@
-"""렌더링된 손목 자세를 공통 렌즈 등록 정보와 비교합니다."""
+"""Check the rendered wrist pose against the shared lens registration."""
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -55,7 +55,7 @@ def test_wrist_sensors_follow_selected_assembly_lens(
         assert pose.get('relative_to') == parent
         actual = _transform(pose)
         np.testing.assert_allclose(actual[:3, 3], expected[:3, 3], atol=1e-12)
-        # 시선, 영상 오른쪽과 영상 아래쪽 방향을 각각 비교합니다.
+        # Compare viewing, image-right and image-down directions independently.
         np.testing.assert_allclose(actual[:3, 0], expected[:3, 2], atol=1e-12)
         np.testing.assert_allclose(-actual[:3, 1], expected[:3, 0], atol=1e-12)
         np.testing.assert_allclose(-actual[:3, 2], expected[:3, 1], atol=1e-12)

@@ -1,4 +1,4 @@
-"""비블로킹 백엔드 경계입니다. 각 poll은 새 근거나 None을 반환합니다."""
+"""Nonblocking backend boundary. Each poll returns fresh evidence or None."""
 
 from __future__ import annotations
 

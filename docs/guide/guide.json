@@ -52,20 +52,20 @@
           "title": "02.1 Mock 기반 실행"
         },
         {
-          "id": "022-요청과-결과",
-          "title": "02.2 요청과 결과"
+          "id": "022-missionrequest와-missioncontext",
+          "title": "02.2 MissionRequest와 MissionContext"
         },
         {
           "id": "023-port-주입과-모의-응답",
           "title": "02.3 Port 주입과 모의 응답"
         },
         {
-          "id": "024-tick과-데이터-전달",
-          "title": "02.4 tick과 데이터 전달"
+          "id": "024-step과-데이터-전달",
+          "title": "02.4 step과 데이터 전달"
         },
         {
-          "id": "025-작업-완료와-새-관찰",
-          "title": "02.5 작업 완료와 새 관찰"
+          "id": "025-skillsequence와-완료-기록",
+          "title": "02.5 skill_sequence와 완료 기록"
         },
         {
           "id": "026-상태-추적-실습",
@@ -316,20 +316,20 @@
           "title": "10.2 ModuleResult와 오류 분류"
         },
         {
-          "id": "103-작업-반복과-관측-연결",
-          "title": "10.3 작업 반복과 관측 연결"
+          "id": "103-재시도와-skill-진행-상태",
+          "title": "10.3 재시도와 skill 진행 상태"
         },
         {
-          "id": "104-취소와-재시작",
-          "title": "10.4 취소와 재시작"
+          "id": "104-blocked와-fatal-경로",
+          "title": "10.4 BLOCKED와 FATAL 경로"
         },
         {
-          "id": "105-부분-완료와-보고서",
-          "title": "10.5 부분 완료와 보고서"
+          "id": "105-부분-완료와-missionreport",
+          "title": "10.5 부분 완료와 MissionReport"
         },
         {
-          "id": "106-결과부터-테스트까지-추적",
-          "title": "10.6 결과부터 테스트까지 추적"
+          "id": "106-모듈-결과부터-보고서까지-추적",
+          "title": "10.6 모듈 결과부터 보고서까지 추적"
         }
       ]
     },

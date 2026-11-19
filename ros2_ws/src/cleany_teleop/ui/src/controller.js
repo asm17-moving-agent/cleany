@@ -70,7 +70,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed, onForwardOn
         clearTimeout(timeout);
       }
     };
-    // 요청 순서 번호로 뒤바뀐 통신을 거부하며 STOP은 갱신 뒤에 대기시키지 않습니다.
+    // Request sequences reject reordered traffic. STOP is never queued behind updates.
     return perform();
   }
   const pointers = new Map(),
@@ -138,7 +138,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed, onForwardOn
         await send("press", value);
         lastSignalAt = performance.now();
         if (current !== generation) return;
-        // 누른 직후 갱신하고 응답을 기다리지 않은 채 이후 70ms마다 갱신합니다.
+        // Renew immediately after press, then every 70 ms without waiting for replies.
         updates = new HeldUpdates({
           send: () =>
             input.active ? send("update", input.active) : Promise.resolve(null),
@@ -272,7 +272,7 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed, onForwardOn
     });
     listen(stick, "contextmenu", (event) => event.preventDefault());
   }
-  // pointer capture를 잃어도 stick 밖에서 놓는 동작을 감지합니다.
+  // Catch release outside the stick even if pointer capture is lost.
   listen(
     window,
     "pointerup",

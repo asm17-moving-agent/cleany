@@ -1,4 +1,4 @@
-"""강체로 잡힌 물체의 방향 예측이며 영상 측정이 아닙니다."""
+"""Rigid held-object orientation prediction; not a visual measurement."""
 import math
 from geometry_msgs.msg import Quaternion
 

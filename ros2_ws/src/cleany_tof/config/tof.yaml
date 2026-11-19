@@ -1,5 +1,5 @@
-# 시운전 후보값입니다. 장착된 로봇에서 측정값을 검증할 때까지
-# 이동을 금지합니다. 기존 독립 안전 기능은 계속 활성화합니다.
+# Commissioning candidates only. Movement stays inhibited until measured values
+# are validated on the mounted robot. Existing independent safety stays enabled.
 /**:
   ros__parameters:
     calibrated: false
@@ -23,10 +23,10 @@
     command_timeout_s: 0.20
     max_speed: 0.25
     max_yaw_rate: 0.3
-    # native zone 인덱스입니다. 넓게 시작하고 장착 후 바닥과 자체 반사값을 제외합니다.
+    # Native zone indices; start broad and exclude floor/self returns after mounting.
     guard_rows: [0, 1, 2, 3, 4, 5, 6, 7]
     guard_columns: [0, 1, 2, 3, 4, 5, 6, 7]
-    # 원시 거리가 아닌 margin + 3 * max_sigma_m 적용 후 footprint 여유 거리입니다.
+    # Clearance from the footprint after margin + 3 * max_sigma_m, not raw range.
     obstacle_clearance_m: 0.75
     emergency_clearance_m: 0.03
     cluster_distance_m: 0.20

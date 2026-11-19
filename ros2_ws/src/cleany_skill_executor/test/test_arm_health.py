@@ -8,7 +8,7 @@ def test_arm_requires_active_controllers_and_fresh_finite_feedback():
     h.controller_states({'arm_controller': 'inactive'}, 0.)
     assert h.status(0.)[0] == UNAVAILABLE
     h.controller_states({'arm_controller': 'active'}, 0.)
-    assert h.status(0.)[0] == UNKNOWN  # 아직 관측하지 않았으므로 유실이 아닌 미검증입니다.
+    assert h.status(0.)[0] == UNKNOWN  # Never observed: unverified, not lost.
     h.joint_state(['a', 'b'], [0., 0.], 0.)
     assert h.status(.1)[0] == AVAILABLE
     assert h.status(.5)[0] == UNAVAILABLE

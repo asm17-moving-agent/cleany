@@ -1,4 +1,4 @@
-"""ROS나 시뮬레이터 없이 촬영 실패 검출을 검증합니다."""
+"""Validate capture failure detection without launching ROS or a simulator."""
 import importlib.util
 from pathlib import Path
 import subprocess

@@ -1183,9 +1183,7 @@ footer {
   margin: 10px 0;
 }
 
-/*
- * 상태도는 차분한 배경, 둥근 상태 노드와 명확한 전이 화살표로 표시합니다.
- */
+/* State-chart styling: quiet canvas, rounded states, explicit transition arrows. */
 .fsm-diagram .react-flow__node-fsm.runtime-node {
   border-radius: 26px;
   box-shadow: none;

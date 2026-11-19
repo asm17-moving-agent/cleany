@@ -1,4 +1,4 @@
-"""ROS에 독립적인 범위 제한 Cartographer 관측과 텍스처 디코딩입니다."""
+"""Bounded Cartographer observations and texture decoding, independent of ROS."""
 
 from __future__ import annotations
 
@@ -21,18 +21,18 @@ def pose2(pose: Any) -> list[float]:
         or abs(sum(v * v for v in values[2:]) - 1) > 0.01
     ):
         raise ValueError("Invalid submap pose")
-    # 이 뷰어는 평면 SLAM을 표현하며 임의의 3D 단면을 표시하지 않습니다.
+    # This viewer deliberately represents planar SLAM, not arbitrary 3D slices.
     if abs(q.x) > 0.01 or abs(q.y) > 0.01:
         raise ValueError("Non-planar submap; 2D SLAM viewer required")
     return [pose.position.x, pose.position.y, yaw(q)]
 
 
 def texture_png(texture: Any, pixel_limit: int) -> dict:
-    """엄격한 gzip 압축 해제 크기 제한으로 교차 배치된 intensity/alpha를 디코딩합니다.
+    """Decode interleaved intensity/alpha with a strict gzip expansion limit.
 
-    Cartographer는 더하는 intensity와 빼는 alpha를 별도로 인코딩합니다.
-    검은색 source-over 후 흰색 additive(lighter) 순서의 PNG 레이어로 둘 다 보존합니다.
-    픽셀 열은 로컬 -Y, 행은 로컬 -X 방향으로 증가합니다(OgreSlice).
+    Cartographer encodes additive intensity separately from subtractive alpha.
+    Preserve both as PNG layers: black source-over, then white additive (lighter).
+    Pixel column advances along local -Y, row along local -X (OgreSlice).
     """
     width, height = int(texture.width), int(texture.height)
     resolution = float(texture.resolution)
@@ -76,7 +76,7 @@ def texture_png(texture: Any, pixel_limit: int) -> dict:
 
 
 def marker_geometry(message: Any, transform: Any, point_limit: int) -> dict:
-    """marker 식별자와 삭제 상태, 색상 및 연결되지 않은 선분을 보존합니다."""
+    """Preserve marker identity/deletion, colors and disconnected line segments."""
     markers = []
     remaining = point_limit
     truncated = len(message.markers) > 256
@@ -132,7 +132,7 @@ class SlamState:
         self.omitted_textures.clear()
 
     def update(self, message: Any, transform: list[float]) -> tuple[dict, list[dict]]:
-        # 큰 session에서는 최신 submap을 유지하고 제외한 지도 수를 명시합니다.
+        # Keep newest submaps in large sessions; explicitly report omitted maps.
         incoming = {}
         for entry in message.submap[-self.submap_limit :]:
             key = f"{entry.trajectory_id}/{entry.submap_index}"
@@ -244,7 +244,7 @@ class SlamState:
                 current.pop(marker["id"], None)
             else:
                 current[marker["id"]] = marker
-        # 증분 ADD를 보내는 publisher를 포함해 보관하는 marker 수도 제한합니다.
+        # Bound retained markers too, including publishers sending incremental ADDs.
         kept, used = {}, 0
         for identity, marker in reversed(list(current.items())):
             if len(kept) >= 256 or used + len(marker["points"]) > limit:

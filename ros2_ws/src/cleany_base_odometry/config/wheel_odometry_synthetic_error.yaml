@@ -4,8 +4,8 @@ wheel_odometry:
     output_topic: wheel/odom
     odom_frame_id: odom
     base_frame_id: base_link
-    # 파이프라인 강건성 시험을 위한 합성 미보정 값입니다.
-    # 명목 모델보다 반지름은 1% 크게, 전후 거리와 좌우 간격은 1% 작게 설정합니다.
+    # Synthetic, uncalibrated values for pipeline robustness tests.
+    # Radius is +1%; wheelbase and separation are -1% from the nominal model.
     wheel_radius_m: 0.064135
     wheelbase_m: 0.297
     wheel_separation_m: 0.5049

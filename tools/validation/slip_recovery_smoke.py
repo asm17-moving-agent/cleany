@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""하드웨어와 분리된 domain에서 합성 센서로 설치된 Nav2/BT를 검사합니다."""
+"""Exercise installed Nav2/BT using synthetic sensors on a non-hardware domain."""
 import argparse
 import json
 import math
@@ -35,7 +35,7 @@ def main():
     broadcaster.sendTransform(transforms)
     observations=[];phases=[];velocities=[]
     simulate=False;wheel_x=0.;last_sensor=time.monotonic()
-    # 실물 핸드폰 브리지는 보통 Nav2 의도를 이 토픽으로 전달합니다.
+    # The physical phone bridge normally forwards Nav2 intent into this topic.
     intent=node.create_publisher(Twist,'motion/cmd_vel',1)
     node.create_subscription(Twist,'nav2/cmd_vel',intent.publish,1)
     node.create_subscription(String,'navigation/slip',lambda m:observations.append(json.loads(m.data)),10)

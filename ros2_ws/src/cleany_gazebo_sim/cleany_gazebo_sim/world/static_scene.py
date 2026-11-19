@@ -1,4 +1,4 @@
-"""명시적으로 선택한 경우에만 단순하고 불변인 고정 형상을 임시 월드에서 묶습니다."""
+"""Opt-in grouping of simple, immutable static geometry in a temporary world."""
 from copy import deepcopy
 from math import atan2, cos, hypot, isfinite, sin
 from pathlib import Path
@@ -37,10 +37,10 @@ def _pose_text(matrix: np.ndarray) -> str:
 
 
 def materialize_static_scene(source: Path) -> Path:
-    """형상과 월드 자세를 유지하며, 참조되지 않는 단순 고정 모델만 묶습니다.
+    """Keep shapes and world poses; group only unreferenced, plain static models.
 
-    이 선택적 복사본에서는 model/link 식별자가 바뀝니다. 상태가 있는 객체,
-    명시적 좌표계 참조와 방향성 마찰은 원래 모델에 남깁니다.
+    Model/link identities change in this opt-in copy. Stateful entities, explicit
+    frame references and directional friction remain in their original models.
     """
     tree = ET.parse(source)
     world = tree.find('./world')
@@ -75,8 +75,8 @@ def materialize_static_scene(source: Path) -> Path:
             continue
         if any(model.findall('.//' + tag) for tag in ['plugin', 'sensor', 'joint', 'include', 'model', 'frame', 'fdir1']):
             continue
-        # 방향을 명시하지 않아도 서로 다른 마찰 계수는 백엔드의 link 좌표계
-        # 선택에 영향을 받으므로 해당 모델은 그대로 둡니다.
+        # Without an explicit direction, unequal friction coefficients still
+        # depend on the backend's link-frame choice; leave that model intact.
         if any(friction.findtext('mu', '1').strip() != friction.findtext('mu2', '1').strip()
                for friction in model.findall('.//surface/friction/ode')):
             continue

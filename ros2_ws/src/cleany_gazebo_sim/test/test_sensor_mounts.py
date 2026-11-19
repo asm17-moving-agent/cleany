@@ -23,7 +23,7 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
 
 
 def _launch_configurations(value) -> set[str]:
-    """노드 파라미터에서 참조하는 모든 LaunchConfiguration의 이름을 반환합니다."""
+    """Names of every LaunchConfiguration reachable from node parameters."""
     if isinstance(value, LaunchConfiguration):
         return {''.join(part.text for part in value.variable_name)}
     if isinstance(value, dict):

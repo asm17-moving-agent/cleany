@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""이동 응답 요약의 LiDAR 스캔 정합을 오프라인으로 재생합니다."""
+"""Offline replay of LiDAR scan matches in motion-response summaries."""
 from __future__ import annotations
 
 import argparse

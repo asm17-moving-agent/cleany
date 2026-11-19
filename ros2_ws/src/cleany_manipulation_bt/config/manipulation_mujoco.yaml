@@ -4,15 +4,15 @@
     bt_verification_timeout_sec: 10.0
     bt_stop_timeout_sec: 10.0
     bt_feedback_max_age_sec: 2.0
-    # 시뮬레이션 정지 근거입니다. 전체 구간에서 각 관절이 최신이어야 합니다.
+    # Simulation stop evidence: each joint must be fresh throughout the window.
     bt_stop_feedback_max_age_sec: 0.5
     bt_stationary_duration_sec: 0.25
     arm_stationary_velocity_rad_s: 0.02
     arm_stationary_samples: 5
-    # 이동 전에 개체 형상을 등록해 배치 평가기를 고정합니다.
-    # 같은 유형이 여러 개면 유효한 추적 session이 필요하며 review는 차단합니다.
+    # Individual geometry registration pins the placement evaluator before motion.
+    # Duplicate types require a valid tracking session; review is blocked.
     bt_supported_trash_labels: [cup, paper cup, disposable paper cup, crumpled tissue]
     bt_supported_lost_item_labels: [mouse, computer mouse, wireless mouse, lego brick]
-    # 재검사와 재대응은 허용하지만 시각적 유지 확인을 잃은 뒤의
-    # 복구 이동은 이 Action의 초기 범위에 포함하지 않습니다.
+    # Reinspection/reassociation is permitted; a recovery move after losing
+    # visual retention is not part of this Action's first scope.
     sorting_reobserve_after_lift: false

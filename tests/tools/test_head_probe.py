@@ -1,4 +1,4 @@
-"""하드웨어 쓰기 없이 패킷과 제한된 움직임을 검증합니다."""
+"""Packet and bounded-motion validation without hardware writes."""
 
 import importlib.util
 import json

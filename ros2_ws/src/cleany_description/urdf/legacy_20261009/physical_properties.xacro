@@ -1,13 +1,13 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="wrist_mount_v8.xacro" />
-  <!-- 실물 수집 시 검증한 헤드 CAD 충돌 표면을 선택할 수 있습니다. -->
+  <!-- Physical collection can use the validated head CAD collision surfaces. -->
   <xacro:arg name="head_collision_meshes" default="true"/>
-  <!-- 팔을 감싸는 충돌 자산을 별도로 사용하며 시각 CAD와 관성은 그대로 유지합니다. -->
+  <!-- Separate enclosing arm collision assets; visual CAD and inertia stay exact. -->
   <xacro:arg name="optimized_arm_collision_meshes" default="true"/>
   <xacro:property name="arm_collision_directory" value="${'collision/' if '$(arg optimized_arm_collision_meshes)'.lower() in ('true', '1') else ''}"/>
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
-      <!-- 정렬된 팔 장착점에서 원본 MJCF fullinertia 텐서를 합성한 값입니다. -->
+      <!-- Combined source MJCF fullinertia tensors at the aligned arm mounts. -->
       <inertial>
         <origin xyz="0.00644073126036 2.68998835469e-05 -0.141372186369" rpy="0 -0 0" />
         <mass value="12.3513377764" />
@@ -385,7 +385,7 @@
           <box size="0.195 0.165 0.175" />
         </geometry>
       </collision>
-      <!-- Base와 Motor의 visual 및 collision 자세에 같은 CAD 장착 홀 정합을 적용합니다. -->
+      <!-- Base/Motor visual and collision poses share the CAD mounting-hole fit. -->
       <visual name="mjcf_geom_48_0_visual">
         <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
@@ -1013,14 +1013,14 @@
       </xacro:if>
       <xacro:unless value="$(arg head_collision_meshes)">
       <collision name="mjcf_geom_114_0_collision">
-        <!-- 독립적으로 배치한 하부 마운트 위쪽의 기둥 충돌 범위를 유지합니다. -->
+        <!-- Retain pillar coverage above the independently positioned lower mount. -->
         <origin xyz="-0.1044 -0.00025 0.2822" rpy="0 -0 5.25245130592e-18" />
         <geometry>
           <box size="0.1504 0.12 0.2974" />
         </geometry>
       </collision>
       <collision name="lower_head_mount_collision">
-        <!-- 깊이 172 mm이며 전면은 상판 전면보다 41 mm 뒤에 있습니다. -->
+        <!-- 172 mm depth; front edge 41 mm behind the top plate's front edge. -->
         <origin xyz="-0.048 -0.00025 0.101" rpy="0 0 0" />
         <geometry>
           <box size="0.172 0.12 0.065" />

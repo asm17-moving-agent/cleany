@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""기존 USB micro-ROS 펌웨어의 LAN 웹 원격 제어입니다."""
+"""LAN web remote for the existing USB micro-ROS firmware."""
 
 from __future__ import annotations
 
@@ -25,16 +25,16 @@ from cleany_teleop.web_control import Control
 
 
 def ui_index(ui_root: Path) -> bytes:
-    """재빌드한 asset 해시가 일치하도록 현재 진입점을 읽습니다."""
+    """Read the current entrypoint so rebuilt asset hashes stay in sync."""
     return (ui_root / "index.html").read_bytes()
 
 
 def ui_asset(ui_root: Path, request_path: str) -> tuple[bytes, str] | None:
-    """UI asset 디렉터리 안의 기존 컴파일된 asset만 제공합니다."""
+    """Serve only existing compiled assets inside the UI asset directory."""
     path = unquote(urlsplit(request_path).path)
     if not path.startswith("/assets/"):
         return None
-    # colcon --symlink-install은 신뢰한 진입점 트리를 통해 각 asset을 연결합니다.
+    # colcon --symlink-install links each asset through the trusted entrypoint's tree.
     asset_root = (ui_root / "index.html").resolve().parent / "assets"
     asset = (ui_root / path.lstrip("/")).resolve()
     if not asset.is_relative_to(asset_root) or not asset.is_file():
@@ -204,7 +204,7 @@ def main():
 
     control.MAX_WEB_VELOCITY = args.max_speed
     control.paused = args.paused
-    # 로컬 유지보수 정책은 재실행 후에도 유지하며 베이스 형상은 바꾸지 않습니다.
+    # Local maintenance policy survives respawn and does not alter base geometry.
     if args.token_file:
         policy_path = args.token_file.parent / "teleop-motion.json"
         if policy_path.exists():
@@ -219,7 +219,7 @@ def main():
         navigation = NavigationBridge(node, control, lock)
 
     class RemoteServer(ThreadingHTTPServer):
-        # 여러 핸드폰이나 탭이 동시에 재접속할 수 있습니다. 표준 라이브러리 기본값은 5입니다.
+        # Multiple phones/tabs can reconnect together. The stdlib default is 5.
         request_queue_size = 128
 
     class Handler(BaseHTTPRequestHandler):

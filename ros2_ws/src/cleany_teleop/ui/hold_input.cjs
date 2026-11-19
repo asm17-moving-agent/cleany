@@ -1,4 +1,4 @@
-// 일시적 중단은 실제 누름 상태를 유지하며 release/STOP은 종료합니다.
+// Transient interruption preserves the physical hold; release/STOP ends it.
 class HoldInput {
   constructor({start,change,stop}) {
     this.start=start;this.change=change;this.stop=stop;this.active=null;this.suspended=false;
@@ -22,7 +22,7 @@ class HoldInput {
     if(wasActive||force)this.stop(false);
   }
 }
-// 원형 제한과 방사형 dead zone이며 화면 Y는 아래쪽입니다.
+// Circular clamp and radial dead zone; screen Y points down.
 function stickAxes(dx,dy,radius,rotation=false) {
   let x=dx/radius,y=rotation?0:dy/radius;
   const distance=Math.hypot(x,y),bounded=Math.min(1,distance);
@@ -31,7 +31,7 @@ function stickAxes(dx,dy,radius,rotation=false) {
   const gain=(bounded-0.08)/(0.92*bounded);
   return {x,y,forward:rotation?0:-y*gain,left:rotation?0:-x*gain,ccw:rotation?-x*gain:0};
 }
-// 고정 주기 갱신은 응답 지연과 독립적이며 동시 요청 수를 제한합니다.
+// Fixed-cadence renewal is independent of response latency, with bounded concurrency.
 class HeldUpdates {
   constructor({send,onReply,onError,limit=3}) {
     this.send=send;this.onReply=onReply;this.onError=onError;this.limit=limit;

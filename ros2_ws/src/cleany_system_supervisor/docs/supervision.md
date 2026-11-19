@@ -1,9 +1,6 @@
 # System Supervisor 계약
 
-
-[감독 stack 실행](../../../../docs/implementation/how-to/mission.md#system-supervisor-감독-stack) · [인터페이스](interfaces.md)
-
-System Supervisor는 시스템 가용성, Fault, Capability, 운영 상태, Mission 실행 허가와 복구 조정을 소유합니다. 실제 안전 정지 장치가 아니며 Mission 실행, 정지 확인, 재개, journal과 Nav2 BT Recovery를 대신하지 않습니다. 책임 원칙은 KB의 [System Supervisor](<../../../../docs/cleany-docs/20_TECHNICAL/14 - System Supervisor.md>)를 따릅니다. Endpoint 표는 [인터페이스](interfaces.md), 설정 원본은 [system_supervisor.yaml](../config/system_supervisor.yaml)입니다.
+System Supervisor는 시스템 가용성, Fault, Capability, 운영 상태, Mission 실행 허가와 복구 조정을 소유한다. 실제 안전 정지 장치가 아니며 Mission 실행, 정지 확인, 재개, journal과 Nav2 BT Recovery를 대신하지 않는다. 책임 원칙은 KB의 [System Supervisor](<../../../../docs/cleany-docs/20_TECHNICAL/14 - System Supervisor.md>)를 따른다. Endpoint 표는 [인터페이스](interfaces.md), 설정 원본은 [system_supervisor.yaml](../config/system_supervisor.yaml)이다.
 
 ## 책임 경계
 
@@ -28,7 +25,7 @@ flowchart TB
 | 실제 복구 | 각 컴포넌트 owner (현재는 Nav2 lifecycle manager만) |
 | 영구 기록 | `cleany_logger`; Supervisor는 구조화 이벤트만 발행 |
 
-Runtime의 실행 오류(정지 기한 초과, adapter 예외, INTERRUPTED)는 Runtime ERROR와 `mission/reset_error`가 처리합니다. 시스템 Fault는 Supervisor와 `system/request_fault_reset`가 처리합니다. 허가 상실로 끝난 미션은 정지가 확인되면 Runtime ERROR로 가지 않습니다.
+Runtime의 실행 오류(정지 기한 초과, adapter 예외, INTERRUPTED)는 Runtime ERROR와 `mission/reset_error`가 처리한다. 시스템 Fault는 Supervisor와 `system/request_fault_reset`가 처리한다. 허가 상실로 끝난 미션은 정지가 확인되면 Runtime ERROR로 가지 않는다.
 
 ## 운영 상태
 
@@ -39,7 +36,7 @@ Runtime의 실행 오류(정지 기한 초과, adapter 예외, INTERRUPTED)는 R
 | DEGRADED | 필수 기능과 안전은 검증됐지만 일부 비필수 Capability 제한 |
 | FAULT_LOCKED | 운영 잠금 Fault, 필수 기능 불가, 또는 grace 이후 필수 정보 미확인 |
 
-Severity만으로 상태를 정하지 않습니다. 필수 Capability는 `BASE_MOTION`입니다. 초기와 stale 상태는 UNKNOWN입니다. Capability 차단은 Fault debounce 없이 즉시 적용하고, 정상 복귀에는 `clear_s` 동안 연속 정상 보고가 필요합니다.
+Severity만으로 상태를 정하지 않는다. 필수 Capability는 `BASE_MOTION`이다. 초기와 stale 상태는 UNKNOWN이다. Capability 차단은 Fault debounce 없이 즉시 적용하고, 정상 복귀에는 `clear_s` 동안 연속 정상 보고가 필요하다.
 
 ### 부팅 유예와 hysteresis
 
@@ -52,7 +49,7 @@ Severity만으로 상태를 정하지 않습니다. 필수 Capability는 `BASE_M
 | Base 짧은 피드백 공백 | `raise_s` 0.3초 미만이면 BASE_MOTION만 즉시 차단, latch 없음 |
 | STOP 요청, `cmd_vel timeout` | base driver `fault`가 비어 있으므로 장애 아님 |
 
-Grace 값과 hysteresis는 미측정 초기값입니다.
+Grace 값과 hysteresis는 미측정 초기값이다.
 
 ## Capability와 Fault
 
@@ -60,23 +57,11 @@ Grace 값과 hysteresis는 미측정 초기값입니다.
 |---|---|---|
 | BASE_MOTION | base diagnostics | 없음 |
 | NAVIGATION | 유효 scan, covariance 제한 내 pose와 localization lifecycle, Nav2 lifecycle(`planner_server`, `controller_server`, `bt_navigator`, `collision_monitor`) | BASE_MOTION |
-
 | MANIPULATION | `arm_health_monitor` | 없음 |
 | VISUAL_PERCEPTION | 유효 image, `perception_inspector` readiness | 없음 |
 | MOBILE_MANIPULATION | 없음 | NAVIGATION, MANIPULATION, VISUAL_PERCEPTION |
 
-Pose 공분산의 대각 성분은 상한을 유지하며, AMCL 부동소수점 연산의 음수 잔차는 `-1e-9`까지 0으로 취급합니다. 그보다 작은 음수, non-finite 값과 상한 초과는 여전히 거부합니다.
-
-| Phone LiDAR 위치 조건 | 허가 / 복구 |
-|---|---|
-| NAVIGATION | localization_alignment 추가 요구 |
-| Unknown / unavailable | 작은 공분산이어도 불허 |
-| Degraded | 검증 위치의 제한된 재정합 대기; AVAILABLE health + 속도 제한으로 기존 허가 유지 |
-| 자동 위치 복구 | 이 프로필에서 정지 뒤 요청 |
-| 정지 근거 | Base driver fresh base_disarmed + 미확인 lease의 StopMission 완료 |
-| 한계 | 물리 E-stop이나 팔 포함 전신 정지 증거 아님 |
-
-KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함합니다. 현재 구현은 이 판단을 Runtime의 `safe_to_drive`에 두고 Capability에서는 팔 가용성만 다룹니다. 이 배치는 KB 검토가 필요합니다.
+KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함한다. 현재 구현은 이 판단을 Runtime의 `safe_to_drive`에 두고 Capability에서는 팔 가용성만 다룬다. 이 배치는 KB 검토가 필요하다.
 
 | Fault | 기본 처리 |
 |---|---|
@@ -89,11 +74,11 @@ KB 초기 분류는 BASE_MOTION에 "이동을 허용할 팔 상태"를 포함합
 | MISSION_STOP_FAILED:<lease_id> | 정지 실패 또는 기한 초과. 확인된 stop 결과 전까지 잠금 |
 | SUPERVISOR_STATE_UNVERIFIED | 영속 상태 파일 읽기 또는 쓰기 실패. operator 확인 전까지 잠금 |
 
-일반 Latched Fault reset에는 원인 source의 fresh, stable 정상 보고와 `operator_id`가 모두 필요합니다. E-stop reset은 하드웨어를 해제하지 않습니다.
+Latched Fault reset에는 원인 source의 fresh, stable 정상 보고와 `operator_id`가 모두 필요하다. E-stop reset은 하드웨어를 해제하지 않는다.
 
 ## 허가와 정지
 
-Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_interfaces/docs/mission.md#system-supervisor-감독)을 따릅니다.
+Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_interfaces/docs/mission.md#system-supervisor-감독)을 따른다.
 
 | 항목 | 계약 |
 |---|---|
@@ -107,7 +92,7 @@ Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_i
 
 ## 재시작과 영속 상태
 
-`persistence.state_file`(기본 `~/.ros/cleany/system_supervisor_state.json`)에 활성 latched Fault와 정지 미확인 lease를 원자적으로 기록합니다.
+`persistence.state_file`(기본 `~/.ros/cleany/system_supervisor_state.json`)에 활성 latched Fault와 정지 미확인 lease를 원자적으로 기록한다.
 
 | 재시작 시 | 처리 |
 |---|---|
@@ -116,35 +101,17 @@ Mission Runtime과의 순서와 사유 코드는 [Mission 계약](../../cleany_i
 | 파일 손상, format 불일치 | SUPERVISOR_STATE_UNVERIFIED |
 | 빈 `state_file` | 영속화 해제. 테스트 전용 |
 
-```mermaid
-flowchart TD
-    Boot["재기동 / 복원된 base Fault"] --> Cause{"cause=base_feedback_lost?"}
-    Cause -->|아니오| Operator["기존 operator reset"]
-    Cause -->|예| Fresh["base / 모든 safety_sources / base_disarmed fresh + stable"]
-    Fresh --> Gate{"다른 잠금 / 정지 미확인 lease / 복구 작업 없음?"}
-    Gate -->|예| Clear["통신 Fault 해제 / 자동 목표 재개 없음"]
-    Gate -->|아니오| Hold["잠금 유지"]
-```
-
-| 재기동 통신 복구 | 설정 / 제한 |
-|---|---|
-| 활성 | Phone LiDAR startup_base_reconnect.enabled=true, stable_s=1.0; 일반 기본 OFF |
-| 자동 해제 제외 | 원인 없는 이전 Fault, motor / protocol 고장, 현재 프로세스에서 생긴 Fault |
-| base_disarmed | 검증된 휠 feedback; 독립 전신 안전 / STOP ACK 아님 |
-| 해제 뒤 | 새 구동 허가 발급이나 기존 목표 재개 없음 |
-
 ## 정리와 이벤트
 
-`retention_s`(300초)가 지난 정지 확인 lease, terminal recovery job, 해제 Fault를 정리합니다. Job은 해당 Fault episode가 끝난 뒤에만 정리하므로 재시도 예산은 사라지지 않습니다.
+`retention_s`(300초)가 지난 정지 확인 lease, terminal recovery job, 해제 Fault를 정리한다. Job은 해당 Fault episode가 끝난 뒤에만 정리하므로 재시도 예산은 사라지지 않는다.
 
-`system/events`는 상태 차이에서 이벤트를 만들기 때문에 어떤 전이도 기록을 건너뛰지 않습니다. 영구 저장은 `cleany_logger`의 기록 대상에 추가해 처리하며, Supervisor는 파일을 쓰지 않습니다. Node log에는 debug level로만 남깁니다.
+`system/events`는 상태 차이에서 이벤트를 만들기 때문에 어떤 전이도 기록을 건너뛰지 않는다. 영구 저장은 `cleany_logger`의 기록 대상에 추가해 처리하며, Supervisor는 파일을 쓰지 않는다. Node log에는 debug level로만 남긴다.
 
 | kind | 의미 |
 |---|---|
 | STATE_CHANGED | 운영 상태 전이 |
 | FAULT_RAISED, FAULT_CLEARED, FAULT_RESTORED | Fault 발생, 해제, 재시작 후 복원 |
 | FAULT_RESET_ACCEPTED, FAULT_RESET_REJECTED | reset 요청. `source`는 operator_id |
-| BASE_STARTUP_RECONCILED | 시연 프로필의 기동 후 통신 복구 및 base 정지 확인으로 이전 연결 Fault 해제 |
 | LEASE_GRANTED, LEASE_REVOKED, LEASE_RELEASED, LEASE_RESTORED | 허가 수명 |
 | MISSION_STOP_ACCEPTED, MISSION_STOPPED | 정지 요청 수락과 정지 확인 |
 | RECOVERY_REQUESTED, RECOVERY_<state>, RECOVERY_UNSUPPORTED | 복구 시도와 결과 |
@@ -152,22 +119,15 @@ flowchart TD
 
 ## 운영자 절차
 
-1. `ros2 run cleany_system_supervisor supervisor_operator`로 활성 Fault를, `system/events`로 이력을 확인합니다.
-2. 물리 원인을 해소합니다. CLI와 서비스는 하드웨어를 해제하지 않습니다.
-3. `supervisor_operator <FAULT_CODE> --operator <name>`으로 reset을 요청합니다. 거부 사유는 응답과 이벤트에 남습니다.
-4. `MISSION_STOP_FAILED:<lease>` reset은 정지 Action을 다시 조회할 뿐이며 새 stopped 결과가 와야 해제됩니다.
-5. Runtime ERROR가 남아 있으면 `mission/reset_error`로 따로 해제합니다.
+1. `ros2 run cleany_system_supervisor supervisor_operator`로 활성 Fault를, `system/events`로 이력을 확인한다.
+2. 물리 원인을 해소한다. CLI와 서비스는 하드웨어를 해제하지 않는다.
+3. `supervisor_operator <FAULT_CODE> --operator <name>`으로 reset을 요청한다. 거부 사유는 응답과 이벤트에 남는다.
+4. `MISSION_STOP_FAILED:<lease>` reset은 정지 Action을 다시 조회할 뿐이며 새 stopped 결과가 와야 해제된다.
+5. Runtime ERROR가 남아 있으면 `mission/reset_error`로 따로 해제한다.
 
 ## 발신자 신뢰
 
-| 발신자 검사 | 보장 / 한계 |
-|---|---|
-| Graph allowlist | trusted_publishers topic에 허용 밖 노드가 publish하면 잠금 |
-| 검출 가능 | 잘못된 실행, 이름 충돌 |
-| 검출 불가 | 같은 노드명 위조, 허용 노드의 ComponentHealth.source 사칭 |
-| 이유 | Humble rclpy에 메시지별 발신자 없음; source와 노드가 결합되지 않음 |
-| 실제 접근 통제 | SROS2 enforce enclave별 safety/status·system/component_health 발행, system/request_fault_reset·mission/stop 호출 허용 |
-| 검증 상태 | 이 저장소에서 SROS2 통제 미검증 |
+Humble rclpy는 메시지별 발신자를 알려 주지 않는다. Supervisor는 graph를 조회해 `trusted_publishers` topic에 allowlist 밖 node가 publish하면 잠근다. 잘못된 실행과 이름 충돌은 잡지만 같은 node 이름의 위조는 막지 못한다. `ComponentHealth.source`가 node와 묶이지 않으므로 allowlist 안 node의 source 사칭도 막지 못한다. 실제 접근 통제는 SROS2 enforce 모드에서 `safety/status`, `system/component_health` publish와 `system/request_fault_reset`, `mission/stop` 호출을 각 enclave에만 허용하는 방식으로 해야 하며, 이 저장소에서는 검증하지 않았다.
 
 ## 복구 정책
 
@@ -175,30 +135,16 @@ flowchart TD
 |---|---|---|
 | navigation | `navigation/recover` → `lifecycle_manager_navigation` | 구현, 자동 off |
 | localization | `localization/recover` → `lifecycle_manager_localization` | 구현, 자동 off |
-
 | lidar, camera, perception, arm, base | 없음 | `UNSUPPORTED`, 예산 소모 없음 |
 
-휴대폰 시연의 `localization/recover` owner는 `localization_guard`이며 위 일반
-lifecycle 복구 owner와 동시에 실행하지 않습니다. 정지 상태에서 제한된 scan/map
-후보를 검증해 initialpose를 갱신하며, 자동 목표 재개나 이동 명령은 발행하지 않습니다.
-이 프로필은 `localization_alignment` Fault 하나에 복구 예산을 연결합니다. 기본
-`localization` 감시도 계속 주행을 차단하지만 별도 복구 작업을 만들지 않습니다.
-따라서 공분산과 정합 이상이 동시에 발생해도 중복 예산으로 재시도하지 않습니다.
-
-| 일반 lifecycle 복구 | 기준 |
-|---|---|
-| 기본 | OFF; 실제 Nav2 reset 미검증 |
-| 예산 | max_attempts 2, attempt 15 s, total 40 s, verify 5 s, cancel 2 s |
-| 동시성 | 겹쳐 실행 안 함; 같은 Fault episode 중복은 같은 job 반환 |
-| 시작 | Safety adapter whole-robot stopped + 미확인 Mission 정지 없음 |
-| 성공 | Owner 응답 뒤 fresh health와 안정화까지 확인 |
+자동 복구는 실제 Nav2 stack에서 lifecycle reset이 검증되지 않아 꺼져 있다. 기본 max_attempts 2, attempt 15초, total 40초, verify 5초, cancel 2초다. 복구는 겹쳐 실행하지 않고, 같은 Fault episode의 중복 요청은 같은 job을 반환한다. 시작에는 safety adapter의 whole-robot `stopped`와 미확인 Mission 정지가 없을 것이 필요하다. Owner 성공 뒤에도 fresh health와 안정화 시간이 지나야 성공이다.
 
 ## 검증 범위
 
-소프트웨어 검증 명령과 범위는 [테스트 가이드](../../../../docs/implementation/testing.md)를 따릅니다. 다음 항목은 하드웨어나 실제 stack에서 별도 검증이 필요합니다.
+소프트웨어 검증 결과와 지연시간은 [EVIDENCE](../../../../docs/EVIDENCE.md#system-supervisor와-mission-runtime-통합)에 있다. 다음은 하드웨어나 실제 stack이 필요해 검증하지 않았다.
 
-- E-stop 회로와 독립 보호 계층 상태를 내보내는 하드웨어. 현재 신호가 없어 기본 실행은 잠깁니다.
+- E-stop 회로와 독립 보호 계층 상태를 내보내는 하드웨어. 현재 신호가 없어 기본 실행은 잠긴다.
 - ESP32 통신 차단 시 MCU watchdog의 모터 정지 시간과 실제 감속 거리.
 - 실제 Nav2 stack의 lifecycle RESET/STARTUP 복구, Jetson 다중 프로세스 지연, base grace 15초의 적정성.
 - 실물 arm controller 가용성 보고와 SROS2 enforce 모드.
-- Mission이나 하위 제어기 crash 뒤의 물리 안전. Lease는 이 Runtime만 제한하며 임의의 `cmd_vel` publisher나 sorting coordinator 같은 별도 실행기를 막지 않습니다.
+- Mission이나 하위 제어기 crash 뒤의 물리 안전. Lease는 이 Runtime만 제한하며 임의의 `cmd_vel` publisher나 sorting coordinator 같은 별도 실행기를 막지 않는다.

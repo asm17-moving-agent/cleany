@@ -1,4 +1,4 @@
-"""BT 요청 제동은 충돌 검사 전에 적용하며 검사 뒤에 적용하지 않습니다."""
+"""Apply BT-requested braking before collision checking, never after it."""
 import time
 import rclpy
 from rclpy.node import Node
@@ -8,16 +8,16 @@ from .traction_brake import BrakeRamp
 
 
 class TractionBrake(Node):
-    """자동 명령 경로에서 BT가 요청한 정지를 점진적으로 적용합니다.
+    """Ramp BT-requested stops on the automatic command path.
 
     Subscriptions:
-        motion/cmd_vel (Twist): 기존 자동 이동 의도, depth 1.
-        navigation/traction_brake (Bool): BT 제동 heartbeat, depth 1.
+        motion/cmd_vel (Twist): Existing automatic intent, depth 1.
+        navigation/traction_brake (Bool): BT brake heartbeat, depth 1.
     Publishers:
-        motion/traction_cmd_vel (Twist): collision monitor 입력, 50Hz.
+        motion/traction_cmd_vel (Twist): Input to the collision monitor, 50 Hz.
     Notes:
-        heartbeat나 명령 입력이 없으면 0을 강제합니다. 수동 주행은 기존 경로를
-        유지하며 collision STOP은 이 점진적 변경을 즉시 덮어쓸 수 있습니다.
+        Missing heartbeat or command input forces zero. Manual driving retains
+        its existing path. Collision STOP can override this ramp immediately.
     """
     def __init__(self):
         super().__init__('traction_brake')

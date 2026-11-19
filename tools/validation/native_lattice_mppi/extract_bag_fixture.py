@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""기록된 주행 메시지에서 미래 입력 없이 고정 costmap fixture를 추출합니다.
+"""Extract a causal, frozen costmap fixture from recorded navigation messages.
 
-실시간 ROS 토픽을 재생하거나 명령 변경 후 물리 움직임을 예측하지 않습니다.
-header와 수신 시각 제한으로 추출 상태에 미래 입력이 들어오지 않게 합니다.
+This does not replay live ROS topics or predict physical motion after a command
+change. Header and receipt cutoffs prohibit future input in the extracted state.
 """
 from __future__ import annotations
 import argparse
@@ -13,7 +13,7 @@ import sqlite3
 
 
 def occupancy_to_cost(value: int) -> int:
-    """각 bin의 상한으로 Nav2 손실 표시 표를 역변환합니다."""
+    """Invert Nav2's lossy display table using the upper bound of each bin."""
     if value == -1:
         return 255
     if value == 100:

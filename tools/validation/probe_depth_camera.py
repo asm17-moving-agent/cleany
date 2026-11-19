@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""로봇 좌표계 장애물이라고 해석하지 않고 깊이 근거와 시각을 수집합니다."""
+"""Capture depth evidence and timing without providing robot-frame obstacle claims."""
 import argparse
 import json
 from pathlib import Path

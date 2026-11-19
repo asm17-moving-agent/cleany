@@ -39,7 +39,8 @@
         <param name="initial_keyframe">handeye_ros2_control_home</param>
       </hardware>
 
-      <!-- Humble mujoco_ros2_control 0.0.3은 hardware_info.sensors로 MJCF 카메라를 찾습니다. 이 버전에는 CameraPlugin이 없습니다. -->
+      <!-- Humble mujoco_ros2_control 0.0.3 discovers MJCF cameras through
+           hardware_info.sensors; that release has no CameraPlugin. -->
       <sensor name="${camera_name}">
         <param name="frame_name">${camera_frame_name}</param>
         <param name="info_topic">/${camera_name}/camera_info</param>

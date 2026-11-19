@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 하드웨어 노드 시작을 관리하는 설정 기반 바퀴 odometry 평가입니다.
+# Config-driven wheel odometry evaluation with managed hardware-node startup.
 set -eo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

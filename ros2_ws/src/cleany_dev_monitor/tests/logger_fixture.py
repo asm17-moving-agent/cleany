@@ -1,4 +1,4 @@
-"""HTTP 계약용 프로세스 내부 대역입니다. runtime 검사는 ROS 프로세스를 사용합니다."""
+"""In-process control double for HTTP contracts; runtime tests use ROS processes."""
 from cleany_logger import ArchiveReader
 from cleany_logger.controller import SessionController
 from cleany_dev_monitor.server import create_app as http_app

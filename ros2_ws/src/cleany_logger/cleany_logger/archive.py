@@ -1,4 +1,4 @@
-"""읽기 전용 archive 접근입니다. 객체 생성 시 session을 만들거나 바꾸지 않습니다."""
+"""Read-only archive access. Construction never creates or changes a session."""
 import json
 import sqlite3
 import zipfile
@@ -41,7 +41,7 @@ class ArchiveReader:
                         where = "received>=? AND received<?"
                         if table == 'records':
                             where += " AND kind NOT IN ('config','graph','recording_policy','recording_status')"
-                        # 인덱스로 처음과 마지막을 읽어 polling마다 전체 활성 구간을 검색하지 않습니다.
+                        # Indexed first/last reads avoid scanning each active period every poll.
                         first = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received ASC LIMIT 1", (left, right)).fetchone()
                         last = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received DESC LIMIT 1", (left, right)).fetchone()
                         if first and last:
@@ -79,7 +79,7 @@ class ArchiveReader:
         return result
 
     def resolve(self, session: str) -> Path:
-        # UUID 이름만 받으며 브라우저에서 임의 파일 경로를 전달할 수 없습니다.
+        # UUID names only; no arbitrary filesystem paths from browser.
         if str(UUID(session)) != session:
             raise ValueError("Invalid session ID")
         path = self.directory / f"{session}.sqlite3"
@@ -104,7 +104,7 @@ class ArchiveReader:
                 and (self.directory / 'bags' / session / 'metadata.yaml').is_file())
 
     def export_sqlite(self, session: str, target: Path) -> None:
-        """활성 session을 포함해 저장 확정된 데이터를 일관되게 백업합니다."""
+        """Back up committed data consistently, including an active session."""
         source = self.resolve(session)
         with (
             sqlite3.connect(f"file:{source}?mode=ro", uri=True) as src,
@@ -113,7 +113,7 @@ class ArchiveReader:
             src.backup(dst)
 
     def export_bag(self, session: str, target: Path) -> None:
-        """마무리된 native 구간만 보관하며 쓰기 중인 파일은 복사하지 않습니다."""
+        """Archive finalized native segments only; never copy an active writer."""
         directory = self.resolve_bag(session)
         if session == self.session_id and self.bag is not None:
             raise RuntimeError("Stop recording before exporting rosbag2")
@@ -179,7 +179,7 @@ class ArchiveReader:
         }
 
     def navigation_runs(self) -> list[dict]:
-        """범위가 제한된 요약만 읽으며 모든 기록 표본을 검색하거나 역직렬화하지 않습니다."""
+        """Bounded summaries only; never scan/deserialize every recorded sample."""
         runs = []
         for session in self.sessions()[:50]:
             with sqlite3.connect(f"file:{self.resolve(session['id'])}?mode=ro", uri=True) as db:
@@ -199,7 +199,7 @@ class ArchiveReader:
 
 
 def decode_record(payload: bytes | str) -> dict:
-    """버전 1은 일반 JSON이며 버전 2는 zlib으로 압축한 UTF-8 JSON을 저장합니다."""
+    """Version 1 was plain JSON; version 2 stores zlib-compressed UTF-8 JSON."""
     return json.loads(
         zlib.decompress(payload) if isinstance(payload, bytes) else payload
     )

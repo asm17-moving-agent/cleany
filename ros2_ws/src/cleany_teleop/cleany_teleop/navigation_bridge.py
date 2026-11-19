@@ -1,4 +1,4 @@
-"""지도와 위치 추정을 읽고 핸드폰 원격 제어의 보호된 Nav2 목표 하나를 소유합니다."""
+"""Read map/localization and own one guarded Nav2 goal for the phone remote."""
 import math
 import json
 import time
@@ -27,11 +27,11 @@ from .driver_transport import limit_wheel_velocity
 
 
 class NavigationBridge:
-    """목표 실행은 기존 Control 허가 및 MCU ACK 프로토콜을 사용합니다.
+    """Goal execution uses the existing Control permission/MCU ACK protocol.
 
-    자동 이동 의도는 motion/cmd_vel과 독립 LiDAR monitor를 거쳐 공통 최종
-    publisher로 갑니다. 수동 의도는 기존 운영자 제어 경로를 유지합니다.
-    이 브리지는 WheelCommand를 발행하지 않습니다.
+    Automatic intent passes through motion/cmd_vel and the independent LiDAR
+    monitor before the shared final publisher. Manual intent retains the
+    existing operator-controlled path. This bridge never publishes WheelCommand.
     """
     def __init__(self,node,control,lock):
         self.node,self.control,self.lock=node,control,lock
@@ -99,9 +99,9 @@ class NavigationBridge:
     def admit_stop(self,request):
         with self.lock:
             current=(request.mission_id==self.goal_id and request.lease_id==self.supervision.lease_id)
-            # 프로세스 재시작 후에도 Supervisor가 이전 임대를 소유합니다. 새 유휴
-            # 브리지는 목표를 만들거나 이전 이동 권한을 복구하지 않고 출력을 멈추고
-            # MCU 정지를 확인할 수 있습니다.
+            # After a process restart the Supervisor still owns the previous lease.
+            # A new idle bridge can stop its output and verify MCU standstill without
+            # inventing a goal or restoring the old motion authority.
             restarted_idle=(not self.goal_id and self.phase=='idle' and self.handle is None
                             and self.pending is None and bool(request.mission_id) and bool(request.lease_id))
             valid=bool(request.epoch and request.epoch==self.supervision.epoch and (current or restarted_idle))
@@ -126,7 +126,7 @@ class NavigationBridge:
             self.map = updated
 
     def on_path(self, message):
-        """목표 수락 전에 받은 계획까지 유효한 전역 계획을 보관합니다."""
+        """Retain valid global plans, including plans received before goal acceptance."""
         with self.lock:
             if self.phase in ('stopping', 'cancelled', 'failed') or message.header.frame_id != 'map':
                 return
@@ -152,7 +152,7 @@ class NavigationBridge:
         if time.monotonic()-self.scan_at>self.scan_timeout:return False,'LiDAR 입력이 오래됐습니다'
         if time.monotonic()-self.odom_at>self.odom_timeout:return False,'odom 입력이 오래됐습니다'
         if not self.client.server_is_ready():return False,'Nav2 서버를 기다립니다'
-        # 하위 구독자를 필수로 요구해 베이스로 직접 보내는 대체 경로를 막습니다.
+        # A required downstream subscriber prevents direct-to-base fallback.
         if self.node.count_subscribers('motion/cmd_vel')<1:return False,'안전 명령 경로를 기다립니다'
         if self.node.count_publishers('cmd_vel')!=1:return False,'최종 구동 명령 소유자를 확인하세요'
         available,reason=self.supervision.available()
@@ -214,7 +214,7 @@ class NavigationBridge:
         return self.status()
 
     def clear_preview(self):
-        """진행 중인 읽기 전용 요청을 취소하기 전에 이전 결과를 무효화합니다."""
+        """Invalidate old results before cancelling an in-flight read-only request."""
         self.preview_generation += 1
         if self.preview_handle is not None:
             self.preview_handle.cancel_goal_async()
@@ -222,7 +222,7 @@ class NavigationBridge:
         self.preview_error='';self.preview_id=''
 
     def preview(self, data):
-        """임대를 요청하거나 베이스 구동을 허가하지 않고 전역 경로를 계산합니다."""
+        """Compute a global path without requesting a lease or enabling the base."""
         if self.map is None:
             raise ValueError('지도를 기다립니다')
         target=self.map.validate_goal(data)
@@ -328,7 +328,7 @@ class NavigationBridge:
     def tick(self):
         now=time.monotonic()
         self._update_pose(now)
-        # 정지 중 실제 스캔 처리를 AMCL에 요청하며 자세 stamp를 직접 갱신하지 않습니다.
+        # Ask AMCL to process real scans while stationary; never refresh pose timestamps ourselves.
         if (now-self.nomotion_at>=.5 and self.nomotion.service_is_ready()
                 and (self.nomotion_future is None or self.nomotion_future.done())):
             self.nomotion_at=now;self.nomotion_future=self.nomotion.call_async(Empty.Request())
@@ -375,7 +375,7 @@ class NavigationBridge:
         arm=(g.wheelbase+g.separation)/2
         wheels=[(x-y-arm*z)/g.radius,(x+y+arm*z)/g.radius,(x+y-arm*z)/g.radius,(x-y+arm*z)/g.radius]
         speed=max(.1,max(abs(v) for v in wheels));vector=[x/(g.radius*speed),y/(g.radius*speed),arm*z/(g.radius*speed)]
-        # joystick 입력 정규화는 결합된 바퀴 명령도 제한합니다.
+        # The joystick input normalization also bounds combined wheel commands.
         scale=max(1.,max(abs(v) for v in vector));vector=[v/scale for v in vector];speed*=scale
         self.sequence+=1
         try:

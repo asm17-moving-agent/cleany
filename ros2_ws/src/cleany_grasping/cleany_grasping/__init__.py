@@ -1,1 +1,1 @@
-"""Cleany의 단일 후보 파지 추정을 제공합니다."""
+"""Single-candidate grasp estimation for Cleany."""

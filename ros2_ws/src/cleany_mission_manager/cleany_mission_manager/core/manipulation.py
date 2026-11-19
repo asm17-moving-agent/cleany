@@ -1,4 +1,4 @@
-"""executor 내부 BT와 독립적인 단일 물체 action 경계입니다."""
+"""One-object action boundary, independent of the executor's internal BT."""
 
 import json
 import logging
@@ -26,7 +26,7 @@ class ManipulationTransport(Protocol):
 
 
 def diagnostic_details(value: Any) -> dict:
-    """선택적 executor 진단은 물리적 근거나 보고서 필드로 사용하지 않습니다."""
+    """Optional executor diagnostics never become physical evidence or report fields."""
     if not isinstance(value, dict):
         return {}
     details = {key: value[key] for key in ("failed_substage", "cancel_mode", "substage")
@@ -46,7 +46,7 @@ def validate_backend(backend: str, journal: MissionJournal) -> None:
 
 
 def goal_fields(command: TaskProposal) -> dict:
-    """숫자 ID는 인식 결과에서 명시적으로 받으며 표시용 ID를 파싱하지 않습니다."""
+    """Numeric IDs come explicitly from perception; never parse display IDs."""
     goal = dict(mission_id=command.mission_id, task_id=command.task_id,
                 execution_id=command.execution_id, skill_name=command.action,
                 snapshot_id=command.snapshot_id, object_id=command.wire_object_id,
@@ -60,7 +60,7 @@ def goal_fields(command: TaskProposal) -> dict:
 
 def map_outcome(outcome: ManipulationOutcome, execution_id: str,
                 ros_status: int | None = None) -> ModuleResult:
-    """ROS SUCCEEDED에도 BLOCKED가 포함될 수 있으므로 물리 결과 payload를 기준으로 합니다."""
+    """ROS SUCCEEDED also contains BLOCKED; physical payload is authoritative."""
     status = {"SUCCESS": ResultStatus.OK, "BLOCKED": ResultStatus.BLOCKED,
               "FAILED": ResultStatus.FAILED, "CANCELED": ResultStatus.CANCELLED,
               "FATAL": ResultStatus.FATAL}.get(outcome.status)
@@ -91,11 +91,11 @@ def map_outcome(outcome: ManipulationOutcome, execution_id: str,
 
 
 class ManipulationPort:
-    """전송 전에 영속 저장합니다. 수락이나 결과가 불확실하면 이동과 재실행을 허용하지 않습니다.
+    """Persist before send. Uncertain acceptance/result never permits movement/replay.
 
-    전송 future는 ROS executor에서 완료되며 maintain()은 완료된 future만 확인합니다.
-    조회 실패는 상대 서비스의 현재 저장소 오류 응답과 구분할 수 없으므로
-    실행을 지우거나 물리적 정지의 근거로 삼지 않습니다.
+    Transport futures complete on the ROS executor. maintain() only checks done futures.
+    A lookup miss is ambiguous with the peer service's current storage-error response.
+    It therefore never clears the execution or proves a physical stop.
     """
 
     KEY = "manipulation_boundary"
@@ -113,7 +113,7 @@ class ManipulationPort:
         self.initial_mock_safe = initial_mock_safe and not saved
         self.result = map_outcome(self.outcome, self.goal["execution_id"]) if self.outcome else None
         self.send_future = self.result_future = self.lookup_future = self.cancel_future = None
-        self.cancel_requested = bool(self.goal and self.outcome is None)  # 재시작 시 정지하며 자동 재개하지 않습니다.
+        self.cancel_requested = bool(self.goal and self.outcome is None)  # restart: stop, no resume
         self.last_query = self.last_cancel = float("-inf")
         self.query_started = self.cancel_started = 0.0
 
@@ -141,11 +141,11 @@ class ManipulationPort:
         self.initial_mock_safe = False
         self.cancel_requested = False
         self.send_future = self.result_future = self.lookup_future = self.cancel_future = None
-        self._save()  # 여기서 실패하면 아직 구동기 요청을 보내지 않은 상태입니다.
+        self._save()  # If this fails, no actuator request has been sent.
         try:
             self.send_future = self.transport.send(goal)
         except Exception as exc:
-            # 전송이 이미 경계를 넘었을 수 있으므로 정확히 이 ID를 조회합니다.
+            # Sending may already have crossed the boundary; query this exact ID.
             logger.warning("Manipulation send failed: %s", exc)
             self.cancel_requested = True
         return goal["execution_id"]
@@ -156,7 +156,7 @@ class ManipulationPort:
         result = map_outcome(outcome, self.goal["execution_id"], ros_status)
         self.details.update(diagnostic_details(details))
         self.outcome, self.human_review = outcome, human_review
-        self._save()  # 어떤 gate도 해제하기 전에 물리적 근거를 영속 저장합니다.
+        self._save()  # Durable physical evidence before releasing any gate.
         self.result = result
         if outcome.status == "SUCCESS" and self.on_success:
             self.on_success(self.goal)
@@ -171,7 +171,7 @@ class ManipulationPort:
                 if handle.accepted:
                     self.result_future = handle.get_result_async()
                 else:
-                    self.cancel_requested = True  # 중복 실행일 수 있습니다.
+                    self.cancel_requested = True  # Could be a duplicate execution.
             except Exception as exc:
                 logger.warning("Manipulation goal response failed: %s", exc)
                 self.cancel_requested = True

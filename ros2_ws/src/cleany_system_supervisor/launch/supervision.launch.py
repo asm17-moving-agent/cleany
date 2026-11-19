@@ -1,8 +1,8 @@
-"""기존 센서, Nav2와 Mission Runtime 옆에 감독 스택을 실행합니다.
+"""Start the supervision stack beside existing sensors, Nav2 and the Mission Runtime.
 
-Supervisor, 독립 안전 근거 어댑터, Nav2 lifecycle 복구 소유자를 시작하며
-선택적으로 팔 가용성 보고자를 추가합니다. 센서, Nav2, 제어기, 인식과
-mission_runtime은 각자의 launch 파일을 유지합니다.
+Starts the Supervisor, the independent safety evidence adapter, the Nav2 lifecycle
+recovery owner and, optionally, the arm availability reporter. Sensors, Nav2,
+controllers, Perception and mission_runtime keep their own launch files.
 """
 
 from ament_index_python.packages import get_package_share_directory
@@ -22,7 +22,7 @@ def generate_launch_description():
         DeclareLaunchArgument("use_sim_time", default_value="false"),
         DeclareLaunchArgument("tof_required", default_value="false"),
         DeclareLaunchArgument("supervisor_config", default_value=config),
-        # 빈 값이면 로봇이 해당 하드웨어 근거를 제공하지 않으므로 운용 잠금을 유지합니다.
+        # Empty: this robot exposes no such hardware evidence, so operation stays locked.
         DeclareLaunchArgument("estop_released_topic", default_value=""),
         DeclareLaunchArgument("protection_ready_topic", default_value=""),
         DeclareLaunchArgument("odom_topic", default_value="odom"),

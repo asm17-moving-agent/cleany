@@ -1,4 +1,4 @@
-"""이동 없이 격리된 domain에서 설치된 VoxelLayer를 검사합니다."""
+"""Exercise the installed VoxelLayer on an isolated domain, without motion."""
 
 import os
 from pathlib import Path
@@ -78,7 +78,7 @@ def test_mark_retain_until_observed_free_and_clear(tmp_path):
         x = int((1.-msg.info.origin.position.x)/msg.info.resolution)
         y = int((0.-msg.info.origin.position.y)/msg.info.resolution)
         cells = np.asarray(msg.data).reshape(msg.info.height, msg.info.width)
-        # float 전송으로 정확한 셀 경계가 옆 셀에 들어갈 수 있습니다.
+        # Float transport can put an exact cell boundary in an adjacent cell.
         occupied = bool(np.any(cells[y-1:y+2, x-1:x+2] == 100))
         assert occupied == expected, cells[y-1:y+2, x-1:x+2]
 
@@ -96,9 +96,9 @@ def test_mark_retain_until_observed_free_and_clear(tmp_path):
         transition(client, 3)
         hit = [[1., 0., .6]]
         observe(hit, [[1., 0., -.4]], True)
-        # 다른 곳의 바닥을 관측해도 높은 장애물은 지워지지 않습니다.
+        # Looking at the floor elsewhere does not erase the elevated obstacle.
         observe([], [[1., .5, -1.]], True)
-        # 이전 voxel을 관통해 배경을 관측하면 해당 voxel이 지워집니다.
+        # Observing the background through its old voxel clears it.
         observe([], [[2., 0., -.8]], False)
     finally:
         node.destroy_node()

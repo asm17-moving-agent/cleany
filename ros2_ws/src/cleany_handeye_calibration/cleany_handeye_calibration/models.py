@@ -1,4 +1,4 @@
-"""ROS에 독립적인 불변 보정 모델입니다."""
+"""ROS-independent immutable calibration models."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def _stamp_ns(value: int, *, field_name: str = 'stamp_ns') -> int:
 
 @dataclass(frozen=True, slots=True)
 class PositionTarget:
-    """frame_id 좌표계의 미터 단위 Cartesian 위치 목표입니다."""
+    """A Cartesian position target expressed in ``frame_id`` and metres."""
 
     frame_id: str
     position_m: Vector3
@@ -85,7 +85,7 @@ class PositionTarget:
 
 @dataclass(frozen=True, slots=True)
 class JointPose:
-    """순서가 정해진 완전한 관절 위치 벡터이며 단위는 라디안입니다."""
+    """An ordered, complete joint position vector in radians."""
 
     joint_names: tuple[str, ...]
     positions_rad: tuple[float, ...]
@@ -106,7 +106,7 @@ class JointPose:
 
 @dataclass(frozen=True, slots=True)
 class IkResult:
-    """성공 및 실패 데이터가 상호 배타적인 위치 IK 결과입니다."""
+    """A position-IK outcome with mutually exclusive success/failure data."""
 
     success: bool
     joint_pose: JointPose | None = None
@@ -139,7 +139,7 @@ class IkResult:
 
 @dataclass(frozen=True, slots=True)
 class TimedJointSample:
-    """시각이 있는 관절 피드백이며 위치는 rad, 속도는 rad/s입니다."""
+    """Timestamped feedback joint state, in radians and radians/second."""
 
     stamp_ns: int
     joint_names: tuple[str, ...]
@@ -180,10 +180,11 @@ class SampleSplit(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class CalibrationSample:
-    """eye-in-hand 방정식에 사용하는 동기화된 자세 쌍입니다.
+    """One synchronized pose pair for the eye-in-hand equation.
 
-    base_T_gripper는 gripper 좌표를 base 좌표로, camera_T_target은 target 좌표를
-    camera 좌표로 변환합니다. solver가 구하는 미지 변환은 gripper_T_camera입니다.
+    ``base_T_gripper`` maps gripper coordinates into base coordinates and
+    ``camera_T_target`` maps target coordinates into camera coordinates.
+    The unknown solver output is ``gripper_T_camera``.
     """
 
     sample_id: str

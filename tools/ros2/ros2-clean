@@ -10,7 +10,7 @@ fi
 DATA_ROOT="${CLEANY_DATA_ROOT:-${DEFAULT_DATA_ROOT}}"
 BUILD_ROOT="${CLEANY_BUILD_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/cleany/builds/$(basename "${REPO_ROOT}")}"
 BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
-# 보호 디렉터리를 포함하는 build root를 거부합니다.
+# Reject a build root that contains any protected directory.
 for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
   protected="$(realpath -m "${protected}")"
   case "${protected}/" in "${BUILD_ROOT%/}/"*)
@@ -32,7 +32,7 @@ if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
   esac
 fi
 
-# 삭제를 이 checkout의 생성 출력 이름으로 제한합니다.
+# Limit deletion to generated output names for this checkout.
 for suffix in "" -navigation -scenario-runtime; do
   rm -rf -- "${BUILD_ROOT}/build${suffix}" "${BUILD_ROOT}/install${suffix}" "${BUILD_ROOT}/log${suffix}"
 done

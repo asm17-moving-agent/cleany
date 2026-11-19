@@ -46,13 +46,13 @@ for candidate in sorted_candidates:
 
 폭 한계를 넘는 후보와 접촉점이 target 범위 밖에 있는 후보를 제거합니다. 후보 위치 자체가 아니라 접근 깊이를 더한 접촉점을 검사한다는 점을 보세요.
 
-뒤에서는 **NMS**(Non-Maximum Suppression, 중복 후보 억제)를 수행합니다. 위치와 회전이 모두 비슷한 후보는 남긴 후보와 겹치는 것으로 보고 제거합니다. 거리와 각도 한계는 [GraspConfig](../../../ros2_ws/src/cleany_grasping/cleany_grasping/core/selector.py)에서 확인합니다. 이후 `canonical_to_tcp_rotation`으로 회전을 바꾸고 `tcp_approach_axis`로 접근 방향을 계산합니다.
+뒤에서는 **NMS**(Non-Maximum Suppression, 중복 후보 억제)를 수행합니다. 위치와 회전이 모두 비슷한 후보는 남긴 후보와 겹치는 것으로 보고 제거합니다. 기본 거리 한계는 0.02 m, 각도 한계는 20°입니다. 이후 `canonical_to_tcp_rotation`으로 회전을 바꾸고 `tcp_approach_axis`로 접근 방향을 계산합니다.
 
 score 순위가 높다는 것은 후보 생성기의 우선순위입니다. 현재 관절 상태에서 갈 수 있다는 뜻은 아닙니다. 이제 그 검사가 `cleany_skill_executor`로 넘어갑니다.
 
 ## 08.4 양팔 선택과 MoveIt 호출
 
-`GraspSelectionConfig`의 `pregrasp_offset_m`은 접근 거리, `maximum_candidates`는 검사할 후보 수의 상한입니다. 적용값과 조정 조건은 [조작 설정](../../../ros2_ws/src/cleany_skill_executor/docs/study-cafe-sorting-configuration.md)을 따릅니다. `select()`는 score 순으로 후보를 정렬하고 각 후보에 대해 팔을 순차 검사합니다. 후보 Y가 양수이면 왼팔, 음수이면 오른팔이 먼저입니다.
+`GraspSelectionConfig`는 기본 접근 거리 `pregrasp_offset_m=0.08`과 최대 검사 후보 `maximum_candidates=12`를 둡니다. `select()`는 score 순으로 후보를 정렬하고 각 후보에 대해 팔을 순차 검사합니다. 후보 Y가 양수이면 왼팔, 음수이면 오른팔이 먼저입니다.
 
 `pregrasp_position()`은 접근 벡터를 정규화하고 `목표 위치 − 접근 방향 × 거리`를 계산합니다. 저장소 루트에서 실제 함수를 호출해 보세요. ROS 연결은 필요 없습니다.
 
@@ -69,14 +69,14 @@ PYTHON
 
 `select()`의 순서를 호출 이름으로 정리하면 다음과 같습니다. 아래는 원문 발췌가 아닌 흐름 요약입니다.
 
-```mermaid
-flowchart TD
-  Candidate["후보와 팔 선택"] --> Seed["위치 IK로 초기 관절 해 탐색"]
-  Seed --> Pre["접근 방향을 맞춘 pre-grasp IK 후보"]
-  Pre --> CheckPre["상태 / 선택적 시야 검사 / 접근 경로 계획"]
-  CheckPre --> Grasp["grasp 자세 IK 후보"]
-  Grasp --> CheckGrasp["상태 / 선택적 그리퍼 검사 / 파지 경로 계획"]
-  CheckGrasp --> Result["Selection 반환"]
+```text
+후보·팔 선택
+→ solve_position_ik(pregrasp)
+→ solve_position_ik(grasp, seed=pregrasp)
+→ state_is_valid(pregrasp), state_is_valid(grasp)
+→ plan(현재 상태 → pregrasp)
+→ plan(pregrasp → grasp)
+→ Selection 반환
 ```
 
 이 순수 core는 `ReachabilityPort`에 요청하고, [moveit_adapter.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/moveit_adapter.py)가 ROS/MoveIt 서비스를 연결합니다. `set_target_contacts()`는 준비 단계와 접촉 단계의 허용 접촉 조건을 바꿉니다. 목표 물체와의 제한된 접촉 허용은 주변 전체의 충돌 검사를 해제한다는 뜻이 아닙니다.
@@ -89,34 +89,33 @@ MoveIt에서 계획을 시각화하면 팔의 움직임과 단계별 결과를 �
 
 ## 08.5 계획·실행·실패 경계
 
-`select()`는 pre-grasp 계획이 성공한 뒤에도 grasp 자세와 접촉 단계의 상태를 검사합니다. 아래는 마지막 경로 계획과 반환 부분의 실제 발췌입니다.
+`select()` 후반의 연속된 실제 발췌입니다. pre-grasp 계획을 통과한 다음에도 grasp 구간 계획이 남습니다.
 
 ```python
-if not self._port.plan(arm, grasp, pregrasp):
-    check_canceled()
-    continue
+self._port.set_target_contacts(arm)
+feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning')
+grasp_is_planned = self._port.plan(arm, grasp, pregrasp)
 check_canceled()
+if not grasp_is_planned:
+    continue
 return Selection(index, arm, candidate, pregrasp, grasp)
 ```
 
 한 후보·팔 조합이 IK나 계획에서 실패하면 다음 조합을 검사합니다. 모두 실패하면 `None`입니다. 취소 요청은 `InterruptedError`로 중단합니다. `InfrastructureError`는 통신·MoveIt 기반 실패를 나타내므로 단순히 다른 후보로 바꾸어 계속 평가할 상황과 구분됩니다.
 
-[SelectReachableGrasp.action](../../../ros2_ws/src/cleany_interfaces/action/SelectReachableGrasp.action)은 **plan-only**입니다. 선택과 계획 검사를 수행하고 팔 trajectory를 직접 실행하지 않습니다. 위치 IK는 초기 해를 찾는 단계입니다. 현재 adapter는 `solve_aimed_pregrasp_ik()`와 `solve_grasp_ik()`에서 접근축과 닫힘축을 함께 평가하고 5축 팔에서 가능한 자세를 찾습니다. 허용 오차 안의 자세 평가와 실물 TCP 정확도는 구분합니다.
+[SelectReachableGrasp.action](../../../ros2_ws/src/cleany_interfaces/action/SelectReachableGrasp.action)은 **plan-only**입니다. 선택과 계획 검사를 수행하고 팔 trajectory를 직접 실행하지 않습니다. 운영 action의 IK도 **position-only**이므로 TCP 방향까지 만족했다는 의미가 아닙니다.
 
-별도 [nearest-pregrasp coordinator](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/nearest_pregrasp_coordinator.py)가 선택 결과를 실행합니다. 기본은 pre-grasp까지이며 `execute_grasp_and_lift=true`는 재관측과 접촉 집기·후퇴·lift를 연결합니다. 연속 sorting과 BT Action은 [별도 실행 경로](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)입니다. 후보, 계획, controller 실행과 물체 상태 변화를 구분해 읽습니다.
-
-위 데모는 기존 시뮬레이션 모델을 사용합니다. 실물 공통 CAD의 구동 좌표와 보정은 [모델 계약](../../../ros2_ws/src/cleany_description/docs/model.md)에서 확인합니다.
+별도 [can_grasp_execution_demo.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/can_grasp_execution_demo.py)는 후보 선택 후 방향 보정을 거쳐 pre-grasp까지 이동합니다. 이 데모 범위에 gripper close·물체 attach·lift는 포함되지 않습니다. 따라서 후보 그림, action 성공, 팔 이동 각각의 관찰이 어떤 단계를 입증하는지 나눠 읽습니다.
 
 ## 08.6 파지 파이프라인 추적
 
 다음 순서로 파일을 열고 각 화살표에서 데이터 형식을 적어보세요.
 
-```mermaid
-flowchart TD
-  Request["PlanGrasp"] --> Node["grasp_node / predictor / rank_grasps"]
-  Node --> Candidates["GraspCandidate 배열"] --> Select["SelectReachableGrasp / GraspSelector"]
-  Select --> Port["ReachabilityPort / MoveIt"] --> Result["선택 결과"]
-  Result --> Execute["별도 coordinator 또는 BT의 실행 단계"]
+```text
+PlanGrasp → grasp_node → predictor → rank_grasps
+→ GraspCandidate[] → SelectReachableGrasp
+→ GraspSelector.select() → ReachabilityPort → MoveIt
+→ 선택 결과 → 데모의 별도 이동 단계
 ```
 
 1. `RawGrasp.width_m`가 어디에서 걸러지는지 찾습니다.

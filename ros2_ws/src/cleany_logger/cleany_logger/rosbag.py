@@ -1,4 +1,4 @@
-"""기록 worker만 독점 소유하는 표준 rosbag2 CDR 저장소입니다."""
+"""Standard rosbag2 CDR storage, owned exclusively by the recording worker."""
 
 import json
 import sqlite3
@@ -8,7 +8,7 @@ from .recording import RawMessage
 
 
 class RosbagWriter:
-    """원시 기록을 요청할 때만 ROS 의존성을 로드하며 다른 방식으로 대체하지 않습니다."""
+    """Load the ROS dependency only when raw recording is requested; never fall back."""
 
     def __init__(self, path: Path, *, split_diagnostics: bool = True):
         import rosbag2_py
@@ -49,7 +49,7 @@ class RosbagWriter:
                 f"ROS type changed on {message.topic}; start a new recording"
             )
         if not previous:
-            # rosbag2는 transient_local 컨텍스트를 재생할 때 이 프로파일을 사용합니다.
+            # rosbag2 uses this profile when replaying transient-local context.
             qos = json.dumps(
                 [
                     {
@@ -87,7 +87,7 @@ class RosbagWriter:
                 diagnostics.close()
         finally:
             if writer is not None:
-                # 최근 Humble에는 close()가 있으며 이전 빌드는 소멸자에서 마무리합니다.
+                # Recent Humble has close(); older builds finalize in the destructor.
                 if hasattr(writer, "close"):
                     writer.close()
                 del writer
@@ -96,7 +96,7 @@ class RosbagWriter:
 def read_cdr(
     directory: Path, topic: str, timestamp_ns: int, occurrence: int = 0
 ) -> bytes:
-    """bag을 전체 로드하지 않고 고정 sqlite3 rosbag2 백엔드의 인덱스로 조회합니다."""
+    """Indexed lookup in our fixed sqlite3 rosbag2 backend, without loading a bag."""
     for path in sorted(directory.rglob("*.db3")):
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as db:
             row = db.execute(

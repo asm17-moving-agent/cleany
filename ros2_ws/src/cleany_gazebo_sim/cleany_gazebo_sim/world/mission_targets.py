@@ -1,7 +1,7 @@
-"""구체화된 시설 모델에서 책상 앞 시뮬레이션 목표를 근사 생성합니다.
+"""Generate approximate desk-front simulation goals from a materialized facility.
 
-numpy, scipy, Pillow, PyYAML이 필요하며 Humble 환경에서 사용할 수 있습니다.
-지도와 SDF 월드의 좌표계가 같아야 합니다. 목표는 보정된 팔 작업점이 아닙니다.
+Requires numpy, scipy, Pillow and PyYAML (available in the Humble environment).
+The map must share the SDF world frame. Goals are not calibrated arm targets.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from scipy.spatial import ConvexHull
 
 
 def canonical_seat_id(seat: dict) -> str:
-    """시설 모델 이름을 유지하면서 제어 서버의 방 목록과 대응시킵니다."""
+    """Match the control-plane room inventory without changing facility model names."""
     if seat["zone_id"] == "d-hub":
         return "seat-"+seat["seat_id"]
     room = seat["zone_id"].removeprefix("space-")
@@ -52,14 +52,14 @@ def generate(world: Path, map_file: Path, home: list[float], mesh_root: Path, ov
     reference_models = ({m.get('name'): m for m in ET.parse(reference_world).findall('./world/model')}
                         if reference_world is not None else {})
     seats = json.loads(world.with_suffix('.seats.json').read_text())
-    # 기준 LiDAR 높이의 래스터에는 메시 의자가 빠져 있습니다. LiDAR보다 높은
-    # 좌판과 등받이를 포함한 보수적인 XY 경계 다각형을 추가합니다.
+    # The reference LiDAR-plane raster omits mesh chairs. Add their conservative
+    # XY bounding polygons, including the seat/back above the LiDAR plane.
     draw = ImageDraw.Draw(image)
     for seat in seats:
         chair = models.get(seat['chair_model'])
         if chair is None:
-            # 누락된 의자는 충돌 형상에 반영되지 않습니다. 정면 방향은 명시적인
-            # 배치 기준에서 가져와야 하며 yaw를 임의로 만들어 넣지 않습니다.
+            # Missing chairs contribute no collisions. The front direction
+            # still needs an explicit layout reference, never an invented yaw.
             if seat['chair_model'] not in reference_models:
                 raise ValueError(f'missing chair {seat["chair_model"]}; supply reference_world for its front direction')
             continue
@@ -122,8 +122,8 @@ def generate(world: Path, map_file: Path, home: list[float], mesh_root: Path, ov
             raise ValueError(f'chair has no front direction: {seat["seat_id"]}')
         vx, vy = vx/length, vy/length
         yaw = math.atan2(-vy, -vx)
-        # CAD 반폭에 계획 여유와 래스터 셀 대각선의 절반을 더합니다.
-        # 중심 셀만 검사하지 않고 방향을 반영한 전체 footprint로 침식합니다.
+        # CAD half extents + planning padding + one raster-cell diagonal/2.
+        # Erode with the entire oriented footprint, not just its center cell.
         margin = padding+localization_margin+resolution/math.sqrt(2)
         extent = math.ceil((max(half_extents)+margin)/resolution)+1
         grid = np.arange(-extent, extent+1)*resolution
@@ -156,7 +156,7 @@ def generate(world: Path, map_file: Path, home: list[float], mesh_root: Path, ov
             error = requested_yaw-expected_yaw
             if abs(math.atan2(math.sin(error), math.cos(error))) > 1e-4:
                 raise ValueError('override must face the desk normal')
-        # 반대편 대체 목표에서는 책상에서 멀어지는 방향이 아닌 책상 쪽을 향합니다.
+        # For an opposite-side fallback, turn toward the desk rather than away.
         if front[index] < 0:
             yaw = math.atan2(vy, vx)
         targets[seat_id] = [round(float(xs[index]), 4), round(float(ys[index]), 4), round(yaw, 6)]

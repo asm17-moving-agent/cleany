@@ -1,4 +1,4 @@
-"""시뮬레이션 전용 휠 odometry 오차 모델의 ROS 어댑터입니다."""
+"""ROS adapter for the simulation-only wheel odometry error model."""
 
 from __future__ import annotations
 
@@ -18,17 +18,17 @@ from cleany_gazebo_sim.odometry_error import (
 
 
 class SimulatedOdometryErrorNode(Node):
-    """시뮬레이션 휠 odometry에 내부 상태를 유지하는 오차 프로필을 적용합니다.
+    """Apply stateful error profiles to simulated wheel odometry.
 
     Subscriptions:
-        wheel/odom_raw (nav_msgs/msg/Odometry): 오차 적용 전 휠 추정값.
+        wheel/odom_raw (nav_msgs/msg/Odometry): Baseline wheel estimate.
 
     Publishers:
-        wheel/odom (nav_msgs/msg/Odometry): 설정된 배율, drift, 잡음과 슬립을 적용한 추정값.
-            두 토픽 이름은 기본값입니다.
+        wheel/odom (nav_msgs/msg/Odometry): Estimate with configured scale,
+            drift, noise and slip effects. Both topic names are defaults.
 
     TF:
-        변환을 발행하지 않으며 출력은 계속 odometry relay의 입력으로 사용합니다.
+        Publishes no transform; the output remains input to the odometry relay.
     """
 
     def __init__(self) -> None:

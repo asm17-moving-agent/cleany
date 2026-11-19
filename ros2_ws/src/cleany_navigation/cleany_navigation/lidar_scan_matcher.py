@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""2D LiDAR 스캔 사이의 상대 위치를 추정합니다.
+"""2D LiDAR Scan Matcher for Automated Ground-Truth Position Estimation.
 
-강건한 2D point-to-line 및 point-to-point ICP 정합으로 기준 스캔과
-대상 스캔 사이의 상대 변환(delta_x, delta_y, delta_yaw)을 계산합니다.
-스캔 기반 추정값이며 독립적인 위치 참값이 아닙니다.
+Implements robust 2D Point-to-Line and Point-to-Point ICP registration
+to calculate relative 2D transformation (delta_x, delta_y, delta_yaw)
+between reference scan and target scan.
 """
 
 from __future__ import annotations
@@ -43,9 +43,9 @@ class ScanMatchResult:
 
 
 def _additive_pose_jacobians(rotated_points: np.ndarray) -> np.ndarray:
-    """가산 [tx, ty, yaw] 갱신에 대한 R(yaw) q + t의 미분입니다.
+    """Derivative of R(yaw) q + t for additive [tx, ty, yaw] updates.
 
-    yaw 지렛팔은 병진된 점 R q + t가 아닌 R q입니다.
+    The yaw lever arm is R q, not the translated point R q + t.
     """
     jacobians = np.zeros((len(rotated_points), 2, 3))
     jacobians[:, 0, 0] = 1.0
@@ -59,7 +59,7 @@ def _linearized_system(
     rotated_points: np.ndarray, translation: np.ndarray,
     reference: np.ndarray, normals: np.ndarray, linearity: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """최적화와 관측 가능성 검사에 동일한 강건 잔차와 Jacobian을 구성합니다."""
+    """Build the same robust residual/Jacobian for optimization and observability."""
     jacobians = _additive_pose_jacobians(rotated_points)
     differences = rotated_points + translation - reference
     rows, values = [], []
@@ -88,10 +88,10 @@ def validate_scan_match(
     min_translation_eigenvalue: float = 5.0,
     max_condition_number: float = 1e6,
 ) -> tuple[bool, str]:
-    """수렴, 관측 가능성과 기하 퇴화 조건으로 2D ICP 정합 결과를 검증합니다.
+    """Validate 2D ICP scan match result against convergence, observability, and geometric degeneracy.
 
-    단일 평면 벽처럼 한 축 움직임을 관측할 수 없어 잔차 0의 거짓 정합을
-    만들 수 있는 퇴화 기하를 거부합니다.
+    Rejects degenerate geometric configurations (e.g., single planar walls) where motion
+    along one axis is unobservable, causing false-positive zero-residual matches.
     """
     numeric_values = (result.delta_x_m, result.delta_y_m, result.delta_yaw_rad,
                       result.delta_yaw_deg, result.rmse_m, result.rmse_mm,
@@ -136,7 +136,7 @@ def validate_scan_match(
 
 
 class LidarScanMatcher:
-    """point-to-line과 point-to-point ICP를 사용하는 강건 2D 스캔 정합기입니다."""
+    """Robust 2D Scan Matcher using Point-to-Line and Point-to-Point ICP."""
 
     def __init__(
         self,
@@ -185,7 +185,7 @@ class LidarScanMatcher:
         range_min: float,
         range_max: float,
     ) -> np.ndarray:
-        """LaserScan 하나를 (N, 2) 형태의 2D Cartesian 점으로 변환합니다."""
+        """Convert a single LaserScan into 2D Cartesian points (N, 2)."""
         ranges_arr = np.asarray(ranges, dtype=np.float64)
         num_beams = len(ranges_arr)
         angles = angle_min + np.arange(num_beams, dtype=np.float64) * angle_increment
@@ -207,7 +207,7 @@ class LidarScanMatcher:
         return np.column_stack((xs, ys))
 
     def downsample_points(self, points: np.ndarray) -> np.ndarray:
-        """균일한 밀도를 위한 voxel 격자 필터입니다."""
+        """Voxel grid filter for uniform density."""
         if len(points) == 0:
             return points
         coords = np.floor(points / self.voxel_size_m).astype(np.int64)
@@ -215,7 +215,7 @@ class LidarScanMatcher:
         return points[unique_indices]
 
     def compute_normals(self, points: np.ndarray, k: int = 6) -> tuple[np.ndarray, np.ndarray]:
-        """국소 PCA로 2D 법선과 선형성 가중치를 추정합니다."""
+        """Estimate 2D normals and linearity weights using local PCA."""
         n_pts = len(points)
         if n_pts < k:
             return np.zeros_like(points), np.zeros(n_pts)
@@ -230,9 +230,9 @@ class LidarScanMatcher:
             neighbors = points[idx]
             cov = np.cov(neighbors, rowvar=False)
             evals, evecs = np.linalg.eigh(cov)
-            # 가장 작은 고유값이 법선 방향에 대응합니다.
+            # Smallest eigenvalue corresponds to normal direction
             normals[i] = evecs[:, 0]
-            # (λ_max - λ_min) / λ_max 비율은 선형성을 나타냅니다.
+            # Ratio of (λ_max - λ_min) / λ_max represents linearity
             if evals[1] > 1e-6:
                 planarity[i] = (evals[1] - evals[0]) / evals[1]
             else:
@@ -246,9 +246,9 @@ class LidarScanMatcher:
         target_points: np.ndarray,
         initial_guess: tuple[float, float, float] = (0.0, 0.0, 0.0),
     ) -> ScanMatchResult:
-        """target_points를 ref_points에 정렬하고 (dx, dy, dyaw)를 반환합니다.
+        """Align target_points to ref_points and return transform (dx, dy, dyaw).
 
-        변환은 대상 좌표계의 점을 기준 좌표계로 옮깁니다.
+        Transform maps points from target frame to ref frame:
         p_ref = R(dyaw) * p_target + [dx, dy]
         """
         ref_pts = self.downsample_points(ref_points)
@@ -290,7 +290,7 @@ class LidarScanMatcher:
 
         for it in range(self.max_iterations):
             final_iter = it + 1
-            # 현재 annealing 거리 임계값입니다.
+            # Current annealing distance threshold
             dist_thresh = max(min_dist, max_dist * (0.85 ** it))
 
             c = math.cos(yaw)
@@ -344,7 +344,7 @@ class LidarScanMatcher:
                 convergence_reason = "bounded_cycle"
                 break
 
-        # 최종 평가와 관측 가능성은 실제 최종 대응점을 사용합니다.
+        # Final evaluation and observability use the actual final correspondences.
         c = math.cos(yaw)
         s = math.sin(yaw)
         R = np.array([[c, -s], [s, c]])
@@ -352,7 +352,7 @@ class LidarScanMatcher:
         final_tgt = final_rotated + np.array([tx, ty])
         final_dists, final_indices = ref_tree.query(final_tgt)
 
-        inlier_threshold = 0.030  # 30mm
+        inlier_threshold = 0.030  # 30 mm
         inliers = final_dists < inlier_threshold
         final_p = final_rotated[inliers]
         final_A, _ = _linearized_system(
@@ -364,7 +364,7 @@ class LidarScanMatcher:
         min_trans_eig = float(trans_eigs[0])
         trans_cond_num = (float(trans_eigs[-1] / trans_eigs[0])
                           if trans_eigs[0] > 1e-9 else float("inf"))
-        # 병진과 독립적으로 대상의 RMS 거리로 yaw를 정규화합니다.
+        # Normalize yaw by the target's RMS range, independent of translation.
         scale = max(float(np.sqrt(np.mean(np.sum(final_p ** 2, axis=1))))
                     if len(final_p) else 1.0, 1e-6)
         final_A[:, 2] /= scale
@@ -417,7 +417,7 @@ def plot_scan_match(
     save_path: str,
     title: str = "LiDAR ICP Scan Match Ground Truth",
 ) -> None:
-    """2D 스캔 정합의 고해상도 진단 그림을 생성합니다."""
+    """Generate high-resolution diagnostic plot of 2D scan matching."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -429,7 +429,7 @@ def plot_scan_match(
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7), gridspec_kw={"width_ratios": [1.4, 1.0]})
 
-    # 첫 번째 패널: 2D 공간 정렬
+    # Subplot 1: 2D Spatial Alignment View
     ax1.scatter(ref_points[:, 0], ref_points[:, 1], s=4, c="#1f77b4", alpha=0.4, label="Start Baseline Scan ($S_{start}$)")
     ax1.scatter(target_points[:, 0], target_points[:, 1], s=4, c="#ff7f0e", alpha=0.3, label="Final Raw Scan ($S_{end}$)")
     ax1.scatter(aligned_tgt[:, 0], aligned_tgt[:, 1], s=4, c="#2ca02c", alpha=0.6, label="Final Aligned Scan (ICP)")
@@ -442,7 +442,7 @@ def plot_scan_match(
     ax1.set_title(f"{title} - 2D Spatial Map")
     ax1.legend(loc="upper right", framealpha=0.9)
 
-    # 두 번째 패널: 통계 및 진단 요약
+    # Subplot 2: Statistics & Diagnostics Summary
     ax2.axis("off")
     summary_text = (
         f"=== LiDAR Ground-Truth Estimation ===\n\n"

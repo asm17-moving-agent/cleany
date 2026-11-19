@@ -7,9 +7,7 @@
 
 namespace cleany
 {
-/**
- * 계획 요청을 수락하기 전에 충돌 검출기가 조용히 대체된 경우를 거부합니다.
- */
+/** Refuse a silently substituted detector before accepting planning requests. */
 class CollisionDetectorGuard : public move_group::MoveGroupCapability
 {
 public:

@@ -1,4 +1,4 @@
-"""PID 재사용 오인이나 전역 정리를 방지하는 Linux 프로세스 식별자입니다."""
+"""Linux process identities used to avoid PID-reuse adoption or global cleanup."""
 
 from pathlib import Path
 

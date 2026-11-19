@@ -4,8 +4,8 @@
 #include "cartographer/io/proto_stream_deserializer.h"
 #include "cartographer/transform/transform.h"
 
-// StartTrajectory의 시각 0 상대 자세는 궤적의 local-to-global submap 변환이
-// 아닌 처음 저장된 전역 노드를 기준으로 합니다.
+// StartTrajectory's zero-time relative pose is anchored to the first stored
+// global node, not the trajectory's local-to-global submap transform.
 int main(int argc, char** argv) {
   if (argc != 2) return 2;
   cartographer::io::ProtoStreamReader reader(argv[1]);

@@ -1,4 +1,4 @@
-"""오프라인 미끄럼 진단은 좌표계, 시각과 미확인 경계를 보존해야 합니다."""
+"""Offline slip diagnostics must preserve frame, timing and unknown boundaries."""
 import importlib.util
 import math
 from pathlib import Path

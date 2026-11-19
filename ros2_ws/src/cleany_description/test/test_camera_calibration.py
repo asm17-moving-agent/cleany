@@ -1,4 +1,4 @@
-"""이식 가능한 실측 프로필을 펼친 로봇 좌표계 트리와 대조합니다."""
+"""Check the portable measured profile against the expanded robot frame tree."""
 
 import json
 import math

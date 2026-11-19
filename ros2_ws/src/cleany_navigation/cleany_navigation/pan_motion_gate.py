@@ -1,4 +1,4 @@
-"""연속 추적 또는 기존 정지/관측/이동을 위한 카메라 방향 인터록입니다."""
+"""Camera-direction interlock for continuous tracking or legacy stop/look/move."""
 from dataclasses import dataclass
 import math
 
@@ -33,11 +33,11 @@ class PanGate:
             raise ValueError('Choose lateral or bounded diagonal motion')
 
     def _position_target(self, bearing: float, pan: float) -> float | None:
-        """관절 한계 안에서 정확히 동등한 가장 가까운 위치를 선택합니다.
+        """Choose the nearest exactly equivalent position within joint limits.
 
-        범위가 제한된 위치 서보는 원시 각도 차이를 사용하므로 pi 양쪽의 atan2
-        정규 각도가 한 바퀴 회전을 명령할 수 있습니다. 여기서는 잘라내기나
-        각도 허용 오차 완화를 하지 않습니다.
+        A bounded position servo sees raw angle differences, so canonical
+        atan2 angles on either side of pi can otherwise command a full turn.
+        No clipping or angle-tolerance relaxation is allowed here.
         """
         period = 2*math.pi
         lower = math.ceil((self.pan_min_position_rad-bearing)/period)
@@ -82,8 +82,8 @@ class PanGate:
         desired = desired_position
         stopped = math.hypot(*measured[:2]) <= self.linear_stopped and abs(measured[2]) <= self.angular_stopped
         if self.allow_mixed_motion:
-            # body 좌표계의 연속 이동 방위를 추적합니다. 작은 DWB 보정 때문에
-            # 정착을 다시 시작하거나 차체 완전 정지를 요구하지 않습니다.
+            # Track a continuous body-frame travel bearing. Tiny DWB corrections
+            # must not restart settling or require a complete chassis stop.
             self.target = desired
             error = math.atan2(math.sin(pan-self.target), math.cos(pan-self.target))
             if abs(error) > self.angle_tolerance:
@@ -91,9 +91,9 @@ class PanGate:
                 return self.target, zero, 'TURNING_PAN'
             if self.aligned_since is None:
                 self.aligned_since = now
-            # 정확한 stamp의 TF는 이미 카메라와 body 움직임을 보상합니다.
-            # 전방향 추적 모드에서는 기계적 정지나 임의 안정화 지연 대신
-            # 정렬 이후의 관측을 요구합니다.
+            # Exact-stamped TF already compensates for camera/body motion.
+            # Require an observation after alignment, not mechanical standstill
+            # or an arbitrary stabilization delay in holonomic tracking mode.
             if not (self.aligned_since <= depth_stamp <= now
                     and now-depth_stamp <= self.source_timeout_s):
                 return self.target, zero, 'WAIT_FRESH_DEPTH'
@@ -121,7 +121,7 @@ class PanGate:
 
 @dataclass
 class PanTracker:
-    """최선의 관측 방향이며 주행 권한을 부여하지 않습니다."""
+    """Best-effort observation direction. Never grants permission to drive."""
     positions: PanGate
     target_change_rad: float = math.radians(10.)
     minimum_speed: float = .01

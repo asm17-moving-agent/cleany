@@ -26,7 +26,7 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml', model_pro
         )
         .robot_description(
             file_path=str(description_xacro),
-            # 팔 전용 백엔드는 바퀴 상태를 발행하지 않으므로 고정 바퀴와 일치시킵니다.
+            # Arm-only backend publishes no wheel states; match its fixed wheels.
             mappings={
                 'model_profile': model_profile,
                 'include_head_camera': 'false',
@@ -98,8 +98,8 @@ def _launch_setup(context):
             '--log-level', LaunchConfiguration('backend_log_level'),
             '--log-level', ['move_group.scene_mapping:=', LaunchConfiguration('log_level')],
         ],
-        # MoveIt은 capability 안내도 stdout으로 직접 출력합니다. quiet 모드에서는
-        # launch 로그에 남기며 ROS 경고와 오류는 stderr를 사용합니다.
+        # MoveIt also prints capability banners directly to stdout. Keep those
+        # in the launch log in quiet mode; ROS warnings/errors use stderr.
         output=({'stdout': 'log', 'stderr': ['screen', 'log']}
                 if LaunchConfiguration('backend_log_level').perform(context) in ('warn', 'error', 'fatal')
                 else 'both'),

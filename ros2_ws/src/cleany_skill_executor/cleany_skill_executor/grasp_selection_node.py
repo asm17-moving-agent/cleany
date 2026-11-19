@@ -1,4 +1,4 @@
-"""MoveIt에서 도달 가능한 첫 파지 쌍을 선택하는 ROS action server입니다."""
+"""ROS action server selecting the first MoveIt-reachable grasp pair."""
 
 from __future__ import annotations
 
@@ -48,35 +48,35 @@ STAGE_CONSTANT = {
 
 
 class GraspSelectionNode(Node):
-    """실행 없이 도달 가능하고 충돌 검사를 통과한 파지를 선택합니다.
+    """Select a reachable, collision-checked grasp without executing it.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): 현재 상태이며 변경 가능한 기본값입니다.
-        /robot_description (std_msgs/msg/String): 로봇 형상, transient_local.
+        joint_states (sensor_msgs/msg/JointState): Current state; configurable default.
+        /robot_description (std_msgs/msg/String): Robot geometry, transient local.
         /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
-            선택적 관측 메시 입력이며 collision_geometry_topic 기본값입니다.
-            reliable, transient_local입니다.
+            Optional observed mesh input; collision_geometry_topic default,
+            reliable and transient local.
 
     Services:
         /compute_ik (moveit_msgs/srv/GetPositionIK), /compute_fk
             (moveit_msgs/srv/GetPositionFK), /check_state_validity
-            (moveit_msgs/srv/GetStateValidity): MoveItGraspAdapter 소유 Client.
-        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene),
-        /get_planning_scene (moveit_msgs/srv/GetPlanningScene):
-            TargetSceneTransaction을 통한 임시 형상과 접촉 허용 갱신.
+            (moveit_msgs/srv/GetStateValidity): Clients owned by MoveItGraspAdapter.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene) and
+        /get_planning_scene (moveit_msgs/srv/GetPlanningScene): Temporary geometry
+            and allowed-contact updates through TargetSceneTransaction.
 
     Actions:
         grasp/select_reachable (cleany_interfaces/action/SelectReachableGrasp):
-            선택 Server이며 action_name 기본값입니다.
-        /move_action (moveit_msgs/action/MoveGroup): 어댑터를 통한 계획 Client.
+            Selection server; action_name default.
+        /move_action (moveit_msgs/action/MoveGroup): Planning client through the adapter.
 
     TF:
-        선택적 pregrasp 가시성 검사에서 설정된 카메라 변환을 읽습니다.
-        후보 형상은 planning_frame이어야 하며 기본값은 base_link입니다.
+        Optional pre-grasp visibility checks read the configured camera transform.
+        Candidate geometry is expected in planning_frame, default base_link.
 
     Notes:
-        한 번에 선택 목표 하나를 수락하며 최신 관절 피드백이 필요합니다.
-        선택 중 계획 장면을 임시 갱신하고 종료 시 정리를 시도합니다.
+        Admits one selection goal at a time and requires fresh joint feedback.
+        Selection temporarily updates the planning scene and attempts cleanup on exit.
     """
     def __init__(self, **kwargs) -> None:
         super().__init__('grasp_selection_server', **kwargs)

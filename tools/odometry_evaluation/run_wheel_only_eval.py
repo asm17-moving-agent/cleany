@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""편도 바퀴 odometry 평가기의 설정 기반 순차 일괄 실행 래퍼입니다."""
+"""Config-driven sequential batch wrapper for the one-way wheel odometry evaluator."""
 from __future__ import annotations
 
 import argparse
@@ -80,7 +80,7 @@ def load_config(path: Path) -> tuple[dict[str, Any], Path]:
         raise ValueError("plots must be a boolean")
     resolved = {key: (ROOT / c[key]).resolve() for key in ("extrinsic_config", "motion_config")}
     output = (ROOT / c["output_dir"]).resolve()
-    # 순수 설정 loader이며 ROS import나 초기화가 없습니다.
+    # Pure config loaders; no ROS imports or initialization.
     sys.path.insert(0, str(EVALUATOR.parent))
     from planar_extrinsic import PlanarExtrinsic
     MotionConfig.from_json(resolved["motion_config"])
@@ -140,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"run_{i}: {shlex.join(cmd)}")
     if args.dry_run:
         return 0
-    # 개별 이동 평가 잠금과 별개이며 전체 반복 동안 유지합니다.
+    # Separate from the per-motion evaluator lock; held across all repetitions.
     with open("/tmp/cleany_wheel_eval_batch.lock", "a") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -226,13 +226,13 @@ def run_batch(c: dict, config_path: Path, motion: Path, extrinsic: Path,
                 break
             env = os.environ.copy()
             env.update(ROS_DOMAIN_ID=str(c["ros_domain_id"]), PYTHONNOUSERSITE="1")
-            # 모든 자식은 참조 설정의 불변 복사본을 사용합니다.
+            # All children use immutable copies of referenced configuration.
             frozen_cmd = list(cmd)
             frozen_cmd[frozen_cmd.index(str(motion))] = str(motion_frozen)
             frozen_cmd[frozen_cmd.index(str(extrinsic))] = str(extrinsic_frozen)
             try:
                 active = subprocess.Popen(frozen_cmd, env=env, start_new_session=True)
-                # Popen 중 active를 대입하기 전에 신호가 도착할 수 있습니다.
+                # A signal can arrive during Popen before `active` is assigned.
                 if interrupted is not None and not forwarded:
                     try:
                         if active.poll() is None:
@@ -268,7 +268,7 @@ def run_batch(c: dict, config_path: Path, motion: Path, extrinsic: Path,
         failure_reason = str(error) or "Interrupted"
         print(f"{failed_stage} failed: {failure_reason}", file=sys.stderr, flush=True)
     finally:
-        # 평가기의 STOP/disable 경로가 완료될 때까지 런타임을 유지합니다.
+        # Preserve runtime until the evaluator has completed its STOP/disable path.
         if active is not None:
             try:
                 if active.poll() is None:

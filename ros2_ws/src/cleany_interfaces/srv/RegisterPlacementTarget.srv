@@ -1,4 +1,4 @@
-# 물리적 이동 전에 등록해야 하며 관측은 base_link를 사용해야 합니다.
+# Register before any physical motion; observation must use base_link.
 string execution_id
 string destination_id
 std_msgs/Header header

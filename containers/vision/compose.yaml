@@ -5,7 +5,7 @@ x-vision-image: &vision-image
   build:
     context: ../..
     dockerfile: containers/vision/Dockerfile
-    # 이미지 빌드에만 적용합니다. AnyGrasp 실행 시에는 호스트 네트워크를 거부합니다.
+    # This affects image build only. AnyGrasp runtime rejects host networking.
     network: host
 
 x-runtime-environment: &runtime-environment
@@ -30,7 +30,7 @@ services:
       ANYGRASP_MAC_ADDRESS: "${ANYGRASP_MAC_ADDRESS:?set ANYGRASP_MAC_ADDRESS in the root-owned Jetson identity file}"
       ANYGRASP_IPV4_ADDRESS: "${ANYGRASP_IPV4_ADDRESS:?set ANYGRASP_IPV4_ADDRESS in the root-owned Jetson identity file}"
       ANYGRASP_EXPECTED_FEATURE_ID: "${ANYGRASP_EXPECTED_FEATURE_ID:?set ANYGRASP_EXPECTED_FEATURE_ID in the root-owned Jetson identity file}"
-      # 라이선스 SDK는 gsnet.so를 기준으로 license/licenseCfg.json을 찾습니다.
+      # The licensed SDK resolves license/licenseCfg.json relative to gsnet.so.
       ANYGRASP_LICENSE_DIR: /opt/anygrasp/license
       ANYGRASP_LICENSE_FILE: "${ANYGRASP_LICENSE_FILE:?set ANYGRASP_LICENSE_FILE in the root-owned Jetson identity file}"
       ANYGRASP_CHECKPOINT_PATH: "${ANYGRASP_CHECKPOINT_PATH:?set ANYGRASP_CHECKPOINT_PATH in the root-owned Jetson identity file}"

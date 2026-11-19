@@ -10,5 +10,5 @@ string after_observation
 string navigation_result
 string return_result
 string cleaning_mode
-# 체크포인트 상세와 재접속을 위해 타입이 있는 전체 core 보고서를 JSON으로 직렬화합니다.
+# Full typed core report serialized as JSON for checkpoint detail and reconnect.
 string report_json

@@ -37,7 +37,7 @@ flowchart TD
 | 서비스(service) | 요청 하나에 응답 하나 | `PlanGrasp.srv`로 후보 생성 요청 |
 | 액션(action) | 목표·진행 피드백·결과·취소 | `SelectReachableGrasp.action`으로 후보 평가 |
 
-**콜백**(callback)은 입력이 도착했을 때 실행할 함수입니다. **파라미터**(parameter)는 좌표계 이름이나 timeout처럼 실행 시 설정할 값이고, **launch**는 노드와 파라미터를 함께 시작하는 구성입니다.
+**콜백**(callback)은 입력이 도착했을 때 실행할 함수입니다. **파라미터**(parameter)는 frame 이름이나 timeout처럼 실행 시 설정할 값이고, **launch**는 노드와 파라미터를 함께 시작하는 구성입니다.
 
 토픽을 발행했다는 사실만으로 동작 성공을 알 수는 없습니다. `/cmd_vel`은 속도 명령이며 목적지 도착 결과가 아닙니다. 서비스가 긴 계산을 금지하는 것도 아닙니다. 작업 중 진행 상황과 취소가 필요한지에 따라 액션을 선택합니다.
 
@@ -65,9 +65,9 @@ string snapshot_id
 DetectedObject3D[] objects
 ```
 
-`header.frame_id`는 좌표 기준이고 `header.stamp`는 공통 촬영 시각입니다. 모든 객체가 이 header를 공유합니다. 숫자가 같아도 좌표계이 다르면 같은 위치가 아닐 수 있습니다. `snapshot_id`는 인식 결과와 이후 요청을 연결하는 식별자입니다.
+`header.frame_id`는 좌표 기준이고 `header.stamp`는 공통 촬영 시각입니다. 모든 객체가 이 header를 공유합니다. 숫자가 같아도 frame이 다르면 같은 위치가 아닐 수 있습니다. `snapshot_id`는 인식 결과와 이후 요청을 연결하는 식별자입니다.
 
-[InspectScene.action](../../../ros2_ws/src/cleany_interfaces/action/InspectScene.action)은 RGB-D 관측과 선택 물체 복원을 요청하는 계약입니다. 현재 서버는 `cleany_perception`이며 첫 요청의 snapshot과 물체 ID를 다음 선택 요청에 전달합니다. 입력과 단계는 [7장](07-rgbd.md)을 따릅니다.
+[InspectScene.action](../../../ros2_ws/src/cleany_interfaces/action/InspectScene.action)은 RGB-D 관측을 요청하고 이 배열을 받는 계약입니다. 현재 `cleany_perception`은 scaffold이므로 인터페이스 파일이 있다고 범용 인식 서버까지 구현되었다고 읽으면 안 됩니다. 실행 가능한 빨간 캔 경로는 07장에서 별도 데모로 살펴봅니다.
 
 ## 03.4 PlanGrasp 요청과 응답
 
@@ -78,7 +78,7 @@ string snapshot_id
 uint32 object_id
 sensor_msgs/PointCloud2 target_cloud
 sensor_msgs/PointCloud2 context_cloud
-# OBB 자세는 두 점군과 동일한 좌표계 및 촬영 시각을 사용합니다.
+# OBB pose uses the same frame and capture time as both point clouds.
 DetectedObject3D target_object
 ---
 ```
@@ -87,7 +87,7 @@ DetectedObject3D target_object
 
 응답에는 `success`, `error_code`, `message`, `GraspCandidate[] candidates`가 있습니다. 성공했다면 후보를 얻었다는 뜻이며 팔 이동 완료가 아닙니다. 후보를 양팔 IK·계획으로 평가하는 action은 별도의 다음 단계입니다.
 
-실제 `GraspNode._validate()`는 ID 일치, 두 점군의 동일 좌표계·stamp, OBB의 유효 크기와 자세를 검사합니다. 문서로 정한 계약이 코드에서 어떻게 강제되는지 볼 수 있는 지점입니다.
+실제 `GraspNode._validate()`는 ID 일치, 두 점군의 동일 frame·stamp, OBB의 유효 크기와 자세를 검사합니다. 문서로 정한 계약이 코드에서 어떻게 강제되는지 볼 수 있는 지점입니다.
 
 ## 03.5 grasp_server 실행과 콜백
 
@@ -111,24 +111,24 @@ self._service = self.create_service(
 
 `_plan()`은 다음 순서로 읽습니다. 아래는 원문 발췌가 아닌 호출 흐름 요약입니다.
 
-```mermaid
-flowchart TD
-  Validate["요청 검증"] --> Cloud["target / context 메시지를 점군으로 변환"]
-  Cloud --> Config["파라미터로 GraspConfig 구성"]
-  Config --> Predict["predictor.predict / rank_grasps"]
-  Predict --> TF["planning_frame으로 좌표 변환"]
-  TF --> Response["GraspCandidate 배열로 응답"]
+```text
+_validate(request)
+→ point_cloud_from_message(target/context)
+→ 파라미터로 GraspConfig 생성
+→ predictor.predict() → rank_grasps()
+→ planning_frame 좌표 변환
+→ GraspCandidate 메시지 구성 → response 반환
 ```
 
-ROS 메시지 변환과 응답은 노드가 맡고, 후보 계산은 core가 맡습니다. backend가 없으면 `ERROR_MODEL_UNAVAILABLE`, 입력·TF 문제가 있으면 `ERROR_INVALID_INPUT`, 후보가 없으면 `ERROR_NO_GRASP_CANDIDATE`로 구분합니다. 상세 후보 계산은 08장에서 이어갑니다.
+ROS 메시지 변환과 응답은 node가 맡고, 후보 계산은 core가 맡습니다. backend가 없으면 `ERROR_MODEL_UNAVAILABLE`, 입력·TF 문제가 있으면 `ERROR_INVALID_INPUT`, 후보가 없으면 `ERROR_NO_GRASP_CANDIDATE`로 구분합니다. 상세 후보 계산은 08장에서 이어갑니다.
 
 ## 03.6 인터페이스 추적 실습
 
-[개발환경 설치](../../implementation/development-setup.md)와 `cleany_interfaces` 빌드가 끝난 저장소 루트 터미널에서 실행합니다. 실행 중인 로봇이나 시뮬레이터는 필요하지 않습니다.
+[개발환경 설치](../../DEVELOPMENT_SETUP.md)와 `cleany_interfaces` 빌드가 끝난 저장소 루트 터미널에서 실행합니다. 실행 중인 로봇이나 시뮬레이터는 필요하지 않습니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
-source "$(make -s print-install-base)/setup.bash"
+source ros2_ws/install/setup.bash
 ros2 interface show cleany_interfaces/msg/DetectedObject3DArray
 ros2 interface show cleany_interfaces/srv/PlanGrasp
 ros2 interface show cleany_interfaces/action/SelectReachableGrasp

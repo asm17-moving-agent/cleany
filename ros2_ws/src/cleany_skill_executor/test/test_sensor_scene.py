@@ -45,7 +45,7 @@ def test_receipt_preserves_capture_age_and_missing_receipt_does_not_refresh_it()
     assert node._scene_cloud_stamp_ns == 7_000_000_000
     received = node._scene_commit_received_at
     NearestPregraspCoordinator._on_scene_cloud_receipt(node, message)
-    assert node._scene_commit_received_at == received  # 재생으로 최신성을 갱신할 수 없습니다.
+    assert node._scene_commit_received_at == received  # replay cannot renew it
     NearestPregraspCoordinator._on_scene_cloud_receipt(node, Header())
     assert node._scene_cloud_stamp_ns == 7_000_000_000
     with pytest.raises(RuntimeError, match='fresh'):

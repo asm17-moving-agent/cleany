@@ -1,4 +1,4 @@
-# 호스트 전용 순서 보장 구동 허가 RPC이며 MCU 펌웨어로 전송하지 않습니다.
+# Host-only ordered permission RPC. Never transported to MCU firmware.
 string client_id
 uint64 request_sequence
 bool enabled

@@ -1,4 +1,4 @@
-"""검출이나 시뮬레이터 형상 없이 전체 시야의 깊이를 투영합니다."""
+"""Full-view depth projection without detection or simulator geometry."""
 from __future__ import annotations
 
 import math
@@ -22,10 +22,10 @@ def depth_scene_cloud(
     depth_16u_scale_m: float = 0.001,
     workspace_roi_pixels: Sequence[float] = (),
 ) -> PointCloud2:
-    """인식되지 않은 물체를 포함해 표본화한 모든 유효 픽셀을 투영합니다.
+    """Project every sampled valid pixel, including unrecognized objects.
 
-    입력은 대응하는 광학 좌표계 내부 파라미터를 가진 보정 깊이여야 합니다.
-    무효하거나 누락된 깊이는 제외하며 빈 공간으로 만들어 내지 않습니다.
+    Input must be rectified depth with matching optical-frame intrinsics.
+    Invalid / missing depth is omitted, never fabricated as free space.
     """
     if not (0 < minimum_depth_m < maximum_depth_m < float('inf')):
         raise ValueError('Depth limits must be finite, positive and ordered')

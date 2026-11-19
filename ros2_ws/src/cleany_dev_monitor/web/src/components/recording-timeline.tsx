@@ -181,7 +181,7 @@ export function RecordingTimeline({
       const ratio = fineRatio.current;
       const current = fineRef.current;
       if (current && ratio != null) {
-        // 드래그 중에도 양쪽 가장자리에 가까워질수록 이동 속도를 부드럽게 높입니다.
+        // Speed increases smoothly toward either edge, including during a drag.
         const edge =
           ratio < 0.15
             ? (ratio - 0.15) / 0.15

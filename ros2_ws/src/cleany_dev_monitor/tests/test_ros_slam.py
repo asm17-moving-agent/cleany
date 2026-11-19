@@ -1,4 +1,4 @@
-"""합성 Cartographer 데이터로 실제 DDS와 서비스를 사용하며 로봇은 움직이지 않습니다."""
+"""Real DDS/service transport with synthetic Cartographer data, no robot motion."""
 
 import gzip
 import os
@@ -127,7 +127,7 @@ def test_cartographer_topics_query_versions_timeout_and_replay(tmp_path, monkeyp
                 == 0.3
             )
         )
-        assert queried == [(0, 0)]  # 최적화 시 바뀌지 않은 픽셀을 재사용합니다.
+        assert queried == [(0, 0)]  # Optimization reuses unchanged pixels.
         assert any(
             r["data"].get("kind") == "slam_pose_adjustment"
             for r in monitor.hub.snapshot()["rows"]
@@ -154,7 +154,7 @@ def test_cartographer_topics_query_versions_timeout_and_replay(tmp_path, monkeyp
         assert (
             monitor.hub.latest_data("slam_texture", "0/0")["epoch"] != initial["epoch"]
         )
-        # 서비스 발견은 유지하되 응답을 중단해 비동기 요청 시간 초과를 확인합니다.
+        # Retain a discovered service but stop serving it: async requests time out.
         executor.remove_node(source)
         version[0] = 1
         until(

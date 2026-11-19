@@ -11,7 +11,7 @@ def test_external_namespace_alias_preserves_body_fixed_friction(tmp_path: Path, 
     source.write_text(text)
     result = materialize_friction_frames(source)
     assert source.read_text() == text
-    # 외부 물리 엔진의 reader는 이 한정 속성명을 문자열 그대로 사용합니다.
+    # The external physics reader uses this literal qualified attribute name.
     assert 'ignition:expressed_in="base_link"' in result.read_text()
     direction = ET.parse(result).find('.//fdir1')
     assert direction.text == '1 -1 0'

@@ -55,14 +55,14 @@ def test_mock_expiry_precedes_velocity_and_stop_watermark_never_rewinds(monkeypa
     now = [10.]
     monkeypatch.setattr(module.time, 'monotonic', lambda: now[0])
     try:
-        # MCU와 동일하게 초기 명령의 sequence 0을 허용합니다.
+        # Sequence zero is valid as the initial command, matching the MCU.
         _command(mock, WheelCommand.ENABLE, 0, deadline=10_050_000)
         assert mock.enabled and mock.have_command_sequence
         now[0] = 10.051
         _command(mock, WheelCommand.VELOCITY, 1, deadline=10_200_000, values=[3.] * 4)
         assert not mock.enabled and mock.last_accepted_seq == 0
         assert mock.faults & WheelState.FAULT_COMMAND_TIMEOUT
-        # 무효한 메타데이터로 STOP sequence의 최댓값을 되돌릴 수 없습니다.
+        # Invalid metadata cannot rewind the sequenced STOP high-water mark.
         _command(mock, WheelCommand.STOP, 0, version=1)
         assert mock.last_accepted_seq == 0
         _command(mock, WheelCommand.ENABLE, 0, deadline=10_200_000)
@@ -76,7 +76,7 @@ def test_mock_expiry_precedes_velocity_and_stop_watermark_never_rewinds(monkeypa
 
 @pytest.fixture
 def peers(monkeypatch, request):
-    """executor 없이 결정적인 시계로 실제 콜백을 검사합니다."""
+    """Exercise real callbacks with a deterministic clock and no executor."""
     rclpy.init()
     params = {
         'geometry.wheel_radius_m': .05, 'geometry.wheelbase_m': .30,
@@ -124,12 +124,12 @@ def test_driver_fixed_enable_retry_idle_and_fresh_commands(peers):
     now[0] += .02
     feedback()
     driver.tick()
-    assert commands[-1] == original  # sequence와 마감 시각 모두 증가하지 않습니다.
+    assert commands[-1] == original  # Neither sequence nor deadline advances.
     mock.command(commands[-1])
     now[0] += .02
     feedback()
     assert driver.pending_enable is None and mock.enabled
-    # 구동 허가 직후 타이머와 경합하지 않고 목표 0인 허가 상태를 유지할 수 있습니다.
+    # The user can remain enabled at zero, without racing a post-enable timer.
     for _ in range(20):
         driver.tick()
         mock.command(commands[-1])
@@ -139,7 +139,7 @@ def test_driver_fixed_enable_retry_idle_and_fresh_commands(peers):
         feedback()
     count = len(commands)
     _enable(driver)
-    assert len(commands) == count  # 이미 허가된 상태에서의 허가 요청은 멱등적입니다.
+    assert len(commands) == count  # Already-enabled requests are idempotent.
     driver.on_twist(twist)
     driver.tick()
     mock.command(commands[-1])
@@ -199,7 +199,7 @@ def test_three_tenths_input_timeout_keeps_mcu_deadlines_bounded(peers):
     driver.tick()
     assert not driver.enabled and commands[-1].mode == WheelCommand.STOP
     assert driver.diagnostic_error == 'cmd_vel timeout'
-    assert driver.fault_reason == ''  # 명시적인 안전 해제는 베이스 사용 불가 상태가 아닙니다.
+    assert driver.fault_reason == ''  # An intentional safe disable is not base unavailability.
     mock.command(commands[-1])
     assert not mock.enabled and mock.target == [0.] * 4
 
@@ -221,22 +221,22 @@ def test_driver_fault_recovery_input_timeout_and_feedback_validation(peers):
     driver.on_state(gap)
     assert driver.enabled and driver.last_state_receipt == now[0]
     mock.sequence = gap.sequence + 1
-    # 늦게 도착한 유효 속도 명령으로 만료된 MCU 허가를 복구할 수 없습니다.
+    # A valid late velocity must not rescue an expired MCU permission.
     now[0] = mock.valid_until_us / 1e6
     feedback()
     assert not driver.enabled and mock.faults
-    assert driver.fault_reason  # 만료된 MCU 허가는 다시 허가될 때까지 실제 고장으로 남습니다.
+    assert driver.fault_reason  # Expired MCU permission is a real fault until re-enabled.
     mock.command(commands[-1])
     _enable(driver)
     now[0] += .02
-    feedback()  # ENABLE 대기 중에는 이전 시간 초과 고장이 계속 도착할 수 있습니다.
+    feedback()  # Prior timeout fault may still arrive while ENABLE is pending.
     assert driver.enabled and driver.pending_enable is not None
     driver.tick()
     mock.command(commands[-1])
     now[0] += .02
     feedback()
     assert not mock.faults and driver.pending_enable is None
-    assert driver.fault_reason == ''  # ENABLE의 수신 확인으로 해제합니다.
+    assert driver.fault_reason == ''  # Cleared by the acknowledged ENABLE.
     twist = Twist()
     twist.linear.x = .1
     driver.on_twist(twist)
@@ -253,7 +253,7 @@ def test_driver_fault_recovery_input_timeout_and_feedback_validation(peers):
 
 def test_driver_reboot_restart_and_feedback_loss_rebase(peers):
     driver, mock, now, commands, feedback = peers
-    # 드라이버가 재시작하면 실행 중인 상대를 정지시킬 수 있고 명령 sequence가 래핑될 수 있습니다.
+    # Restarting a driver can stop a running peer and wrap the command sequence.
     mock.enabled = mock.have_command_sequence = True
     mock.last_accepted_seq = 0xffffffff
     mock.valid_until_us = int(now[0] * 1e6) + 200000
@@ -267,7 +267,7 @@ def test_driver_reboot_restart_and_feedback_loss_rebase(peers):
     now[0] += .02
     feedback()
     assert driver.enabled and driver.pending_enable is None
-    # 재부팅 시 STOP 전송 전에 송신 sequence 기준을 다시 잡습니다.
+    # Reboot resets the outgoing baseline before emitting STOP.
     driver.command_sequence = 100
     mock.reboot(Trigger.Request(), Trigger.Response())
     now[0] += .02
@@ -297,7 +297,7 @@ def test_feedback_in_flight_before_stop_is_not_a_fault_but_ignored_stop_is(peers
     now[0] += .02
     feedback()
     assert driver.enabled and driver.pending_enable is None
-    driver._disable('stopped by request')  # STOP을 보냈지만 MCU가 아직 처리하지 않은 상태입니다.
+    driver._disable('stopped by request')  # STOP is sent but not yet processed by the MCU.
 
     def enabled_feedback():
         state = deepcopy(driver.latest)

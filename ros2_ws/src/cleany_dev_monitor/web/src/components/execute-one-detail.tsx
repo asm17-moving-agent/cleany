@@ -132,8 +132,8 @@ export function ExecuteOneDetail({
             : "last"
           : "pending";
 
-  // 패널을 열 때만 초점과 스크롤을 이동합니다. telemetry 갱신으로 사용자가
-  // 읽는 단계를 바꾸거나 위치를 초기화하지 않습니다.
+  // Only opening the panel moves focus/scroll. Telemetry must never pull the
+  // reader away from another phase or reset their position.
   useEffect(() => {
     panel.current?.focus({ preventScroll: true });
     panel.current?.scrollIntoView({ block: "start", behavior: "instant" });

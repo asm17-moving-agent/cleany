@@ -154,7 +154,7 @@ def test_local_websocket_ping_and_latest_rate():
     relay.start()
     assert first_message.wait(2)
     relay.update_pose(3, 4, 2)
-    time.sleep(0.65)  # 서버 ping/pong 구간 여러 번을 검사합니다.
+    time.sleep(0.65)  # exercises several server ping/pong intervals
     relay.stop()
     stop.set()
     thread.join(timeout=2)

@@ -21,7 +21,7 @@ const labels: Record<string, string> = {
   camera: "카메라 원본",
 };
 const heavy = ["lidar", "point_cloud", "voxel_layer", "voxel_world", "camera"];
-// 이전 Monitor 프로세스나 저장 세션에서 과거 label이 올 수 있습니다.
+// Older monitor processes and saved sessions can still send previous labels.
 const displayLabel = (value: string) => value.replace(/\s*\u00b7\s*/g, ", ");
 export function RecordingControls({ replay }: { replay: boolean }) {
   const [live, setLive] = useState<Data | null>(null);

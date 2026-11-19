@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-// UI 통신 fixture만 사용하며 ROS나 로봇 실행 결과가 아닙니다.
+// UI transport fixture only; this does not claim a ROS or robot execution.
 const runtime = {
   boot_id: "fixture-runtime",
   state: "ERROR",
@@ -269,7 +269,7 @@ test("telemetry refresh preserves graph DOM and viewport; state changes preserve
   await expect(flow.locator(".react-flow__node")).toHaveCount(
     runtime.fsm_states.length,
   );
-  // 초기 자동 맞춤이 끝난 뒤 사용자 확대·축소를 검사합니다.
+  // Let the initial auto-fit settle before exercising user-controlled zoom.
   await page.waitForTimeout(250);
   await page.getByRole("button", { name: /zoom in/i }).click();
   const before = await flow
@@ -382,7 +382,7 @@ test("FSM highlight holds each observed state for 500ms without delaying actual 
     "WORKING (활성)",
   );
   await page.screenshot({ path: "test-results/fsm-dwell.png", fullPage: true });
-  // 새 runtime이 시작되면 이전 표시 대기열을 즉시 버려야 합니다.
+  // A new runtime must discard the old presentation queue immediately.
   send("IDLE", "restarted");
   await expect(active("IDLE")).toHaveAttribute("aria-label", "IDLE (활성)");
   await page.clock.runFor(1000);
@@ -447,7 +447,7 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
   await page.getByRole("tab", { name: "연결", exact: true }).click();
   const graph = page.locator(".ros-connections");
   await expect(graph.locator(".react-flow__node")).toHaveCount(8);
-  // /base는 odom 발행과 cmd_vel 구독을 모두 하지만 노드는 한 번만 표시합니다.
+  // /base publishes odom and consumes cmd_vel, but appears only once.
   await expect(graph.locator('[data-id="node:/base"]')).toHaveCount(1);
   await page.waitForTimeout(250);
   await graph.getByRole("button", { name: /zoom in/i }).click();

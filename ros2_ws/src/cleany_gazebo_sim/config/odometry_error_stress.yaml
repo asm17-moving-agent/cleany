@@ -2,7 +2,7 @@ simulated_odometry_error:
   ros__parameters:
     input_topic: wheel/odom_raw
     output_topic: wheel/odom
-    # 합성 강건성 시험값이며 측정된 하드웨어 데이터가 아닙니다.
+    # Synthetic robustness-test values. These are not measured hardware data.
     forward_scale: 1.01
     lateral_scale: 0.95
     rotation_scale: 1.02

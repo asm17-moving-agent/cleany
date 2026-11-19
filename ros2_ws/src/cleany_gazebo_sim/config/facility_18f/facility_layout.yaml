@@ -4,7 +4,7 @@ source:
   sha256: 5e6965ebdc179cad75fced8ba7e9535ff732bfb7bc696a3b5670aaf4a2ebe8cb
   coordinates: dashboard landscape viewBox 0 0 1160 670
   dimensions: inferred_from_existing_d_hub_not_surveyed
-  # 지도 좌표에 대응하는 스크린샷 픽셀 좌표이며 테두리를 포함합니다.
+  # Screenshot pixels corresponding to map coordinates. Includes its border.
   reference_pixel_anchors: [[824, 13], [1394, 13], [824, 522]]
   reference_map_anchors: [[576, 8], [976, 8], [576, 364.93311582381725]]
 transform:
@@ -17,7 +17,7 @@ wall:
 floor_bounds: [8, 8, 1154, 662]
 floor:
   material: grey_felt
-  texture_tile_m: 0.5 # 외관 근사값이며 측정된 섬유 크기가 아닙니다.
+  texture_tile_m: 0.5 # visual approximation; not a measured fibre scale
 glass:
   thickness_m: 0.012
   transparency: 0.72
@@ -26,15 +26,15 @@ glass:
   frame_color: [0.35, 0.39, 0.40, 1.0]
 central_table:
   bounds: [461, 235, 491, 368]
-  height_m: 0.80 # 사용자가 제공한 대략적인 높이입니다.
+  height_m: 0.80 # user supplied approximate height
   color: [0.72, 0.60, 0.44, 1.0]
 ceiling:
-  height_m: 2.7 # 사용자가 선택한 천장 높이입니다.
+  height_m: 2.7 # user selected ceiling height
   thickness_m: 0.08
   color: [0.92, 0.92, 0.90, 1.0]
 spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
-# 폴리라인은 대시보드 지도 좌표계의 벽 중심선을 나타냅니다. D-HUB의
-# 외벽 면은 기존 가구에서 멀어지는 쪽으로 벽 두께의 절반만큼 이동합니다.
+# Polylines describe wall centers in dashboard map coordinates. D-HUB's
+# outer faces are offset away from the existing furniture by half a wall.
 walls:
   - {id: outer_north, points: [[8, 8], [1154, 8]], offset_m: [0, 0.08]}
   - {id: outer_west, points: [[8, 8], [8, 662]]}
@@ -123,8 +123,8 @@ room_furniture:
   row_offset_units: 13.6
   desk_top_m: 0.72
   chair_offset_m: 0.38
-# 월드 좌표 경로입니다. 기존 시작점에서 서쪽 문을 통과하고 D-HUB 서쪽의
-# 열린 복도를 따라 M3, THE GROND를 거쳐 A2 출입구로 이어집니다.
+# World coordinates: starts at the existing spawn, exits west door, then follows
+# the open corridor west of D-HUB to M3 and through THE GROND to A2's doorway.
 route_control:
   max_linear_speed: 0.15
   max_angular_speed: 0.25

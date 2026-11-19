@@ -1,9 +1,11 @@
-"""설정 가능한 결과물 루트 아래 손-눈 데이터셋을 복구 가능하게 저장합니다.
+"""Recoverable hand-eye dataset storage under a configurable artifact root.
 
-영상 저장을 확정한 뒤 journal 항목을 확정하고, 이후 samples.jsonl을 원자적으로
-교체합니다. 장애 시 참조되지 않은 영상이나 재생 가능한 journal이 남을 수 있지만
-저장 확정된 행이 없는 영상을 가리키지는 않습니다. writer를 열면 journal을 재생하고
-모든 해시를 검사하며 참조되지 않은 영상을 제거하되 기존 확정 표본은 보존합니다.
+Images are committed before a journal entry, and a journal entry is committed
+before the atomically replaced ``samples.jsonl`` file.  Consequently a crash
+can leave an orphan image or a replayable journal, but never a committed row
+that names a missing image.  Opening the writer replays journals, verifies all
+hashes, removes unreferenced images, and preserves every previously committed
+sample.
 """
 
 from __future__ import annotations
@@ -58,15 +60,15 @@ _GIT_COMMIT_PATTERN = re.compile(r'^[0-9a-fA-F]{40,64}$')
 
 
 class DatasetError(RuntimeError):
-    """데이터셋 저장 실패의 기본 예외입니다."""
+    """Base class for a dataset storage failure."""
 
 
 class DatasetCorruptionError(DatasetError):
-    """저장 확정된 manifest, 표본, journal 또는 영상이 검증을 통과하지 못했습니다."""
+    """A committed manifest, sample, journal, or image failed validation."""
 
 
 class DuplicateSampleError(DatasetError):
-    """이 실행에 같은 표본 ID가 이미 저장 확정되어 있습니다."""
+    """A sample ID is already committed in this run."""
 
 
 def _text(value: str, *, field_name: str) -> str:
@@ -167,7 +169,7 @@ class GitProvenance:
 def read_git_provenance(
     repository_root: str | os.PathLike[str],
 ) -> GitProvenance:
-    """현재 commit과 추적 및 미추적 파일의 전체 변경 상태를 수집합니다."""
+    """Capture the current commit and full tracked/untracked dirty state."""
 
     root = Path(repository_root).resolve(strict=True)
     commit = subprocess.run(
@@ -349,7 +351,7 @@ class CaptureTiming:
 
 @dataclass(frozen=True, slots=True)
 class DatasetManifestV1:
-    """필수 실행 출처 정보이며 값을 암묵적으로 찾거나 추측하지 않습니다."""
+    """Required run provenance; no value is discovered or guessed silently."""
 
     run_id: str
     git: GitProvenance
@@ -572,7 +574,7 @@ class _DatasetLock:
 
 
 class DatasetWriter:
-    """한 번의 보정 실행을 위한 원자적 writer와 복구 reader입니다."""
+    """Atomic writer and recovery reader for one calibration run."""
 
     def __init__(
         self,
@@ -912,7 +914,7 @@ class DatasetWriter:
         record: CalibrationSampleRecord,
         pair: CameraFramePair,
     ) -> StoredCalibrationSample:
-        """복구 가능한 3단계 순서로 영상 하나와 행 하나의 저장을 확정합니다."""
+        """Commit one image and row using the recoverable three-stage order."""
 
         if not isinstance(record, CalibrationSampleRecord):
             raise ValueError('record must be a CalibrationSampleRecord')
@@ -1004,7 +1006,7 @@ class DatasetWriter:
         attempt: int,
         pair: CameraFramePair,
     ) -> ArchivedAttemptImage:
-        """PnP 전에 취득한 모든 정착 이후 프레임을 영속 저장합니다."""
+        """Durably preserve every acquired post-settle frame before PnP."""
 
         pose = _text(pose_id, field_name='pose_id')
         if not _RUN_ID_PATTERN.fullmatch(pose):
@@ -1082,7 +1084,7 @@ class DatasetWriter:
         )
 
     def read_samples(self) -> tuple[StoredCalibrationSample, ...]:
-        """저장 확정된 모든 행을 검증하고 추가된 순서로 반환합니다."""
+        """Verify and return every committed row in append order."""
 
         with self._lock:
             self._recover_locked()

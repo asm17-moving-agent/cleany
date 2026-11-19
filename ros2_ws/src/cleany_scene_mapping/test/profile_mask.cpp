@@ -1,4 +1,4 @@
-// 로봇 전용 오프라인 재생이며 ROS 노드나 이동 요청을 시작하지 않습니다.
+// Offline robot-only replay. Does not start ROS nodes or issue motion requests.
 #include <geometric_shapes/body_operations.h>
 #include "cleany_scene_mapping/partitioned_shape_mask.hpp"
 #include <geometric_shapes/mesh_operations.h>

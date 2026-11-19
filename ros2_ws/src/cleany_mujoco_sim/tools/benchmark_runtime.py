@@ -1,7 +1,7 @@
-"""ROS 시뮬레이션 명령을 측정하고 이후 소유한 모든 프로세스를 종료합니다.
+"""Measure a ROS simulation command and stop all owned processes afterward.
 
-ROS 2, 센서 및 시계 메시지와 psutil이 필요합니다. launch 종료 코드 0은
-집기, 분류와 배치 성공을 입증하지 않으므로 로그와 단계 결과물을 확인해야 합니다.
+Requires ROS 2, sensor/clock messages and psutil. A launch exit code of zero
+does not establish pick/sort/place success; inspect its log and stage artifacts.
 """
 
 from __future__ import annotations
@@ -85,8 +85,8 @@ def main() -> int:
     if not command:
         parser.error('provide a command after --')
     profile = Path(__file__).parents[1] / 'config' / 'fastdds_rgbd.xml'
-    # 기본 SHM 구간 크기 부족으로 큰 RGB-D 메시지가 유실되지 않도록
-    # probe가 launch와 같은 전송 프로파일을 사용해야 합니다.
+    # The probe must share the launch transport profile to avoid dropped large
+    # RGB-D messages from an undersized default SHM segment.
     if not profile.is_file():
         profile = Path(__file__).parents[2] / 'cleany_perception/config/fastdds_rgbd.xml'
     if profile.is_file():

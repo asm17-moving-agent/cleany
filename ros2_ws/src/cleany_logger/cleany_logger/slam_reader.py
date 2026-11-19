@@ -1,4 +1,4 @@
-"""허용 목록의 읽기 전용 SubmapQuery 요청을 한 번에 하나만 보내는 ROS 어댑터입니다."""
+"""ROS adapter with one allowlisted read-only SubmapQuery request at a time."""
 
 import struct
 import time
@@ -95,7 +95,7 @@ class SlamReader:
                 )
                 frame = message.header.frame_id
                 if frame != self.config["map_frame"]:
-                    # 전체 3D TF를 먼저 적용하고 XY로 투영합니다. 주행 센서와 같은 경로입니다.
+                    # Full 3D TF first, then project to XY (same path as navigation sensors).
                     from rclpy.time import Time
 
                     from .navigation import transform_xyz
@@ -187,8 +187,8 @@ class SlamReader:
                         raise ValueError(
                             response.status.message or "Empty submap texture"
                         )
-                    # 조회와 디코딩 중 활성 submap이 갱신될 수 있습니다. 검증한 이전 영상은
-                    # 자기 버전으로 유지하며 새 버전으로 표시하지 않습니다.
+                    # Active submaps can advance during the query/decode. Keep a
+                    # verified earlier image with its own version, never relabel it.
                     self.decode = (
                         self.pool.submit(
                             texture_png,

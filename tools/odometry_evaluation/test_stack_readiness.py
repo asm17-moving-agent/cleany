@@ -85,7 +85,7 @@ def test_probe_owns_executor_context_without_default_ros_init(monkeypatch):
     try:
         probe.spin(.02)
         assert not probe.snapshot()["ready"]
-        # 관측기는 이동 publisher를 소유하지 않습니다.
+        # The observer owns no motion publishers.
         assert {name for name, _ in probe.node.get_publisher_names_and_types_by_node(
             probe.node.get_name(), probe.node.get_namespace()
         )} == {"/parameter_events", "/rosout"}

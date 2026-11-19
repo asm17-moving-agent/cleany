@@ -53,7 +53,7 @@ flowchart LR
 
 `load_navigation_profile(base, overlay)`는 같은 plugin의 값을 병합하고, plugin 종류가 달라지면 해당 설정 묶음을 교체합니다. 이전 plugin의 전용 값이 새 plugin에 남지 않게 하기 위한 규칙입니다. 환경별 차이만 담긴 파일은 호출자가 공통 설정과 합친 뒤 `params_file`로 전달합니다. Navigation launch는 전달받은 파일을 읽고 선택한 이동 방식과 안전 설정을 적용합니다.
 
-센서와 구동 연결, 환경별 설정 선택은 호출 패키지가 소유합니다. 실행 순서는 [전역 실행 가이드](../../../../docs/implementation/running.md), 이 패키지가 요구하는 입력은 [안전 계약](safety.md#입력과-tf)을 따릅니다.
+센서와 구동 연결, 환경별 설정 선택은 호출 패키지가 소유합니다. 실행 순서는 [전역 실행 가이드](../../../../docs/RUNNING.md), 이 패키지가 요구하는 입력은 [안전 계약](safety.md#입력과-tf)을 따릅니다.
 
 `navigation.launch.py`가 안전 센서를 포함한 공통 진입점이며 `amcl_nav2_safety.launch.py`는 같은 인자를 전달하는 호환 이름입니다. 축 이동 구성은 `AxisGenerator`와 `PathHeadingCritic`을 사용합니다. StraightFirst planner의 연속 footprint 검사는 별도 `footprint_sweep` 라이브러리를 사용합니다.
 
@@ -141,11 +141,6 @@ Omni 기본 튜닝에는 직선 우선 연결, 고정 방향 XY 탐색, 별도 �
 | Costmap footprint | 위 외곽 + `footprint_padding=0.05 m` | 카메라와 팔 높이의 3D 검사 아님 |
 | Collision Monitor 정지 사각형 | 0.577 × 0.7548 m | 실측 제동 거리 보증 아님 |
 
-<figure class="contract-figure" data-visual-id="footprint">
-<img src="assets/footprint.png" alt="2D 바퀴 외곽, stop, slow 경계의 실제 크기는?" loading="lazy">
-<figcaption>LiDAR 설정의 바퀴 외곽(녹색), 정지 경계와 padded footprint(빨강), 감속 경계(주황)를 같은 축척으로 그렸습니다. base_link의 X는 전방, Y는 왼쪽입니다. 높이별 3D 보호나 실측 제동 거리를 나타내지 않습니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
-</figure>
-
 ### 가감속과 장애물 접근
 
 ```mermaid
@@ -206,11 +201,6 @@ Twist는 전체를 같은 비율로 보간합니다. 첫 호출이나 0.2 s를 �
 
 슬립 측정으로 가중치를 자동 변경하지 않습니다. 위치별 위험 지도와 장기 학습은 미구현입니다. SlipRecovery의 감속 정지, 정지 확인, 한 번의 종방향 재시도는 별도 동작입니다.
 
-<figure class="contract-figure" data-visual-id="direction-cost">
-<img src="assets/direction-cost.png" alt="이동 방향별 비용은 어떤 모양인가?" loading="lazy">
-<figcaption>현재 critic 식과 기본 튜닝 가중치로 계산한 1 m당 방향 비용입니다. 전후 0, 횡이동 1, 45°에서 20.5이며 다른 비용과 함께 평가합니다. 실측 슬립이나 주행 성능 그래프가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
-</figure>
-
 ## 위치 정합과 복구
 
 위치가 불확실하면 감속하거나 주행 허가를 회수합니다. [위치 정합 문서](localization.md)에서 상태 전이, 정지 조건과 정지 상태의 자동 복구 순서를 확인합니다.
@@ -229,11 +219,6 @@ Twist는 전체를 같은 비율로 보간합니다. 첫 호출이나 0.2 s를 �
 | `omni-r10cm-balanced.json` | 원본 좌표 / 방향 유지; 오른쪽 횡이동 16개의 길이 메타데이터만 교정 | Omni 기본 튜닝 |
 
 파일은 [config/lattice](../config/lattice)에 있습니다. Launch 기본 경로보다 명시적인 `GridBased.lattice_filepath`가 우선합니다. 원본은 공식 Nav2 1.1.20 Generator로 만들었으며 반경 설정은 실물 최소 회전 반경 측정값이 아닙니다.
-
-<figure class="contract-figure" data-visual-id="lattice">
-<img src="assets/lattice.png" alt="현재 기본 Lattice의 이동과 회전 후보는?" loading="lazy">
-<figcaption>기본 튜닝의 balanced JSON에서 시작 heading 0인 7개 primitive만 표시했습니다. 점은 저장된 pose, 화살표는 마지막 yaw이며 원점의 두 화살표는 제자리 회전입니다. 선은 pose 사이 연결이고 실제 주행 결과가 아닙니다. <a href="../../../../docs/assets/visuals/generated.json">입력과 출처</a></figcaption>
-</figure>
 
 ## MPPI 샘플 초기화
 

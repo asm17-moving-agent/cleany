@@ -17,7 +17,7 @@ std::vector<ContactObservation> observeContacts(
   result.reserve(count);
   for (std::size_t i = 0; i < count; ++i) {
     const auto& contact = data->contact[i];
-    // Flex 접촉에는 geom ID 두 개가 없을 수 있으므로 body 소속을 만들어 내지 않습니다.
+    // Flex contacts may not have two geom ids; do not invent body attribution.
     if (contact.geom[0] < 0 || contact.geom[1] < 0 ||
         contact.geom[0] >= model->ngeom || contact.geom[1] >= model->ngeom) {continue;}
     ContactObservation item{};

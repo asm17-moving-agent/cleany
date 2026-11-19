@@ -1,4 +1,4 @@
-"""네임스페이스 접두사를 문자열로 읽는 Gazebo 확장 속성을 직렬화합니다."""
+"""Serialize Gazebo extensions whose readers match literal namespace prefixes."""
 from pathlib import Path
 from math import isfinite
 from tempfile import mkdtemp
@@ -9,8 +9,8 @@ NAMESPACES = {'ignition': 'http://ignitionrobotics.org/schema',
 
 
 def write_world(tree: ET.ElementTree, target: Path) -> None:
-    # DART는 HasAttribute("ignition:expressed_in") 또는 "gz:expressed_in"을 사용합니다.
-    # XML상 동등한 ns0 접두사도 마찰 좌표계의 해석을 조용히 바꿀 수 있습니다.
+    # DART reads HasAttribute("ignition:expressed_in") / "gz:expressed_in".
+    # XML-equivalent ns0 prefixes silently change friction frame semantics.
     for prefix, uri in NAMESPACES.items():
         ET.register_namespace(prefix, uri)
     tree.write(target, encoding='unicode', xml_declaration=True)
@@ -30,7 +30,7 @@ def materialize_friction_frames(
     source: Path, *, max_step_size: float | None = None,
     real_time_factor: float | None = None,
 ) -> Path:
-    """제공된 원본을 수정하지 않고 외부 또는 생성된 월드를 보정합니다."""
+    """Repair external/generated worlds without editing the supplied artifact."""
     tree = ET.parse(source)
     key = '{'+NAMESPACES['ignition']+'}expressed_in'
     modified = False

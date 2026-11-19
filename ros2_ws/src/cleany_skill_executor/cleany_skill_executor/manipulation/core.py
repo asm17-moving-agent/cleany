@@ -1,4 +1,4 @@
-"""tick 기반 실행이며 취소 시간을 제한하고 가능한 범위에서 기록합니다."""
+"""Tick-driven execution with bounded cancellation and best-effort recording."""
 
 from __future__ import annotations
 
@@ -107,7 +107,7 @@ class ExecutionCore:
             try:
                 self._tick(now)
             except Exception as exc:
-                # 예상하지 못한 어댑터 실패는 fault이며 성공으로 만들어 내지 않습니다.
+                # Unexpected adapter failures are faults, never fabricated success.
                 self.inhibited = True
                 if self.record.stage == Stage.STOPPING:
                     self._finish(Status.FATAL, Error.STOP_UNCONFIRMED,
@@ -174,7 +174,7 @@ class ExecutionCore:
             self.port.begin(stage, record.goal, now)
             return
         evidence = self.port.poll(now)
-        # 늦은 근거가 시간 초과된 단계를 성공으로 바꿀 수 없습니다.
+        # Late evidence cannot turn a timed-out step into success.
         if now - self._started_at >= self.timeout(record.stage):
             if record.stage in ATOMIC_STAGES:
                 self._persist(replace(record, object_state=ObjectState.UNKNOWN))
@@ -192,7 +192,7 @@ class ExecutionCore:
             self._persist(replace(self.record, **self._substage_updates(evidence),
                                   message=evidence.message))
             return
-        # poll 결과는 영속 저장과 독립적으로 현재 작업을 끝냅니다.
+        # A poll outcome ends the current operation independently of persistence.
         self._running = False
         self._apply(evidence)
         if evidence.error != Error.NONE:

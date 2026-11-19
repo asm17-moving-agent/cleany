@@ -100,11 +100,11 @@ def test_count_window_reduces_lateral_encoder_alias_without_losing_pose():
             instantaneous_x.append(raw.linear_x_mps)
             windowed_x.append(filtered.linear_x_mps)
             windowed_y.append(filtered.linear_y_mps)
-            # 속도 창 초기화 뒤에는 속도 평균과 별개로 count를 적분하고 위치를 발행합니다.
-            # encoder 이동량은 버리지 않습니다.
+            # Count integration and pose publication are independent of twist
+            # averaging after warmup; no encoder motion is discarded.
             assert (filtered.x_m, filtered.y_m, filtered.yaw_rad) == (raw.x_m, raw.y_m, raw.yaw_rad)
     rms = lambda values: sqrt(sum(v*v for v in values)/len(values))
-    assert len(windowed_x) > 850  # 초기화 뒤에는 창마다가 아니라 입력마다 발행합니다.
+    assert len(windowed_x) > 850  # publish every input after warmup, not once per window
     assert rms(windowed_x) < rms(instantaneous_x)/10
     assert abs(sum(windowed_y)/len(windowed_y)-.008) < .0001
     assert filtered is not None and abs(filtered.y_m-.008) < .0002
@@ -123,7 +123,8 @@ def test_window_requires_observable_velocity_after_clock_reset_and_data_gap():
     assert odometry.update(ZERO, 2.) is None
     assert odometry.update(ZERO, 2.05) is None
     assert odometry.update(ZERO, 2.125) is not None
-    # 한 창 길이만큼 정지하면 과거 이동 표본이 남아 계속 움직인다고 보고해서는 안 됩니다.
+    # Once stopped for the full window, a moving historical sample cannot
+    # survive and report motion indefinitely.
     stopped = odometry.update(ZERO, 2.2)
     assert stopped is not None and stopped.linear_x_mps == 0.
 

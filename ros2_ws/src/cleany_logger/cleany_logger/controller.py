@@ -1,4 +1,4 @@
-"""ROS executor와 HTTP에 독립적이며 단일 소유자가 관리하는 session 생명주기입니다."""
+"""Single-owner session lifecycle, independent of ROS executors and HTTP."""
 import copy
 import fcntl
 import queue
@@ -122,7 +122,7 @@ class SessionController:
 
 
 class RecordingWorker:
-    """이 스레드만 writer를 열며 프로세스 잠금으로 중복 저장소 소유자를 거부합니다."""
+    """Only this thread opens writers; process lock rejects duplicate storage owners."""
     def __init__(self, hub, config, *, record_on_start):
         self.hub, self.config, self.record_on_start = hub, config, record_on_start
         self.stop = threading.Event()
@@ -168,7 +168,7 @@ class RecordingWorker:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise RuntimeError('Another logger owns this recording directory') from exc
-            # 재시작 시 방치된 writer를 마무리된 것으로 분류하지 않습니다.
+            # Never classify an abandoned writer as finalized on restart.
             self.recover_interrupted(directory)
             controller = SessionController(self.hub, self.config, record_on_start=self.record_on_start)
             controller.state_changed = self.publish

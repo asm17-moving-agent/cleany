@@ -73,7 +73,7 @@ TEST(ScheduledCameras, ViewerPreservesSensorPixelsFramesAndCaptureStamps)
         clock.store(source->time);
       }
       rclcpp::spin_some(node);
-      // 취득 사이에 GUI 그리기가 발생하도록 여러 프레임을 요구합니다.
+      // Require several frames so that a GUI draw occurs between captures.
       if (image && depth && info &&
           rclcpp::Time(image->header.stamp).seconds() > phase_start + 0.5 &&
           image->header == depth->header && image->header == info->header) {

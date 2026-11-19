@@ -329,7 +329,7 @@
     pen.translate(x, y);
     pen.rotate(tilt);
     h = Math.max(4, h * blink);
-    // 눈을 크게 뜨기 전에 미소를 펴서 윤곽이 여러 덩어리로 보이지 않게 합니다.
+    // Flatten the smile before opening tall eyes, avoiding a lobed silhouette.
     bend *= blink * (1 - easedRamp(h, 34, 60));
     const r = Math.min(w * .34, h * .48);
     const span = w / 2 - r;
@@ -397,7 +397,7 @@
 
   function paintBackground(p, color) {
     const ratio = canvas.width / 800;
-    // 약한 주변광은 픽셀 정밀도면 충분하므로 불투명 bitmap을 재사용합니다.
+    // The faint ambient light only needs pixel precision; reuse its opaque bitmap.
     const cx = Math.round(p.cx * ratio) / ratio;
     const cy = Math.round(p.cy * ratio) / ratio;
     const key = [canvas.width, canvas.height, cx, cy, ...color].join(',');
@@ -446,7 +446,7 @@
     pen.shadowBlur = config.glow * .4 * canvas.width / 800;
     const mouthY = p.mouthY;
     pen.beginPath();
-    // 하나의 윤곽선으로 입을 여닫는 동안 입술을 연속적으로 유지합니다.
+    // A single outlined contour keeps the closed/open lip continuous.
     const opening = Math.max(0, p.open);
     const aperture = easedRamp(opening, 0, 12);
     const curve = p.smile * (1 - aperture);
@@ -469,7 +469,7 @@
     pen.restore();
     if (p.travel > .001) paintTravel(tint, moving, p.travel);
     if (mode === 'help') {
-      // 변하는 얼굴이 텍스트 영역을 비운 뒤에 요청 문구를 표시합니다.
+      // Reveal the request only after the transitioning face clears the text area.
       const faceBottom = p.cy + p.y + gaze.y + p.gazeY + scale * (p.mouthY + Math.max(p.open * 1.3, p.smile, 0) + 9);
       const ready = caption.hidden && faceBottom < helpTextTop - 18;
       if (help.dataset.ready !== String(ready)) help.dataset.ready = String(ready);
@@ -500,7 +500,7 @@
   function resize() {
     const box = scene.getBoundingClientRect();
     if (!box.width || !box.height) return;
-    // 화면의 물리 해상도와 별개로 raster 작업량을 제한합니다.
+    // Bound raster work independently of the monitor's physical resolution.
     const ratio = Math.min(devicePixelRatio || 1, rendering.max_pixel_ratio,
                            rendering.max_canvas_width / box.width);
     const width = Math.max(1, Math.round(box.width * ratio));
@@ -522,9 +522,9 @@
     frame = 0;
     if (!visible || document.hidden || !root.isConnected) { lastTime = 0; return; }
     const interval = 1000 / rendering.max_fps;
-    // 그리기 주기를 모니터 주사율과 독립적으로 유지합니다.
+    // Keep the paint cadence independent of the monitor's refresh rate.
     if (lastTime && !dirty && now + .5 < nextFrameAt) { schedule(); return; }
-    // 조금 빠른 패널에서도 시간 오차가 누적되지 않도록 표시된 프레임에 기준을 다시 맞춥니다.
+    // Re-anchor to the presented frame so a slightly fast panel cannot accumulate drift.
     nextFrameAt = now + interval;
     const dt = Math.min(.1, Math.max(0, (now - (lastTime || now)) / 1000));
     lastTime = now;
@@ -550,7 +550,7 @@
         nextGaze = clock + 2 + Math.random() * 3;
       }
       const desired = actionPose();
-      // 상하 움직임도 평활화한 자세에 포함해 주파수가 바뀔 때 갑자기 튀지 않게 합니다.
+      // Include bobbing in the smoothed pose so switching its frequency cannot jump.
       desired.y += Math.sin(clock * (mode === 'complete' ? 5 : 1.7)) * desired.bounce;
       const steps = Math.max(1, Math.ceil(dt * 180));
       for (let sub = 0; sub < steps; sub++) {

@@ -1,4 +1,4 @@
-"""백엔드 피드백을 사용하는 속도 인터록이며 TF를 소유하지 않습니다."""
+"""Velocity interlock using backend feedback; this node does not own TF."""
 from __future__ import annotations
 
 import json
@@ -25,26 +25,26 @@ def velocity(msg) -> tuple[float, float, float]:
 
 
 class PanMotionGate(Node):
-    """요청된 이동 방향에 헤드를 정렬하고 선택적으로 베이스 명령을 차단합니다.
+    """Align the head with requested motion and optionally gate base commands.
 
     Subscriptions:
-        nav2/cmd_vel (geometry_msgs/msg/Twist): 원하는 움직임.
-        joint_states (sensor_msgs/msg/JointState): 측정 pan 위치와 속도.
-        odom (nav_msgs/msg/Odometry), camera/head/depth/points
-            (sensor_msgs/msg/PointCloud2): 명령 차단 모드의 정지 및 최신성 근거.
+        nav2/cmd_vel (geometry_msgs/msg/Twist): Desired motion.
+        joint_states (sensor_msgs/msg/JointState): Measured pan position and speed.
+        odom (nav_msgs/msg/Odometry) and camera/head/depth/points
+            (sensor_msgs/msg/PointCloud2): Stop and freshness evidence in gating mode.
 
     Publishers:
-        pan_ready/cmd_vel (geometry_msgs/msg/Twist): 통과 또는 정지한 베이스 명령.
-        head_pan/command (std_msgs/msg/Float64): 라디안 단위 pan 목표.
-        head_pan/state (std_msgs/msg/String): JSON 정렬 및 gate 상태.
+        pan_ready/cmd_vel (geometry_msgs/msg/Twist): Gated base command.
+        head_pan/command (std_msgs/msg/Float64): Pan target in radians.
+        head_pan/state (std_msgs/msg/String): JSON alignment and gate state.
 
     QoS:
-        관절, odometry와 깊이 입력은 sensor_data입니다.
+        Joint, odometry and depth inputs use sensor_data.
 
     Notes:
-        위 endpoint 이름은 모두 변경 가능한 기본값입니다. observation_only는
-        베이스 명령 출력과 odometry/깊이 구독을 생략하지만 헤드 pan은 명령합니다.
-        시간 검사는 steady timer에서 실행합니다.
+        All endpoint names above are configurable defaults. observation_only
+        omits the base command output and odometry/depth subscriptions but still
+        commands head pan. Timing checks run on a steady timer.
     """
     def __init__(self) -> None:
         super().__init__('pan_motion_gate')

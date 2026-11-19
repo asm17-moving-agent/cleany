@@ -23,7 +23,7 @@ def test_self_occlusion_uses_rotated_box_and_parallel_ray_bounds():
 
 
 def test_self_filter_matches_scalar_closed_segment_intersection():
-    """자체 hit나 가려진 ray가 빈 공간 관측으로 바뀌어서는 안 됩니다."""
+    """Self hits/occluded rays must never become free-space observations."""
     from cleany_navigation.body_geometry import BodyBox
     from cleany_navigation.depth_clearance import self_observation_mask
     rng = np.random.default_rng(43)
@@ -101,7 +101,7 @@ def test_only_positive_infinity_gets_camera_intrinsic_ray_endpoints():
     actual = prepare_depth_points(points, np.array([1]), np.arange(4), (10, 20, 2, 3),
                                   positive_infinity_is_free=True, clearing_distance=5)
     np.testing.assert_allclose(actual, [[5, 1, 0.5], [2, 0.5, -0.2]])
-    assert np.linalg.norm(actual[0]) > 4.0  # 설정된 4m 범위 안의 표시 장애물이 될 수 없습니다.
+    assert np.linalg.norm(actual[0]) > 4.0  # Cannot become a marked obstacle within the configured 4 m range.
 
 
 @pytest.mark.parametrize('intrinsics', [(0, 1, 0, 0), (1, -1, 0, 0), (np.nan, 1, 0, 0)])

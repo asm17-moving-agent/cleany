@@ -1,4 +1,4 @@
-"""명시적으로 설정한 주차 자세의 요소별 보수적 OBB입니다."""
+"""Conservative per-element OBBs for an explicitly configured parked posture."""
 from __future__ import annotations
 
 from itertools import product
@@ -37,10 +37,10 @@ class BodyBox:
 
 
 def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, allow_simulation_limits: bool = False) -> list[BodyBox]:
-    """충돌 경계와 렌더링 경계를 각각의 방향 좌표계로 사용합니다.
+    """Use both collision and visual bounds, in their own oriented frames.
 
-    메시 로컬 상자는 요소 사이의 오목한 공간을 유지하지만 요소 내부까지 표현하지는
-    않습니다. 입력 주차 프로파일은 백엔드 자세와 같아야 하며 실시간 FK가 아닙니다.
+    Mesh-local boxes retain concavity between elements, not inside an element.
+    The supplied park profile must match the backend posture; this is not live FK.
     """
     import yaml
     from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry, load_navigation_model
@@ -81,7 +81,7 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
             if link.get('name') == 'base_link':
                 mesh_name = shape.get('filename', '')
                 is_rail_mesh = shape.tag == 'mesh' and mesh_name.endswith(('_rail.stl', '_upright.stl'))
-                # CAD 프레임 충돌은 같은 20mm 압출재 단면을 사용합니다.
+                # CAD frame collisions use the same 20 mm extrusion cross-section.
                 is_rail_box = shape.tag == 'box' and np.count_nonzero(np.isclose(high-low, .02)) >= 2
                 if is_rail_mesh or is_rail_box:
                     frame_names.add(name)
@@ -103,13 +103,13 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     if frame_names:
         frame_box = merge_body_boxes([b for b in result if b.name in frame_names],
                                      np.eye(4), 'profile_frame/merged')
-        # 프레임 외곽에 이미 포함된 내부 고정 부품은 중복이므로 제외합니다.
+        # Interior fixed parts already covered by the frame envelope are redundant.
         for b in result:
             if b.name.startswith('base_link/'):
                 if np.all(frame_box.distances(b.corners()) <= 1e-10):
                     frame_names.add(b.name)
         result = [b for b in result if b.name not in frame_names]+[frame_box]
-    # 바퀴의 모든 롤러, 허브 외형과 충돌 요소는 OBB 하나를 공유합니다.
+    # All rollers, hub visuals and collision elements of a wheel share one OBB.
     for link_name, pose in transforms.items():
         if not link_name.endswith('_wheel_link'):
             continue
@@ -117,8 +117,8 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
         if parts:
             result = [b for b in result if b.name.split('/')[0] != link_name]
             result.append(merge_body_boxes(parts, pose, link_name+'/merged'))
-    # 주차된 양팔, 장착 부품과 전체 헤드 및 기둥은 상체 외곽 하나로 묶습니다.
-    # 차체와 바퀴는 독립적으로 유지합니다.
+    # Both parked arms, their mounting parts and the complete head/pole share
+    # one upper-body envelope. Keep the chassis and wheels independent.
     children: dict[str, list[str]] = {}
     for joint in urdf.findall('joint'):
         children.setdefault(joint.find('parent').get('link'), []).append(joint.find('child').get('link'))
@@ -147,10 +147,10 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
 
 
 def merge_body_boxes(boxes: list[BodyBox], frame: np.ndarray, name: str) -> BodyBox:
-    """모든 입력 모서리를 link 좌표계에 정렬된 단일 상자로 둘러쌉니다.
+    """Enclose every input corner in a single box aligned with the link frame.
 
-    호출자가 여유를 더하기 전에 물리 경계를 합쳐 여유를 한 번만 적용합니다.
-    합친 요소 사이의 틈은 의도적으로 채웁니다.
+    Merge physical bounds before the caller adds its margin, so the margin is
+    applied once. This deliberately fills gaps between the merged elements.
     """
     if not boxes:
         raise ValueError('Cannot merge empty body geometry')
@@ -179,12 +179,13 @@ def nearest_body(points: np.ndarray, boxes: list[BodyBox]) -> tuple[np.ndarray, 
 def swept_hits(points: np.ndarray, boxes: list[BodyBox], velocity: tuple[float,float,float],
                margin: float, reaction_s: float, linear_deceleration: float,
                angular_deceleration: float, step_s: float = .05) -> np.ndarray:
-    """일정 twist를 유지하는 보수적인 정지 예측 구간을 표본화합니다.
+    """Sample a constant-twist conservative stopping horizon.
 
-    제동 시간 내내 전체 속도를 유지하면 명령 곡률을 유지하는 비례 제동보다
-    경로 길이를 크게 잡습니다. 임의의 축별 독립 제동이나 바퀴 미끄럼까지
-    제한하지는 않습니다. 표본 여유는 회전을 포함한 자세 사이의 누락 움직임을
-    덮습니다. 관측 표면만 검사하며 미관측 공간의 가시성을 확인하지 않습니다.
+    Holding full velocity through the braking time overestimates path length
+    for proportional braking that preserves the commanded curvature. It does
+    not bound arbitrary independent axis braking or wheel slip.
+    Sample padding bounds missed motion between poses, including rotation.
+    This tests observed surfaces only, not visibility of unobserved space.
     """
     vx, vy, wz = velocity
     if not np.isfinite([vx,vy,wz,margin,reaction_s,linear_deceleration,angular_deceleration,step_s]).all():

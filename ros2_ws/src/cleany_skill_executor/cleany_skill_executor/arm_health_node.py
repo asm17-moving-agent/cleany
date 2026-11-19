@@ -1,4 +1,4 @@
-"""System Supervisor에 팔 제어기 가용성을 발행합니다."""
+"""Publish arm controller availability for the System Supervisor."""
 from time import monotonic
 
 import rclpy
@@ -16,23 +16,23 @@ STATUS = {AVAILABLE: ComponentHealth.AVAILABLE, UNAVAILABLE: ComponentHealth.UNA
 
 
 class ArmHealthMonitor(Node):
-    """ros2_control과 관절 피드백에서 source=arm ComponentHealth를 보고합니다.
+    """Report `source=arm` ComponentHealth from ros2_control and joint feedback.
 
     Subscriptions:
-        joint_states (sensor_msgs/msg/JointState): 팔 관절 위치.
-            joint_states_topic 기본값이며 QoS는 sensor_data입니다.
+        joint_states (sensor_msgs/msg/JointState): Arm joint positions;
+            joint_states_topic default. QoS: sensor_data.
 
     Publishers:
-        system/component_health (cleany_interfaces/msg/ComponentHealth):
-            20Hz이며 health_topic 기본값입니다.
+        system/component_health (cleany_interfaces/msg/ComponentHealth): 20 Hz;
+            health_topic default.
 
     Services:
         controller_manager/list_controllers (controller_manager_msgs/srv/ListControllers):
-            poll_s마다 조회하는 Client. controller_manager가 기본 prefix입니다.
+            Client polled every poll_s; controller_manager default prefix.
 
     Notes:
-        가용성만 보고합니다. 현재 팔 상태에서 베이스가 움직여도 되는지는 이 보고가
-        아니라 조작 결과의 safe_to_drive가 나타냅니다.
+        Availability only. Whether the base may move with the arm in its current
+        state is the manipulation outcome's `safe_to_drive`, not this report.
     """
 
     def __init__(self, **kwargs):
@@ -71,7 +71,7 @@ class ArmHealthMonitor(Node):
         try:
             controllers = future.result().controller
         except Exception:
-            return  # 이전 표본은 controller_timeout_s에 따라 만료됩니다.
+            return  # The previous sample expires through controller_timeout_s.
         self.health.controller_states({c.name: c.state for c in controllers}, monotonic())
 
     def _publish(self):

@@ -1,4 +1,4 @@
-# 시뮬레이션 평가 전용입니다. 제동값은 가정이며 하드웨어 보정 결과가 아닙니다.
+# Simulation evaluation only. Braking values are assumptions, not hardware calibration.
 voxel_guard:
   ros__parameters:
     use_sim_time: false

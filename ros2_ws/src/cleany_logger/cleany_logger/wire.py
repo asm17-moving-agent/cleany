@@ -1,4 +1,4 @@
-"""타입이 있는 ROS 제어 경계입니다. 디스크 정책은 일반 Python 값으로 유지합니다."""
+"""Typed ROS control boundary. Disk policies remain plain Python values."""
 from .recording import LABELS, RAW, defaults, validate
 from .sources import SCHEMA, resolved
 

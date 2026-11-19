@@ -1,7 +1,7 @@
-"""실제 ROS runtime 검사이며 Navigation은 명시적인 Mock입니다. HTTP 로봇 명령은 보내지 않습니다.
+"""Actual ROS runtime smoke. Explicit MOCK navigation; no HTTP robot commands.
 
-Monitor와 같은 격리된 ROS_DOMAIN_ID에서 실행합니다. --held를 사용하려면
-선택적인 상대 패키지가 overlay에 준비되어 있어야 합니다.
+Run in an isolated ROS_DOMAIN_ID with monitor on the same domain.
+Optional peer package must already be in the overlay for --held.
 """
 
 import argparse

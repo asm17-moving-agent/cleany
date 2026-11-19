@@ -28,24 +28,24 @@ def _has_nonzero_stamp(message: Image | CameraInfo) -> bool:
 
 
 class CameraContractAdapter(Node):
-    """렌더러 영상과 보정 표본을 하나의 카메라 계약으로 짝짓습니다.
+    """Pair renderer image and calibration samples into one camera contract.
 
     Subscriptions:
         /cleany/internal/mujoco/left_wrist_camera/image_raw (sensor_msgs/msg/Image)
         /cleany/internal/mujoco/left_wrist_camera/camera_info (sensor_msgs/msg/CameraInfo):
-            정확히 같은 타임스탬프로 짝짓는 렌더러 표본.
+            Renderer samples, paired by exact timestamp.
 
     Publishers:
         /left_wrist_camera/image_raw (sensor_msgs/msg/Image)
-        /left_wrist_camera/camera_info (sensor_msgs/msg/CameraInfo): 원래 촬영 시각과
-            계약된 광학 좌표계를 유지한 검증된 쌍.
+        /left_wrist_camera/camera_info (sensor_msgs/msg/CameraInfo): Validated pair
+            with the original capture stamp and contracted optical frame.
 
     QoS:
-        모든 카메라 endpoint는 sensor_data를 사용합니다.
+        All camera endpoints use sensor_data.
 
     Notes:
-        위 이름은 기본 camera_config의 값이며 설정에 따라 바뀔 수 있습니다.
-        불완전하거나 무효한 쌍은 내보내지 않으며 시각을 합성하지 않습니다.
+        Names above come from the default camera_config and can change with it.
+        Incomplete or invalid pairs are withheld; the adapter does not synthesize time.
     """
 
     _MAX_PENDING_SAMPLES = 12

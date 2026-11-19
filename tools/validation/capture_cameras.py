@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""실제 시뮬레이터 카메라 토픽을 수집하며 데이터 누락이나 형식 오류 시 실패합니다."""
+"""Capture real simulator camera topics and fail on missing or malformed data."""
 from __future__ import annotations
 
 import argparse
@@ -46,7 +46,7 @@ def camera_contracts(backend: str) -> dict[str, Camera]:
 
 
 def image_pixels(message, expected: Camera) -> np.ndarray:
-    """전송 계약을 검증하고 디코딩 전에 행 padding을 제거합니다."""
+    """Validate the wire contract and remove row padding before decoding."""
     if (message.width, message.height, message.header.frame_id) != (
             expected.width, expected.height, expected.frame):
         raise ValueError(f'Unexpected dimensions/frame on {expected.topic}')
@@ -94,7 +94,7 @@ def gazebo_world(output: Path, model_name: str) -> Path:
 
 
 def stop_process(process: subprocess.Popen) -> None:
-    """자식을 포함해 이번 촬영에서 만든 프로세스 그룹만 종료합니다."""
+    """Stop only the process group created for this capture, including children."""
     try:
         os.killpg(process.pid, signal.SIGINT)
     except ProcessLookupError:

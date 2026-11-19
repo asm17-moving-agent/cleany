@@ -1,6 +1,6 @@
 # Mission과 Gateway 계약
 
-Backend는 queue와 배차를, Mission Runtime은 수락 이후 실행과 영속 결과를 소유합니다. Runtime에는 별도 queue가 없으며 한 번에 미션 하나만 수락합니다. 필드는 패키지 msg/srv, 설정은 cleany_mission_manager/config/runtime.yaml이 원본입니다.
+Backend는 queue와 배차를, Mission Runtime은 수락 이후 실행과 영속 결과를 소유한다. Runtime에는 별도 queue가 없으며 한 번에 미션 하나만 수락한다. 필드는 패키지 msg/srv, 설정은 cleany_mission_manager/config/runtime.yaml이 원본이다.
 
 ## 인터페이스
 
@@ -15,7 +15,7 @@ Backend는 queue와 배차를, Mission Runtime은 수락 이후 실행과 영속
 | `system/check_permission`, `system/heartbeat`, `system/state`, `system/capabilities` | Supervisor 허가 lease와 가용성 입력 (`supervision_mode=required`) |
 | `robot/safety_fault`, `robot/safety_released` | 안전 소유자의 fault/release 알림 (`supervision_mode=disabled`일 때만) |
 
-Offer/Cancel의 accepted는 수락 응답이며 완료 증거가 아닙니다. 같은 ID로 같은 요청을 보내면 재실행하지 않고, 같은 ID에 다른 내용을 보내면 거절합니다. Runtime 진단 sequence와 Backend 미션별 sequence는 별개입니다.
+Offer/Cancel의 accepted는 수락 응답이며 완료 증거가 아니다. 같은 ID로 같은 요청을 보내면 재실행하지 않고, 같은 ID에 다른 내용을 보내면 거절한다. Runtime 진단 sequence와 Backend 미션별 sequence는 별개다.
 
 ## 수락과 완료
 
@@ -42,7 +42,7 @@ sequenceDiagram
     end
 ```
 
-수신 ACK, 실행 수락, 최종 결과는 서로 다른 시점입니다.
+수신 ACK, 실행 수락, 최종 결과는 서로 다른 시점이다.
 
 ## 정상 실행
 
@@ -65,7 +65,7 @@ stateDiagram-v2
     ERROR --> IDLE: 조건 충족 / 명시적 reset
 ```
 
-정상 실행은 대상 이동, 작업, 완료 후 정책 순서입니다. 종료 전 최종 보고를 저장합니다. 취소 후 복귀에는 정지, 팔의 주행 가능 상태, 복귀 정책, Nav2 준비가 모두 필요합니다. ERROR 해제 조건은 아래 표를 따릅니다.
+정상 실행은 대상 이동, 작업, 완료 후 정책 순서다. 종료 전 최종 보고를 저장한다. 취소 후 복귀에는 정지, 팔의 주행 가능 상태, 복귀 정책, Nav2 준비가 모두 필요하다. ERROR 해제 조건은 아래 표를 따른다.
 
 ### 청소 BT
 
@@ -83,13 +83,13 @@ flowchart TB
     Verify -->|"실패 확정"| Fail
 ```
 
-청소 BT는 처음 장면을 관측한 뒤 계획, 제안 검증, 객체 하나의 실행, 재관측, 완료 검증을 반복합니다. Snapshot/object ID와 capability를 검사하며, done 제안도 fresh 관측에서 잔여 대상을 확인한 뒤 완료합니다. Skip과 human_review는 조작 명령 없이 기록하며 done도 조작 명령을 보내지 않습니다.
+청소 BT는 처음 장면을 관측한 뒤 계획, 제안 검증, 객체 하나의 실행, 재관측, 완료 검증을 반복한다. Snapshot/object ID와 capability를 검사하며, done 제안도 fresh 관측에서 잔여 대상을 확인한 뒤 완료한다. Skip과 human_review는 조작 명령 없이 기록하며 done도 조작 명령을 보내지 않는다.
 
-보고에는 skip, 사람 확인, 실패, 취소를 보존합니다. Mock 관측 ID는 실제 사진이 아닙니다.
+보고에는 skip, 사람 확인, 실패, 취소를 보존한다. Mock 관측 ID는 실제 사진이 아니다.
 
 ## System Supervisor 감독
 
-`supervision_mode=required`(기본)에서는 System Supervisor가 시스템 Fault, Capability와 Nav2 lifecycle 가용성을 소유하고 Runtime은 실행, 정지, 재개와 journal을 소유합니다. Supervisor 계약은 [System Supervisor](../../cleany_system_supervisor/docs/supervision.md)를 따릅니다.
+`supervision_mode=required`(기본)에서는 System Supervisor가 시스템 Fault, Capability와 Nav2 lifecycle 가용성을 소유하고 Runtime은 실행, 정지, 재개와 journal을 소유한다. Supervisor 계약은 [System Supervisor](../../cleany_system_supervisor/docs/supervision.md)를 따른다.
 
 ```mermaid
 sequenceDiagram
@@ -116,15 +116,15 @@ sequenceDiagram
 | 실행 중 lease 상실 | 만료, 철회, heartbeat 단절, epoch 변경 모두 즉시 정지. 최종 보고는 BLOCKED / `PERMISSION_REVOKED`, 조작 단계였으면 사람 확인 |
 | 상실 후 Runtime 상태 | 정지가 확인되면 IDLE. 시스템 Fault는 Runtime 실행 오류가 아니므로 ERROR가 아님 |
 | 정지 미확인 | 기존 규칙대로 ERROR. lease는 release하지 않고 abandon하여 Supervisor가 정지를 직접 재확인 |
-| StopMission | 해당 미션이면 정지를 시작합니다. 이 Runtime에 실행 중인 미션이 없으면 정지 증거로만 답합니다. 기한은 `cancel_timeout + 0.5 s` |
+| StopMission | 해당 미션이면 정지를 시작한다. 이 Runtime에 실행 중인 미션이 없으면 정지 증거로만 답한다. 기한은 `cancel_timeout + 0.5 s` |
 | 독립 안전 fault | safety adapter → Supervisor ESTOP/SAFETY Fault → lease 철회. `robot/safety_*` 구독은 만들지 않음 |
 | 오류 해제 | Runtime ERROR는 `mission/reset_error`, Supervisor Fault는 `system/request_fault_reset`가 각각 소유 |
 
-Admission의 가용성 확인은 snapshot 하나만큼 늦을 수 있는 사전 확인이며, 동작 권한은 lease만이 부여합니다. 팔 상태에 따른 주행 허가(`safe_to_drive`)는 계속 Runtime이 조작 결과로 판단합니다.
+Admission의 가용성 확인은 snapshot 하나만큼 늦을 수 있는 사전 확인이며, 동작 권한은 lease만이 부여한다. 팔 상태에 따른 주행 허가(`safe_to_drive`)는 계속 Runtime이 조작 결과로 판단한다.
 
 ## 취소, 안전, 재시작
 
-Nav2는 설정된 lifecycle 노드 모두 active이고 lifecycle_timeout 이내 응답해야 준비 상태입니다. 감독 모드에서는 이 확인을 Supervisor의 NAVIGATION Capability가 대신하며 Runtime은 action server, odom, localization TF만 확인합니다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor입니다. Deadline은 steady clock과 runtime.yaml 값을 사용합니다.
+Nav2는 설정된 lifecycle node 모두 active이고 lifecycle_timeout 이내 응답해야 준비 상태다. 감독 모드에서는 이 확인을 Supervisor의 NAVIGATION Capability가 대신하며 Runtime은 action server, odom, localization TF만 확인한다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor다. Deadline은 steady clock과 runtime.yaml 값을 사용한다.
 
 | 조건 | 처리 |
 |---|---|
@@ -136,13 +136,13 @@ Nav2는 설정된 lifecycle 노드 모두 active이고 lifecycle_timeout 이내 
 | 재시작 당시 미완료 미션 | INTERRUPTED, 사람 확인 필요; 자동 재개 금지 |
 | Backend 단절 | 수락한 미션 계속 실행; 재연결 후 상태와 결과 동기화 |
 
-SQLite journal은 수락, 출처, goal UUID, 최종 결과, 오류를 저장합니다. 재시작 시 저장된 UUID의 orphan goal만 취소하고 정지, 준비를 확인합니다.
+SQLite journal은 수락, 출처, goal UUID, 최종 결과, 오류를 저장한다. 재시작 시 저장된 UUID의 orphan goal만 취소하고 정지, 준비를 확인한다.
 
 ## Gateway schema v1
 
-control_bridge는 `ws(s)://<backend>/api/robots/cleany-01/gateway/ws`를 ROS에 연결합니다. mission.offer의 clean_seat를 ROS clean_desk/SEAT로 변환하고 canonical seat ID를 보존합니다.
+control_bridge는 `ws(s)://<backend>/api/robots/cleany-01/gateway/ws`를 ROS에 연결한다. mission.offer의 clean_seat를 ROS clean_desk/SEAT로 변환하고 canonical seat ID를 보존한다.
 
-연결, 재연결, sync마다 fresh snapshot을 보내고 **snapshot ACK 이후** 해당 연결의 feedback, 명령을 허용합니다. RPC timeout은 수락 여부가 불명확하므로 거절을 합성하지 않고 재동기화합니다.
+연결, 재연결, sync마다 fresh snapshot을 보내고 **snapshot ACK 이후** 해당 연결의 feedback, 명령을 허용한다. RPC timeout은 수락 여부가 불명확하므로 거절을 합성하지 않고 재동기화한다.
 
 | 항목 | 의미 |
 |---|---|
@@ -151,7 +151,7 @@ control_bridge는 `ws(s)://<backend>/api/robots/cleany-01/gateway/ws`를 ROS에 
 | Snapshot | 최근 100개 최종 보고; IDLE이어도 port 미준비면 가용 ERROR |
 | Mock before/after_observation | null; outcome과 사람 확인은 보존 |
 | Schema, 인증, media 정책 | control-plane 저장소 소유 |
-| Parameter 기본값 | control_bridge 노드 기준 |
+| Parameter 기본값 | control_bridge node 기준 |
 
 ## 개발 관측
 
@@ -160,6 +160,6 @@ control_bridge는 `ws(s)://<backend>/api/robots/cleany-01/gateway/ws`를 ROS에 
 | debug_snapshot | reliable/transient-local depth 1, schema v1 |
 | runtime_events | reliable/transient-local depth 2048, boot ID, 연속 sequence |
 
-관측 토픽은 명령 경로가 아닙니다. 소비자는 재시작과 sequence gap을 구분해야 합니다.
+관측 토픽은 명령 경로가 아니다. 소비자는 재시작과 sequence gap을 구분해야 한다.
 
-관련 안내: [실행](../../../../docs/implementation/running.md), [Manipulation](manipulation.md).
+관련 안내: [실행](../../../../docs/RUNNING.md), [Manipulation](manipulation.md).

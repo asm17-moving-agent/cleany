@@ -1,6 +1,6 @@
 # cleany_handeye_calibration 노드 인터페이스
 
-응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리합니다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/implementation/ros-interfaces.md)을 따릅니다. 이름 설정이 없는 항목은 ROS remap으로 변경합니다.
+응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
 
 ## single_pose_handeye_orchestrator
 
@@ -18,7 +18,7 @@
 | 액션 호출 | `/move_action` | `moveit_msgs/action/MoveGroup` | Action 기본값 |
 | 액션 호출 | `/execute_trajectory` | `moveit_msgs/action/ExecuteTrajectory` | Action 기본값 |
 
-`request_file`에서 실행 설정을 읽습니다. Topic과 MoveIt endpoint는 코드 상수이므로 이름 변경에는 ROS remap을 사용합니다.
+`request_file`에서 실행 설정을 읽는다. Topic과 MoveIt endpoint는 코드 상수이므로 이름 변경에는 ROS remap을 사용한다.
 
 ## multi_pose_handeye_orchestrator
 
@@ -37,4 +37,4 @@
 | 액션 호출 | `/execute_trajectory` | `moveit_msgs/action/ExecuteTrajectory` | Action 기본값 |
 | 서비스 제공 | `/handeye/cancel_run` | `std_srvs/srv/Trigger` | Service 기본값 |
 
-`pose_manifest`와 `runtime_config`로 실행합니다. SinglePoseRuntimeEffects를 재사용하며 cancel service 응답은 요청 접수이고 실제 정지 완료는 별도 확인합니다.
+`pose_manifest`와 `runtime_config`로 실행한다. SinglePoseRuntimeEffects를 재사용하며 cancel service 응답은 요청 접수이고 실제 정지 완료는 별도 확인한다.

@@ -1,4 +1,4 @@
-"""관측 책임, 시간, 대용량 메시지와 영속 재생의 계약을 검사합니다."""
+"""Protect observation boundaries, timing, large messages and durable replay."""
 import math
 import struct
 from types import SimpleNamespace as NS

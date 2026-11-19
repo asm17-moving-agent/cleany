@@ -1,6 +1,6 @@
-"""실제 Backend API로 임무 하나를 제출하고 관측한 생명주기를 저장합니다.
+"""Submit one mission through the real Backend API and save its observed lifecycle.
 
-격리된 시뮬레이션 백엔드에서 실행하며 이 스크립트는 임무 요청을 보냅니다.
+Run against an isolated simulation backend; this script sends a mission request.
 """
 
 import argparse

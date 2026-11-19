@@ -1,4 +1,4 @@
-"""로컬 화면과 읽기 전용 상태 snapshot을 제공합니다."""
+"""Serve the local display and read-only state snapshot."""
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json

@@ -1,1 +1,1 @@
-"""Cleany 임무 관리자 패키지입니다."""
+"""Cleany Mission Manager package."""

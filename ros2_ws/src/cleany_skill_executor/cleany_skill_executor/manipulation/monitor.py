@@ -1,7 +1,7 @@
-"""BehaviorTree Viewer 0.1.2용 읽기 전용 mock 이벤트 투영입니다.
+"""Read-only mock event projection for BehaviorTree Viewer 0.1.2.
 
-BT 실행기가 아닌 시각화 어댑터입니다. FULLTREE와 STATUS 요청만 구현하며
-hook, blackboard와 로봇 명령은 지원하지 않습니다.
+This is a visualization adapter, not a BT executor. Only FULLTREE and STATUS
+requests are implemented; hooks, blackboards and robot commands are unsupported.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ class MonitorProjection:
                 for step in STAGE_STEPS[Stage(stage)]:
                     self._set(step.node, SUCCESS)
         if event.record_state in ('INTERRUPTED', 'RECORDING_FAILED'):
-            # crash 이후 성공적인 정지나 마무리를 확인한 근거가 없습니다.
+            # No evidence of successful stopping or finalization after a crash.
             self.statuses[outer] = self.statuses[normal] = FAILURE
             if event.stage in STAGE_NODES:
                 self._set(event.substage if event.substage in STEP_BY_ID
@@ -130,7 +130,7 @@ class MonitorProjection:
             self.statuses[failure] = RUNNING
             self._set('StopAndAssess', RUNNING)
         elif event.stage == Stage.FINALIZING.value:
-            # Result가 아직 도착하지 않았으므로 성공으로 표시하지 않습니다.
+            # The Result has not arrived yet; do not claim success.
             if event.last_completed_stage == Stage.VERIFYING_PLACEMENT.value and not event.cancel_mode:
                 self._set('FinalizeSuccess', RUNNING)
             else:
@@ -146,7 +146,7 @@ class MonitorProjection:
                     self._set(event.substage, RUNNING)
             elif event.stage != event.last_completed_stage and not detailed:
                 self._set(STAGE_NODES[event.stage], RUNNING)
-        # 자식 진행을 시각 그룹에 투영하며 BT 노드를 tick하지 않습니다.
+        # Project child progress onto the visual groups; no BT nodes are ticked.
         for group in reversed(self.groups):
             children = [self.statuses[int(node.get('_uid'))] for node in group]
             status = (FAILURE if FAILURE in children else RUNNING if RUNNING in children

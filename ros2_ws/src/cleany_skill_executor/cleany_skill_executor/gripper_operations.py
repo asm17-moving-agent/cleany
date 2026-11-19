@@ -15,7 +15,7 @@ from cleany_skill_executor.core.grasp_pipeline import ContactDebounce, ContactLi
 
 
 class LiftRedetectionError(RuntimeError):
-    """새 검출 snapshot에 같은 label의 거리 유효 타깃이 없습니다."""
+    """A fresh detector snapshot has no distance-valid target of the same label."""
 
 
 class GripperOperations:
@@ -251,7 +251,7 @@ class GripperOperations:
 
 
     def _wait_for_gripper_contact(self, arm: str, start: float, command: float) -> bool:
-        """추가 모터 명령 없이 닫힘 이후 정착을 관측합니다."""
+        """Observe settling after close without sending another motor command."""
         timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
         duration = float(self.get_parameter('gripper_contact_stable_duration_sec').value)
         if not all(math.isfinite(v) and v > 0 for v in (timeout, duration)):

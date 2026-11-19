@@ -15,7 +15,7 @@ make motion-container-check
 저장소는 읽기 전용으로 연결한다. 빌드와 캐시는 작업 트리별 Docker volume에 저장한다.
 `prepare`는 인터페이스, 로봇 모델, MoveIt 설정, 파지와 실행 패키지 5개를 설치한다.
 `check`는 이미지와 설치 입력의 hash를 대조한다. 입력이 바뀌면 다시 준비한다.
-호스트의 MoveIt 준비는 [개발환경 안내](../../docs/implementation/development-setup.md#실물-모션-기반)를 따른다.
+호스트의 MoveIt 준비는 [개발환경 안내](../../docs/DEVELOPMENT_SETUP.md#실물-모션-기반)를 따른다.
 
 ## 실행
 

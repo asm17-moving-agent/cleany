@@ -1,4 +1,4 @@
-"""ROS와 serial I/O에 독립적인 ToF 기하 및 책상 제어입니다."""
+"""ToF geometry and desk control, independent of ROS and serial IO."""
 from dataclasses import dataclass
 import math
 import numpy as np
@@ -7,7 +7,7 @@ from .observation import Observation, ZoneState, classify_zones
 
 @dataclass(frozen=True)
 class Settings:
-    # 시운전 후보값이며 측정된 물리 보장이 아닙니다.
+    # These are commissioning candidates, not measured physical guarantees.
     calibrated: bool = False
     horizontal_fov: float = 1.0471975512
     vertical_fov: float = 1.0471975512
@@ -87,7 +87,7 @@ class Settings:
 
 
 def project(distance, sigma, status, count, valid, settings: Settings):
-    """베이스 좌표계 zone 중심과 품질 mask를 반환하며 거리는 방사 방향 미터 단위입니다."""
+    """Return base-frame zone centres and a quality mask; ranges are radial metres."""
     arrays = [np.asarray(x) for x in (distance, sigma, status, count, valid)]
     if any(a.shape != (64,) for a in arrays):
         raise ValueError('expected five 64-zone arrays')
@@ -99,7 +99,7 @@ def project(distance, sigma, status, count, valid, settings: Settings):
         row = 7-row
     if settings.flip_columns:
         col = 7-col
-    # 보정된 영상 열은 로봇 오른쪽, 행은 아래쪽으로 증가합니다.
+    # Calibrated image columns progress towards robot right; rows down.
     y = np.tan((3.5-col.ravel()) / 8 * settings.horizontal_fov)
     z = np.tan((3.5-row.ravel()) / 8 * settings.vertical_fov)
     rays = np.stack((np.ones(64), y, z), axis=1)
@@ -134,10 +134,10 @@ class Plane:
 
 
 def estimate_plane(points, good, settings: Settings) -> Plane:
-    """분산된 유효 ROI 열 중앙값에서 x = distance + slope*y를 맞춥니다.
+    """Fit x = distance + slope*y from distributed, valid ROI column medians.
 
-    전면 평면 법선을 추정합니다. 무늬 없는 평평한 책상의 횡방향 중심은 관측할 수
-    없으므로 대기 위치의 위치 추정이 좌우 배치를 제공해야 합니다.
+    This estimates the front plane normal. A flat unmarked desk has no observable
+    lateral centre; staging localization must supply lateral placement.
     """
     centres = []
     for col in settings.approach_columns:
@@ -151,7 +151,7 @@ def estimate_plane(points, good, settings: Settings) -> Plane:
         raise ValueError('insufficient plane span')
     matrix = np.column_stack((np.ones(len(p)), p[:, 1]))
     distance, slope = np.linalg.lstsq(matrix, p[:, 0], rcond=None)[0]
-    # 전경 물체가 중앙값에서 사라지지 않도록 선택한 모든 표본도 검사합니다.
+    # Check all selected samples too: a foreground object must not disappear in medians.
     selected = [row*8+col for row in settings.approach_rows for col in settings.approach_columns if good[row*8+col]]
     residual = float(np.max(np.abs(points[selected, 0] - distance - slope*points[selected, 1])))
     yaw = math.atan(-slope)
@@ -175,7 +175,7 @@ class ApproachController:
         self.progress_at = now
 
     def step(self, plane: Plane, measured, now: float):
-        """속도와 상태를 반환하며 성공에는 최신 정지 데이터가 지속되어야 합니다."""
+        """Return velocity and state; success requires sustained fresh stopped data."""
         s = self.s
         if not all(math.isfinite(x) for x in (plane.distance, plane.yaw, *measured, now)):
             return (0., 0., 0.), 'INVALID'

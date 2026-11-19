@@ -1,9 +1,10 @@
-"""구체화된 보정 자세 집합의 회전 다양성 지표입니다.
+"""Rotation-diversity metrics for materialized calibration pose sets.
 
-선택 목적은 상대 비교입니다. 쌍별 축 평행성의 최댓값이 작을수록 우선하며,
-같으면 공분산 log-determinant가 큰 쪽을 택합니다. 두 값 모두 절대 수락 임계값으로
-쓰지 않습니다. 수락에는 쌍별로 평행하지 않은 축이 최소 다섯 개이고 공분산 rank가
-3이어야 한다는 조건만 적용하며 수치 허용 오차는 호출자가 제공합니다.
+The selection objective is deliberately relative: lower maximum pairwise
+axis parallelism wins, then higher covariance log-determinant wins.  Neither
+quantity is used as an absolute acceptance threshold.  Acceptance uses only
+the plan's explicit minimum of five pairwise non-parallel axes and covariance
+rank three, with caller-supplied numerical tolerances.
 """
 
 from __future__ import annotations
@@ -51,7 +52,7 @@ def _axis_parallelism_tolerance(value: float) -> float:
 
 @dataclass(frozen=True, slots=True)
 class RotationObservation:
-    """상대 SO(3) 로그 벡터 하나와 정규화된 회전축입니다."""
+    """One relative SO(3) log vector and its normalized rotation axis."""
 
     pose_id: str
     rotation_vector_rad: tuple[float, float, float]
@@ -95,7 +96,7 @@ class RotationObservation:
 
 @dataclass(frozen=True, slots=True)
 class RotationDiversity:
-    """검토 가능한 지표와 다양성을 입증하는 구체적인 축 다섯 개입니다."""
+    """Auditable metrics and a concrete five-axis diversity witness."""
 
     maximum_axis_parallelism: float
     rotation_covariance_log_det: float
@@ -135,7 +136,7 @@ class RotationDiversity:
 
     @property
     def lexicographic_objective(self) -> tuple[float, float]:
-        """최소화 정렬 키로 평행성을 우선하고 음의 log-det을 다음으로 사용합니다."""
+        """A minimization key: parallelism first, negative log-det second."""
 
         return (
             self.maximum_axis_parallelism,
@@ -149,7 +150,7 @@ def rotation_observations(
     *,
     reference_rotation_matrix: Sequence[Sequence[float]] | np.ndarray,
 ) -> tuple[RotationObservation, ...]:
-    """기록된 기준 자세 하나에 대한 상대값으로 모든 그리퍼 회전을 표현합니다."""
+    """Express every gripper rotation relative to one recorded reference."""
 
     ids = tuple(pose_ids)
     rotations = tuple(rotation_matrices)
@@ -206,7 +207,7 @@ def find_nonparallel_axis_witness(
     axis_parallelism_tolerance: float,
     minimum_count: int = MINIMUM_NONPARALLEL_AXES,
 ) -> tuple[str, ...]:
-    """쌍별로 평행하지 않은 구체적인 축 집합 중 사전순 첫 집합을 반환합니다."""
+    """Return the lexically first concrete pairwise non-parallel witness."""
 
     if (
         isinstance(minimum_count, bool)
@@ -233,7 +234,7 @@ def evaluate_rotation_diversity(
     axis_parallelism_tolerance: float,
     covariance_rank_tolerance: float,
 ) -> RotationDiversity:
-    """사전식 선택 목적값과 수락 근거를 계산합니다."""
+    """Compute the plan's lexicographic objective and acceptance evidence."""
 
     values = tuple(observations)
     if not values:
@@ -279,10 +280,11 @@ def rotation_selection_objective(
     *,
     log_det_epsilon: float,
 ) -> tuple[float, float]:
-    """(최대 평행성, 공분산 log-det)을 적은 비용으로 계산합니다.
+    """Return ``(maximum parallelism, covariance log-det)`` cheaply.
 
-    evaluate_rotation_diversity와 달리 다섯 축의 입증 집합을 탐색하지 않으므로
-    결정적 선택기에서 부분 집합을 반복 비교할 때 적합합니다.
+    Unlike :func:`evaluate_rotation_diversity`, this helper does not search
+    for the five-axis witness and is therefore suitable for repeated subset
+    comparisons inside the deterministic selector.
     """
 
     values = tuple(observations)
@@ -315,7 +317,7 @@ def rotation_selection_objective(
 
 
 def require_rotation_diversity(diversity: RotationDiversity) -> None:
-    """명시된 두 가지 절대 수락 규칙만 적용합니다."""
+    """Apply only the two absolute acceptance rules approved by the plan."""
 
     if not isinstance(diversity, RotationDiversity):
         raise ValueError('diversity must be RotationDiversity')

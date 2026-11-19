@@ -16,19 +16,19 @@
 namespace cleany_mujoco_observer
 {
 /**
- * @brief 일관된 전용 snapshot에서 시뮬레이션 전용 근거를 발행합니다.
+ * @brief Publish simulation-only evidence from a consistent private snapshot.
  *
  * @par Publishers
  * /simulation/sorting_ground_truth (visualization_msgs/msg/MarkerArray):
- * base_link의 충돌 형상 경계이며 시뮬레이션 시각을 기록합니다.
+ * Collision-geometry bounds in base_link, stamped with simulation time.
  * /simulation/contact_diagnostics (diagnostic_msgs/msg/DiagnosticArray):
- * sorting_observer.publish_contacts로 활성화하는 범위 제한 접촉 근거.
- * 두 토픽은 reliable, volatile, depth 10이며 TF를 발행하지 않습니다.
+ * Optional bounded contact evidence, enabled by sorting_observer.publish_contacts.
+ * Both use reliable, volatile QoS with depth 10. No TF is broadcast.
  *
  * @par Constraints
- * 차체 body와 최소 하나의 자유 study_cafe_ body가 필요합니다.
- * 호출자가 동기화된 snapshot을 제공해야 하며 관측기는 물리 상태, 제어값,
- * 힘이나 equality 제약을 바꾸지 않습니다.
+ * Requires the chassis body and at least one free study_cafe_ body.
+ * The caller supplies a synchronized snapshot; this observer never changes
+ * physics state, controls, forces or equality constraints.
  */
 class SortingObserver
   : public mujoco_ros2_control_plugins::MuJoCoROS2ControlPluginBase
@@ -51,8 +51,8 @@ public:
     publisher_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
       "/simulation/sorting_ground_truth", 10);
     bool publish_contacts = false;
-    // loader는 하위 노드를 전달합니다. Node의 템플릿 getter는 네임스페이스를
-    // 앞에 붙이지만 이 파라미터는 공통 루트 파라미터 저장소에 속합니다.
+    // The loader passes a sub-node. Node's templated getters prepend its
+    // namespace; these parameters belong to the shared root parameter store.
     const auto parameters = node->get_node_parameters_interface();
     rclcpp::Parameter value;
     if (parameters->get_parameter("sorting_observer.publish_contacts", value)) {

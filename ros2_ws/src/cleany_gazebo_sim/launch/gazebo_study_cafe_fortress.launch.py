@@ -1,4 +1,4 @@
-"""Humble / Gazebo Fortress 스터디카페 시나리오를 실행합니다."""
+"""Launch the Humble / Gazebo Fortress study-cafe scenario."""
 
 from cleany_gazebo_sim.launch_helpers.study_cafe import (
     study_cafe_launch_description,
