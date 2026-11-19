@@ -92,7 +92,7 @@ def test_installed_fusion_and_tf_ownership(
 
         command = None
 
-        def publish_inputs():
+        def publish_imu():
             packet = Imu()
             packet.header.stamp = node.get_clock().now().to_msg()
             packet.header.frame_id = 'imu_link'
@@ -101,10 +101,14 @@ def test_installed_fusion_and_tf_ownership(
             packet.angular_velocity.z = bias[2] + sensor_sign * .4
             packet.linear_acceleration.z = sensor_sign * 9.80665
             imu.publish(packet)
+
+        def publish_command():
             if command is not None:
                 commands.publish(command)
 
-        node.create_timer(.02, publish_inputs)
+        # Model the nominal 100 Hz IMU stream independently of the 50 Hz drive commands.
+        node.create_timer(.01, publish_imu)
+        node.create_timer(.02, publish_command)
 
         def pump(duration):
             end = time.monotonic() + duration
