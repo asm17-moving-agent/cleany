@@ -22,9 +22,9 @@ from rclpy.executors import SingleThreadedExecutor
 from shape_msgs.msg import SolidPrimitive
 
 
-def _start(log, domain: int, detector: str | None):
+def _start(log, domain: int, detector: str | None, model_profile="jetson_20261009"):
     command = ['ros2', 'launch', 'cleany_moveit_config', 'move_group.launch.py',
-               'use_rviz:=false', 'allow_trajectory_execution:=false']
+               'use_rviz:=false', 'allow_trajectory_execution:=false', 'model_profile:=' + model_profile]
     if detector is not None:
         command.append('collision_detector:=' + detector)
     return subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
@@ -44,7 +44,7 @@ def _stop(process) -> None:
 
 
 @contextmanager
-def _runtime(tmp_path: Path, detector: str | None):
+def _runtime(tmp_path: Path, detector: str | None, model_profile="jetson_20261009"):
     domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_ID', 30 + os.getpid() % 180))
     context = Context()
     rclpy.init(args=[], context=context, domain_id=domain)
@@ -53,7 +53,7 @@ def _runtime(tmp_path: Path, detector: str | None):
     executor.add_node(node)
     log_path = tmp_path / 'move_group.log'
     with log_path.open('w') as log:
-        process = _start(log, domain, detector)
+        process = _start(log, domain, detector, model_profile)
         try:
             def call(client, request):
                 deadline = time.monotonic() + 40
@@ -80,7 +80,7 @@ def _runtime(tmp_path: Path, detector: str | None):
 @pytest.mark.parametrize('detector', [None, 'FCL'])
 def test_installed_detector_catches_contained_obstacles(tmp_path: Path, detector):
     fixture = json.loads((Path(__file__).parent / 'data/contained_collision_probes.json').read_text())
-    with _runtime(tmp_path, detector) as (node, call):
+    with _runtime(tmp_path, detector, "jetson_20261009") as (node, call):
         apply = node.create_client(ApplyPlanningScene, '/apply_planning_scene')
         validity = node.create_client(GetStateValidity, '/check_state_validity')
         for row in fixture['probes']:

@@ -6,7 +6,7 @@ from rclpy.time import Time
 
 from cleany_interfaces.msg import GraspCandidate
 from cleany_interfaces.srv import ObserveWristTarget as Service
-from cleany_skill_executor import sorting_coordinator as module
+from cleany_skill_executor import sorting_operations as module
 from cleany_skill_executor.nearest_pregrasp_coordinator import NearestPregraspCoordinator
 from cleany_skill_executor.sorting_coordinator import SortingCoordinator, WristTargetNotDetected
 

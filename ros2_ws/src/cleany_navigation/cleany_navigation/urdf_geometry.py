@@ -1,8 +1,22 @@
 """Shared URDF transforms and optional fixed-joint conversion."""
 from __future__ import annotations
 from copy import deepcopy
+from pathlib import Path
 from xml.etree import ElementTree as ET
 import numpy as np
+
+
+def load_navigation_model(description: Path, profile: dict, *, simulation: bool) -> ET.Element:
+    """Load calibrated motor coordinates unless a simulation model is explicit."""
+    variant = profile.get('model_profile', 'freecad_calibrated')
+    if variant == 'freecad_calibrated':
+        return ET.parse(description / 'urdf/cleany.urdf').getroot()
+    if not simulation or variant not in ('jetson_20261009',):
+        raise ValueError(f'Uncalibrated navigation model requires simulation: {variant}')
+    import xacro
+    return ET.fromstring(xacro.process_file(
+        str(description / 'urdf/cleany.urdf.xacro'),
+        mappings={'model_profile': variant}).toxml())
 
 def rotation(rpy: list[float]) -> np.ndarray:
     r, p, y = rpy
@@ -14,6 +28,12 @@ def rotation(rpy: list[float]) -> np.ndarray:
 
 
 def rpy(matrix: np.ndarray) -> list[float]:
+    # At pitch +/-pi/2 only yaw +/- roll is observable. Avoid dividing the
+    # orientation between two angles using near-zero matrix entries.
+    horizontal = np.hypot(matrix[0, 0], matrix[1, 0])
+    if horizontal < 1e-10:
+        return [0., float(np.arctan2(-matrix[2, 0], horizontal)),
+                float(np.arctan2(-matrix[0, 1], matrix[1, 1]))]
     return [float(np.arctan2(matrix[2, 1], matrix[2, 2])),
             float(np.arctan2(-matrix[2, 0], np.hypot(matrix[0, 0], matrix[1, 0]))),
             float(np.arctan2(matrix[1, 0], matrix[0, 0]))]

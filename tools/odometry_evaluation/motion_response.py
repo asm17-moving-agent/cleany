@@ -37,7 +37,8 @@ def endpoint_errors(result: dict, axis: str) -> dict:
         entry = {"wheel_goal": wheel, "icp_valid": data["is_valid"],
                  "icp_goal": None, "odom_minus_icp": None}
         if data["is_valid"]:
-            icp = components(data["calibrated_base_ground_truth"])
+            icp = components(data["calibrated_base_reference"] if "calibrated_base_reference" in data
+                             else data["calibrated_base_ground_truth"])
             entry["icp_goal"] = icp
             entry["odom_minus_icp"] = {
                 "along_mm": (wheel["progress_m"] - icp["progress_m"])*1000,

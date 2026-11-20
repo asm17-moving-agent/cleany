@@ -51,7 +51,8 @@ def _launch_model(context: LaunchContext) -> list[Action]:
     )
     command = ["xacro ", model]
     if variant == "legacy_runtime":
-        command.extend([" calibration_profile:=", calibration])
+        command.extend([" model_profile:=", LaunchConfiguration("model_profile").perform(context),
+                        " calibration_profile:=", calibration])
     robot_description = ParameterValue(
         Command(command),
         value_type=str,
@@ -109,6 +110,8 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="true"),
+            DeclareLaunchArgument("model_profile", default_value="jetson_20261009",
+                                  choices=["jetson_20261009"]),
             DeclareLaunchArgument(
                 "namespace",
                 default_value="",

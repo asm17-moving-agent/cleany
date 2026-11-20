@@ -1,6 +1,7 @@
 from .models import Availability, Fault
 
 STATE_FAULT = 'SUPERVISOR_STATE_UNVERIFIED'
+BASE_FEEDBACK_LOST = 'base_feedback_lost'
 
 
 class FaultManager:
@@ -34,6 +35,10 @@ class FaultManager:
                                       now, now, True, policy['latched'], policy.get('recovery', ''),
                                       detail, policy['locks_operation'])
                         self.faults[fault.code] = fault
+                        if source == 'base' and not fresh and report is not None and report.status == Availability.AVAILABLE:
+                            fault.cause = BASE_FEEDBACK_LOST
+                        elif report is not None:
+                            fault.cause = report.cause
                     fault.last_seen = now
                     if not fault.restored:
                         fault.detail = detail
@@ -80,7 +85,8 @@ class FaultManager:
     def persisted(self) -> list[dict]:
         """Active latched faults survive restart; nonlatched ones are re-derived from health."""
         return [{'code': f.code, 'source': f.source, 'severity': f.severity, 'capabilities': f.capabilities,
-                 'recovery_policy': f.recovery_policy, 'locks_operation': f.locks_operation, 'detail': f.detail}
+                 'recovery_policy': f.recovery_policy, 'locks_operation': f.locks_operation,
+                 'detail': f.detail, 'cause': f.cause}
                 for f in self.faults.values() if f.active and f.latched]
 
     def restore(self, entries: list[dict], now: float) -> None:
@@ -88,8 +94,8 @@ class FaultManager:
             self.faults[entry['code']] = Fault(
                 entry['code'], entry['source'], entry['severity'], list(entry['capabilities']), now, now,
                 True, True, entry['recovery_policy'],
-                'restored after supervisor restart; operator reset required: ' + entry['detail'],
-                bool(entry['locks_operation']), restored=True)
+                'restored after supervisor restart: ' + entry['detail'],
+                bool(entry['locks_operation']), restored=True, cause=entry.get('cause', ''))
 
     def prune(self, now: float, retention_s: float, referenced: set[str]) -> None:
         for code in [code for code, fault in self.faults.items()

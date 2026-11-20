@@ -59,8 +59,8 @@ RUN git clone https://github.com/chenxi-wang/MinkowskiEngine.git && \
 RUN git clone https://github.com/graspnet/graspnetAPI.git && \
     cd graspnetAPI && \
     git checkout "${GRASPNET_API_COMMIT}" && \
-    # OpenCV 5 requires NumPy 2; keep the NumPy 1.x ABI used by the SDK and
-    # extensions built in this image.
+    # OpenCV 5는 NumPy 2를 요구하므로 SDK와 이 이미지의 확장 모듈에서 사용하는
+    # NumPy 1.x ABI를 유지합니다.
     python3 -m pip install --no-cache-dir --no-deps \
       opencv-python==4.11.0.86 && \
     python3 -m pip install --no-cache-dir --no-build-isolation .

@@ -43,9 +43,10 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     The supplied park profile must match the backend posture; this is not live FK.
     """
     import yaml
-    from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry
-    urdf = ET.parse(description/'urdf/cleany.urdf').getroot()
-    config = apply_simulation_geometry(urdf, yaml.safe_load(profile.read_text()), allowed=allow_simulation_limits)
+    from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry, load_navigation_model
+    config = yaml.safe_load(profile.read_text())
+    urdf = load_navigation_model(description, config, simulation=allow_simulation_limits)
+    config = apply_simulation_geometry(urdf, config, allowed=allow_simulation_limits)
     transforms = forward_kinematics(urdf, config['park_joints'], config.get('simulation_park_limits') if allow_simulation_limits else None)
     result = []
     frame_names: set[str] = set()

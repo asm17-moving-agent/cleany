@@ -1,0 +1,111 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Fixed Frame: d435_ground_preview
+    Background Color: 30; 36; 45
+    Frame Rate: 20
+  Displays:
+    - Class: rviz_default_plugins/Image
+      Name: D435 RGB
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /camera/d435/color/image_raw
+        Reliability Policy: Best Effort
+        Depth: 1
+        Durability Policy: Volatile
+    - Class: rviz_default_plugins/Grid
+      Name: Observed floor grid
+      Enabled: true
+      Value: true
+      Plane: XY
+      Cell Size: 0.25
+      Plane Cell Count: 24
+      Color: 100; 110; 125
+      Alpha: 0.4
+    - Class: rviz_default_plugins/PointCloud2
+      Name: GREEN - filtered obstacles
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /perception/depth/obstacle_points
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        Depth: 1
+      Position Transformer: XYZ
+      Color Transformer: FlatColor
+      Color: 90; 235; 155
+      Style: Points
+      Size (Pixels): 3
+      Alpha: 1
+      Decay Time: 0
+    - Class: rviz_default_plugins/PointCloud2
+      Name: ORANGE - LiDAR at CAD height
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /perception/lidar/cad_points
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        Depth: 1
+      Position Transformer: XYZ
+      Color Transformer: FlatColor
+      Color: 255; 170; 40
+      Style: Points
+      Size (Pixels): 4
+      Alpha: 1
+      Decay Time: 0
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Ground removed - optional
+      Enabled: false
+      Value: false
+      Topic:
+        Value: /perception/depth/ground_points
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        Depth: 1
+      Position Transformer: XYZ
+      Color Transformer: FlatColor
+      Color: 100; 160; 250
+      Style: Points
+      Size (Pixels): 2
+      Alpha: 0.5
+      Decay Time: 0
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Raw depth - optional
+      Enabled: false
+      Value: false
+      Topic:
+        Value: /perception/depth/measured_points
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        Depth: 1
+      Position Transformer: XYZ
+      Color Transformer: FlatColor
+      Color: 185; 185; 185
+      Style: Points
+      Size (Pixels): 1
+      Alpha: 0.3
+      Decay Time: 0
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Target Frame: d435_ground_preview
+      Distance: 4
+      Pitch: 0.45
+      Yaw: 3.55
+      Focal Point:
+        X: 1.4
+        Y: 0
+        Z: 0.5
+    Saved: []
+Window Geometry:
+  Width: 1450
+  Height: 950
+  Hide Right Dock: true

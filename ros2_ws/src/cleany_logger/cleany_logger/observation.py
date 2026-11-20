@@ -64,19 +64,10 @@ def grid_origin(origin: list[float], transform: list[float]) -> list[float]:
     return [*transform_point(origin[0], origin[1], transform), origin[2] + transform[2]]
 
 
-class NoCameraPreview:
-    """Recording never decodes images or creates browser camera leases."""
-    def selected(self):
-        return set()
-    def receive(self, topic, message):
-        pass
-
-
 class ObservationBuffer:
     """Producer never waits for browser or disk. Telemetry coalesces; events have a ring."""
 
     def __init__(self, event_limit=2048):
-        self.cameras = NoCameraPreview()
         self.recording = RecordingControls()
         self.lock = threading.Lock()
         self.latest = {}

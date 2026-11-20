@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 from itertools import product
+import json
 from pathlib import Path
 import subprocess
 import shutil
@@ -15,6 +17,28 @@ import yaml
 
 from cleany_navigation.urdf_geometry import rotation, rpy, origin, freeze, apply_simulation_geometry
 from cleany_gazebo_sim.world.wrist_cameras import apply_wrist_cameras
+
+
+def description_identity(urdf: ET.Element, description: Path) -> dict:
+    """Identify the expanded model and actual mesh bytes used for conversion."""
+    meshes = {}
+    for element in urdf.findall('.//mesh'):
+        uri = element.get('filename', '')
+        prefix = 'package://cleany_description/'
+        if not uri.startswith(prefix):
+            raise ValueError(f'Unexpected mesh URI: {uri}')
+        relative = uri.removeprefix(prefix)
+        if Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise ValueError(f'Mesh escapes description package: {uri}')
+        # Colcon symlink-install deliberately points package assets into source.
+        path = description / relative
+        meshes[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    identity = dict(package='cleany_description', entrypoint='urdf/cleany.urdf.xacro',
+                    expanded_urdf_sha256=hashlib.sha256(ET.tostring(urdf)).hexdigest(),
+                    mesh_sha256=dict(sorted(meshes.items())))
+    identity['sha256'] = hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return identity
 
 
 def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> list[list[float]]:
@@ -60,7 +84,9 @@ def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> lis
 def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tuple[ET.Element, dict]:
     import xacro
     profile = yaml.safe_load(config.read_text())
-    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf')).toxml())
+    urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro'),
+        mappings={'model_profile': profile['model_profile']}).toxml())
+    identity = description_identity(urdf, description)
     for mesh in urdf.findall('.//mesh'):
         filename = mesh.get('filename')
         if not filename.startswith('package://cleany_description/'):
@@ -149,7 +175,11 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():
             ET.SubElement(plugin, key).text = value
     camera = transforms['head_camera_depth_frame']
-    metadata = dict(simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []), source_commit=profile['source_commit'], collision_bounds=bounds,
+    metadata = dict(model_profile=profile['model_profile'],
+                    simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []),
+                    description=identity, profile_sha256=hashlib.sha256(config.read_bytes()).hexdigest(),
+                    adapter_origin_commit=profile.get('adapter_origin_commit', profile.get('source_commit')),
+                    collision_bounds=bounds,
                     navigation_margins=profile['navigation_margins'],
                     depth_camera_tf=dict(translation=camera[:3, 3].tolist(), rotation_rpy=rpy(camera[:3, :3])),
                     wheelbase=profile['wheelbase'], wheel_separation=profile['wheel_separation'],

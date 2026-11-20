@@ -54,12 +54,14 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
     rclpy.init(context=context)
     namespace = '/bt_test_' + uuid.uuid4().hex
     observed = []
+    grasp_started = threading.Event()
     release_grasp = threading.Event()
     def operation(node, execution):
         observed.append(node)
         if cancel and node == 'GraspObject':
-            # DDS 수신 지연과 무관하게 취소 요청을 이 동작 중에 처리합니다.
-            assert release_grasp.wait(8.)
+            grasp_started.set()
+            # Keep the checkpoint active until DDS acknowledges the cancel request.
+            assert release_grasp.wait(8.), 'Cancel was not acknowledged during grasp'
         time.sleep(.03)  # Intentionally outlasts some BT ticks.
         values = {
             'SelectArmAndPath': dict(selected_arm='right'),
@@ -109,6 +111,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
         handle = wait(client.send_goal_async(goal, feedback_callback=lambda event: feedback.append(event.feedback)))
         assert handle.accepted
         if cancel:
+            assert grasp_started.wait(5.), 'Grasp operation did not start'
             deadline = time.monotonic() + 5.
             while not any(f.substage == 'GraspObject' for f in feedback) and time.monotonic() < deadline:
                 time.sleep(.01)

@@ -1,0 +1,17 @@
+{
+  "jetson_20261009": {
+    "mjcf": "cleany.xml",
+    "contact_geoms": {
+      "LEFT_FIXED_1": "left_fixed_jaw_contact_1",
+      "LEFT_FIXED_2": "left_fixed_jaw_contact_2",
+      "LEFT_MOVING_1": "left_moving_jaw_contact_1",
+      "LEFT_MOVING_2": "left_moving_jaw_contact_2",
+      "LEFT_MOVING_3": "left_moving_jaw_contact_3",
+      "RIGHT_FIXED_1": "right_fixed_jaw_contact_1",
+      "RIGHT_FIXED_2": "right_fixed_jaw_contact_2",
+      "RIGHT_MOVING_1": "right_moving_jaw_contact_1",
+      "RIGHT_MOVING_2": "right_moving_jaw_contact_2",
+      "RIGHT_MOVING_3": "right_moving_jaw_contact_3"
+    }
+  }
+}

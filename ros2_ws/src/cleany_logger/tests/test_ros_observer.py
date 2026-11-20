@@ -10,6 +10,65 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def test_active_raw_archive_reader_does_not_block_writer(tmp_path):
+    import sqlite3
+    from rclpy.serialization import serialize_message
+    from std_msgs.msg import String
+    from cleany_logger.recording import RawMessage
+    from cleany_logger.rosbag import RosbagWriter
+
+    path = tmp_path / 'bag'
+    writer = RosbagWriter(path)
+    message = RawMessage('logs', '/test', 'std_msgs/msg/String', 1., 1.,
+        serialize_message(String(data='first')), 1_000_000_000)
+    try:
+        writer.write(message)
+        db_path = next(path.glob('*.db3'))
+        with sqlite3.connect(f'file:{db_path}?mode=ro', uri=True) as reader:
+            assert reader.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
+            reader.execute('BEGIN')
+            assert reader.execute('SELECT count(*) FROM messages').fetchone()[0] == 1
+            writer.write(message)
+            reader.rollback()
+            assert reader.execute('SELECT count(*) FROM messages').fetchone()[0] == 2
+    finally:
+        writer.close()
+
+
+def test_diagnostic_bag_preserves_cdr_lookup_quota_and_export(tmp_path):
+    import sqlite3
+    import zipfile
+    from rclpy.serialization import serialize_message
+    from sensor_msgs.msg import LaserScan
+    from visualization_msgs.msg import MarkerArray
+    from cleany_logger import Recorder
+    from cleany_logger.archive import ArchiveReader
+    from cleany_logger.recording import RawMessage
+    from cleany_logger.rosbag import RosbagWriter, read_cdr
+
+    recorder = Recorder(tmp_path)
+    writer = RosbagWriter(recorder.bag_path)
+    recorder.bag = writer
+    sensor = RawMessage('slam', '/scan_raw', 'sensor_msgs/msg/LaserScan', 1., 1.,
+                        serialize_message(LaserScan(ranges=[1., 2.])), 1_000_000_000)
+    diagnostic = RawMessage('slam', '/trajectory_node_list', 'visualization_msgs/msg/MarkerArray',
+                            1., 1., serialize_message(MarkerArray()), 1_000_000_000)
+    writer.write(sensor)
+    writer.write(diagnostic)
+    assert read_cdr(recorder.bag_path, sensor.topic, sensor.timestamp_ns) == sensor.payload
+    assert read_cdr(recorder.bag_path, diagnostic.topic, diagnostic.timestamp_ns) == diagnostic.payload
+    with sqlite3.connect(next(recorder.bag_path.glob('*.db3'))) as db:
+        assert db.execute('SELECT name FROM topics').fetchall() == [('/scan_raw',)]
+    recorder.close()
+    assert (recorder.bag_path / 'diagnostics/metadata.yaml').exists()
+    expected = recorder.path.stat().st_size + sum(p.stat().st_size for p in recorder.bag_path.rglob('*') if p.is_file())
+    assert recorder.session_bytes() == expected
+    target = tmp_path / 'export.zip'
+    ArchiveReader(tmp_path).export_bag(recorder.session_id, target)
+    with zipfile.ZipFile(target) as archive:
+        assert f'{recorder.session_id}/diagnostics/metadata.yaml' in archive.namelist()
+
+
 def test_retained_manipulation_history_rebind_and_recording_filter(tmp_path):
     import rclpy
     from cleany_interfaces.msg import ManipulationExecutionRecord

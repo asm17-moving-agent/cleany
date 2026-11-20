@@ -84,7 +84,7 @@ def test_world_exposes_lidar_imu_and_camera_sensor_contract() -> None:
 
 
 def test_materialized_world_removes_arm_controllers_and_keeps_wheels() -> None:
-    generated = materialize_mecanum_wheel_world(WORLD_PATH)
+    generated = materialize_mecanum_wheel_world(WORLD_PATH, robot_model='legacy')
     root = ElementTree.parse(generated).getroot()
     model = root.find("./world/model[@name='cleany_mecanum']")
     assert model is not None

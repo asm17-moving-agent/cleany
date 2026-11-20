@@ -472,6 +472,8 @@ class GroundTruthResult:
             },
             "diagnostic_hint": self.diagnostic_hint,
         }
+        # 과거 JSON 소비자를 위해 기존 키를 함께 제공합니다.
+        data["reference_error"] = data["physical_ground_truth"]
         if self.lidar_metrics is not None:
             data["lidar_metrics"] = self.lidar_metrics
         return data
@@ -497,7 +499,7 @@ class GroundTruthResult:
             f"Odom Residual (Loop Closure Reported by ROS):",
             f"  delta_x: {self.odom_delta_x_m * 1000.0:+.1f} mm, delta_y: {self.odom_delta_y_m * 1000.0:+.1f} mm, delta_yaw: {self.odom_delta_yaw_deg:+.2f} deg",
             "----------------------------------------------------------------",
-            f"Physical Ground-Truth Error ({method_title}):",
+            f"Reference Measurement Error ({method_title}):",
             f"  error_x: {self.physical_error_x_mm:+.1f} mm",
             f"  error_y: {self.physical_error_y_mm:+.1f} mm",
             f"  error_yaw: {self.physical_error_yaw_deg:+.2f} deg",

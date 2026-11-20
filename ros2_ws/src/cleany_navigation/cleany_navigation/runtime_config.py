@@ -42,6 +42,32 @@ def merge_parameters(target: dict, overlay: dict) -> None:
             target[key] = deepcopy(value)
 
 
+def load_navigation_profile(base: Path, overlay: Path) -> dict:
+    """공통 주행 설정에 환경 차이를 적용합니다. 교체한 플러그인의 이전 설정은 버립니다."""
+    parameters = load_parameters(base)
+
+    def merge(target, changes):
+        for key, value in changes.items():
+            previous = target.get(key)
+            if (isinstance(value, dict) and isinstance(previous, dict)
+                    and ('plugin' not in value or value['plugin'] == previous.get('plugin'))):
+                merge(previous, value)
+            else:
+                target[key] = deepcopy(value)
+
+    merge(parameters, load_parameters(overlay))
+    return parameters
+
+
+def load_motion_profile(directory: Path, profile: str) -> dict:
+    """Compose motion settings; Omni uses the standard tuning overlay."""
+    if profile == 'omni':
+        return load_navigation_profile(directory/'nav2_omni.yaml', directory/'nav2_omni_standard.yaml')
+    if profile == 'longitudinal':
+        return load_parameters(directory/'nav2_longitudinal.yaml')
+    raise ValueError(f'Invalid motion profile: {profile}')
+
+
 def merge_localization_parameters(target: dict, overlay: dict) -> None:
     """Keep a localization calibration separate from motion/safety overrides."""
     amcl = overlay.get('amcl')
@@ -293,10 +319,11 @@ def longitudinal_lattice(source: dict) -> dict:
 
 
 def resolve_default_lattice(document: dict, primitive: Path) -> None:
-    """Resolve the packaged primitive for native Lattice, preserving explicit overrides."""
+    """Resolve native or wrapped Lattice primitives, preserving explicit overrides."""
     planner = document.get('planner_server', {}).get('ros__parameters', {}).get('GridBased', {})
     if planner.get('plugin') not in (
-            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice'):
+            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice',
+            'cleany_navigation::StraightFirstPlanner'):
         return
     if planner.get('lattice_filepath'):
         return

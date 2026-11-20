@@ -1,0 +1,48 @@
+# Stop zone is the CAD wheel envelope expanded by 5 cm on every side.
+collision_monitor:
+  ros__parameters:
+    base_frame_id: base_link
+    odom_frame_id: odom
+    cmd_vel_in_topic: motion/cmd_vel
+    cmd_vel_out_topic: navigation/safe_cmd_vel
+    state_topic: collision_monitor_state
+    transform_tolerance: 0.3
+    source_timeout: 0.5
+    base_shift_correction: true
+    stop_pub_timeout: 2.0
+    absolute_limit_polygon: SlowZone
+    wheel_limit_rad_s: 10.0
+    translation_limit_m_s: 0.16
+    rotation_limit_rad_s: 0.3
+    localization_speed_limit_topic: navigation/localization_speed_limit
+    nominal_translation_m_s: 0.5
+    nominal_rotation_rad_s: 0.7
+    localization_speed_limit_timeout: 0.6
+    localization_limit_ramp_per_s: 30.0
+    wheel_radius_m: 0.0635
+    wheelbase_m: 0.35
+    wheel_separation_m: 0.59
+    polygons:
+    - StopZone
+    - SlowZone
+    StopZone:
+      type: polygon
+      points: '[[0.2885,0.3774],[0.2885,-0.3774],[-0.2885,-0.3774],[-0.2885,0.3774]]'
+      action_type: stop
+      min_points: 3
+      visualize: true
+      polygon_pub_topic: safety/stop_zone
+    SlowZone:
+      type: polygon
+      points: '[[0.3985,0.4874],[0.3985,-0.4874],[-0.3985,-0.4874],[-0.3985,0.4874]]'
+      action_type: slowdown
+      min_points: 3
+      # Computed from absolute body limits per command; never amplifies small input.
+      slowdown_ratio: 1.0
+      visualize: true
+      polygon_pub_topic: safety/slow_zone
+    observation_sources:
+    - scan
+    scan:
+      type: scan
+      topic: scan

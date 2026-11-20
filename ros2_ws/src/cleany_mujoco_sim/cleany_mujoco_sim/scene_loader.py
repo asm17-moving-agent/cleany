@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import html
+import json
 import math
 import shutil
 import tempfile
@@ -74,6 +75,7 @@ def materialize_control_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     """Materialize a MuJoCo 3.4-compatible arm-control scene.
@@ -93,6 +95,7 @@ def materialize_control_scene(
         initial_joint_positions=initial_joint_positions,
         sorting_bins_config=sorting_bins_config,
         performance_profile=performance_profile,
+        model_profile=model_profile,
         study_cafe_layout_config=study_cafe_layout_config,
     )
 
@@ -103,6 +106,7 @@ def resolve_control_scene_path(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if scene_path.suffix == '.in':
@@ -111,6 +115,7 @@ def resolve_control_scene_path(
             initial_joint_positions=initial_joint_positions,
             sorting_bins_config=sorting_bins_config,
             performance_profile=performance_profile,
+            model_profile=model_profile,
             study_cafe_layout_config=study_cafe_layout_config,
         )
     if study_cafe_layout_config is not None:
@@ -134,6 +139,7 @@ def _materialize_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    model_profile: str = 'jetson_20261009',
     study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if not template_path.is_file():
@@ -142,7 +148,13 @@ def _materialize_scene(
         )
 
     description_share = _package_share('cleany_description')
-    description_model = description_share / 'mjcf' / 'cleany.xml'
+    profiles = json.loads(
+        (_package_share('cleany_mujoco_sim') / 'config/model_profiles.json').read_text()
+    )
+    if model_profile not in profiles:
+        raise ValueError(f'Unknown model_profile: {model_profile}')
+    profile = profiles[model_profile]
+    description_model = description_share / 'mjcf' / profile['mjcf']
     description_meshes = description_share / 'meshes'
     if not description_model.is_file():
         raise FileNotFoundError(
@@ -154,6 +166,10 @@ def _materialize_scene(
         )
 
     scene_text = template_path.read_text(encoding='utf-8')
+    for role, geom in profile['contact_geoms'].items():
+        scene_text = scene_text.replace(f'@CLEANY_CONTACT_{role}@', geom)
+    if '@CLEANY_CONTACT_' in scene_text:
+        raise ValueError('Unresolved model-specific contact geometry')
     if _SCENE_MODEL_TOKEN not in scene_text:
         raise ValueError(
             f'MuJoCo scene template is missing {_SCENE_MODEL_TOKEN}'

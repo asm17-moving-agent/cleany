@@ -1,6 +1,9 @@
 """Validated deployment settings, separate from product and hardware decisions."""
 
 import math
+import re
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,11 +23,38 @@ class TargetMap:
     frame_id: str
     home: TargetPose
     seats: dict[str, TargetPose]
+    binding: dict | None = None
 
 
 def load_targets(path: str) -> TargetMap:
     data = yaml.safe_load(Path(path).expanduser().read_text())
-    if data.get("schema_version") != 1 or not data.get("map_id") or data.get("frame_id") != "map":
+    binding = None
+    if data.get("schema_version") == 2:
+        digest = data.get("target_digest")
+        payload = {key: value for key, value in data.items() if key != "target_digest"}
+        # JSON browsers serialize 1.0 as 1. Canonical pose scalars are float64 numbers.
+        for key in ("home",):
+            if isinstance(payload.get(key), list):
+                payload[key] = [float(v) if type(v) in (int, float) else v for v in payload[key]]
+        if isinstance(payload.get("seats"), dict):
+            payload["seats"] = {
+                name: [float(v) if type(v) in (int, float) else v for v in values]
+                if isinstance(values, list) else values
+                for name, values in payload["seats"].items()
+            }
+        actual = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                                           ensure_ascii=True).encode()).hexdigest()
+        if digest != actual:
+            raise ValueError("seat target digest mismatch")
+        if data.get("validation_status") != "field_verified":
+            raise ValueError("draft seat targets require field verification before runtime use")
+        if (not isinstance(data.get("source_sha256"), str)
+                or re.fullmatch(r"[a-f0-9]{64}", data["source_sha256"]) is None
+                or type(data.get("layout_revision")) is not int or data["layout_revision"] < 0):
+            raise ValueError("versioned targets require map source hash and layout revision")
+        binding = {key: data[key] for key in
+                   ("map_id", "source_sha256", "layout_revision", "target_digest")}
+    if data.get("schema_version") not in (1, 2) or not data.get("map_id") or data.get("frame_id") != "map":
         raise ValueError("target map requires schema_version=1, map_id and frame_id=map")
 
     def pose(values) -> TargetPose:
@@ -37,7 +67,7 @@ def load_targets(path: str) -> TargetMap:
     seats = {name: pose(value) for name, value in data["seats"].items()}
     if not seats or any(not name.startswith("seat-") for name in seats):
         raise ValueError("at least one named seat pose is required")
-    return TargetMap(data["map_id"], "map", pose(data["home"]), seats)
+    return TargetMap(data["map_id"], "map", pose(data["home"]), seats, binding)
 
 
 def load_runtime_parameters(path: str) -> dict:

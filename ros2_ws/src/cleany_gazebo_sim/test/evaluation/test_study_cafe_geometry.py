@@ -20,7 +20,7 @@ def _world(tmp_path: Path) -> ElementTree.Element:
         ROBOT_WORLD,
         tmp_path / 'study_cafe.sdf',
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find(
         "world[@name='cleany_study_cafe']"
     )
@@ -122,7 +122,7 @@ def test_study_cafe_supports_bounded_accelerated_physics(
         max_step_size=0.003,
         real_time_factor=2.0,
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find('world')
     assert world is not None
     assert world.findtext('physics/max_step_size') == '0.003'

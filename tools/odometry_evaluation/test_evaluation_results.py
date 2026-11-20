@@ -28,12 +28,14 @@ def test_rejected_icp_never_becomes_numeric_calibration_error():
     result = build_leg_result((.5, 0, 0), match(False), .5, False, forbidden)
     assert result["one_way_error"] is None
     assert result["calibrated_base_ground_truth"] is None
+    assert result["calibrated_base_reference"] is None
     assert result["raw_lidar_icp"]["condition_number"] is None
     json.dumps(result, allow_nan=False)
 
 
 def test_valid_observation_computes_error():
     result = build_leg_result((.51, 0, 0), match(True), .5, False, lambda x, y, yaw: (x, y, yaw))
+    assert result["calibrated_base_reference"] == result["calibrated_base_ground_truth"]
     assert result["one_way_error"]["error_norm_mm"] == pytest.approx(10)
     assert result["one_way_error"]["error_rate_pct"] == pytest.approx(2)
 
@@ -43,6 +45,7 @@ def test_missing_physical_measurement_has_no_zero_accuracy():
     assert not result.measurement_valid
     assert result.error_rate_pct is None
     assert result.to_dict()["physical_ground_truth"]["position_norm_mm"] is None
+    assert result.to_dict()["reference_error"] == result.to_dict()["physical_ground_truth"]
     json.dumps(result.to_dict(), allow_nan=False)
 
 

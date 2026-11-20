@@ -120,9 +120,9 @@ class ArchiveReader:
         if not self.bag_available(session):
             raise FileNotFoundError("No finalized rosbag2 recording")
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
-            for path in sorted(directory.iterdir()):
+            for path in sorted(directory.rglob('*')):
                 if path.is_file() and (path.name == "metadata.yaml" or path.suffix == ".db3"):
-                    archive.write(path, f"{session}/{path.name}")
+                    archive.write(path, f"{session}/{path.relative_to(directory)}")
 
     def raw_message(self, session, key, at):
         with sqlite3.connect(f'file:{self.resolve(session)}?mode=ro', uri=True) as db:

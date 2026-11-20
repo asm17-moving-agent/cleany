@@ -418,7 +418,9 @@ def _assert_pilz_lin_is_cartesian(
         log_path=log_path,
         description='Pilz LIN plan-only result',
     )
-    assert wrapped.status == GoalStatus.STATUS_SUCCEEDED
+    assert wrapped.status == GoalStatus.STATUS_SUCCEEDED, (
+        f"MoveGroup status={wrapped.status}, error={wrapped.result.error_code.val}\n"
+        + _log_tail(log_path))
     assert wrapped.result.error_code.val == MoveItErrorCodes.SUCCESS
     trajectory = wrapped.result.planned_trajectory.joint_trajectory
     assert trajectory.points
