@@ -334,10 +334,19 @@ make build-jetson-control
 source "$(make -s print-install-base)/setup.bash"
 ```
 
-`CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
-`CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
-`INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
-호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
+Make는 두 단계 위에 `cleany-data`가 있으면 이를 기본 데이터 루트로 사용하고,
+없으면 저장소 옆의 `cleany-data`를 사용합니다. `CLEANY_DATA_ROOT`로 변경할 수 있습니다.
+
+| 우선순위 | 조건 | 빌드 루트 |
+| --- | --- | --- |
+| 1 | `CLEANY_BUILD_ROOT` 지정 | 지정한 경로 |
+| 2 | 체크아웃 루트에 `.env.workspace-build` 파일이 있음 | 체크아웃의 `ros2_ws` |
+| 3 | 기본 개발 환경 | `${XDG_CACHE_HOME:-$HOME/.cache}/cleany/builds/<checkout>` |
+
+`BUILD_BASE`, `INSTALL_BASE`, `LOG_BASE`는 빌드 루트의 `build`, `install`, `log`입니다.
+운영 Jetson에서 이 규칙으로 `/home/cleany/cleany/ros2_ws/install`을 사용하려면
+`/home/cleany/cleany`에서 `touch .env.workspace-build`를 실행합니다.
+호스트 Python 도구, `tools/ros2/cleany-install-env`, `tools/ros2/ros2-clean`도 같은 빌드 루트 규칙을 따릅니다.
 `INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
 
 실물 실행은 [제어 실행 절차](RUNNING.md#jetson-실물-실행-경로)를 따릅니다.

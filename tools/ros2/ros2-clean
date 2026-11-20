@@ -8,8 +8,8 @@ if [[ -d "$(dirname "$(dirname "${REPO_ROOT}")")/cleany-data" ]]; then
   DEFAULT_DATA_ROOT="$(dirname "$(dirname "${REPO_ROOT}")")/cleany-data"
 fi
 DATA_ROOT="${CLEANY_DATA_ROOT:-${DEFAULT_DATA_ROOT}}"
-BUILD_ROOT="${CLEANY_BUILD_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/cleany/builds/$(basename "${REPO_ROOT}")}"
-BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
+source "${SCRIPT_DIR}/cleany-install-env"
+BUILD_ROOT="$(realpath -m "${CLEANY_BUILD_ROOT}")"
 # Reject a build root that contains any protected directory.
 for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
   protected="$(realpath -m "${protected}")"

@@ -6,6 +6,10 @@ from pathlib import Path
 import shlex
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from cleany_paths import install_base
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -24,11 +28,10 @@ def main():
                               '--no-tty', '--clean-path', '--', 'python3',
                               str(Path(__file__).resolve()), *sys.argv[1:]])
     repo = Path(__file__).resolve().parents[2]
-    cache = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home()/'.cache')))/'cleany/builds'
-    build = Path(os.environ.get('CLEANY_BUILD_ROOT', str(cache/repo.name)))
+    cache = Path(os.environ.get('XDG_CACHE_HOME') or Path.home()/'.cache')/'cleany/builds'
     dependencies = Path(os.environ.get('CLEANY_HARDWARE_DEPS_ROOT', str(cache/'hardware-deps')))
     setup = [Path('/opt/ros/humble/setup.bash'), dependencies/'install/local_setup.bash',
-             build/'install/local_setup.bash']
+             install_base(repo)/'local_setup.bash']
     for path in [*setup, args.profile, args.map, args.dds_profile]:
         if not path.is_file():
             parser.error(f'Missing runtime input: {path}')
