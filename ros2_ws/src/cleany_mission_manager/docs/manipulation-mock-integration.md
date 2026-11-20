@@ -1,6 +1,6 @@
 # Gazebo 주행과 Mock 조작 연결
 
-베이스는 Gazebo/Nav2가 주행하고 인식, 계획과 팔 조작은 Mock입니다. Python Mock 서버는 PR #55 `86a6d85`의 실행 core, model, mock adapter, port, 단계, SQLite 저장소와 ROS wrapper를 선별 포함했습니다. Native BT와 MuJoCo 실행기는 포함하지 않았습니다.
+베이스는 Gazebo/Nav2가 주행하고 인식, 계획과 팔 조작은 Mock입니다. Python Mock 서버가 ROS Action을 처리하고 실행 상태와 결과는 SQLite에 기록합니다.
 
 ```mermaid
 flowchart LR
