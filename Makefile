@@ -48,6 +48,10 @@ BASE_TEST_ROS_DOMAIN_ID ?= 173
 IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
 IMU_CALIBRATION_TIMEOUT ?= 60
 IMU_CALIBRATION_ARGS ?=
+TOF_PROJECT := $(REPO_ROOT)esp32/tof_vl53l7ch
+TOF_ULD := $(TOF_PROJECT)/lib/st-vl53lmz
+TOF_BUILD_DIR := $(CLEANY_BUILD_ROOT)/tof-firmware
+TOF_PIO ?= pio
 PCB_PYTHON ?= /usr/bin/python3
 PCB_PROJECT_DIR := $(REPO_ROOT)esp32/pcb/integrated_controller
 PCB_TEST_OUTPUT ?= $(CLEANY_BUILD_ROOT)/pcb-validation
@@ -153,6 +157,8 @@ help:
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
+	@echo "  make tof-firmware-build / test-tof-firmware"
+	@echo "  make tof-firmware-upload CLEANY_TOF_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make test-motor-core / build-base / test-base"
 	@echo "  make test-pcb      Check integrated PCB contracts, ERC and DRC (KiCad 10+)"
 	@echo "  make test-odometry-evaluation  Test config-driven wheel odom evaluation"
@@ -213,6 +219,22 @@ else
 		--schematic-parity --format json -o "$(PCB_TEST_OUTPUT)/drc.json" \
 		"$(PCB_PROJECT_DIR)/integrated_controller.kicad_pcb"
 endif
+
+.PHONY: tof-firmware-build tof-firmware-upload test-tof-firmware
+tof-firmware-build:
+	PLATFORMIO_BUILD_DIR="$(TOF_BUILD_DIR)/pio" "$(TOF_PIO)" run -d "$(TOF_PROJECT)"
+
+tof-firmware-upload:
+	@test -n "$(CLEANY_TOF_PORT)" || (echo "CLEANY_TOF_PORT is required" >&2; exit 2)
+	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
+	PLATFORMIO_BUILD_DIR="$(TOF_BUILD_DIR)/pio" "$(TOF_PIO)" run -d "$(TOF_PROJECT)" -t upload --upload-port "$(CLEANY_TOF_PORT)"
+
+test-tof-firmware:
+	mkdir -p "$(TOF_BUILD_DIR)"
+	$(CC) -std=c11 -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=all \
+		-fno-omit-frame-pointer -I"$(TOF_ULD)" "$(TOF_PROJECT)/tests/test_failed_read.c" \
+		"$(TOF_ULD)/vl53lmz_api.c" "$(TOF_ULD)/platform.c" -o "$(TOF_BUILD_DIR)/test_failed_read"
+	"$(TOF_BUILD_DIR)/test_failed_read"
 
 imu-calibration-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration'
@@ -753,7 +775,7 @@ run-hardware-mapping:
 .PHONY: test-tof-core build-tof test-tof
 
 test-tof-core:
-	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_tof/test/test_observation_policy.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
+	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation:$(ROS2_WS)/src/cleany_description" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_tof/test/test_observation_policy.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
 
 build-tof:
 	$(BASE_EXEC) bash -c 'source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_tof cleany_mission_manager cleany_system_supervisor cleany_base_driver'

@@ -1,0 +1,7 @@
+https://github.com/stm32duino/VL53L7CH
+Commit: 600e275895ddd79c03282c45f8dcd02e763fecb4
+Library version: 1.0.0; actual ULD header: VL53LMZ_2.0.10
+Only the core C driver, plugins, and platform forwarding functions are used.
+The Arduino VL53L7CH class is not used. ESP32 callbacks are in src/main.cpp.
+
+Local core patch: vl53lmz_get_ranging_data returns immediately after a failed RdMulti, before decoding partial or stale data. Regression: tests/test_failed_read.c.
