@@ -1,4 +1,4 @@
-"""Publish sensor-only scene clouds for RViz and MoveIt."""
+"""RViz와 MoveIt에 센서 전용 장면 점군을 발행합니다."""
 from __future__ import annotations
 
 import math
@@ -16,22 +16,22 @@ from cleany_perception.depth_scene_cloud import depth_scene_cloud
 
 
 class DepthSceneNode(Node):
-    """Publish sensor depth as a scene cloud for visualization and mapping.
+    """시각화와 mapping을 위해 센서 깊이를 장면 점군으로 발행합니다.
 
     Subscriptions:
-        /camera/depth/image_rect_raw (sensor_msgs/msg/Image): Captured depth.
-        /camera/depth/camera_info (sensor_msgs/msg/CameraInfo): Projection intrinsics.
+        /camera/depth/image_rect_raw (sensor_msgs/msg/Image): 촬영 깊이.
+        /camera/depth/camera_info (sensor_msgs/msg/CameraInfo): 투영 내부 파라미터.
 
     Publishers:
-        /perception/scene_cloud (sensor_msgs/msg/PointCloud2): Nonempty measured
-            cloud in the capture frame, with the original stamp.
+        /perception/scene_cloud (sensor_msgs/msg/PointCloud2): 촬영 좌표계의 비어 있지
+            않은 측정 점군이며 원래 stamp를 유지합니다.
 
     QoS:
-        Inputs use best-effort depth 1; output uses reliable depth 1.
+        입력은 best_effort, depth 1이고 출력은 reliable, depth 1입니다.
 
     Notes:
-        Topic names are configurable defaults. Repeated, stale, invalid or empty
-        samples are skipped. No cloud is computed without an output subscriber.
+        토픽 이름은 변경 가능한 기본값입니다. 반복, 오래됨, 무효 또는 빈 표본은
+        건너뛰며 출력 구독자가 없으면 점군을 계산하지 않습니다.
     """
     def __init__(self) -> None:
         super().__init__('depth_scene_node')

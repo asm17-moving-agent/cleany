@@ -1,0 +1,38 @@
+{
+  "assets": [
+    {
+      "id": "map-growth",
+      "asset": "docs/assets/examples/map-growth.gif",
+      "source_root": "CLEANY_DATA_ROOT",
+      "source": "runs/mapping/2026-11-06_map-growth/reports/map-growth.gif",
+      "sha256": "c4ca5bdd820f526c6ad302d28b1e25a8e8437f9f4b16fcc6f7a7c46124ba86e5",
+      "scope": "Cartographer re-execution of original recorded sensors with a seed; time-ordered map snapshots, not original live screen capture.",
+      "method": "Unmodified byte-for-byte copy",
+      "recording_id": "59fc31f1-1e8e-4823-87ec-dd340f3f643c",
+      "gif_frames": 313,
+      "gif_duration_ms": 31300,
+      "provenance_sha256": "18b15c1d0fe750677f151af5f9bfaece0c7fcbb3dc9d41918e019cdc59347bd5"
+    },
+    {
+      "id": "tof-grid",
+      "asset": "ros2_ws/src/cleany_tof/docs/assets/native-grid.png",
+      "source_root": "CLEANY_DATA_ROOT",
+      "source": "runs/hardware/2026-10-25_tof/reports/vl53l7ch-20261025/outputs/vl53l7ch-rviz/live-depth.png",
+      "sha256": "d5128ec1ff822c06da0d5c9308ddb8c77e7b6b9d64504988f922f0a3e115f0ed",
+      "scope": "Uninstalled physical sensor, native zone order, mm; historical viewer labels are not current guard classification or robot safety validation.",
+      "method": "Unmodified byte-for-byte copy"
+    },
+    {
+      "id": "cad-assembly",
+      "asset": "ros2_ws/src/cleany_description/docs/assets/cad-assembly.png",
+      "source_root": "CLEANY_DATA_ROOT",
+      "source": "runs/hardware/undated_cad/reports/Cleany-final-renders/01_overall_isometric.png",
+      "sha256": "8ab298e12cc51012f22e19fd602dfe98692dd387a0e330369f0270e5eab60e48",
+      "cad_source": "datasets/reference/cad/Cleany-final.FCStd",
+      "cad_sha256": "91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0",
+      "render_date": "2026-11-04",
+      "method": "Unmodified FreeCAD assembly render copied byte-for-byte",
+      "scope": "CAD assembly reference, including panels and face display; not a render or parity certificate of the current URDF/MJCF."
+    }
+  ]
+}

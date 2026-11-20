@@ -9,7 +9,7 @@
     <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics"/>
     <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
     <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
-    <!-- GPU LiDAR and camera sensors render on OGRE2; the GUI uses OGRE1 separately. -->
+    <!-- GPU LiDAR와 카메라 센서는 OGRE2에서 렌더링하며 GUI는 별도로 OGRE1을 사용합니다. -->
     <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors"><render_engine>ogre2</render_engine></plugin>
     <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu"/>
 
@@ -33,14 +33,12 @@
       </link>
     </model>
 
-    <!--
-      This is a kinematic prototype, not a hardware-accurate XLeRobot model.
-      The RASKOG body visual and wheel layout originate in the Cleany model.
-      The launch file adds cleany_description to the Gazebo resource path so
-      this world does not duplicate its STL assets.
-    -->
+    <!-- 하드웨어를 정밀하게 재현한 XLeRobot 모델이 아닌 운동학 프로토타입입니다.
+RASKOG 본체 외형과 바퀴 배치는 Cleany 모델에서 가져옵니다.
+launch가 cleany_description을 Gazebo 리소스 경로에 추가하므로
+이 월드는 STL asset을 중복 저장하지 않습니다. -->
     <model name="cleany_mecanum" xmlns:ignition="http://ignitionrobotics.org/schema">
-      <!-- Matches the MuJoCo chassis origin; wheel centers remain at z=0.0635. -->
+      <!-- MuJoCo 차체 원점과 일치하며 바퀴 중심은 z=0.0635를 유지합니다. -->
       <pose>0 0 0.38 0 0 0</pose>
 
       <link name="base_link">
@@ -52,7 +50,7 @@
           <geometry><box><size>0.55 0.45 0.20</size></box></geometry>
         </collision>
         <visual name="raskog_body_visual">
-          <!-- Rotated so the head camera and base +X use the same front. -->
+          <!-- 헤드 카메라와 베이스 +X의 정면이 같도록 회전합니다. -->
           <pose>0.01668 -0.502 0.515 1.5708 0 3.14159265</pose>
           <geometry>
             <mesh>
@@ -101,17 +99,15 @@
         <!-- CLEANY_FRONT_RIGHT_ROLLER_VISUALS -->
       </link>
 
-      <!--
-        Fortress's MecanumDrive uses one continuous drive joint per wheel.
-        The finite display range keeps Gazebo's generic position-controller
-        panel readable while remaining effectively unbounded for simulation.
-      -->
+      <!-- Fortress의 MecanumDrive는 바퀴마다 연속 구동 관절 하나를 사용합니다.
+표시 범위를 유한하게 두어 Gazebo 범용 위치 제어 패널을 읽기 쉽게 하되,
+시뮬레이션에서는 사실상 제한 없이 움직일 수 있게 합니다. -->
       <joint name="rear_left_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_left_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
       <joint name="rear_right_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_right_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
       <joint name="front_left_wheel_joint" type="revolute"><parent>base_link</parent><child>front_left_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
       <joint name="front_right_wheel_joint" type="revolute"><parent>base_link</parent><child>front_right_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
 
-      <!-- One physical RPLIDAR; the study-cafe launcher selects its mount. -->
+      <!-- 단일 RPLIDAR이며 스터디카페 launcher가 장착 위치를 선택합니다. -->
       <link name="lidar_link">
         <pose relative_to="lidar_mount">0 0 0 0 0 0</pose>
         <visual name="rplidar_a1_visual">
@@ -136,8 +132,8 @@
       </link>
       <joint name="lidar_mount" type="fixed"><pose relative_to="base_link">0.16 0 -0.12 0 0 0</pose><parent>base_link</parent><child>lidar_link</child></joint>
 
-      <!-- Simulation IMU contract. Its physical mounting position is pending
-           hardware review, so it is currently aligned with base_link. -->
+      <!-- 시뮬레이션 IMU 계약입니다. 실물 장착 위치는 하드웨어 검토 전이므로
+현재는 base_link에 정렬합니다. -->
       <link name="imu_link">
         <pose relative_to="imu_mount">0 0 0 0 0 0</pose>
         <sensor name="base_imu" type="imu">
@@ -150,10 +146,8 @@
       </link>
       <joint name="imu_mount" type="fixed"><pose relative_to="base_link">0 0 0 0 0 0</pose><parent>base_link</parent><child>imu_link</child></joint>
 
-      <!--
-        MuJoCo top_base_link: the upper support that physically and visually
-        connects the dual-arm mounts to the RASKOG chassis.
-      -->
+      <!-- MuJoCo top_base_link는 양팔 장착부를 RASKOG 차체에
+물리적으로, 시각적으로 연결하는 상부 지지대입니다. -->
       <link name="top_base_link">
         <pose relative_to="top_base_mount">0 0 0 0 0 0</pose>
         <inertial><mass>0.2542</mass><inertia><ixx>0.0045</ixx><iyy>0.005</iyy><izz>0.0045</izz></inertia></inertial>
@@ -162,7 +156,7 @@
       </link>
       <joint name="top_base_mount" type="fixed"><pose relative_to="base_link">0 0 0.35 0 0 3.14159265</pose><parent>base_link</parent><child>top_base_link</child></joint>
 
-      <!-- MuJoCo camera inventory: one head RGBD unit plus two wrist RGB units. -->
+      <!-- MuJoCo 카메라는 헤드 RGBD 한 대와 손목 RGB 두 대로 구성됩니다. -->
       <link name="head_pan_link">
         <pose relative_to="head_pan_mount">0 0 0 0 0 0</pose>
         <visual name="head_pan_body"><pose>-0.335 -0.005 -0.923 0 0 0</pose><geometry><mesh><uri>model://meshes/tophead1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
@@ -180,34 +174,31 @@
       </link>
       <joint name="head_pan_mount" type="fixed"><pose relative_to="top_base_link">-0.103 0 0.323 0 0 0</pose><parent>top_base_link</parent><child>head_pan_link</child></joint>
       <joint name="head_tilt_mount" type="fixed"><pose relative_to="head_pan_link">0.001 0.002 0.09815 0 0 3.14159265</pose><parent>head_pan_link</parent><child>head_tilt_link</child></joint>
-      <!-- The physical head camera link is level; its optical-frame rotation is internal to the sensor. -->
+      <!-- 헤드 카메라 link는 수평이며 광학 좌표계 회전은 센서 내부에 적용합니다. -->
       <joint name="head_camera_mount" type="fixed"><pose relative_to="head_tilt_link">0.025 0 0.03 0 0 0</pose><parent>head_tilt_link</parent><child>head_camera_link</child></joint>
 
-      <!-- Input placeholders: the world generator replaces these wrist visuals
-           and poses from cleany_description's v8 geometry registration. -->
+      <!-- 입력 자리표시자입니다. 월드 생성기가 cleany_description의 v8 형상 등록 정보를
+사용해 손목 렌더링 형상과 자세를 교체합니다. -->
       <link name="left_wrist_camera_link">
         <pose relative_to="left_wrist_camera_mount">0 0 0 0 0 0</pose>
         <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
         <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
-        <!-- Converted from MuJoCo left_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
+        <!-- MuJoCo left_wrist_rgb의 xyaxes를 변환했습니다. Gazebo 카메라는 +X가 전방입니다. -->
         <sensor name="left_wrist_rgb" type="camera"><gz_frame_id>left_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/left_wrist_camera/rgb/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
       </link>
       <link name="right_wrist_camera_link">
         <pose relative_to="right_wrist_camera_mount">0 0 0 0 0 0</pose>
         <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
         <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
-        <!-- Converted from MuJoCo right_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
+        <!-- MuJoCo right_wrist_rgb의 xyaxes를 변환했습니다. Gazebo 카메라는 +X가 전방입니다. -->
         <sensor name="right_wrist_rgb" type="camera"><gz_frame_id>right_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/right_wrist_camera/rgb/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
       </link>
-      <!-- MuJoCo euler uses a different convention; these are the equivalent SDF RPY mount poses. -->
+      <!-- MuJoCo euler의 규약이 다르므로 동등한 SDF RPY 장착 자세를 사용합니다. -->
       <joint name="left_wrist_camera_mount" type="fixed"><pose relative_to="left_fixed_jaw">0 -0.022 0.05 1.5708 0 -1.5708</pose><parent>left_fixed_jaw</parent><child>left_wrist_camera_link</child></joint>
       <joint name="right_wrist_camera_mount" type="fixed"><pose relative_to="right_fixed_jaw">0 -0.021 0.05 1.5708 0 -1.5708</pose><parent>right_fixed_jaw</parent><child>right_wrist_camera_link</child></joint>
 
-      <!--
-        The arm mass properties and extended collision/render meshes follow
-        the canonical description. Gravity remains disabled until an arm
-        actuator/controller is introduced.
-      -->
+      <!-- 팔 질량 특성과 확장된 충돌 및 렌더링 메시는 기준 description을 따릅니다.
+팔 구동기와 제어기를 도입할 때까지 중력을 비활성화합니다. -->
       <link name="left_arm_base"><pose relative_to="left_arm_mount">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.0137179 -0.0000519711 0.0334843 0 0 0</pose><mass>0.147</mass><inertia><ixx>0.000114686</ixx><iyy>0.000136117</iyy><izz>0.000130364</izz><ixy>-0.000000459787</ixy><ixz>0.00000497151</ixz><iyz>0.0000000975275</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://meshes/Base.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://meshes/Base_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="base"><geometry><mesh><uri>model://meshes/Base.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://meshes/Base_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
       <link name="left_rotation_pitch"><pose relative_to="left_shoulder_yaw_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0307604 -0.0000166727 -0.0252713 0 0 0</pose><mass>0.100006</mass><inertia><ixx>0.000083759</ixx><iyy>0.0000810403</iyy><izz>0.0000239783</izz><ixy>0.0000000755525</ixy><ixz>-0.00000116342</ixz><iyz>0.000000154663</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://meshes/Rotation_Pitch.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://meshes/Rotation_Pitch_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://meshes/Rotation_Pitch.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://meshes/Rotation_Pitch_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
       <link name="left_upper_arm"><pose relative_to="left_shoulder_pitch_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.00011909447145 0.13366336448 0.00941424883693 0 0 0</pose><mass>0.1185</mass><inertia><ixx>0.000344882383932</ixx><iyy>0.0000390640385918</iyy><izz>0.000341356582549</izz><ixy>0.0000000126253142805</ixy><ixz>-0.0000000018457009038</ixz><iyz>-0.0000322497618493</iyz></inertia></inertial><collision name="body_collision"><pose>-0.0001 0.0651 -0.012 1.57079632679 0 -1.57079632679</pose><geometry><mesh><uri>model://meshes/Upper_Arm_5cm.stl</uri></mesh></geometry></collision><collision name="motor_collision"><pose>0 0.05 0 0 0 0</pose><geometry><mesh><uri>model://meshes/Upper_Arm_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="sockets"><pose>-0.0001 0.0651 -0.012 1.57079632679 0 -1.57079632679</pose><geometry><mesh><uri>model://meshes/Upper_Arm_5cm_Sockets.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="carbon"><pose>-0.0001 0.0651 -0.012 1.57079632679 0 -1.57079632679</pose><geometry><mesh><uri>model://meshes/Upper_Arm_5cm_Carbon.stl</uri></mesh></geometry><material><diffuse>0.10 0.10 0.12 1</diffuse></material></visual><visual name="motor"><pose>0 0.05 0 0 0 0</pose><geometry><mesh><uri>model://meshes/Upper_Arm_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
@@ -240,7 +231,7 @@
       <joint name="right_wrist_roll_joint" type="revolute"><pose relative_to="right_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>right_wrist_pitch</parent><child>right_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper><effort>1000000</effort></limit></axis></joint>
       <joint name="right_gripper_joint" type="revolute"><pose relative_to="right_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>right_fixed_jaw</parent><child>right_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper><effort>1000000</effort></limit></axis></joint>
 
-      <!-- Hold a compact, forward-facing standby pose until arm control is implemented. -->
+      <!-- 팔 제어를 구현할 때까지 전방을 향한 접힌 대기 자세를 유지합니다. -->
       <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController"><joint_name>left_shoulder_yaw_joint</joint_name><initial_position>-1.5708</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
       <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController"><joint_name>left_shoulder_pitch_joint</joint_name><initial_position>3.0</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
       <plugin filename="ignition-gazebo-joint-position-controller-system" name="ignition::gazebo::systems::JointPositionController"><joint_name>left_elbow_pitch_joint</joint_name><initial_position>2.4</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
@@ -266,12 +257,9 @@
         <min_acceleration>-2.0</min_acceleration>
         <max_acceleration>2.0</max_acceleration>
       </plugin>
-      <!--
-        Stock Gazebo Fortress does not publish usable odometry from
-        MecanumDrive. OdometryPublisher therefore owns the simulator
-        ground-truth output used by both the ROS odom -> base_link fallback
-        contract and the evaluation-only ground-truth topic.
-      -->
+      <!-- 기본 Gazebo Fortress의 MecanumDrive는 사용 가능한 odometry를 발행하지 않습니다.
+따라서 OdometryPublisher가 시뮬레이터의 참값 출력을 담당합니다.
+이 출력은 ROS odom -> base_link 대체 경로와 평가 전용 참값 토픽에 사용됩니다. -->
       <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
         <odom_frame>odom</odom_frame>
         <robot_base_frame>base_link</robot_base_frame>

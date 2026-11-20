@@ -1,10 +1,9 @@
-"""Build reduced collision meshes with per-component geometry certificates.
+"""구성요소별 기하 검증 정보를 갖는 축소 충돌 메시를 만듭니다.
 
-Enclosure components use supporting halfspaces and include every source triangle.
-Their expansion bound is relative to the original component CONVEX HULL: holes
-and concavities inside that hull are filled. It is not a CAD surface error bound.
-Original STL assets, visuals and physics are preserved.
-Plane partitions retain large openings before enclosing the resulting patches.
+외곽 구성요소는 지지 반공간을 사용해 모든 원본 삼각형을 포함합니다. 확장 한계는
+원래 구성요소의 볼록 껍질 기준이며 내부 구멍과 오목한 공간은 채워집니다.
+CAD 표면 오차 한계가 아닙니다. 원본 STL asset, 렌더링과 물리는 보존합니다.
+평면 분할로 큰 개구부를 유지한 뒤 나뉜 패치를 둘러쌉니다.
 """
 from __future__ import annotations
 
@@ -67,10 +66,10 @@ def maximum_plane_violation(points: np.ndarray, equations: np.ndarray) -> float:
 
 
 def clip_surface(mesh: Mesh, axis: int, offset: float, sign: int) -> Mesh:
-    """Clip triangles to a halfspace, sharing exact edge intersections.
+    """정확한 edge 교점을 공유하며 삼각형을 반공간으로 자릅니다.
 
-    Coordinates are metres. The open cut is capped by the later convex hull;
-    clipping itself preserves every portion of the original triangle surface.
+    좌표는 미터 단위입니다. 열린 절단면은 이후 볼록 껍질로 막으며
+    자르기 자체는 원래 삼각형 표면의 모든 해당 부분을 보존합니다.
     """
     if axis not in (0, 1, 2) or sign not in (-1, 1) or not np.isfinite(offset):
         raise ValueError('Invalid partition plane')
@@ -109,7 +108,7 @@ def clip_surface(mesh: Mesh, axis: int, offset: float, sign: int) -> Mesh:
 
 
 def partition_surface(mesh: Mesh, planes: list[dict]) -> list[Mesh]:
-    """Separate disconnected prongs after each configured cut plane."""
+    """설정된 각 절단 평면 이후 분리된 갈래를 나눕니다."""
     parts = [mesh]
     for plane in planes:
         axis, offset = plane['axis'], plane['offset_m']
@@ -133,10 +132,10 @@ def source_pieces(source: Mesh, settings: dict, filename: str) -> list[tuple[int
 
 
 def radial_bounds(points: np.ndarray, source: ConvexHull, center: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Distance to a known point in the original hull, hence an upper bound.
+    """원래 껍질 내부의 알려진 점까지 거리이므로 거리 상한입니다.
 
-    Distance to a convex set is convex. Bounding it at every output vertex also
-    bounds every point in the output polytope, including its face interiors.
+    볼록 집합까지 거리는 볼록 함수입니다. 모든 출력 정점에서 제한하면
+    면 내부를 포함한 출력 다면체의 모든 점도 제한합니다.
     """
     normals, offsets = source.equations[:, :3], source.equations[:, 3]
     slack = -(normals @ center + offsets)
@@ -182,8 +181,8 @@ def enclosing_hull(mesh: Mesh, *, max_expansion: float, margin: float,
     else:
         raise ValueError('Enclosure iteration limit exceeded')
 
-    # Certify the actual float32 coordinates written into STL, not the ideal
-    # double-precision intersection. The small outward margin covers rounding.
+    # 이상적인 배정밀도 교점이 아닌 실제 STL에 저장하는 float32 좌표를
+    # 검증합니다. 작은 바깥 여유가 반올림을 덮습니다.
     vertices = vertices.astype(np.float32).astype(np.float64)
     output = ConvexHull(vertices)
     violation = maximum_plane_violation(mesh.vertices, output.equations)
@@ -220,12 +219,11 @@ def stl_bytes(mesh: Mesh) -> bytes:
 
 
 def searched_enclosure(mesh: Mesh, settings: dict, variant: str, scale: float) -> tuple[Mesh, dict]:
-    """Replay a reviewed seed orientation and optional supporting-plane pruning.
+    """검토한 seed 방향과 선택적 지지 평면 가지치기를 재현합니다.
 
-    Keep the source partition unchanged. Certify native STL-unit float32
-    coordinates, including containment of complete source triangles. Selected
-    variants are config data so a sphere-incompatible patch can keep its legacy
-    enclosure without changing the sphere model.
+    소스 분할은 유지합니다. 전체 원본 삼각형 포함 여부까지 native STL 단위의
+    float32 좌표로 검증합니다. 선택 변형은 설정 데이터이므로 구와 호환되지 않는
+    패치도 구 모델을 바꾸지 않고 기존 외곽을 유지할 수 있습니다.
     """
     if variant not in ('xyz', 'xyz_pruned', 'principal_axes', 'principal_axes_pruned'):
         raise ValueError('Unknown enclosure search variant: ' + variant)
@@ -319,10 +317,9 @@ def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, li
             result, report = enclosing_hull(part,
                 max_expansion=settings['max_hull_expansion_m'], margin=settings['enclosure_margin_m'],
                 max_iterations=settings['max_iterations'], planes_per_iteration=settings['planes_per_iteration'])
-        # Native-unit STL rounding can change nearly coplanar triangles,
-        # especially for millimetre CAD. Retriangulate the actual stored
-        # vertices so each exported component is a convex solid, not just
-        # a point cloud whose convex hull meets the enclosure certificate.
+        # native 단위 STL 반올림은 특히 밀리미터 CAD에서 거의 같은 평면의
+        # 삼각형을 바꿀 수 있습니다. 실제 저장 정점을 재삼각화해 각 출력 구성요소가
+        # 볼록 껍질 조건만 만족하는 점군이 아니라 볼록 입체가 되게 합니다.
         scale = settings.get('mesh_scales', {}).get(filename, 1.)
         rounded = (result.vertices/scale).astype(np.float32).astype(float)*scale
         hull = ConvexHull(rounded)

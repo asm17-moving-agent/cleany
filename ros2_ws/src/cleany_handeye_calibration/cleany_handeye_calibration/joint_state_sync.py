@@ -1,8 +1,8 @@
-"""ROS-time joint-feedback buffering and interpolation.
+"""ROS 시각 기준 관절 피드백 버퍼와 보간입니다.
 
-The core in this module deliberately has no ROS imports.  Callers convert a
-``sensor_msgs/msg/JointState`` header stamp to integer nanoseconds at the ROS
-boundary and then provide :class:`TimedJointSample` values here.
+이 core 모듈은 ROS를 import하지 않습니다. 호출자가 ROS 경계에서
+sensor_msgs/msg/JointState의 header stamp를 정수 나노초로 변환한 뒤
+TimedJointSample로 전달합니다.
 """
 
 from __future__ import annotations
@@ -68,13 +68,12 @@ def _joint_name_tuple(
 
 @dataclass(frozen=True, slots=True)
 class DualArmJointContract:
-    """Required, disjoint left/right feedback joints.
+    """서로 겹치지 않는 필수 왼팔 및 오른팔 피드백 관절입니다.
 
-    The Cleany default includes each side's five arm joints and read-only
-    gripper feedback, for all 12 revolute joints in a complete RobotState.
-    Additional joints are accepted and retained.  Every accepted sample must
-    nevertheless contain the full configured state, so a partial side can
-    never be used for feedback FK.
+    Cleany 기본값은 양쪽의 팔 관절 다섯 개와 읽기 전용 그리퍼 피드백을 포함하며
+    완전한 RobotState의 회전 관절은 총 12개입니다. 추가 관절도 받아 보존합니다.
+    수락하는 모든 표본에는 설정된 전체 상태가 있어야 하므로 한쪽의 일부 정보만으로
+    피드백 FK를 계산할 수 없습니다.
     """
 
     left_joint_names: tuple[str, ...] = LEFT_FEEDBACK_JOINT_NAMES
@@ -128,11 +127,11 @@ DEFAULT_DUAL_ARM_JOINT_CONTRACT = DualArmJointContract()
 
 
 class IncompleteDualArmFeedback(ValueError):
-    """A timestamped feedback sample omits at least one required arm joint."""
+    """시각이 있는 피드백 표본에 필수 팔 관절이 하나 이상 빠져 있습니다."""
 
 
 class BufferInsertStatus(str, Enum):
-    """How a joint feedback sample affected the buffer."""
+    """관절 피드백 표본이 버퍼에 미친 영향을 나타냅니다."""
 
     ACCEPTED = 'accepted'
     CLOCK_RESET = 'clock_reset'
@@ -143,7 +142,7 @@ class BufferInsertStatus(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class BufferInsertResult:
-    """Result of one non-throwing feedback ingestion attempt."""
+    """스트림 오류를 예외로 던지지 않는 피드백 입력 시도의 결과입니다."""
 
     status: BufferInsertStatus
     stamp_ns: int
@@ -159,7 +158,7 @@ class BufferInsertResult:
 
 
 class InterpolationFailure(str, Enum):
-    """Explicit reasons an image cannot be paired with joint feedback."""
+    """영상을 관절 피드백과 짝지을 수 없는 명시적인 이유입니다."""
 
     EMPTY_BUFFER = 'empty_buffer'
     MISSING_BEFORE = 'missing_before'
@@ -171,7 +170,7 @@ class InterpolationFailure(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class InterpolatedJointState:
-    """Feedback positions at an image ROS stamp plus source provenance."""
+    """영상의 ROS 시각에 해당하는 피드백 위치와 입력 출처입니다."""
 
     sample: TimedJointSample
     before_stamp_ns: int
@@ -237,7 +236,7 @@ class InterpolatedJointState:
 
 @dataclass(frozen=True, slots=True)
 class JointInterpolationResult:
-    """Success or explicit sample-rejection reason for one image stamp."""
+    """영상 시각 하나에 대한 성공 결과 또는 명시적인 표본 거부 이유입니다."""
 
     interpolation: InterpolatedJointState | None = None
     failure: InterpolationFailure | None = None
@@ -269,13 +268,12 @@ class JointInterpolationResult:
 
 
 class JointStateRingBuffer:
-    """Bounded, time-ordered buffer of complete dual-arm feedback.
+    """완전한 양팔 피드백을 시각순으로 보관하는 크기 제한 버퍼입니다.
 
-    A small timestamp regression is rejected as out of order.  A regression
-    at least ``clock_reset_threshold_ns`` is treated as a ROS clock reset:
-    the prior epoch is discarded before the new sample is accepted.  The
-    threshold is explicit because joint messages alone cannot otherwise
-    distinguish delayed transport from a reset of simulation time.
+    작은 시각 역행은 순서 오류로 거부합니다. clock_reset_threshold_ns 이상
+    역행하면 ROS 시계 초기화로 보고 이전 epoch를 버린 뒤 새 표본을 받습니다.
+    관절 메시지만으로 전송 지연과 시뮬레이션 시계 초기화를 구분할 수 없으므로
+    이 임계값을 명시적으로 지정합니다.
     """
 
     def __init__(
@@ -318,7 +316,7 @@ class JointStateRingBuffer:
         self._samples.clear()
 
     def add(self, sample: TimedJointSample) -> BufferInsertResult:
-        """Validate and ingest feedback without throwing for stream faults."""
+        """피드백을 검사해 입력하며 스트림 오류는 예외로 던지지 않습니다."""
 
         if not isinstance(sample, TimedJointSample):
             raise ValueError('sample must be a TimedJointSample')
@@ -369,7 +367,7 @@ class JointStateRingBuffer:
         )
 
     def interpolate(self, image_stamp_ns: int) -> JointInterpolationResult:
-        """Interpolate at an image ROS stamp when both sides exist."""
+        """영상 ROS 시각의 양쪽 표본이 모두 있으면 보간합니다."""
 
         if (
             isinstance(image_stamp_ns, bool)

@@ -21,7 +21,7 @@ class MissionPermissionManager:
             return denied('lease identity or version mismatch')
         if release:
             if existing and existing.granted:
-                # Release is valid only after Mission has confirmed completion/stop.
+                # Mission이 완료 또는 정지를 확인한 후에만 반환이 유효합니다.
                 existing.granted, existing.stopped, existing.ended_at = False, True, now
                 existing.reason = 'released after mission completion'
             return denied('released' if existing else 'unknown lease')
@@ -61,8 +61,8 @@ class MissionPermissionManager:
             if lease.stop_requested_at is None:
                 lease.stop_requested_at = now
             if not lease.stop_dispatched:
-                # The stop server may not be discovered yet (e.g. right after a restart):
-                # keep retrying within the stop deadline instead of failing at once.
+                # 재시작 직후처럼 정지 서버가 아직 발견되지 않을 수 있으므로
+                # 즉시 실패하지 않고 정지 마감 시각 안에서 재시도합니다.
                 try:
                     stop_port.request(lease, self.epoch)
                     lease.stop_dispatched = True
@@ -82,13 +82,13 @@ class MissionPermissionManager:
                 faults.escalate_stop(lease.lease_id, now, 'mission stop failed or timed out')
 
     def persisted(self) -> list[dict]:
-        """Unconfirmed leases, granted or not, must be stopped again after a restart."""
+        """허가 여부와 무관하게 미확인 임대는 재시작 후 다시 정지해야 합니다."""
         return [{'mission_id': lease.mission_id, 'lease_id': lease.lease_id}
                 for lease in self.leases.values() if not lease.stopped]
 
     def restore(self, entries: list[dict]) -> None:
         for entry in entries:
-            # Version 0 is never issued, so a restored lease can never be renewed.
+            # 버전 0은 발급하지 않으므로 복구된 임대를 갱신할 수 없습니다.
             self.leases[entry['lease_id']] = Lease(
                 entry['mission_id'], entry['lease_id'], 0, (), 0., granted=False,
                 reason='restored unconfirmed lease from previous supervisor process', restored=True)

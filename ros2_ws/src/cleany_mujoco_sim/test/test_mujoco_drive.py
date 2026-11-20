@@ -24,8 +24,8 @@ def controller_config() -> VelocityControllerConfig:
 
 @pytest.fixture
 def xlerobot_model_data(tmp_path: Path):
-    # Drive directions are measured in the world frame from an unobstructed
-    # origin. The study-cafe fixture parks a rotated robot next to a desk.
+    # 장애물 없는 원점에서 월드 좌표계로 구동 방향을 측정합니다.
+    # 스터디카페 fixture는 로봇을 회전시켜 책상 옆에 배치합니다.
     template = tmp_path / 'drive.xml.in'
     template.write_text(
         '<mujoco model="drive_regression">'
@@ -88,8 +88,8 @@ def test_drive_tracks_forward_targets_and_stops(
     target = WheelSpeeds(4.0, 4.0, 4.0, 4.0)
     peak_voltage = 0.0
 
-    # The CAD mass/COM model settles more slowly than the old ballast model.
-    # Keep the same error, voltage and braking limits; allow 3 s to accelerate.
+    # CAD 질량 및 무게중심 모델은 이전 ballast 모델보다 천천히 정착합니다.
+    # 오차, 전압과 제동 한계는 유지하고 가속에 3초를 허용합니다.
     for _ in range(round(3.0 / model.opt.timestep)):
         voltages = drive.apply_control(data, target, model.opt.timestep)
         peak_voltage = max(

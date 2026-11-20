@@ -1,4 +1,4 @@
-"""Standalone storage compatibility, quotas and retained evidence."""
+"""독립 저장소의 호환성, 할당량과 근거 보존을 검사합니다."""
 
 import sqlite3
 import zlib

@@ -1,4 +1,4 @@
-"""Load and reject ambiguous or fail-open policy graphs at startup."""
+"""시작 시 정책 graph를 읽고 모호하거나 실패 시 허용되는 구성을 거부합니다."""
 from math import isfinite
 from pathlib import Path
 
@@ -84,7 +84,7 @@ def load(path: str | Path) -> dict:
 
 
 def with_tof(config: dict) -> dict:
-    """Require the independently enforced ToF guard for base availability."""
+    """베이스 가용성에 독립적으로 강제되는 ToF guard를 요구합니다."""
     from copy import deepcopy
     result = deepcopy(config)
     result['sources']['tof_proximity'] = dict(

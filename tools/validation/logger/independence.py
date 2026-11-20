@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Verify installed Logger and Monitor as separate processes using synthetic ROS input.
+"""합성 ROS 입력으로 설치된 Logger와 Monitor를 별도 프로세스로 검증합니다.
 
-Run in a sourced overlay, with an isolated ROS_DOMAIN_ID and ROS_LOCALHOST_ONLY=1.
-No motion command, action or robot control endpoint is used.
+overlay를 source하고 격리된 ROS_DOMAIN_ID와 ROS_LOCALHOST_ONLY=1로 실행합니다.
+이동 명령, action 또는 로봇 제어 endpoint를 사용하지 않습니다.
 """
 import argparse
 import json
@@ -210,7 +210,7 @@ def main():
             metadata = dict(db.execute('SELECT key,value FROM metadata'))
             assert metadata['bag_state'] == 'finalized'
         assert autostart.returncode == 0, f'Logger SIGINT exit: {autostart.returncode}'
-        # A dashboard alone must not create an archive directory or recording file.
+        # 대시보드만으로 archive 디렉터리나 기록 파일이 만들어져서는 안 됩니다.
         absent = args.output / 'must-remain-absent'
         offline = spawn('cleany_dev_monitor', 'dev_monitor', 'monitor-offline', f'state_directory:={absent}', f'port:={args.port}')
         await_http()

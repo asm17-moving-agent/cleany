@@ -1,4 +1,4 @@
-"""Backend-independent launch assembly for localization, Nav2 and safety."""
+"""백엔드에 독립적인 위치 추정, Nav2와 안전 launch 구성입니다."""
 from __future__ import annotations
 
 import os
@@ -160,7 +160,7 @@ def _launch(context: LaunchContext, *, safety: bool, lidar_only: bool = False) -
             coverage['source_timeout_s'] = parameters['pan_motion_gate']['ros__parameters']['source_timeout_s']
         if (voxel or safety_mode == 'reactive') and not projection.get('self_filter_profile'):
             projection['self_filter_profile'] = guard['profile']
-        # All consumers agree on the backend's canonical odometry and depth.
+        # 모든 소비자가 백엔드의 기준 odometry와 깊이를 사용합니다.
         for name in ('controller_server', 'bt_navigator', 'pan_motion_gate', 'voxel_guard'):
             parameters[name]['ros__parameters']['odom_topic'] = 'odom'
         parameters['pan_motion_gate']['ros__parameters'].update(
@@ -197,7 +197,7 @@ def _launch(context: LaunchContext, *, safety: bool, lidar_only: bool = False) -
                 lattice.write_text(json.dumps(primitives))
             planner['lattice_filepath'] = str(lattice)
     resolve_default_lattice(parameters, share/'config/lattice/omni-r10cm.json')
-    # Lifecycle children and costmaps read the same clock settings from YAML.
+    # lifecycle 자식과 costmap은 YAML에서 같은 시계 설정을 읽습니다.
     for name in ('bt_navigator_navigate_to_pose_rclcpp_node', 'bt_navigator_navigate_through_poses_rclcpp_node'):
         parameters.setdefault(name, {'ros__parameters': {}})
     tof_enabled = safety and flag('tof_enabled')

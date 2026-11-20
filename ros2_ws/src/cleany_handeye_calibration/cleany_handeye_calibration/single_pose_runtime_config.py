@@ -1,4 +1,4 @@
-"""Strict JSON configuration for the single-pose ROS executable."""
+"""단일 자세 ROS 실행 파일의 엄격한 JSON 설정입니다."""
 
 from __future__ import annotations
 

@@ -57,7 +57,7 @@ public:
     }
     file_ << std::setprecision(12);
     wrapped_ = loader_.createSharedInstance(plugin);
-    // Preserve the controller namespace, so all algorithm parameters remain unchanged.
+    // controller namespace를 유지해 알고리즘 파라미터를 바꾸지 않습니다.
     wrapped_->configure(parent, name, std::move(tf), std::move(costmap));
   }
 
@@ -108,7 +108,7 @@ private:
 
   void record(int64_t sim_time_ns, SteadyPoint start, SteadyPoint end, bool success) noexcept
   {
-    // File I/O and locking are deliberately outside the measured interval.
+    // 파일 I/O와 lock 획득은 측정 구간 밖에서 수행합니다.
     try {
       const auto wall_start_ns =
         std::chrono::duration_cast<std::chrono::nanoseconds>(start.time_since_epoch()).count();
@@ -124,7 +124,7 @@ private:
         RCLCPP_ERROR(logger_, "TimedController: timing CSV write failed");
       }
     } catch (...) {
-      // Preserve the original controller result or exception even if logging fails.
+      // 로그 기록이 실패해도 원래 controller 결과나 예외를 보존합니다.
     }
   }
 
@@ -138,7 +138,7 @@ private:
     } catch (...) {}
   }
 
-  // Loader must outlive the instance it creates; members destruct in reverse order.
+  // 멤버는 역순으로 파괴되므로 loader가 생성한 인스턴스보다 오래 유지되게 합니다.
   pluginlib::ClassLoader<nav2_core::Controller> loader_;
   nav2_core::Controller::Ptr wrapped_;
   rclcpp::Clock::SharedPtr clock_;

@@ -1,6 +1,16 @@
 # ESP32-S3 micro-ROS motor controller
 
-Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](PINMAP.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
+```mermaid
+flowchart LR
+  Cmd["차체 Twist + 구동 허가"] --> Driver["Base driver / 휠 변환"]
+  Driver -->|"wheel_command"| MCU["ESP32 / PI · FF · watchdog"]
+  MCU -->|"wheel_state"| Driver
+  Driver --> Odom["joint_states → wheel odometry"]
+```
+
+[베이스 연결부터 확인](../docs/implementation/how-to/base.md) · [빌드와 장치 없는 검사](#1-빌드와-장치-없는-검사) · [업로드와 통신](#2-upload와-통신) · [실물 인수](#3-실물-인수)
+
+Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](pinmap.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
 
 | 경로 | 역할 |
 |---|---|
@@ -22,8 +32,8 @@ ESP32-S3 모듈, BNO055, ToF 멀티플렉서와 전원 회로를 포함합니다
 KiCad 10에서 프로젝트를 열고 [보드 핀맵](pcb/integrated_controller/PINMAP.md),
 [BOM](pcb/integrated_controller/BOM.md), [제작 규칙](pcb/integrated_controller/DESIGN_RULES.md)을 함께 확인합니다.
 검사는 저장소 루트의 `make test-pcb`로 실행하며 환경과 결과 경로는
-[개발환경](../docs/DEVELOPMENT_SETUP.md#kicad-pcb-검증-환경)과
-[검증 절차](../docs/TESTING.md#통합-컨트롤러-pcb-검증)를 따릅니다.
+[개발환경](../docs/implementation/development-setup.md#kicad-pcb-검증-환경)과
+[검증 절차](../docs/implementation/reference/testing.md#통합-컨트롤러-pcb-검증)를 따릅니다.
 
 현재 펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 모터 보드 기준입니다.
 통합 보드에는 모터 GPIO 매핑과 BNO055 드라이버의 별도 이식이 필요합니다.
@@ -40,7 +50,7 @@ KiCad 10에서 프로젝트를 열고 [보드 핀맵](pcb/integrated_controller/
 | 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
 | 토픽 발행 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
 
-MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/ROS_INTERFACES.md)에서 찾습니다.
+MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/implementation/ros-interfaces.md)에서 찾습니다.
 
 ## Runtime
 
@@ -93,14 +103,25 @@ flowchart TB
 
 ## Runtime MPU6050 telemetry
 
-The motor image also acquires MPU6050 data on J_I2C1 (SDA GPIO41, SCL GPIO42),
-using the existing driver: 100 kHz I2C, 100 Hz sensor sampling, ±250 deg/s gyro,
-±2 g accelerometer and 42 Hz gyro DLPF. Module/external I2C pull-ups are required.
+```mermaid
+flowchart LR
+    IMU["MPU6050 / data-ready"] --> Task["독립 acquisition task / priority 2"]
+    Task --> Queue["1-entry overwrite queue"]
+    Queue --> Comm["Communication task / priority 4"]
+    Comm --> ROS["base/imu_state"]
+    Motor["Motor task / priority 6"] -. motorMutex 독립 .-> Task
+```
 
-The independent priority-2 acquisition task polls data-ready every 2 ms. It does
-not take `motorMutex`. The priority-6 motor and priority-4 communication tasks
-remain separate. A one-entry overwrite queue drops intermediate data if
-communication stalls; reconnect does not drain a sample backlog.
+| 장치 / 설정 | 값 |
+|---|---|
+| 포트 | J_I2C1, SDA GPIO41 / SCL GPIO42; 모듈 또는 외부 pull-up 필요 |
+| I2C / 샘플 | 100 kHz / 100 Hz |
+| 센서 범위 | Gyro ±250 deg/s, accelerometer ±2 g, gyro DLPF 42 Hz |
+| 획득 | Data-ready 2 ms polling; motorMutex 미사용 |
+| 발행 | 새 표본으로 최대 100 Hz, Best-effort / Volatile / Keep-last 1; WheelState는 50 Hz |
+| 통신 정체 | 중간 표본 overwrite; 재연결 때 backlog 방출 안 함 |
+| 거부 | 100 ms 초과 획득값, 중복 / 역행 측정 시각 |
+| 센서 오류 | 최대 10 Hz fault heartbeat, saturation 별도 bit; 초기화 / 읽기 재시도 250 ms–5 s backoff |
 
 통신 task는 `sensor_msgs/msg/Imu`를 `imu_uncalibrated/data_raw`에 best effort, volatile,
 keep last 1로 최대 100 Hz 발행한다. Gyro와 중력 포함 acceleration은 센서 축의
@@ -129,47 +150,32 @@ IMU 보정 대기로 모터를 추가 차단하지 않는다. STOP, watchdog과 
 Host 실행과 상태는 [IMU 실시간 수신](../ros2_ws/src/cleany_base_driver/docs/imu.md),
 새 bench 측정은 독립 [진단 펌웨어](imu_calibration/README.md)를 따른다.
 
-## 휠별 초기 PI와 FF
-
-`src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`에서 FF scale / Kp / Ki / PWM limit 순서로 설정합니다. 변경 후 rebuild와 upload가 필요합니다. FF 출력은 `target / FF scale × PWM limit`입니다.
-
-아래 값은 2026-10-02 네 바퀴를 공중에 띄운 무부하 시험에서 얻었습니다. PI를 끄고 네 휠을 동시에 정, 역방향으로 PWM 0→100%, 5% 간격, 1.5초씩 측정했습니다.
+`src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`는 FF scale, Kp, Ki와 PWM limit을
+설정합니다. 변경 후 rebuild와 upload가 필요합니다. FF 출력은
+`target / FF scale × PWM limit`입니다. 진단 기준값은
+[`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
+보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인합니다.
 
 | 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) |
 |---|---:|---:|---:|---:|
-| FL | 12.4261 | 4.655 | 9.309 | 100 |
-| FR | 12.1178 | 4.711 | 9.421 | 100 |
-| RL | 11.6403 | 4.864 | 9.728 | 100 |
-| RR | 11.8128 | 4.783 | 9.566 | 100 |
+| FL | 11.9352 | 6.058 | 12.118 | 100 |
+| FR | 12.2596 | 6.030 | 12.058 | 100 |
+| RL | 11.7678 | 6.246 | 12.492 | 100 |
+| RR | 11.3872 | 6.154 | 12.309 | 100 |
 
-FF는 `PWM≈k×속도`, `FF scale=100/k`로 추정하고 마찰 잔차는 PI로 보정했습니다. PI 추정에는 gain K, 시정수 τ, delay L과 기존 50 ms 속도 필터를 포함했습니다. 계산식은 `Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`입니다.
+FF 초기 추정은 `PWM≈k×속도`, `FF scale=100/k`를 사용합니다. PI 초기 추정에는
+측정한 gain K, 시정수 τ와 delay L을 사용하며,
+`Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`로 계산합니다.
+추정값은 실제 하중과 속도 필터 설정에 맞춰 재검증합니다.
 
-보정값을 업로드한 뒤 네 바퀴 동시 정·역방향 **0.5, 2, 5, 10 rad/s** 명령을
-각각 5초 동안 검증했다. 마지막 0.5초 평균 속도 오차는 모든 휠에서 4.5% 이내였다.
-최종 상태는 구동 비허가, PWM 0, fault 0이다.
-
-### 2026-10-13 지면 하중 실측 캘리브레이션 및 필터 고도화
-
-현재 `src/main.cpp`는 전후이동과 횡이동의 지면 하중 시험에서 도출한 다음
-휠별 설정을 사용한다. 진단 기준값은
-[`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
-같은 값으로 보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인한다.
-
-| 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) | 주요 지면 보정 특성 |
-|---|---:|---:|---:|---:|---|
-| FL | 11.9352 | 6.058 | 12.118 | 100 | 전후/횡이동 균형 최적화 |
-| FR | 12.2596 | 6.030 | 12.058 | 100 | 고효율 FR 휠 출력 과다 방지 |
-| RL | 11.7678 | 6.246 | 12.492 | 100 | 후륜 지지 강성 보강 |
-| RR | 11.3872 | 6.154 | 12.309 | 100 | 기어박스 마찰 하중 보상 (Yaw 편주 억제) |
-
-명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정한다.
-속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초다.
-STOP, 만료 및 연결 단절은 슬루 감속을 기다리지 않고 PWM zero를 요청한다.
+명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정합니다.
+속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초입니다.
+STOP, 만료 및 연결 단절은 슬루 감속을 기다리지 않고 PWM zero를 요청합니다.
 
 측정과 재검증 방법은 [휠 진단 안내](../tools/wheel_calibration/README.md)와
-[오도메트리 평가 안내](../tools/odometry_evaluation/README.md)를 따른다.
+[오도메트리 평가 안내](../tools/odometry_evaluation/README.md)를 따릅니다.
 오도메트리 내부 제어 잔차와 바닥 테이프 또는 LiDAR 기준의 실측 오차는
-별도 지표로 기록한다. 측정 JSON과 PNG는 Git 제외 경로인 `artifacts/`에 저장한다.
+별도 지표로 기록합니다. 측정 JSON과 PNG는 Git 제외 경로인 `artifacts/`에 저장합니다.
 
 ## 1. 빌드와 장치 없는 검사
 
@@ -186,15 +192,12 @@ make micro-ros-agent-build
 
 Type support 원본은 `ros2_ws/src/cleany_base_interfaces`입니다. Smoke/runtime은 cache를 공유하므로 순차 빌드하며, interface, metadata, 환경을 변경하면 type support를 재생성합니다.
 
-`cmake/microros_python.cmake` exposes the pinned generator modules to IDF's
-Python during CMake configuration. PlatformIO clears the process `PYTHONPATH`
-before this step, so the SCons environment alone does not cover a fresh
-micro-ROS/type-support rebuild. Runtime and smoke projects share this helper.
-
-Smoke and runtime share a library cache and build sequentially. Changes to
-interfaces, metadata, or build environment regenerate type support.
-`sdkconfig.defaults` configures octal memory, a 1000 Hz FreeRTOS tick, and the
-USB transport. The DOUT image header lets the bootloader enable OPI.
+| 빌드 경계 | 계약 |
+|---|---|
+| cmake/microros_python.cmake | IDF Python에 고정 generator 모듈 노출; PlatformIO가 비우는 PYTHONPATH를 SCons 설정만으로 대체하지 않음 |
+| Smoke / runtime | 같은 helper와 library cache 사용, 순차 빌드 |
+| sdkconfig.defaults | Octal memory, FreeRTOS 1000 Hz, USB transport |
+| DOUT image header | Bootloader의 OPI 활성화 |
 
 For clangd, run inside Distrobox:
 
@@ -223,7 +226,7 @@ source esp32/micro_ros/agent/install/local_setup.bash
 source "$(make -s print-install-base)/local_setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$CLEANY_ESP_PORT" -b 115200
-# Another terminal with the same overlays/domain:
+# 같은 overlay와 ROS 도메인을 설정한 다른 터미널에서 실행:
 ros2 topic echo /base/wheel_state --qos-reliability best_effort
 ```
 

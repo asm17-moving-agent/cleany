@@ -3,7 +3,7 @@
 #include "nav2_behavior_tree/bt_action_node.hpp"
 #include "nav2_msgs/action/wait.hpp"
 namespace cleany_axis_controller {
-/// An intentional yield is not a failed navigation recovery.
+/// 의도적인 양보 대기는 주행 복구 실패가 아닙니다.
 class YieldWait : public nav2_behavior_tree::BtActionNode<nav2_msgs::action::Wait> {
 public:
   YieldWait(const std::string &name, const BT::NodeConfiguration &config)

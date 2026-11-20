@@ -1,4 +1,4 @@
-"""Keep rate limiting from inventing fresh or future robot feedback."""
+"""속도 제한으로 존재하지 않는 최신 또는 미래 로봇 피드백이 만들어지지 않는지 확인합니다."""
 from types import SimpleNamespace
 import os
 import pytest

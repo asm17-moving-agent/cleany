@@ -1,6 +1,6 @@
 # Cleany-final.FCStd SHA256 91c26ec2eb8d1227fe9a0a18ded1235fcde257d2ef94cf9d345d337511625ff0
-# Six 20 mm vertical posts intersect the LiDAR plane. CAD -Y -> base +X,
-# CAD +X -> base +Y. Each rectangle includes 15 mm mounting tolerance.
+# 20mm 수직 기둥 여섯 개가 LiDAR 평면과 교차합니다. CAD -Y는 base +X,
+# CAD +X는 base +Y에 대응하며 각 사각형에 장착 허용 오차 15mm를 포함합니다.
 boxes:
   - [-0.215, 0.215, -0.165, 0.265]
   - [-0.215, -0.265, -0.165, -0.215]

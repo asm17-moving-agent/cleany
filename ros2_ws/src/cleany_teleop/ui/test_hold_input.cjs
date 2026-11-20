@@ -113,7 +113,7 @@ test('150 ms response latency still renews the 250 ms lease every 70 ms',async()
   assert.ok(now<lease,'lease must not expire while held');lease=now+250;
   arrivals.push({now,intent:lastIntent});return new Promise(resolve=>responses.push({at:now+150,resolve}));
  },onReply:()=>{},onError:error=>{throw error}});
- // Initial press reply arrived at 170 ms; renewal starts immediately.
+ // 최초 누름 응답은 170ms에 도착했으며 갱신은 즉시 시작합니다.
  for(let i=0;i<180;i++){
   now=170+i*70;lastIntent=i;
   for(const reply of responses.filter(r=>!r.done&&r.at<=now)){reply.done=true;reply.resolve({})}

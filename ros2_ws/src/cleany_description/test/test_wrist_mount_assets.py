@@ -1,4 +1,4 @@
-"""Validate portable wrist-mount assets and their canonical attachment frame."""
+"""이식 가능한 손목 마운트 자산과 기준 부착 좌표계를 검사합니다."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def triangles(path: Path) -> np.ndarray:
 
 
 def test_wrist_mount_assets() -> None:
-    """Check units, measured datums, source hashes and standalone frame placement."""
+    """단위, 실측 기준점, 원본 해시와 독립 모델의 좌표 배치를 확인합니다."""
     package = Path(__file__).resolve().parents[1]
     config = json.loads((package / 'config/geometry/wrist_mount_v8.json').read_text())
     asset_dir = package / 'meshes/wrist_mount_v8'

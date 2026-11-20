@@ -1,8 +1,9 @@
-"""Actual ROS callbacks, TF and steady timer failure boundaries.
+"""실제 ROS 콜백, TF와 steady timer의 실패 경계를 검사합니다.
 
-Run explicitly with CLEANY_REACTIVE_PROFILE pointing to the simulated body YAML.
-Uses domain 225 and remaps every test topic, including clock/TF, under
-/reactive_guard_fault_test. No simulator or base command bridge is launched.
+CLEANY_REACTIVE_PROFILE을 시뮬레이션 body YAML로 지정해 명시 실행합니다.
+domain 225를 사용하고 clock/TF를 포함한 모든 시험 토픽을
+/reactive_guard_fault_test 아래로 remap합니다. 시뮬레이터나 베이스 명령
+브리지는 실행하지 않습니다.
 """
 from pathlib import Path
 import json

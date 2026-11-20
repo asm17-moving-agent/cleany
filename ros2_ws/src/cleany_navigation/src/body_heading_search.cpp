@@ -25,7 +25,7 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const auto yaw=[](const auto &q){return std::atan2(2.*(q.w*q.z+q.x*q.y),1.-2.*(q.y*q.y+q.z*q.z));};
   const auto body=[&](const auto &p){geometry_msgs::msg::Pose2D v;v.x=p.pose.position.x;v.y=p.pose.position.y;v.theta=yaw(p.pose.orientation);return v;};
   const auto first=body(start),last=body(goal);
-  // Full input and endpoint certification also rejects invalid quaternions.
+  // 전체 입력과 끝점 검증에서 무효 quaternion도 거부합니다.
   auto endpoints=empty;endpoints.poses={start};
   if(!sweptPathCollisionFree(endpoints,map,footprint,cancel))return empty;
   endpoints.poses={goal};if(!sweptPathCollisionFree(endpoints,map,footprint,cancel))return empty;
@@ -34,9 +34,9 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const auto index=[&](size_t x,size_t y,size_t a){return a*cells+y*width+x;};
   const auto center=[&](size_t n){geometry_msgs::msg::Pose2D p;map.mapToWorld(n%width,(n/width)%height,p.x,p.y);p.theta=(n/cells)*angle_step;return p;};
   const auto connection=[&](const auto &a,auto b){b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));return sweptPoseConnectionFree(map,footprint,a,b,cancel);};
-  // Explicit intermediate headings expose an endpoint turn to consumers
-  // which follow the nearest positional path sample. Retain both certified
-  // pieces instead of hiding the intended yaw in a moving grid connector.
+  // 중간 방향을 명시해 가장 가까운 위치 경로 표본을 따르는 소비자도
+  // 끝점 회전을 인식하게 합니다. 이동 격자 연결 안에 의도한 yaw를 숨기지 않고
+  // 검증된 두 조각을 모두 유지합니다.
   const auto split_connection=[&](const auto &a,auto b)->std::optional<geometry_msgs::msg::Pose2D> {
     b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));
     auto middle=a;middle.theta=b.theta;
@@ -47,7 +47,7 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   };
   std::unordered_map<size_t,geometry_msgs::msg::Pose2D> seed_middle;
   struct State {double distance=std::numeric_limits<double>::infinity();size_t parent=std::numeric_limits<size_t>::max();int8_t valid=-1;bool closed=false;};
-  // Store explored states only; facility dimensions do not allocate bins full maps.
+  // 탐색한 상태만 저장하며 시설 크기만큼 방향 bin별 전체 지도를 할당하지 않습니다.
   std::unordered_map<size_t,State> states;
   struct Entry {double estimate,cost;size_t index;};
   const auto later=[](const Entry&a,const Entry&b){return a.estimate==b.estimate?a.index>b.index:a.estimate>b.estimate;};
@@ -70,7 +70,7 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
     const auto entry=open.top();open.pop();auto &current=states[entry.index];
     if(current.closed || entry.cost>current.distance)continue;
     current.closed=true;
-    // Copy before insertions can rehash the sparse state table.
+    // 삽입이 성긴 상태 표의 rehash를 유발하기 전에 복사합니다.
     const double distance=current.distance;const auto p=center(entry.index);
     const int64_t x=entry.index%width,y=(entry.index/width)%height,a=entry.index/cells;
     if(std::abs(x-int64_t(gx))<=1 && std::abs(y-int64_t(gy))<=1){

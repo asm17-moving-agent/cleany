@@ -1,7 +1,7 @@
-"""Selected wrist RGB observation with exact image/info pairing.
+"""영상과 보정값을 정확히 짝지어 선택한 손목 RGB를 관측합니다.
 
-YOLOE-seg redetects the projected instance at handoff and check.
-Wrist RGB observations do not produce depth or measured 3D poses.
+YOLOE-seg가 handoff와 check에서 투영된 instance를 재검출합니다.
+손목 RGB 관측은 깊이나 측정된 3D 자세를 생성하지 않습니다.
 """
 from collections import OrderedDict
 from copy import deepcopy
@@ -26,7 +26,7 @@ from cleany_perception.byte_buffer import numpy_byte_array
 
 
 class WristTargetNotDetected(ValueError):
-    """A valid captured frame contains no associated target detection."""
+    """유효한 촬영 프레임에 대응하는 타깃 검출이 없습니다."""
 
 
 class WristService:
@@ -227,7 +227,7 @@ class WristService:
             if req.label != ref['label'] or detector_label != ref['detector_label']:
                 raise ValueError('Wrist reference semantic type or detector class changed')
         else:
-            # Failed replacement must not leave a usable old reference.
+            # 참조 교체 실패 후 사용할 수 있는 이전 참조가 남아서는 안 됩니다.
             self.close()
             if (not req.source_snapshot_id or not req.source_object_id or not req.label
                     or not np.isfinite(req.source_confidence)
@@ -243,7 +243,7 @@ class WristService:
         msg, info, stamp = self.capture(req.arm, req.after_stamp_ns)
         rgb = self._rgb(msg, info, req.arm)
         expected_frame = f'{req.arm}_wrist_rgb_optical_frame'
-        # Show the active sensor even if association/inference subsequently fails.
+        # 이후 대응이나 추론이 실패하더라도 활성 센서를 표시합니다.
         if (getattr(self.node, '_debug_republish_count', 1) > 0
                 and hasattr(self.node, '_publish_debug_image')):
             self.node._publish_debug_image(self._debug_image(msg, rgb))
@@ -254,8 +254,8 @@ class WristService:
         box = project_box((pose.position.x,pose.position.y,pose.position.z),rotation,
             (req.size.x,req.size.y,req.size.z),transform,np.array(info.k).reshape(3,3),
             msg.width,msg.height,self.config)
-        # A missing target still carries the validated observation's provenance.
-        # Consumers can retry after this capture without inventing a detection.
+        # 타깃이 없어도 검증된 관측의 출처는 유지합니다. 소비자는 검출을 만들어 내지
+        # 않고 이 촬영 이후의 프레임으로 재시도할 수 있습니다.
         out.source_snapshot_id = req.source_snapshot_id
         out.source_object_id = req.source_object_id
         out.header = deepcopy(msg.header)
@@ -268,7 +268,7 @@ class WristService:
                     or stamp <= ref['stamp']):
                 raise ValueError('Wrist calibration/shape/timestamp changed')
             out.reference_id = ref['id']
-            ref['stamp'] = stamp  # Consume failed checks too; retries need a new frame.
+            ref['stamp'] = stamp  # 실패한 검사도 소비하며 재시도에는 새 프레임이 필요합니다.
             mask = self._yoloe_mask(
                 rgb, box, detector_label,
                 detector=(self.right_check_detector if req.arm == 'right'

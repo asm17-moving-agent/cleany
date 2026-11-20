@@ -1,4 +1,4 @@
-"""Core scenarios: boot delays, transient/persistent loss, restart persistence, retention."""
+"""부팅 지연, 일시 및 지속 유실, 재시작 영속성과 보존의 core 시나리오입니다."""
 import json
 
 import pytest
@@ -22,12 +22,12 @@ def kinds(system):
 
 def test_boot_waits_for_first_mcu_feedback_without_latching():
     system = make()
-    # Base driver reports "waiting for first feedback" (UNKNOWN) for 12 s of a 15 s grace.
+    # 베이스 드라이버가 15초 유예 중 12초간 첫 피드백 대기(UNKNOWN)를 보고합니다.
     for _ in range(120):
         advance(system, bad=(), missing=('base',))
         system.observe('base', A.UNKNOWN, 'waiting for first MCU feedback')
     assert 'BASE_UNAVAILABLE' not in system.faults.faults
-    assert system.state == O.FAULT_LOCKED  # Essential BASE_MOTION is unverified after 5 s.
+    assert system.state == O.FAULT_LOCKED  # 5초 후에도 필수 BASE_MOTION이 미검증입니다.
     assert not permission(system).granted
     for _ in range(10):
         advance(system)
@@ -57,7 +57,7 @@ def test_transient_feedback_gap_blocks_motion_but_does_not_latch():
     assert lease.granted
     advance(system, bad=('base',))
     advance(system, bad=('base',))
-    # BASE_MOTION is withdrawn immediately and the lease revoked, independent of raise_s.
+    # raise_s와 무관하게 BASE_MOTION을 즉시 철회하고 임대를 회수합니다.
     assert system.capabilities.states['BASE_MOTION'] == A.UNAVAILABLE
     assert not system.permissions.leases[lease.lease_id].granted
     for _ in range(8):
@@ -101,7 +101,7 @@ def test_restart_preserves_latched_faults_and_unconfirmed_leases(tmp_path):
     assert {'FAULT_RESTORED', 'LEASE_RESTORED'} <= set(kinds(restarted))
     for _ in range(15):
         advance(restarted)
-    # Healthy evidence alone does not clear a restored latch, and the old lease is re-stopped.
+    # 양호한 근거만으로 복구된 latch를 지우지 않으며 이전 임대는 다시 정지합니다.
     assert restarted.state == O.FAULT_LOCKED
     assert restarted.stop_port.requests == [lease.lease_id]
     assert not permission(restarted, mission_id='synthetic_mission').granted
@@ -166,7 +166,7 @@ def test_retention_prunes_finished_records_but_keeps_recovery_budget():
         advance(system, bad=('navigation',))
     assert lease.lease_id not in system.permissions.leases
     assert system.stop_port.forgotten == [lease.lease_id]
-    # The fault episode is still active: the exhausted job must survive to block retries.
+    # fault 구간이 아직 활성이라 소진된 작업을 유지해 재시도를 막아야 합니다.
     assert system.request_recovery(system.epoch, 'NAVIGATION_UNAVAILABLE') is job
     for _ in range(30):
         advance(system)

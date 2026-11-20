@@ -1,22 +1,22 @@
-# Gazebo navigation evaluation pose, not an arm controller or calibration.
+# Gazebo 주행 평가용 자세이며, 팔 제어기나 보정 결과가 아닙니다.
 model_profile: jetson_20261009
 adapter_origin_commit: 71f8d6c
-# Historical adapter origin only. Generated metadata hashes the current URDF/meshes.
+# 과거 어댑터의 출처입니다. 생성 메타데이터는 현재 URDF와 메시의 해시를 기록합니다.
 wheel_radius: 0.0635
 wheel_width: 0.051
-# Evaluation margins, separate from the model's physical outer bounds.
+# 모델의 물리적 외곽과 별도로 적용하는 평가 여유입니다.
 navigation_margins:
   stop: 0.08
   planning_padding: 0.02
   slowdown: 0.20
 wheelbase: 0.35
 wheel_separation: 0.6038
-# User-requested simulation-only wrist extension; original URDF limits retained.
+# 시뮬레이션에서만 손목 범위를 확장하며 원본 URDF 제한은 유지합니다.
 simulation_park_limits:
   left_wrist_pitch_joint: [-2.0, 1.65806272933]
   right_wrist_pitch_joint: [-2.0, 1.65806272933]
 park_joints:
-  # Elbow fully folded; grippers lean about 20 degrees toward the elbows.
+  # 팔꿈치를 완전히 접고 그리퍼를 팔꿈치 쪽으로 약 20도 기울입니다.
   left_shoulder_yaw_joint: -1.57079632679
   right_shoulder_yaw_joint: 1.57079632679
   left_shoulder_pitch_joint: 3.06
@@ -30,12 +30,12 @@ park_joints:
   left_gripper_joint: 0.0
   right_gripper_joint: 0.0
   head_pan_joint: 0.0
-  # Positive +Y rotation points the forward-facing camera down by 20 degrees.
+  # 양의 +Y 회전은 전방 카메라를 아래로 20도 향하게 합니다.
   head_tilt_joint: 0.3490658503988659
 
-# Simulation: measured pan joint drives camera TF and pre-motion interlock.
+# 시뮬레이션에서는 측정된 pan 관절값으로 카메라 TF와 이동 전 인터록을 구동합니다.
 dynamic_pan: true
 pan_speed_rad_s: 1.0
 
-# Navigation-only simulation: omit both arms, including grippers and wrist sensors.
+# 주행 전용 시뮬레이션에서는 그리퍼와 손목 센서를 포함한 양팔을 제외합니다.
 simulation_excluded_link_roots: [left_shoulder_yaw_link, right_shoulder_yaw_link]

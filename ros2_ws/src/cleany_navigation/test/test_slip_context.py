@@ -91,7 +91,7 @@ def test_ros_adapter_constructs_with_its_own_isolated_context():
         node = SlipMonitor(context=context)
         assert node.context is context
         assert node.recording_context is None
-        node.publish()  # Strict JSON heartbeat remains valid during warm-up.
+        node.publish()  # 준비 중에도 엄격한 JSON heartbeat가 유효해야 합니다.
     finally:
         if node is not None:
             node.destroy_node()

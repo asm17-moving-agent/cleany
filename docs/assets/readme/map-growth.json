@@ -1,0 +1,2015 @@
+{
+  "scope": "Recorded initial maps followed by existing Cartographer sensor-replay extension snapshots.",
+  "layers": [
+    "occupancy_grid"
+  ],
+  "size": 512,
+  "sources": [
+    {
+      "path": "runs/mapping/2026-11-05_221524_slam-animation/analysis",
+      "timeline_sha256": "66a61b11614773b5639c576ec5885d9fc32048afab691ac8dd28d9f9460d0e0b",
+      "snapshots_sha256": "7cd5586bbe82a0156b57619639a8c45df44109216ef59783120060d4e76e78f9"
+    },
+    {
+      "path": "runs/mapping/2026-11-06_map-growth/analysis/full4",
+      "timeline_sha256": "248c1e2bbc0758c8e90bfbf0049ad60c0f5b16aecc860ba4e6df17eb3e888bd0",
+      "snapshots_sha256": "04d38fbf3ee87c75fa26ad3efa27102ac1f453772f614f1ceae3c6899343e651"
+    }
+  ],
+  "method": "Fixed world bounds, nearest-neighbor grid sampling; no trajectories, text, scan points or UI.",
+  "camera_bounds": [
+    -21.260255972842373,
+    17.362101186613238,
+    -27.098397602314748,
+    11.523959557140863
+  ],
+  "source_frame_stride": 2,
+  "nominal_frame_duration_ms": 100,
+  "final_hold_ms": 2000,
+  "decoded_frames": 281,
+  "duration_ms": 30300,
+  "sha256": "5cf1126eb0ab8507583640a22879bab119741e842d1ece2b332bced5c4549648",
+  "frames": [
+    {
+      "phase": 0,
+      "source_frame": 2,
+      "time": 1793884538.221104,
+      "map": "map_0004",
+      "known_cells": 17895
+    },
+    {
+      "phase": 0,
+      "source_frame": 4,
+      "time": 1793884550.221104,
+      "map": "map_0010",
+      "known_cells": 28436
+    },
+    {
+      "phase": 0,
+      "source_frame": 6,
+      "time": 1793884562.221104,
+      "map": "map_0016",
+      "known_cells": 31153
+    },
+    {
+      "phase": 0,
+      "source_frame": 8,
+      "time": 1793884574.221104,
+      "map": "map_0022",
+      "known_cells": 31700
+    },
+    {
+      "phase": 0,
+      "source_frame": 10,
+      "time": 1793884586.221104,
+      "map": "map_0028",
+      "known_cells": 34638
+    },
+    {
+      "phase": 0,
+      "source_frame": 12,
+      "time": 1793884598.221104,
+      "map": "map_0034",
+      "known_cells": 36849
+    },
+    {
+      "phase": 0,
+      "source_frame": 14,
+      "time": 1793884610.221104,
+      "map": "map_0040",
+      "known_cells": 47089
+    },
+    {
+      "phase": 0,
+      "source_frame": 16,
+      "time": 1793884622.221104,
+      "map": "map_0046",
+      "known_cells": 54174
+    },
+    {
+      "phase": 0,
+      "source_frame": 18,
+      "time": 1793884634.221104,
+      "map": "map_0052",
+      "known_cells": 56893
+    },
+    {
+      "phase": 0,
+      "source_frame": 20,
+      "time": 1793884646.221104,
+      "map": "map_0058",
+      "known_cells": 58899
+    },
+    {
+      "phase": 0,
+      "source_frame": 22,
+      "time": 1793884658.221104,
+      "map": "map_0064",
+      "known_cells": 60045
+    },
+    {
+      "phase": 0,
+      "source_frame": 24,
+      "time": 1793884670.221104,
+      "map": "map_0070",
+      "known_cells": 67165
+    },
+    {
+      "phase": 0,
+      "source_frame": 26,
+      "time": 1793884682.221104,
+      "map": "map_0076",
+      "known_cells": 68620
+    },
+    {
+      "phase": 0,
+      "source_frame": 28,
+      "time": 1793884694.221104,
+      "map": "map_0082",
+      "known_cells": 70920
+    },
+    {
+      "phase": 0,
+      "source_frame": 30,
+      "time": 1793884706.221104,
+      "map": "map_0088",
+      "known_cells": 71272
+    },
+    {
+      "phase": 0,
+      "source_frame": 32,
+      "time": 1793884718.221104,
+      "map": "map_0094",
+      "known_cells": 74203
+    },
+    {
+      "phase": 0,
+      "source_frame": 34,
+      "time": 1793884730.221104,
+      "map": "map_0100",
+      "known_cells": 76472
+    },
+    {
+      "phase": 0,
+      "source_frame": 36,
+      "time": 1793884742.221104,
+      "map": "map_0106",
+      "known_cells": 78008
+    },
+    {
+      "phase": 0,
+      "source_frame": 38,
+      "time": 1793884754.221104,
+      "map": "map_0112",
+      "known_cells": 78560
+    },
+    {
+      "phase": 0,
+      "source_frame": 40,
+      "time": 1793884766.221104,
+      "map": "map_0118",
+      "known_cells": 82366
+    },
+    {
+      "phase": 0,
+      "source_frame": 42,
+      "time": 1793884778.221104,
+      "map": "map_0124",
+      "known_cells": 84200
+    },
+    {
+      "phase": 0,
+      "source_frame": 44,
+      "time": 1793884790.221104,
+      "map": "map_0130",
+      "known_cells": 87068
+    },
+    {
+      "phase": 0,
+      "source_frame": 46,
+      "time": 1793884802.221104,
+      "map": "map_0136",
+      "known_cells": 89756
+    },
+    {
+      "phase": 0,
+      "source_frame": 48,
+      "time": 1793884814.221104,
+      "map": "map_0142",
+      "known_cells": 91037
+    },
+    {
+      "phase": 0,
+      "source_frame": 50,
+      "time": 1793884826.221104,
+      "map": "map_0148",
+      "known_cells": 91340
+    },
+    {
+      "phase": 0,
+      "source_frame": 52,
+      "time": 1793884838.221104,
+      "map": "map_0154",
+      "known_cells": 91574
+    },
+    {
+      "phase": 0,
+      "source_frame": 54,
+      "time": 1793884850.221104,
+      "map": "map_0160",
+      "known_cells": 92919
+    },
+    {
+      "phase": 0,
+      "source_frame": 56,
+      "time": 1793884862.221104,
+      "map": "map_0166",
+      "known_cells": 93619
+    },
+    {
+      "phase": 0,
+      "source_frame": 58,
+      "time": 1793884874.221104,
+      "map": "map_0172",
+      "known_cells": 94193
+    },
+    {
+      "phase": 0,
+      "source_frame": 60,
+      "time": 1793884886.221104,
+      "map": "map_0178",
+      "known_cells": 95126
+    },
+    {
+      "phase": 0,
+      "source_frame": 62,
+      "time": 1793884898.221104,
+      "map": "map_0184",
+      "known_cells": 96953
+    },
+    {
+      "phase": 0,
+      "source_frame": 64,
+      "time": 1793884910.221104,
+      "map": "map_0190",
+      "known_cells": 98984
+    },
+    {
+      "phase": 0,
+      "source_frame": 66,
+      "time": 1793884922.221104,
+      "map": "map_0196",
+      "known_cells": 100657
+    },
+    {
+      "phase": 0,
+      "source_frame": 68,
+      "time": 1793884934.221104,
+      "map": "map_0202",
+      "known_cells": 101340
+    },
+    {
+      "phase": 0,
+      "source_frame": 70,
+      "time": 1793884946.221104,
+      "map": "map_0208",
+      "known_cells": 101664
+    },
+    {
+      "phase": 0,
+      "source_frame": 72,
+      "time": 1793884958.221104,
+      "map": "map_0214",
+      "known_cells": 101784
+    },
+    {
+      "phase": 0,
+      "source_frame": 74,
+      "time": 1793884970.221104,
+      "map": "map_0220",
+      "known_cells": 101998
+    },
+    {
+      "phase": 0,
+      "source_frame": 76,
+      "time": 1793884982.221104,
+      "map": "map_0226",
+      "known_cells": 102046
+    },
+    {
+      "phase": 0,
+      "source_frame": 78,
+      "time": 1793884994.221104,
+      "map": "map_0232",
+      "known_cells": 102057
+    },
+    {
+      "phase": 0,
+      "source_frame": 80,
+      "time": 1793885006.221104,
+      "map": "map_0238",
+      "known_cells": 102104
+    },
+    {
+      "phase": 0,
+      "source_frame": 82,
+      "time": 1793885018.221104,
+      "map": "map_0244",
+      "known_cells": 102729
+    },
+    {
+      "phase": 0,
+      "source_frame": 84,
+      "time": 1793885030.221104,
+      "map": "map_0250",
+      "known_cells": 102846
+    },
+    {
+      "phase": 0,
+      "source_frame": 86,
+      "time": 1793885042.221104,
+      "map": "map_0256",
+      "known_cells": 103452
+    },
+    {
+      "phase": 0,
+      "source_frame": 88,
+      "time": 1793885054.221104,
+      "map": "map_0262",
+      "known_cells": 103499
+    },
+    {
+      "phase": 0,
+      "source_frame": 90,
+      "time": 1793885066.221104,
+      "map": "map_0268",
+      "known_cells": 103505
+    },
+    {
+      "phase": 0,
+      "source_frame": 92,
+      "time": 1793885078.221104,
+      "map": "map_0274",
+      "known_cells": 103471
+    },
+    {
+      "phase": 0,
+      "source_frame": 94,
+      "time": 1793885090.221104,
+      "map": "map_0280",
+      "known_cells": 103484
+    },
+    {
+      "phase": 0,
+      "source_frame": 96,
+      "time": 1793885102.221104,
+      "map": "map_0286",
+      "known_cells": 103485
+    },
+    {
+      "phase": 0,
+      "source_frame": 98,
+      "time": 1793885114.221104,
+      "map": "map_0292",
+      "known_cells": 103475
+    },
+    {
+      "phase": 0,
+      "source_frame": 100,
+      "time": 1793885126.221104,
+      "map": "map_0298",
+      "known_cells": 103469
+    },
+    {
+      "phase": 0,
+      "source_frame": 102,
+      "time": 1793885138.221104,
+      "map": "map_0304",
+      "known_cells": 103469
+    },
+    {
+      "phase": 0,
+      "source_frame": 104,
+      "time": 1793885150.221104,
+      "map": "map_0310",
+      "known_cells": 103469
+    },
+    {
+      "phase": 0,
+      "source_frame": 106,
+      "time": 1793885162.221104,
+      "map": "map_0316",
+      "known_cells": 103469
+    },
+    {
+      "phase": 0,
+      "source_frame": 108,
+      "time": 1793885174.221104,
+      "map": "map_0322",
+      "known_cells": 103474
+    },
+    {
+      "phase": 0,
+      "source_frame": 110,
+      "time": 1793885186.221104,
+      "map": "map_0328",
+      "known_cells": 103481
+    },
+    {
+      "phase": 0,
+      "source_frame": 112,
+      "time": 1793885198.221104,
+      "map": "map_0334",
+      "known_cells": 103481
+    },
+    {
+      "phase": 0,
+      "source_frame": 114,
+      "time": 1793885210.221104,
+      "map": "map_0340",
+      "known_cells": 103483
+    },
+    {
+      "phase": 0,
+      "source_frame": 116,
+      "time": 1793885222.221104,
+      "map": "map_0346",
+      "known_cells": 103488
+    },
+    {
+      "phase": 0,
+      "source_frame": 118,
+      "time": 1793885234.221104,
+      "map": "map_0352",
+      "known_cells": 103504
+    },
+    {
+      "phase": 0,
+      "source_frame": 120,
+      "time": 1793885246.221104,
+      "map": "map_0358",
+      "known_cells": 103542
+    },
+    {
+      "phase": 0,
+      "source_frame": 122,
+      "time": 1793885258.221104,
+      "map": "map_0364",
+      "known_cells": 103594
+    },
+    {
+      "phase": 0,
+      "source_frame": 124,
+      "time": 1793885270.221104,
+      "map": "map_0370",
+      "known_cells": 103711
+    },
+    {
+      "phase": 0,
+      "source_frame": 126,
+      "time": 1793885282.221104,
+      "map": "map_0376",
+      "known_cells": 103788
+    },
+    {
+      "phase": 0,
+      "source_frame": 128,
+      "time": 1793885294.221104,
+      "map": "map_0382",
+      "known_cells": 103912
+    },
+    {
+      "phase": 0,
+      "source_frame": 130,
+      "time": 1793885306.221104,
+      "map": "map_0388",
+      "known_cells": 103944
+    },
+    {
+      "phase": 0,
+      "source_frame": 132,
+      "time": 1793885318.221104,
+      "map": "map_0394",
+      "known_cells": 103927
+    },
+    {
+      "phase": 0,
+      "source_frame": 134,
+      "time": 1793885330.221104,
+      "map": "map_0400",
+      "known_cells": 103936
+    },
+    {
+      "phase": 0,
+      "source_frame": 136,
+      "time": 1793885342.221104,
+      "map": "map_0406",
+      "known_cells": 103996
+    },
+    {
+      "phase": 0,
+      "source_frame": 138,
+      "time": 1793885354.221104,
+      "map": "map_0412",
+      "known_cells": 104115
+    },
+    {
+      "phase": 0,
+      "source_frame": 140,
+      "time": 1793885366.221104,
+      "map": "map_0418",
+      "known_cells": 104535
+    },
+    {
+      "phase": 0,
+      "source_frame": 142,
+      "time": 1793885378.221104,
+      "map": "map_0424",
+      "known_cells": 105490
+    },
+    {
+      "phase": 0,
+      "source_frame": 144,
+      "time": 1793885390.221104,
+      "map": "map_0430",
+      "known_cells": 105526
+    },
+    {
+      "phase": 0,
+      "source_frame": 146,
+      "time": 1793885402.221104,
+      "map": "map_0436",
+      "known_cells": 106394
+    },
+    {
+      "phase": 0,
+      "source_frame": 148,
+      "time": 1793885414.221104,
+      "map": "map_0442",
+      "known_cells": 106539
+    },
+    {
+      "phase": 0,
+      "source_frame": 150,
+      "time": 1793885426.221104,
+      "map": "map_0448",
+      "known_cells": 106560
+    },
+    {
+      "phase": 0,
+      "source_frame": 152,
+      "time": 1793885438.221104,
+      "map": "map_0454",
+      "known_cells": 106608
+    },
+    {
+      "phase": 0,
+      "source_frame": 154,
+      "time": 1793885450.221104,
+      "map": "map_0460",
+      "known_cells": 106623
+    },
+    {
+      "phase": 0,
+      "source_frame": 156,
+      "time": 1793885462.221104,
+      "map": "map_0466",
+      "known_cells": 106666
+    },
+    {
+      "phase": 0,
+      "source_frame": 158,
+      "time": 1793885474.221104,
+      "map": "map_0472",
+      "known_cells": 106714
+    },
+    {
+      "phase": 0,
+      "source_frame": 160,
+      "time": 1793885486.221104,
+      "map": "map_0478",
+      "known_cells": 106733
+    },
+    {
+      "phase": 0,
+      "source_frame": 162,
+      "time": 1793885498.221104,
+      "map": "map_0484",
+      "known_cells": 106734
+    },
+    {
+      "phase": 0,
+      "source_frame": 164,
+      "time": 1793885510.221104,
+      "map": "map_0490",
+      "known_cells": 106799
+    },
+    {
+      "phase": 0,
+      "source_frame": 166,
+      "time": 1793885522.221104,
+      "map": "map_0496",
+      "known_cells": 106817
+    },
+    {
+      "phase": 0,
+      "source_frame": 168,
+      "time": 1793885534.221104,
+      "map": "map_0502",
+      "known_cells": 107196
+    },
+    {
+      "phase": 0,
+      "source_frame": 170,
+      "time": 1793885546.221104,
+      "map": "map_0508",
+      "known_cells": 107252
+    },
+    {
+      "phase": 0,
+      "source_frame": 172,
+      "time": 1793885558.221104,
+      "map": "map_0514",
+      "known_cells": 106981
+    },
+    {
+      "phase": 0,
+      "source_frame": 174,
+      "time": 1793885570.221104,
+      "map": "map_0520",
+      "known_cells": 106991
+    },
+    {
+      "phase": 0,
+      "source_frame": 176,
+      "time": 1793885582.221104,
+      "map": "map_0526",
+      "known_cells": 107320
+    },
+    {
+      "phase": 0,
+      "source_frame": 178,
+      "time": 1793885594.221104,
+      "map": "map_0532",
+      "known_cells": 107541
+    },
+    {
+      "phase": 0,
+      "source_frame": 180,
+      "time": 1793885606.221104,
+      "map": "map_0538",
+      "known_cells": 107571
+    },
+    {
+      "phase": 0,
+      "source_frame": 182,
+      "time": 1793885618.221104,
+      "map": "map_0544",
+      "known_cells": 108303
+    },
+    {
+      "phase": 0,
+      "source_frame": 184,
+      "time": 1793885630.221104,
+      "map": "map_0550",
+      "known_cells": 110646
+    },
+    {
+      "phase": 0,
+      "source_frame": 186,
+      "time": 1793885642.221104,
+      "map": "map_0556",
+      "known_cells": 111696
+    },
+    {
+      "phase": 0,
+      "source_frame": 188,
+      "time": 1793885654.221104,
+      "map": "map_0562",
+      "known_cells": 111705
+    },
+    {
+      "phase": 0,
+      "source_frame": 190,
+      "time": 1793885666.221104,
+      "map": "map_0568",
+      "known_cells": 111705
+    },
+    {
+      "phase": 0,
+      "source_frame": 192,
+      "time": 1793885678.221104,
+      "map": "map_0574",
+      "known_cells": 111707
+    },
+    {
+      "phase": 0,
+      "source_frame": 194,
+      "time": 1793885690.221104,
+      "map": "map_0580",
+      "known_cells": 111736
+    },
+    {
+      "phase": 0,
+      "source_frame": 196,
+      "time": 1793885702.221104,
+      "map": "map_0586",
+      "known_cells": 111738
+    },
+    {
+      "phase": 0,
+      "source_frame": 198,
+      "time": 1793885714.221104,
+      "map": "map_0592",
+      "known_cells": 111727
+    },
+    {
+      "phase": 0,
+      "source_frame": 200,
+      "time": 1793885726.221104,
+      "map": "map_0598",
+      "known_cells": 111726
+    },
+    {
+      "phase": 0,
+      "source_frame": 202,
+      "time": 1793885738.221104,
+      "map": "map_0604",
+      "known_cells": 111726
+    },
+    {
+      "phase": 0,
+      "source_frame": 204,
+      "time": 1793885750.221104,
+      "map": "map_0610",
+      "known_cells": 111734
+    },
+    {
+      "phase": 0,
+      "source_frame": 206,
+      "time": 1793885762.221104,
+      "map": "map_0616",
+      "known_cells": 111745
+    },
+    {
+      "phase": 0,
+      "source_frame": 208,
+      "time": 1793885774.221104,
+      "map": "map_0622",
+      "known_cells": 112004
+    },
+    {
+      "phase": 0,
+      "source_frame": 210,
+      "time": 1793885786.221104,
+      "map": "map_0628",
+      "known_cells": 112121
+    },
+    {
+      "phase": 0,
+      "source_frame": 212,
+      "time": 1793885798.221104,
+      "map": "map_0634",
+      "known_cells": 112196
+    },
+    {
+      "phase": 0,
+      "source_frame": 214,
+      "time": 1793885810.221104,
+      "map": "map_0640",
+      "known_cells": 112434
+    },
+    {
+      "phase": 0,
+      "source_frame": 216,
+      "time": 1793885822.221104,
+      "map": "map_0646",
+      "known_cells": 112612
+    },
+    {
+      "phase": 0,
+      "source_frame": 218,
+      "time": 1793885834.221104,
+      "map": "map_0652",
+      "known_cells": 112660
+    },
+    {
+      "phase": 0,
+      "source_frame": 220,
+      "time": 1793885846.221104,
+      "map": "map_0658",
+      "known_cells": 112592
+    },
+    {
+      "phase": 0,
+      "source_frame": 222,
+      "time": 1793885858.221104,
+      "map": "map_0664",
+      "known_cells": 112612
+    },
+    {
+      "phase": 0,
+      "source_frame": 224,
+      "time": 1793885870.221104,
+      "map": "map_0670",
+      "known_cells": 112614
+    },
+    {
+      "phase": 0,
+      "source_frame": 226,
+      "time": 1793885882.221104,
+      "map": "map_0676",
+      "known_cells": 112796
+    },
+    {
+      "phase": 0,
+      "source_frame": 228,
+      "time": 1793885894.221104,
+      "map": "map_0682",
+      "known_cells": 112998
+    },
+    {
+      "phase": 0,
+      "source_frame": 230,
+      "time": 1793885906.221104,
+      "map": "map_0688",
+      "known_cells": 113784
+    },
+    {
+      "phase": 0,
+      "source_frame": 232,
+      "time": 1793885918.221104,
+      "map": "map_0694",
+      "known_cells": 114703
+    },
+    {
+      "phase": 0,
+      "source_frame": 234,
+      "time": 1793885930.221104,
+      "map": "map_0700",
+      "known_cells": 114752
+    },
+    {
+      "phase": 0,
+      "source_frame": 236,
+      "time": 1793885942.221104,
+      "map": "map_0706",
+      "known_cells": 114823
+    },
+    {
+      "phase": 0,
+      "source_frame": 238,
+      "time": 1793885954.221104,
+      "map": "map_0712",
+      "known_cells": 114938
+    },
+    {
+      "phase": 0,
+      "source_frame": 240,
+      "time": 1793885966.221104,
+      "map": "map_0718",
+      "known_cells": 115024
+    },
+    {
+      "phase": 0,
+      "source_frame": 242,
+      "time": 1793885978.221104,
+      "map": "map_0724",
+      "known_cells": 115077
+    },
+    {
+      "phase": 0,
+      "source_frame": 244,
+      "time": 1793885990.221104,
+      "map": "map_0730",
+      "known_cells": 115100
+    },
+    {
+      "phase": 0,
+      "source_frame": 246,
+      "time": 1793886002.221104,
+      "map": "map_0736",
+      "known_cells": 115100
+    },
+    {
+      "phase": 0,
+      "source_frame": 248,
+      "time": 1793886014.221104,
+      "map": "map_0742",
+      "known_cells": 115212
+    },
+    {
+      "phase": 0,
+      "source_frame": 250,
+      "time": 1793886026.221104,
+      "map": "map_0748",
+      "known_cells": 115097
+    },
+    {
+      "phase": 0,
+      "source_frame": 252,
+      "time": 1793886038.221104,
+      "map": "map_0754",
+      "known_cells": 115185
+    },
+    {
+      "phase": 0,
+      "source_frame": 254,
+      "time": 1793886050.221104,
+      "map": "map_0760",
+      "known_cells": 115232
+    },
+    {
+      "phase": 0,
+      "source_frame": 256,
+      "time": 1793886062.221104,
+      "map": "map_0766",
+      "known_cells": 115249
+    },
+    {
+      "phase": 0,
+      "source_frame": 258,
+      "time": 1793886074.221104,
+      "map": "map_0772",
+      "known_cells": 115489
+    },
+    {
+      "phase": 0,
+      "source_frame": 260,
+      "time": 1793886086.221104,
+      "map": "map_0778",
+      "known_cells": 115529
+    },
+    {
+      "phase": 0,
+      "source_frame": 262,
+      "time": 1793886098.221104,
+      "map": "map_0784",
+      "known_cells": 115604
+    },
+    {
+      "phase": 0,
+      "source_frame": 264,
+      "time": 1793886110.221104,
+      "map": "map_0790",
+      "known_cells": 115699
+    },
+    {
+      "phase": 0,
+      "source_frame": 266,
+      "time": 1793886122.221104,
+      "map": "map_0796",
+      "known_cells": 115725
+    },
+    {
+      "phase": 0,
+      "source_frame": 268,
+      "time": 1793886134.221104,
+      "map": "map_0802",
+      "known_cells": 115762
+    },
+    {
+      "phase": 0,
+      "source_frame": 270,
+      "time": 1793886146.221104,
+      "map": "map_0808",
+      "known_cells": 115765
+    },
+    {
+      "phase": 0,
+      "source_frame": 272,
+      "time": 1793886158.221104,
+      "map": "map_0814",
+      "known_cells": 115800
+    },
+    {
+      "phase": 0,
+      "source_frame": 274,
+      "time": 1793886170.221104,
+      "map": "map_0820",
+      "known_cells": 115801
+    },
+    {
+      "phase": 0,
+      "source_frame": 276,
+      "time": 1793886182.221104,
+      "map": "map_0826",
+      "known_cells": 115833
+    },
+    {
+      "phase": 0,
+      "source_frame": 278,
+      "time": 1793886194.221104,
+      "map": "map_0832",
+      "known_cells": 115874
+    },
+    {
+      "phase": 0,
+      "source_frame": 280,
+      "time": 1793886206.221104,
+      "map": "map_0838",
+      "known_cells": 115874
+    },
+    {
+      "phase": 0,
+      "source_frame": 282,
+      "time": 1793886218.221104,
+      "map": "map_0844",
+      "known_cells": 115868
+    },
+    {
+      "phase": 0,
+      "source_frame": 284,
+      "time": 1793886230.221104,
+      "map": "map_0850",
+      "known_cells": 115892
+    },
+    {
+      "phase": 0,
+      "source_frame": 286,
+      "time": 1793886242.221104,
+      "map": "map_0856",
+      "known_cells": 115899
+    },
+    {
+      "phase": 0,
+      "source_frame": 288,
+      "time": 1793886254.221104,
+      "map": "map_0862",
+      "known_cells": 115879
+    },
+    {
+      "phase": 0,
+      "source_frame": 290,
+      "time": 1793886266.221104,
+      "map": "map_0868",
+      "known_cells": 115879
+    },
+    {
+      "phase": 0,
+      "source_frame": 291,
+      "time": 1793886266.476025,
+      "map": "map_0868",
+      "known_cells": 115879
+    },
+    {
+      "phase": 1,
+      "source_frame": 0,
+      "time": 1793920603.1756918,
+      "map": "map_0",
+      "known_cells": 115879
+    },
+    {
+      "phase": 1,
+      "source_frame": 2,
+      "time": 1793920615.2901955,
+      "map": "map_2",
+      "known_cells": 115885
+    },
+    {
+      "phase": 1,
+      "source_frame": 4,
+      "time": 1793920627.3103216,
+      "map": "map_4",
+      "known_cells": 115891
+    },
+    {
+      "phase": 1,
+      "source_frame": 6,
+      "time": 1793920639.3525245,
+      "map": "map_6",
+      "known_cells": 116586
+    },
+    {
+      "phase": 1,
+      "source_frame": 8,
+      "time": 1793920651.2500176,
+      "map": "map_8",
+      "known_cells": 116590
+    },
+    {
+      "phase": 1,
+      "source_frame": 10,
+      "time": 1793920663.2915258,
+      "map": "map_10",
+      "known_cells": 116881
+    },
+    {
+      "phase": 1,
+      "source_frame": 12,
+      "time": 1793920675.3046608,
+      "map": "map_12",
+      "known_cells": 116881
+    },
+    {
+      "phase": 1,
+      "source_frame": 14,
+      "time": 1793920687.3320153,
+      "map": "map_14",
+      "known_cells": 116897
+    },
+    {
+      "phase": 1,
+      "source_frame": 16,
+      "time": 1793920699.380411,
+      "map": "map_16",
+      "known_cells": 116902
+    },
+    {
+      "phase": 1,
+      "source_frame": 18,
+      "time": 1793920711.2955241,
+      "map": "map_18",
+      "known_cells": 116873
+    },
+    {
+      "phase": 1,
+      "source_frame": 20,
+      "time": 1793920723.3533337,
+      "map": "map_20",
+      "known_cells": 120692
+    },
+    {
+      "phase": 1,
+      "source_frame": 22,
+      "time": 1793920735.3667557,
+      "map": "map_22",
+      "known_cells": 122354
+    },
+    {
+      "phase": 1,
+      "source_frame": 24,
+      "time": 1793920747.2719243,
+      "map": "map_24",
+      "known_cells": 123545
+    },
+    {
+      "phase": 1,
+      "source_frame": 26,
+      "time": 1793920759.2962003,
+      "map": "map_26",
+      "known_cells": 124016
+    },
+    {
+      "phase": 1,
+      "source_frame": 28,
+      "time": 1793920771.3232281,
+      "map": "map_28",
+      "known_cells": 124020
+    },
+    {
+      "phase": 1,
+      "source_frame": 30,
+      "time": 1793920783.3526595,
+      "map": "map_30",
+      "known_cells": 124084
+    },
+    {
+      "phase": 1,
+      "source_frame": 32,
+      "time": 1793920795.3785803,
+      "map": "map_32",
+      "known_cells": 125186
+    },
+    {
+      "phase": 1,
+      "source_frame": 34,
+      "time": 1793920807.2774212,
+      "map": "map_34",
+      "known_cells": 125107
+    },
+    {
+      "phase": 1,
+      "source_frame": 36,
+      "time": 1793920819.299038,
+      "map": "map_36",
+      "known_cells": 125511
+    },
+    {
+      "phase": 1,
+      "source_frame": 38,
+      "time": 1793920831.3051283,
+      "map": "map_38",
+      "known_cells": 125513
+    },
+    {
+      "phase": 1,
+      "source_frame": 40,
+      "time": 1793920843.3332548,
+      "map": "map_40",
+      "known_cells": 125513
+    },
+    {
+      "phase": 1,
+      "source_frame": 42,
+      "time": 1793920855.363598,
+      "map": "map_42",
+      "known_cells": 125464
+    },
+    {
+      "phase": 1,
+      "source_frame": 44,
+      "time": 1793920867.2753928,
+      "map": "map_44",
+      "known_cells": 125464
+    },
+    {
+      "phase": 1,
+      "source_frame": 46,
+      "time": 1793920879.2070303,
+      "map": "map_46",
+      "known_cells": 125464
+    },
+    {
+      "phase": 1,
+      "source_frame": 48,
+      "time": 1793920891.3152673,
+      "map": "map_48",
+      "known_cells": 125507
+    },
+    {
+      "phase": 1,
+      "source_frame": 50,
+      "time": 1793920903.3418992,
+      "map": "map_50",
+      "known_cells": 125507
+    },
+    {
+      "phase": 1,
+      "source_frame": 52,
+      "time": 1793920915.3551433,
+      "map": "map_52",
+      "known_cells": 125558
+    },
+    {
+      "phase": 1,
+      "source_frame": 54,
+      "time": 1793920927.35946,
+      "map": "map_54",
+      "known_cells": 129135
+    },
+    {
+      "phase": 1,
+      "source_frame": 56,
+      "time": 1793920939.3607643,
+      "map": "map_56",
+      "known_cells": 129471
+    },
+    {
+      "phase": 1,
+      "source_frame": 58,
+      "time": 1793920951.3532107,
+      "map": "map_58",
+      "known_cells": 131841
+    },
+    {
+      "phase": 1,
+      "source_frame": 60,
+      "time": 1793920963.375979,
+      "map": "map_60",
+      "known_cells": 137203
+    },
+    {
+      "phase": 1,
+      "source_frame": 62,
+      "time": 1793920975.2526994,
+      "map": "map_62",
+      "known_cells": 137796
+    },
+    {
+      "phase": 1,
+      "source_frame": 64,
+      "time": 1793920987.2728686,
+      "map": "map_64",
+      "known_cells": 138067
+    },
+    {
+      "phase": 1,
+      "source_frame": 66,
+      "time": 1793920999.2601857,
+      "map": "map_66",
+      "known_cells": 138131
+    },
+    {
+      "phase": 1,
+      "source_frame": 68,
+      "time": 1793921011.2704227,
+      "map": "map_68",
+      "known_cells": 138138
+    },
+    {
+      "phase": 1,
+      "source_frame": 70,
+      "time": 1793921023.271223,
+      "map": "map_70",
+      "known_cells": 138540
+    },
+    {
+      "phase": 1,
+      "source_frame": 72,
+      "time": 1793921035.2693725,
+      "map": "map_72",
+      "known_cells": 142122
+    },
+    {
+      "phase": 1,
+      "source_frame": 74,
+      "time": 1793921047.2799299,
+      "map": "map_74",
+      "known_cells": 150198
+    },
+    {
+      "phase": 1,
+      "source_frame": 76,
+      "time": 1793921059.2671165,
+      "map": "map_76",
+      "known_cells": 151657
+    },
+    {
+      "phase": 1,
+      "source_frame": 78,
+      "time": 1793921071.2704647,
+      "map": "map_78",
+      "known_cells": 156770
+    },
+    {
+      "phase": 1,
+      "source_frame": 80,
+      "time": 1793921083.2648993,
+      "map": "map_80",
+      "known_cells": 158693
+    },
+    {
+      "phase": 1,
+      "source_frame": 82,
+      "time": 1793921095.2571564,
+      "map": "map_82",
+      "known_cells": 160337
+    },
+    {
+      "phase": 1,
+      "source_frame": 84,
+      "time": 1793921107.2607183,
+      "map": "map_84",
+      "known_cells": 162253
+    },
+    {
+      "phase": 1,
+      "source_frame": 86,
+      "time": 1793921119.3708446,
+      "map": "map_86",
+      "known_cells": 168828
+    },
+    {
+      "phase": 1,
+      "source_frame": 88,
+      "time": 1793921131.3726337,
+      "map": "map_88",
+      "known_cells": 173058
+    },
+    {
+      "phase": 1,
+      "source_frame": 90,
+      "time": 1793921143.336902,
+      "map": "map_90",
+      "known_cells": 176765
+    },
+    {
+      "phase": 1,
+      "source_frame": 92,
+      "time": 1793921155.3339481,
+      "map": "map_92",
+      "known_cells": 179179
+    },
+    {
+      "phase": 1,
+      "source_frame": 94,
+      "time": 1793921167.3251367,
+      "map": "map_94",
+      "known_cells": 180008
+    },
+    {
+      "phase": 1,
+      "source_frame": 96,
+      "time": 1793921179.3281682,
+      "map": "map_96",
+      "known_cells": 180024
+    },
+    {
+      "phase": 1,
+      "source_frame": 98,
+      "time": 1793921191.308074,
+      "map": "map_98",
+      "known_cells": 180099
+    },
+    {
+      "phase": 1,
+      "source_frame": 100,
+      "time": 1793921203.2926402,
+      "map": "map_100",
+      "known_cells": 180107
+    },
+    {
+      "phase": 1,
+      "source_frame": 102,
+      "time": 1793921215.2766483,
+      "map": "map_102",
+      "known_cells": 180142
+    },
+    {
+      "phase": 1,
+      "source_frame": 104,
+      "time": 1793921227.2548864,
+      "map": "map_104",
+      "known_cells": 181435
+    },
+    {
+      "phase": 1,
+      "source_frame": 106,
+      "time": 1793921239.354765,
+      "map": "map_106",
+      "known_cells": 184122
+    },
+    {
+      "phase": 1,
+      "source_frame": 108,
+      "time": 1793921251.3592837,
+      "map": "map_108",
+      "known_cells": 187441
+    },
+    {
+      "phase": 1,
+      "source_frame": 110,
+      "time": 1793921263.3288615,
+      "map": "map_110",
+      "known_cells": 189119
+    },
+    {
+      "phase": 1,
+      "source_frame": 112,
+      "time": 1793921275.3083816,
+      "map": "map_112",
+      "known_cells": 189626
+    },
+    {
+      "phase": 1,
+      "source_frame": 114,
+      "time": 1793921287.2869346,
+      "map": "map_114",
+      "known_cells": 189928
+    },
+    {
+      "phase": 1,
+      "source_frame": 116,
+      "time": 1793921299.2683818,
+      "map": "map_116",
+      "known_cells": 190143
+    },
+    {
+      "phase": 1,
+      "source_frame": 118,
+      "time": 1793921311.3924587,
+      "map": "map_118",
+      "known_cells": 190559
+    },
+    {
+      "phase": 1,
+      "source_frame": 120,
+      "time": 1793921323.3420463,
+      "map": "map_120",
+      "known_cells": 190657
+    },
+    {
+      "phase": 1,
+      "source_frame": 122,
+      "time": 1793921335.3310468,
+      "map": "map_122",
+      "known_cells": 190954
+    },
+    {
+      "phase": 1,
+      "source_frame": 124,
+      "time": 1793921347.29869,
+      "map": "map_124",
+      "known_cells": 191031
+    },
+    {
+      "phase": 1,
+      "source_frame": 126,
+      "time": 1793921359.271662,
+      "map": "map_126",
+      "known_cells": 191264
+    },
+    {
+      "phase": 1,
+      "source_frame": 128,
+      "time": 1793921371.242035,
+      "map": "map_128",
+      "known_cells": 191261
+    },
+    {
+      "phase": 1,
+      "source_frame": 130,
+      "time": 1793921383.2724743,
+      "map": "map_130",
+      "known_cells": 191284
+    },
+    {
+      "phase": 1,
+      "source_frame": 132,
+      "time": 1793921395.2896671,
+      "map": "map_132",
+      "known_cells": 191294
+    },
+    {
+      "phase": 1,
+      "source_frame": 134,
+      "time": 1793921407.2762918,
+      "map": "map_134",
+      "known_cells": 191402
+    },
+    {
+      "phase": 1,
+      "source_frame": 136,
+      "time": 1793921419.2771363,
+      "map": "map_136",
+      "known_cells": 191541
+    },
+    {
+      "phase": 1,
+      "source_frame": 138,
+      "time": 1793921431.3373642,
+      "map": "map_138",
+      "known_cells": 191673
+    },
+    {
+      "phase": 1,
+      "source_frame": 140,
+      "time": 1793921443.266422,
+      "map": "map_140",
+      "known_cells": 191675
+    },
+    {
+      "phase": 1,
+      "source_frame": 142,
+      "time": 1793921455.2415714,
+      "map": "map_142",
+      "known_cells": 191708
+    },
+    {
+      "phase": 1,
+      "source_frame": 144,
+      "time": 1793921467.3649573,
+      "map": "map_144",
+      "known_cells": 191732
+    },
+    {
+      "phase": 1,
+      "source_frame": 146,
+      "time": 1793921479.3549058,
+      "map": "map_146",
+      "known_cells": 191756
+    },
+    {
+      "phase": 1,
+      "source_frame": 148,
+      "time": 1793921491.3599079,
+      "map": "map_148",
+      "known_cells": 191751
+    },
+    {
+      "phase": 1,
+      "source_frame": 150,
+      "time": 1793921503.3399413,
+      "map": "map_150",
+      "known_cells": 191837
+    },
+    {
+      "phase": 1,
+      "source_frame": 152,
+      "time": 1793921515.3273454,
+      "map": "map_152",
+      "known_cells": 191592
+    },
+    {
+      "phase": 1,
+      "source_frame": 154,
+      "time": 1793921527.2771795,
+      "map": "map_154",
+      "known_cells": 191612
+    },
+    {
+      "phase": 1,
+      "source_frame": 156,
+      "time": 1793921539.269069,
+      "map": "map_156",
+      "known_cells": 191643
+    },
+    {
+      "phase": 1,
+      "source_frame": 158,
+      "time": 1793921551.3573675,
+      "map": "map_158",
+      "known_cells": 191684
+    },
+    {
+      "phase": 1,
+      "source_frame": 160,
+      "time": 1793921563.3230224,
+      "map": "map_160",
+      "known_cells": 191708
+    },
+    {
+      "phase": 1,
+      "source_frame": 162,
+      "time": 1793921575.3002203,
+      "map": "map_162",
+      "known_cells": 191708
+    },
+    {
+      "phase": 1,
+      "source_frame": 164,
+      "time": 1793921587.374518,
+      "map": "map_164",
+      "known_cells": 191709
+    },
+    {
+      "phase": 1,
+      "source_frame": 166,
+      "time": 1793921599.349782,
+      "map": "map_166",
+      "known_cells": 191699
+    },
+    {
+      "phase": 1,
+      "source_frame": 168,
+      "time": 1793921611.3205705,
+      "map": "map_168",
+      "known_cells": 191880
+    },
+    {
+      "phase": 1,
+      "source_frame": 170,
+      "time": 1793921623.3023677,
+      "map": "map_170",
+      "known_cells": 191958
+    },
+    {
+      "phase": 1,
+      "source_frame": 172,
+      "time": 1793921635.2582953,
+      "map": "map_172",
+      "known_cells": 191964
+    },
+    {
+      "phase": 1,
+      "source_frame": 174,
+      "time": 1793921647.354932,
+      "map": "map_174",
+      "known_cells": 192001
+    },
+    {
+      "phase": 1,
+      "source_frame": 176,
+      "time": 1793921659.329033,
+      "map": "map_176",
+      "known_cells": 192060
+    },
+    {
+      "phase": 1,
+      "source_frame": 178,
+      "time": 1793921671.2634916,
+      "map": "map_178",
+      "known_cells": 192054
+    },
+    {
+      "phase": 1,
+      "source_frame": 180,
+      "time": 1793921683.3391435,
+      "map": "map_180",
+      "known_cells": 192058
+    },
+    {
+      "phase": 1,
+      "source_frame": 182,
+      "time": 1793921695.2766187,
+      "map": "map_182",
+      "known_cells": 192210
+    },
+    {
+      "phase": 1,
+      "source_frame": 184,
+      "time": 1793921707.3598099,
+      "map": "map_184",
+      "known_cells": 192542
+    },
+    {
+      "phase": 1,
+      "source_frame": 186,
+      "time": 1793921719.2808914,
+      "map": "map_186",
+      "known_cells": 192962
+    },
+    {
+      "phase": 1,
+      "source_frame": 188,
+      "time": 1793921731.335715,
+      "map": "map_188",
+      "known_cells": 193043
+    },
+    {
+      "phase": 1,
+      "source_frame": 190,
+      "time": 1793921743.2715673,
+      "map": "map_190",
+      "known_cells": 193095
+    },
+    {
+      "phase": 1,
+      "source_frame": 192,
+      "time": 1793921755.307764,
+      "map": "map_192",
+      "known_cells": 193122
+    },
+    {
+      "phase": 1,
+      "source_frame": 194,
+      "time": 1793921767.255309,
+      "map": "map_194",
+      "known_cells": 193115
+    },
+    {
+      "phase": 1,
+      "source_frame": 196,
+      "time": 1793921779.3256564,
+      "map": "map_196",
+      "known_cells": 193115
+    },
+    {
+      "phase": 1,
+      "source_frame": 198,
+      "time": 1793921791.2686276,
+      "map": "map_198",
+      "known_cells": 193087
+    },
+    {
+      "phase": 1,
+      "source_frame": 200,
+      "time": 1793921803.31083,
+      "map": "map_200",
+      "known_cells": 193082
+    },
+    {
+      "phase": 1,
+      "source_frame": 202,
+      "time": 1793921815.2452304,
+      "map": "map_202",
+      "known_cells": 193084
+    },
+    {
+      "phase": 1,
+      "source_frame": 204,
+      "time": 1793921827.3050497,
+      "map": "map_204",
+      "known_cells": 193132
+    },
+    {
+      "phase": 1,
+      "source_frame": 206,
+      "time": 1793921839.3325794,
+      "map": "map_206",
+      "known_cells": 193208
+    },
+    {
+      "phase": 1,
+      "source_frame": 208,
+      "time": 1793921851.3092508,
+      "map": "map_208",
+      "known_cells": 193237
+    },
+    {
+      "phase": 1,
+      "source_frame": 210,
+      "time": 1793921863.2451177,
+      "map": "map_210",
+      "known_cells": 193285
+    },
+    {
+      "phase": 1,
+      "source_frame": 212,
+      "time": 1793921875.3031,
+      "map": "map_212",
+      "known_cells": 193297
+    },
+    {
+      "phase": 1,
+      "source_frame": 214,
+      "time": 1793921887.370614,
+      "map": "map_214",
+      "known_cells": 193305
+    },
+    {
+      "phase": 1,
+      "source_frame": 216,
+      "time": 1793921899.2912004,
+      "map": "map_216",
+      "known_cells": 193270
+    },
+    {
+      "phase": 1,
+      "source_frame": 218,
+      "time": 1793921911.354923,
+      "map": "map_218",
+      "known_cells": 193270
+    },
+    {
+      "phase": 1,
+      "source_frame": 220,
+      "time": 1793921923.2635343,
+      "map": "map_220",
+      "known_cells": 193255
+    },
+    {
+      "phase": 1,
+      "source_frame": 222,
+      "time": 1793921935.3263419,
+      "map": "map_222",
+      "known_cells": 193259
+    },
+    {
+      "phase": 1,
+      "source_frame": 224,
+      "time": 1793921947.2659993,
+      "map": "map_224",
+      "known_cells": 193262
+    },
+    {
+      "phase": 1,
+      "source_frame": 226,
+      "time": 1793921959.3334534,
+      "map": "map_226",
+      "known_cells": 193268
+    },
+    {
+      "phase": 1,
+      "source_frame": 228,
+      "time": 1793921971.368829,
+      "map": "map_228",
+      "known_cells": 193280
+    },
+    {
+      "phase": 1,
+      "source_frame": 230,
+      "time": 1793921983.290217,
+      "map": "map_230",
+      "known_cells": 193331
+    },
+    {
+      "phase": 1,
+      "source_frame": 232,
+      "time": 1793921995.3393593,
+      "map": "map_232",
+      "known_cells": 193339
+    },
+    {
+      "phase": 1,
+      "source_frame": 234,
+      "time": 1793922007.2749138,
+      "map": "map_234",
+      "known_cells": 193353
+    },
+    {
+      "phase": 1,
+      "source_frame": 236,
+      "time": 1793922019.32111,
+      "map": "map_236",
+      "known_cells": 193362
+    },
+    {
+      "phase": 1,
+      "source_frame": 238,
+      "time": 1793922031.3738682,
+      "map": "map_238",
+      "known_cells": 193368
+    },
+    {
+      "phase": 1,
+      "source_frame": 240,
+      "time": 1793922043.277979,
+      "map": "map_240",
+      "known_cells": 193379
+    },
+    {
+      "phase": 1,
+      "source_frame": 242,
+      "time": 1793922055.3154604,
+      "map": "map_242",
+      "known_cells": 193392
+    },
+    {
+      "phase": 1,
+      "source_frame": 244,
+      "time": 1793922067.365653,
+      "map": "map_244",
+      "known_cells": 193447
+    },
+    {
+      "phase": 1,
+      "source_frame": 246,
+      "time": 1793922079.27452,
+      "map": "map_246",
+      "known_cells": 193453
+    },
+    {
+      "phase": 1,
+      "source_frame": 248,
+      "time": 1793922091.3173535,
+      "map": "map_248",
+      "known_cells": 193453
+    },
+    {
+      "phase": 1,
+      "source_frame": 250,
+      "time": 1793922103.364403,
+      "map": "map_250",
+      "known_cells": 193549
+    },
+    {
+      "phase": 1,
+      "source_frame": 252,
+      "time": 1793922115.2863755,
+      "map": "map_252",
+      "known_cells": 193693
+    },
+    {
+      "phase": 1,
+      "source_frame": 254,
+      "time": 1793922127.325326,
+      "map": "map_254",
+      "known_cells": 193965
+    },
+    {
+      "phase": 1,
+      "source_frame": 256,
+      "time": 1793922139.3688498,
+      "map": "map_256",
+      "known_cells": 194071
+    },
+    {
+      "phase": 1,
+      "source_frame": 258,
+      "time": 1793922151.2856026,
+      "map": "map_258",
+      "known_cells": 194143
+    },
+    {
+      "phase": 1,
+      "source_frame": 260,
+      "time": 1793922163.3279495,
+      "map": "map_260",
+      "known_cells": 193787
+    },
+    {
+      "phase": 1,
+      "source_frame": 262,
+      "time": 1793922175.367503,
+      "map": "map_262",
+      "known_cells": 193899
+    },
+    {
+      "phase": 1,
+      "source_frame": 264,
+      "time": 1793922187.2931356,
+      "map": "map_264",
+      "known_cells": 193951
+    },
+    {
+      "phase": 1,
+      "source_frame": 266,
+      "time": 1793922199.3330333,
+      "map": "map_266",
+      "known_cells": 193637
+    },
+    {
+      "phase": 1,
+      "source_frame": 268,
+      "time": 1793922211.2509506,
+      "map": "map_268",
+      "known_cells": 193104
+    },
+    {
+      "phase": 1,
+      "source_frame": 270,
+      "time": 1793922223.3058496,
+      "map": "map_270",
+      "known_cells": 193127
+    },
+    {
+      "phase": 1,
+      "source_frame": 272,
+      "time": 1793922233.276677,
+      "map": "map_272",
+      "known_cells": 193159
+    }
+  ]
+}

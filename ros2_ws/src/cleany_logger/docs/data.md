@@ -106,7 +106,7 @@ stateDiagram-v2
 | TF / 시계 / CameraInfo | Hz 표본화로 누락시키지 않고 수신마다 기록 |
 | 설정 변경 / 새 세션 | Transient-local 구독 재생성으로 retained 자료 요청 |
 
-선택·표본화한 기록이며 전체 ROS 그래프의 무손실 녹화는 아닙니다. 연속 센서 bag은 [매핑 원본 수집](../../../../docs/RUNNING.md#오프라인-slam-비교용-원본-bag)을 따릅니다.
+선택·표본화한 기록이며 전체 ROS 그래프의 무손실 녹화는 아닙니다. 연속 센서 bag은 [매핑 원본 수집](../../../../docs/implementation/how-to/mapping.md#오프라인-slam-비교용-원본-bag)을 따릅니다.
 
 ## 조작 이력
 

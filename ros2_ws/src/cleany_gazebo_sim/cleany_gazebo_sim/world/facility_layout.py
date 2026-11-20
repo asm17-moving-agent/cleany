@@ -1,4 +1,4 @@
-"""ROS-independent facility geometry, expressed in the dashboard's map frame."""
+"""대시보드 지도 좌표계로 표현하는 ROS 독립 시설 형상입니다."""
 
 from __future__ import annotations
 

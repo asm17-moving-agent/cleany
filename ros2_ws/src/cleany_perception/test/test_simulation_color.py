@@ -39,8 +39,8 @@ def test_study_cafe_profile_detects_and_segments_all_tabletop_objects():
         'cup': ((10, 10, 40, 40), (15, 52, 112)),
         'wallet': ((50, 10, 80, 40), (99, 40, 15)),
         'phone': ((90, 10, 120, 40), (12, 14, 16)),
-        # The raised rubber body is this dark under the head light.  Channel
-        # ratios, rather than brightness, keep it distinct from the phone.
+        # 헤드 조명에서 솟은 고무 본체는 이 정도로 어둡습니다. 밝기 대신
+        # 채널 비율로 핸드폰과 구분합니다.
         'box': ((125, 10, 155, 40), (7, 1, 2)),
     }
     for (x_min, y_min, x_max, y_max), color in expected.values():

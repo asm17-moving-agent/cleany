@@ -1,4 +1,4 @@
-"""Regenerate derived sdkconfig when reviewed defaults or Kconfig change."""
+"""검토된 기본값이나 Kconfig가 바뀌면 파생 sdkconfig를 재생성합니다."""
 Import("env")
 
 import hashlib

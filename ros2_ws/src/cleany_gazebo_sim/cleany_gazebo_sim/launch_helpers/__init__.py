@@ -1,1 +1,1 @@
-"""Reusable builders shared by ROS 2 launch entry points."""
+"""ROS 2 launch 진입점들이 공유하는 구성 함수입니다."""

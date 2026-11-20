@@ -55,14 +55,14 @@ private:
 using KnownBodies = std::map<unsigned int, std::unique_ptr<bodies::Body>>;
 using GetTransform = std::function<bool(unsigned int, Eigen::Isometry3d&)>;
 
-/// All transforms must be available and finite. On failure no body is moved.
+/// 모든 변환은 사용 가능하고 유한해야 합니다. 실패 시 어떤 body도 이동하지 않습니다.
 bool placeKnownBodies(KnownBodies& bodies, const Eigen::Isometry3d& map_from_cloud,
                       const GetTransform& cloud_from_body);
 
-/// Caller owns the tree write lock. Does not create cells or clear partial overlap.
-/// All eight corners must belong to ONE convex body, not a union across bodies.
-/// Mesh padding is applied along convex face normals, bounded by its padded box;
-/// primitive bodies retain their native containment/padding semantics.
+/// 호출자가 트리 쓰기 잠금을 소유해야 하며 셀을 만들거나 부분 겹침을 지우지 않습니다.
+/// 여덟 모서리 모두 여러 body의 합집합이 아닌 하나의 볼록 body 안에 있어야 합니다.
+/// 메시 여유는 볼록 면 법선 방향으로 적용하며 확장된 상자로 제한합니다.
+/// 기본 도형 body는 원래 포함 판정과 여유 의미를 유지합니다.
 ClearResult clearContainedOccupancy(octomap::OcTree& tree,
                                    const std::vector<const bodies::Body*>& bodies,
                                    std::size_t maximum_examined);

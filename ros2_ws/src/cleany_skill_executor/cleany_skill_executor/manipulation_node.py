@@ -1,4 +1,4 @@
-"""ROS Action/Service wrapper for the mock manipulation execution core."""
+"""mock 조작 실행 core의 ROS Action/Service 래퍼입니다."""
 
 from __future__ import annotations
 
@@ -44,25 +44,25 @@ def record_message(record: Record) -> ManipulationExecutionRecord:
 
 
 class ManipulationNode(Node):
-    """Generate Mock manipulation evidence for one active execution.
+    """활성 실행 하나에 대한 mock 조작 근거를 생성합니다.
 
     Actions:
-        manipulation/execute_skill (ExecuteManipulationSkill): Single-object
-            execution server; remapping also applies to the cancel client.
+        manipulation/execute_skill (ExecuteManipulationSkill): 단일 물체 실행 Server.
+            remapping은 취소 Client에도 적용합니다.
 
     Services:
-        manipulation/get_execution (GetManipulationExecution): Latest execution
-            evidence, including history loaded at startup.
-        manipulation/cancel (CancelManipulation): Forward a selected mode to
-            the exact active ROS Goal UUID through its CancelGoal service.
+        manipulation/get_execution (GetManipulationExecution): 시작 시 읽은 이력을
+            포함한 최신 실행 근거.
+        manipulation/cancel (CancelManipulation): CancelGoal 서비스로 정확한 활성
+            ROS Goal UUID에 선택한 모드를 전달합니다.
 
     Publishers:
-        manipulation/execution_events (ManipulationExecutionRecord): Changed
-            records; reliable, transient-local, depth 100.
+        manipulation/execution_events (ManipulationExecutionRecord): 변경된 기록.
+            reliable, transient_local, depth 100입니다.
 
     Notes:
-        Names are relative defaults. Steady-clock ticks do not depend on /clock.
-        Records use wall timestamps. No physical commands or TF are published.
+        이름은 상대 기본값입니다. steady-clock tick은 /clock에 의존하지 않습니다.
+        기록에는 실제 시각을 쓰며 물리 명령이나 TF는 발행하지 않습니다.
     """
 
     def __init__(self, **kwargs) -> None:
@@ -101,7 +101,7 @@ class ManipulationNode(Node):
             handle_accepted_callback=self._accepted, cancel_callback=self._cancel,
             callback_group=group)
         self._setup_cancel_service(group, action_name)
-        # Steady clock also works when ROS use_sim_time is paused or unset.
+        # steady clock은 ROS use_sim_time이 멈췄거나 설정되지 않아도 동작합니다.
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
         self._publish_events()
@@ -125,7 +125,7 @@ class ManipulationNode(Node):
             handle.execute()
 
     async def _execute(self, handle) -> ExecuteManipulationSkill.Result:
-        # Suspending a coroutine leaves executor threads free for cancels/timers.
+        # coroutine을 중단해 executor 스레드가 취소와 timer를 처리하게 합니다.
         with self.core.lock:
             future = self._futures[handle.request.execution_id]
         try:
@@ -150,9 +150,9 @@ class ManipulationNode(Node):
 
     async def _request_cancel(self, request: CancelManipulation.Request,
                               response: CancelManipulation.Response) -> CancelManipulation.Response:
-        # Forward through the standard Action service so the goal really enters
-        # CANCELING before we report its terminal ROS status. Never set that
-        # state through rclpy's private GoalHandle API.
+        # 종료 ROS 상태를 보고하기 전에 목표가 실제로 CANCELING에 들어가도록
+        # 표준 Action 서비스로 전달합니다. rclpy의 비공개 GoalHandle API로
+        # 상태를 직접 설정하지 않습니다.
         with self.core.lock:
             handle, record = self._handle, self.core.record
             if (handle is None or record is None or record.result is not None
@@ -178,7 +178,7 @@ class ManipulationNode(Node):
         with self.core.lock:
             response.accepted = bool(reply is not None and reply.goals_canceling)
             if not response.accepted and self._handle is handle and handle.is_cancel_requested:
-                # A concurrent request may have performed the ROS transition.
+                # 동시 요청이 이미 ROS 상태 전이를 수행했을 수 있습니다.
                 response.accepted = self.core.request_cancel(request.execution_id, mode)
             self._cancel_modes.pop(request.execution_id, None)
             response.message = (f'Cancellation mode: {mode.value}' if response.accepted
@@ -218,8 +218,8 @@ class ManipulationNode(Node):
             if self._handle is None or record.result is None:
                 return
             status = record.result.status
-            # rclpy transitions to CANCELING just after our cancel callback returns.
-            # Wait for that transition before issuing CANCELED, under the same lock.
+            # rclpy는 취소 콜백이 반환된 직후 CANCELING으로 전이합니다.
+            # 같은 잠금 아래 이 전이를 기다린 뒤 CANCELED를 보고합니다.
             if status == Status.CANCELED and not self._handle.is_cancel_requested:
                 return
             if status in (Status.SUCCESS, Status.BLOCKED):
@@ -236,8 +236,8 @@ class ManipulationNode(Node):
             self._closing = True
             self._timer.cancel()
             self._action.destroy()
-            # Closing cannot race a tick's SQLite write. ACTIVE remains
-            # unfinished for recovery; shutdown is not stop evidence.
+            # 닫기와 tick의 SQLite 쓰기가 경쟁하지 않게 합니다. 복구를 위해 ACTIVE는
+            # 미완료로 남기며 종료 자체는 정지 근거가 아닙니다.
             self.store.close()
         return super().destroy_node()
 

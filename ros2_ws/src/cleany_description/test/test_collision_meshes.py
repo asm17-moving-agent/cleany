@@ -1,4 +1,4 @@
-"""Geometry containment and model-scope checks for the optional arm meshes."""
+"""선택형 팔 메시의 형상 포함 관계와 적용 모델 범위를 검사합니다."""
 from __future__ import annotations
 
 import hashlib
@@ -71,8 +71,8 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
     assert len(output.faces) < len(source.faces) * maximum_fraction
     used = set()
     for component_index, part in originals:
-        # Nested CAD parts can lie inside another component's hull. Match by
-        # both containment and the independently measured expansion limit.
+        # 중첩된 CAD 부품은 다른 부품의 볼록 외피 안에 들어갈 수 있습니다.
+        # 포함 관계와 별도로 측정한 확장 한계를 함께 사용해 대응시킵니다.
         original_hull = ConvexHull(part.vertices)
         matches = []
         for index, candidate in enumerate(reduced):
@@ -90,7 +90,7 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
         assert bounds.max() <= SETTINGS['max_hull_expansion_m']
         edges = np.sort(candidate.faces[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2), axis=1)
         _, counts = np.unique(edges, axis=0, return_counts=True)
-        assert np.all(counts == 2)  # Closed two-manifold after serialization.
+        assert np.all(counts == 2)  # 직렬화한 메시도 닫힌 2-manifold여야 합니다.
         triangles = candidate.vertices[candidate.faces]
         normal = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
         assert np.all(np.einsum('ij,ij->i', normal, triangles.mean(axis=1) - candidate.vertices.mean(axis=0)) > 0)

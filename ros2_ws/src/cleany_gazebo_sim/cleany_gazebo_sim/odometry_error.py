@@ -1,4 +1,4 @@
-"""Stateful simulation-only error model for planar wheel odometry."""
+"""내부 상태를 유지하는 평면 휠 odometry의 시뮬레이션 전용 오차 모델입니다."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from random import Random
 
 @dataclass(frozen=True)
 class Pose2D:
-    """Planar pose in an odometry frame."""
+    """odometry 좌표계의 평면 위치입니다."""
 
     x_m: float
     y_m: float
@@ -18,7 +18,7 @@ class Pose2D:
 
 @dataclass(frozen=True)
 class OdometryErrorParameters:
-    """Parameters for a stateful, simulation-only odometry error model."""
+    """내부 상태가 있는 시뮬레이션 전용 odometry 오차 모델의 파라미터입니다."""
 
     forward_scale: float = 1.0
     lateral_scale: float = 1.0
@@ -98,7 +98,7 @@ class OdometryErrorParameters:
 
 @dataclass(frozen=True)
 class NoisyOdometryEstimate:
-    """Perturbed pose, body velocity and internal diagnostic state."""
+    """오차를 적용한 위치, 차체 속도와 내부 진단 상태입니다."""
 
     pose: Pose2D
     linear_x_mps: float
@@ -109,13 +109,13 @@ class NoisyOdometryEstimate:
 
 
 def wrap_angle(angle_rad: float) -> float:
-    """Wrap an angle to the closed interval around zero."""
+    """각도를 0을 중심으로 한 닫힌 구간으로 접습니다."""
 
     return atan2(sin(angle_rad), cos(angle_rad))
 
 
 class StatefulOdometryError:
-    """Apply correlated errors to relative planar odometry increments."""
+    """상대 평면 odometry 증가량에 상관된 오차를 적용합니다."""
 
     def __init__(self, parameters: OdometryErrorParameters) -> None:
         self._parameters = parameters

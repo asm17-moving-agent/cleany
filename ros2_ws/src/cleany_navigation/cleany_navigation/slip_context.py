@@ -1,14 +1,14 @@
-"""Bounded diagnostic command history; never feeds control or slip decisions."""
+"""크기 제한 진단용 명령 이력이며 제어나 미끄럼 판정의 입력이 아닙니다."""
 from collections import deque
 import math
 from typing import Any
 
 
 class CommandHistory:
-    """Select the last received Twist at or before an observation's end time.
+    """관측 종료 시각 이하에서 마지막으로 수신한 Twist를 선택합니다.
 
-    Times are ROS receive times because Twist has no header. Future samples
-    are never substituted for a missing historical command.
+    Twist에는 header가 없으므로 ROS 수신 시각을 사용합니다. 과거 명령이 없을 때
+    미래 표본으로 대체하지 않습니다.
     """
 
     def __init__(self, max_age_s: float = .3):
@@ -37,7 +37,7 @@ class CommandHistory:
 
 
 def json_safe(value: Any) -> Any:
-    """Retain explicit nulls for unavailable numeric diagnostic values."""
+    """사용할 수 없는 숫자 진단값은 명시적인 null로 유지합니다."""
     if isinstance(value, dict):
         return {k: json_safe(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):

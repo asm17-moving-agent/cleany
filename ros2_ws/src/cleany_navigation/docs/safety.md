@@ -77,6 +77,6 @@ Global/local costmap은 obstacle_memory/grid를 max 병합합니다. Voxel을 �
 | 기본 Nav2 실험 | amcl_nav2.launch.py map:=... |
 | 설정 | 패키지 config/의 pan_enabled/memory_enabled/voxel_enabled 등 |
 
-관련 안내: [실행](../../../../docs/RUNNING.md), [테스트](../../../../docs/TESTING.md).
+관련 안내: [실행](../../../../docs/implementation/running.md), [테스트](../../../../docs/implementation/testing.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).

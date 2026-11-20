@@ -1,5 +1,5 @@
-# Implemented by the component owner, never by a generic restart shell command.
-# Owner must reject conflicting recovery, including across Supervisor restarts.
+# 일반 재시작 셸 명령이 아닌 해당 컴포넌트 소유자가 구현합니다.
+# 소유자는 Supervisor 재시작 전후를 포함해 충돌하는 복구 요청을 거부해야 합니다.
 string job_id
 string fault_code
 string source

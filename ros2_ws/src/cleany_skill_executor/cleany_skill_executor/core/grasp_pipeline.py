@@ -1,4 +1,4 @@
-"""ROS-independent safety gates for the refreshed grasp pipeline."""
+"""갱신된 파지 pipeline의 ROS 독립 안전 판정입니다."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ Vector3 = tuple[float, float, float]
 
 @dataclass(frozen=True, slots=True)
 class ObservedGrasp:
-    """Geometry needed to associate and gate a refreshed observation."""
+    """새 관측을 대응시키고 허용 여부를 판단하는 데 필요한 기하입니다."""
 
     key: int
     center: Vector3
@@ -46,7 +46,7 @@ def associate_refreshed_grasp(
     candidates: Sequence[ObservedGrasp],
     limits: ReinspectionLimits = ReinspectionLimits(),
 ) -> ObservedGrasp:
-    """Return the unique nearest observation after enforcing motion gates."""
+    """움직임 조건을 적용한 뒤 유일한 최근접 관측을 반환합니다."""
     if not candidates:
         raise ValueError('same-label object was not found in refreshed RGB-D')
     ranked = sorted(
@@ -121,7 +121,7 @@ class ContactLimits:
 
 
 class ContactDebounce:
-    """Debounce position/velocity contact, with optional effort augmentation."""
+    """위치와 속도 접촉을 연속 확인하며 선택적으로 effort 근거를 추가합니다."""
 
     def __init__(self, limits: ContactLimits = ContactLimits()) -> None:
         self._limits = limits

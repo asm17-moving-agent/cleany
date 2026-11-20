@@ -1,4 +1,4 @@
-"""Boundary failures that could otherwise cause replay or unsafe base movement."""
+"""재실행이나 위험한 베이스 이동으로 이어질 수 있는 경계 실패를 검사합니다."""
 
 from concurrent.futures import Future
 from dataclasses import asdict, replace
@@ -63,7 +63,7 @@ class Transport:
 
     def cancel(self, execution_id):
         self.cancelled.append(execution_id)
-        return resolved(True)  # ACK is not physical stop evidence.
+        return resolved(True)  # ACK는 물리적 정지 근거가 아닙니다.
 
     def lookup(self, execution_id):
         self.queries.append(execution_id)
@@ -104,7 +104,7 @@ def test_late_acceptance_cancel_ack_and_lookup_miss_never_release_drive_gate():
     port.start(cmd)
     port.cancel(cmd.execution_id)
     assert not port.stopped() and not port.safe_to_drive()[0]
-    transport.acceptance.set_result(transport.handle)  # Accepted after cancel request.
+    transport.acceptance.set_result(transport.handle)  # 취소 요청 이후 수락되었습니다.
     clock.now += 2
     port.maintain()
     assert transport.cancelled == [cmd.execution_id, cmd.execution_id]
@@ -172,7 +172,7 @@ def test_restart_queries_exact_execution_without_resend_and_persists_held_state(
     second_transport.lookup_result = dict(goal_fields(cmd), **asdict(physical),
                                          record_state="FINISHED", has_result=True,
                                          human_confirmation_required=True)
-    # Finish prior lookup miss, then query new evidence.
+    # 이전 조회 실패를 마무리한 뒤 새 근거를 조회합니다.
     clock.now += 2
     second.maintain()
     second.maintain()
@@ -213,7 +213,7 @@ def test_optional_diagnostics_survive_restart_without_changing_result_dto(tmp_pa
     assert saved["details"] == port.details
     restarted = ManipulationPort(Transport(journal), journal, clock, initial_mock_safe=True)
     assert restarted.details == port.details and restarted.safe_to_drive()[0]
-    saved.pop("details")  # PR #54 metadata has no diagnostic fields.
+    saved.pop("details")  # PR #54 메타데이터에는 진단 필드가 없습니다.
     journal.set(ManipulationPort.KEY, json.dumps(saved))
     old = ManipulationPort(Transport(journal), journal, clock)
     assert old.details == {} and old.safe_to_drive()[0]

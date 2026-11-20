@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit recorded firmware frames without opening serial devices or driving ROS."""
+"""serial 장치나 ROS 구동 없이 기록된 펌웨어 프레임을 검사합니다."""
 import argparse
 from collections import Counter
 import hashlib
@@ -24,8 +24,8 @@ def audit(path: Path) -> dict:
                 raise ValueError('configuration changed within the recorded session')
             prefix += 1
             continue
-        # Device intervals supply the offline arrival clock; this validates wire
-        # content/order, not a new measurement of live USB latency.
+        # 장치 간격을 오프라인 도착 시계로 사용합니다. 전송 내용과 순서의 검증이며
+        # 실시간 USB 지연을 새로 측정하는 것은 아닙니다.
         stream.frame(record, record['time_us']/1e6)
         o = observe([v/1000 for v in record['distance_mm']], [v/1000 for v in record['sigma_mm']],
                     record['target_status'], record['target_count'], record['valid'], settings)

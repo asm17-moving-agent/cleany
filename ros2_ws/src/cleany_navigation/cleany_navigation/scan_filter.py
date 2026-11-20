@@ -3,7 +3,7 @@ import struct
 
 
 def mask_close_returns(ranges, minimum=0.30):
-    # Ranges are float32 on the ROS wire, so include the rounded 30cm boundary.
+    # ROS 전송의 거리는 float32이므로 반올림된 30cm 경계도 포함합니다.
     threshold = struct.unpack("f", struct.pack("f", minimum))[0]
     return [
         float("nan") if math.isfinite(v) and v <= threshold else float(v)
@@ -14,7 +14,7 @@ def mask_close_returns(ranges, minimum=0.30):
 def mask_front_scan(
     ranges, angle_min, angle_increment, minimum=0.30, center=0.0, half_angle=math.pi / 2
 ):
-    """Keep the configured angular sector; NaN masks excluded and close returns."""
+    """설정된 각도 구간을 유지하며 제외 구간과 가까운 반사값은 NaN으로 가립니다."""
     result = mask_close_returns(ranges, minimum)
     for i in range(len(result)):
         angle = angle_min + i * angle_increment - center
@@ -25,7 +25,7 @@ def mask_front_scan(
 
 
 def mask_self_returns(ranges, angle_min, angle_increment, *, translation, yaw, boxes):
-    """Mask confirmed robot returns in base-frame rectangles, preserving other rays."""
+    """베이스 좌표계 사각형 안의 확인된 로봇 반사값만 가리고 다른 ray는 보존합니다."""
     result = list(ranges)
     for i, distance in enumerate(result):
         if not math.isfinite(distance):

@@ -1,4 +1,4 @@
-"""Gazebo sensor/TF adapters around the common Cleany navigation runtime."""
+"""공통 Cleany 주행 런타임에 Gazebo 센서와 TF 어댑터를 연결합니다."""
 from pathlib import Path
 from tempfile import mkdtemp
 
@@ -27,7 +27,7 @@ def _launch(context: LaunchContext) -> list:
         robot[name][name]['ros__parameters']['obstacle_layer'] = {
             'min_obstacle_height': layer['min_obstacle_height'],
             'scan': {'min_obstacle_height': layer['scan']['min_obstacle_height']}}
-    # This wrapper only supplies simulation facts, including explicit park overrides.
+    # 이 래퍼는 명시적 주차 자세 재정의를 포함한 시뮬레이션 정보만 제공합니다.
     robot['voxel_guard'] = load_parameters(Path(value('voxel_params_file')))['voxel_guard']
     robot['voxel_guard']['ros__parameters'].update(profile=value('body_profile'), allow_simulation_limits=True)
     robot.setdefault('obstacle_memory', {'ros__parameters': {}})['ros__parameters'].update(floor_z=-.38)
@@ -71,8 +71,8 @@ def _launch(context: LaunchContext) -> list:
             'autostart': value('autostart'), 'axis_motion': value('axis_motion'),
             'axis_params_file': value('axis_params_file'), 'omni_params_file': value('omni_params_file'), 'params_file': str(parameters_file),
             'localization_params_file': value('localization_params_file'),
-            # Launch arguments share a context across includes. Do not let the
-            # Gazebo metadata YAML become the common ROS parameter overlay.
+            # 포함된 launch 사이에는 인자 컨텍스트가 공유됩니다. Gazebo 메타데이터 YAML이
+            # 공통 ROS 파라미터 overlay로 전달되지 않게 합니다.
             'safety_params_file': str(navigation/'config/nav2_safety.yaml'),
             'pan_enabled': str(dynamic_pan).lower(), 'memory_enabled': value('memory_enabled'),
             'voxel_enabled': value('voxel_enabled'), 'safety_mode': value('safety_mode'), 'output_directory': value('output_directory'),
@@ -96,7 +96,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('voxel_params_file', default_value=str(navigation/'config/voxel_guard.yaml')),
         DeclareLaunchArgument('memory_params_file', default_value=str(navigation/'config/obstacle_memory.yaml')),
         DeclareLaunchArgument('body_profile', default_value=str(share/'config/cad_frame.yaml')),
-        # Reactive evaluation decouples camera observation from driving.
+        # 반응형 평가에서는 카메라 관측과 주행을 분리합니다.
         DeclareLaunchArgument('safety_mode', default_value='reactive', choices=['serial', 'reactive']),
         DeclareLaunchArgument('memory_enabled', default_value='true'),
         DeclareLaunchArgument('voxel_enabled', default_value='false'),

@@ -4,7 +4,7 @@
 #include <string>
 
 namespace cleany_navigation {
-/// One latched longitudinal retry per goal; standstill never clears the latch.
+/// 목표당 전후 방향 재시도를 한 번만 허용하며 정지만으로 사용 기록을 지우지 않습니다.
 class SlipRecoveryPolicy {
 public:
   enum class Phase {Normal, Braking, Retry, Failed};

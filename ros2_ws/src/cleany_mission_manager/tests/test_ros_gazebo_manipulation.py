@@ -1,4 +1,4 @@
-"""Opt-in study-cafe Nav2 drive followed by two logical Mock Action collections."""
+"""선택적으로 스터디카페 Nav2 주행 후 논리 Mock Action 수거 두 번을 실행합니다."""
 
 import json
 import os
@@ -26,7 +26,7 @@ def test_gazebo_nav2_and_mock_action_without_gateway(tmp_path):
 
     post_mission = os.environ.get("CLEANY_GAZEBO_POST_MISSION", "wait_for_next")
     root = Path(__file__).parents[1]
-    # The saved map starts at the study-cafe spawn, rather than the SDF world origin.
+    # 저장 지도는 SDF 월드 원점이 아닌 스터디카페 시작점에서 시작합니다.
     initial = yaml.safe_load((root.parent / "cleany_gazebo_sim/config/nav2_amcl.yaml").read_text())[
         "amcl"]["ros__parameters"]["initial_pose"]
     command = ["ros2", "launch", "cleany_bringup", "mission_sim.launch.py",

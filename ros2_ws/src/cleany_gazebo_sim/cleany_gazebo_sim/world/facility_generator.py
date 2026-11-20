@@ -1,4 +1,4 @@
-"""Compose the full floor around the existing D-HUB furniture/robot frame."""
+"""기존 D-HUB 가구와 로봇 좌표를 기준으로 전체 시설 바닥을 구성합니다."""
 
 from __future__ import annotations
 
@@ -180,8 +180,8 @@ def materialize_facility_world(
                             ),
                             "0.62 0.65 0.66 1",
                         )
-                # Like D-HUB, this is measured from the desk center; the chair
-                # seat tucks beneath the edge rather than floating in the aisle.
+                # D-HUB와 동일하게 책상 중심에서 측정합니다. 의자 좌판은 통로에 떠 있지
+                # 않고 책상 가장자리 아래로 들어갑니다.
                 outward = furniture["chair_offset_m"]
                 cx, cy = (
                     x - row_sign * outward * sin(angle),

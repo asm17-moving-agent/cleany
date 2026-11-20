@@ -29,7 +29,7 @@ void AxisGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &node, 
 }
 void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) {
   candidates_.clear(); index_ = 0;
-  // A stop is always available; the inherited rollout models braking, not an instant stop.
+  // 정지 후보는 항상 제공하며 상속된 rollout은 즉시 정지가 아닌 제동을 모델링합니다.
   candidates_.emplace_back();
   const double now = clock_->now().seconds();
   if (!std::isfinite(current.x) || !std::isfinite(current.y) || !std::isfinite(current.theta)) {
@@ -44,14 +44,14 @@ void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) 
   int permitted = -1;
   if (count > 0) {
     quiet_since_.reset();
-    if (count > 1) {last_axis_=-1; return;}  // Mixed residual motion: brake before choosing a new axis.
+    if (count > 1) {last_axis_=-1; return;}  // 여러 축에 남은 움직임이 있으면 새 축을 선택하기 전에 제동합니다.
     for (int i=0;i<3;++i) if (moving[i] && !(i==1 && diagonal)) permitted=i;
     last_axis_=permitted;
   } else {
     if (!quiet_since_) quiet_since_=now;
     if (now-*quiet_since_ < settle_s_) {
       if (last_axis_ < 0) return;
-      permitted=last_axis_;  // Same-axis resumption is safe; other axes still wait.
+      permitted=last_axis_;  // 같은 축은 재개할 수 있지만 다른 축은 계속 기다립니다.
     }
   }
   StandardTrajectoryGenerator::startNewIteration(current);

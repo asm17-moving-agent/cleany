@@ -1,7 +1,7 @@
-"""Operator CLI: list active faults or request a verified fault reset.
+"""활성 fault를 나열하거나 검증된 fault reset을 요청하는 운영자 CLI입니다.
 
-The reset is a request: the Supervisor still demands fresh stable health (or a confirmed
-mission stop) and records the operator identity in the audit event stream.
+reset은 요청이며 Supervisor는 여전히 최신의 안정된 상태 또는 확인된 임무 정지를
+요구하고 감사 이벤트에 운영자 식별 정보를 기록합니다.
 """
 import argparse
 from threading import Event

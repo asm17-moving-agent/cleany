@@ -1,4 +1,4 @@
-"""Isolated recovery with real guard/Supervisor and a synthetic stationary LiDAR plant."""
+"""실제 guard/Supervisor와 합성 정지 LiDAR 환경으로 격리 복구를 검사합니다."""
 from copy import deepcopy
 from pathlib import Path
 from threading import Thread
@@ -137,7 +137,7 @@ def graph(tmp_path,request):
 
 
 def acquire_renewed_lease(plant, supervisor, mission_id):
-    """Keep the normal lease protocol alive while testing longer recovery windows."""
+    """긴 복구 구간을 검사하는 동안 정상 임대 프로토콜을 유지합니다."""
     client=plant.create_client(CheckPermission,'system/check_permission',callback_group=plant.group)
     wait(client.service_is_ready)
     initial=client.call_async(CheckPermission.Request(epoch=supervisor.core.epoch,mission_id=mission_id,
@@ -274,7 +274,7 @@ def test_manual_pose_update_preempts_pending_automatic_search(graph):
     pub.publish(manual)
     result=future.result().get_result_async();wait(result.done)
     assert not result.result().result.success
-    assert len(plant.pose_updates)==1  # Only the explicitly published manual pose.
+    assert len(plant.pose_updates)==1  # 명시적으로 발행한 수동 자세만 사용합니다.
 
 
 @pytest.mark.parametrize('graph',[True],indirect=True)

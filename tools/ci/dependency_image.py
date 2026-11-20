@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare a dependency-only Docker context and its content-based image identity."""
+"""의존성 전용 Docker 컨텍스트와 내용 기반 이미지 식별자를 준비합니다."""
 
 from __future__ import annotations
 

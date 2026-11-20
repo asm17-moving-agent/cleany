@@ -51,24 +51,24 @@ from cleany_mujoco_sim.wheel_speed_controller import (
 
 
 class MujocoSimNode(Node):
-    """Step the standalone MuJoCo model and expose base feedback.
+    """독립 MuJoCo 모델을 진행시키고 베이스 피드백을 제공합니다.
 
     Subscriptions:
-        ~/joint_cmd (sensor_msgs/msg/JointState): Named joint targets.
-        cmd_vel (geometry_msgs/msg/Twist): Bounded planar base velocity.
+        ~/joint_cmd (sensor_msgs/msg/JointState): 이름으로 지정한 관절 목표.
+        cmd_vel (geometry_msgs/msg/Twist): 범위가 제한된 평면 베이스 속도.
 
     Publishers:
-        joint_states (sensor_msgs/msg/JointState): Simulated joint state.
-        odom (nav_msgs/msg/Odometry): Base pose and velocity.
-        scan (sensor_msgs/msg/LaserScan): Ray-cast range data when scan_enabled.
+        joint_states (sensor_msgs/msg/JointState): 시뮬레이션 관절 상태.
+        odom (nav_msgs/msg/Odometry): 베이스 자세와 속도.
+        scan (sensor_msgs/msg/LaserScan): scan_enabled일 때 ray-cast 거리 데이터.
 
     TF:
-        Optionally broadcasts odom -> base_link and the static LiDAR mount.
-        odom, base_link and laser are configurable frame defaults.
+        선택적으로 odom -> base_link와 고정 LiDAR 장착 변환을 발행합니다.
+        odom, base_link, laser는 변경 가능한 좌표계 기본값입니다.
 
     Notes:
-        Requires a valid scene_path. Wheel dynamics, command limits and timeout
-        are simulation settings; this node is separate from ros2_control's backend.
+        유효한 scene_path가 필요합니다. 바퀴 동역학, 명령 한계와 시간 제한은
+        시뮬레이션 설정이며 이 노드는 ros2_control 백엔드와 별개입니다.
     """
     def __init__(
         self,

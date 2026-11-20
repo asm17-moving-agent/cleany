@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render reference-relative recovery comparisons without claiming physical truth."""
+"""물리 참값을 주장하지 않고 기준 대비 복구 비교를 렌더링합니다."""
 from __future__ import annotations
 
 import argparse
@@ -97,7 +97,7 @@ def main() -> None:
     for m in inputs:
         matched=m['score_crosscheck']['matched_scans']
         bags+=f'<tr><td>{m["bag"][:8]}</td><td>{m["split"]}</td><td>{(m["end"]-m["start"])/60:.2f}</td><td>{m["observations"]}</td><td>{m["windows"]}</td><td>{matched}</td></tr>'
-    # Show B's most important regression: stable normal scores can retain an injected wrong seed.
+    # 정상 점수가 안정적이어도 주입한 잘못된 seed가 유지되는 B의 주요 퇴행을 표시합니다.
     regressions=[c for c in cases if c['reference_stable']and any(c['offset'])and
         c['policies']['structured']['operation']=='keep'and
         (c['policies']['structured']['reference_translation_error_m']>.2 or

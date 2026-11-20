@@ -1,4 +1,4 @@
-"""Cross-check evaluation geometry and sensing limits against their sources."""
+"""평가 형상과 감지 한계를 원본과 교차 확인합니다."""
 
 import ast
 import math

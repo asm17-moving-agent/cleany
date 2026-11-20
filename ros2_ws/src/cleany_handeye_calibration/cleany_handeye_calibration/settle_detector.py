@@ -1,4 +1,4 @@
-"""Pure ROS-stamp settle gate for left-arm calibration feedback."""
+"""왼팔 보정 피드백의 ROS stamp 기반 순수 정착 판정입니다."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from cleany_handeye_calibration.motion_config import (
 
 
 class SettleResetReason(str, Enum):
-    """Why a continuous settle interval was cleared."""
+    """연속 정착 구간이 초기화된 이유입니다."""
 
     ACTION_NOT_SUCCESSFUL = 'action_not_successful'
     CLOCK_RESET = 'clock_reset'
@@ -29,7 +29,7 @@ class SettleResetReason(str, Enum):
 
 
 class SettleWaitStatus(str, Enum):
-    """Bounded wait state around the ROS-stamp detector."""
+    """ROS stamp 판정기를 감싸는 시간 제한 대기 상태입니다."""
 
     NOT_ARMED = 'not_armed'
     WAITING = 'waiting'
@@ -38,11 +38,11 @@ class SettleWaitStatus(str, Enum):
 
 
 class JointSettleDetector:
-    """Require continuous left-joint position and velocity convergence.
+    """왼팔 관절의 위치와 속도가 연속적으로 수렴해야 정착을 인정합니다.
 
-    ROS message stamps drive the one-second stability interval.  No ROS node,
-    wall clock, or action client is used.  A successful action only arms the
-    detector; it never marks the target settled without subsequent feedback.
+    ROS 메시지 stamp로 1초 안정 구간을 계산합니다. ROS 노드, 경과 시간 시계나
+    action client를 사용하지 않습니다. action 성공은 판정기를 준비시킬 뿐이며
+    후속 피드백 없이 목표가 정착했다고 표시하지 않습니다.
     """
 
     def __init__(
@@ -83,7 +83,7 @@ class JointSettleDetector:
         return self._last_reset_reason
 
     def reset(self) -> None:
-        """Clear the target and all timing state."""
+        """목표와 모든 시간 상태를 초기화합니다."""
 
         self._target_positions: dict[str, float] | None = None
         self._armed = False
@@ -98,10 +98,9 @@ class JointSettleDetector:
         *,
         action_succeeded: bool,
     ) -> bool:
-        """Arm a fresh interval only after successful motion execution.
+        """이동 실행에 성공한 뒤에만 새 안정 구간을 준비합니다.
 
-        The return value is always ``False`` because action success by itself
-        cannot satisfy a feedback settle contract.
+        action 성공만으로 피드백 정착 계약을 만족할 수 없으므로 항상 False를 반환합니다.
         """
 
         if not isinstance(target, JointPose):
@@ -128,7 +127,7 @@ class JointSettleDetector:
         return False
 
     def update(self, sample: TimedJointSample) -> bool:
-        """Ingest one feedback sample and report current settle state."""
+        """피드백 표본 하나를 반영하고 현재 정착 상태를 반환합니다."""
 
         if not isinstance(sample, TimedJointSample):
             raise ValueError('sample must be a TimedJointSample')
@@ -205,12 +204,11 @@ class JointSettleDetector:
 
 
 class MonotonicSettleMonitor:
-    """Apply the required wall-clock settle-stage timeout without blocking.
+    """블로킹 없이 정착 단계에 필요한 경과 시간 제한을 적용합니다.
 
-    Joint stability remains exclusively ROS-stamp based in
-    :class:`JointSettleDetector`.  This wrapper uses a monotonic clock only to
-    stop an unproductive WAIT_SETTLED stage, including when simulation time is
-    paused.
+    관절 안정성은 JointSettleDetector에서 오직 ROS stamp로 판단합니다.
+    이 래퍼는 시뮬레이션 시각이 멈춘 경우를 포함해 진전 없는 WAIT_SETTLED 단계를
+    종료하는 데만 단조 시계를 사용합니다.
     """
 
     def __init__(
@@ -270,7 +268,7 @@ class MonotonicSettleMonitor:
         return self._status
 
     def poll(self) -> SettleWaitStatus:
-        """Check the stage deadline even when no feedback arrives."""
+        """피드백이 도착하지 않아도 단계 마감 시각을 확인합니다."""
 
         if (
             self._status is SettleWaitStatus.WAITING
