@@ -600,6 +600,9 @@ make test-hardware-mapping-replay \
 
 ## ToF와 Supervisor 통합
 
+센서 보드 펌웨어는 `make test-tof-firmware`로 부분 I²C 읽기 실패 시 측정값과 스트림 상태를 보존하는지 검사한다.
+`make tof-firmware-build`는 ESP32-S3용 이미지를 생성한다. [빌드 환경과 단독 보드 측정 기록](../esp32/tof_vl53l7ch/README.md)
+
 `make test-tof-core`는 거리 투영, 평면 fit, 제동 envelope, timeout과 navigation 경로의
 순수 검사를 실행한다. `make test-tof`는 interface, ToF, Mission, safety adapter와
 Supervisor를 빌드하고 패키지 검사를 실행한다. ToF ROS 검사는 독립 DDS domain의 합성

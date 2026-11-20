@@ -845,6 +845,7 @@ ros2 launch cleany_teleop teleop.launch.py \
 6. 좌석 pose는 책상 전면을 바라보는 staging pose로 설정한다. Mission이 Nav2 도착과
    정지를 확인한 뒤 접근을 요청하며, home 복귀에는 접근을 수행하지 않는다.
 
+ToF 센서 보드의 배선과 펌웨어 빌드 및 업로드는 [VL53L7CH 펌웨어](../esp32/tof_vl53l7ch/README.md)를 따른다.
 `tof_driver`의 serial port는 기본적으로 공급 펌웨어 보드의 by-id 경로다. 다른 보드는
 해당 노드의 `port`를 별도 설정한다. 재연결 시 64 zone, 15Hz로 재설정한다. 별도
 teleop도 `nav2/cmd_vel` 입력을 사용하며 ToF 활성 상태에서 `cmd_vel`에 직접 발행하지 않는다.

@@ -9,6 +9,7 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 | scripts/ | PlatformIO, 고정 dependency bootstrap |
 | microros_smoke/ | micro-ROS/type-support 링크 검사 |
 | imu_calibration/ | MPU6050 정지 보정 진단과 USB JSON 결과 |
+| [tof_vl53l7ch/](tof_vl53l7ch/README.md) | 독립 16 MiB 센서 보드용 VL53L7CH USB 거리 측정 펌웨어 |
 | pcb/ | KiCad, 로컬 library |
 | micro_ros/, .venv/ | 생성 dependency, 빌드 도구 |
 
