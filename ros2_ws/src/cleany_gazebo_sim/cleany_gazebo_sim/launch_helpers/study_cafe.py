@@ -258,7 +258,7 @@ def study_cafe_launch_description(*, facility: bool = False) -> LaunchDescriptio
             headless_arg,
             DeclareLaunchArgument('headless_rendering', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('server_gallium_thread', default_value=EnvironmentVariable('GALLIUM_THREAD', default_value='0')),
-            DeclareLaunchArgument('robot_model', default_value='cad_frame' if facility else 'legacy', choices=['legacy', 'cad_frame']),
+            DeclareLaunchArgument('robot_model', default_value='cad_frame', choices=['legacy', 'cad_frame']),
             DeclareLaunchArgument('chair_model', default_value='roly' if facility else 'legacy', choices=['legacy', 'roly']),
             DeclareLaunchArgument('chair_config', default_value=str(package_share / 'config/furniture/roly_p1g210m.yaml')),
             DeclareLaunchArgument('world_output', default_value='/tmp/cleany_facility_18f/world.sdf' if facility else ''),

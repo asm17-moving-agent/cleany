@@ -132,6 +132,7 @@ class BridgeSession:
         )} for report in reversed(reports)]
         return self.envelope("robot.snapshot", {
             **self.status(), "supported_seat_ids": snapshot["supported_seat_ids"],
+            **({"target_map": snapshot["target_map"]} if snapshot.get("target_map") else {}),
             "can_cancel": True, "execution_profile": snapshot["execution_profile"],
             "active_phase": snapshot["phase"] if request else None,
             "active_sequence": int(self.value("sequence:" + request["mission_id"], "1"))

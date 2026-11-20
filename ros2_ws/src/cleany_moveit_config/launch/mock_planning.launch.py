@@ -15,7 +15,8 @@ def _mock_moveit_config(include_head_camera='false', head_tilt_initial='0.405'):
             'cleany', package_name='cleany_moveit_config'
         )
         .robot_description(file_path='config/cleany_mock.urdf.xacro',
-                           mappings={'include_head_camera': include_head_camera,
+                           mappings={'model_profile': 'jetson_20261009',
+                                     'include_head_camera': include_head_camera,
                                      'head_tilt_initial': head_tilt_initial})
         .robot_description_semantic(file_path='config/cleany.srdf.xacro',
                                     mappings={'include_head_camera': include_head_camera})

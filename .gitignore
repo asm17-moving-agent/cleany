@@ -44,7 +44,7 @@ junit*.xml
 calibration_data/
 ros2_ws/slam_results/
 
-# Optional local overrides; generated data defaults to ../cleany-data.
+# Optional local data overrides; build outputs default to the user cache.
 /cleany-data/
 ros2_ws/build-*/
 ros2_ws/install-*/
@@ -93,3 +93,7 @@ containers/vision/models/
 /configs/robot/hardware_motion_monitor.yaml
 *.sqlite
 *.sqlite3
+
+# Cleany display exports and local validation captures.
+/output/cleany-display/
+/output/cleany-display-jetson/

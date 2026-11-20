@@ -20,7 +20,8 @@ def test_sorting_startup_wrist_camera_mounts_have_matching_orientation():
         r"'(left|right)_(\w+)_initial': '(-?[0-9.]+)'", launch)}
     assert initial['left_wrist_roll_joint'] == initial['right_wrist_roll_joint'] == 1.58
     path = materialize_control_scene(package / 'scenes/study_cafe_grasp_execution.xml.in',
-                                     initial_joint_positions=initial)
+                                     initial_joint_positions=initial,
+                                     model_profile="jetson_20261009")
     model = mujoco.MjModel.from_xml_path(str(path))
     data = mujoco.MjData(model)
     mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
@@ -138,13 +139,13 @@ def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
     'left_elbow_pitch_joint': 3.12,
     'left_wrist_pitch_joint': -1.63,
     'left_wrist_roll_joint': 1.58,
-    'left_gripper_joint': -0.35,
+    'left_gripper_joint': 0.0,
     'right_shoulder_yaw_joint': 1.58,
     'right_shoulder_pitch_joint': 3.35,
     'right_elbow_pitch_joint': 3.12,
     'right_wrist_pitch_joint': -1.63,
     'right_wrist_roll_joint': 1.58,
-    'right_gripper_joint': -0.35,
+    'right_gripper_joint': 0.0,
 }])
 def test_control_scene_keyframe_preserves_joint_and_dynamic_object_pose(initial):
     package_root = Path(__file__).parents[1]
@@ -336,3 +337,21 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             assert modeled_no_load_speed == pytest.approx(
                 no_load_speed, rel=1e-6
             )
+
+
+def test_default_control_scene_keeps_legacy_commanded_jaws():
+    template = Path(__file__).parents[1] / 'scenes/study_cafe_grasp_execution.xml.in'
+    opening = -.35
+    scene = materialize_control_scene(
+        template, initial_joint_positions={
+            'left_gripper_joint': opening, 'right_gripper_joint': opening})
+    model = mujoco.MjModel.from_xml_path(str(scene))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    for side in ('left', 'right'):
+        joint = model.joint(f'{side}_gripper_joint')
+        assert data.qpos[joint.qposadr[0]] == pytest.approx(opening)
+        assert joint.range[0] < opening < joint.range[1]
+    for profile in ('cad_final', 'unknown'):
+        with pytest.raises(ValueError, match='Unknown model_profile'):
+            materialize_control_scene(template, model_profile=profile)

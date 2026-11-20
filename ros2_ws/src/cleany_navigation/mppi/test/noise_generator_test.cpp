@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include <chrono>
+#include <cmath>
 #include <thread>
-#include <xtensor/xrandom.hpp>
+#include <xtensor/xmath.hpp>
 
 #include "gtest/gtest.h"
 #include "rclcpp/rclcpp.hpp"
@@ -54,7 +55,66 @@ TEST(NoiseGeneratorTest, NoiseGeneratorLifecycle)
   generator.shutdown();
 }
 
-// 잡음 합산은 작업 스레드 시작 전에 검증합니다. reset()은 즉시 재생성을 요청합니다.
+
+TEST(NoiseGeneratorTest, ResetHasACompleteBatchWithoutWaiting)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("node");
+  node->declare_parameter("test.regenerate_noises", true);
+  ParametersHandler handler(node);
+  NoiseGenerator generator;
+  models::OptimizerSettings settings;
+  settings.batch_size = 100; settings.time_steps = 25;
+  settings.sampling_std.vx = settings.sampling_std.vy = settings.sampling_std.wz = .1;
+  models::ControlSequence control;
+  control.reset(25);
+  models::State state;
+  state.reset(100, 25);
+  generator.initialize(settings, true, "test", &handler);
+  for (int i = 0; i < 40; ++i) {
+    const bool omni = i % 2 == 0;
+    generator.generateNextNoises();
+    generator.reset(settings, omni);
+    generator.setNoisedControls(state, control);
+    const float x_rms = std::sqrt(xt::mean(xt::square(state.cvx))());
+    EXPECT_GT(x_rms, .07f); EXPECT_LT(x_rms, .13f);
+    EXPECT_GT(xt::sum(xt::abs(state.cwz))(), 1.f);
+    if (omni) {EXPECT_GT(xt::sum(xt::abs(state.cvy))(), 1.f);}
+    else {EXPECT_EQ(xt::sum(xt::abs(state.cvy))(), 0.f);}
+  }
+  auto previous = state.cvx;
+  generator.generateNextNoises();
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  bool changed = false;
+  while (std::chrono::steady_clock::now() < deadline && !changed) {
+    generator.setNoisedControls(state, control);
+    changed = xt::sum(xt::abs(state.cvx-previous))() > 1.f;
+    std::this_thread::yield();
+  }
+  EXPECT_TRUE(changed);
+  generator.shutdown();
+}
+
+TEST(NoiseGeneratorTest, SeparateControllersDoNotConsumeEachOthersRandomStream)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("independent_noise");
+  ParametersHandler handler(node);
+  models::OptimizerSettings settings;
+  settings.batch_size = 100; settings.time_steps = 25;
+  settings.sampling_std.vx = settings.sampling_std.vy = settings.sampling_std.wz = .1;
+  models::ControlSequence control; control.reset(25);
+  models::State a, b; a.reset(100,25); b.reset(100,25);
+  NoiseGenerator first, second;
+  first.initialize(settings,true,"first",&handler);
+  second.initialize(settings,true,"second",&handler);
+  first.setNoisedControls(a,control); second.setNoisedControls(b,control);
+  EXPECT_EQ(xt::sum(xt::abs(a.cvx-b.cvx))(),0.f);
+  first.reset(settings,true);
+  second.setNoisedControls(b,control);
+  first.setNoisedControls(a,control);
+  EXPECT_GT(xt::sum(xt::abs(a.cvx-b.cvx))(),1.f);
+  first.shutdown(); second.shutdown();
+}
+
 class ControlledNoiseGenerator : public NoiseGenerator
 {
 public:
@@ -120,7 +180,7 @@ TEST(NoiseGeneratorTest, NoiseGeneratorMain)
   EXPECT_EQ(state.cwz(9), 9);
 
   // 고정 난수열로 수치 검사를 재현하고, 실제 작업 스레드의 생성을 검증합니다.
-  xt::random::seed(0);
+  // Each generator owns a deterministic random stream.
   generator.initialize(settings, false, "test_name", &handler);
   generator.reset(settings, false);
   ASSERT_TRUE(generator.waitForGeneration());

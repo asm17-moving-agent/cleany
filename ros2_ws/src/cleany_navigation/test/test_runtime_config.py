@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, set_sim_time, validate_robot_parameters)
+    load_motion_profile, load_navigation_profile, load_parameters, merge_parameters, set_sim_time, validate_robot_parameters)
 from cleany_navigation.urdf_geometry import forward_kinematics
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -250,7 +250,7 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
 def test_default_omni_lattice_mppi_survives_humble_layering():
     """The selected motion layer must not restore DWB or an unsupported plugin name."""
     doc = parameters()
-    merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+    merge_parameters(doc, load_navigation_profile(PACKAGE/'config/nav2_omni.yaml', PACKAGE/'config/nav2_omni_low_speed.yaml'))
     adapted = adapt_nav2_parameters(doc, 'humble')
     assert adapted['planner_server']['ros__parameters']['GridBased']['plugin'] == (
         'nav2_smac_planner/SmacPlannerLattice')
@@ -273,7 +273,7 @@ def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
     from cleany_navigation.runtime_config import resolve_default_lattice
     doc = parameters()
     if omni_layer:
-        merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+        merge_parameters(doc, load_navigation_profile(PACKAGE/'config/nav2_omni.yaml', PACKAGE/'config/nav2_omni_low_speed.yaml'))
     primitive = PACKAGE/'config/lattice/omni-r10cm.json'
     resolve_default_lattice(doc, primitive)
     adapted = adapt_nav2_parameters(doc, 'humble')
@@ -291,6 +291,19 @@ def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
     for name in ('local_costmap', 'global_costmap'):
         assert doc[name][name]['ros__parameters']['resolution'] == metadata['grid_resolution']
     assert adapted['controller_server']['ros__parameters']['FollowPath']['motion_model'] == 'Omni'
+
+
+def test_lidar_omni_wrapper_resolves_bundled_lattice_and_preserves_explicit_file():
+    from cleany_navigation.runtime_config import resolve_default_lattice
+    doc=parameters()
+    merge_parameters(doc,load_motion_profile(PACKAGE/'config', 'omni'))
+    primitive=PACKAGE/'config/lattice/omni-r10cm.json'
+    resolve_default_lattice(doc,primitive)
+    planner=doc['planner_server']['ros__parameters']['GridBased']
+    assert planner['lattice_filepath']==str(primitive.resolve())
+    planner['lattice_filepath']='/explicit/lattice.json'
+    resolve_default_lattice(doc,primitive)
+    assert planner['lattice_filepath']=='/explicit/lattice.json'
 
 
 def test_lattice_resolution_preserves_custom_file_and_other_planners(tmp_path):
@@ -327,3 +340,25 @@ def test_tof_selects_before_all_safety_and_limits_after_all_safety(pan, voxel, m
     if mode == 'reactive':
         assert result[owner]['ros__parameters']['raw_command_topic'] == 'motion/cmd_vel'
     assert original != result
+
+
+def test_environment_overlay_tracks_common_changes_and_replaces_plugin_parameters(tmp_path):
+    from cleany_navigation.runtime_config import load_navigation_profile
+    base, overlay = tmp_path/'base.yaml', tmp_path/'overlay.yaml'
+    base.write_text(yaml.safe_dump({'node': {'ros__parameters': {
+        'rate': 20, 'checker': {'plugin': 'Pose', 'required_angle': .1},
+        'controller': {'plugin': 'MPPI', 'batch_size': 1000, 'speed': .3}}}}))
+    overlay.write_text(yaml.safe_dump({'node': {'ros__parameters': {
+        'checker': {'plugin': 'Simple', 'radius': .1},
+        'controller': {'plugin': 'MPPI', 'speed': .5}}}}))
+    original = base.read_text()
+    parameters = load_navigation_profile(base, overlay)['node']['ros__parameters']
+    assert parameters['rate'] == 20
+    assert parameters['checker'] == {'plugin': 'Simple', 'radius': .1}
+    assert parameters['controller'] == {'plugin': 'MPPI', 'batch_size': 1000, 'speed': .5}
+    parameters['rate'] = 99
+    assert base.read_text() == original
+    assert load_navigation_profile(base, overlay)['node']['ros__parameters']['rate'] == 20
+    overlay.write_text('[]')
+    with pytest.raises(ValueError, match='Expected parameter mapping'):
+        load_navigation_profile(base, overlay)

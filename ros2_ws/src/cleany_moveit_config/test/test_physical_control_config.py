@@ -130,7 +130,7 @@ def test_physical_rviz_and_planning_preserve_calibrated_wrist_bounds(
         'observed_position_limits_rad']
     root = ET.fromstring(subprocess.check_output([
         'xacro', str(DESCRIPTION_ROOT / 'urdf' / 'cleany.urdf.xacro'),
-        'include_wheel_joints:=false',
+        'include_wheel_joints:=false', 'model_profile:=jetson_20261009',
     ], text=True))
     root.find("joint[@name='left_wrist_roll_joint']/limit").attrib.update(
         lower=str(lower), upper=str(upper))

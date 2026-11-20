@@ -68,6 +68,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         sorting_bins_config=Path(bins_path) if bins_path else None,
         study_cafe_layout_config=Path(layout_path) if layout_path else None,
         performance_profile=LaunchConfiguration('sim_performance_profile').perform(context),
+        model_profile=LaunchConfiguration('model_profile').perform(context),
     )
     camera_config = Path(LaunchConfiguration('camera_config').perform(context))
     camera = load_camera_contract(camera_config)
@@ -89,6 +90,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         str(control_xacro),
         mappings={
             'mujoco_model': str(control_scene),
+            'model_profile': LaunchConfiguration('model_profile').perform(context),
             'mujoco_hardware_plugin': hardware_plugin,
             'headless': 'true' if headless or efficient_viewer else 'false',
             'sim_speed_factor': LaunchConfiguration(
@@ -208,6 +210,8 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
 def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
+            DeclareLaunchArgument('model_profile', default_value='jetson_20261009',
+                                  choices=['jetson_20261009']),
             DeclareLaunchArgument('log_level', default_value='info',
                                  choices=['debug', 'info', 'warn', 'error', 'fatal']),
             DeclareLaunchArgument('backend_log_level', default_value='warn',

@@ -101,7 +101,7 @@ class CheckTest(unittest.TestCase):
                  'cleany_gazebo_sim', 'cleany_mujoco_sim', 'new_package']
         groups = ['navigation', 'manipulation', 'workspace-rest']
         selected = [p for group in groups for p in WORKSPACE.group_packages(names, group)]
-        self.assertCountEqual(selected, [name for name in names if name != 'cleany_gazebo_sim'])
+        self.assertCountEqual(selected, names)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for group in groups:
@@ -109,10 +109,10 @@ class CheckTest(unittest.TestCase):
                 path.mkdir()
                 (path/'result.json').write_text(json.dumps({'status': 'passed'}))
                 (path/'packages.json').write_text(json.dumps({'all': names,
-                    'selected': WORKSPACE.group_packages(names, group), 'excluded': ['cleany_gazebo_sim']}))
+                    'selected': WORKSPACE.group_packages(names, group), 'excluded': []}))
             report, ok = CHECK.summarize(root, groups)
             self.assertTrue(ok)
-            self.assertIn('CI 제외: cleany_gazebo_sim', report)
+            self.assertNotIn('CI 제외:', report)
             # 허용 목록 밖의 패키지를 제외했다고 적어도 누락을 성공으로 처리하지 않습니다.
             for group in groups:
                 path = root/group/'packages.json'

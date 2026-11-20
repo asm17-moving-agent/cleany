@@ -93,7 +93,7 @@ def test_wrist_mount_assets() -> None:
         np.testing.assert_array_equal(np.fromstring(geom.get('quat', '1 0 0 0'), sep=' '), [1, 0, 0, 0])
     expected_jaw = config['validation']['target_fixed_jaw_mesh_sha256']
     assert hashlib.sha256((package / 'meshes/Fixed_Jaw.stl').read_bytes()).hexdigest() == expected_jaw
-    physical = ET.parse(package / 'urdf/physical_properties.xacro')
+    physical = ET.parse(package / 'urdf/legacy_20261009/physical_properties.xacro')
     for side, index in (('left', 70), ('right', 102)):
         origin = physical.find(f'.//visual[@name="mjcf_geom_{index}_0_visual"]/origin')
         saved = config['target_urdf_fixed_jaw_visual_origins'][side]

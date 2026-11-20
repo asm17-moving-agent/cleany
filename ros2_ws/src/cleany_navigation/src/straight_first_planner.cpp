@@ -165,9 +165,18 @@ public:
     const auto exact_key=name+".require_exact_goal";
     if(!node->has_parameter(exact_key))node->declare_parameter(exact_key,false);
     exact_goal_=node->get_parameter(exact_key).as_bool();
+    const auto shortcut_key=name+".prefix_shortcut_distance";
+    if(!node->has_parameter(shortcut_key))node->declare_parameter(shortcut_key,0.0);
+    shortcut_distance_=node->get_parameter(shortcut_key).as_double();
+    if(!std::isfinite(shortcut_distance_) || shortcut_distance_<0.)
+      throw std::invalid_argument("prefix_shortcut_distance must be finite and nonnegative");
     const auto holonomic_key=name+".holonomic_direct_path";
     if(!node->has_parameter(holonomic_key))node->declare_parameter(holonomic_key,false);
     holonomic_=node->get_parameter(holonomic_key).as_bool();
+    const auto forward_key=name+".holonomic_forward_distance";
+    if(!node->has_parameter(forward_key))node->declare_parameter(forward_key,0.0);
+    forward_distance_=node->get_parameter(forward_key).as_double();
+    if(!std::isfinite(forward_distance_) || forward_distance_<0.)throw std::invalid_argument("Invalid holonomic_forward_distance");
     const auto body_key=name+".body_heading_grid_search";
     const auto bins_key=name+".body_heading_grid_bins";
     const auto weight_key=name+".body_heading_grid_heuristic_weight";
@@ -263,10 +272,10 @@ public:
       // A tangent-oriented lattice route can be too close to a corner to
       // reorient safely. Search XY for the desired body heading directly.
       // Reserve roughly half the shared budget for the rotating fallback.
-      for(const double heading:{yaw(goal.pose.orientation),yaw(start.pose.orientation)}) {
+      for(const double heading:holonomicTravelHeadings(start,goal,forward_distance_)) {
         const auto heading_deadline=std::min(deadline,std::chrono::steady_clock::now()+
           std::chrono::duration_cast<std::chrono::steady_clock::duration>(
-            std::chrono::duration<double>(_max_planning_time/4.)));
+            std::chrono::duration<double>(_max_planning_time/6.)));
         const auto heading_expired=[&] {return expired() || std::chrono::steady_clock::now()>=heading_deadline;};
         auto candidate=checkedFixedHeadingGridPath(start,goal,*_costmap,footprint,
           heading,fixed_heading_cost_penalty_,heading_expired);
@@ -381,6 +390,11 @@ public:
       // the original requested pose. Validate its connecting sweep as well.
       if(exact_goal_)plan.poses.push_back(goal);
       if(pathCollisionFree(plan,*_costmap,footprint,expired)) {
+        if(!holonomic_ && shortcut_distance_>0.) {
+          auto shortcut=checkedShortcutPathPrefix(plan,*_costmap,footprint,shortcut_distance_,expired);
+          if(!shortcut.poses.empty() && pathCollisionFree(shortcut,*live_costmap_,footprint,expired))
+            return shortcut;
+        }
         if(holonomic_) {
           // Extra lattice clearance guides search; it is not the acceptance
           // footprint. Apply the same configured body/padding as the original
@@ -412,7 +426,9 @@ private:
   rclcpp_lifecycle::LifecycleNode::WeakPtr evidence_node_;
   double padding_{.05};
   bool exact_goal_{false};
+  double shortcut_distance_{0.};
   bool holonomic_{false};
+  double forward_distance_{0.0};
   bool body_heading_grid_{true};
   unsigned int body_heading_bins_{32};
   double body_heading_weight_{8.};
@@ -458,19 +474,60 @@ nav_msgs::msg::Path checkedStraightPath(
   if (!rotate(b.x,b.y,heading,yaw(goal.pose.orientation))) path.poses.clear();
   return path;
 }
+nav_msgs::msg::Path checkedShortcutPathPrefix(
+  const nav_msgs::msg::Path &route, nav2_costmap_2d::Costmap2D &map,
+  const std::vector<geometry_msgs::msg::Point> &footprint, double maximum_distance,
+  const std::function<bool()> &cancel) {
+  if(!std::isfinite(maximum_distance) || maximum_distance<0. ||
+    !validSweptInput(route,footprint,cancel))return nav_msgs::msg::Path();
+  if(maximum_distance<=0. || route.poses.size()<3)return route;
+  size_t last=0;double arc=0.;
+  for(size_t i=1;i<route.poses.size();++i) {
+    const auto &a=route.poses[i-1].pose.position;const auto &b=route.poses[i].pose.position;
+    arc+=std::hypot(b.x-a.x,b.y-a.y);
+    if(arc>maximum_distance)break;
+    last=i;
+  }
+  const auto &start=route.poses.front();
+  for(size_t i=last;i>0;--i) {
+    if(cancel())return nav_msgs::msg::Path();
+    const auto &p=route.poses[i].pose.position;
+    if(std::hypot(p.x-start.pose.position.x,p.y-start.pose.position.y)<
+      std::min(.25,maximum_distance/2.))continue;
+    auto direct=checkedStraightPath(start,route.poses[i],map,footprint,cancel);
+    if(direct.poses.empty() || !sweptPathCollisionFree(direct,map,footprint,cancel))continue;
+    direct.poses.insert(direct.poses.end(),route.poses.begin()+i+1,route.poses.end());
+    return direct;
+  }
+  return route;
+}
+
+std::vector<double> holonomicTravelHeadings(
+  const geometry_msgs::msg::PoseStamped &start,const geometry_msgs::msg::PoseStamped &goal,
+  double forward_distance) {
+  const double from=yaw(start.pose.orientation),to=yaw(goal.pose.orientation);
+  const double dx=goal.pose.position.x-start.pose.position.x,dy=goal.pose.position.y-start.pose.position.y;
+  std::vector<double> headings;
+  if(forward_distance>0. && std::hypot(dx,dy)>forward_distance) {
+    // Long transfers prefer forward travel. Short lateral docking stays holonomic.
+    headings.push_back(std::atan2(dy,dx));
+  }
+  for(double h:{from,to}) {
+    if(std::none_of(headings.begin(),headings.end(),[&](double v){return std::abs(wrap(v-h))<.01;}))headings.push_back(h);
+  }
+  return headings;
+}
+
 nav_msgs::msg::Path checkedHolonomicPath(
   const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal,
   nav2_costmap_2d::Costmap2D &map, const std::vector<geometry_msgs::msg::Point> &footprint,
-  const std::function<bool()> &cancel) {
+  const std::function<bool()> &cancel, double forward_distance) {
   nav_msgs::msg::Path empty;empty.header=start.header;
   if(start.header.frame_id!=goal.header.frame_id || footprint.size()<3)return empty;
   const auto &a=start.pose.position;const auto &b=goal.pose.position;
   const double from=yaw(start.pose.orientation),to=yaw(goal.pose.orientation);
   if(!std::isfinite(a.x+a.y+b.x+b.y+from+to))return empty;
-  // A holonomic base need not turn toward its translation vector. Prefer
-  // keeping its current body orientation; if the destination lacks turning
-  // room, also try turning at the start. Both full sweeps are mandatory.
-  for(bool turn_first:{false,true}) {
+  for(double heading:holonomicTravelHeadings(start,goal,forward_distance)) {
     nav_msgs::msg::Path path;path.header=start.header;
     auto append=[&](double x,double y,double theta) {
       auto p=start;p.pose.position.x=x;p.pose.position.y=y;
@@ -478,16 +535,16 @@ nav_msgs::msg::Path checkedHolonomicPath(
       p.pose.orientation.z=std::sin(theta/2);p.pose.orientation.w=std::cos(theta/2);
       path.poses.push_back(p);
     };
-    const auto rotate=[&](double x,double y) {
+    const auto rotate=[&](double x,double y,double first,double last) {
       double radius=map.getResolution();
       for(const auto &p:footprint)radius=std::max(radius,std::hypot(p.x,p.y));
-      const int count=std::max(1,int(std::ceil(radius*std::abs(wrap(to-from))/(map.getResolution()/2))));
-      for(int i=0;i<=count;++i)append(x,y,from+wrap(to-from)*i/count);
+      const int count=std::max(1,int(std::ceil(radius*std::abs(wrap(last-first))/(map.getResolution()/2))));
+      for(int i=0;i<=count;++i)append(x,y,first+wrap(last-first)*i/count);
     };
-    if(turn_first)rotate(a.x,a.y);else append(a.x,a.y,from);
+    rotate(a.x,a.y,from,heading);
     const int count=std::max(1,int(std::ceil(std::hypot(b.x-a.x,b.y-a.y)/(map.getResolution()/2))));
-    for(int i=1;i<=count;++i)append(a.x+(b.x-a.x)*i/count,a.y+(b.y-a.y)*i/count,turn_first?to:from);
-    if(!turn_first)rotate(b.x,b.y);
+    for(int i=1;i<=count;++i)append(a.x+(b.x-a.x)*i/count,a.y+(b.y-a.y)*i/count,heading);
+    rotate(b.x,b.y,heading,to);
     if(pathCollisionFree(path,map,footprint,cancel))return path;
     if(cancel())return empty;
   }
@@ -500,6 +557,10 @@ void StraightFirstPlanner::configure(const rclcpp_lifecycle::LifecycleNode::Weak
   auto node=parent.lock();const auto key=name+".holonomic_direct_path";
   if(!node->has_parameter(key))node->declare_parameter(key,false);
   holonomic_=node->get_parameter(key).as_bool();
+  const auto forward_key=name+".holonomic_forward_distance";
+  if(!node->has_parameter(forward_key))node->declare_parameter(forward_key,0.0);
+  forward_distance_=node->get_parameter(forward_key).as_double();
+  if(!std::isfinite(forward_distance_) || forward_distance_<0.)throw std::invalid_argument("Invalid holonomic_forward_distance");
   fallback_=std::make_shared<ConservativeLatticePlanner>();
   fallback_->configure(parent,name,tf,costmap);
 }
@@ -512,7 +573,7 @@ nav_msgs::msg::Path StraightFirstPlanner::createPlan(const geometry_msgs::msg::P
   const std::function<bool()> cancel=[] {return false;};
 #endif
   auto direct=holonomic_?
-    checkedHolonomicPath(start,goal,*costmap_->getCostmap(),costmap_->getRobotFootprint(),cancel):
+    checkedHolonomicPath(start,goal,*costmap_->getCostmap(),costmap_->getRobotFootprint(),cancel,forward_distance_):
     checkedStraightPath(start,goal,*costmap_->getCostmap(),costmap_->getRobotFootprint(),cancel);
   if (!direct.poses.empty() || cancel()) return direct;
 #if CLEANY_NAV2_CANCEL_CHECKER

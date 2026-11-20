@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 from pathlib import Path
+import json
 from ament_index_python.packages import get_package_share_directory
 from rclpy.time import Time
 from tf2_ros import Buffer, TransformListener, TransformException
-from cleany_navigation.body_geometry import load_body_boxes
+from cleany_navigation.body_geometry import BodyBox, load_body_boxes
+from cleany_navigation.depth_obstacles import ObstacleFilter, filter_obstacles
 from cleany_navigation.transforms import transform
 import numpy as np
 import time
@@ -43,6 +45,9 @@ class DepthClearanceNode(Node):
     Notes:
         Topic and frame names are configurable. Missing TF is retried only within
         tf_wait_timeout_s. Self-filtering requires an explicit body profile.
+        Optional spatial_filter_file emits marking hits in base_frame; clearing
+        remains in camera_frame. Physical profiles enforce image age and a minimum
+        valid pixel fraction. Invalid frames do not refresh downstream protection.
     """
     def __init__(self) -> None:
         super().__init__('depth_clearance')
@@ -53,7 +58,9 @@ class DepthClearanceNode(Node):
                               ('camera_info_topic', 'camera/head/depth/camera_info'),
                               ('camera_frame', 'head_camera_depth_frame'),
                               ('optical_frame', 'head_camera_depth_optical_frame'),
-                              ('self_filter_profile', ''), ('self_filter_margin_m', .001), ('allow_simulation_limits', False), ('base_frame', 'base_link'), ('pixel_stride', 4), ('positive_infinity_is_free', False),
+                              ('self_filter_profile', ''), ('self_filter_boxes_file', ''), ('spatial_filter_file', ''),
+                              ('max_image_age_s', 0.), ('min_valid_fraction', 0.),
+                              ('self_filter_margin_m', .001), ('allow_simulation_limits', False), ('base_frame', 'base_link'), ('pixel_stride', 4), ('positive_infinity_is_free', False),
                               ('clearing_distance', 5.0), ('marking_max_range', 4.0), ('sensor_far_clip', 10.0)]:
             self.declare_parameter(name, default)
         obstacle_height_mask(np.empty((0, 3)), self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)
@@ -66,6 +73,24 @@ class DepthClearanceNode(Node):
         if not np.isfinite(self.self_filter_margin) or self.self_filter_margin < 0:
             raise ValueError('self_filter_margin_m must be finite and nonnegative')
         self.self_boxes = []
+        self.spatial_filter = None
+        filter_file = self.get_parameter('spatial_filter_file').value
+        if filter_file:
+            self.spatial_filter = ObstacleFilter(**json.loads(Path(filter_file).read_text()))
+        boxes_file = self.get_parameter('self_filter_boxes_file').value
+        if boxes_file and profile:
+            raise ValueError('Select one source of self geometry')
+        if boxes_file:
+            body = json.loads(Path(boxes_file).read_text())
+            if body['frame'] != self.get_parameter('base_frame').value:
+                raise ValueError('Body geometry frame mismatch')
+            self.self_boxes = [BodyBox(b['name'], np.asarray(b['center']), np.eye(3),
+                                      np.asarray(b['half_size'])) for b in body['boxes']]
+        self.max_image_age = self.get_parameter('max_image_age_s').value
+        self.min_valid_fraction = self.get_parameter('min_valid_fraction').value
+        if (not np.isfinite([self.max_image_age, self.min_valid_fraction]).all()
+                or self.max_image_age < 0 or not 0 <= self.min_valid_fraction <= 1):
+            raise ValueError('Invalid depth freshness or validity limit')
         if profile:
             self.self_boxes = [b for b in load_body_boxes(
                 Path(get_package_share_directory('cleany_description')), Path(profile), merge=False, allow_simulation_limits=self.get_parameter('allow_simulation_limits').value)
@@ -96,6 +121,10 @@ class DepthClearanceNode(Node):
         msg = self.pending
         if msg is None:
             return
+        age = (self.get_clock().now()-Time.from_msg(msg.header.stamp)).nanoseconds*1e-9
+        if self.max_image_age and not -.05 <= age <= self.max_image_age:
+            self.pending = None
+            return
         if time.monotonic()-self.pending_since > self.tf_wait_timeout:
             self.pending = None
             self.get_logger().warning('Depth TF wait expired; frame discarded', throttle_duration_sec=2)
@@ -120,6 +149,11 @@ class DepthClearanceNode(Node):
             return
         try:
             depth = decode_depth_image(msg.data, msg.width, msg.height, msg.step, msg.encoding, msg.is_bigendian)
+            valid_fraction = np.mean(np.isfinite(depth) & (depth > 0))
+            if valid_fraction < self.min_valid_fraction:
+                # Do not refresh collision protection with an invalid empty image.
+                self.get_logger().warning('Insufficient valid depth; frame discarded', throttle_duration_sec=2.)
+                return
             intrinsics = rectified_intrinsics(camera.k, camera.p)
             if intrinsics is None:
                 raise ValueError('Expected a finite monocular rectified projection matrix')
@@ -159,9 +193,14 @@ class DepthClearanceNode(Node):
         self.publisher.publish(xyz_cloud(points, output_frame, msg.header.stamp))
         # Marking cloud excludes floor/ceiling; the full cloud remains available
         # to clear occupied space along the actually observed rays.
-        hits = points[obstacle_height_mask(body_points,
-            self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)]
-        self.obstacles.publish(xyz_cloud(hits, output_frame, msg.header.stamp))
+        if self.spatial_filter is not None:
+            hits, _ = filter_obstacles(body_points, sensor_origin, [], self.spatial_filter)
+            hit_frame = self.get_parameter('base_frame').value
+        else:
+            hits = points[obstacle_height_mask(body_points,
+                self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)]
+            hit_frame = output_frame
+        self.obstacles.publish(xyz_cloud(hits, hit_frame, msg.header.stamp))
 
 
 def main(args: list[str] | None = None) -> None:

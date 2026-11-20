@@ -162,7 +162,7 @@ def test_separate_elbow_balls_cover_their_housings_and_follow_the_owning_link(si
 
     description = Path(packages.get_package_share_directory('cleany_description'))
     xml = xacro.process_file(str(description/'urdf/cleany.urdf.xacro'),
-        mappings={'optimized_arm_collision_meshes': 'true'}).toxml()
+        mappings={'model_profile': 'jetson_20261009', 'optimized_arm_collision_meshes': 'true'}).toxml()
     root = ET.fromstring(xml)
     data = json.loads(fitted.MODEL_PATH.read_text())
 
@@ -230,7 +230,7 @@ def test_shoulder_upper_pair_covers_housing_through_yaw_and_pitch(side):
 
     description = Path(packages.get_package_share_directory('cleany_description'))
     xml = xacro.process_file(str(description/'urdf/cleany.urdf.xacro'),
-        mappings={'optimized_arm_collision_meshes': 'true'}).toxml()
+        mappings={'model_profile': 'jetson_20261009', 'optimized_arm_collision_meshes': 'true'}).toxml()
     root = ET.fromstring(xml)
     name = f'{side}_upper_arm_link'
     data = json.loads(fitted.MODEL_PATH.read_text())
@@ -273,7 +273,7 @@ def test_three_head_balls_cover_pan_tilt_and_camera_on_their_owning_links():
     from cleany_skill_executor.core.urdf_fk import UrdfChain
 
     description = Path(packages.get_package_share_directory('cleany_description'))
-    xml = xacro.process_file(str(description/'urdf/cleany.urdf.xacro'), mappings={
+    xml = xacro.process_file(str(description/'urdf/cleany.urdf.xacro'), mappings={'model_profile': 'jetson_20261009',
         'optimized_arm_collision_meshes': 'true', 'include_head_camera': 'true',
         'head_fixed': 'false'}).toxml()
     root = ET.fromstring(xml)
@@ -315,7 +315,7 @@ def test_wrist_mount_pair_encloses_primitives_and_follows_pitch_and_roll(side):
 
     description = Path(packages.get_package_share_directory('cleany_description'))
     xml = xacro.process_file(str(description/'urdf/cleany.urdf.xacro'),
-        mappings={'optimized_arm_collision_meshes': 'true'}).toxml()
+        mappings={'model_profile': 'jetson_20261009', 'optimized_arm_collision_meshes': 'true'}).toxml()
     root = ET.fromstring(xml)
     name = f'{side}_gripper_frame'
     data = json.loads(fitted.MODEL_PATH.read_text())

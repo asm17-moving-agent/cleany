@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 import traceback
 import uuid
 
@@ -15,6 +16,21 @@ class Geometry:
     radius: float
     wheelbase: float
     separation: float
+
+
+def limit_wheel_velocity(
+    axes: tuple[float, float, float], geometry: Geometry, maximum_rad_s: float
+) -> tuple[float, float, float]:
+    """Scale a body twist uniformly to bound every mecanum wheel in rad/s."""
+    if not isfinite(maximum_rad_s) or maximum_rad_s <= 0:
+        raise ValueError('Wheel speed limit must be finite and positive')
+    if not all(isfinite(value) for value in axes):
+        return (0., 0., 0.)
+    x, y, yaw = axes
+    arm = (geometry.wheelbase + geometry.separation) / 2
+    peak = (abs(x) + abs(y) + arm * abs(yaw)) / geometry.radius
+    scale = min(1., maximum_rad_s / peak) if peak else 1.
+    return tuple(value * scale for value in axes)
 
 
 def body_velocity(
@@ -92,6 +108,17 @@ class DriverTransport:
         )
         if state is None:
             self.permission_status["stage"] = "mcu_feedback_missing"
+            return False
+        if reply.boot_id == 0 and state.boot_id and command.mode == Control.STOP:
+            # The startup STOP can precede the driver's first MCU sample. Obtain a
+            # new, correlated STOP reply once a real boot identity is available.
+            self.sequence += 1
+            self.permission_status.update(stage="rpc_pending", request_sequence=self.sequence)
+            try:
+                self.future = self.request(self.client, self.sequence, False)
+            except Exception as error:
+                self.future = None
+                self.fail_permission("rpc_failed", str(error), error)
             return False
         if reply.boot_id != state.boot_id:
             self.permission_status["stage"] = "mcu_boot_mismatch"

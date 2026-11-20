@@ -20,7 +20,8 @@ from std_srvs.srv import SetBool
 from .core import EncoderAdapter, Geometry, Limits, finite_twist_axes, newer, wheel_speeds
 
 # Intentional disables leave the base in a safe, available state; any other reason is a fault.
-SAFE_DISABLE_REASONS = frozenset({'stopped by request', 'cmd_vel timeout', 'non-finite cmd_vel', 'driver shutdown'})
+SAFE_DISABLE_REASONS = frozenset({'stopped by request', 'cmd_vel timeout', 'MCU command timeout',
+                                  'non-finite cmd_vel', 'driver shutdown'})
 
 
 class BaseDriver(Node):
@@ -61,6 +62,9 @@ class BaseDriver(Node):
         for key in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s', 'wheel_rad_s', 'command_timeout_s'):
             self.declare_parameter('limits.' + key, 0.)
         self.declare_parameter('counts_per_revolution', 3172)
+        self.disarmed_velocity_rad_s = float(self.declare_parameter('disarmed_velocity_rad_s', .02).value)
+        if not isfinite(self.disarmed_velocity_rad_s) or self.disarmed_velocity_rad_s <= 0:
+            raise ValueError('disarmed_velocity_rad_s must be finite and positive')
         self.geometry = Geometry(*(float(self.get_parameter('geometry.' + p).value)
                                    for p in ('wheel_radius_m', 'wheelbase_m', 'wheel_separation_m')))
         self.limits = Limits(*(float(self.get_parameter('limits.' + p).value)
@@ -144,6 +148,7 @@ class BaseDriver(Node):
 
     def on_enable(self, request, response):
         if not request.data:
+            self._stop_sent = False  # Each explicit STOP gets its own observable MCU sequence.
             self._disable('stopped by request')
             response.success, response.message = True, 'STOP sent'
             return response
@@ -220,11 +225,21 @@ class BaseDriver(Node):
             if msg.last_command_sequence == seq and msg.enabled:
                 self.pending_enable = None
                 self.diagnostic_error = self.fault_reason = ''
-        if self.enabled and not msg.enabled and self.pending_enable is None:
+        timeout_stop = (msg.fault_bits == WheelState.FAULT_COMMAND_TIMEOUT and not msg.enabled and
+                        msg.control_mode == WheelState.TIMEOUT_STOP and
+                        all(value == 0 for value in (*msg.target_rad_s, *msg.commanded_rad_s, *msg.pwm_percent)))
+        if timeout_stop and self.pending_enable is None:
+            stop_ack = (self._stop_sent and self._stop_sequence is not None and not self.enabled and
+                        (msg.last_command_sequence == self._stop_sequence or
+                         newer(msg.last_command_sequence, self._stop_sequence)))
+            self._disable('MCU command timeout' if stop_ack else 'MCU fault bits: 0x1')
+            if stop_ack and self.fault_reason == 'MCU fault bits: 0x1':
+                self.fault_reason = ''  # Only the watchdog fault is resolved by an acknowledged STOP.
+        elif self.enabled and not msg.enabled and self.pending_enable is None:
             self._disable('MCU unexpectedly disabled')
         elif not self.enabled and msg.enabled and not self._stop_in_flight(msg, now):
             self._disable('MCU enabled without host permission')
-        if msg.fault_bits:
+        if msg.fault_bits and not timeout_stop:
             if self.pending_enable is None:
                 self._disable(f'MCU fault bits: {msg.fault_bits:#x}')
         positions = self.encoder.update(msg.boot_id, tuple(msg.encoder_counts))
@@ -237,6 +252,11 @@ class BaseDriver(Node):
 
     def tick(self) -> None:
         now = time.monotonic()
+        if self._stop_sent and (self.latest is None or self.latest.enabled or
+                                newer(self._stop_sequence, self.latest.last_command_sequence)):
+            # Best-effort delivery can lose STOP. Retry its original sequence without
+            # renewing any motion permission or declaring receipt to the caller.
+            self._send(WheelCommand.STOP, sequence=self._stop_sequence)
         if self.last_state_receipt is None or now - self.last_state_receipt > .25:
             if self.enabled:
                 self._disable('stale wheel feedback')
@@ -272,10 +292,22 @@ class BaseDriver(Node):
         # remain visible in the message/level but are not base unavailability.
         status.values = [KeyValue(key='enabled', value=str(self.enabled)), KeyValue(key='feedback_age_s', value=str(age)),
                          KeyValue(key='feedback_received', value=str(self.last_state_receipt is not None)),
-                         KeyValue(key='fault', value=self.fault_reason)]
+                         KeyValue(key='fault', value=self.fault_reason),
+                         KeyValue(key='disarmed', value=str(self._disarmed(age)))]
         arr = DiagnosticArray()
         arr.header.stamp, arr.status = self.get_clock().now().to_msg(), [status]
         self.diags.publish(arr)
+
+    def _disarmed(self, feedback_age_s: float) -> bool:
+        """Report measured base standstill without claiming whole-robot safety or a STOP ACK."""
+        state = self.latest
+        return bool(0 <= feedback_age_s <= .25 and state is not None and not self.enabled and
+                    self.pending_enable is None and not state.enabled and
+                    state.fault_bits in (0, WheelState.FAULT_COMMAND_TIMEOUT) and
+                    state.control_mode in (WheelState.STOPPED, WheelState.TIMEOUT_STOP) and
+                    all(value == 0 for value in (*state.target_rad_s, *state.commanded_rad_s, *state.pwm_percent)) and
+                    all(isfinite(value) and abs(value) <= self.disarmed_velocity_rad_s
+                        for value in state.velocity_rad_s))
 
 
 def main(args=None):

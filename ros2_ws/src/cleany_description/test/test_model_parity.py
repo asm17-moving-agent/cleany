@@ -1,3 +1,4 @@
+"""Check the retained assembly; test_runtime_model covers the physical CAD."""
 from __future__ import annotations
 
 import math
@@ -76,7 +77,7 @@ def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
 def _expand_urdf_xml(entrypoint: str, *xacro_args: str) -> bytes:
     description = _source_root()
     return subprocess.check_output(
-        ["xacro", str(description / "urdf" / entrypoint), *xacro_args]
+        ["xacro", str(description / "urdf" / entrypoint), "model_profile:=jetson_20261009", *xacro_args]
     )
 
 

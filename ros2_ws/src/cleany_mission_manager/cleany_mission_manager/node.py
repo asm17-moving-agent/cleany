@@ -231,7 +231,9 @@ class MissionRuntimeNode(Node):
         return self._admission(response, self.runtime.cancel(request.mission_id))
 
     def _snapshot(self, request, response):
-        response.snapshot_json = json.dumps(self.runtime.snapshot())
+        response.snapshot_json = json.dumps({
+            **self.runtime.snapshot(), "target_map": self.targets.binding,
+        })
         return response
 
     def _reset(self, request, response):

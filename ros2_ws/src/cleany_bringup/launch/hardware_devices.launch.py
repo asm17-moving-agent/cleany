@@ -102,7 +102,12 @@ def nodes(context):
                 parameters=[
                     {
                         "min_range_m": profile["scan_filter"]["min_range_m"],
+                        "self_mask_file": str(Path(get_package_share_directory('cleany_navigation'))/'config/lidar_self_mask_cad.yaml') if profile.get('navigation_enabled') else '',
+                        "mount_x": xyz[0], "mount_y": xyz[1],
                         "front_center_rad": profile["scan_filter"]["front_center_rad"],
+                        "front_half_angle_rad": math.radians(
+                            profile["scan_filter"]["half_angle_deg"]
+                        ),
                     }
                 ],
                 output="screen",
@@ -110,7 +115,11 @@ def nodes(context):
             Node(
                 package="cleany_teleop",
                 executable="phone_remote",
+                parameters=[str(Path(get_package_share_directory('cleany_teleop')) /
+                                'config/phone_navigation.yaml')]
+                if profile.get('navigation_enabled') else [],
                 arguments=[
+                    *(["--navigation"] if profile.get("navigation_enabled", False) else []),
                     "--base-config",
                     profile["base_config"],
                     "--host",

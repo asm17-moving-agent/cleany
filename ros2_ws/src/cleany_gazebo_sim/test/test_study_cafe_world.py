@@ -22,7 +22,7 @@ def _world(tmp_path: Path) -> ElementTree.Element:
         ROBOT_WORLD,
         tmp_path / 'study_cafe.sdf',
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find(
         "world[@name='cleany_study_cafe']"
     )
@@ -55,7 +55,7 @@ def test_study_cafe_materializes_for_fortress(tmp_path: Path) -> None:
         FORTRESS_ROBOT_WORLD,
         tmp_path / 'study_cafe_fortress.sdf',
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find(
         "world[@name='cleany_study_cafe']"
     )
@@ -70,7 +70,7 @@ def test_study_cafe_applies_bounded_physics_override(tmp_path: Path) -> None:
         max_step_size=0.003,
         real_time_factor=2.0,
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find('world')
     assert world is not None
     assert world.findtext('physics/max_step_size') == '0.003'
@@ -84,7 +84,7 @@ def test_study_cafe_defaults_to_two_millisecond_physics_step(
         ROBOT_WORLD,
         tmp_path / 'default_physics.sdf',
         layout_path=LAYOUT_CONFIG,
-    )
+     robot_model='legacy')
     world = ElementTree.parse(generated).getroot().find('world')
     assert world is not None
     assert world.findtext('physics/max_step_size') == '0.002'
@@ -97,7 +97,7 @@ def test_study_cafe_can_override_robot_spawn_pose(tmp_path: Path) -> None:
         tmp_path / 'spawn_override.sdf',
         layout_path=LAYOUT_CONFIG,
         robot_spawn_pose=spawn_pose,
-    )
+     robot_model='legacy')
     robot = ElementTree.parse(generated).getroot().find(
         "./world/model[@name='cleany_mecanum']"
     )
@@ -113,7 +113,7 @@ def test_study_cafe_can_materialize_ogre_sensor_renderer(
         tmp_path / 'ogre_sensors.sdf',
         layout_path=LAYOUT_CONFIG,
         sensor_render_engine='ogre',
-    )
+     robot_model='legacy')
     root = ElementTree.parse(generated).getroot()
     sensor_plugin_names = {
         'ignition::gazebo::systems::Sensors',
@@ -149,7 +149,7 @@ def test_study_cafe_materializes_one_selected_lidar_pose(
         tmp_path / 'lidar_70cm.sdf',
         layout_path=LAYOUT_CONFIG,
         lidar_translation=(0.16, 0.0, 0.32),
-    )
+     robot_model='legacy')
     mount = ElementTree.parse(generated).getroot().find(
         "./world/model[@name='cleany_mecanum']/frame[@name='lidar_mount']"
     )
