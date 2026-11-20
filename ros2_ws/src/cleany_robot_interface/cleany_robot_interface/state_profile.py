@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
@@ -13,6 +14,57 @@ import yaml
 from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import apply_joint_bounds, calibrated_joint_bounds
 from cleany_robot_interface.rigid_accessories import attach_rigid_accessories
+
+
+def apply_collision_mesh_overrides(
+    tree: ET.Element, overrides: dict[str, str], repository: Path
+) -> set[Path]:
+    """Select verified replacement surfaces for collision elements in the calibrated CAD."""
+    prefix = 'package://cleany_description/meshes/cad_runtime_collision/'
+    directory = repository / 'ros2_ws/src/cleany_description/meshes/cad_runtime_collision'
+    if not isinstance(overrides, dict) or any(
+        not isinstance(key, str) or not re.fullmatch(r'[0-9a-f]{64}', key)
+        for pair in overrides.items() for key in pair
+    ):
+        raise ValueError('CAD collision overrides must contain SHA-256 asset pairs')
+    replacements = {prefix + old + '.glb': new for old, new in overrides.items()}
+    used = set()
+    dependencies = set()
+    for mesh in tree.findall('link/collision/geometry/mesh'):
+        source = mesh.get('filename')
+        if source not in replacements:
+            continue
+        target = replacements[source]
+        path = directory / (target + '.glb')
+        if path not in dependencies and hashlib.sha256(path.read_bytes()).hexdigest() != target:
+            raise ValueError(f'CAD collision mesh digest mismatch: {path}')
+        mesh.set('filename', prefix + target + '.glb')
+        used.add(source)
+        dependencies.add(path)
+    if used != replacements.keys():
+        raise ValueError('CAD collision mesh override refers to a missing source surface')
+    return dependencies
+
+
+def share_world_collision_geometry(tree: ET.Element, link_names: list[str]) -> None:
+    """Use the existing world geometry for both queries on the selected CAD links."""
+    if not isinstance(link_names, list) or not all(isinstance(name, str) for name in link_names):
+        raise ValueError('shared_world_collision_links must be a list of link names')
+    links = {link.get('name'): link for link in tree.findall('link')}
+    for name in link_names:
+        link = links.get(name)
+        if link is None:
+            raise ValueError(f'Unknown CAD collision link: {name}')
+        shapes = link.findall('collision')
+        world = [shape for shape in shapes if shape.get('name', '').startswith('cad_world__')]
+        self_only = [shape for shape in shapes
+                     if shape.get('name', '').startswith('cad_self__')]
+        if not world or not self_only:
+            raise ValueError(f'Expected both CAD collision representations for {name}')
+        for shape in world:
+            shape.set('name', shape.get('name').removeprefix('cad_world__'))
+        for shape in self_only:
+            link.remove(shape)
 
 
 def apply_head_rgb(model: str, calibration: dict) -> str:
@@ -97,6 +149,13 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
             binding['cad_metadata'], -float(config['grasp_tcp_y_m']))
         command = []
         tree = ET.fromstring(xml)
+        if 'collision_mesh_overrides' in config:
+            sources.update(apply_collision_mesh_overrides(
+                tree, config['collision_mesh_overrides'], repository_root))
+        if 'shared_world_collision_links' in config:
+            share_world_collision_geometry(tree, config['shared_world_collision_links'])
+            cad_report['collision_shapes_retained'] = len(tree.findall('link/collision'))
+        xml = ET.tostring(tree, encoding='unicode')
     else:
         args = dict(config['xacro_args'])
         if args.get('head_fixed') != 'false' or args.get('include_wheel_joints') != 'false':
