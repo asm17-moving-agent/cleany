@@ -1,0 +1,36 @@
+name: ToF firmware
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'esp32/tof_vl53l7ch/**'
+      - 'Makefile'
+      - '.github/workflows/tof-firmware.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'esp32/tof_vl53l7ch/**'
+      - 'Makefile'
+      - '.github/workflows/tof-firmware.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Test partial I2C reads with ASan and UBSan
+        run: make test-tof-firmware
+      - name: Install PlatformIO
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/tof-venv"
+          "${RUNNER_TEMP}/tof-venv/bin/pip" install -r esp32/tof_vl53l7ch/requirements.txt
+      - name: Build the ESP32-S3 application
+        run: make tof-firmware-build TOF_PIO="${RUNNER_TEMP}/tof-venv/bin/pio"

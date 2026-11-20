@@ -303,23 +303,19 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
           outside.emplace_back(raw[0], raw[1], raw[2]);
         }
       }
-    raycast_.compute(rays_tree, origin, {&occupied, &model, &clipped}, free);
-    free.insert(clipped.begin(), clipped.end());
+    for (const auto& key : model)
+      occupied.erase(key);
+    free = raycast_.traceFrame(rays_tree, origin, occupied, model, clipped);
   }
   const auto rays_done = std::chrono::steady_clock::now();
   stage = "tree_update";
-  for (const auto& key : model)
-    occupied.erase(key);
-  for (const auto& key : occupied)
-    free.erase(key);
   ClearResult result;
   const auto writing = std::chrono::steady_clock::now();
   double tree_wait_ms;
   {
     auto tree_lock = tree_->writing();
     tree_wait_ms = elapsed(writing, std::chrono::steady_clock::now());
-    for (const auto& key : free)
-      tree_->updateNode(key, false);
+    integrateFreeBlocks(*tree_, free);
     for (const auto& key : occupied)
       tree_->updateNode(key, true);
     const float clear_log_odds = tree_->getClampingThresMinLog() - tree_->getClampingThresMaxLog();

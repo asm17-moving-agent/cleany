@@ -6,6 +6,7 @@
 
 #include <limits>
 #include <random>
+#include <sstream>
 
 namespace
 {
@@ -79,6 +80,77 @@ TEST(KnownGeometry, RespectsScanBudgetAndEmptyGeometry)
   EXPECT_EQ(result.examined, 1U);
   EXPECT_EQ(result.cleared, 1U);
   EXPECT_TRUE(result.budget_exhausted);
+}
+
+TEST(KnownGeometry, SpendsBudgetOnlyNearShapesAndChecksOverlapsOnce)
+{
+  octomap::OcTree tree(0.01);
+  for (int i = 1; i <= 100; ++i)
+    tree.updateNode(-i * 0.02, -1.0, -1.0, false);
+  tree.updateNode(0.005, 0.005, 0.005, true);
+  tree.updateNode(2.005, 0.005, 0.005, true);
+  auto partial = box({0.008, 0.04, 0.04}, {0.005, 0.005, 0.005});
+  auto full = box({0.03, 0.04, 0.04}, {0.005, 0.005, 0.005});
+  auto distant = box({0.03, 0.04, 0.04}, {2.005, 0.005, 0.005});
+  const auto result = clearContainedOccupancy(tree, {partial.get(), distant.get(), full.get()}, 1);
+  EXPECT_EQ(result.examined, 1U);
+  EXPECT_EQ(result.cleared, 1U);
+  EXPECT_TRUE(result.budget_exhausted);
+  EXPECT_FALSE(tree.isNodeOccupied(tree.search(0.005, 0.005, 0.005)));
+  EXPECT_TRUE(tree.isNodeOccupied(tree.search(2.005, 0.005, 0.005)));
+  const auto all = clearContainedOccupancy(tree, {full.get(), partial.get(), distant.get()}, 2);
+  EXPECT_EQ(all.examined, 2U);
+  EXPECT_EQ(all.cleared, 1U);
+  EXPECT_FALSE(all.budget_exhausted);
+}
+
+TEST(KnownGeometry, FindsInteriorLeafAtMapKeyLimit)
+{
+  octomap::OcTree tree(0.01);
+  const double edge = tree.keyToCoord(std::numeric_limits<octomap::key_type>::max());
+  tree.updateNode(edge, 0.005, 0.005, true);
+  auto outside = box({0.10, 0.10, 0.10}, {edge + 1.0, 0.005, 0.005});
+  EXPECT_EQ(clearContainedOccupancy(tree, {outside.get()}, 1).examined, 0U);
+  auto straddling = box({0.10, 0.10, 0.10}, {edge, 0.005, 0.005});
+  EXPECT_EQ(clearContainedOccupancy(tree, {straddling.get()}, 1).cleared, 1U);
+  EXPECT_FALSE(tree.isNodeOccupied(tree.search(edge, 0.005, 0.005)));
+}
+
+TEST(KnownGeometry, MatchesFullTreeReferenceWithOccupiedAndPrunedLeaves)
+{
+  octomap::OcTree actual(0.01);
+  for (int x = -10; x < 10; ++x)
+    for (int y = -8; y < 8; ++y)
+      for (int z = -4; z < 4; ++z)
+        actual.updateNode((x + 0.5) * 0.01, (y + 0.5) * 0.01, (z + 0.5) * 0.01,
+                          x < 0 || (x + y + z) % 3 == 0);
+  actual.prune();
+  octomap::OcTree expected(actual);
+  std::vector<cleany_scene_mapping::ExclusionVolume> volumes;
+  volumes.emplace_back(box({0.10, 0.05, 0.08}, {-0.01, 0.0, 0.0}, 0.37));
+  volumes.emplace_back(box({0.06, 0.04, 0.06}, {0.045, 0.005, 0.0}, -0.25));
+  std::size_t cleared = 0;
+  for (auto it = expected.begin_leafs(); it != expected.end_leafs(); ++it)
+  {
+    if (!expected.isNodeOccupied(*it))
+      continue;
+    for (const auto& volume : volumes)
+      if (volume.containsCell({it.getX(), it.getY(), it.getZ()}, it.getSize() * 0.5))
+      {
+        it->setLogOdds(expected.getClampingThresMinLog());
+        ++cleared;
+        break;
+      }
+  }
+  expected.updateInnerOccupancy();
+  const auto result = cleany_scene_mapping::clearContainedVolumes(actual, volumes, 200000);
+  ASSERT_GT(cleared, 0U);
+  EXPECT_EQ(result.cleared, cleared);
+  EXPECT_LT(result.examined, expected.getNumLeafNodes());
+  std::ostringstream reference, optimized;
+  expected.writeData(reference);
+  actual.writeData(optimized);
+  EXPECT_EQ(optimized.str(), reference.str());
 }
 
 TEST(KnownGeometry, PreservesAlreadyFreeCellsAndCurvedBoundary)
