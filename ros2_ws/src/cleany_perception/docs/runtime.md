@@ -431,4 +431,11 @@ YOLOE 프롬프트와 체크포인트 해시는 [privacy lock](../../../../confi
 
 연속 영상은 시작 시점, 역행 타임스탬프 또는 0.48초 이상의 입력 단절 뒤 첫 프레임을 추적 초기화에만 사용한다. 사진은 각 검출기를 독립 실행한다. 재생 도구는 구간 앞에 입력이 있으면 한 장을 먼저 읽고, 전송을 보류한 프레임 수를 JSON에 기록한다.
 
-Gemini를 쓰는 인식 프로세스는 첫 이미지 요청에서 비식별 모델을 로드한다. 기본 번들은 `/var/opt/cleany/models/camera-privacy/active`이며 엔진과 함께 클래스 구성을 담은 `profile.yaml`이 필요하다. 프리뷰와 같은 GPU 잠금을 사용한다.
+기본 모드에서 Gemini를 쓰는 인식 프로세스는 첫 이미지 요청에서 비식별 모델을 로드한다. 기본 번들은 `/var/opt/cleany/models/camera-privacy/active`이며 엔진과 함께 클래스 구성을 담은 `profile.yaml`이 필요하다. 프리뷰와 같은 GPU 잠금을 사용한다.
+
+시연에서 원본 맥락을 보내려면 `cleany-perception.service`의 systemd 사용자 drop-in에 다음 설정을 두고 해당 서비스만 재시작한다. 비식별 전송으로 복귀하려면 값을 `redacted`로 바꾸고 재시작한다.
+
+```ini
+[Service]
+Environment=CLEANY_GEMINI_IMAGE_MODE=original
+```

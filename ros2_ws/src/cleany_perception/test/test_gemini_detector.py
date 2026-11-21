@@ -306,7 +306,9 @@ def test_gemini_parser_accepts_robotics_interaction_bbox_array():
     assert detections[0].bbox.y_max == pytest.approx(70.0)
 
 
-def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
+@pytest.mark.parametrize('mode,expected_rgb', [('redacted', [66, 76, 86]), ('original', [0, 0, 0])])
+def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch, mode, expected_rgb):
+    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', mode)
     monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'test-key')
     calls = {}
 
@@ -361,7 +363,7 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     assert calls['upload']['config']['mime_type'] == 'image/jpeg'
     assert calls['filename'].endswith('.jpg')
     uploaded = _jpeg_pixels(calls['image_bytes'], (200, 100))
-    assert np.abs(uploaded[50, 150].astype(int) - [66, 76, 86]).max() <= 3
+    assert np.abs(uploaded[50, 150].astype(int) - expected_rgb).max() <= 3
     assert calls['interaction']['model'] == (
         'gemini-robotics-er-2-preview'
     )
@@ -434,3 +436,23 @@ def test_classification_keeps_required_evidence_for_existing_collection(reason):
     detection = Detection2D('cup', .8, BoundingBox2D(1, 1, 9, 9))
     with pytest.raises(InspectionFailure):
         parse_gemini_classifications(json.dumps({'objects': [item]}), (detection,))
+
+
+def test_demo_uses_independent_original_rgb_without_running_redaction(monkeypatch):
+    from cleany_perception import external_image
+    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', 'original')
+    monkeypatch.setattr(external_image, '_redactor', lambda: pytest.fail('Unexpected privacy inference'))
+    source = np.arange(60 * 40 * 3, dtype=np.uint8).reshape(40, 60, 3)[:, ::-1]
+    saved = source.copy()
+    upload = external_image.for_gemini(source)
+    np.testing.assert_array_equal(np.asarray(upload), saved)
+    upload.paste((255, 255, 0), (0, 0, 20, 20))
+    np.testing.assert_array_equal(source, saved)
+
+
+def test_unrecognized_gemini_mode_keeps_redaction(monkeypatch):
+    from cleany_perception import external_image
+    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', 'origina')
+    source = np.zeros((20, 30, 3), np.uint8)
+    result = np.asarray(external_image.for_gemini(source))
+    np.testing.assert_array_equal(result[10, 20], [66, 76, 86])

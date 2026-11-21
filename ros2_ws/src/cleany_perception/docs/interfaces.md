@@ -84,4 +84,4 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 
 영상에 클라우드 인식을 허용하지 않는 현장 구성에서는 `inspect_scene.launch.py`에 `allow_external_images:=false`를 전달한다. 이 설정에서 Gemini 어댑터를 선택하면 노드가 기동 시 중단된다. 기존 원본 ROS 토픽의 접근 권한은 배포 환경이 관리한다.
 
-Gemini 탐지, 번호 분류, Decision API는 요청마다 해당 RGB 스냅샷에 대시보드와 같은 비식별 필터를 적용한다. 번호와 검출 상자는 가림 처리 뒤에 그린다. GPU가 사용 중이거나 필터 처리에 실패하면 해당 요청은 이미지를 전송하지 않고 탐지 오류를 반환한다. 로컬 YOLOE 검출과 집기 좌표 계산에는 원본을 사용한다.
+Gemini 탐지, 파일 업로드, 번호 분류와 Decision API는 기본적으로 비식별 RGB 스냅샷을 사용한다. 시연용 인식 서비스에 `CLEANY_GEMINI_IMAGE_MODE=original`을 지정하면 가리지 않은 스냅샷을 사용한다. 번호 분류에는 선택한 영상의 복사본에 검출 상자와 번호를 그린다. 이 설정의 적용 범위는 Gemini 이미지 요청이다.

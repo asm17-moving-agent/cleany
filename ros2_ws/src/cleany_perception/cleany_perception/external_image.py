@@ -28,10 +28,12 @@ def _redactor():
 
 
 def for_gemini(rgb: RgbArray) -> Image.Image:
-    """Return a redacted RGB image with the original pixel coordinates."""
+    """Prepare a private copy for annotation or upload, preserving pixel coordinates."""
     pixels = np.asarray(rgb)
     if pixels.dtype != np.uint8 or pixels.ndim != 3 or pixels.shape[2] != 3 or not pixels.size:
         raise InspectionFailure(FailureKind.DETECTOR_RESPONSE, 'Expected an HxWx3 uint8 RGB image')
+    if os.environ.get('CLEANY_GEMINI_IMAGE_MODE') == 'original':
+        return Image.fromarray(pixels.copy())
     try:
         lock = Path(os.environ.get('CLEANY_CAMERA_PRIVACY_GPU_LOCK', DEFAULT_GPU_LOCK))
         with _inference_lock, lock.open('a') as lease:
