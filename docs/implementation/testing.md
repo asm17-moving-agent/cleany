@@ -85,3 +85,17 @@ python3 tools/validation/telemetry_pose_pipeline.py \
   --backend-python "$CLEANY_CONTROL_PLANE_ROOT/apps/backend/.venv/bin/python" \
   --output "$CLEANY_DATA_ROOT/runs/platform/$(date +%F)_telemetry-pose-separation"
 ```
+
+### 카메라 비식별화 재생 검증
+
+`tools/validation/camera_privacy_replay.py`는 촬영 영상을 지정한 시간 구간에서 샘플링하고, 음성 없는 H.264 영상과 프레임별 마스크 범위, 추론 시간을 기록한다. `--regions`로 원본에서 표시한 폴리곤을 넘기면 영역 전체 픽셀 수와 가려진 수를 함께 계산한다. 한 장의 사진에는 PNG 출력을 사용한다.
+
+```bash
+PRIVACY_MODELS=/var/opt/cleany/models/camera-privacy/active
+/opt/cleany/current/native/yolo-env/bin/python tools/validation/camera_privacy_replay.py \
+  --weights "$PRIVACY_MODELS/privacy.engine" --face "$PRIVACY_MODELS/face.onnx" \
+  --text "$PRIVACY_MODELS/text.plan" --device 0 --input "$CLIP" \
+  --start 1 --duration 5 --fps 12 --output "$RUN_DIR/preview.mp4"
+```
+
+격리 ROS 도메인에서 카메라 노드의 입력을 `/privacy_fixture/raw`로 설정하고 프리뷰를 포트 18769에서 실행한다. `tools/validation/camera_privacy_ros.py --fixture staged-card.png`는 640×480 카드 시험 영상으로 ROS 출력의 원본 시각, 마스킹, 작업 물체 보존과 HTTP의 원본·만료 프레임 처리를 확인한다.

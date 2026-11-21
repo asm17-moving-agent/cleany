@@ -53,6 +53,7 @@ flowchart TB
 
 | 실행 파일 | 변경 인터페이스 |
 |---|---|
+| `camera_privacy` | [헤드캠 비식별 영상과 QoS](../../ros2_ws/src/cleany_perception/docs/interfaces.md#헤드캠-비식별-영상) |
 | `inspection_node` | [새 RGB-D 입력 검사와 검출 결과 필드](../../ros2_ws/src/cleany_perception/docs/interfaces.md) |
 | `grasp_server` | [후보 요청의 OBB 좌표계와 AnyGrasp 준비 서비스](../../ros2_ws/src/cleany_grasping/docs/interfaces.md) |
 

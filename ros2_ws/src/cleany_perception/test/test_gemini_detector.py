@@ -17,6 +17,9 @@ from cleany_perception.core.models import (
 )
 
 
+pytestmark = pytest.mark.usefixtures("gemini_privacy_model")
+
+
 def _jpeg_pixels(payload, size):
     with Image.open(io.BytesIO(payload)) as image:
         assert image.format == 'JPEG'
@@ -54,6 +57,7 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     pixels = _jpeg_pixels(requests[0][0], (30, 20))
     # The originally black input must still contain the annotated box.
     assert pixels[10, 2, :2].min() > 200
+    assert np.abs(pixels[16, 26].astype(int) - [66, 76, 86]).max() <= 4
     assert requests[0][2]['required'] == ['objects']
     item_schema = requests[0][2]['properties']['objects']['items']
     assert set(item_schema['properties']) == {'id', 'label', 'sorting_category', 'sorting_reason'}
@@ -265,7 +269,9 @@ def test_gemini_generate_content_sends_jpeg_with_matching_mime(monkeypatch):
     part = calls[0]['contents'][1]
     assert part.mime_type == 'image/jpeg'
     pixels = _jpeg_pixels(part.data, (64, 48))
-    np.testing.assert_allclose(pixels.astype(float), rgb, atol=3)
+    np.testing.assert_allclose(pixels[:, :28].astype(float), rgb[:, :28], atol=3)
+    assert np.abs(pixels[20, 52].astype(int) - [66, 76, 86]).max() <= 3
+    assert np.all(rgb == [230, 30, 10])
 
 
 @pytest.mark.parametrize('quality', [0, 101, 95.5, True])
@@ -354,7 +360,8 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     assert len(detections) == 1
     assert calls['upload']['config']['mime_type'] == 'image/jpeg'
     assert calls['filename'].endswith('.jpg')
-    _jpeg_pixels(calls['image_bytes'], (200, 100))
+    uploaded = _jpeg_pixels(calls['image_bytes'], (200, 100))
+    assert np.abs(uploaded[50, 150].astype(int) - [66, 76, 86]).max() <= 3
     assert calls['interaction']['model'] == (
         'gemini-robotics-er-2-preview'
     )

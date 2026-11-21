@@ -60,3 +60,18 @@ def synthetic_scene():
         'expected_center': np.array((0.0, 0.0, 0.1)),
         'expected_size': np.array((0.10, 0.08, 0.20)),
     }
+
+
+@pytest.fixture
+def gemini_privacy_model(monkeypatch, tmp_path):
+    """Mark the right half of the source frame using a deterministic BGR fill."""
+    from types import SimpleNamespace
+    from cleany_perception import external_image
+
+    def redact(bgr):
+        output = bgr.copy()
+        output[:, bgr.shape[1] // 2:] = (86, 76, 66)
+        return SimpleNamespace(image=output)
+
+    monkeypatch.setenv('CLEANY_CAMERA_PRIVACY_GPU_LOCK', str(tmp_path / 'gpu.lock'))
+    monkeypatch.setattr(external_image, '_redactor', lambda: SimpleNamespace(redact=redact))

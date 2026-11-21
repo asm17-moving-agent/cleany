@@ -16,14 +16,16 @@ from .sources import (
     validate_sources,
 )
 
+REDACTED_CAMERA_TOPIC = '/camera/head/color/image_redacted'
+
 LABELS = {'slam': 'SLAM 서브맵, 스캔, 그래프', 'resources': '호스트 리소스', 'motion': '위치, 속도, 미션', 'paths': '계획, 제어 경로', 'costmaps': 'Costmap',
           'bt': 'Nav2 BT', 'safety': '안전 판단', 'logs': '로그',
           'lidar': 'LiDAR 원본', 'point_cloud': 'Depth point cloud 원본',
           'voxel_layer': 'Nav2 voxel layer 원본', 'voxel_world': 'Voxel world, 장애물 메모리',
-          'camera': '카메라 원본'}
+          'camera': '비식별 카메라 영상'}
 RAW = {'lidar': '/scan', 'point_cloud': '/camera/head/depth/points',
        'voxel_layer': '/local_costmap/voxel_grid', 'voxel_world': '/obstacle_memory/voxels',
-       'camera': '/camera/head/color/image_raw'}
+       'camera': REDACTED_CAMERA_TOPIC}
 TYPES = {'lidar': {'sensor_msgs/msg/LaserScan'}, 'point_cloud': {'sensor_msgs/msg/PointCloud2'},
          'voxel_layer': {'nav2_msgs/msg/VoxelGrid'}, 'voxel_world': {'sensor_msgs/msg/PointCloud2'},
          'camera': {'sensor_msgs/msg/Image', 'sensor_msgs/msg/CompressedImage'},

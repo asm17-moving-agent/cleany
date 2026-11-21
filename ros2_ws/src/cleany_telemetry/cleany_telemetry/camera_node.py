@@ -27,7 +27,7 @@ class CameraPreviewNode(Node):
         super().__init__('camera_preview', **kwargs)
         defaults = {'host': '127.0.0.1', 'port': 8769, 'camera_max_streams': 2,
                     'camera_fps': 5.0, 'lease_seconds': 3.0, 'stale_seconds': 2.0,
-                    'discovery_seconds': 0.5}
+                    'discovery_seconds': 0.5, 'allowed_topic': ''}
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         config = {name: self.get_parameter(name).value for name in defaults}
@@ -36,7 +36,8 @@ class CameraPreviewNode(Node):
         if not 0 < config['discovery_seconds'] <= config['lease_seconds']:
             raise ValueError('Discovery interval must fit within the preview lease')
         self.cameras = Cameras(limit=config['camera_max_streams'], fps=config['camera_fps'],
-                               lease_seconds=config['lease_seconds'], stale_seconds=config['stale_seconds'])
+                               lease_seconds=config['lease_seconds'], stale_seconds=config['stale_seconds'],
+                               allowed_topic=config['allowed_topic'])
         self.subscriptions_by_topic = {}
         self.stop_event, self.started = threading.Event(), threading.Event()
         self.worker_error = None

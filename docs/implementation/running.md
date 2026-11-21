@@ -25,3 +25,17 @@ source "$(make -s print-install-base)/setup.bash"
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
 Jetson에서 Dashboard와 실물 Runtime을 연결하는 순서는 [관제 통합](how-to/control-plane-integration.md)을 따릅니다.
+
+### 헤드캠 비식별 프리뷰
+
+Jetson의 모델 디렉터리는 `/var/opt/cleany/models/camera-privacy/active`다. YOLOE용 `privacy.engine`, YuNet용 `face.onnx`, 글자 위치 검출용 `text.plan`을 함께 둔다. 카메라와 같은 ROS 환경에서 native YOLOE Python으로 실행한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source /opt/cleany/current/ros/local_setup.bash
+/opt/cleany/current/native/yolo-env/bin/python \
+  "$(ros2 pkg prefix cleany_perception)/lib/cleany_perception/camera_privacy" \
+  --ros-args -p gpu_lock_path:=/var/opt/cleany/state/cleany/gpu-work.lock
+```
+
+운영 프리뷰는 `cleany_telemetry camera_preview`에 `-p allowed_topic:=/camera/head/color/image_redacted`를 전달한다. 노드는 구독자가 생기면 추론을 시작한다. 기존 ROS 원본 구독자와 외부 장면 분류기 설정은 별도로 확인한다. [토픽 계약과 클라우드 입력 설정](../../ros2_ws/src/cleany_perception/docs/interfaces.md#헤드캠-비식별-영상)

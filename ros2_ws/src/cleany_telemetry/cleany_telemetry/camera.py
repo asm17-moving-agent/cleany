@@ -43,9 +43,10 @@ class Frame:
 class Cameras:
     """최대 두 토픽의 관측 lease를 유지하며 오래된 프레임을 실시간 영상으로 표시하지 않습니다."""
 
-    def __init__(self, limit=2, fps=5.0, clock=time.monotonic, lease_seconds=3.0, stale_seconds=2.0):
+    def __init__(self, limit=2, fps=5.0, clock=time.monotonic, lease_seconds=3.0, stale_seconds=2.0, allowed_topic=""):
         if not 1 <= limit <= 4 or not 1 <= fps <= 10 or not 0 < stale_seconds < lease_seconds:
             raise ValueError("Invalid camera limits")
+        self.allowed_topic = allowed_topic
         self.limit, self.fps, self.clock = limit, fps, clock
         self.lease_seconds, self.stale_seconds = lease_seconds, stale_seconds
         self.topics = {}
@@ -58,7 +59,8 @@ class Cameras:
     def discover(self, topics):
         """Invalidate leases when a publisher disappears or changes its message type."""
         selected = {name: types[0] for name, types in topics.items()
-                    if len(types) == 1 and types[0] in IMAGE_TYPES}
+                    if len(types) == 1 and types[0] in IMAGE_TYPES
+                    and (not self.allowed_topic or name == self.allowed_topic)}
         with self.lock:
             for name in list(self.leases):
                 if self.topics.get(name) != selected.get(name):

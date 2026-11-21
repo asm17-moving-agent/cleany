@@ -70,3 +70,18 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 않는다. RGB 해상도가 보정값과 다르거나 깊이 투영행렬이 유효하지 않으면
 처리하지 않는다. `realsense.launch.py`는 `rgb_intrinsics_file`을 우선한다. 설정에 등록된 일련번호와 `serial_no`가 일치하면 패키지에 설치된 보정 파일을 사용한다. 일치하는 설정이 없으면 SDK 보정을 사용한다. 실측 보정 파일을 선택하면 SDK RGB를
 `/camera/sdk/color/*`로 옮기고 SDK 자동 정렬 대신 이 노드를 실행한다.
+
+## 헤드캠 비식별 영상
+
+`camera_privacy`는 센서 시각과 좌표계를 유지한 BGR 영상을 발행한다.
+
+| 방향 | 기본 토픽 | 타입 | QoS |
+|---|---|---|---|
+| 구독 | `/camera/color/image_raw` | `sensor_msgs/msg/Image`, RGB8 또는 BGR8 | Best effort, volatile, depth 1 |
+| 발행 | `/camera/head/color/image_redacted` | `sensor_msgs/msg/Image`, BGR8 | Best effort, volatile, depth 1 |
+
+검출기는 각 프레임에서 사람, 얼굴, 화면, 문서와 글자 위치를 확인한다. 사람과 민감한 표면을 서로 다른 불투명 색으로 채운다. 화면 검출이 잠시 끊기면 배경의 움직임을 확인한 뒤 최대 0.48초 동안 이전 화면 영역을 보강한다. 구독자가 있을 때 기본 최대 5 Hz로 처리한다. 입력 시각이 오래됐거나 추론이 실패하거나 GPU 잠금을 얻지 못하면 해당 프레임은 발행하지 않는다.
+
+영상에 클라우드 인식을 허용하지 않는 현장 구성에서는 `inspect_scene.launch.py`에 `allow_external_images:=false`를 전달한다. 이 설정에서 Gemini 어댑터를 선택하면 노드가 기동 시 중단된다. 기존 원본 ROS 토픽의 접근 권한은 배포 환경이 관리한다.
+
+Gemini 탐지, 번호 분류, Decision API는 요청마다 해당 RGB 스냅샷에 대시보드와 같은 비식별 필터를 적용한다. 번호와 검출 상자는 가림 처리 뒤에 그린다. GPU가 사용 중이거나 필터 처리에 실패하면 해당 요청은 이미지를 전송하지 않고 탐지 오류를 반환한다. 로컬 YOLOE 검출과 집기 좌표 계산에는 원본을 사용한다.

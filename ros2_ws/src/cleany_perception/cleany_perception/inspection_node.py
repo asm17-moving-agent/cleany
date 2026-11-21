@@ -209,6 +209,9 @@ class InspectionNode(Node):
 
         detector_type = str(self.get_parameter('detector_type').value)
         segmenter_type = str(self.get_parameter('segmenter_type').value)
+        if (not self.get_parameter('allow_external_images').value
+                and detector_type in ('gemini', 'yoloe_gemini')):
+            raise ValueError('External image adapters are disabled in local-only mode')
         if detector_type == 'yoloe_gemini' and segmenter_type != 'yoloe_seg':
             raise ValueError('YOLOE+Gemini classification requires YOLOE segmentation')
         for kind, supplied in ((detector_type, detector),
@@ -692,6 +695,7 @@ class InspectionNode(Node):
             'default_query',
             'Detect the box and can on the table.',
         )
+        self.declare_parameter('allow_external_images', True)
         self.declare_parameter('detector_type', 'yoloe_gemini')
         self.declare_parameter('segmenter_type', 'yoloe_seg')
         self.declare_parameter('simulation_color_minimum_pixels', 100)

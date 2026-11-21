@@ -8,7 +8,7 @@ from concurrent.futures import Future
 from pathlib import Path
 
 from .recorder import Recorder
-from .recording import validate
+from .recording import REDACTED_CAMERA_TOPIC, validate
 from .sources import resolved, validate_sources
 
 
@@ -70,6 +70,8 @@ class SessionController:
             if self.state in ('RECORDING', 'STOPPING'):
                 raise ControlConflict('Stop recording before changing settings')
             settings = validate(settings)
+            if settings['topics']['camera'] != REDACTED_CAMERA_TOPIC:
+                raise ValueError('Recording camera topic is restricted to the redacted stream')
             settings['active'] = False
             validate_sources({**resolved(self.config), **settings['sources']})
             with self.controls.transition():

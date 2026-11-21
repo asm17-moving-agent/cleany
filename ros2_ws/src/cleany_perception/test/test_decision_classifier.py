@@ -25,6 +25,9 @@ from cleany_perception.snapshot_cache import CachedDetectionSnapshot, DetectionS
 from cleany_skill_executor.core.sorting import classify_model
 
 
+pytestmark = pytest.mark.usefixtures("gemini_privacy_model")
+
+
 PROMPT = Path(__file__).parents[1] / 'config/decision_prompt.yaml'
 
 
@@ -84,6 +87,7 @@ def test_dynamic_independent_questions_and_no_detector_hints(scene, count):
     with Image.open(io.BytesIO(base64.b64decode(body['input'][0]['data']))) as image:
         assert image.size == (60, 40) and JpegImagePlugin.get_sampling(image) == 0
         assert np.asarray(image)[15, 2, :2].min() > 150
+        assert np.abs(np.asarray(image)[24, 48].astype(int) - [66, 76, 86]).max() <= 3
     for i, item in enumerate(result, 1):
         assert item.label == 'cup' and item.detector_label == detection.label
         assert item.bbox is detection.bbox and item.segmentation_mask is detection.segmentation_mask
@@ -285,3 +289,31 @@ def test_legacy_sorting_guard_accepts_validated_decision_codes(scene):
         hazardous_labels=frozenset({'knife'}), minimum_confidence=.2,
         trash_destination='trash', lost_item_destination='lost')
     assert decision.category.value == 'lost_item'
+
+@pytest.mark.parametrize('adapter', ['decision', 'classifier', 'detector'])
+@pytest.mark.parametrize('failure', ['busy', 'detector_error'])
+def test_redaction_failure_prevents_all_outbound_requests(adapter, failure, scene, monkeypatch, tmp_path):
+    import fcntl
+    from cleany_perception import external_image
+
+    def unexpected(*args, **kwargs):
+        pytest.fail('Transport was invoked after redaction failure')
+
+    def unavailable():
+        raise RuntimeError('model unavailable')
+
+    lock_path = tmp_path / 'egress.lock'
+    monkeypatch.setenv('CLEANY_CAMERA_PRIVACY_GPU_LOCK', str(lock_path))
+    with lock_path.open('a') as lease:
+        if failure == 'busy':
+            fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            monkeypatch.setattr(external_image, '_redactor', unavailable)
+        with pytest.raises(InspectionFailure, match='withheld') as exc:
+            if adapter == 'decision':
+                classifier(transport=unexpected).classify(scene[0], [scene[1]])
+            elif adapter == 'classifier':
+                GeminiClassifier('test-model', response_provider=unexpected).classify(scene[0], [scene[1]])
+            else:
+                GeminiDetector('test-model', response_provider=unexpected).detect(scene[0], '')
+        assert exc.value.kind == FailureKind.DETECTOR_API

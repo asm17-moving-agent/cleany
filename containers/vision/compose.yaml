@@ -85,6 +85,17 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - type: bind
+        source: ${CLEANY_CAMERA_PRIVACY_MODELS:-/var/opt/cleany/models/camera-privacy/active}
+        target: /var/opt/cleany/models/camera-privacy/active
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CLEANY_CAMERA_PRIVACY_GPU_LOCK:-/var/opt/cleany/state/cleany/gpu-work.lock}
+        target: /var/opt/cleany/state/cleany/gpu-work.lock
+        bind:
+          create_host_path: false
       - perception-build:/workspace/cleany/ros2_ws/build-perception
       - perception-install:/workspace/cleany/ros2_ws/install-perception
       - perception-log:/workspace/cleany/ros2_ws/log-perception

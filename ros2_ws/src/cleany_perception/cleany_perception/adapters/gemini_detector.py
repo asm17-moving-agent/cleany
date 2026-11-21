@@ -9,10 +9,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import replace
 from typing import Any
 
-import numpy as np
 from PIL import Image as PilImage
 from PIL import ImageDraw
 
+from cleany_perception import external_image
 from cleany_perception.core.models import (
     BoundingBox2D,
     Detection2D,
@@ -302,12 +302,7 @@ class GeminiDetector:
         rgb: RgbArray,
         query: str,
     ) -> Sequence[Detection2D]:
-        image = np.asarray(rgb)
-        if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
-            raise InspectionFailure(
-                FailureKind.DETECTOR_RESPONSE,
-                'Gemini detector requires an HxWx3 uint8 RGB image',
-            )
+        image = external_image.for_gemini(rgb)
         prompt = (
             f'{query.strip()}\n' if query.strip() else ''
         ) + (
@@ -321,7 +316,7 @@ class GeminiDetector:
             'are lost_item. Use review for uncertainty, hazardous objects, or '
             'unclear disposability. Do not infer ownership as fact.'
         )
-        image_bytes = self._encode_image(PilImage.fromarray(image))
+        image_bytes = self._encode_image(image)
         try:
             if self._response_provider is not None:
                 response_text = self._response_provider(
@@ -340,8 +335,8 @@ class GeminiDetector:
             ) from error
         return parse_gemini_detections(
             response_text,
-            width=image.shape[1],
-            height=image.shape[0],
+            width=image.width,
+            height=image.height,
         )
 
     def _encode_image(self, image: PilImage.Image) -> bytes:
@@ -503,11 +498,7 @@ class GeminiClassifier(GeminiDetector):
                  query: str = '') -> tuple[Detection2D, ...]:
         if not detections:
             return ()
-        image = np.asarray(rgb)
-        if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
-            raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
-                                    'Gemini classifier requires an HxWx3 uint8 RGB image')
-        annotated = PilImage.fromarray(image)
+        annotated = external_image.for_gemini(rgb)
         draw = ImageDraw.Draw(annotated)
         for index, detection in enumerate(detections, 1):
             box = detection.bbox
