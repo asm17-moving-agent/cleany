@@ -10,7 +10,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
-from cleany_perception.rgbd_snapshot import _rgb_array
+from cleany_perception.rgbd_snapshot import rgb_array
 
 
 class BoardObserver(Node):
@@ -43,7 +43,7 @@ class BoardObserver(Node):
             stamp = rclpy.time.Time.from_msg(image.header.stamp)
             if (self.get_clock().now() - stamp).nanoseconds > 500_000_000:
                 continue
-            gray = cv2.cvtColor(_rgb_array(image), cv2.COLOR_RGB2GRAY)
+            gray = cv2.cvtColor(rgb_array(image), cv2.COLOR_RGB2GRAY)
             corners, ids, _ = cv2.aruco.detectMarkers(gray, self.dictionary)
             if ids is None:
                 continue
