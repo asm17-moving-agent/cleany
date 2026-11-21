@@ -461,6 +461,7 @@ ros2 action info /grasp/select_reachable
 | `calibrated_camera_pose` | [보정된 카메라 TF](../../ros2_ws/src/cleany_robot_interface/docs/interfaces.md#보정된-카메라-tf) |
 | `control_state_guard` | [관절 상태 검증과 컨트롤러 정지](../../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `head_rgbd.launch.py` | [공유 헤드 카메라와 보정 프레임 기동](how-to/manipulation.md#실물-수거와-팔-복귀) |
 | `motor_telemetry_recorder` | [모터 상태 수동 기록](../../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 
 

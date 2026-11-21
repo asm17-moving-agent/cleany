@@ -316,6 +316,7 @@ def test_saved_cli_options_are_loaded_without_accepting_unrelated_environment(tm
     path = tmp_path / 'runtime-settings.json'
     values = dict(GEMINI_API_KEY='test-secret', COLLECTION_QUERY='custom query',
         CLEANY_COLLECTION_MOTION_BACKEND=backend, CLEANY_COLLECTION_GRASP_PREDICTOR=predictor,
+        CLEANY_COLLECTION_MOTION_RUNTIME='container', CLEANY_CUROBO_VENV='/custom/curobo',
         CLEANY_COLLECTION_USE_EXISTING_PERCEPTION='true',
         CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
         CLEANY_MANIPULATION_COLLECTION_CONFIG='/custom/robot.json', BASH_ENV='/untrusted',
@@ -325,6 +326,8 @@ def test_saved_cli_options_are_loaded_without_accepting_unrelated_environment(tm
     assert loaded['COLLECTION_QUERY'] == 'custom query'
     assert loaded['CLEANY_MANIPULATION_COLLECTION_CONFIG'] == '/custom/robot.json'
     assert loaded['CLEANY_COLLECTION_MOTION_BACKEND'] == backend
+    assert loaded['CLEANY_COLLECTION_MOTION_RUNTIME'] == 'container'
+    assert loaded['CLEANY_CUROBO_VENV'] == '/custom/curobo'
     assert loaded['CLEANY_COLLECTION_GRASP_PREDICTOR'] == predictor
     assert loaded['CLEANY_COLLECTION_USE_EXISTING_PERCEPTION'] == 'true'
     assert loaded['CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION'] == 'rmw_fastrtps_cpp'
