@@ -168,7 +168,7 @@ def snapshot_from_messages(
         InspectionFailure: 인코딩, 보정 또는 정렬이 잘못된 경우.
     """
     try:
-        rgb = _rgb_array(messages.color)
+        rgb = rgb_array(messages.color)
         depth_m = _depth_array(messages.depth, depth_16u_scale_m)
         _validate_camera_info(messages.color_info, messages.color)
         _validate_camera_info(messages.depth_info, messages.depth)
@@ -218,7 +218,7 @@ def snapshot_from_messages(
         ) from error
 
 
-def _rgb_array(message: Image) -> np.ndarray:
+def rgb_array(message: Image) -> np.ndarray:
     if message.encoding not in ('rgb8', 'bgr8'):
         raise ValueError(f'Unsupported color encoding: {message.encoding}')
     row_bytes = int(message.width) * 3

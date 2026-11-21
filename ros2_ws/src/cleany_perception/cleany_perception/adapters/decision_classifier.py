@@ -15,9 +15,9 @@ import urllib.error
 import urllib.request
 from uuid import uuid4
 
-import numpy as np
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
 
+from cleany_perception import external_image
 from cleany_perception.core.decision_semantics import (
     apply_decision_response, build_questions, decode_decision_response,
     load_decision_prompt, normalize_object_types, object_types_hash,
@@ -159,15 +159,11 @@ class DecisionClassifier:
         began = self._clock()
         deadline = began + self._timeout_seconds
         self._remaining(deadline)
-        image = np.asarray(rgb)
-        if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
-            raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
-                                    'Decision requires an HxWx3 uint8 RGB image')
         try:
             questions = build_questions(len(detections), self._prompt, self._object_types)
         except ValueError as error:
             raise InspectionFailure(FailureKind.DETECTOR_RESPONSE, str(error)) from error
-        annotated = Image.fromarray(image.copy())
+        annotated = external_image.for_gemini(rgb)
         draw = ImageDraw.Draw(annotated)
         for i, detection in enumerate(detections, 1):
             box = detection.bbox

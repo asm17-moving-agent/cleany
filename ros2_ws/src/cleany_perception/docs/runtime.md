@@ -422,3 +422,20 @@ Gemini 응답을 기다리는 동안 깊이 기하를 계산하고, 동일 snaps
 별도 그룹을 사용합니다. 모델, 스레드 및 QoS 설정은 실행 환경에서 검증해야 합니다.
 
 새 서비스와 검출 필드는 [인식 인터페이스](interfaces.md)를 따릅니다.
+
+### 비식별화 모델 준비
+
+YOLOE 프롬프트와 체크포인트 해시는 [privacy lock](../../../../configs/models/yoloe-26s-seg-privacy.lock.json)에 있다. 기존 [TensorRT 내보내기 도구](../../../../tools/yoloe_trt.py)에 이 lock과 `config/yoloe_privacy.yaml`을 지정한다. 작업용 real53 엔진과 별도로 생성한 결과를 `privacy.engine`으로 배치한다.
+
+보조 모델의 출처와 검증할 SHA-256은 [보조 모델 lock](../../../../configs/models/camera-privacy-aux.lock.json)에 있다. YuNet은 ONNX를 그대로 사용한다. 글자 검출 ONNX는 같은 Jetson의 `trtexec`에 lock의 인수와 `--onnx=text.onnx --saveEngine=text.plan`을 전달해 변환한다. 노트북 CPU 검증에는 `--text text.onnx`를 사용한다.
+
+연속 영상은 시작 시점, 역행 타임스탬프 또는 0.48초 이상의 입력 단절 뒤 첫 프레임을 추적 초기화에만 사용한다. 사진은 각 검출기를 독립 실행한다. 재생 도구는 구간 앞에 입력이 있으면 한 장을 먼저 읽고, 전송을 보류한 프레임 수를 JSON에 기록한다.
+
+기본 모드에서 Gemini를 쓰는 인식 프로세스는 첫 이미지 요청에서 비식별 모델을 로드한다. 기본 번들은 `/var/opt/cleany/models/camera-privacy/active`이며 엔진과 함께 클래스 구성을 담은 `profile.yaml`이 필요하다. 프리뷰와 같은 GPU 잠금을 사용한다.
+
+시연에서 원본 맥락을 보내려면 `cleany-perception.service`의 systemd 사용자 drop-in에 다음 설정을 두고 해당 서비스만 재시작한다. 비식별 전송으로 복귀하려면 값을 `redacted`로 바꾸고 재시작한다.
+
+```ini
+[Service]
+Environment=CLEANY_GEMINI_IMAGE_MODE=original
+```

@@ -62,7 +62,7 @@ def main(args=None):
     from sensor_msgs.msg import CameraInfo, CompressedImage, Image
     from std_msgs.msg import String
     from tf2_ros import Buffer, TransformException, TransformListener
-    from cleany_perception.rgbd_snapshot import _depth_array, _rgb_array, stamp_nanoseconds
+    from cleany_perception.rgbd_snapshot import _depth_array, rgb_array, stamp_nanoseconds
 
     class CalibratedRgbd(Node):
         """Publish matched RGB, registered depth and CameraInfo on /camera topics.
@@ -153,7 +153,7 @@ def main(args=None):
                 depth_k = np.array(info.p).reshape(3, 4)[:, :3]
                 if not np.isfinite(depth_k).all() or min(depth_k[0, 0], depth_k[1, 1]) <= 0:
                     raise ValueError('Invalid native rectified depth projection')
-                rgb = cv2.remap(_rgb_array(color), *self.maps, cv2.INTER_LINEAR)
+                rgb = cv2.remap(rgb_array(color), *self.maps, cv2.INTER_LINEAR)
                 registered = align_depth(_depth_array(depth, .001), depth_k, self.k,
                                          matrix, self.size)
                 header = deepcopy(color.header)

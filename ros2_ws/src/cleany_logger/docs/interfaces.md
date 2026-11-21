@@ -93,3 +93,5 @@ Timeout과 인터럽트는 요청 취소나 정지 완료를 뜻하지 않습니
 | raw_scan_topic | /scan_raw | LaserScan |
 
 매핑 프로필은 위 입력을 수신마다 /scan, TF, 지도와 같은 Logger 세션에 기록합니다.
+
+운영 녹화는 `/camera/head/color/image_redacted`만 영상 소스로 허용한다. 기존 녹화 설정 복원 시 영상 소스를 이 토픽으로 바꾸며, 실행 중 다른 영상 토픽을 지정하는 설정 요청은 거절한다.

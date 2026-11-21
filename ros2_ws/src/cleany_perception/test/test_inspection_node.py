@@ -541,3 +541,17 @@ def test_slow_rgb_callback_does_not_starve_other_rgbd_streams(synthetic_scene, m
             time.sleep(0.025)
         assert future.done()
         assert future.result().success, future.result().message
+
+
+def test_local_only_rejects_cloud_adapter_before_loading_weights():
+    was_running = rclpy.ok()
+    if not was_running:
+        rclpy.init()
+    try:
+        with pytest.raises(ValueError, match='External image adapters'):
+            InspectionNode(parameter_overrides=[
+                Parameter('allow_external_images', value=False),
+                Parameter('detector_type', value='yoloe_gemini')])
+    finally:
+        if not was_running:
+            rclpy.shutdown()

@@ -1,0 +1,22 @@
+perception_inspector:
+  ros__parameters:
+    yoloe_image_size: 640
+    yoloe_classes:
+      - person
+      - face
+      - hand
+      - bare arm
+      - laptop
+      - computer monitor
+      - cell phone
+      - tablet computer
+      - piece of paper
+      - book
+      - ID card
+      - name tag
+      - robot arm
+      - robot gripper
+      - wheeled robot
+      - box
+      - cup
+      - monitor stand

@@ -88,3 +88,5 @@ Dashboard 외부 접근은 Backend에서 사용자·시설 권한을 검사해�
 헤드 RGB와 손목 원시 영상 요청은 대응하는 압축 미리보기 토픽이 발견되면 그 토픽을
 구독합니다. 알려진 metric-depth 토픽은 lease 생성 전에 거부합니다. 이미 인코딩된
 JPEG는 다시 인코딩하지 않고 최신 수신 프레임을 유지하며 `camera_fps`로 감속하지 않습니다.
+
+운영 카메라의 `allowed_topic` 값은 `/camera/head/color/image_redacted`다. 이 값이 설정되면 HTTP 목록과 영상 요청에는 지정한 토픽만 노출한다. ROS 개발용 다중 카메라 프리뷰는 이 매개변수를 비워 사용한다.
