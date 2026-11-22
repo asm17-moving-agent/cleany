@@ -45,3 +45,17 @@ def test_colored_cloud_payload_owns_its_input_copy():
     cloud.points.fill(0)
     cloud.colors.fill(0)
     assert bytes(message.data) == payload
+
+
+def test_context_viewpoint_preserves_original_fields_and_row_stride():
+    points = np.array([[.1, .2, .3], [.4, .5, .6]], dtype=np.float32)
+    colors = np.array([[11, 22, 33], [44, 55, 66]], dtype=np.uint8)
+    camera = np.array([.125, -.25, .75])
+    message = colored_point_cloud_message(ColoredPointCloud(points, colors), Time(), 'base_link',
+                                          viewpoint=camera)
+    assert message.point_step == 28 and message.row_step == 56
+    for i in range(2):
+        xyz_rgb = struct.unpack_from('<fffBBBB', message.data, i*28)
+        assert xyz_rgb[:3] == pytest.approx(points[i])
+        assert xyz_rgb[3:] == (*colors[i, ::-1], 0)
+        assert struct.unpack_from('<fff', message.data, i*28+16) == pytest.approx(camera)
