@@ -6,17 +6,19 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
+from cleany_description.cad_coordinates import CadCoordinates
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
 
 
-@pytest.mark.parametrize('backend,predictor', [
-    ('moveit', 'geometric'), ('moveit', 'anygrasp'),
-    ('curobo_ik_moveit', 'geometric'), ('curobo_ik_moveit', 'anygrasp'),
+@pytest.mark.parametrize('backend,predictor,calibrated_cad', [
+    ('moveit', 'geometric', False), ('moveit', 'anygrasp', False),
+    ('curobo_ik_moveit', 'geometric', False), ('curobo_ik_moveit', 'anygrasp', False),
+    ('curobo_ik_moveit', 'geometric', True), ('curobo_ik_moveit', 'anygrasp', True),
 ])
 @pytest.mark.parametrize('with_collection', [False, True])
 def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
-        monkeypatch, tmp_path, backend, predictor, with_collection):
+        monkeypatch, tmp_path, backend, predictor, calibrated_cad, with_collection):
     package = Path(__file__).resolve().parents[1]
     root = package.parents[2]
     spec = importlib.util.spec_from_file_location(
@@ -25,6 +27,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
     spec.loader.exec_module(module)
     model = tmp_path / 'model.urdf'
     model.write_text('<robot name="synthetic"/>')
+    monkeypatch.setattr(CadCoordinates, 'from_urdf',
+                        lambda _description: SimpleNamespace() if calibrated_cad else None)
     monkeypatch.setattr(module, 'prepare_state_profile',
                         lambda *args: SimpleNamespace(camera_serial='TEST', model=model))
     monkeypatch.setattr(module, 'get_package_share_directory',
@@ -63,6 +67,7 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         assert config['anygrasp_preload'] is False
         assert config['geometric.maximum_candidates'] == 96
         assert config['geometric.defer_support_plane_collision'] is False
+        assert config['geometric.include_reverse_closing_axis'] is calibrated_cad
     selector = next(item for item in records if item['executable'] == 'physical_grasp_selection_server')
     config = {}
     for item in selector['parameters']:
