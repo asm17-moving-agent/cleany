@@ -54,6 +54,7 @@ class Servos:
             set_value(5, motor, 1)
             set_value(13, 80, 1)
             set_value(16, 1000)
+            set_value(85, 254, 1)
             set_value(28, 250)
             set_value(63, 30, 1)
             set_value(62, 120, 1)
@@ -502,6 +503,35 @@ def test_powered_recovery_rejects_incompatible_existing_hold(tmp_path, fault):
     assert expected in log
     wire = json.loads((tmp_path/'wire.json').read_text())
     assert not any(w['address'] in (40, 41, 44, 46, 48) for w in wire['arm_writes'])
+
+
+@pytest.mark.parametrize('over_limit', [False, True], ids=['at_limit', 'above_limit'])
+def test_jetson_gripper_acceleration_limit(tmp_path, over_limit):
+    class GripperLimitServos(Servos):
+        def __init__(self, elements):
+            super().__init__(elements)
+            for motor in (6, 12):
+                self.registers[motor][85] = 50
+
+    control = ROOT / 'configs/robot/jetson/feetech_control.yaml'
+    if over_limit:
+        profile = yaml.safe_load(control.read_text())
+        profile['joint_overrides']['left_gripper_joint']['acceleration_raw'] = 52
+        control = tmp_path / 'over_limit.yaml'
+        control.write_text(yaml.safe_dump(profile))
+        with pytest.raises(AssertionError):
+            Runtime(tmp_path, False, control_file=control, shared_bus=True, servo_type=GripperLimitServos)
+        log = (tmp_path / 'manager.log').read_text()
+        assert 'left_gripper_joint ID 6: acceleration_raw=52 exceeds motor maximum=50' in log
+        assert not json.loads((tmp_path / 'wire.json').read_text())['arm_writes']
+    else:
+        runtime = Runtime(tmp_path, False, control_file=control, shared_bus=True, servo_type=GripperLimitServos)
+        try:
+            for motor in (6, 12):
+                assert runtime.arms.registers[motor][41] == 50
+                assert runtime.arms.registers[motor][40] == 1
+        finally:
+            runtime.close()
 
 
 def test_repeated_stop_and_shutdown_do_not_relatch_each_sagged_position(tmp_path):
