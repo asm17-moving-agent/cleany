@@ -1,4 +1,4 @@
-"""Explicit transport of validated cubic paths; no implicit execution."""
+"""Transport timed paths without replacing their interpolation coefficients."""
 import math
 
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -14,7 +14,10 @@ def path_to_message(path):
         if path.times:
             nanoseconds = round(path.times[index]*1e9)
             point.time_from_start.sec, point.time_from_start.nanosec = divmod(nanoseconds, 1_000_000_000)
+        if path.velocities:
             point.velocities = list(path.velocities[index])
+        if path.accelerations:
+            point.accelerations = list(path.accelerations[index])
         message.points.append(point)
     return message
 

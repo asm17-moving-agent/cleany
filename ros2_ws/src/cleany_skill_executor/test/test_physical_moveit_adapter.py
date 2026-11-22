@@ -348,8 +348,11 @@ def test_pregrasp_shortcut_checks_intermediate_full_states_and_falls_back(arm, o
     start = (0.,) * 5
     end = (1., 1., 0., 0., 0.)
     detour = (0., 1., 0., 0., 0.)
-    trajectory = JointTrajectory(joint_names=list(names), points=[
-        JointTrajectoryPoint(positions=list(q)) for q in (start, detour, end)])
+    trajectory = JointTrajectory(joint_names=list(names))
+    for index, positions in enumerate((start, detour, end)):
+        point = JointTrajectoryPoint(positions=list(positions))
+        point.time_from_start.sec = index
+        trajectory.points.append(point)
     wrapped = SimpleNamespace(status=GoalStatus.STATUS_SUCCEEDED, result=SimpleNamespace(
         error_code=MoveItErrorCodes(val=1), planned_trajectory=RobotTrajectory(joint_trajectory=trajectory)))
     plan = PlanClient(wrapped)
@@ -374,6 +377,9 @@ def test_pregrasp_shortcut_checks_intermediate_full_states_and_falls_back(arm, o
     adapter._call = check
     path = adapter.plan(arm, JointSolution(names, end), None)
     assert path is not None and path.points[-1] == end
+    if obstructed:
+        assert path.points == (start, detour, end)
+        assert path.times == (0., 1., 2.)
     assert len(checked) > 2  # Interior states, not just the endpoints, were checked.
     assert len(plan.goals) == int(obstructed)
     assert path.points == ((start, detour, end) if obstructed else (start, end))
