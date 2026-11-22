@@ -33,6 +33,16 @@ class CommandPathValidationError(RuntimeError):
         self.motion_started = False
 
 
+class RecordedStartMismatch(CommandPathValidationError):
+    """The settled arm is too far from the saved path's first point."""
+
+    def __init__(self, maximum_error_rad: float, tolerance_rad: float) -> None:
+        self.maximum_error_rad = maximum_error_rad
+        self.tolerance_rad = tolerance_rad
+        super().__init__(f'Approach start differs by {maximum_error_rad:.6f}rad '
+                         f'(limit {tolerance_rad:.6f}rad)')
+
+
 class JointRangeValidationError(ValueError):
     """Preserve the exact joint/sample and both model and encoder bounds."""
 

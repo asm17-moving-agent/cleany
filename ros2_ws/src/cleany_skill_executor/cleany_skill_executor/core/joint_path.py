@@ -1,8 +1,8 @@
-"""해석적 미분 한계를 가진 단조 3차 관절 보간입니다.
+"""Joint interpolation with analytical derivative bounds.
 
-위치와 속도로 ROS 2 JTC spline 보간기가 같은 3차식을 재구성합니다.
-5차 보간이 되지 않도록 가속도 필드는 비워야 합니다. 관절 속도 한계를
-제공하지만 연속 Cartesian 충돌 안전을 보장하지는 않습니다.
+Positions and velocities reconstruct a cubic in ROS 2 JTC. When both knots
+supply accelerations, the controller uses a quintic and validation samples it.
+These bounds do not certify continuous Cartesian collision clearance.
 """
 from __future__ import annotations
 
@@ -17,6 +17,17 @@ class JointPathSample:
     progress: float
     positions: tuple[float, ...]
     derivatives: tuple[float, ...]
+
+
+def spline_coefficients(start, end, v0=None, v1=None, a0=None, a1=None):
+    """Return ascending coefficients in normalized segment time."""
+    delta = end-start
+    if v0 is None or v1 is None:
+        return [start, delta]
+    if a0 is None or a1 is None:
+        return [start, v0, 3*delta-2*v0-v1, -2*delta+v0+v1]
+    dq, dv, da = delta-v0-.5*a0, v1-v0-a0, a1-a0
+    return [start, v0, .5*a0, 10*dq-4*dv+.5*da, -15*dq+7*dv-da, 6*dq-3*dv+.5*da]
 
 
 def sample_timed_path(positions, times, velocities, accelerations,
@@ -38,15 +49,9 @@ def sample_timed_path(positions, times, velocities, accelerations,
     samples = [JointPathSample(0., tuple(q[0]), tuple(start_rate*duration))]
     for i, dt in enumerate(np.diff(t)):
         start, end = q[i:i+2]
-        delta = end-start
-        coefficients = [start, delta]
-        if v.size:
-            v0, v1 = v[i:i+2]*dt
-            coefficients = [start, v0, 3*delta-2*v0-v1, -2*delta+v0+v1]
-        if a.size:
-            a0, a1 = a[i:i+2]*dt**2
-            dq, dv, da = delta-v0-.5*a0, v1-v0-a0, a1-a0
-            coefficients = [start, v0, .5*a0, 10*dq-4*dv+.5*da, -15*dq+7*dv-da, 6*dq-3*dv+.5*da]
+        rates = v[i:i+2]*dt if v.size else (None, None)
+        accelerations = a[i:i+2]*dt**2 if a.size else (None, None)
+        coefficients = spline_coefficients(start, end, *rates, *accelerations)
 
         derivative = np.polynomial.polynomial.polyder(coefficients)
         degree = len(derivative)-1

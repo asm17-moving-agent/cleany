@@ -2288,3 +2288,19 @@ MoveIt이 왼쪽 손끝과 OctoMap의 충돌을 검출해 반환하지 않았다
 실물 구동 없이 dev-monitor의 HTTP 응답과 웹 제어 활성 상태를 확인했다.
 배포 전 백업, 해시와 빌드 및 재생 로그는 Jetson
 `/home/cleany/cleany-data/runs/native-rrt-live-deploy-20261123.UPDk1pQ8/`에 있다.
+
+### 2026-11-23 Jetson 실물 접근의 승인 궤적 재사용
+
+Jetson ROS 2 Humble의 `f45801bc` 작업 트리와 dev-monitor 운영 설치본에
+적용했다. 정착 후와 전송 직전에 팔 관절별 시작 오차를 0.005 rad 이내로
+확인하면 저장된 접근 궤적의 관절 위치, 시간, 속도와 가속도를 보낸다.
+시작 오차가 초과된 경우에만 실측에서 같은 파지 TCP로 재계획한다.
+배포 전후 운영 설정 6개의 SHA-256이 같다.
+
+관련 자동 검사 270개가 통과했다. `case-03` 상자에서 저장된 MoveIt 접근
+3건과 기존 방식으로 시간을 계산한 후퇴 3건이 실제 설치 프로필에서 생성한
+관절 및 속도, 가속도 한계를 통과했다. 시리얼 에뮬레이터는 모의 피드백
+보호 정지로 명령을 수락하지 못했다. 이를 격리된 GenericSystem으로 바꾼
+뒤 동일하게 설치된 JointTrajectoryController가 86점, 15.785초인 원본 명령을
+받아 완료했다. 명령 전체 필드가 원본과 일치했다. 실물 구동은 수행하지 않았다.
+배포 전 백업, 변경 해시, 테스트, 제어기 로그는 Jetson `/home/cleany/cleany-data/runs/selected-trajectory-execution-20261123.0EXHpHyM/`에 있다.
