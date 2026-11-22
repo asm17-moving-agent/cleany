@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
+import json
 import math
 from pathlib import Path
 import time
@@ -224,15 +225,27 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
             if proposal_only:
                 selected = next((item for item in ordered
                                  if self._owner._within_endpoint_bounds(item.solution)), None)
-            for item in ordered:
+            octomap = ()
+            use_octomap = not proposal_only and len(ordered) >= 8 and finalize is not None
+            for candidate_index, item in enumerate(ordered):
                 if proposal_only:
                     break
                 self._owner._check_active()
+                batch_offset = candidate_index % 64
+                if use_octomap and batch_offset == 0:
+                    prefilter = getattr(self._owner, 'grasp_octomap_hits', None)
+                    if prefilter is not None:
+                        octomap = prefilter(ordered[candidate_index:candidate_index+64])
                 progress = getattr(self._owner, '_progress', None)
                 if progress is not None and finalize is None:
                     progress.update_detail(f'arm={arm} target={index+1}/{len(evaluated)} '
                                            f'checked={checked}/{len(ordered)}')
-                if finalize is None:
+                if octomap and octomap[batch_offset]:
+                    selected = None
+                    final_diagnostic = dict(outcome='final_collision_rejected',
+                                            failure_phase='GPU_OCTOMAP')
+                    checked += 1
+                elif finalize is None:
                     checked += 1
                     selected = item if self._owner.state_is_valid(arm, item.solution) else None
                 else:
@@ -568,6 +581,45 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         gpu.set_deadline(self._deadline)
         return gpu
 
+    def grasp_octomap_hits(self, ordered: Sequence[PoseAlignment]) -> tuple[bool, ...]:
+        """Reject occupied-map overlaps; survivors use native full-scene validation."""
+        if not self._config.validate_motion_paths or not self._node.has_parameter('grasp_octomap_mode'):
+            return ()
+        mode = self._node.get_parameter('grasp_octomap_mode').value
+        if mode not in ('compare', 'on'):
+            return ()
+        from cleany_interfaces.srv import CheckStateValidityBatch
+
+        clients = getattr(self, '_grasp_octomap_clients', None)
+        if clients is None:
+            clients = {
+                'on': self._node.create_client(CheckStateValidityBatch, '/check_grasp_octomap'),
+                'compare': self._node.create_client(CheckStateValidityBatch, '/compare_grasp_octomap'),
+            }
+            self._grasp_octomap_clients = clients
+        client = clients[mode]
+        if not client.service_is_ready():
+            return ()
+        states = [self._merged_state(item.solution) for item in ordered]
+        req = CheckStateValidityBatch.Request(robot_states=states)
+        try:
+            with self._progress.stage('GPU_OCTOMAP', f'states={len(states)} mode={mode}'):
+                response = self._call(client, req, self._config.state_validity_timeout_sec)
+        except InfrastructureError as error:
+            self._node.get_logger().warning('GPU OctoMap unavailable: '+str(error))
+            return ()
+        try:
+            metrics = json.loads(response.message)
+        except (TypeError, ValueError):
+            metrics = {'message': response.message}
+        self._node.get_logger().info('gpu_octomap=' + json.dumps({
+            **metrics, 'mode': mode, 'states': len(states), 'success': response.success,
+            'hits': sum(not value for value in response.valid),
+        }))
+        if not response.success or len(response.valid) != len(states):
+            return ()
+        return tuple(not ok for ok in response.valid)
+
     def _endpoint_position_bounds(self, name: str) -> tuple[float, float]:
         lower, upper = self._planning_position_bounds(name)
         margin = self._hybrid_config.endpoint_margin_rad
@@ -776,6 +828,32 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         """Register final grasp targets; batch lazily under the correct target ACM."""
         self._prepared_grasps = True
         self._prepare_pregrasps(requests)
+
+    def prescreen_grasps(self, requests: Sequence[PregraspRequest]) -> set[PregraspRequest]:
+        """Cache aligned GPU proposals and defer authoritative scene validation."""
+        groups = defaultdict(list)
+        for request in dict.fromkeys(requests):
+            opening = None if self._hybrid_config.group_gripper_openings else request.gripper_position
+            groups[request.arm, opening].append(request)
+        qualified = set()
+        size = self._hybrid_config.batch_size
+        for (arm, _), group in groups.items():
+            for start in range(0, len(group), size):
+                batch = group[start:start+size]
+                values = self._batch(
+                    arm, [request.target for request in batch], [None]*len(batch),
+                    self._gpu_config.num_seeds, pad=True, validation_targets=set(),
+                    openings=[request.gripper_position for request in batch])
+                for request, value in zip(batch, values, strict=True):
+                    if value is not None:
+                        self._pregrasp_cache[request] = value
+                        qualified.add(request)
+        self.last_ik_statistics['grasp_ik_prescreen'] = {
+            arm: {'checked': sum(request.arm == arm for request in requests),
+                  'passed': sum(request.arm == arm for request in qualified)}
+            for arm in ARM_JOINT_NAMES
+        }
+        return qualified
 
     def _prepare_pregrasps(self, requests: Sequence[PregraspRequest]) -> None:
         self._pregrasp_cache.clear()

@@ -174,6 +174,7 @@ class GraspSelectionConfig:
     pregrasp_motion_enabled: bool = True
     direct_grasp_shortcut_enabled: bool = False
     grasp_ik_first: bool = False
+    batch_grasp_ik_before_limit: bool = False
     asymmetric_gripper_enabled: bool = False
     fixed_jaw_closing_axis_sign: float = 1.0
     fixed_jaw_tcp_offset_m: float = 0.0
@@ -224,9 +225,12 @@ class GraspSelectionConfig:
         if type(self.stop_after_first_feasible) is not bool:
             raise ValueError('First feasible selection switch must be boolean')
         for name in ('pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled',
-                     'grasp_ik_first', 'deduplicate_candidates', 'fast_candidate_paths_first'):
+                     'grasp_ik_first', 'deduplicate_candidates', 'fast_candidate_paths_first',
+                     'batch_grasp_ik_before_limit'):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(name+' must be boolean')
+        if self.batch_grasp_ik_before_limit and not (self.grasp_ik_first and self.pregrasp_motion_enabled):
+            raise ValueError('Batched grasp screening requires grasp-first pregrasp selection')
         if self.fast_candidate_paths_first and not (self.grasp_ik_first and self.stop_after_first_feasible):
             raise ValueError('Fast candidate paths require grasp-first, first-feasible selection')
         if self.fixed_jaw_closing_axis_sign not in (-1.0, 1.0):
@@ -390,18 +394,20 @@ class GraspSelector:
 
     def _evaluation_order(
         self, ranked: Sequence[Candidate], required_arm: str,
-        check_canceled: Callable[[], None],
+        check_canceled: Callable[[], None], *, limit: int | None = None,
     ) -> list[tuple[Candidate, str]]:
+        if limit is None:
+            limit = self._config.maximum_candidates
         preference = self._config.direction_preference
         if not preference.enabled:
             return [(candidate, arm)
-                    for candidate in ranked[:self._config.maximum_candidates]
+                    for candidate in ranked[:limit]
                     for arm in ((required_arm,) if required_arm else self.arm_order(candidate))]
 
         groups = grasp_direction_pairs(ranked, preference)
         current_poses: dict[str, PoseValue] = {}
         attempts: list[tuple[Candidate, str]] = []
-        remaining = self._config.maximum_candidates
+        remaining = limit
         for group in groups:
             check_canceled()
             if remaining == 0:
@@ -448,6 +454,14 @@ class GraspSelector:
         legacy = getattr(self._port, 'solve_position_ik')
         solution = legacy(arm, target.position, seed)
         return None if solution is None else self._perfect_alignment(solution, target)
+
+    def _check_uncovered_endpoint(self, arm, solution, path, index, feedback, stage):
+        """Fall back to an explicit check when the planner ends within joint tolerance."""
+        if (isinstance(path, PlannedPath) and path.joint_names == solution.names
+                and path.points and path.points[-1] == solution.positions):
+            return True
+        feedback(index, arm, EvaluationStage.STATE_VALIDITY, stage)
+        return self._port.state_is_valid(arm, solution)
 
     def _ik_pair(
         self, candidate: Candidate, arm: str, pregrasp_target: PoseValue,
@@ -547,7 +561,14 @@ class GraspSelector:
             if cancel_requested():
                 raise InterruptedError('grasp selection canceled')
 
-        attempts = self._evaluation_order(ranked, required_arm, check_canceled)
+        limit = self._config.maximum_candidates
+        screen = None
+        if self._config.batch_grasp_ik_before_limit:
+            screen = getattr(self._port, 'prescreen_grasps', None)
+            if not callable(screen):
+                raise InfrastructureError('Batched grasp screening requires a compatible IK port')
+        attempts = self._evaluation_order(
+            ranked, required_arm, check_canceled, limit=len(ranked) if screen else limit)
         if self._config.deduplicate_candidates:
             unique, seen = [], set()
             for candidate, arm in attempts:
@@ -569,6 +590,7 @@ class GraspSelector:
         prepare = getattr(self._port, 'prepare_grasps' if grasp_first else 'prepare_pregrasps', None)
         if prepare is not None:
             requests = []
+            requested_attempts = []
             for candidate, arm in attempts:
                 check_canceled()
                 try:
@@ -584,8 +606,32 @@ class GraspSelector:
                              EvaluationStage.GRASP_IK if grasp_first else EvaluationStage.PREGRASP_IK,
                              'preparing batched endpoint IK')
                 requests.append(PregraspRequest(arm, target, opening, candidate.source_index))
+                requested_attempts.append((candidate, arm))
             self._port.set_target_contacts(None)
             prepare(requests)
+            if screen is not None:
+                if requests:
+                    first = requests[0]
+                    feedback(first.candidate_index, first.arm, EvaluationStage.GRASP_IK,
+                             'screening grasp IK before applying the candidate limit')
+                screened = screen(requests)
+                qualified = [attempt for attempt, request in zip(requested_attempts, requests, strict=True)
+                             if request in screened]
+                fallback = self._evaluation_order(ranked, required_arm, check_canceled, limit=limit)
+                counts = {'left': 0, 'right': 0}
+                attempts = []
+                seen = set()
+                for candidate, arm in (*qualified, *fallback):
+                    key = (arm, replace(candidate, score=0., source_index=0))
+                    if counts[arm] < limit and key not in seen:
+                        seen.add(key)
+                        attempts.append((candidate, arm))
+                        counts[arm] += 1
+                if attempts:
+                    candidate, arm = attempts[0]
+                    feedback(candidate.source_index, arm, EvaluationStage.GRASP_IK,
+                             f'batched grasp IK: {len(qualified)}/{len(requests)} arm-pose pairs '
+                             f'passed; {len(attempts)} shortlisted')
             check_canceled()
 
         planned_candidates: set[tuple[int, str]] = set()
@@ -667,17 +713,29 @@ class GraspSelector:
                 continue
             pregrasp, grasp, pregrasp_target = pair
             self._port.set_target_contacts(None)
+            approach_planner = (getattr(self._port, 'plan_approach', None)
+                                if self._config.require_approach_corridor else None)
+            # Native path validation checks the same endpoint states with the
+            # path's scene and contact policy. The optional sweep needs a valid
+            # open grasp before planning, so keep eager checks when it is on.
+            path_checks_endpoints = (
+                approach_planner is not None
+                and getattr(self._port, 'validates_path_endpoints', False) is True
+                and not self._config.require_gripper_closure_clearance
+            )
             started = self._monotonic()
-            feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'pregrasp')
-            if not self._port.state_is_valid(arm, pregrasp.solution):
-                continue
+            if not path_checks_endpoints:
+                feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'pregrasp')
+                if not self._port.state_is_valid(arm, pregrasp.solution):
+                    continue
             if (self._config.require_pregrasp_visibility
                     and not self._port.pregrasp_is_visible(arm, pregrasp.solution)):
                 continue
             self._port.set_target_contacts(arm)
-            feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'grasp')
-            if not self._port.state_is_valid(arm, grasp.solution):
-                continue
+            if not path_checks_endpoints:
+                feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'grasp')
+                if not self._port.state_is_valid(arm, grasp.solution):
+                    continue
             if (self._config.require_gripper_closure_clearance
                     and not self._port.gripper_sweep_is_valid(
                         arm, grasp.solution, gripper_position,
@@ -690,8 +748,10 @@ class GraspSelector:
             check_canceled()
             path_key = (id(candidate), arm)
             if path_key not in planned_candidates:
+                path_count = (sum(planned_arm == arm for _, planned_arm in planned_candidates)
+                              if screen is not None else len(planned_candidates))
                 if (self._config.maximum_path_candidates
-                        and len(planned_candidates) >= self._config.maximum_path_candidates):
+                        and path_count >= self._config.maximum_path_candidates):
                     self.path_budget_exhausted = True
                     feedback(index, arm, EvaluationStage.PLAN_GRASP, 'Path candidate budget exhausted')
                     continue
@@ -700,8 +760,6 @@ class GraspSelector:
             # Target contacts remain allowed only for this grasp connection.
             started = self._monotonic()
             feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning')
-            approach_planner = (getattr(self._port, 'plan_approach', None)
-                                if self._config.require_approach_corridor else None)
             # This optional port returns a path already checked for the same
             # collision and corridor contract, including its fallback route.
             with planning_scope(fast_only):
@@ -725,6 +783,10 @@ class GraspSelector:
                     if fast_only:
                         deferred_paths.append((candidate, arm))
                     continue
+            if (path_checks_endpoints and
+                    not self._check_uncovered_endpoint(
+                        arm, grasp.solution, grasp_path, index, feedback, 'grasp')):
+                continue
             trajectory = TrajectoryAlignment(0.0, 0.0, 0)
             feedback(index, arm, EvaluationStage.TRAJECTORY_ALIGNMENT, 'checking FK samples')
             if isinstance(grasp_path, PlannedPath):
@@ -751,6 +813,10 @@ class GraspSelector:
             if not pregrasp_path:
                 if fast_only:
                     deferred_paths.append((candidate, arm))
+                continue
+            if (path_checks_endpoints and
+                    not self._check_uncovered_endpoint(
+                        arm, pregrasp.solution, pregrasp_path, index, feedback, 'pregrasp')):
                 continue
             selection = Selection(
                 index, arm, candidate, pregrasp.solution, grasp.solution,

@@ -44,7 +44,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         motion_runtime='native' if backend == 'moveit' else 'container')
     if with_collection:
         collection = tmp_path / 'collection.json'
-        collection.write_text(json.dumps({'pregrasp_z_offset_m': .010, 'arms': {side: {
+        collection.write_text(json.dumps({'pregrasp_z_offset_m': .010, 'batch_grasp_ik_before_limit': True,
+            'arms': {side: {
             'gripper': {'approved_existing_mapping': True, 'closed_joint_rad': -.3,
                         'open_joint_rad': 2.4, 'maximum_width_m': .09},
             'home_joint_rad': 'startup', 'bins': {}} for side in ('left', 'right')}}))
@@ -89,7 +90,9 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
     assert config['grasp_direction_pair_position_tolerance_m'] == .00001
     assert config['grasp_direction_pair_axis_tolerance_degrees'] == 1.0
     assert config['require_sensor_scene'] is True
-    assert config['require_gripper_closure_clearance'] is True
+    assert config['require_gripper_closure_clearance'] is False
+    assert config['grasp_octomap_mode'] == 'compare'
+    assert config.get('batch_grasp_ik_before_limit', False) is with_collection
     assert config['asymmetric_gripper_enabled'] is False
     assert config['fixed_jaw_tcp_offset_m'] == 0.
     assert config['fixed_jaw_additional_bias_m'] == 0.

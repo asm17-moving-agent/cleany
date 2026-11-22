@@ -77,11 +77,16 @@ def _launch_nodes(context):
     if value('enable_depth_octomap') == 'true':
         parameters += [str(Path(config.package_path) / 'config/depth_octomap.yaml'), {
             'sensors': ['depth_cloud'], 'depth_cloud.sensor_plugin': value('depth_octomap_plugin')}]
+    capabilities = 'cleany/RequireCollisionDetector cleany/StateValidityBatch'
+    gpu_plugin = Path(get_package_share_directory('cleany_moveit_collision')) / 'gpu_capabilities.xml'
+    if (detector == 'cleany/CalibratedCADFCL' and gpu_plugin.is_file()
+            and value('enable_depth_octomap') == 'true'):
+        capabilities += ' cleany/GpuGraspOctomap'
     parameters.append({
         'use_sim_time': ParameterValue(LaunchConfiguration('use_sim_time'), value_type=bool),
         'allow_trajectory_execution': ParameterValue(LaunchConfiguration('allow_trajectory_execution'), value_type=bool),
         'publish_robot_description_semantic': True,
-        'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
+        'capabilities': capabilities,
         'collision_detector': detector,
         'trajectory_execution.allowed_execution_duration_scaling': ParameterValue(
             LaunchConfiguration('allowed_execution_duration_scaling'), value_type=float),

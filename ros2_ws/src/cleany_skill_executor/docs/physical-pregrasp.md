@@ -77,3 +77,9 @@ GPU 평가 후 전체 오차 통계는 숫자 배열에서 집계하고, 선택�
 ROS 계약은 [인터페이스](interfaces.md#physical_grasp_selection_server)를 따른다.
 
 공통 TCP, 그리퍼, GPU와 운영 충돌 정책은 [공통 파지 설정](shared-grasp-policy.md)을 따른다.
+
+## 파지 후보 배치 IK 선별
+
+`batch_grasp_ik_before_limit`을 켜면 양팔의 위치와 방향 조건을 만족하는
+IK 제안을 먼저 찾고 후보 수 제한을 적용한다. 선택 단계의 관절 범위와
+전체 충돌 장면 검사는 MoveIt에서 수행한다.
