@@ -36,6 +36,8 @@ flowchart LR
 `pregrasp_motion.yaml`은 실물 후보 선택 설정, `geometric_pregrasp.yaml`은 기하학적
 후보 생성 설정이다. `hybrid_motion.yaml`은 GPU IK 설정을 추가한다. 기하학적 후보 생성이
 기본이며 AnyGrasp는 선택 사항이다. 설정의 허용오차는 물리 로봇의 안전 인증 기준이 아니다.
+보정 CAD 모델의 실물 수거는 `geometric_collection_cad.yaml`을 추가로 읽어
+대칭형 그리퍼가 같은 축을 180° 반대 손목 방향에서도 잡는 후보를 생성한다.
 
 `pregrasp_hardware_support.launch.py`에 `collection_config_file`을 지정하면
 선택기는 그 파일의 승인된 그리퍼 열림 각도, 닫힘 각도와 폭 기준을 실행기와
