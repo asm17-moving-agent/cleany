@@ -17,7 +17,9 @@ import numpy as np
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, PoseStamped
 from moveit_msgs.action import MoveGroup
-from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes, RobotState
+from moveit_msgs.msg import (
+    Constraints, JointConstraint, MoveItErrorCodes, OrientationConstraint, RobotState,
+)
 from moveit_msgs.srv import GetCartesianPath, GetPositionFK, GetPositionIK, GetStateValidity
 from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
@@ -25,6 +27,7 @@ from cleany_interfaces.srv import CheckStateValidityBatch
 
 from cleany_skill_executor.core.alignment import (
     axis_errors_degrees,
+    closing_axis_euler_bounds,
     sampled_indices,
     tcp_axes,
     quaternion_axis,
@@ -36,8 +39,10 @@ from cleany_skill_executor.core.urdf_fk import UrdfChain
 from cleany_skill_executor.core.grasp_approach_bounds import (
     GraspApproachYawBounds, active_grasp_approach_yaw,
 )
-from cleany_skill_executor.core.joint_path import executable_joint_path
-from cleany_skill_executor.core.cartesian import CartesianPose, validate_corridor_samples
+from cleany_skill_executor.core.joint_path import executable_joint_path, sample_timed_path
+from cleany_skill_executor.core.cartesian import (
+    CartesianPose, validate_corridor_samples, validate_position_endpoint,
+)
 from cleany_skill_executor.state_validity_batch import StateValidityBatch
 from cleany_skill_executor.core.physical_grasp_selection import (
     ARM_JOINT_NAMES,
@@ -395,6 +400,64 @@ class MoveItGraspAdapter:
         return Constraints(joint_constraints=[JointConstraint(
             joint_name=name, position=center, tolerance_below=center-lower,
             tolerance_above=upper-center, weight=1.0)])
+
+    def _closing_axis_path_constraint(
+        self, arm: str, start: JointSolution, goal: JointSolution, target: PoseValue,
+    ) -> OrientationConstraint | None:
+        # Use the signed TCP +X axis for the selected grasp orientation.
+        reference = target.orientation_xyzw
+        endpoints = (self.forward_kinematics(arm, start).orientation_xyzw,
+                     self.forward_kinematics(arm, goal).orientation_xyzw)
+        bounds = closing_axis_euler_bounds(
+            reference, endpoints, math.radians(self._config.closing_tolerance_degrees))
+        if bounds is None:
+            return None
+        constraint = OrientationConstraint()
+        constraint.header.frame_id = self._config.base_frame
+        constraint.link_name = f'{arm}_grasp_tcp'
+        (constraint.orientation.x, constraint.orientation.y,
+         constraint.orientation.z, constraint.orientation.w) = reference
+        constraint.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
+        constraint.absolute_x_axis_tolerance = math.pi
+        constraint.absolute_y_axis_tolerance, constraint.absolute_z_axis_tolerance = bounds
+        constraint.weight = 1.0
+        return constraint
+
+    def _add_mimic_joint_constraints(self, arm: str, constraints: Constraints) -> None:
+        # MoveIt Humble counts mimic variables when selecting a joint sampler.
+        chain = self._local_fk.get(arm)
+        if chain is None:
+            return
+        by_joint = {constraint.joint_name: constraint for constraint in constraints.joint_constraints}
+        for joint in chain.joints:
+            source = by_joint.get(joint.mimic_joint)
+            if source is None:
+                continue
+            below, above = source.tolerance_below, source.tolerance_above
+            if joint.multiplier < 0.0:
+                below, above = above, below
+            factor = abs(joint.multiplier)
+            constraint = JointConstraint(
+                joint_name=joint.name, position=source.position * joint.multiplier + joint.offset,
+                tolerance_below=factor * below + 1e-12,
+                tolerance_above=factor * above + 1e-12, weight=source.weight)
+            constraints.joint_constraints.append(constraint)
+            by_joint[joint.name] = constraint
+
+    def _cover_joint_sampling_bounds(
+        self, arm: str, names: tuple[str, ...], constraints: Constraints,
+    ) -> None:
+        # Supplying all variable ranges keeps the sampler in joint space.
+        constrained = {joint.joint_name for joint in constraints.joint_constraints}
+        for name in names:
+            if name in constrained:
+                continue
+            lower, upper = self._planning_position_bounds(name)
+            center = (lower + upper) / 2.0
+            constraints.joint_constraints.append(JointConstraint(
+                joint_name=name, position=center, tolerance_below=center-lower,
+                tolerance_above=upper-center, weight=1.0))
+        self._add_mimic_joint_constraints(arm, constraints)
 
     def _solve_position_ik(
         self,
@@ -974,6 +1037,18 @@ class MoveItGraspAdapter:
             if trajectory_scaling is None else float(trajectory_scaling))
         request.start_state = self._merged_state(start)
         approach_constraints = self._grasp_approach_constraints(arm)
+        limit_closing_axis = (corridor is not None and start is not None
+                              and 0.0 < self._config.closing_tolerance_degrees < 90.0)
+        if limit_closing_axis:
+            closing_constraint = self._closing_axis_path_constraint(arm, start, goal, corridor[1])
+            if closing_constraint is None:
+                return None
+            if approach_constraints is None:
+                approach_constraints = Constraints()
+            approach_constraints.orientation_constraints.append(closing_constraint)
+            self._cover_joint_sampling_bounds(arm, goal.names, approach_constraints)
+            if request.planner_id == 'RRTConnectkConfigDefault':
+                request.planner_id = 'RRTConnectGraspApproachkConfigDefault'
         if approach_constraints is not None:
             request.path_constraints = approach_constraints
         constraints = Constraints()
@@ -986,6 +1061,8 @@ class MoveItGraspAdapter:
             constraint.tolerance_below = 1e-4
             constraint.weight = 1.0
             constraints.joint_constraints.append(constraint)
+        if limit_closing_axis:
+            self._add_mimic_joint_constraints(arm, constraints)
         request.goal_constraints = [constraints]
         future = self._plan_client.send_goal_async(action_goal)
         goal_handle = self._wait_future(future, wait_timeout)
@@ -1008,18 +1085,43 @@ class MoveItGraspAdapter:
         trajectory = wrapped.result.planned_trajectory.joint_trajectory
         if not trajectory.points:
             return None
-        path = PlannedPath(
-            tuple(getattr(trajectory, 'joint_names', goal.names)),
-            tuple(tuple(float(value) for value in point.positions) for point in trajectory.points),
+        path = self._path_from_joint_trajectory(trajectory, goal.names)
+        if corridor is None and not self._config.validate_motion_paths and approach_constraints is None:
+            return path
+        return self._validate_moveit_trajectory(arm, path, corridor)
+
+    @staticmethod
+    def _path_from_joint_trajectory(trajectory, default_names: tuple[str, ...] = ()) -> PlannedPath:
+        points = trajectory.points
+        return PlannedPath(
+            tuple(getattr(trajectory, 'joint_names', default_names)),
+            tuple(tuple(point.positions) for point in points),
+            tuple(point.time_from_start.sec+point.time_from_start.nanosec*1e-9 for point in points),
+            tuple(tuple(point.velocities) for point in points) if any(point.velocities for point in points) else (),
+            tuple(tuple(point.accelerations) for point in points)
+            if any(point.accelerations for point in points) else (),
         )
-        if self._grasp_approach_constraints(arm) is not None:
-            for sample in self._path_samples(path):
-                if any(not self._planning_position_bounds(n)[0] <= q <= self._planning_position_bounds(n)[1]
-                       for n, q in zip(path.joint_names, sample.positions)):
-                    return None
+
+    def _validate_moveit_trajectory(self, arm, path, corridor):
+        """Validate the controller spline and preserve the returned trajectory."""
+        if path.joint_names != ARM_JOINT_NAMES[arm]:
+            raise InfrastructureError('Malformed MoveIt trajectory')
+        try:
+            samples = sample_timed_path(
+                path.points, path.times, path.velocities, path.accelerations,
+                self._config.validation_step_rad, self._config.maximum_validation_states)
+        except ValueError:
+            return None
+        bounds = [self._planning_position_bounds(name) for name in path.joint_names]
+        if any(not lower <= q <= upper for sample in samples
+               for (lower, upper), q in zip(bounds, sample.positions, strict=True)):
+            return None
         if corridor is not None:
-            return self._validated_cubic_path(arm, path, corridor=corridor)
-        return self._validated_cubic_path(arm, path) if self._config.validate_motion_paths else path
+            self._verify_local_fk(arm, JointSolution(path.joint_names, path.points[0]))
+            if not self._corridor_samples_valid(
+                    arm, path.joint_names, samples, *corridor, enforce_position=False):
+                return None
+        return path if self._collision_samples_valid(arm, path.joint_names, samples) else None
 
     def _direct_joint_path(self, arm: str, goal: JointSolution) -> PlannedPath | None:
         """Validate the complete executable cubic against the current full scene."""
@@ -1047,6 +1149,9 @@ class MoveItGraspAdapter:
             [self._config.joint_acceleration_limit*self._config.acceleration_scaling]*len(path.joint_names))
 
     def _path_samples(self, path):
+        if path.times:
+            return sample_timed_path(path.points, path.times, path.velocities, path.accelerations,
+                                     self._config.validation_step_rad, self._config.maximum_validation_states)
         return MoveItGraspAdapter._timed_cubic_path(self, path).samples(
             self._config.validation_step_rad, 2, self._config.maximum_validation_states)
 
@@ -1079,8 +1184,7 @@ class MoveItGraspAdapter:
             if result is not None:
                 self.last_plan_route = 'cartesian_approach'
                 return result
-        # The RRT fallback validates one final cubic for both contracts. Do not
-        # retime and collision-check that same result again in the caller.
+        # Validate the original timed RRT trajectory without rebuilding it.
         if getattr(self, '_fast_path_only', False):
             self.last_plan_route = 'rrt_deferred'
             return None
@@ -1208,7 +1312,8 @@ class MoveItGraspAdapter:
                 and MoveItGraspAdapter._corridor_samples_valid(
                     self, arm, path.joint_names, samples, start, target))
 
-    def _corridor_samples_valid(self, arm, names, command_samples, start, target):
+    def _corridor_samples_valid(self, arm, names, command_samples, start, target,
+                                *, enforce_position: bool = True):
         samples = []
         for sample in command_samples:
             solution = JointSolution(names, sample.positions)
@@ -1219,11 +1324,17 @@ class MoveItGraspAdapter:
                 return False
             # Real axes were checked above; only translation remains to validate.
             samples.append(CartesianPose(pose.position, target.orientation_xyzw))
+        if len(samples) < 2:
+            return False
+        start_pose = CartesianPose(start.position, target.orientation_xyzw)
+        target_pose = CartesianPose(target.position, target.orientation_xyzw)
+        radius = self._config.approach_corridor_radius_m
         try:
-            validate_corridor_samples(samples,
-                CartesianPose(start.position, target.orientation_xyzw),
-                CartesianPose(target.position, target.orientation_xyzw),
-                self._config.approach_corridor_radius_m, None, None)
+            if enforce_position:
+                validate_corridor_samples(samples, start_pose, target_pose, radius, None, None)
+            else:
+                validate_position_endpoint(samples[0], start_pose, radius)
+                validate_position_endpoint(samples[-1], target_pose, radius)
         except ValueError:
             return False
         return True

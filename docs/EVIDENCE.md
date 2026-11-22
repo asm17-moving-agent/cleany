@@ -2271,3 +2271,20 @@ Fedora 44, KiCad 10.0.8, 시스템 Python 3.14.10에서 `make test-pcb`가 통�
 펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 보드 기준이며 통합 보드 이식은 별도 작업이다.
 실물 전원 부하, USB 신호 품질, 기구/RF와 제조사 DFM은 검증하지 않았다.
 이 기록은 로컬 검증이며 CI 통과나 사람 승인, main 병합을 의미하지 않는다.
+
+### 2026-11-23 Jetson 운영 MoveIt 원본 궤적
+
+Jetson ROS 2 Humble의 `f45801bc` 작업 트리와 dev-monitor가 사용하는
+`/home/cleany/cleany/ros2_ws/install`에 적용했다. RRTConnect가 반환한
+관절 위치, 시간, 속도와 가속도를 보존하며, 원본 궤적을 따라 관절 한계,
+파지 방향과 충돌을 검사한다. 양팔 파지 접근 및 복귀의 OMPL 해상도는
+0.01이다. 배포 전후 운영 모션 설정 파일 5개의 SHA-256이 동일했다.
+
+두 패키지 격리 빌드와 관련 자동 검사 228개가 통과했다. 저장한
+`case-03` 상자의 OctoMap, 충돌 허용표, 관절 자세와 파지 목표로
+실행을 끈 MoveIt 운영 설치본에 접근 경로를 3회 요청했다. 통과한 2건의
+관절 위치, 시간, 속도와 가속도는 원본 응답과 같았다. 나머지 한 건은
+MoveIt이 왼쪽 손끝과 OctoMap의 충돌을 검출해 반환하지 않았다.
+실물 구동 없이 dev-monitor의 HTTP 응답과 웹 제어 활성 상태를 확인했다.
+배포 전 백업, 해시와 빌드 및 재생 로그는 Jetson
+`/home/cleany/cleany-data/runs/native-rrt-live-deploy-20261123.UPDk1pQ8/`에 있다.

@@ -119,6 +119,7 @@ class PlannedPath:
     points: tuple[tuple[float, ...], ...]
     times: tuple[float, ...] = ()
     velocities: tuple[tuple[float, ...], ...] = ()
+    accelerations: tuple[tuple[float, ...], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

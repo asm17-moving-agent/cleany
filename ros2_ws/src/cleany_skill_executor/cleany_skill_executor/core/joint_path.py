@@ -19,6 +19,56 @@ class JointPathSample:
     derivatives: tuple[float, ...]
 
 
+def sample_timed_path(positions, times, velocities, accelerations,
+                      maximum_joint_step: float, maximum_points: int) -> list[JointPathSample]:
+    """Sample a supplied JTC spline without changing its knots, derivatives or timing."""
+    q = np.asarray(positions, dtype=float)
+    t = np.asarray(times, dtype=float)
+    v = np.asarray(velocities, dtype=float)
+    a = np.asarray(accelerations, dtype=float)
+    if (q.ndim != 2 or len(q) < 2 or q.shape[1] == 0 or t.shape != (len(q),)
+            or t[0] != 0. or np.any(np.diff(t) <= 0.)
+            or any(not np.isfinite(values).all() for values in (q, t, v, a))
+            or (v.size and v.shape != q.shape) or (a.size and (a.shape != q.shape or not v.size))
+            or not math.isfinite(maximum_joint_step) or maximum_joint_step <= 0. or maximum_points < 2):
+        raise ValueError('Invalid timed joint path')
+
+    duration = t[-1]
+    start_rate = v[0] if v.size else (q[1]-q[0])/t[1]
+    samples = [JointPathSample(0., tuple(q[0]), tuple(start_rate*duration))]
+    for i, dt in enumerate(np.diff(t)):
+        start, end = q[i:i+2]
+        delta = end-start
+        coefficients = [start, delta]
+        if v.size:
+            v0, v1 = v[i:i+2]*dt
+            coefficients = [start, v0, 3*delta-2*v0-v1, -2*delta+v0+v1]
+        if a.size:
+            a0, a1 = a[i:i+2]*dt**2
+            dq, dv, da = delta-v0-.5*a0, v1-v0-a0, a1-a0
+            coefficients = [start, v0, .5*a0, 10*dq-4*dv+.5*da, -15*dq+7*dv-da, 6*dq-3*dv+.5*da]
+
+        derivative = np.polynomial.polynomial.polyder(coefficients)
+        degree = len(derivative)-1
+        # A Bernstein bound on |dq/du| keeps neighboring samples within the
+        # configured angular step even when equal endpoints hide an excursion.
+        bernstein = [sum(derivative[k]*math.comb(j, k)/math.comb(degree, k) for k in range(j+1))
+                     for j in range(degree+1)]
+        bound = float(np.max(np.abs(bernstein)))
+        if not math.isfinite(bound):
+            raise ValueError('Invalid timed joint path derivative')
+        count = max(2, math.ceil(bound/maximum_joint_step))
+        if len(samples)+count > maximum_points:
+            raise ValueError('Timed joint path exceeds sample budget')
+        u = np.arange(1, count+1, dtype=float)/count
+        sampled = np.polynomial.polynomial.polyval(u, coefficients).T
+        sampled[-1] = end
+        rates = np.polynomial.polynomial.polyval(u, derivative).T*(duration/dt)
+        samples.extend(JointPathSample(float((t[i]+fraction*dt)/duration), tuple(point), tuple(rate))
+                       for fraction, point, rate in zip(u, sampled, rates, strict=True))
+    return samples
+
+
 class CubicJointPath:
     def __init__(self, positions: list[tuple[float, ...]],
                  progressions: tuple[float, ...] | None = None) -> None:
