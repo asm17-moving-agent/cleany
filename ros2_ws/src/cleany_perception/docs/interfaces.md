@@ -71,6 +71,8 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 처리하지 않는다. `realsense.launch.py`는 `rgb_intrinsics_file`을 우선한다. 설정에 등록된 일련번호와 `serial_no`가 일치하면 패키지에 설치된 보정 파일을 사용한다. 일치하는 설정이 없으면 SDK 보정을 사용한다. 실측 보정 파일을 선택하면 SDK RGB를
 `/camera/sdk/color/*`로 옮기고 SDK 자동 정렬 대신 이 노드를 실행한다.
 
+선택한 물체의 `context_cloud`에는 촬영 시각의 카메라 원점을 점군 좌표계의 미터로 담은 FLOAT32 필드 `vp_x`, `vp_y`, `vp_z`가 있다. 세 값은 한 메시지 안에서 동일하다. XYZ와 RGB는 기존 오프셋을 유지하며 소비자는 `point_step`을 따른다. 원점 필드가 없는 과거 기록도 깊이 기반 파지 입력으로 사용할 수 있다.
+
 ## 헤드캠 비식별 영상
 
 `camera_privacy`는 센서 시각과 좌표계를 유지한 BGR 영상을 발행한다.

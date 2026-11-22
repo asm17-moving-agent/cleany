@@ -55,7 +55,7 @@ def test_longitudinal_height_correction_only_applies_to_eligible_thin_objects():
 
 
 @pytest.mark.parametrize('fractions,ratio', [((), .4), ((.5,), .4), ((float('nan'),), .4),
-                                           ((0.,), 0.), ((0.,), float('nan'))])
+                                           ((0.,), -.1), ((0.,), float('nan'))])
 def test_invalid_longitudinal_search_rejected(fractions, ratio):
     with pytest.raises(ValueError, match='longitudinal'):
         GeometricGraspConfig(longitudinal_offset_fractions=fractions,

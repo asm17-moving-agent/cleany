@@ -9,6 +9,7 @@ import numpy as np
 
 from cleany_grasping.core.models import PointCloud, RawGrasp
 from cleany_grasping.core.target_component import BodyFilter
+from cleany_grasping.core.top_face import TopFace
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,8 @@ class GeometricGraspConfig:
     pad_half_length_m: float = 0.0
     distal_pad_offset_m: float = 0.0
     distal_contact_depth_m: float = 0.003
+    top_face_tolerance_m: float = 0.0
+    top_face_tip_reach_m: float = 0.0
     maximum_top_contact_depth_m: float = 0.0  # 0이면 부피 중심의 접촉점을 유지합니다.
     finger_thickness_m: float = 0.010
     finger_length_m: float = 0.045
@@ -50,6 +53,11 @@ class GeometricGraspConfig:
 
     def __post_init__(self) -> None:
         BodyFilter(self.body_connectivity_radius_m, self.minimum_body_fraction)
+        if (not math.isfinite(self.top_face_tolerance_m) or self.top_face_tolerance_m < 0
+                or not math.isfinite(self.top_face_tip_reach_m) or self.top_face_tip_reach_m < 0
+                or (self.top_face_tolerance_m and not (0 < self.distal_pad_offset_m
+                                                        <= self.top_face_tip_reach_m))):
+            raise ValueError('Top-face fitting requires a calibrated pad offset and fingertip reach')
         positive = (
             self.maximum_gripper_width_m,
             self.opening_margin_m,
@@ -130,6 +138,7 @@ class _PreparedGeometry:
     obstacles: np.ndarray
     distal_contact_height: float | None
     distal_surface_xy: np.ndarray | None
+    top_face: TopFace | None
 
 
 def _fit_support_plane(
@@ -414,7 +423,9 @@ class GeometricGraspPredictor:
                 distal_height = top - self._config.distal_contact_depth_m
                 surface = target[np.abs(heights - distal_height) <= self._config.plane_distance_threshold_m]
                 distal_xy = surface @ np.column_stack((major, minor))
+        top_face = TopFace.fit(body, context_cloud, normal, self._config.top_face_tolerance_m)
         return _PreparedGeometry(
+            top_face=top_face,
             distal_contact_height=distal_height,
             distal_surface_xy=distal_xy,            target=target,
             target_median=np.median(target, axis=0),
@@ -433,6 +444,33 @@ class GeometricGraspPredictor:
             self._iter_prepared(prepared),
             self._config.maximum_candidates,
         ))
+
+    def _top_face_candidates(
+        self, prepared: _PreparedGeometry, rotation: np.ndarray,
+        yaw_degrees: float, base_axis: np.ndarray,
+    ) -> Iterator[RawGrasp]:
+        """Measure shallow contacts independently of deeper grasps at the same yaw."""
+        face = prepared.top_face
+        if face is None:
+            return
+        cfg = self._config
+        approach, _, lateral = rotation.T
+        half_span = cfg.finger_length_m / 2
+        angle_score = 1 - min(abs(yaw_degrees), 45.) / 45.
+        short_axis_score = abs(float(base_axis @ prepared.minor))
+        for site in _longitudinal_contacts(prepared.center, lateral, prepared.normal, face.points, cfg):
+            section = face.contact(
+                prepared.target, site, rotation, half_span, cfg.distal_pad_offset_m,
+                cfg.distal_contact_depth_m, cfg.top_face_tip_reach_m, cfg.opening_margin_m,
+                cfg.extent_trim_percentile)
+            if section is None or section.opening_m > cfg.maximum_gripper_width_m:
+                continue
+            width_score = 1 - (section.face_width_m + cfg.opening_margin_m) / cfg.maximum_gripper_width_m
+            score = .55 * width_score + .30 * angle_score + .15 * short_axis_score
+            yield RawGrasp(
+                rotation=rotation, translation=section.center - cfg.grasp_depth_m * approach,
+                width_m=section.opening_m, depth_m=cfg.grasp_depth_m, score=float(np.clip(score, 0., 1.)),
+                pad_offset_m=cfg.distal_pad_offset_m, face_width_m=section.face_width_m)
 
     def _iter_prepared(
         self,
@@ -493,6 +531,7 @@ class GeometricGraspPredictor:
                 lateral = np.cross(approach, closing)
                 lateral /= np.linalg.norm(lateral)
                 rotation = np.column_stack((approach, closing, lateral))
+                generated.extend(self._top_face_candidates(prepared, rotation, yaw_degrees, base_axis))
                 closing_coordinates = (target - center) @ closing
                 trim = self._config.extent_trim_percentile
                 low, high = np.percentile(
@@ -540,7 +579,8 @@ class GeometricGraspPredictor:
         else:
             generated.sort(key=lambda candidate: candidate.score, reverse=True)
         for candidate in generated:
-            distal = _distal_pad_candidate(candidate, prepared, self._config)
+            distal = (None if candidate.pad_offset_m else
+                      _distal_pad_candidate(candidate, prepared, self._config))
             poses = (distal, candidate) if distal is not None else (candidate,)
             for pose in poses:
                 if not _collides(pose.translation, pose.rotation, pose.width_m,

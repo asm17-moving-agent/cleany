@@ -89,3 +89,33 @@ def test_two_visible_parts_separated_by_occlusion_keep_their_full_span():
     assert body.detached is None
     np.testing.assert_array_equal(body.points, parts.points)
     assert context is parts
+
+
+def test_nearby_fragments_do_not_pull_far_returns_into_the_grasp_center():
+    from cleany_grasping.core.selector import GraspConfig
+
+    x, y = np.meshgrid(np.arange(12) * .004, np.arange(9) * .004)
+    surface = np.column_stack((x.ravel(), y.ravel(), np.full(x.size, .04)))
+    # Two short gaps at a real rim, followed by two distant depth returns.
+    rim = np.array([[.057, .016, .04], [.073, .016, .04]])
+    stray = np.array([[.20, .016, .01], [.30, .016, .01]])
+    expected = np.vstack((surface, rim))
+    points = np.vstack((expected, stray))
+    order = np.random.default_rng(8).permutation(len(points))
+    target = cloud(points[order])
+    table = cloud(np.column_stack((x.ravel() * 6 - .08, y.ravel() * 6 - .08, np.zeros(x.size))))
+    body, context, _ = GraspConfig().prediction_inputs(target, table)
+    np.testing.assert_array_equal(body.points, target.points[order < len(expected)])
+    for point in stray:
+        assert np.any((context.points == point).all(axis=1))
+    predictor = GeometricGraspPredictor()
+    corrected = predictor._prepare_geometry(body, context)
+    reference = predictor._prepare_geometry(cloud(expected), context)
+    np.testing.assert_allclose(corrected.center, reference.center, atol=1e-10)
+
+
+def test_fragment_at_exactly_two_radii_remains_detached():
+    # Binary-exact coordinates exercise the strict boundary at two radii.
+    x = np.r_[np.arange(32) * .5, 17., 19.]
+    points = np.column_stack((x, np.zeros((len(x), 2))))
+    np.testing.assert_array_equal(dominant_body_mask(points, 1., .90), x < 19.)

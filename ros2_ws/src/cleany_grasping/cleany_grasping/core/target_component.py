@@ -24,7 +24,8 @@ class GraspTarget(PointCloud):
         if not missing.any():
             return context
         return PointCloud(np.vstack((context.points, points[missing])),
-                          np.vstack((context.colors, self.detached.colors[missing])))
+                          np.vstack((context.colors, self.detached.colors[missing])),
+                          viewpoint=context.viewpoint)
 
 
 @dataclass(frozen=True)
@@ -50,11 +51,7 @@ class BodyFilter:
 
 
 def dominant_body_mask(points: np.ndarray, radius_m: float, minimum_fraction: float) -> np.ndarray:
-    """Keep the original mask unless one connected body is sufficiently dominant and isolated.
-
-    Components use 3-D Euclidean distances. A gap of at least two sampling
-    radii is required so a single missing depth sample cannot split a jaw span.
-    """
+    """Keep a dominant 3-D component and fragments reachable across short depth gaps."""
     whole = np.ones(len(points), dtype=bool)
     if radius_m == 0 or len(points) < 4:
         return whole
@@ -83,5 +80,17 @@ def dominant_body_mask(points: np.ndarray, radius_m: float, minimum_fraction: fl
     if counts[largest] < max(3, minimum_fraction * len(points)):
         return whole
     body = labels == largest
-    gap, _ = cKDTree(points[body]).query(points[~body], k=1)
-    return body if gap.min() >= 2 * radius_m else whole
+    frontier = points[body]
+    max_gap = 2 * radius_m
+    # Join whole fragments across small sampling gaps, including chains along a rim.
+    # An adjacent fragment does not make unrelated, distant returns part of the body.
+    while not body.all():
+        remaining = ~body
+        gaps, _ = cKDTree(frontier).query(points[remaining], distance_upper_bound=max_gap)
+        adjacent_labels = np.unique(labels[remaining][gaps < max_gap])
+        if not adjacent_labels.size:
+            break
+        joined = np.isin(labels, adjacent_labels)
+        body |= joined
+        frontier = points[joined]
+    return body

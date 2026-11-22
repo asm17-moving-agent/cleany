@@ -149,6 +149,7 @@ def rank_grasps(
                 translation=candidate.translation + candidate.depth_m * candidate.rotation[:, 0],
                 approach_direction=approach,
                 required_opening_m=candidate.width_m,
+                face_width_m=candidate.face_width_m,
                 depth_m=candidate.depth_m,
                 score=candidate.score,
             )

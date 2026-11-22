@@ -1180,7 +1180,7 @@ class InspectionNode(Node):
         stamp = Time(nanoseconds=snapshot.stamp_ns).to_msg()
         return (
             colored_point_cloud_message(target, stamp, target_frame),
-            colored_point_cloud_message(context, stamp, target_frame),
+            colored_point_cloud_message(context, stamp, target_frame, viewpoint=capture_transform.translation),
         )
 
     def _publish_debug_image(self, message: Image) -> None:
