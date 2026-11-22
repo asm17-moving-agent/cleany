@@ -3,6 +3,21 @@ import math
 
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+from .core.hardware_execution import CommandPathValidationError
+from .core.recorded_trajectory import CommandPoint, RecordedTrajectory
+
+
+def recorded_from_message(message: JointTrajectory) -> RecordedTrajectory:
+    """Read a JTC arm command in nanoseconds, retaining its acceleration fields."""
+    if any(point.effort for point in message.points):
+        raise CommandPathValidationError('Arm path must not contain effort commands')
+    path = RecordedTrajectory(tuple(message.joint_names), tuple(
+        CommandPoint(point.time_from_start.sec*10**9+point.time_from_start.nanosec,
+                     tuple(point.positions), tuple(point.velocities), tuple(point.accelerations))
+        for point in message.points))
+    path.validate()
+    return path
+
 
 def path_to_message(path):
     message = JointTrajectory()

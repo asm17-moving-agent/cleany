@@ -10,6 +10,93 @@ from cleany_skill_executor.core.collection import (
 from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 
+
+@pytest.mark.parametrize('offset,latest_offset,replan,collision', [
+    (0., 0., False, False), (.005, .005, False, False),
+    (.0051, .0051, True, False), (.003, .006, True, False), (0., 0., False, True),
+])
+def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
+        monkeypatch, offset, latest_offset, replan, collision):
+    from contextlib import nullcontext
+    from geometry_msgs.msg import Pose
+    from sensor_msgs.msg import JointState
+    from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+    from cleany_skill_executor.collection_pipeline import CollectionPipeline
+    from cleany_skill_executor.core.cartesian import CartesianPose
+    from cleany_skill_executor.core.hardware_execution import CollisionValidationError
+    import cleany_skill_executor.hardware_execution as transport
+
+    arm = 'left'
+    names = ARM_JOINT_NAMES[arm]
+    selected = JointTrajectory(joint_names=list(names), points=[
+        JointTrajectoryPoint(positions=[0.]*5, velocities=[0.]*5, accelerations=[.03]*5),
+        JointTrajectoryPoint(positions=[.06]*5, velocities=[.08]*5, accelerations=[-.01]*5),
+        JointTrajectoryPoint(positions=[.1]*5, velocities=[0.]*5, accelerations=[-.05]*5),
+    ])
+    for index, point in enumerate(selected.points):
+        point.time_from_start.sec = index
+    msg = NS(selected_arm=arm, grasp_trajectory=selected, fk_grasp_pose=Pose())
+    goal = CartesianPose((.2, 0., .3), (0., 0., 0., 1.))
+    limit = PhysicalJointLimit(-2., 2., 2., 8., 2048., 1., 0., 0., 4095.)
+    values = {'hardware_velocity_rad_s': 2., 'hardware_acceleration_rad_s2': 8.,
+              'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
+              'hardware_start_tolerance_rad': .005, 'hardware_arrival_tolerance_rad': .1,
+              'hardware_uncommanded_tolerance_rad': .03}
+    sent, checked, replanned = [], [], []
+    state = JointState(name=list(names), position=[latest_offset, 0., 0., 0., 0.])
+
+    def run_action(_client, request, _timeout, **options):
+        assert options['monitor']
+        sent.append(deepcopy(request.trajectory))
+        state.position = list(request.trajectory.points[-1].positions)
+        return NS(error_code=0, SUCCESSFUL=0)
+
+    monkeypatch.setattr(transport.HardwareExecution, '_wait_before_execution',
+        lambda *_: JointState(name=list(names), position=[offset, 0., 0., 0., 0.]))
+    monkeypatch.setattr(transport.HardwareExecution, '_start_motion_monitor', lambda *_: None)
+    def validate(_self, _arm, _names, samples, *_args, **kw):
+        checked.append((list(samples), kw['hold_bridge_samples']))
+        if collision:
+            raise CollisionValidationError('changed scene', phase='command_path', sample_index=2)
+
+    monkeypatch.setattr(transport.HardwareExecution, 'validate_collision_samples', validate)
+    node = NS(config={'approach_execution_replanning_enabled': True},
+              event=lambda *_, **__: None, cartesian_pose=lambda _: goal,
+              pose=lambda _: msg.fk_grasp_pose, run_action=run_action,
+              get_logger=lambda: NS(info=lambda *_: None, warning=lambda *_: None),
+              create_motion_client=lambda *_: NS(destroy=lambda: None),
+              replan_approach_from_arrival=lambda *args: replanned.append(args))
+    real = object.__new__(transport.HardwareExecution)
+    real.node, node.real = node, real
+    real.arm_holds, real.last_execution_metrics, real.uncommanded = {}, {}, None
+    real.motion_submissions = 0
+    real.frozen_sensor_scene = nullcontext
+    real.positive_integer = lambda _: 1
+    real.monitor = lambda: deepcopy(state)
+    real.verify = lambda _: dict.fromkeys(names, limit)
+    real.value = values.__getitem__
+    real.verify_arm_endpoint = lambda *a, **k: (state, {})
+    node.execute_selected_approach = lambda *a: CollectionPipeline.execute_selected_approach(node, *a)
+    report = {}
+    if collision:
+        with pytest.raises(CollisionValidationError, match='changed scene'):
+            CollectionPipeline._approach_target(node, msg, report)
+        assert not sent and not replanned
+        return
+    with real.record_arm_commands(arm) as recording:
+        CollectionPipeline._approach_target(node, msg, report)
+    if replan:
+        assert report['approach_execution_route'] == 'replanned_from_arrival'
+        assert len(replanned) == 1
+        assert not sent and not recording.trajectories
+    else:
+        assert report['approach_execution_route'] == 'selected_trajectory'
+        assert sent == [selected]
+        assert len(checked) == 1 and len(checked[0][0]) > len(selected.points)
+        assert bool(checked[0][1]) == bool(offset)
+        assert not replanned
+        assert recording.trajectories[0].points[1].accelerations == tuple(selected.points[1].accelerations)
+
 def config():
     return {'frame':'base_link','commissioning_verified':True,'label_destinations':{'bottle':'recycling'},
             'lift_height_m':.05,'cartesian_step_m':.005,'cartesian_tolerance_m':.005,

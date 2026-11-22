@@ -33,17 +33,17 @@ from .core.grasp_approach_bounds import active_grasp_approach_yaw, declare_grasp
 from .state_validity_batch import StateValidityBatch
 from .execution_timing import timed_operation
 from .readonly_services import ReadOnlyBatch, call_readonly_services
-from .trajectory_io import command_samples_to_message
+from .trajectory_io import command_samples_to_message, recorded_from_message
 from .core.cartesian import CartesianPose, orientation_error_rad, validate_height_correctable_endpoint
 from .core.hardware_execution import (
     ArmHold, CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
-    CommunicationRecovered, ExecutionCanceled, bounded_path, bridge_joint_path,
+    CommunicationRecovered, ExecutionCanceled, RecordedStartMismatch, bounded_path, bridge_joint_path,
     continue_joint_path, physical_limits, prepare_bounded_path, remaining_joint_path,
 )
 from .core.joint_path import executable_joint_path
 from .core.joint_stability import JointStabilityHistory
 from .core.recorded_trajectory import (
-    ArmCommandRecording, CommandPoint, RecordedTrajectory, validate_recorded_trajectory,
+    ArmCommandRecording, RecordedTrajectory, validate_recorded_trajectory,
     stopped_recorded_window, retime_recorded_trajectory,
 )
 from .core.motion_monitor import MotionMonitor, MotionMonitorConfig
@@ -1200,6 +1200,17 @@ class HardwareExecution:
         finally:
             self._arm_command_recording = None
 
+    def execute_selected_trajectory(self, arm: str, trajectory: JointTrajectory, *,
+                                    check_collisions: bool, endpoint_pose: CartesianPose):
+        """Dispatch the timed selection unchanged once the settled joints match."""
+        recorded = recorded_from_message(trajectory)
+        if any(abs(value) > 1e-9 for point in (recorded.points[0], recorded.points[-1])
+               for value in point.velocities):
+            raise CommandPathValidationError('Selected approach requires stopped endpoints')
+        return self.execute(arm, trajectory, 'arm', recorded_trajectory=recorded,
+                            endpoint_pose=endpoint_pose, check_orientation=False,
+                            check_collisions=check_collisions)
+
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
@@ -1260,7 +1271,7 @@ class HardwareExecution:
             except CommunicationRecovered as error:
                 if options.get('recorded_trajectory') is not None:
                     self.fail_stop()
-                    raise RuntimeError('Interrupted recorded retreat cannot resume its exact path') from error
+                    raise RuntimeError('Interrupted recorded trajectory cannot resume its exact path') from error
                 if not error.cancellation_confirmed or attempt >= limit:
                     self.fail_stop()
                     raise RuntimeError('Communication recovery could not confirm stop or resume limit exceeded') from error
@@ -1285,6 +1296,15 @@ class HardwareExecution:
                 'hardware_start_tolerance_rad'):
             self.node.get_logger().info('Small start drift: connecting measured joints to the planned path')
         return points
+
+    def _check_recorded_start(self, names, planned, measured):
+        joints = tuple(measured[name] for name in names)
+        if not all(math.isfinite(angle) for angle in joints):
+            raise CommandPathValidationError('Saved approach requires finite measured joints')
+        error = max(abs(actual-goal) for actual, goal in zip(joints, planned, strict=True))
+        tolerance = self.value('hardware_start_tolerance_rad')
+        if error > tolerance:
+            raise RecordedStartMismatch(error, tolerance)
 
     def _can_refresh_path(self, drift, commanded, attempt):
         return (attempt < self.positive_integer('hardware_path_refresh_attempts')
@@ -1415,6 +1435,10 @@ class HardwareExecution:
         positions = [tuple(p.positions) for p in trajectory.points]
         if len(positions) < 2 or any(len(p) != len(expected) for p in positions):
             raise RuntimeError('Malformed physical trajectory positions')
+        direct_replay = recorded_trajectory is not None and held_command is None
+        if direct_replay:
+            # A non-held replay has no new start point in the controller command.
+            HardwareExecution._check_recorded_start(self, expected, positions[0], baseline)
         nominal_target = positions[-1]
         if contact_close and (controller != 'gripper' or abs(
                 nominal_target[0]-self.closed_contact_position(arm, limits)) > 1e-9):
@@ -1426,7 +1450,7 @@ class HardwareExecution:
                     or tuple(positions) != tuple(p.positions for p in recorded_trajectory.points)):
                 raise CommandPathValidationError('Recorded trajectory joint/controller mapping mismatch')
             # These are the already transformed commands. Preserve their exact
-            # timestamps and velocities; do not add an old hold bias or simplify.
+            # timestamps and derivatives; do not add a hold bias or simplify.
             replay_collision_samples = validate_recorded_trajectory(
                 recorded_trajectory, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
@@ -1462,11 +1486,11 @@ class HardwareExecution:
                                 joints=list(range_exemptions), raw_encoder_check_enabled=True)
         collision_samples = samples if recorded_trajectory is None else replay_collision_samples
         hold_bridge_samples = 0
-        if held_command is None:
+        if held_command is None and not direct_replay:
             if any(abs(baseline[n]-q) > self.value('hardware_start_tolerance_rad')
                    for n, q in zip(expected, samples[0].positions)):
                 raise RuntimeError('Physical start changed; replan required')
-        else:
+        if held_command is not None:
             held_command = tuple(float(value) for value in held_command)
             if (controller != 'arm' or len(held_command) != len(expected)
                     or any(not math.isfinite(value) for value in held_command)
@@ -1479,14 +1503,15 @@ class HardwareExecution:
                         measured_start, held_command, strict=True)):
                 raise RuntimeError(
                     'Physical hold departed too far for continuous path')
-            # The controller must keep ``held_command`` as its first desired
-            # point, but collision validation must also cover the small
-            # gravity/backlash displacement from the measured robot state back
-            # toward that still-active setpoint.
+        if direct_replay or held_command is not None:
+            measured_start = tuple(float(baseline[name]) for name in expected)
+            command_start = samples[0].positions
+            # Collision samples include the small gap from measured joints to
+            # the first setpoint without inserting points into the command.
             if max(abs(measured-command) for measured, command in zip(
-                    measured_start, held_command, strict=True)) > 1e-7:
+                    measured_start, command_start, strict=True)) > 1e-7:
                 bridge, _ = bounded_path(
-                    expected, [measured_start, held_command], limits,
+                    expected, [measured_start, command_start], limits,
                     velocity=self.value('hardware_velocity_rad_s'),
                     acceleration=self.value('hardware_acceleration_rad_s2'),
                     step=self.value('hardware_path_step_rad'),
@@ -1534,6 +1559,9 @@ class HardwareExecution:
             baseline, latest, expected,
             self.value('hardware_start_tolerance_rad'),
             self.value('hardware_uncommanded_tolerance_rad'))
+        if direct_replay and set(drift) <= set(expected):
+            HardwareExecution._check_recorded_start(
+                self, expected, positions[0], dict(zip(latest.name, latest.position)))
         if drift:
             if HardwareExecution._can_refresh_path(self, drift, expected, _refresh_attempt):
                 self.node.get_logger().info('Small drift during collision validation: refreshing the path once')
@@ -1571,6 +1599,7 @@ class HardwareExecution:
             if recorded_trajectory is not None:
                 saved = recorded_trajectory.points[index]
                 ns, point.velocities = saved.time_ns, list(saved.velocities)
+                point.accelerations = list(saved.accelerations)
             point.time_from_start.sec, point.time_from_start.nanosec = divmod(ns, 10**9)
             command.points.append(point)
         self.node.get_logger().info(json.dumps({
@@ -1679,9 +1708,7 @@ class HardwareExecution:
             self.last_execution_metrics['start_from_measured'] = start_from_measured
             recording = getattr(self, '_arm_command_recording', None)
             if controller == 'arm' and recording is not None and recording.arm == arm:
-                recording.trajectories.append(RecordedTrajectory(tuple(command.joint_names), tuple(
-                    CommandPoint(p.time_from_start.sec*10**9+p.time_from_start.nanosec,
-                                 tuple(p.positions), tuple(p.velocities)) for p in command.points)))
+                recording.trajectories.append(recorded_from_message(command))
             return actual
         except BaseException as error:
             recording = getattr(self, '_arm_command_recording', None)

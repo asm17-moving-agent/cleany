@@ -39,7 +39,7 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 | 파라미터 | Jetson 값 | 적용 내용 |
 |---|---|---|
 | `hardware_trajectory_limit_scale` | 1.0 | 현재 관절별 속도와 가속도 상한을 명령 시간 계산에 반영. 코드 기본값은 0.8 |
-| `hardware_path_step_rad` | 0.02 | cubic 경로의 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
+| `hardware_path_step_rad` | 0.02 | 궤적 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
 | `hardware_start_delay_sec`, `hardware_return_start_delay_sec` | 0.2초 | 팔과 그리퍼의 공통 시작 여유. 시작 전 수락 조건 유지 |
 | `hardware_retime_retreat` | true | 기록 후퇴 곡선의 속도와 가속도 극값으로 실행 시간을 다시 계산 |
 | `hardware_retreat_min_duration_sec`, `hardware_lift_min_duration_sec` | 0.3초 | 후퇴 역재생과 일반 들어올리기의 최소 시간. 실제 제한이 요구하면 더 길어짐 |
@@ -50,6 +50,13 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 시간 계산의 5% 수치 여유와 관절 범위 검사는 유지한다. 곡선 표본은 벡터 계산하고
 URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 복사하고 하나의 응답
 대기 반복에서는 같은 측정을 두 번 만들지 않는다.
+
+파지 접근에서 준비점에 정착한 관절각과 선택된 궤적의 첫 점이 모든 팔 관절에서
+`hardware_start_tolerance_rad`(기본 0.005 rad) 이내이면 원본 관절 위치, 시간,
+속도와 가속도를 제어기에 전달한다. 전송 직전에도 시작 자세를 비교한다. 둘 중
+어느 검사에서든 허용치를 넘으면 실측 자세에서 같은 파지 TCP로 다시 계획한다.
+원본 궤적도 관절 범위, 속도, 가속도와 운영 충돌 정책을 적용한 전송 전 검사를
+받는다. 후퇴용 기록에는 실제 보낸 가속도도 저장한다.
 
 복귀 조회는 현재 팔, 명령 횟수, 통신 복구 세대와 신선도가 일치할 때 한 번 소비한다.
 후퇴 직후의 도착 확인은 전체 관절 위치와 모델이 정확히 같을 때만 재사용한다.

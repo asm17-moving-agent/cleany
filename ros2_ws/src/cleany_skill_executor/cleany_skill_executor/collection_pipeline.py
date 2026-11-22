@@ -44,6 +44,7 @@ from .core.approach_path import (
 )
 from .core.hardware_execution import (
     CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
+    RecordedStartMismatch,
 )
 from .core.joint_path import executable_joint_path
 from .core.measured_fk_cache import MeasuredFkCache
@@ -1011,7 +1012,7 @@ class CollectionPipeline(PregraspPipeline):
             report['approach_collision_checks_enabled'] = False
             self.event('approach_collision_checks_disabled', arm=selected.selected_arm)
             if self.config.get('approach_execution_replanning_enabled', False):
-                return self.replan_approach_from_arrival(selected, report)
+                return self.execute_selected_approach(selected, report)
             return self.linear(
                 selected.selected_arm, selected.fk_grasp_pose, 'approach',
                 self.selected_grasp_roll(selected, selected.selected_arm),
@@ -1077,7 +1078,7 @@ class CollectionPipeline(PregraspPipeline):
     def _approach_target(self, selected, report: dict):
         """Retry only unexecuted, rejected paths; retain the selected grasp pose."""
         if self.config.get('approach_execution_replanning_enabled', False):
-            return self.replan_approach_from_arrival(selected, report)
+            return self.execute_selected_approach(selected, report)
         arm, target = selected.selected_arm, selected.fk_grasp_pose
         roll = self.selected_grasp_roll(selected, arm)
         if not self.config.get('approach_collision_replanning_enabled', False):
@@ -1154,6 +1155,27 @@ class CollectionPipeline(PregraspPipeline):
         recovery['outcome'] = 'detours_exhausted' if routes else 'final_entry_or_length_limit'
         raise RuntimeError('Approach collision recovery stopped: '+recovery['outcome']+
                            '; '+str(last_error)) from last_error
+
+    def execute_selected_approach(self, selected, report: dict):
+        """Reuse the saved approach unless its first point no longer matches."""
+        arm = selected.selected_arm
+        submissions = self.real.motion_submissions
+        try:
+            self.real.execute_selected_trajectory(
+                arm, selected.grasp_trajectory,
+                endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
+                check_collisions=self.config.get('approach_collision_check_enabled', True))
+        except RecordedStartMismatch as error:
+            if error.motion_started or self.real.motion_submissions != submissions:
+                raise
+            report['approach_execution_route'] = 'replanned_from_arrival'
+            self.event('approach_saved_start_mismatch', arm=arm,
+                       error_rad=error.maximum_error_rad, tolerance_rad=error.tolerance_rad)
+            return self.replan_approach_from_arrival(selected, report)
+        report['approach_execution_route'] = 'selected_trajectory'
+        self.event('approach_selected_trajectory_executed', arm=arm,
+                   command_points=len(selected.grasp_trajectory.points))
+        return self.pose(arm)
 
     def replan_approach_from_arrival(self, selected, report: dict):
         """Replan from fresh arrival, then preserve the held start without rebiasing."""
