@@ -46,3 +46,17 @@ ACM은 기존 배포 구현을 따른다. 기존 제어 모델과의 충돌 구�
 `real_control.launch.py`는 하드웨어 노드를 만들기 전에 거부한다. 프로파일
 생성과 별도 domain의 FK, 충돌, 계획 및 GPU 검증에는 모터 드라이버가 필요
 없다. 이 플래그를 수동으로 바꾸어 충돌 실패를 우회하지 않는다.
+
+## Jetson 파지 후보의 OctoMap 검사
+
+Jetson Orin에서 `cleany_moveit_collision`을 `-DCLEANY_ENABLE_CUDA_OCTOMAP=ON`으로
+빌드하면 실물 MoveIt의 깊이 지도 실행에 `/check_grasp_octomap`을 등록한다. 서비스는
+현재 장면과 OctoMap을 읽기 잠금한 상태에서 최대 64개 IK 자세를 검사한다.
+지도 또는 충돌 형상이 바뀌면 CUDA 데이터를 갱신한다. 지원하지 않는 장면이나 CUDA
+오류에서는 선택기가 기존 MoveIt 검사를 사용한다.
+
+`/grasp_selection_server`의 `grasp_octomap_mode`은 `off`, `compare`, `on`을 받는다.
+`compare`는 같은 지도에서 MoveIt의 OctoMap 결과를 비교한다. 두 검사가 일치하면
+GPU에서 겹침이 확인된 후보를 제외한다. 결과가 다르면 전체 배치를 MoveIt으로 다시 검사한다.
+`on`은 비교 호출을 생략한다. GPU 검사에서 충돌이 없었던 후보의 최종 자세와 경로는
+MoveIt에서 전체 장면을 기준으로 검사한다.

@@ -46,7 +46,8 @@ def setup(context):
     if collection_file:
         collection = json.loads(Path(collection_file).expanduser().resolve().read_text())
         policy = {name: collection.get(name, default) for name, default in (
-            ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False))}
+            ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False),
+            ('batch_grasp_ik_before_limit', False))}
         if any(type(setting) is not bool for setting in policy.values()):
             raise ValueError('Collection selection policy values must be boolean')
         pregrasp_z = collection.get('pregrasp_z_offset_m', 0.)

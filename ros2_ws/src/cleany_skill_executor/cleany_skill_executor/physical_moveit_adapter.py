@@ -1155,6 +1155,11 @@ class MoveItGraspAdapter:
         return MoveItGraspAdapter._timed_cubic_path(self, path).samples(
             self._config.validation_step_rad, 2, self._config.maximum_validation_states)
 
+    @property
+    def validates_path_endpoints(self) -> bool:
+        """Include the first and last samples in final MoveIt path validation."""
+        return self._config.validate_motion_paths
+
     def plan_approach(self, arm, goal, start, start_pose, target_pose):
         """Try validated joint/Cartesian approaches before the RRT fallback.
 

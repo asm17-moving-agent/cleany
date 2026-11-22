@@ -45,6 +45,23 @@ install(DIRECTORY include/ DESTINATION include)
 ament_export_targets(solid_collision_targets HAS_LIBRARY_TARGET)
 ament_export_dependencies(moveit_core geometric_shapes fcl)
 
+option(CLEANY_ENABLE_CUDA_OCTOMAP "Build the Jetson CUDA OctoMap grasp capability" OFF)
+if(CLEANY_ENABLE_CUDA_OCTOMAP)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  find_package(cleany_interfaces REQUIRED)
+  find_package(octomap REQUIRED)
+  add_library(cleany_gpu_grasp_octomap SHARED src/gpu_grasp_octomap.cpp src/octomap_cuda.cu)
+  target_compile_features(cleany_gpu_grasp_octomap PRIVATE cxx_std_17)
+  set_target_properties(cleany_gpu_grasp_octomap PROPERTIES CUDA_ARCHITECTURES 87 CUDA_STANDARD 17)
+  ament_target_dependencies(cleany_gpu_grasp_octomap cleany_interfaces moveit_ros_move_group
+    moveit_ros_planning_interface moveit_core geometric_shapes pluginlib rclcpp)
+  target_link_libraries(cleany_gpu_grasp_octomap cleany_calibrated_cad_collision
+    CUDA::cudart fcl ${OCTOMAP_LIBRARIES})
+  pluginlib_export_plugin_description_file(moveit_ros_move_group gpu_capabilities.xml)
+  install(TARGETS cleany_gpu_grasp_octomap LIBRARY DESTINATION lib)
+endif()
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(urdf REQUIRED)
