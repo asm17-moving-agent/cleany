@@ -1,17 +1,15 @@
 # 매니퓰레이션 Action 설계 안내
 
-> **구현 안내와 후속 연동 설계.** 초기 설계 기준은 2026-09-30의 GitHub KB `main` (`4b6816e`)입니다.
-> 이 브랜치에는 Mock Action 서버와 MuJoCo BT Action 서버가 구현되어 있습니다.
-> 아래 Mission Manager·Planner 흐름은 후속 연동 목표이며, 현재 서버와의 통합 완료를 뜻하지 않습니다.
+한 Goal은 승인된 물체 하나의 조작을 요청합니다. Gazebo 미션은 Mock 조작 서버와 연동할 수 있습니다. 고정 베이스 MuJoCo에서는 BT Action 서버가 인식·MoveIt·그리퍼를 연결합니다. Jetson에서 실물 수거를 실행하는 조건은 [실물 수거 가이드](physical-collection.md)를 따릅니다.
 
 | 바로 확인할 내용 | 문서 |
 |---|---|
 | 모델 없이 실행·취소·조회 | [Mock 사용법](manipulation-mock-usage.md) |
 | MuJoCo·인식·MoveIt 연동 실행 | [BT 서버 README](../../cleany_manipulation_bt/README.md) |
 | Goal·Feedback·Result 필드 | [공통 Action 명세](execute-manipulation-skill-action-spec.md) |
-| Mission Manager와 연결할 책임 | [Mission 연동 후속 작업](../../cleany_mission_manager/docs/manipulation-mock-integration.md) |
+| Mission Manager와 연결할 책임 | [Gazebo 미션과 Mock 조작 연동](../../cleany_mission_manager/docs/manipulation-mock-integration.md) |
 
-## 먼저 이해할 한 문장
+## 행동의 실행 단위
 
 **Mission Manager가 행동 하나를 승인하고, Manipulation Action 서버가 그 행동의
 팔과 그리퍼 동작을 수행한 뒤 결과를 돌려줍니다.**
@@ -29,22 +27,7 @@
 | 모든 팔 동작을 Mission Manager가 지시하는가? | 접근, 들기, 운반 등의 동작은 Skill Executor 내부에서 처리합니다. |
 | 서버 개발에 Mission Manager 완성이 필요한가? | 같은 검증 조건을 갖춘 테스트 클라이언트와 mock port로 개발할 수 있습니다. |
 
-## 기준으로 읽은 KB
-
-| 문서 | 적용하는 내용 |
-|---|---|
-| [Mission Lifecycle](../../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md) | 행동 하나 승인, 성공과 실패 및 차단 후 재관찰 |
-| [Task Planning and Robot Capabilities](../../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Task%20Planning%20and%20Robot%20Capabilities.md) | Planner 제안, Mission Manager 검증, Capability 물리 실행 |
-| [ROS 2 Software Architecture](../../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md) | Manipulation에 Action 사용, 정확한 schema는 구현 문서에서 관리 |
-| [Target Scenario](../../../../docs/cleany-docs/10_PLANNING/02%20-%20Target%20Scenario.md) | 여러 물체, 작업 전후 관찰, 복귀와 Dashboard 결과 |
-| [Success Criteria](../../../../docs/cleany-docs/10_PLANNING/05%20-%20Success%20Criteria.md) | Rule-based 통합 검증과 VLA 실행을 포함한 목표 MVP의 통과 조건 |
-| [Robot Operations and Mission Dispatch](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md) | 재시작 시 자동 재개 금지, 외부에 중단과 사람 확인 필요 보고 |
-| [책임 경계 결정](../../../../docs/cleany-docs/30_DECISIONS/Technical/260806%20-%20Task%20Planning과%20Robot%20Capability%20경계.md) | Mission Manager의 allowlist와 기본 인자 검증, 하위 물리 제약 검증 |
-
-`CLEAN_TABLE` 상태와 책상 전체 `ExecuteTableManipulation` 제안은 과거 비교 자료입니다.
-그 제안의 미션 상태 변경과 결과 필드를 이 명세의 전제로 사용하지 않습니다.
-
-## 누가 무엇을 하는가
+## 구성 요소별 책임
 
 | 담당 | 역할 | 예시 |
 |---|---|---|
@@ -136,25 +119,8 @@ flowchart LR
 서버는 다른 물체를 선택하거나 전체 장면에서 새 high-level 행동을 계획하지 않습니다.
 집기 전 장면이 달라졌다면 이전 Goal을 차단하고 Mission Manager가 재관찰합니다.
 
-## 문서 읽는 순서
+## 실행과 결과 확인
 
-| 순서 | 문서 | 확인할 내용 |
-|---|---|---|
-| 01 | [설계 안내](manipulation-action-design.md) | 전체 흐름과 책임 경계, 지금 읽는 문서 |
-| 02 | [Action 인터페이스 명세](execute-manipulation-skill-action-spec.md) | Goal, Feedback와 Result 필드 및 예시 |
-| 03 | [서버 동작 명세](manipulation-server-behavior-spec.md) | 실행 단계, 준비 조건, 실패와 취소 |
-| 06 | [BT와 Groot2 설계](manipulation-behavior-tree-design.md) | 행동 내부 트리, 포트와 실행기 경계 |
-
-## 현재 구현과 추가 개발
-
-| 항목 | 현재 상태 |
-|---|---|
-| `InspectScene`, grasp 계획과 선택 | 기존 ROS interface와 구현 있음 |
-| 집기, 운반, 놓기와 확인 경로 | 시뮬레이션 coordinator에 있음 |
-| 새 Manipulation Action | `.action`, Python 모의 서버·테스트 클라이언트·SQLite 기록·조회·복구 이벤트 구현. Mission Manager adapter는 후속 구현 |
-| 행동별 재관찰과 Planner 승인 반복 | 목표 KB 흐름. 현재 Mission Manager core에 추가 통합 필요 |
-| snapshot 조회 | `GetSceneSnapshot`의 검출 metadata 조회 구현. RGB 원본 조회와 외부 관측 전달은 추가 구현 필요 |
-| MuJoCo BT.CPP 실행기 | [cleany_manipulation_bt](../../cleany_manipulation_bt/README.md)에 구현. 별도의 실행 XML과 실제 인식·MoveIt 경로 사용 |
-| Groot2 설계 XML과 모의 모니터 | 정적 미리보기와 이벤트 투영. Groot2Publisher 실시간 연결은 후속 구현 |
-
-모의 서버는 실제 팔 명령을 내리지 않으며 미션 FSM 통합은 후속 단계입니다. 남은 제품 판단은 각 명세에 표시합니다.
+- Goal과 결과 필드, 취소 후의 상태는 [Action 인터페이스](execute-manipulation-skill-action-spec.md)에서 확인합니다.
+- 준비 조건, 단계별 실패, 실행 기록의 조회는 [서버 동작](manipulation-server-behavior-spec.md)을 따릅니다.
+- MuJoCo 실행기의 트리와 관찰 방법은 [BT 서버](../../cleany_manipulation_bt/README.md), 설계용 XML의 노드와 포트는 [BT 설계](manipulation-behavior-tree-design.md)에 있습니다.
