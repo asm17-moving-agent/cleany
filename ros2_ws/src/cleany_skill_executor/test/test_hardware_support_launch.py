@@ -83,6 +83,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         assert config['gripper_open_joint_rad'] == 2.4173120563240813
     assert config['position_tolerance_m'] == config['pregrasp_position_tolerance_m'] == .010
     assert config['approach_tolerance_degrees'] == config['closing_tolerance_degrees'] == 30.
+    assert config['ik_seed_wrist_offsets_degrees'] == [0.0]
+    assert config['align_wrist_roll'] is True
     assert config['maximum_candidates'] == 32
     assert config['grasp_ik_first'] is True
     assert config['grasp_approach_offset_m'] == 0.
