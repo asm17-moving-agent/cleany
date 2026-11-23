@@ -6,6 +6,7 @@
 |---|---|---|
 | 가상 환경에서 센서·주행 확인 | [시뮬레이션](how-to/simulation.md) | scan, odom, TF |
 | LiDAR로 지도 생성·저장 | [매핑](how-to/mapping.md) | map.yaml, PGM, pbstream |
+| Jetson 게임패드 수동 조종 | [리시버와 입력 시험](how-to/gamepad.md) | 스틱 중립과 입력 단절 후 MCU 정지 확인 |
 | 저장 지도에서 목표 주행 | [휴대폰 주행](how-to/phone-navigation.md) | 경로 미리보기와 정지 응답 |
 | 물체 관찰·후보 계획·조작 | [조작](how-to/manipulation.md) | snapshot, 계획, Action 결과 |
 | Backend 요청과 실행 연결 | [Mission](how-to/mission.md) | 요청 수락, 허가, 결과 |
