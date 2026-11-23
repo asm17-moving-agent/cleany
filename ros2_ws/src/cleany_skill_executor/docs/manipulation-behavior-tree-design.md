@@ -176,21 +176,7 @@ Groot2의 Load Project or File 메뉴에서 위 XML을 열고 `CollectTrashSkill
 GUI 설치는 사용하는 OS와 architecture에 맞춰 별도로 준비합니다. 이 XML은 정적 설계
 미리보기이며, 현재 서버의 실제 C++ 트리 상태는 [MuJoCo BT 모니터](../../cleany_manipulation_bt/README.md#기록과-모니터)를 사용합니다.
 
-## Groot2 실시간 연결의 후속 작업
-
-아래는 이 정적 XML을 Groot2와 실제 실행기로 연결할 때의 작업입니다.
-현재 MuJoCo 실행기는 별도 XML과 VS Code용 모니터를 사용합니다.
-
-1. 사용자 정의 노드와 typed port를 실제 BT.CPP factory에 등록합니다.
-2. Goal마다 context를 생성하고 tick, feedback, cancel과 halt를 연결합니다.
-3. 실제 factory에서 `writeTreeNodesModelXML`로 모델을 생성합니다.
-4. `Groot2Publisher`와 사용 중인 Groot2 edition 및 연결 조건을 확인합니다.
-
-공식 [Groot2 연동 안내](https://behaviortree.dev/docs/tutorial-basics/tutorial_11_groot2/)는
-factory의 노드 모델과 publisher 연결을 설명합니다. 현재 손으로 쓴 모델은 실행기 구현
-전의 설계 자료입니다. 실시간 지원은 사용 중인 edition 조건도 확인해야 합니다.
-
-## 이번 파일 검증과 제한
+## 설계 파일의 검증 범위
 
 XML 구문, 노드 모델, 포트 이름과 Blackboard 연결을 정적으로 검사합니다.
 Groot2 GUI import와 실제 BT.CPP 동작, 취소 및 물리 정지 검증은 별도입니다.

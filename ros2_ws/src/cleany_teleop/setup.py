@@ -25,6 +25,9 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
+            "gamepad_input=cleany_teleop.gamepad_input:main",
+            "gamepad_head=cleany_teleop.gamepad_head:main",
+            "gamepad_teleop=cleany_teleop.gamepad_teleop:main",
             "phone_remote=cleany_teleop.web:main",
             "commission_wheels=cleany_teleop.command:main",
         ]

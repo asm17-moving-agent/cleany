@@ -256,7 +256,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   stage = "raycasting";
   // 트리 접근 중에는 형상 잠금을 잡지 않습니다. 장면 갱신은 제외 형상을 바꾸며
   // 트리 잠금을 소유할 수 있습니다. 복제본이 이번 촬영의 형상을 보존합니다.
-  octomap::KeySet occupied, model, clipped, free;
+  octomap::KeySet occupied, model, clipped;
+  std::vector<FreeVoxelBlock> free;
   const auto origin = octoPoint(map_from_cloud.translation());
   sensor_msgs::msg::PointCloud2 filtered;
   filtered.header = cloud.header;

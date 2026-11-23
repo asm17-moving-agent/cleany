@@ -44,4 +44,4 @@ make test-jetson-native
 
 - **`test_raycast` 검증**:
   - 광선 복셀 집합, 블록 배열과 해시 경로, 거리 제한 끝점과 점유 끝점의 우선순위를 검사합니다. OctoMap의 복셀별 쓰기와 블록 쓰기를 반복 적용해 전체 지도 직렬화와 변경 키를 대조합니다.
-- 상세 벤치마크 수치 및 검증 로그는 [EVIDENCE 문서](../../../docs/EVIDENCE.md)를 참고하세요.
+- [Jetson 재생 벤치마크](https://github.com/asm17-moving-agent/cleany/blob/11fbb1f6aeeaf6acd920927425f9a6141ad4d56f/docs/EVIDENCE.md?plain=1#L280-L298)에서 입력 점군, 갱신 시간과 지도 해시 비교 결과를 확인할 수 있습니다.
