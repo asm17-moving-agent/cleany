@@ -1,7 +1,7 @@
 ros2_ws/src/cleany_mujoco_sim/assets/*.pdf binary
 
-# Unified patch context includes a single-space prefix on blank lines.
-tools/patches/*.patch whitespace=-blank-at-eol
+# Unified diff context adds a space before blank and tab-indented source lines.
+tools/patches/*.patch whitespace=-blank-at-eol,-space-before-tab
 
 # Preserve the verified ST C sources and sensor firmware image byte for byte.
 esp32/tof_vl53l7ch/lib/st-vl53lmz/*.[ch] -text whitespace=-blank-at-eof
