@@ -68,7 +68,7 @@ class MotorCommandFilter {
     waitingForReverse_ = false;
   }
 
-  int step(float feedbackVelocityRadPerSecond, int64_t nowUs) {
+  int step(float feedbackVelocityRadPerSecond, int64_t nowUs, bool still = true) {
     const int targetSign = speedSign(targetSpeed_);
     const int appliedSign = speedSign(appliedSpeed_);
 
@@ -97,7 +97,7 @@ class MotorCommandFilter {
       return appliedSpeed_;
     }
 
-    observeStoppedSpeed(feedbackVelocityRadPerSecond, nowUs);
+    observeStoppedSpeed(feedbackVelocityRadPerSecond, nowUs, still);
     if (targetSign == 0) {
       waitingForReverse_ = false;
       if (zeroSpeedIsStable(nowUs)) {
@@ -145,8 +145,8 @@ class MotorCommandFilter {
            (nowUs - lastSlewUpdateUs_) >= config_.slewStepIntervalUs;
   }
 
-  void observeStoppedSpeed(float feedbackVelocityRadPerSecond, int64_t nowUs) {
-    if (std::fabs(feedbackVelocityRadPerSecond) <=
+  void observeStoppedSpeed(float feedbackVelocityRadPerSecond, int64_t nowUs, bool still) {
+    if (still && std::fabs(feedbackVelocityRadPerSecond) <=
         config_.zeroSpeedThresholdRadPerSecond) {
       if (zeroSpeedSinceUs_ < 0) {
         zeroSpeedSinceUs_ = nowUs;

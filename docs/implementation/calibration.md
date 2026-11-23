@@ -182,6 +182,12 @@ D435 점군은 촬영 시각의 실제 head encoder TF로 변환합니다. 높�
 
 보정 파일의 `measurement`에는 측정에 사용한 CAD와 원시 CSV의 SHA-256이 있습니다. 재측정할 때는 원시 각도와 거리를 보존하고, LiDAR 높이에서 홈과 곡면을 포함한 CAD 단면을 추출합니다. 반복 관측의 각도별 중앙값을 센서에서 보이는 외곽 면에 정합한 뒤 위 좌표계로 변환합니다.
 
+## 휠 저속 기동 보정
+
+[보정 계수](../../esp32/src/wheel_friction_values.hpp)는 기존 모터 보드에서 네 바퀴를 띄워 얻은 정방향 및 역방향 값입니다. 각 방향의 기동 듀티와 0.2, 0.3, 0.4, 0.5 rad/s에서의 유지 듀티를 사용하며, 0.5–1.0 rad/s에서는 표의 끝값에서 기존 FF로 이어집니다.
+
+보드 또는 하중을 바꾼 뒤 같은 저속 명령으로 네 바퀴의 기동 시차를 비교합니다. `/base/wheel_drive_state`의 `fifth_us`는 목표 방향으로 5카운트 진행하기까지 걸린 시간이며, 미도달 값은 −1입니다. [휠 진단 메시지](../../ros2_ws/src/cleany_base_interfaces/docs/protocol.md#pwm-듀티와-기동-시각)
+
 ## IMU factory gyro bias
 
 Jetson은 [`imu_bringup.yaml`](../../ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml)의

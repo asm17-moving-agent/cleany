@@ -10,7 +10,12 @@ flowchart LR
 
 [베이스 연결부터 확인](../docs/implementation/how-to/base.md) · [빌드와 장치 없는 검사](#1-빌드와-장치-없는-검사) · [업로드와 통신](#2-upload와-통신) · [실물 인수](#3-실물-인수)
 
-Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. Target은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB), PlatformIO environment는 `esp32-s3-microros`입니다. GPIO는 [PINMAP](pinmap.md), 고정 버전은 `micro_ros.lock.json`에서 확인합니다.
+Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니다. 대상 모듈은 ESP32-S3 N32R16V(octal flash 32 MB / PSRAM 16 MB)입니다. 빌드와 업로드에 같은 보드 환경을 선택합니다.
+
+| 보드 | PlatformIO 환경 | 센서 |
+|---|---|---|
+| [통합 컨트롤러](pcb/integrated_controller/PINMAP.md) | `esp32-s3-integrated` (기본) | VL53L7CH 4채널, 배터리 전압 ADC. BNO055 기본 비활성 |
+| [기존 모터 보드](pinmap.md) | `esp32-s3-microros` | MPU6050 |
 
 | 경로 | 역할 |
 |---|---|
@@ -35,8 +40,7 @@ KiCad 10에서 프로젝트를 열고 [보드 핀맵](pcb/integrated_controller/
 [개발환경](../docs/implementation/development-setup.md#kicad-pcb-검증-환경)과
 [검증 절차](../docs/implementation/reference/testing.md#통합-컨트롤러-pcb-검증)를 따릅니다.
 
-현재 펌웨어의 모터 GPIO와 MPU6050 드라이버는 기존 모터 보드 기준입니다.
-통합 보드에는 모터 GPIO 매핑과 BNO055 드라이버의 별도 이식이 필요합니다.
+두 보드는 휠 명령과 피드백을 공유하며 각 이미지의 모터와 엔코더 GPIO는 [보드별 핀 정의](src/board_pins.hpp)를 따릅니다.
 [별도 USB 센서 캐리어](pcb/sensor_controller/sensor_controller.md)는
 회로도와 제작 설정 초안이며 부품 배치와 배선이 없는 상태입니다.
 
@@ -48,7 +52,10 @@ KiCad 10에서 프로젝트를 열고 [보드 핀맵](pcb/integrated_controller/
 |---|---|---|---|
 | 토픽 구독 | `base/wheel_command` | `cleany_base_interfaces/msg/WheelCommand` | Best-effort, volatile, keep-last 1 |
 | 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
-| 토픽 발행 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | Best-effort, volatile, keep-last 1; 최대 100 Hz |
+| 토픽 발행 | `base/wheel_drive_state` | `cleany_base_interfaces/msg/WheelDriveState` | 휠 상태와 같은 50 Hz 표본, best-effort, volatile, keep-last 1 |
+| 토픽 발행 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | 기존 보드 또는 BNO055를 활성화한 통합 보드, best-effort, volatile, keep-last 1, 최대 100 Hz |
+| 토픽 발행 | `base/battery_voltage` | `std_msgs/msg/Float32` | 통합 보드, best-effort, volatile, keep-last 1, 1 Hz |
+| 토픽 발행 | `tof/frame`, `tof/left/frame`, `tof/right/frame`, `tof/rear/frame` | `cleany_interfaces/msg/TofFrame` | 통합 보드의 전방, 좌측, 우측, 후방 순서. Reliable, volatile, keep-last 1, 채널당 목표 15 Hz |
 
 MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/implementation/ros-interfaces.md)에서 찾습니다.
 
@@ -90,8 +97,8 @@ flowchart TB
 | 항목 | 값과 규칙 |
 |---|---|
 | Wheel ceiling, 목표 반올림 | 10 rad/s, 0.1 rad/s 단위 |
-| PWM | 20 kHz, 명령 슬루는 20 ms당 가속 1%p, 감속 3%p |
-| 방향 반전 | 측정 속도 ≤0.5 rad/s를 50 ms 유지한 뒤 DIR 변경 |
+| PWM | 20 kHz, 11비트, 주기 2048틱, 최대 듀티 2040틱 |
+| 방향 반전 | 듀티 0, 엔코더 카운트 변화 없음, 측정 속력 ≤0.5 rad/s를 연속 50 ms 확인한 뒤 허용 |
 | Wheel 배열 | FL/FR/RL/RR → PCB M1/M2/M4/M3, mapping `{0,1,3,2}` |
 | 극성, encoder | 극성은 MCU에서만 적용; 출력축 1회전=3172 counts |
 | State | 50 Hz, best-effort/volatile/keep-last-1 |
@@ -101,14 +108,20 @@ flowchart TB
 
 메시지와 명령 수락 규칙은 [protocol v2](../ros2_ws/src/cleany_base_interfaces/docs/protocol.md)를 따릅니다.
 
-## Runtime MPU6050 telemetry
+## 통합 보드 센서
+
+ToF는 I2C0에서 TCA9548A를 400 kHz로 제어하고 CH0부터 전방, 좌측, 우측, 후방 순서로 8×8 거리와 표준편차를 m 단위로 발행합니다. 구역에 타깃이 있고 ST 상태가 5 또는 9이면 `valid`가 참입니다. 초기화 또는 읽기에 실패하면 `sensor_ready=false`로 알리고 1초 후 재시도합니다. 배터리 전압은 GPIO3의 보정된 ADC 값 16개를 평균해 100 kΩ/22 kΩ 분압비로 환산합니다.
+
+[기본 통합 설정](platformio.ini)의 `CLEANY_ENABLE_BNO055=0`은 IMU 전용 I2C1, 취득 태스크와 IMU 발행자를 비활성화합니다.
+
+## 기존 모터 보드의 MPU6050
 
 ```mermaid
 flowchart LR
     IMU["MPU6050 / data-ready"] --> Task["독립 acquisition task / priority 2"]
     Task --> Queue["1-entry overwrite queue"]
     Queue --> Comm["Communication task / priority 4"]
-    Comm --> ROS["base/imu_state"]
+    Comm --> ROS["imu_uncalibrated/data_raw"]
     Motor["Motor task / priority 6"] -. motorMutex 독립 .-> Task
 ```
 
@@ -121,7 +134,7 @@ flowchart LR
 | 발행 | 새 표본으로 최대 100 Hz, Best-effort / Volatile / Keep-last 1; WheelState는 50 Hz |
 | 통신 정체 | 중간 표본 overwrite; 재연결 때 backlog 방출 안 함 |
 | 거부 | 100 ms 초과 획득값, 중복 / 역행 측정 시각 |
-| 센서 오류 | 최대 10 Hz fault heartbeat, saturation 별도 bit; 초기화 / 읽기 재시도 250 ms–5 s backoff |
+| 센서 오류 | 포화 또는 오류 표본 발행 억제, 초기화와 읽기 재시도 간격 250 ms–5 s |
 
 통신 task는 `sensor_msgs/msg/Imu`를 `imu_uncalibrated/data_raw`에 best effort, volatile,
 keep last 1로 최대 100 Hz 발행한다. Gyro와 중력 포함 acceleration은 센서 축의
@@ -151,8 +164,8 @@ Host 실행과 상태는 [IMU 실시간 수신](../ros2_ws/src/cleany_base_drive
 새 bench 측정은 독립 [진단 펌웨어](imu_calibration/README.md)를 따른다.
 
 `src/main.cpp`의 `kFl/Fr/Rl/RrControllerConfig`는 FF scale, Kp, Ki와 PWM limit을
-설정합니다. 변경 후 rebuild와 upload가 필요합니다. FF 출력은
-`target / FF scale × PWM limit`입니다. 진단 기준값은
+설정합니다. 변경 후 rebuild와 upload가 필요합니다. 1 rad/s 이상에서 FF 출력은
+`target / FF scale × PWM limit`입니다. 저속에서는 [휠별 양방향 기동 및 유지 듀티](src/wheel_friction_values.hpp)를 적용합니다. 진단 기준값은
 [`controller_baseline.json`](../tools/wheel_calibration/controller_baseline.json)에
 보존하며, 관련 테스트가 펌웨어 설정과의 일치를 확인합니다.
 
@@ -168,7 +181,7 @@ FF 초기 추정은 `PWM≈k×속도`, `FF scale=100/k`를 사용합니다. PI �
 `Kp=clamp(0.6/K,2,8)`, `Ki=Kp/max(0.5,4(τ+L))`로 계산합니다.
 추정값은 실제 하중과 속도 필터 설정에 맞춰 재검증합니다.
 
-명령 슬루는 가속 시 20 ms당 1%, 감속 시 20 ms당 3%로 설정합니다.
+속도 명령은 20 ms마다 가속 시 최대 0.1 rad/s, 감속 시 최대 0.3 rad/s씩 변경합니다.
 속도 피드백 LPF 시상수는 `kVelocityFilterTimeConstantSeconds = 0.02`초입니다.
 STOP, 만료 및 연결 단절은 슬루 감속을 기다리지 않고 PWM zero를 요청합니다.
 
@@ -190,7 +203,7 @@ make build-base test-base
 make micro-ros-agent-build
 ```
 
-Type support 원본은 `ros2_ws/src/cleany_base_interfaces`입니다. Smoke/runtime은 cache를 공유하므로 순차 빌드하며, interface, metadata, 환경을 변경하면 type support를 재생성합니다.
+기존 모터 보드는 `make firmware-build FIRMWARE_ENV=esp32-s3-microros`로 빌드합니다. 휠 타입 원본은 `ros2_ws/src/cleany_base_interfaces`, 통합 ToF 타입 원본은 `ros2_ws/src/cleany_interfaces/msg/TofFrame.msg`입니다. Smoke/runtime은 cache를 공유하므로 순차 빌드하며, interface, metadata, 환경을 변경하면 type support를 재생성합니다.
 
 | 빌드 경계 | 계약 |
 |---|---|
@@ -212,7 +225,7 @@ For stationary gyro calibration on `J_I2C1`, use the separate
 It provides a calibration-only image, retained USB results, measured-limit
 configuration, and the motor-firmware restoration procedure.
 
-Select the device and confirm upload:
+다음 명령은 통합 보드용입니다. 기존 모터 보드에 업로드할 때는 같은 명령에 `FIRMWARE_ENV=esp32-s3-microros`를 지정합니다.
 
 ```bash
 make firmware-upload CLEANY_ESP_PORT=/dev/serial/by-id/<device> CONFIRM_UPLOAD=1
