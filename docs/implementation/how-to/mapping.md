@@ -149,3 +149,41 @@ RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택합
 | 촬영 시각 | 역행 |
 
 `extend.py --odom-max-*`로 지정합니다. 문제 해결 후 원본 또는 마지막 정상 저장 상태로 새 확장을 시작합니다.
+
+## 19층 현장 수집
+
+기존 수동 조종 세션의 휠 odometry를 받아 Jetson에서 Cartographer를 구동합니다. 지도와 TF는 `/floor19`에 발행합니다. LiDAR 원본과 필터 스캔, odometry, TF, 헤드캠 RGB, 정렬된 depth와 좌우 IR을 하나의 rosbag2에 기록합니다. 실물 매핑에 필요한 Jetson 릴리스와 카메라 서비스가 설치된 상태에서 준비합니다.
+
+1. Jetson의 저장소 루트에서 recorder를 빌드하고 현재 릴리스와 센서 프로필을 새 템플릿에 고정합니다. `profile`에는 실제 LiDAR 장착 위치와 연결 포트가 반영된 YAML을 지정합니다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   build_dir="${XDG_CACHE_HOME:-$HOME/.cache}/cleany/floor19-recorder"
+   cmake -S tools/ros2/floor19_recorder -B "$build_dir" -DCMAKE_BUILD_TYPE=Release
+   cmake --build "$build_dir" -j2
+   install -d /opt/cleany/tools /var/opt/cleany/runs/mapping
+   install -m 0755 -t /opt/cleany/tools "$build_dir/floor19-recorder" tools/ros2/floor19-capture
+   profile=ros2_ws/src/cleany_bringup/config/mapping_cad_lidar_front.yaml
+   template="/var/opt/cleany/runs/mapping/$(date +%F_%H%M%S)_floor19-template"
+   python3 tools/ros2/floor19_session/prepare.py "$profile" "$template"
+   ```
+
+2. 첫 등록 시 `cleany` 사용자가 아래 명령을 실행합니다. 이미 등록한 장비에서는 `readlink -f /etc/opt/cleany/field/floor19-capture-run`으로 선택한 실행을 확인합니다. 활성화하면 현재 부팅부터 새 run에 녹화합니다. 저장공간이 10 GiB 이하가 되면 녹화를 종료합니다.
+
+   ```bash
+   ln -sT "$template" /etc/opt/cleany/field/floor19-capture-run
+   install -Dm644 tools/ros2/cleany-floor19-capture.service ~/.config/systemd/user/cleany-floor19-capture.service
+   systemctl --user daemon-reload
+   systemctl --user enable --now cleany-floor19-capture.service
+   ```
+
+3. 노트북의 ROS 2 Humble 환경에서 같은 LAN의 Jetson IPv4를 `CLEANY_JETSON_LAN_IP`로 지정합니다. 아래 두 뷰어를 로컬 사용자 서비스로 띄우면 GTK 4 패널에서 RViz를 다시 열 수 있습니다. 패널은 SSH 별칭 `jetson-orin-via-n100`을 사용하며 `CLEANY_JETSON_SSH`로 바꿀 수 있습니다.
+
+   ```bash
+   view="$PWD/tools/ros2/floor19_session/view/start"
+   systemd-run --user --unit=cleany-floor19-view-overlays --setenv=CLEANY_JETSON_LAN_IP="$CLEANY_JETSON_LAN_IP" "$view" overlays
+   systemd-run --user --unit=cleany-floor19-rviz --setenv=CLEANY_JETSON_LAN_IP="$CLEANY_JETSON_LAN_IP" "$view" rviz
+   python3 tools/validation/floor19_panel.py
+   ```
+
+4. 패널에서 지도 저장과 녹화 일시정지, 재개, 종료를 제어합니다. 녹화를 정지하면 다음 부팅에서도 정지 상태를 유지합니다. 조사 종료 시 Jetson에서 `/opt/cleany/tools/floor19-capture finish`를 실행하면 녹화와 매핑이 종료되고 기본 카메라 설정으로 복귀합니다. 지도와 bag은 `/var/opt/cleany/runs/mapping/`의 실행별 폴더에 남습니다.
