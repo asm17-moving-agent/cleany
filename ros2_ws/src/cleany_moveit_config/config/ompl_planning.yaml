@@ -30,7 +30,6 @@ planner_configs:
   RRTConnectReturnkConfigDefault:
     type: geometric::RRTConnect
     range: 0.0
-    longest_valid_segment_fraction: 0.01
     # MoveIt 2.5.9 parses this planner option with lexical_cast<bool>.
     simplify_solutions: 0
 
@@ -42,13 +41,13 @@ right_arm:
   planner_configs:
     - RRTConnectkConfigDefault
 left_grasp_arm:
-  longest_valid_segment_fraction: 0.01
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
     - RRTConnectGraspApproachkConfigDefault
     - RRTConnectReturnkConfigDefault
 right_grasp_arm:
-  longest_valid_segment_fraction: 0.01
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
     - RRTConnectGraspApproachkConfigDefault

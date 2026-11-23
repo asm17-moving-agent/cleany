@@ -844,27 +844,22 @@ class CollectionPipeline(PregraspPipeline):
         # still originate at measured FK and retain the requested destination.
         hold = (None if stage == 'return_to_pickup' else
                 self.real.arm_holds.get(arm))
-        compensate_support_offset = stage not in ('approach', 'approach_detour')
         command_start = None
         if hold is not None:
             command_start = fk(hold.command)
-            if command_target is not None:
-                command_waypoints = (command_target,)
-            elif compensate_support_offset:
+            if command_target is None:
                 command_waypoints = tuple(estimate_measured_path_pose(command_start, start, p)
                                           for p in waypoints)
             else:
-                # Continue from the held joints without moving the grasp goal.
-                command_waypoints = waypoints
+                command_waypoints = (command_target,)
             if (command_target is not None or math.dist(start.position, command_start.position) > 1e-9
                     or orientation_error_rad(start.orientation, command_start.orientation) > 1e-9):
                 command_state = deepcopy(measured)
                 sent = dict(zip(names, hold.command, strict=True))
                 command_state.position = [sent.get(name, value) for name, value in
                                           zip(measured.name, measured.position, strict=True)]
-                roll = wrist_roll_target
-                if roll is not None and compensate_support_offset:
-                    roll += hold.command[-1] - measured_joints[-1]
+                roll = (None if wrist_roll_target is None else wrist_roll_target
+                        +hold.command[-1]-measured_joints[-1])
                 trajectory = self._cartesian_trajectory(
                     arm, command_state, command_waypoints, stage+'_command_support', roll,
                     check_collisions)
@@ -898,12 +893,10 @@ class CollectionPipeline(PregraspPipeline):
             self.motion.set_current_state(actual)
             current = dict(zip(actual.name, actual.position, strict=True))
             origin = fk(tuple(current[name] for name in names))
-            if command_start is not None and not compensate_support_offset:
-                origin = command_start
             final_poses = []
             for sample in samples:
                 pose = fk(sample.positions)
-                if command_start is not None and compensate_support_offset:
+                if command_start is not None:
                     pose = estimate_measured_path_pose(origin, command_start, pose)
                 final_poses.append(pose)
             try:
@@ -1157,24 +1150,28 @@ class CollectionPipeline(PregraspPipeline):
                            '; '+str(last_error)) from last_error
 
     def execute_selected_approach(self, selected, report: dict):
-        """Reuse the saved approach unless its first point no longer matches."""
+        """Reuse a saved approach when its start matches the current arm state."""
         arm = selected.selected_arm
+        trajectory = getattr(selected, 'grasp_trajectory', None)
+        if trajectory is None or not trajectory.points:
+            report['approach_execution_route'] = 'replanned_from_arrival'
+            self.event('approach_saved_trajectory_missing', arm=arm)
+            return self.replan_approach_from_arrival(selected, report)
         submissions = self.real.motion_submissions
         try:
             self.real.execute_selected_trajectory(
-                arm, selected.grasp_trajectory,
-                endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
+                arm, trajectory, endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
                 check_collisions=self.config.get('approach_collision_check_enabled', True))
         except RecordedStartMismatch as error:
             if error.motion_started or self.real.motion_submissions != submissions:
                 raise
             report['approach_execution_route'] = 'replanned_from_arrival'
-            self.event('approach_saved_start_mismatch', arm=arm,
+            self.event('approach_saved_start_mismatch', arm=arm, reference=error.reference,
                        error_rad=error.maximum_error_rad, tolerance_rad=error.tolerance_rad)
             return self.replan_approach_from_arrival(selected, report)
         report['approach_execution_route'] = 'selected_trajectory'
         self.event('approach_selected_trajectory_executed', arm=arm,
-                   command_points=len(selected.grasp_trajectory.points))
+                   command_points=len(trajectory.points))
         return self.pose(arm)
 
     def replan_approach_from_arrival(self, selected, report: dict):

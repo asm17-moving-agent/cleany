@@ -47,6 +47,9 @@ flowchart LR
 100mm 폭은 명목값이며, 모터 끝점 확인이 개구 폭 곡선 측정을 대신하지 않는다.
 현재 보정과 복원용 스냅샷은 [캘리브레이션 안내](../../../../docs/CALIBRATION.md)에 있다.
 
+MoveIt의 양팔 파지 그룹은 기본, 파지 접근, 복귀 플래너에 같은 최대 충돌 검사
+간격 비율(`longest_valid_segment_fraction=0.001`)을 적용합니다.
+
 ## 예열과 장면 처리
 
 `/grasp/warmup_status`는 GPU 준비 상태를 보고한다. VLM 대기 중 예열은 인식 launch의

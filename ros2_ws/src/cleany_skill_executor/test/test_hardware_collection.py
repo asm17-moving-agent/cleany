@@ -11,19 +11,21 @@ from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 
 
-@pytest.mark.parametrize('offset,latest_offset,replan,collision', [
-    (0., 0., False, False), (.005, .005, False, False),
-    (.0051, .0051, True, False), (.003, .006, True, False), (0., 0., False, True),
+@pytest.mark.parametrize('offset,latest_offset,held_offset,outcome', [
+    (0., 0., None, 'sent'), (.005, .005, None, 'sent'),
+    (.0051, .0051, None, 'replan'), (.003, .006, None, 'replan'),
+    (0., 0., .003, 'sent'), (0., 0., .02, 'replan'),
+    (0., 0., None, 'collision'), (0., 0., None, 'controller_error'),
 ])
 def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
-        monkeypatch, offset, latest_offset, replan, collision):
+        monkeypatch, offset, latest_offset, held_offset, outcome):
     from contextlib import nullcontext
     from geometry_msgs.msg import Pose
     from sensor_msgs.msg import JointState
     from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
     from cleany_skill_executor.core.cartesian import CartesianPose
-    from cleany_skill_executor.core.hardware_execution import CollisionValidationError
+    from cleany_skill_executor.core.hardware_execution import ArmHold, CollisionValidationError
     import cleany_skill_executor.hardware_execution as transport
 
     arm = 'left'
@@ -42,12 +44,14 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
               'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
               'hardware_start_tolerance_rad': .005, 'hardware_arrival_tolerance_rad': .1,
               'hardware_uncommanded_tolerance_rad': .03}
-    sent, checked, replanned = [], [], []
+    sent, checked, replanned, stopped = [], [], [], []
     state = JointState(name=list(names), position=[latest_offset, 0., 0., 0., 0.])
 
     def run_action(_client, request, _timeout, **options):
         assert options['monitor']
         sent.append(deepcopy(request.trajectory))
+        if outcome == 'controller_error':
+            return NS(error_code=-1, SUCCESSFUL=0, error_string='rejected')
         state.position = list(request.trajectory.points[-1].positions)
         return NS(error_code=0, SUCCESSFUL=0)
 
@@ -56,7 +60,7 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     monkeypatch.setattr(transport.HardwareExecution, '_start_motion_monitor', lambda *_: None)
     def validate(_self, _arm, _names, samples, *_args, **kw):
         checked.append((list(samples), kw['hold_bridge_samples']))
-        if collision:
+        if outcome == 'collision':
             raise CollisionValidationError('changed scene', phase='command_path', sample_index=2)
 
     monkeypatch.setattr(transport.HardwareExecution, 'validate_collision_samples', validate)
@@ -69,6 +73,9 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     real = object.__new__(transport.HardwareExecution)
     real.node, node.real = node, real
     real.arm_holds, real.last_execution_metrics, real.uncommanded = {}, {}, None
+    if held_offset is not None:
+        real.arm_holds[arm] = ArmHold((0.,)*5, (held_offset, 0., 0., 0., 0.))
+    real.fail_stop = lambda: stopped.append(True)
     real.motion_submissions = 0
     real.frozen_sensor_scene = nullcontext
     real.positive_integer = lambda _: 1
@@ -78,14 +85,20 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     real.verify_arm_endpoint = lambda *a, **k: (state, {})
     node.execute_selected_approach = lambda *a: CollectionPipeline.execute_selected_approach(node, *a)
     report = {}
-    if collision:
+    if outcome == 'collision':
         with pytest.raises(CollisionValidationError, match='changed scene'):
             CollectionPipeline._approach_target(node, msg, report)
-        assert not sent and not replanned
+        assert not sent and not replanned and not stopped
+        return
+    if outcome == 'controller_error':
+        with pytest.raises(RuntimeError, match='Physical controller failure: rejected'):
+            CollectionPipeline._approach_target(node, msg, report)
+        assert sent == [selected] and stopped == [True] and not replanned
         return
     with real.record_arm_commands(arm) as recording:
         CollectionPipeline._approach_target(node, msg, report)
-    if replan:
+    assert not stopped
+    if outcome == 'replan':
         assert report['approach_execution_route'] == 'replanned_from_arrival'
         assert len(replanned) == 1
         assert not sent and not recording.trajectories

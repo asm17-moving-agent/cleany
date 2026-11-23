@@ -94,7 +94,10 @@ class CpuPlanner:
 
     def send_goal_async(self, goal, **kwargs):
         assert goal.planning_options.plan_only
-        assert goal.request.planner_id == 'RRTConnectkConfigDefault'
+        expected_planner = ('RRTConnectGraspApproachkConfigDefault'
+                            if goal.request.path_constraints.orientation_constraints
+                            else 'RRTConnectkConfigDefault')
+        assert goal.request.planner_id == expected_planner
         self.trace.append('cpu_rrtconnect_request')
         arm = goal.request.group_name.split('_')[0]
         start = dict(zip(goal.request.start_state.joint_state.name, goal.request.start_state.joint_state.position))
