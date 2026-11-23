@@ -45,48 +45,47 @@ class MissionDrive:
         with self.bridge.lock:
             self.state, self.received = message, time.monotonic()
 
-    def authorized(self, req):
-        state, b = self.state, self.bridge
+    def state_age(self):
+        state, supervisor = self.state, self.bridge.supervision
         if (
             state is None
-            or not req.mission_id
-            or not req.lease_id
-            or state.epoch != req.lease_epoch
             or state.operating_state not in ("OPERATIONAL", "DEGRADED")
-            or not b.supervision._alive()
-            or b.supervision.epoch != state.epoch
+            or not supervisor._alive()
+            or state.epoch != supervisor.epoch
         ):
-            return False
+            return math.inf
         stamp = state.header.stamp
         age = (self.node.get_clock().now().nanoseconds - stamp.sec * 10**9 - stamp.nanosec) * 1e-9
         elapsed = max(age, time.monotonic() - self.received)
-        return (
-            0 <= age
-            and elapsed <= b.supervision.heartbeat_timeout
-            and any(
-                p.granted
-                and p.mission_id == req.mission_id
-                and p.lease_id == req.lease_id
-                and p.version == req.lease_version
-                and "MOBILE_MANIPULATION" in p.capabilities
-                and math.isfinite(p.valid_for_s)
-                and p.valid_for_s > elapsed
-                for p in state.permissions
-            )
+        return elapsed if 0 <= age and elapsed <= supervisor.heartbeat_timeout else math.inf
+
+    def authorized(self, req):
+        elapsed = self.state_age()
+        if (
+            not math.isfinite(elapsed)
+            or not req.mission_id
+            or not req.lease_id
+            or self.state.epoch != req.lease_epoch
+        ):
+            return False
+        return any(
+            p.granted
+            and p.mission_id == req.mission_id
+            and p.lease_id == req.lease_id
+            and p.version == req.lease_version
+            and "MOBILE_MANIPULATION" in p.capabilities
+            and math.isfinite(p.valid_for_s)
+            and p.valid_for_s > elapsed
+            for p in self.state.permissions
         )
 
     def operator_blocked(self):
-        if self.goal or self.reserved or self.state is None:
+        if self.goal or self.reserved or not math.isfinite(self.state_age()):
             return True
-        # A stale snapshot cannot release manual control during field operation.
-        if (
-            self.state.operating_state not in ("OPERATIONAL", "DEGRADED")
-            or not self.bridge.supervision._alive()
-            or self.state.epoch != self.bridge.supervision.epoch
-            or time.monotonic() - self.received > self.bridge.supervision.heartbeat_timeout
-        ):
-            return True
-        return any(p.granted and "MOBILE_MANIPULATION" in p.capabilities for p in self.state.permissions)
+        return any(
+            "MOBILE_MANIPULATION" in p.capabilities and (p.granted or not p.stop_confirmed)
+            for p in self.state.permissions
+        )
 
     def allowed(self, req):
         b = self.bridge

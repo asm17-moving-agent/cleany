@@ -278,7 +278,7 @@ class SupervisorNode(Node):
         state.operating_state = self.core.state.value
         state.permissions = [messages.MissionPermission(
             mission_id=lease.mission_id, lease_id=lease.lease_id, version=lease.version,
-            capabilities=list(lease.capabilities), granted=lease.granted,
+            capabilities=list(lease.capabilities), granted=lease.granted, stop_confirmed=lease.stopped,
             valid_for_s=max(0., lease.expires_at - now) if lease.granted else 0., reason=lease.reason)
             for lease in self.core.permissions.leases.values()]
         caps = envelope(messages.SystemCapabilities)

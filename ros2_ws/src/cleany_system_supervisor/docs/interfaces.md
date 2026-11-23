@@ -53,3 +53,5 @@ Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사합�
 보고하지 않습니다. ToF가 실제로 없는 구성에는 이 옵션을 적용하지 않습니다.
 
 실물 좌석 프로필은 `MOBILE_MANIPULATION` 정지를 `mission/stop`으로 전달한다. `ros.navigation_stop_action`을 지정한 경우 단독 `NAVIGATION` lease의 정지는 해당 Action으로 전달한다. 미확인 lease를 복원할 때 저장된 capability를 사용하고, capability가 없는 이전 기록은 기본 정지 Action을 사용한다.
+
+`system/state.permissions[].stop_confirmed`은 미션이 정지를 확인하고 lease를 반환했거나 Supervisor의 정지 Action이 완료되면 참입니다. 허가를 회수한 시점에는 거짓으로 유지됩니다.

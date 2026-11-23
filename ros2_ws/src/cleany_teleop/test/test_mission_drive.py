@@ -128,6 +128,16 @@ def test_parent_lease_named_target_and_measured_stop(tmp_path, monkeypatch, revo
         assert reply.result.stop_confirmed
         assert reply.result.arrived is (not revoke)
         assert reply.status == (GoalStatus.STATUS_ABORTED if revoke else GoalStatus.STATUS_SUCCEEDED)
+        # Completion of a drive leg does not confirm the owning arm mission has stopped.
+        permission.granted = False
+        b.mission_drive.update(state)
+        assert b.mission_drive.operator_blocked()
+        permission.stop_confirmed = True
+        b.mission_drive.update(state)
+        assert not b.mission_drive.operator_blocked()
+        state.header.stamp.sec -= 10
+        b.mission_drive.update(state)
+        assert b.mission_drive.operator_blocked()
         if not revoke:
             assert len(calls) == 1 and calls[0].pose.position.x == 0.8
     finally:
