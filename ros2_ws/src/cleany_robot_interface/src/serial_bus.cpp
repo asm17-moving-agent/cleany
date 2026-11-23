@@ -73,12 +73,18 @@ std::vector<uint8_t> SerialBus::transaction(
   auto deadline = std::chrono::steady_clock::now() +
     std::chrono::milliseconds(timeout_ms > 0 ? timeout_ms : timeout_ms_);
   if (deadline_) {deadline = std::min(deadline, *deadline_);}
+  size_t offset = 0;
+  size_t received = 0;
   bool reading = false;
   auto timeout = [&]() {
       const std::string detail = "Serial timeout ID " + std::to_string(id) +
         " instruction=" + std::to_string(instruction) +
-        " address=" + (params.empty() ? "none" : std::to_string(params[0]));
-      if (instruction == 2 && reading) {throw ReadTimeout(detail);}
+        " address=" + (params.empty() ? "none" : std::to_string(params[0])) +
+        " phase=" + (reading ? "reply" : offset == 0 ? "request" : "partial_request");
+      // Replay a READ only if no partial request remains on the wire.
+      if (instruction == 2 && (reading || offset == 0)) {throw ReadTimeout(detail);}
+      // A fully sent WRITE with no reply bytes has an uncertain outcome.
+      if (instruction == 3 && reading && received == 0) {throw WriteReplyTimeout(detail);}
       throw std::runtime_error(detail);
     };
   auto ready = [&](short events) {
@@ -97,7 +103,6 @@ std::vector<uint8_t> SerialBus::transaction(
     }
   };
   if (tcflush(fd_, TCIFLUSH) != 0) {throw std::runtime_error("Serial flush failed");}
-  size_t offset = 0;
   while (offset < packet.size()) {
     ready(POLLOUT);
     const auto n = ::write(fd_, packet.data() + offset, packet.size() - offset);
@@ -109,7 +114,6 @@ std::vector<uint8_t> SerialBus::transaction(
   reading = true;
   std::vector<uint8_t> response;
   std::string invalid;
-  size_t received = 0;
   // A delayed reply or a partial frame must not shift every subsequent read.
   // Resynchronization shares the original deadline and a bounded byte budget.
   while (true) {

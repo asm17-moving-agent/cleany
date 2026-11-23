@@ -158,6 +158,7 @@ def test_unknown_owner_blocks_new_work_and_acknowledges_only_audit(tmp_path, mon
 
 @pytest.mark.parametrize('action,args', [
     ('prepare', {}), ('shutdown', {'confirm_torque_off': 1}),
+    ('prepare', {'confirm_torque_on': True, 'confirm_home_motion': 1}),
     ('return_arm', {'arm': 'left; touch /tmp/unsafe', 'confirm_open': True}),
     ('run', {'command': 'anything'}), ('shell', {}),
     ('recover', dict(execution_id='old', revision=True, stopped=True, empty=True, note='ok')),
@@ -216,20 +217,29 @@ def test_cli_lock_contends_before_start_without_touching_hardware(tmp_path, monk
     repo = Path(__file__).resolve().parents[4]
     source = (repo / 'tools/collection-runtime').read_text()
     guard = source.split('command="${1:-}"', 1)[1].rsplit('case "${command}" in', 1)[0]
-    # Exercise the real admission code in a harmless harness, with no runtime functions.
     harness = tmp_path / 'runtime-lock'
-    harness.write_text('#!/usr/bin/env bash\nset -euo pipefail\nstate_dir="$CLEANY_WEB_CONTROL_DIRECTORY"\n'
-                       'command="${1:-}"\n' + guard + '\nexit 93\n')
+    harness.write_text(
+        '#!/usr/bin/env bash\n'
+        'set -euo pipefail\n'
+        'state_dir="$CLEANY_WEB_CONTROL_DIRECTORY"\n'
+        'command="${1:-}"\n'
+        'configure_feedback_cpus() { return 0; }\n'
+        + guard + '\nexit 93\n'
+    )
     harness.chmod(0o700)
+    env = {
+        **os.environ,
+        'CLEANY_CONTROL_RUNTIME_LOCKED': '0',
+        'CLEANY_WEB_CONTROL_DIRECTORY': str(tmp_path),
+    }
+    args = [str(harness), 'start']
     with (tmp_path / 'operation.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        response = subprocess.run([str(harness), 'start'],
-            env={**os.environ, 'CLEANY_CONTROL_RUNTIME_LOCKED': '0', 'CLEANY_WEB_CONTROL_DIRECTORY': str(tmp_path)},
-            capture_output=True, timeout=5)
-        assert response.returncode == 75, response.stderr.decode()
+        response = subprocess.run(args, env=env, capture_output=True, text=True, timeout=5)
+        assert response.returncode == 75, response.stderr
     (tmp_path / 'enabled').unlink()
-    assert subprocess.run([str(harness), 'start'], env={**os.environ,
-        'CLEANY_WEB_CONTROL_DIRECTORY': str(tmp_path)}, timeout=5).returncode == 93
+    response = subprocess.run(args, env=env, capture_output=True, text=True, timeout=5)
+    assert response.returncode == 93, response.stderr
 
 
 def test_worker_uses_existing_lifecycle_and_honors_cancel_before_start(tmp_path, monkeypatch):
@@ -296,8 +306,13 @@ def test_failed_job_reports_its_terminal_execution_and_preserves_audit(tmp_path)
     assert reported['result']['execution_id'] == 'physical-execution'
     assert reported['result']['status'] == 'BLOCKED'
     assert reported['result']['object_state'] == 'NOT_TOUCHED'
-    assert '양팔' in reported['message']
+    assert '충돌' in reported['message']
+    assert 'IK' not in reported['message']
     assert json.loads(path.read_text()) == job  # Summaries do not rewrite history or clear blocks.
+    legacy = {**job, 'result': record, 'message': '이전 IK 오류 표기'}
+    atomic_json(path, legacy)
+    assert control.job_history()[0]['message'] == reported['message']
+    assert json.loads(path.read_text()) == legacy
 
 
 def test_partial_or_invalid_stdout_never_becomes_a_terminal_record(tmp_path):
@@ -404,3 +419,76 @@ def test_pending_retired_joint_command_cannot_execute(tmp_path, monkeypatch):
     saved = path.read_bytes()
     execute_job(path, tmp_path)
     assert path.read_bytes() == saved
+
+
+def test_web_only_rear_bin_profile(tmp_path):
+    from cleany_dev_monitor.operator_jobs import web_collection_profile
+    repo = Path(__file__).resolve().parents[4]
+    source = repo / 'configs/robot/collection_cad.json'
+    original = source.read_bytes()
+    path = web_collection_profile(repo, tmp_path, str(source))
+    candidate = json.loads(path.read_text())
+    assert candidate['label_destinations'] == {'*': 'rear_bin_a'}
+    assert candidate['operation_mode'] == 'pick_rear_bin_release'
+    configured = json.loads(original)['arms']
+    home = json.loads((repo / 'configs/robot/arm_return_home.json').read_text())['arms']
+    assert candidate['arms'] == {
+        arm: {**settings, 'home_joint_rad': home[arm]} for arm, settings in configured.items()
+    }
+    assert source.read_bytes() == original
+    assert web_collection_profile(repo, tmp_path, str(tmp_path / 'custom.json')) is None
+
+
+@pytest.mark.parametrize('legacy_request', [False, True])
+@pytest.mark.parametrize('running,restart,blocked,matching_after,expected', [
+    (False, False, False, True, ['start', 'action-start']),
+    (True, False, False, True, ['start', 'action-start']),
+    (True, True, False, True, ['start', 'action-restart']),
+    (False, False, True, True, ['start', 'action-start']),
+    (True, False, True, True, []),
+    (True, True, False, False, ['start', 'action-restart']),
+])
+def test_prepare_verifies_executor_home_without_motion(
+        tmp_path, monkeypatch, legacy_request, running, restart, blocked, matching_after, expected):
+    import cleany_dev_monitor.operator_jobs as jobs
+    import cleany_dev_monitor.operator_ros as ros
+
+    repo = Path(__file__).resolve().parents[4]
+    path = tmp_path / 'jobs' / 'prepare.json'
+    path.parent.mkdir()
+    (tmp_path / 'enabled').touch()
+    monkeypatch.delenv('CLEANY_MANIPULATION_COLLECTION_CONFIG', raising=False)
+    monkeypatch.setenv('CLEANY_WEB_CONTROL_DIRECTORY', str(tmp_path))
+    args = {'confirm_torque_on': True}
+    if legacy_request:
+        args['confirm_home_motion'] = True
+    atomic_json(path, dict(
+        action='prepare', args=args,
+        state='PENDING', created_at=time.time()))
+
+    commands = []
+    home = json.loads((repo / 'configs/robot/arm_return_home.json').read_text())['arms']
+    port = Port()
+    port.state.update(operation_mode='pick_rear_bin_release', inhibited=blocked,
+                      return_home_joint_rad={} if restart else home)
+
+    def launch(command, **_kwargs):
+        assert command[1] != 'arm-return'
+        commands.append(command[1])
+        if command[1] == 'action-restart' and matching_after:
+            port.state['return_home_joint_rad'] = home
+        return type('Process', (), dict(pid=1, returncode=0, poll=lambda self: 0))()
+
+    monkeypatch.setattr(ros, 'OperatorROS', lambda: port)
+    monkeypatch.setattr(jobs, 'runtime_info', lambda: dict(
+        managed=running or bool(commands), pipeline_busy=False,
+        processes={'manipulation_action': running}))
+    monkeypatch.setattr(jobs.subprocess, 'Popen', launch)
+    execute_job(path, repo)
+    assert commands == expected
+    completed = json.loads(path.read_text())
+    assert completed['state'] == ('SUCCEEDED' if matching_after and (not running or not blocked) else 'FAILED')
+    assert port.state['inhibited'] is blocked
+    if blocked and not running:
+        assert '수거 실행 차단이 남아 있습니다.' in completed['message']
+    assert completed.get('phase') != 'HOMING'

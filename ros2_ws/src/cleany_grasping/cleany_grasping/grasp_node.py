@@ -25,6 +25,7 @@ from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailable
 from cleany_grasping.core.models import PointCloud
 from cleany_grasping.core.collision_geometry import observed_convex_prism
 from cleany_grasping.core.selector import GraspConfig, rank_grasps
+from cleany_grasping.core.target_component import BodyFilter
 from cleany_grasping.debug_image import debug_image_message, render_grasp_debug_image
 from cleany_grasping.geometric_predictor import (
     GeometricGraspConfig,
@@ -147,7 +148,17 @@ def point_cloud_from_message(message: PointCloud2) -> PointCloud:
     for axis, shift in enumerate((16, 8, 0)):
         colors[:, axis] = (rgb >> shift) & 255
     colors /= 255.0
-    return PointCloud(points, colors)
+    viewpoint = None
+    names = ('vp_x', 'vp_y', 'vp_z')
+    if all(name in descriptors for name in names):
+        fields = [descriptors[name] for name in names]
+        if all(f.datatype == PointField.FLOAT32 and f.count == 1
+               and 0 <= f.offset <= message.point_step - 4 for f in fields):
+            origin = np.array([np.frombuffer(message.data, dtype=endian + 'f4', count=1,
+                                             offset=f.offset)[0] for f in fields])
+            if np.isfinite(origin).all():
+                viewpoint = origin
+    return PointCloud(points, colors, viewpoint=viewpoint)
 
 
 def _predict_and_rank(
@@ -253,10 +264,22 @@ class GraspNode(Node):
         self.declare_parameter('geometric.opening_margin_m', 0.008)
         self.declare_parameter('geometric.grasp_depth_m', 0.025)
         self.declare_parameter('geometric.maximum_top_contact_depth_m', 0.0)
+        self.declare_parameter('geometric.pad_half_length_m', 0.0)
+        self.declare_parameter('geometric.distal_pad_offset_m', 0.0)
+        self.declare_parameter('geometric.top_face_tolerance_m', 0.0)
+        self.declare_parameter('geometric.top_face_tip_reach_m', 0.0)
+        self.declare_parameter('geometric.distal_contact_depth_m', 0.003)
         self.declare_parameter('geometric.finger_thickness_m', 0.010)
         self.declare_parameter('geometric.finger_length_m', 0.045)
         self.declare_parameter('geometric.palm_depth_m', 0.018)
         self.declare_parameter('geometric.collision_clearance_m', 0.003)
+        radius = self.declare_parameter('target_body.connectivity_radius_m', BodyFilter.radius_m)
+        fraction = self.declare_parameter('target_body.minimum_fraction', BodyFilter.minimum_fraction)
+        # Honor overrides from profiles that used the original geometric parameters.
+        self._body_filter = BodyFilter(
+            self.declare_parameter('geometric.body_connectivity_radius_m', radius.value).value,
+            self.declare_parameter('geometric.minimum_body_fraction', fraction.value).value,
+        )
         self.declare_parameter('geometric.plane_distance_threshold_m', 0.006)
         self.declare_parameter('geometric.plane_ransac_iterations', 160)
         self.declare_parameter('geometric.extent_trim_percentile', 0.5)
@@ -385,6 +408,7 @@ class GraspNode(Node):
             target = point_cloud_from_message(request.target_cloud)
             context = point_cloud_from_message(request.context_cloud)
             config = GraspConfig(
+                body_filter=self._body_filter,
                 nms_rotation_threshold_rad=math.radians(float(
                     self.get_parameter('nms_rotation_threshold_degrees').value
                 )),
@@ -394,22 +418,15 @@ class GraspNode(Node):
                 canonical_to_tcp_rotation=np.asarray(self.get_parameter('canonical_to_tcp_rotation').value).reshape((3, 3)),
                 tcp_approach_axis=np.asarray(self.get_parameter('tcp_approach_axis').value),
             )
-            target_min = target.points.min(axis=0)
-            target_max = target.points.max(axis=0)
-            workspace = np.column_stack(
-                (
-                    target_min - config.workspace_margin_m,
-                    target_max + config.workspace_margin_m,
-                )
-            ).reshape(-1)
+            body, prediction_context, workspace = config.prediction_inputs(target, context)
             candidates, ranked, retried = _predict_and_rank(
-                self._predictor, target, context, workspace, config)
+                self._predictor, body, prediction_context, workspace, config)
             if retried:
                 self.get_logger().warning('Adaptive sampling found no grasp; retried the full point cloud')
             grasp = ranked[0] if ranked else None
             self._publish_debug(
-                target,
-                context,
+                body,
+                prediction_context,
                 candidates,
                 self._selected_raw_index(candidates, grasp),
                 request.context_cloud,
@@ -445,6 +462,13 @@ class GraspNode(Node):
             response.success = True
             response.error_code = response.ERROR_NONE
             response.message = f'Generated {len(response.candidates)} grasp candidates'
+            face_widths = [
+                f'{i}={pose.face_width_m * 1000:.1f}/{pose.required_opening_m * 1000:.1f}'
+                for i, pose in enumerate(ranked, start=len(response.candidates) - len(ranked)) if pose.face_width_m is not None
+            ]
+            if face_widths:
+                self.get_logger().info(
+                    f'{request.snapshot_id} top grasps (index=face/opening mm): ' + ', '.join(face_widths))
             return response
         except ModelUnavailableError as error:
             return self._fail(response, response.ERROR_MODEL_UNAVAILABLE, str(error))
@@ -532,6 +556,11 @@ class GraspNode(Node):
                     grasp_depth_m=float(
                         self.get_parameter('geometric.grasp_depth_m').value
                     ),
+                    pad_half_length_m=float(self.get_parameter('geometric.pad_half_length_m').value),
+                    distal_pad_offset_m=float(self.get_parameter('geometric.distal_pad_offset_m').value),
+                    top_face_tolerance_m=float(self.get_parameter('geometric.top_face_tolerance_m').value),
+                    top_face_tip_reach_m=float(self.get_parameter('geometric.top_face_tip_reach_m').value),
+                    distal_contact_depth_m=float(self.get_parameter('geometric.distal_contact_depth_m').value),
                     maximum_top_contact_depth_m=float(
                         self.get_parameter('geometric.maximum_top_contact_depth_m').value),
                     finger_thickness_m=float(
@@ -546,6 +575,8 @@ class GraspNode(Node):
                     collision_clearance_m=float(
                         self.get_parameter('geometric.collision_clearance_m').value
                     ),
+                    body_connectivity_radius_m=self._body_filter.radius_m,
+                    minimum_body_fraction=self._body_filter.minimum_fraction,
                     plane_distance_threshold_m=float(
                         self.get_parameter(
                             'geometric.plane_distance_threshold_m'

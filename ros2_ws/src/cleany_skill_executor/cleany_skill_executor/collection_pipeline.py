@@ -30,6 +30,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from .core.collection import (RETURN_TO_PICK, PickupReturnPolicy, configuration_issues, load_arm,
                               check_evidence, contact_verification_required,
                               grasp_identity_verification_required, temporary_return_mode)
+from .core.rear_bin import REAR_BIN, RearBinRoute, RearBinTrajectories, rear_bin_mode
 from .core.cartesian import (
     CartesianPose, bounded_cartesian_step, coordinate_median, estimate_measured_path_pose,
     grasp_capture_metrics, observation_corrected_pose, orientation_error_rad,
@@ -44,6 +45,7 @@ from .core.approach_path import (
 )
 from .core.hardware_execution import (
     CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
+    RecordedStartMismatch,
 )
 from .core.joint_path import executable_joint_path
 from .core.measured_fk_cache import MeasuredFkCache
@@ -111,10 +113,16 @@ class CollectionPipeline(PregraspPipeline):
         issues = configuration_issues(config)
         if issues:
             raise ValueError('; '.join(issues))
-        super().__init__(mode='hardware', **kwargs)
+        super().__init__(mode='hardware', preserve_scene_attachments=rear_bin_mode(config), **kwargs)
         if not self.scene_monitor.required:
             raise ValueError('Physical collection requires require_sensor_scene:=true')
         self.config = config
+        self.rear_bin_trajectories = None
+        if rear_bin_mode(config) and config.get('rear_bin_trajectory_file'):
+            try:
+                self.rear_bin_trajectories = RearBinTrajectories.load(config['rear_bin_trajectory_file'])
+            except (OSError, KeyError, TypeError, ValueError, CommandPathValidationError) as error:
+                self.get_logger().warning(f'Could not load rear-bin trajectories: {error}')
         self._reuse_measured_fk = self.declare_parameter('execution_reuse_measured_fk', True).value
         self._measured_fk_cache = MeasuredFkCache()
         self.evidence = self.create_client(CheckManipulation, '/manipulation/check_evidence')
@@ -439,6 +447,8 @@ class CollectionPipeline(PregraspPipeline):
         full_collection = self.config.get('operation_mode', 'full_collection') == 'full_collection'
         if temporary_return_mode(self.config):
             self.destination = RETURN_TO_PICK
+        if rear_bin_mode(self.config):
+            self.destination = REAR_BIN
         if full_collection:
             self.destination = self.config['label_destinations'].get(
                 selected.selected_object.label,
@@ -446,9 +456,9 @@ class CollectionPipeline(PregraspPipeline):
             )
             if not self.destination or self.destination not in self.arm_config.bins:
                 raise RuntimeError('No approved destination for selected label')
-        expected = self.arm_config.opening(float(selected.selected_candidate.required_opening_m))
-        if abs(expected-selected.gripper_joint_position) > 1e-4:
-            raise RuntimeError('Selector gripper mapping differs from physical calibration')
+        if not math.isclose(selected.gripper_joint_position, self.arm_config.opened,
+                            rel_tol=0., abs_tol=1e-4):
+            raise RuntimeError('Selector did not validate the configured fully open gripper')
         limits = self.real.verify(arm)
         if self.arm_config.home is None:
             measured = self.real.monitor()
@@ -461,6 +471,9 @@ class CollectionPipeline(PregraspPipeline):
         poses = [self.arm_config.home]
         if full_collection:
             poses.append(self.arm_config.bins[self.destination])
+        if rear_bin_mode(self.config):
+            route = RearBinRoute.from_config(self.config, arm)
+            poses.extend((*route.outbound(self.arm_config.home[-1]), route.park))
         for pose in poses:
             for name,q in zip(ARM_JOINT_NAMES[arm],pose):
                 limits[name].check(q)
@@ -843,22 +856,27 @@ class CollectionPipeline(PregraspPipeline):
         # still originate at measured FK and retain the requested destination.
         hold = (None if stage == 'return_to_pickup' else
                 self.real.arm_holds.get(arm))
+        compensate_support_offset = stage not in ('approach', 'approach_detour')
         command_start = None
         if hold is not None:
             command_start = fk(hold.command)
-            if command_target is None:
+            if command_target is not None:
+                command_waypoints = (command_target,)
+            elif compensate_support_offset:
                 command_waypoints = tuple(estimate_measured_path_pose(command_start, start, p)
                                           for p in waypoints)
             else:
-                command_waypoints = (command_target,)
+                # Continue from the held joints without moving the grasp goal.
+                command_waypoints = waypoints
             if (command_target is not None or math.dist(start.position, command_start.position) > 1e-9
                     or orientation_error_rad(start.orientation, command_start.orientation) > 1e-9):
                 command_state = deepcopy(measured)
                 sent = dict(zip(names, hold.command, strict=True))
                 command_state.position = [sent.get(name, value) for name, value in
                                           zip(measured.name, measured.position, strict=True)]
-                roll = (None if wrist_roll_target is None else wrist_roll_target
-                        +hold.command[-1]-measured_joints[-1])
+                roll = wrist_roll_target
+                if roll is not None and compensate_support_offset:
+                    roll += hold.command[-1] - measured_joints[-1]
                 trajectory = self._cartesian_trajectory(
                     arm, command_state, command_waypoints, stage+'_command_support', roll,
                     check_collisions)
@@ -892,10 +910,12 @@ class CollectionPipeline(PregraspPipeline):
             self.motion.set_current_state(actual)
             current = dict(zip(actual.name, actual.position, strict=True))
             origin = fk(tuple(current[name] for name in names))
+            if command_start is not None and not compensate_support_offset:
+                origin = command_start
             final_poses = []
             for sample in samples:
                 pose = fk(sample.positions)
-                if command_start is not None:
+                if command_start is not None and compensate_support_offset:
                     pose = estimate_measured_path_pose(origin, command_start, pose)
                 final_poses.append(pose)
             try:
@@ -1004,7 +1024,7 @@ class CollectionPipeline(PregraspPipeline):
             report['approach_collision_checks_enabled'] = False
             self.event('approach_collision_checks_disabled', arm=selected.selected_arm)
             if self.config.get('approach_execution_replanning_enabled', False):
-                return self.replan_approach_from_arrival(selected, report)
+                return self.execute_selected_approach(selected, report)
             return self.linear(
                 selected.selected_arm, selected.fk_grasp_pose, 'approach',
                 self.selected_grasp_roll(selected, selected.selected_arm),
@@ -1070,7 +1090,7 @@ class CollectionPipeline(PregraspPipeline):
     def _approach_target(self, selected, report: dict):
         """Retry only unexecuted, rejected paths; retain the selected grasp pose."""
         if self.config.get('approach_execution_replanning_enabled', False):
-            return self.replan_approach_from_arrival(selected, report)
+            return self.execute_selected_approach(selected, report)
         arm, target = selected.selected_arm, selected.fk_grasp_pose
         roll = self.selected_grasp_roll(selected, arm)
         if not self.config.get('approach_collision_replanning_enabled', False):
@@ -1147,6 +1167,27 @@ class CollectionPipeline(PregraspPipeline):
         recovery['outcome'] = 'detours_exhausted' if routes else 'final_entry_or_length_limit'
         raise RuntimeError('Approach collision recovery stopped: '+recovery['outcome']+
                            '; '+str(last_error)) from last_error
+
+    def execute_selected_approach(self, selected, report: dict):
+        """Reuse the saved approach unless its first point no longer matches."""
+        arm = selected.selected_arm
+        submissions = self.real.motion_submissions
+        try:
+            self.real.execute_selected_trajectory(
+                arm, selected.grasp_trajectory,
+                endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
+                check_collisions=self.config.get('approach_collision_check_enabled', True))
+        except RecordedStartMismatch as error:
+            if error.motion_started or self.real.motion_submissions != submissions:
+                raise
+            report['approach_execution_route'] = 'replanned_from_arrival'
+            self.event('approach_saved_start_mismatch', arm=arm,
+                       error_rad=error.maximum_error_rad, tolerance_rad=error.tolerance_rad)
+            return self.replan_approach_from_arrival(selected, report)
+        report['approach_execution_route'] = 'selected_trajectory'
+        self.event('approach_selected_trajectory_executed', arm=arm,
+                   command_points=len(selected.grasp_trajectory.points))
+        return self.pose(arm)
 
     def replan_approach_from_arrival(self, selected, report: dict):
         """Replan from fresh arrival, then preserve the held start without rebiasing."""
@@ -1701,6 +1742,96 @@ class CollectionPipeline(PregraspPipeline):
         endpoint_options = {'allow_endpoint_error': True} if allow_endpoint_error else {}
         self.execute_trajectory(arm, response.trajectory.joint_trajectory, 'arm', **endpoint_options)
 
+    def check_rear_bin_standby(self, arm: str) -> None:
+        """Screen the empty-arm final leg with the captured home before the grasp."""
+        route = RearBinRoute.from_config(self.config, arm)
+        state = self.real.monitor()
+        measured = dict(zip(state.name, state.position, strict=True))
+        self.motion.set_current_state(state)
+        names = ARM_JOINT_NAMES[arm]
+        try:
+            release = route.outbound(measured[f'{arm}_wrist_roll_joint'])[-1]
+            tcp = self.motion.forward_kinematics(arm, JointSolution(names, release)).position
+            distance = math.dist(tcp, route.release_xyz)
+            if not math.isfinite(distance) or distance > route.tolerance:
+                raise RuntimeError('Rear release joint target does not match the current robot model')
+            self.motion.set_gripper_position(arm, self.arm_config.opened)
+            final = PlannedPath(names, (route.park, self.arm_config.home))
+            if self.motion._validated_cubic_path(arm, final) is None:
+                raise RuntimeError('Rear bin standby path is outside limits or in collision')
+            self.motion.set_gripper_position(arm, self.arm_config.closed)
+            if not self.motion.state_is_valid(arm, JointSolution(names, self.arm_config.home)):
+                raise RuntimeError('Closed gripper is in collision at rear bin standby')
+        finally:
+            self.motion.set_gripper_position(arm, measured[f'{arm}_gripper_joint'])
+
+    def rear_bin_path(self, arm: str, targets: tuple, stage: str) -> None:
+        """Replay a compatible cubic or plan from measurements, with guarded dispatch."""
+        state = self.real.monitor()
+        measured = dict(zip(state.name, state.position, strict=True))
+        names = ARM_JOINT_NAMES[arm]
+        start = tuple(measured[name] for name in names)
+        self.motion.set_current_state(state)
+        self.motion.set_gripper_position(arm, measured[f'{arm}_gripper_joint'])
+        cache = getattr(self, 'rear_bin_trajectories', None)
+        if cache is not None:
+            hold = self.real.arm_holds.get(arm)
+            if hold is not None:
+                recorded = cache.for_stage(arm, stage, names, targets, start, hold, self.description,
+                    start_tolerance=self.real.value('hardware_start_tolerance_rad'),
+                    arrival_tolerance=self.real.value('hardware_arrival_tolerance_rad'),
+                    maximum_bias=self.real.value('hardware_command_continuity_max_offset_rad'))
+                if recorded is not None:
+                    self.event(stage, arm=arm, waypoints=len(targets), trajectory_source='precomputed')
+                    self.real.execute_recorded_trajectory(arm, recorded, check_collisions=True, retime=True)
+                    return
+        path = self.motion._validated_cubic_path(arm, PlannedPath(names, (start, *targets)))
+        if path is None:
+            raise RuntimeError(f'{stage}: rear route exceeds limits or intersects the current scene')
+        self.event(stage, arm=arm, waypoints=len(targets), trajectory_source='planned')
+        self.execute_trajectory(arm, path_to_message(path), 'arm')
+
+    def carry_to_rear_bin(self, arm: str, report: dict) -> None:
+        route = RearBinRoute.from_config(self.config, arm)
+        state = self.real.monitor()
+        measured = dict(zip(state.name, state.position, strict=True))
+        stations = route.outbound(measured[f'{arm}_wrist_roll_joint'])
+        self.move_joint_pose(arm, stations[0], 'rear_bin_entry')
+        self.rear_bin_path(arm, stations[1:], 'rear_bin_transport')
+        report['destination_id'] = REAR_BIN
+
+    def check_rear_bin_release(self, arm: str) -> None:
+        """Project the attached OBB at measured release FK before opening the jaw."""
+        if not self.carrying or self.carrying['arm'] != arm:
+            raise ValueError('Rear release requires the selected attached payload')
+        route = RearBinRoute.from_config(self.config, arm)
+        grasp = self.cartesian_pose(self.carrying['grasp_tcp_pose'])
+        release = self.cartesian_pose(self.pose(arm))
+        obj = self.payload_selected.selected_object
+        obb = self.cartesian_pose(obj.obb_pose)
+        delta = (rotation_from_quaternion(release.orientation)
+                 @ rotation_from_quaternion(grasp.orientation).T)
+        center = release.position + delta @ (np.asarray(obb.position) - grasp.position)
+        size = np.array([obj.obb_size.x, obj.obb_size.y, obj.obb_size.z])
+        if not np.all(size > 0):
+            raise ValueError('Rear release requires positive payload dimensions')
+        half_extents = np.abs(delta @ rotation_from_quaternion(obb.orientation)) @ (size / 2)
+        route.check_payload(release.position, center, half_extents)
+
+    def return_from_rear_bin(self, arm: str) -> None:
+        route = RearBinRoute.from_config(self.config, arm)
+        state = self.real.monitor()
+        roll = dict(zip(state.name, state.position, strict=True))[f'{arm}_wrist_roll_joint']
+        retreat = route.retreat(roll)
+        if route.return_side_clearance is not None:
+            targets = (*retreat, route.park, self.arm_config.home)
+            self.rear_bin_path(arm, targets, 'rear_bin_return')
+        else:
+            self.rear_bin_path(arm, retreat, 'rear_bin_retreat')
+            self.rear_bin_path(arm, (route.park,), 'rear_bin_park')
+            self.rear_bin_path(arm, (self.arm_config.home,), 'rear_bin_standby')
+        self.jaw(arm, self.arm_config.closed, 'rear_bin_close_at_standby')
+
     def jaw(self, arm: str, position: float, stage: str, *, contact_close=False,
             check_collisions=True):
         state = self.real.monitor()
@@ -1960,6 +2091,18 @@ class CollectionPipeline(PregraspPipeline):
                 report.update(payload_held=True,
                               message='Grasp/lift completed; holding payload without transport or release')
                 return
+            if rear_bin_mode(self.config):
+                self.carry_to_rear_bin(arm, report)
+                self.check_rear_bin_release(arm)
+                self.releasing = True
+                self.jaw(arm, self.arm_config.opened, 'release_at_rear_bin')
+                self.carrying['release_confirmed'] = True
+                self.detach()
+                self.scene.restore()
+                self.return_from_rear_bin(arm)
+                report.update(released=True, returned=True, release_verified=False,
+                              placement_verified=False, placement_state='ASSUMED')
+                return
             if temporary_return_mode(self.config):
                 report.update(self.return_to_pickup(arm, pregrasp))
                 self.releasing = True
@@ -2005,6 +2148,9 @@ class CollectionPipeline(PregraspPipeline):
                 cycle = self.run(query)
                 report['cycles'].append(cycle)
                 if cycle['success']:
+                    if rear_bin_mode(self.config):
+                        report.update(success=True, message='Rear bin release and return completed; placement assumed')
+                        break
                     if temporary_return_mode(self.config):
                         report.update(success=True, message='Single temporary pick/return/release cycle completed; placement assumed')
                         break

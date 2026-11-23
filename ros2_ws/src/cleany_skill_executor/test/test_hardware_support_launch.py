@@ -23,8 +23,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         'hardware_support_launch', package / 'launch/pregrasp_hardware_support.launch.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    model = tmp_path / 'model.urdf'
-    model.write_text('<robot name="synthetic"/>')
+    model = tmp_path / 'robot.urdf'
+    model.write_text('<robot name="test"><link name="base_link"/></robot>')
     monkeypatch.setattr(module, 'prepare_state_profile',
                         lambda *args: SimpleNamespace(camera_serial='TEST', model=model))
     monkeypatch.setattr(module, 'get_package_share_directory',
@@ -89,14 +89,15 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
     assert config['grasp_direction_pair_position_tolerance_m'] == .00001
     assert config['grasp_direction_pair_axis_tolerance_degrees'] == 1.0
     assert config['require_sensor_scene'] is True
-    assert config['require_gripper_closure_clearance'] is True
+    assert config['require_gripper_closure_clearance'] is False
+    assert config['require_approach_corridor'] is True
     assert config['asymmetric_gripper_enabled'] is False
     assert config['fixed_jaw_tcp_offset_m'] == 0.
     assert config['fixed_jaw_additional_bias_m'] == 0.
     if backend == 'curobo_ik_moveit':
         assert config['curobo_ik_cpu_fallback'] is False
         assert config['curobo_ik_batch_size'] == 8
-        assert config['curobo_ik_endpoint_margin_rad'] == .1
+        assert config['curobo_ik_endpoint_margin_rad'] == 0.
         assert config['maximum_path_candidates'] == 4
     assert config['fixed_jaw_clearance_enabled'] is False
     assert config['fixed_jaw_minimum_clearance_m'] == .005
@@ -118,3 +119,32 @@ def test_jetson_geometric_candidate_profile_uses_bounded_yaw_without_reversal():
     settings = yaml.safe_load(profile.read_text())['grasp_server']['ros__parameters']
     assert settings['geometric.include_reverse_closing_axis'] is False
     assert settings['geometric.yaw_offsets_degrees'] == [-40., -20., 0., 20., 40.]
+
+
+def test_one_startup_probe_dispatches_in_order_and_fails_closed(monkeypatch, tmp_path):
+    package = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location(
+        'hardware_support_launch', package / 'launch/pregrasp_hardware_support.launch.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    handlers = {}
+    for name in ('OnProcessIO', 'OnProcessExit'):
+        original = getattr(module, name)
+        def capture(original=original, **kwargs):
+            handlers.update(kwargs)
+            return original(**kwargs)
+        monkeypatch.setattr(module, name, capture)
+    ready = tmp_path/'ready'
+    stages = {'receipt': [1], 'scene': [2], 'grasp': [3], 'validation': [4], 'warmup': [5]}
+    _, _, probe = module.staged_planning_actions(stages, '120', str(ready))
+    assert handlers['target_action'] is probe
+    output = lambda data: handlers['on_stdout'](SimpleNamespace(text=data))
+    assert output(b'ROS log\nCLEANY_START_') == []
+    assert output(b'STAGE receipt\n') == [1]
+    failure, = output(b'CLEANY_START_STAGE warmup\n')
+    assert isinstance(failure.event, module.Shutdown)
+    assert handlers['on_exit'](SimpleNamespace(returncode=0), None) and not ready.exists()
+    for stage in ('scene', 'grasp', 'validation', 'warmup'):
+        assert output(f'CLEANY_START_STAGE {stage}\n'.encode()) == stages[stage]
+    assert handlers['on_exit'](SimpleNamespace(returncode=1), None) and not ready.exists()
+    assert handlers['on_exit'](SimpleNamespace(returncode=0), None) == [] and ready.exists()

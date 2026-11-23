@@ -1,6 +1,6 @@
 {
   "schema": "cleany.cad_grasp_binding/v1",
-  "pose_config_sha256": "feb28352f22c8d73b4353ea17ae78cde3fd2991e376259a9b7fd989356143703",
+  "pose_config_sha256": "66dcbf5beae670b4684509585717d873dbd0fcdc5785f5aa0600745272b867b2",
   "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
   "joint_coordinates": {
     "cad_delta_left_shoulder_yaw": {

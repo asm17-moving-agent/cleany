@@ -76,6 +76,7 @@ depth 100으로 구독합니다. `monitor_port`의 localhost ZeroMQ REP socket�
 | 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger`; 예열 준비 상태 |
 | 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/srv/SetBool`; VLM 대기 구간 알림 |
 | 서비스 호출 | `/check_state_validity_batch` | `CheckStateValidityBatch`; 전체 상태의 배치 검사 |
+| 서비스 호출 | `/check_grasp_octomap`, `/compare_grasp_octomap` | `CheckStateValidityBatch`로 최대 64개 파지 IK 자세의 OctoMap 간섭을 확인한다. 성공 응답은 중간에 충돌이 있어도 모든 자세를 반환한다. |
 | 구독 | `joint_states` | `sensor_msgs/msg/JointState`, depth 20; `joint_state_topic` 기본값 |
 | 구독 | `/robot_description` | `std_msgs/msg/String`; transient-local |
 
@@ -124,3 +125,9 @@ Action 결과는 계획 근거이며 실물 수거 성공을 뜻하지 않는다
 선택기의 `pregrasp_z_offset_m`, `maximum_path_candidates`, `curobo_ik_endpoint_margin_rad`와 공통 실행 설정은 [공통 파지 설정](shared-grasp-policy.md)을 따른다. ROS endpoint와 메시지 타입은 바뀌지 않는다.
 
 실물 지원 launch의 `start_head_camera=false`는 기존 헤드 RGB-D와 TF bridge를 공유하며, GPU 선택기·장면 처리·ValidatePick은 계속 시작한다. 기본값 true는 기존 센서 시작 동작을 유지한다. [공유 계약](shared-grasp-policy.md#dev-monitor와-운영-인식-공유)을 따른다.
+
+웹 준비에서 단계별 검사기는 CPU 여유와 새 보호 피드백을 함께 확인합니다.
+GPU 예열 중에는 `/grasp/warmup_status`와 `/real_control/status`만 감시하고
+성공 후 전체 ROS 그래프와 센서 입력을 확인합니다. 조작 실행기를 시작한 뒤
+`/manipulation/execute_skill` 서버가 하나이고 보호 피드백이 안정된 상태여야
+준비가 완료됩니다.

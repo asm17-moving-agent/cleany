@@ -6,6 +6,7 @@ from copy import deepcopy
 from collections import deque
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
+from functools import lru_cache
 import json
 import math
 from pathlib import Path
@@ -33,17 +34,17 @@ from .core.grasp_approach_bounds import active_grasp_approach_yaw, declare_grasp
 from .state_validity_batch import StateValidityBatch
 from .execution_timing import timed_operation
 from .readonly_services import ReadOnlyBatch, call_readonly_services
-from .trajectory_io import command_samples_to_message
+from .trajectory_io import command_samples_to_message, recorded_from_message
 from .core.cartesian import CartesianPose, orientation_error_rad, validate_height_correctable_endpoint
 from .core.hardware_execution import (
     ArmHold, CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
-    CommunicationRecovered, ExecutionCanceled, bounded_path, bridge_joint_path,
+    CommunicationRecovered, ExecutionCanceled, RecordedStartMismatch, bounded_path, bridge_joint_path,
     continue_joint_path, physical_limits, prepare_bounded_path, remaining_joint_path,
 )
 from .core.joint_path import executable_joint_path
 from .core.joint_stability import JointStabilityHistory
 from .core.recorded_trajectory import (
-    ArmCommandRecording, CommandPoint, RecordedTrajectory, validate_recorded_trajectory,
+    ArmCommandRecording, RecordedTrajectory, validate_recorded_trajectory,
     stopped_recorded_window, retime_recorded_trajectory,
 )
 from .core.motion_monitor import MotionMonitor, MotionMonitorConfig
@@ -114,6 +115,13 @@ def transient_octomap_arm_collision(response, arm):
         if not robot_link.startswith(f'{arm}_'):
             return False
     return True
+
+
+@lru_cache(maxsize=32)
+def _feedback_layout(names: tuple[str, ...]) -> tuple[int | None, int | None, int | None, bool]:
+    indices = {name: index for index, name in enumerate(names)}
+    return (indices.get('communication_recovery_count'), indices.get('feedback_stamp_ns'),
+            indices.get('position'), len(indices) == len(names))
 
 
 class HardwareExecution:
@@ -636,20 +644,22 @@ class HardwareExecution:
                     + str(error)
                 )
 
-    def _collision_responses(self, states):
+    def _collision_responses(self, states, group_name):
         batch = getattr(self, '_batch_validity', None)
         size = batch.batch_size if batch is not None else 1
         for start in range(0, len(states), size):
             self.monitor()
             chunk = states[start:start+size]
             response = (batch.check(chunk, lambda client, request:
-                self.node.call(client, request, timeout=5. * len(chunk), monitor=True))
+                self.node.call(client, request, timeout=5. * len(chunk), monitor=True),
+                group_name=group_name)
                 if batch is not None else None)
             self.monitor()
             if response is None:
                 for offset, state in enumerate(chunk):
                     self.monitor()
-                    result = self.node.call(self.validity, GetStateValidity.Request(robot_state=state))
+                    request = GetStateValidity.Request(robot_state=state, group_name=group_name)
+                    result = self.node.call(self.validity, request)
                     yield start+offset, result
                     if not result.valid:
                         return
@@ -714,7 +724,8 @@ class HardwareExecution:
         states = HardwareExecution._prepare_collision_states(
             self, arm, expected, samples, baseline, measured,
             hold_bridge_samples=hold_bridge_samples)
-        for index, response in HardwareExecution._collision_responses(self, states):
+        group = 'pregrasp_open' if f'{arm}_gripper_joint' in expected else 'grasp_arm'
+        for index, response in HardwareExecution._collision_responses(self, states, f'{arm}_{group}'):
             if response.valid:
                 continue
             sample = samples[index]
@@ -1033,20 +1044,25 @@ class HardwareExecution:
                 for history in self.contact_histories.values():
                     history.invalidate('malformed_joint_feedback')
                 return
-            rows = dict(zip(message.joint_names, message.interface_values))
+            rows = {}
+            positions = {}
             recovery_counts = []
             feedback_stamps = {}
-            for name, row in rows.items():
+            stability = getattr(self, '_stability_history', None)
+            for name, row in zip(message.joint_names, message.interface_values):
                 if len(row.interface_names) != len(row.values):
                     continue
-                values = dict(zip(row.interface_names, row.values))
-                count = values.get('communication_recovery_count')
-                if count is not None:
+                count_index, stamp_index, position_index, unique = _feedback_layout(tuple(row.interface_names))
+                rows[name] = (row, unique)
+                if stability is not None and unique and position_index is not None:
+                    positions[name] = row.values[position_index]
+                if count_index is not None:
+                    count = row.values[count_index]
                     if not math.isfinite(count) or count < 0 or count != int(count):
                         self.fault = 'Invalid communication recovery telemetry'
                         return
                     recovery_counts.append(int(count))
-                    stamp = values.get('feedback_stamp_ns')
+                    stamp = row.values[stamp_index] if stamp_index is not None else None
                     if (stamp is None or not math.isfinite(stamp)
                             or stamp <= 0 or stamp != int(stamp)):
                         self.fault = 'Invalid complete-feedback acquisition telemetry'
@@ -1063,27 +1079,19 @@ class HardwareExecution:
                 self.complete_feedback_stamp_ns = next(iter(feedback_stamps.values()))
                 self.communication_recovery_count = max(
                     getattr(self, 'communication_recovery_count', 0), max(recovery_counts))
-                stability = getattr(self, '_stability_history', None)
                 if stability is not None:
-                    # Feetech commits all 14 positions atomically after a complete
+                    # Feetech commits all present positions atomically after a complete
                     # acquisition. Head rows share the arm acquisition stamp but
                     # export only position; never substitute a /joint_states value.
-                    positions = {}
-                    for name in required | {'head_pan_joint', 'head_tilt_joint'}:
-                        row = rows.get(name)
-                        valid = (row is not None
-                            and len(row.interface_names) == len(row.values)
-                            and len(set(row.interface_names)) == len(row.interface_names))
-                        positions[name] = (dict(zip(row.interface_names, row.values)).get(
-                            'position', math.nan) if valid else math.nan)
-                    stability.observe(self.complete_feedback_stamp_ns, positions,
+                    feedback_positions = {name: positions.get(name, math.nan)
+                        for name in required | {'head_pan_joint', 'head_tilt_joint'}}
+                    stability.observe(self.complete_feedback_stamp_ns, feedback_positions,
                                       max(recovery_counts))
             else:
                 HardwareExecution._reset_stability_history(self)
             for arm, history in self.contact_histories.items():
-                row = rows.get(f'{arm}_gripper_joint')
-                if (row is None or len(row.interface_names) != len(row.values)
-                        or len(set(row.interface_names)) != len(row.interface_names)):
+                row, unique = rows.get(f'{arm}_gripper_joint', (None, False))
+                if not unique:
                     history.invalidate('missing_or_malformed_gripper_feedback')
                 else:
                     history.observe(dict(zip(row.interface_names, row.values)))
@@ -1200,6 +1208,17 @@ class HardwareExecution:
         finally:
             self._arm_command_recording = None
 
+    def execute_selected_trajectory(self, arm: str, trajectory: JointTrajectory, *,
+                                    check_collisions: bool, endpoint_pose: CartesianPose):
+        """Dispatch the timed selection unchanged once the settled joints match."""
+        recorded = recorded_from_message(trajectory)
+        if any(abs(value) > 1e-9 for point in (recorded.points[0], recorded.points[-1])
+               for value in point.velocities):
+            raise CommandPathValidationError('Selected approach requires stopped endpoints')
+        return self.execute(arm, trajectory, 'arm', recorded_trajectory=recorded,
+                            endpoint_pose=endpoint_pose, check_orientation=False,
+                            check_collisions=check_collisions)
+
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
@@ -1260,7 +1279,7 @@ class HardwareExecution:
             except CommunicationRecovered as error:
                 if options.get('recorded_trajectory') is not None:
                     self.fail_stop()
-                    raise RuntimeError('Interrupted recorded retreat cannot resume its exact path') from error
+                    raise RuntimeError('Interrupted recorded trajectory cannot resume its exact path') from error
                 if not error.cancellation_confirmed or attempt >= limit:
                     self.fail_stop()
                     raise RuntimeError('Communication recovery could not confirm stop or resume limit exceeded') from error
@@ -1285,6 +1304,15 @@ class HardwareExecution:
                 'hardware_start_tolerance_rad'):
             self.node.get_logger().info('Small start drift: connecting measured joints to the planned path')
         return points
+
+    def _check_recorded_start(self, names, planned, measured):
+        joints = tuple(measured[name] for name in names)
+        if not all(math.isfinite(angle) for angle in joints):
+            raise CommandPathValidationError('Saved approach requires finite measured joints')
+        error = max(abs(actual-goal) for actual, goal in zip(joints, planned, strict=True))
+        tolerance = self.value('hardware_start_tolerance_rad')
+        if error > tolerance:
+            raise RecordedStartMismatch(error, tolerance)
 
     def _can_refresh_path(self, drift, commanded, attempt):
         return (attempt < self.positive_integer('hardware_path_refresh_attempts')
@@ -1415,6 +1443,10 @@ class HardwareExecution:
         positions = [tuple(p.positions) for p in trajectory.points]
         if len(positions) < 2 or any(len(p) != len(expected) for p in positions):
             raise RuntimeError('Malformed physical trajectory positions')
+        direct_replay = recorded_trajectory is not None and held_command is None
+        if direct_replay:
+            # A non-held replay has no new start point in the controller command.
+            HardwareExecution._check_recorded_start(self, expected, positions[0], baseline)
         nominal_target = positions[-1]
         if contact_close and (controller != 'gripper' or abs(
                 nominal_target[0]-self.closed_contact_position(arm, limits)) > 1e-9):
@@ -1426,7 +1458,7 @@ class HardwareExecution:
                     or tuple(positions) != tuple(p.positions for p in recorded_trajectory.points)):
                 raise CommandPathValidationError('Recorded trajectory joint/controller mapping mismatch')
             # These are the already transformed commands. Preserve their exact
-            # timestamps and velocities; do not add an old hold bias or simplify.
+            # timestamps and derivatives; do not add a hold bias or simplify.
             replay_collision_samples = validate_recorded_trajectory(
                 recorded_trajectory, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
@@ -1462,11 +1494,11 @@ class HardwareExecution:
                                 joints=list(range_exemptions), raw_encoder_check_enabled=True)
         collision_samples = samples if recorded_trajectory is None else replay_collision_samples
         hold_bridge_samples = 0
-        if held_command is None:
+        if held_command is None and not direct_replay:
             if any(abs(baseline[n]-q) > self.value('hardware_start_tolerance_rad')
                    for n, q in zip(expected, samples[0].positions)):
                 raise RuntimeError('Physical start changed; replan required')
-        else:
+        if held_command is not None:
             held_command = tuple(float(value) for value in held_command)
             if (controller != 'arm' or len(held_command) != len(expected)
                     or any(not math.isfinite(value) for value in held_command)
@@ -1479,14 +1511,15 @@ class HardwareExecution:
                         measured_start, held_command, strict=True)):
                 raise RuntimeError(
                     'Physical hold departed too far for continuous path')
-            # The controller must keep ``held_command`` as its first desired
-            # point, but collision validation must also cover the small
-            # gravity/backlash displacement from the measured robot state back
-            # toward that still-active setpoint.
+        if direct_replay or held_command is not None:
+            measured_start = tuple(float(baseline[name]) for name in expected)
+            command_start = samples[0].positions
+            # Collision samples include the small gap from measured joints to
+            # the first setpoint without inserting points into the command.
             if max(abs(measured-command) for measured, command in zip(
-                    measured_start, held_command, strict=True)) > 1e-7:
+                    measured_start, command_start, strict=True)) > 1e-7:
                 bridge, _ = bounded_path(
-                    expected, [measured_start, held_command], limits,
+                    expected, [measured_start, command_start], limits,
                     velocity=self.value('hardware_velocity_rad_s'),
                     acceleration=self.value('hardware_acceleration_rad_s2'),
                     step=self.value('hardware_path_step_rad'),
@@ -1534,6 +1567,9 @@ class HardwareExecution:
             baseline, latest, expected,
             self.value('hardware_start_tolerance_rad'),
             self.value('hardware_uncommanded_tolerance_rad'))
+        if direct_replay and set(drift) <= set(expected):
+            HardwareExecution._check_recorded_start(
+                self, expected, positions[0], dict(zip(latest.name, latest.position)))
         if drift:
             if HardwareExecution._can_refresh_path(self, drift, expected, _refresh_attempt):
                 self.node.get_logger().info('Small drift during collision validation: refreshing the path once')
@@ -1571,6 +1607,7 @@ class HardwareExecution:
             if recorded_trajectory is not None:
                 saved = recorded_trajectory.points[index]
                 ns, point.velocities = saved.time_ns, list(saved.velocities)
+                point.accelerations = list(saved.accelerations)
             point.time_from_start.sec, point.time_from_start.nanosec = divmod(ns, 10**9)
             command.points.append(point)
         self.node.get_logger().info(json.dumps({
@@ -1679,9 +1716,7 @@ class HardwareExecution:
             self.last_execution_metrics['start_from_measured'] = start_from_measured
             recording = getattr(self, '_arm_command_recording', None)
             if controller == 'arm' and recording is not None and recording.arm == arm:
-                recording.trajectories.append(RecordedTrajectory(tuple(command.joint_names), tuple(
-                    CommandPoint(p.time_from_start.sec*10**9+p.time_from_start.nanosec,
-                                 tuple(p.positions), tuple(p.velocities)) for p in command.points)))
+                recording.trajectories.append(recorded_from_message(command))
             return actual
         except BaseException as error:
             recording = getattr(self, '_arm_command_recording', None)
@@ -1756,12 +1791,35 @@ class HardwareExecution:
     @timed_operation('synchronized_execution', node_attribute='node')
     def _execute_pregrasp_parallel(
             self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
-            gripper_opening_direction, *, _refresh_attempt=0,
-            gripper_goal_required=False, stage_prefix='synchronized_pregrasp',
-            check_collisions=True):
+            gripper_opening_direction, *, gripper_goal_required=False,
+            stage_prefix='synchronized_pregrasp', check_collisions=True):
         """Start arm and gripper on one timeline with explicit collision policy."""
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
+        clients_began = time.monotonic()
+        clients = HardwareExecution.motion_clients(self, arm, ('arm', 'gripper'))
+        client_acquisition_sec = time.monotonic()-clients_began
+        try:
+            try:
+                for controller, client in clients.items():
+                    if not client.wait_for_server(timeout_sec=10.):
+                        raise RuntimeError(f'{controller} action server unavailable')
+            except BaseException as error:
+                HardwareExecution.stop_after_execution_error(self, error)
+                raise
+            return HardwareExecution._execute_pregrasp_with_clients(
+                self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
+                gripper_opening_direction, clients, client_acquisition_sec,
+                gripper_goal_required=gripper_goal_required, stage_prefix=stage_prefix,
+                check_collisions=check_collisions)
+        finally:
+            for client in clients.values():
+                client.destroy()
+
+    def _execute_pregrasp_with_clients(
+            self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
+            gripper_opening_direction, clients, client_acquisition_sec, *,
+            gripper_goal_required, stage_prefix, check_collisions, _refresh_attempt=0):
         preparation_began = time.monotonic()
         self.last_execution_metrics = {}
         limits = HardwareExecution._with_grasp_approach_limits(
@@ -1856,33 +1914,29 @@ class HardwareExecution:
         if drift:
             if HardwareExecution._can_refresh_path(self, drift, combined_names, _refresh_attempt):
                 self.node.get_logger().info('Small synchronized start drift: refreshing collision validation once')
-                return self._execute_pregrasp_parallel(arm, arm_trajectory, gripper_trajectory,
-                    minimum_gripper_opening, gripper_opening_direction,
-                    _refresh_attempt=_refresh_attempt+1,
-                    **({'check_collisions': False} if not check_collisions else {}),
-                    **({'gripper_goal_required': True, 'stage_prefix': stage_prefix}
-                       if gripper_goal_required else {}))
+                return HardwareExecution._execute_pregrasp_with_clients(
+                    self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
+                    gripper_opening_direction, clients, client_acquisition_sec,
+                    gripper_goal_required=gripper_goal_required, stage_prefix=stage_prefix,
+                    check_collisions=check_collisions, _refresh_attempt=_refresh_attempt+1)
             details = ', '.join(f'{name}={delta:.6f}rad' for name, delta in sorted(drift.items()))
             raise RuntimeError('Robot moved during synchronized path validation: ' + details)
 
         drift_sec = time.monotonic()-drift_began
         serialization_began = time.monotonic()
-        header_ns = self.node.get_clock().now().nanoseconds
         delay_parameter = ('hardware_return_start_delay_sec'
                            if stage_prefix == 'synchronized_return' else 'hardware_start_delay_sec')
         delay_ns = round(self.value(delay_parameter)*1e9)
-        start_ns = header_ns+delay_ns
         compact_cubic = getattr(self, 'sparse_cubic_commands', False)
         command_samples = prepared.command_knots if compact_cubic else samples
-        # Retain the common current epoch and explicit hold; both controllers
-        # reconstruct exactly the same retimed curve used for dense validation.
+        # The initial hold keeps both controllers on the validated combined curve.
         commands = {
             'arm': command_samples_to_message(arm_names, command_samples, duration,
-                indices=range(len(arm_names)), header_ns=header_ns, delay_ns=delay_ns),
+                indices=range(len(arm_names)), delay_ns=delay_ns),
             'gripper': command_samples_to_message((gripper_name,), command_samples, duration,
-                indices=(len(arm_names),), header_ns=header_ns, delay_ns=delay_ns),
+                indices=(len(arm_names),), delay_ns=delay_ns),
         }
-        self.node.get_logger().info(json.dumps({
+        preparation = {
             'stage': stage_prefix + '_trajectory_prepared',
             'trajectory_limit_scale': getattr(self, 'trajectory_limit_scale', .8),
             'controller_points': {key: len(value.points) for key, value in commands.items()},
@@ -1902,22 +1956,24 @@ class HardwareExecution:
             'input_waypoints': len(arm_trajectory.points),
             'command_samples': len(samples),
             'duration_sec': duration,
-            'start_stamp_ns': start_ns,
-            'header_stamp_ns': header_ns,
             'scheduled_start_delay_sec': delay_ns / 1e9,
             'held_command_continuation': hold is not None,
             'nominal_endpoint_rad': nominal_target,
             'command_endpoint_rad': samples[-1].positions[:-1],
-        }))
+        }
 
         commanded_gripper_opening = samples[-1].positions[-1]
         gripper_tolerance = (
             abs(commanded_gripper_opening - minimum_gripper_opening)
             + self.value('hardware_arrival_tolerance_rad'))
 
-        clients_began = time.monotonic()
-        clients = HardwareExecution.motion_clients(self, arm, ('arm', 'gripper'))
-        client_acquisition_sec = time.monotonic()-clients_began
+        goals = {
+            controller: FollowJointTrajectory.Goal(
+                trajectory=command,
+                goal_tolerance=([] if controller == 'arm' else [JointTolerance(
+                    name=gripper_name, position=gripper_tolerance)]))
+            for controller, command in commands.items()
+        }
         handles = {}
         result_futures = {}
         tracking = {
@@ -1955,22 +2011,24 @@ class HardwareExecution:
         previous_generation = getattr(self, '_active_recovery_generation', None)
         self._active_recovery_generation = getattr(self, 'communication_recovery_count', 0)
         try:
-            for controller, client in clients.items():
-                if not client.wait_for_server(timeout_sec=10.):
-                    raise RuntimeError(f'{controller} action server unavailable')
             motion_monitor = HardwareExecution._start_motion_monitor(self, arm_names)
             # Dispatch both before waiting for either controller to finish.
-            self.motion_submissions = getattr(self, 'motion_submissions', 0) + 1
             HardwareExecution._reset_stability_history(self)
+            header_ns = self.node.get_clock().now().nanoseconds
+            start_ns = header_ns+delay_ns
+            seconds, nanoseconds = divmod(header_ns, 10**9)
+            for goal in goals.values():
+                goal.trajectory.header.stamp.sec = seconds
+                goal.trajectory.header.stamp.nanosec = nanoseconds
+            self.motion_submissions = getattr(self, 'motion_submissions', 0) + 1
             dispatch_began = time.monotonic()
             goal_futures = {
-                controller: client.send_goal_async(FollowJointTrajectory.Goal(
-                    trajectory=commands[controller],
-                    goal_tolerance=([] if controller == 'arm' else [JointTolerance(
-                        name=gripper_name, position=gripper_tolerance)])),
+                controller: client.send_goal_async(goals[controller],
                     feedback_callback=lambda message, name=controller: feedback(name, message))
                 for controller, client in clients.items()
             }
+            self.node.get_logger().info(json.dumps(dict(
+                preparation, header_stamp_ns=header_ns, start_stamp_ns=start_ns)))
             for controller, future in goal_futures.items():
                 handle = self.node.wait(future, 10.)
                 if handle is None or not handle.accepted:
@@ -2091,5 +2149,3 @@ class HardwareExecution:
             HardwareExecution._finish_motion_monitor(self, motion_monitor)
             self._active_recovery_generation = previous_generation
             self.uncommanded = None
-            for client in clients.values():
-                client.destroy()

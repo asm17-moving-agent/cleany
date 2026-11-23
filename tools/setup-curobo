@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Install only into a dedicated venv; never replace system/vision PyTorch.
+set -euo pipefail
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+motion_env="${CLEANY_CUROBO_VENV:-${repo_root}/runtime/curobo-venv}"
+motion_source="${repo_root}/runtime/curobo-v0.7.8"
+motion_commit=d64c4b005459db10c5dd867d8b30a87d5bda9bdb
+python3 -c 'import torch; assert torch.cuda.is_available(), "CUDA PyTorch is required"'
+if [[ ! -x "${motion_env}/bin/python" ]]; then
+  python3 -m venv --system-site-packages "${motion_env}"
+fi
+"${motion_env}/bin/python" -m pip install --no-deps -r "${repo_root}/containers/motion/requirements.txt"
+if "${motion_env}/bin/python" -c 'import importlib.metadata; assert importlib.metadata.version("nvidia_curobo") == "0.7.8"' 2>/dev/null; then
+  "${motion_env}/bin/python" -c 'from curobo.wrap.reacher.ik_solver import IKSolver; import torch; assert torch.cuda.is_available(); print("cuRobo CUDA runtime already installed")'
+  exit 0
+fi
+if [[ ! -d "${motion_source}" ]]; then
+  git clone --depth 1 --branch v0.7.8 https://github.com/NVlabs/curobo.git "${motion_source}"
+fi
+[[ "$(git -C "${motion_source}" rev-parse HEAD)" == "${motion_commit}" ]]
+[[ -z "$(git -C "${motion_source}" status --porcelain --untracked-files=no)" ]]
+export CUDA_HOME=/usr/local/cuda
+export TORCH_CUDA_ARCH_LIST=8.7
+export MAX_JOBS="${MAX_JOBS:-2}"
+"${motion_env}/bin/python" -m pip install --no-build-isolation --no-deps "${motion_source}"
+"${motion_env}/bin/python" -c 'from curobo.wrap.reacher.ik_solver import IKSolver; import torch; print("cuRobo CUDA ready:", torch.cuda.get_device_name())'

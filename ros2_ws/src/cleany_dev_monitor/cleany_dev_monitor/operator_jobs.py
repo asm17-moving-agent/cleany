@@ -18,6 +18,7 @@ RUNTIME_ENV_KEYS = (
     'CLEANY_COLLECTION_ROS_DOMAIN_ID', 'CLEANY_COLLECTION_START_TIMEOUT_SEC',
     'CLEANY_COLLECTION_DAEMON_STOP_TIMEOUT_SEC', 'CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC',
     'CLEANY_COLLECTION_GUI', 'CLEANY_COLLECTION_MOTION_BACKEND', 'CLEANY_COLLECTION_GRASP_PREDICTOR',
+    'CLEANY_COLLECTION_MOTION_RUNTIME', 'CLEANY_CUROBO_VENV',
     'CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY',
     'CLEANY_COLLECTION_USE_EXISTING_PERCEPTION', 'CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION',
     'CLEANY_ROBOT_STATE_PROFILE', 'CLEANY_FEETECH_CONTROL_CONFIG', 'CLEANY_HARDWARE_MONITOR_CONFIG',
@@ -44,6 +45,33 @@ def atomic_json(path: Path, value: dict):
         json.dump(value, stream)
         temporary = Path(stream.name)
     temporary.replace(path)
+
+
+def web_collection_profile(repo: Path, root: Path, configured: str | None) -> Path | None:
+    """Apply the web destination and saved arm home to the stock Jetson profiles."""
+    robot = (repo / 'configs/robot').resolve()
+    source = Path(configured).expanduser() if configured else robot / 'collection_cad.json'
+    source = (repo / source).resolve()
+    if not configured and not source.exists():
+        return None
+    if source not in (robot / 'collection_cad.json', robot / 'jetson/collection.json'):
+        return None
+    profile = json.loads(source.read_text())
+    if profile.get('operation_mode') != 'pick_return_release':
+        return None
+    from cleany_skill_executor.core.collection import load_arm_home
+    for arm, positions in load_arm_home(robot / 'arm_return_home.json').items():
+        profile['arms'][arm]['home_joint_rad'] = list(positions)
+    profile.update(operation_mode='pick_rear_bin_release', label_destinations={'*': 'rear_bin_a'},
+                   return_to_pick_reverse_enabled=False, return_to_pick_collision_check_enabled=True,
+                   held_object_octomap_collision_check_enabled=True,
+                   rear_bin_a=json.loads((robot / 'dev_monitor_rear_bin_a.json').read_text()))
+    trajectories = robot / 'jetson/rear_bin_trajectories.json'
+    if trajectories.is_file():
+        profile['rear_bin_trajectory_file'] = str(trajectories)
+    output = root / 'rear-bin-profile.json'
+    atomic_json(output, profile)
+    return output
 
 
 def alive(pid):
@@ -108,12 +136,34 @@ def runtime_info():
 
 def command_vectors(repo: Path, action: str, args: dict):
     tool = str(repo / 'tools/collection-runtime')
+    if action == 'prepare':
+        return [[tool, 'start'], [tool, 'action-start']]
     return {
-        'prepare': [[tool, 'start'], [tool, 'action-start']],
         'run': [['make', '--no-print-directory', '-C', str(repo), 'manipulation-run']],
         'return_arm': [[tool, 'arm-return', '--arm', args.get('arm', 'both')]],
         'shutdown': [[tool, 'stop']],
     }.get(action, [])
+
+
+def require_web_home(state: dict, expected_home: dict) -> None:
+    if state.get('operation_mode') != 'pick_rear_bin_release':
+        raise RuntimeError('실행기가 다른 놓기 경로를 사용합니다. 웹에서 로봇을 다시 준비하세요.')
+    if state.get('return_home_joint_rad') != expected_home:
+        raise RuntimeError('실행기에 새 기본 자세가 반영되지 않았습니다. 웹에서 로봇을 다시 준비하세요.')
+
+
+def prepare_executor_state(port, *, require_execution_available: bool = True) -> dict:
+    state = {**port.snapshot(), 'available': True}
+    info = runtime_info()
+    checked = state if require_execution_available else {**state, 'inhibited': False}
+    reason = capabilities(checked, busy=info['pipeline_busy'], managed=info['managed'],
+                          manual_runtime=info.get('manual_runtime', False))['run']
+    if reason:
+        guard = state.get('guard') or {}
+        if state.get('guard_fresh') is True and guard.get('state') == 'fault':
+            raise RuntimeError('로봇 준비 중 제어기 보호 정지: ' + str(guard.get('reason') or reason))
+        raise RuntimeError(reason)
+    return state
 
 
 def approved_command(repo: Path, job: dict) -> list[str]:
@@ -126,6 +176,12 @@ def approved_command(repo: Path, job: dict) -> list[str]:
         '--destination-id', proposal['destination_id'],
         '--timeout', str(job['proposal_policy']['proposal_execution_timeout_sec']),
         '--ros-args', '--params-file', str(repo / 'ros2_ws/src/cleany_manipulation_bt/config/manipulation_jetson.yaml')]
+
+
+def selection_message(message: str) -> str:
+    if message == 'No reachable commissioned arm':
+        return '설정된 팔에서 자세, 충돌, 경로 조건을 모두 통과한 파지 후보를 찾지 못했습니다.'
+    return message
 
 
 def command_report(path: Path) -> dict:
@@ -153,9 +209,7 @@ def command_report(path: Path) -> dict:
             'failed_stage', 'failed_substage', 'object_id', 'object_state', 'placement_state',
             'arm_recovered', 'stop_confirmed') if key in record}
         message = str(record.get('message', ''))[:1000]
-        if message == 'No reachable commissioned arm':
-            message = '선택한 물체를 잡을 팔 자세(IK)를 양팔 모두에서 찾지 못했습니다. 물체 위치와 접근 방향을 확인하세요.'
-        return dict(result=result, message=message)
+        return dict(result=result, message=selection_message(message))
     for line in reversed(lines):
         if line.startswith('Collection readiness failed:'):
             return dict(message='로봇 준비 확인 실패: ' + line.split(':', 1)[1].strip()[:1000])
@@ -172,6 +226,11 @@ def execute_job(path: Path, repo: Path):
     lock = (path.parent.parent / 'operation.lock').open('a')
     port = None
     record_result = True
+    profile_key = 'CLEANY_MANIPULATION_COLLECTION_CONFIG'
+    original_profile = os.environ.get(profile_key)
+    web_profile = None
+    expected_home = None
+    restart_executor = False
     cancelled = path.with_suffix('.cancel')
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -190,6 +249,18 @@ def execute_job(path: Path, repo: Path):
             raise InterruptedError('실행 요청이 취소되었습니다.')
         value.update(state='RUNNING', owner_pid=os.getpid(), owner_start=process_start(os.getpid()), started_at=time.time())
         atomic_json(path, value)
+        if action in ('prepare', 'propose', 'skip', 'approve', 'run'):
+            web_profile = web_collection_profile(repo, path.parent.parent, original_profile)
+            if web_profile is not None:
+                os.environ[profile_key] = str(web_profile)
+                expected_home = {arm: settings['home_joint_rad'] for arm, settings in
+                                 json.loads(web_profile.read_text())['arms'].items()}
+        if action == 'prepare' and expected_home is not None:
+            port = OperatorROS()
+            if runtime_info().get('processes', {}).get('manipulation_action'):
+                state = prepare_executor_state(port)
+                restart_executor = (state.get('operation_mode') != 'pick_rear_bin_release'
+                                    or state.get('return_home_joint_rad') != expected_home)
         if action != 'prepare':
             if action in ('propose', 'approve', 'skip'):
                 from .proposal_ros import ProposalROS
@@ -204,6 +275,8 @@ def execute_job(path: Path, repo: Path):
                 if action != 'shutdown' or not manual_runtime:
                     raise
                 state = {}
+            if expected_home is not None:
+                require_web_home(state, expected_home)
             # The worker owns the shared command lock; actual executor ownership is still checked.
             reason = capabilities(state, busy=info['pipeline_busy'], managed=info['managed'],
                                   manual_runtime=manual_runtime)[action]
@@ -234,6 +307,8 @@ def execute_job(path: Path, repo: Path):
                 value['phase'] = 'EXECUTING'
                 atomic_json(path, value)
             commands = [approved_command(repo, value)] if action == 'approve' else command_vectors(repo, action, args)
+            if restart_executor:
+                commands[1][1] = 'action-restart'
             for command in commands:
                 if cancelled.exists():
                     raise InterruptedError('실행 요청이 취소되었습니다.')
@@ -264,6 +339,11 @@ def execute_job(path: Path, repo: Path):
                             value['next_proposal_error'] = str(error)
                 if process.returncode:
                     raise RuntimeError(value.get('message') or f'명령 종료 코드 {process.returncode}; 상세 로그와 실물 상태를 확인하세요.')
+            if action == 'prepare' and expected_home is not None:
+                prepared = prepare_executor_state(port, require_execution_available=False)
+                require_web_home(prepared, expected_home)
+                if prepared.get('inhibited'):
+                    value['message'] = '로봇 준비가 완료됐습니다. 수거 실행 차단이 남아 있습니다.'
         value['state'] = 'SUCCEEDED'
     except BaseException as error:
         value.update(state='INTERRUPTED' if cancelled.exists() else 'FAILED', message=str(error))
@@ -277,6 +357,11 @@ def execute_job(path: Path, repo: Path):
             value.update(finished_at=time.time(), command_pid=0)
             atomic_json(path, value)
         lock.close()
+        if web_profile is not None:
+            if original_profile is None:
+                os.environ.pop(profile_key, None)
+            else:
+                os.environ[profile_key] = original_profile
 
 
 def main():

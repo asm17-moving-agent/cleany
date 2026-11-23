@@ -2,12 +2,13 @@
 import json
 import math
 from pathlib import Path
+import sys
 import time
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, EmitEvent, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.actions import DeclareLaunchArgument, EmitEvent, ExecuteProcess, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler
+from launch.event_handlers import OnProcessExit, OnProcessIO
 from launch.events import Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -15,7 +16,45 @@ from launch_ros.actions import Node
 
 from cleany_robot_interface.state_profile import prepare_state_profile
 from cleany_skill_executor.core.collection import selection_gripper_parameters
-from cleany_skill_executor.motion_runtime import motion_launch_arguments, motion_runtime_prefix, selector_exit_handler
+from cleany_skill_executor.motion_runtime import (
+    motion_launch_arguments, motion_runtime_prefix, native_selector_parameters,
+    resolve_motion_runtime, selector_exit_handler,
+)
+
+
+def staged_planning_actions(stages, timeout, ready_file):
+    probe = ExecuteProcess(
+        cmd=[sys.executable, '-m', 'cleany_skill_executor.runtime_readiness',
+             '--planning-sequence', '--timeout', timeout, '--settle-cpu'],
+        name='planning_sequence_startup', output='screen',
+        additional_env={'OPENBLAS_NUM_THREADS': '1'})
+    remaining = list(stages)
+    buffered = b''
+
+    def on_output(event):
+        nonlocal buffered
+        lines = (buffered + event.text).split(b'\n')
+        buffered = lines.pop()
+        actions = []
+        for line in lines:
+            if not line.startswith(b'CLEANY_START_STAGE '):
+                continue
+            stage = line.split(maxsplit=1)[1].strip().decode('ascii')
+            if not remaining or stage != remaining[0]:
+                return [EmitEvent(event=Shutdown(reason='Unexpected planning startup sequence'))]
+            remaining.pop(0)
+            actions.extend(stages[stage])
+        return actions
+
+    def finished(event, _context):
+        if event.returncode or remaining:
+            return [EmitEvent(event=Shutdown(reason='Planning startup did not complete'))]
+        if ready_file:
+            Path(ready_file).touch(exist_ok=False)
+        return []
+
+    return [RegisterEventHandler(OnProcessIO(target_action=probe, on_stdout=on_output)),
+            RegisterEventHandler(OnProcessExit(target_action=probe, on_exit=finished)), probe]
 
 
 def setup(context):
@@ -36,9 +75,12 @@ def setup(context):
                            str(skill / 'config/pregrasp.yaml')]
     if backend == 'curobo_ik_moveit':
         selector_parameters.append(str(skill / 'config/hybrid_motion.yaml'))
+        if resolve_motion_runtime(backend, value('motion_runtime')) == 'native':
+            selector_parameters.append(native_selector_parameters(root))
     selector_parameters.append(str(skill / 'config/pregrasp_motion.yaml'))
     from cleany_description.cad_coordinates import CadCoordinates
-    if CadCoordinates.from_urdf(profile.model.read_text()) is not None:
+    calibrated_cad = CadCoordinates.from_urdf(profile.model.read_text()) is not None
+    if calibrated_cad:
         if backend != 'curobo_ik_moveit':
             raise ValueError('Calibrated CAD hardware selection requires GPU IK with native collision validation')
         selector_parameters.append({'curobo_sphere_model': 'cad_cached'})
@@ -46,7 +88,8 @@ def setup(context):
     if collection_file:
         collection = json.loads(Path(collection_file).expanduser().resolve().read_text())
         policy = {name: collection.get(name, default) for name, default in (
-            ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False))}
+            ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False),
+            ('batch_grasp_ik_before_limit', False))}
         if any(type(setting) is not bool for setting in policy.values()):
             raise ValueError('Collection selection policy values must be boolean')
         pregrasp_z = collection.get('pregrasp_z_offset_m', 0.)
@@ -61,10 +104,13 @@ def setup(context):
     grasp_nodes = []
     if predictor == 'geometric':
         grasping = Path(get_package_share_directory('cleany_grasping'))
+        grasp_parameters = [str(grasping / 'config/anygrasp.yaml'),
+                            str(skill / 'config/geometric_pregrasp.yaml')]
+        if calibrated_cad:
+            grasp_parameters.append(str(skill / 'config/geometric_collection_cad.yaml'))
         grasp_server = Node(
             package='cleany_grasping', executable='grasp_server', output='screen',
-            parameters=[str(grasping / 'config/anygrasp.yaml'),
-                        str(skill / 'config/geometric_pregrasp.yaml')],
+            parameters=grasp_parameters,
         )
         grasp_nodes = [
             RegisterEventHandler(OnProcessExit(target_action=grasp_server,
@@ -125,26 +171,28 @@ def setup(context):
              'maximum_candidates': int(value('maximum_candidates')),
              'action_timeout_sec': float(value('selection_timeout_sec')),
              'visibility_camera_frame': 'head_camera_rgb_optical_frame'}])
-    return [
-        *grasp_nodes,
-        *sensors,
-        Node(
-            package='cleany_perception', executable='depth_scene_node', output='screen',
-            parameters=[*scene_parameters, {'use_sim_time': False,
-                         'pixel_stride': int(value('scene_pixel_stride')),
-                         'depth_image_topic': '/camera/depth/image_raw',
-                         'depth_info_topic': '/camera/depth/camera_info'}],
-        ),
-        Node(
-            package='cleany_perception', executable='scene_cloud_receipt_node', output='screen',
-            parameters=[{'use_sim_time': False}],
-        ),
-        selector_exit_handler(selector), selector,
-        Node(
-            package='cleany_skill_executor', executable='validate_pick_server', output='screen',
-            parameters=validation_parameters,
-        ),
-    ]
+    depth = Node(
+        package='cleany_perception', executable='depth_scene_node', output='screen',
+        parameters=[*scene_parameters, {'use_sim_time': False,
+                     'pixel_stride': int(value('scene_pixel_stride')),
+                     'depth_image_topic': '/camera/depth/image_raw',
+                     'depth_info_topic': '/camera/depth/camera_info'}],
+    )
+    receipt = Node(
+        package='cleany_perception', executable='scene_cloud_receipt_node', output='screen',
+        parameters=[{'use_sim_time': False}],
+    )
+    validator = Node(
+        package='cleany_skill_executor', executable='validate_pick_server', output='screen',
+        parameters=validation_parameters,
+    )
+    selection = [selector_exit_handler(selector), selector]
+    if value('staged_startup') == 'true':
+        return staged_planning_actions(
+            {'receipt': [*sensors, receipt], 'scene': [depth], 'grasp': grasp_nodes,
+             'validation': [validator], 'warmup': selection},
+            value('startup_timeout_sec'), value('startup_ready_file'))
+    return [*grasp_nodes, *sensors, depth, receipt, validator, *selection]
 
 
 def generate_launch_description():
@@ -154,6 +202,9 @@ def generate_launch_description():
         DeclareLaunchArgument('profile_file'),
         DeclareLaunchArgument('collection_config_file', default_value=''),
         DeclareLaunchArgument('start_head_camera', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('startup_ready_file', default_value=''),
+        DeclareLaunchArgument('staged_startup', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('startup_timeout_sec', default_value='300.0'),
         DeclareLaunchArgument('workspace_config_file', default_value=''),
         DeclareLaunchArgument('scene_config_file', default_value=''),
         DeclareLaunchArgument('output_root', default_value='~/.local/share/cleany/pregrasp_hardware'),

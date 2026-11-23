@@ -24,7 +24,7 @@ class BusConfig:
 BUSES = (
     BusConfig(
         "robot",
-        "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+        "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14111971-if00",
         tuple(range(1, 15)),
     ),
 )

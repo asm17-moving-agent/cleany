@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import math
 
@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 class PointCloud:
     points: NDArray[np.float64]
     colors: NDArray[np.float64]
+    viewpoint: NDArray[np.float64] | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         points = np.asarray(self.points, dtype=np.float64)
@@ -20,6 +21,11 @@ class PointCloud:
             raise ValueError('Points and colors must have shape Nx3')
         if not np.isfinite(points).all() or not np.isfinite(colors).all():
             raise ValueError('Point cloud must be finite')
+        if self.viewpoint is not None:
+            origin = np.asarray(self.viewpoint, dtype=float)
+            if origin.shape != (3,) or not np.isfinite(origin).all():
+                raise ValueError('Cloud viewpoint must be a finite 3-vector')
+            object.__setattr__(self, 'viewpoint', origin)
         object.__setattr__(self, 'points', points)
         object.__setattr__(self, 'colors', colors)
 
@@ -31,6 +37,8 @@ class RawGrasp:
     width_m: float
     depth_m: float
     score: float
+    pad_offset_m: float = 0.0
+    face_width_m: float | None = None
 
     def __post_init__(self) -> None:
         rotation = np.asarray(self.rotation, dtype=np.float64)
@@ -48,6 +56,8 @@ class RawGrasp:
             for value in (self.width_m, self.depth_m, self.score)
         ):
             raise ValueError('Grasp dimensions and score must be finite')
+        if not math.isfinite(self.pad_offset_m) or self.pad_offset_m < 0:
+            raise ValueError('Pad contact offset must be finite and non-negative')
         if self.width_m <= 0.0 or self.depth_m < 0.0:
             raise ValueError('Grasp width must be positive and depth non-negative')
         object.__setattr__(self, 'rotation', rotation)
@@ -62,3 +72,4 @@ class GraspPose:
     required_opening_m: float
     depth_m: float
     score: float
+    face_width_m: float | None = field(default=None, kw_only=True)

@@ -10,6 +10,7 @@ from cleany_manipulation_bt.backend import ExecutionContext, OperationError
 from cleany_manipulation_bt.jetson_operations import JetsonOperations
 from cleany_skill_executor.collection_pipeline import CollectionPipeline
 from cleany_skill_executor.core.collection import configuration_issues, load_arm
+from cleany_skill_executor.core.hardware_execution import RecordedStartMismatch
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.manipulation.models import Error, Goal, Placement
 
@@ -619,7 +620,7 @@ def test_temporary_preflight_and_payload_monitor_do_not_require_contact_ports(te
     node.real.closed_contact_position = node.real.contact_decision = forbidden
     node.evidence = NS(wait_for_service=forbidden)
     selected = NS(selected_arm=arm, selected_candidate=NS(required_opening_m=.04),
-                  gripper_joint_position=load_arm(raw, require_bins=False).opening(.04))
+                  gripper_joint_position=load_arm(raw, require_bins=False).opened)
     node.before_execution(selected)
     assert node.destination == 'return_to_pick'
     node.carrying = {'release_confirmed': False}
@@ -642,19 +643,24 @@ def test_direct_pipeline_also_returns_releases_and_stops_after_one_cycle(
         return linear(arm, target, stage, *args, **options)
     node.linear = recording
     if arrival_replanning:
-        # This fixture tests operation order with exact motion ports. Held-start
-        # approach planning is exercised by test_approach_replanning.py.
+        def reject_saved_start(*args, **kwargs):
+            raise RecordedStartMismatch(.01, .005)
+
+        node.real.motion_submissions = 0
+        node.real.execute_selected_trajectory = reject_saved_start
         node.replan_approach_from_arrival = lambda chosen, report: node.linear(
             chosen.selected_arm, chosen.fk_grasp_pose, 'approach')
     selected = context.selected
     selected.selected_candidate = NS()
     selected.candidates, selected.selected_candidate_index = [selected.selected_candidate], 0
     selected.fk_grasp_pose = node.pose(selected.selected_arm)
-    # The shared pipeline calls its static helper on the selected result.
+    selected.grasp_trajectory = NS(points=[])
     selected.grasp_joint_state = NS(name=ARM_JOINT_NAMES[selected.selected_arm], position=list(pickup))
     report = {}
     CollectionPipeline.after_pregrasp(node, selected, None, report)
     assert report['released'] and report['returned'] and report['placement_state'] == 'ASSUMED'
+    if arrival_replanning:
+        assert report['approach_execution_route'] == 'replanned_from_arrival'
     assert commands.index('return_to_pickup') < commands.index('release_at_pickup') < commands.index('return')
     expected = collision_checks is not False
     assert ('retreat', expected) in paths and ('lift', expected) in paths

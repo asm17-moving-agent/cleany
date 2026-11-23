@@ -13,6 +13,7 @@ from uuid import uuid4
 from PIL import Image as PILImage, ImageDraw, ImageFont
 from cleany_interfaces.srv import GetSceneSnapshot, RevalidateTarget
 from cleany_skill_executor.core.automatic_goal import select_automatic_target
+from cleany_skill_executor.core.collection import supervised_placement_mode, temporary_local_target_selection
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from sensor_msgs.msg import Image
 
@@ -55,11 +56,14 @@ class ProposalROS(OperatorROS):
         if cancelled():
             raise InterruptedError('제안을 취소했습니다.')
         config = self.config()
+        nearest_only = temporary_local_target_selection(config)
+        skip = skip and not nearest_only
         session = previous['tracking_session_id'] if previous else str(uuid4())
         if skip:
             if not previous or previous.get('state') != 'READY':
                 raise ValueError('건너뛸 제안이 없습니다. 다시 제안받으세요.')
-            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=previous['snapshot_id']))
+            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=previous['snapshot_id']),
+                               read_only_label='원본 장면 조회')
             if not cached.found or cached.detections.snapshot_id != previous['snapshot_id']:
                 raise ValueError('제안 관측이 만료되었습니다. 다시 제안받으세요.')
             scene = cached.detections
@@ -74,10 +78,13 @@ class ProposalROS(OperatorROS):
         expires_at = captured + self.policy['proposal_max_age_sec']
         if skip:
             expires_at = min(expires_at, previous['expires_at'])
-        excluded = list(previous.get('excluded_tracks', [])) if previous and scene.tracking_epoch == previous['tracking_epoch'] else []
+        excluded = []
+        if not nearest_only and previous and scene.tracking_epoch == previous['tracking_epoch']:
+            excluded = list(previous.get('excluded_tracks', []))
         if skip:
             excluded.append(previous['target']['track_id'])
-        proposal = dict(id=str(uuid4()), state='NO_TARGET', planner='nearest_eligible',
+        proposal = dict(id=str(uuid4()), state='NO_TARGET',
+            planner='nearest_detected' if nearest_only else 'nearest_eligible',
             created_at=now, expires_at=expires_at,
             captured_at=captured, snapshot_id=scene.snapshot_id, tracking_session_id=session,
             tracking_epoch=scene.tracking_epoch, representative_frame=scene.representative_frame,
@@ -85,25 +92,45 @@ class ProposalROS(OperatorROS):
             excluded_tracks=sorted(set(excluded)), last_result=last_result,
             scene_context=scene_context(scene), scene_object_count=len(scene.detections),
             reason='현재 관측에서 실행 가능한 제안이 없습니다. 작업 완료를 의미하지는 않습니다.')
-        eligible = [item for item in scene.detections if item.tracking_state == 'TRACKED'
+        closest = None
+        candidates = scene.detections
+        if nearest_only:
+            closest = min(
+                (item for item in candidates if item.object_id > 0
+                 and item.position_valid and item.distance_valid
+                 and math.isfinite(item.distance_m) and item.distance_m > 0),
+                key=lambda item: (item.distance_m, item.object_id), default=None)
+            candidates = [] if closest is None else [closest]
+            proposal['reason'] = '로봇 기준 거리를 확인할 수 있는 물체가 없습니다.'
+        eligible = [item for item in candidates if item.tracking_state == 'TRACKED'
                     and item.position_valid and item.track_id not in excluded]
         try:
             selected = select_automatic_target(SimpleNamespace(snapshot_id=scene.snapshot_id, detections=eligible), config)
         except ValueError:
             selected = None
+        item = closest
         if selected:
             item = next(item for item in eligible if item.object_id == selected.object_id)
             proposal.update(state='READY', skill_name=selected.skill_name, destination_id=selected.destination_id,
-                reason='분류·신뢰도·깊이·크기·금지 목록·목적지 조건을 통과한 물체 중 로봇에 가장 가깝습니다.',
-                target=dict(object_id=item.object_id, track_id=item.track_id, label=item.label,
-                    detector_label=item.detector_label,
-                    category=item.sorting_category,
-                    confidence=float(item.confidence), distance_m=float(item.distance_m),
-                    bbox=[item.x_min, item.y_min, item.x_max, item.y_max],
-                    position=[item.representative_position.x, item.representative_position.y, item.representative_position.z]))
+                reason=('로봇에 가장 가까운 물체입니다.' if nearest_only else
+                        '분류·신뢰도·깊이·크기·금지 목록·목적지 조건을 통과한 물체 중 로봇에 가장 가깝습니다.'))
+        elif closest is not None:
+            reason = ('추적 ID가 확정되지 않아 승인할 수 없습니다.'
+                      if closest.tracking_state != 'TRACKED' else
+                      '신뢰도, 크기 또는 실행 기준을 충족하지 않아 승인할 수 없습니다.')
+            proposal.update(state='DISPLAY_ONLY', reason=reason)
+        if item is not None:
+            proposal['target'] = dict(object_id=item.object_id, track_id=item.track_id, label=item.label,
+                detector_label=item.detector_label, category=item.sorting_category,
+                confidence=float(item.confidence), distance_m=float(item.distance_m),
+                bbox=[item.x_min, item.y_min, item.x_max, item.y_max],
+                position=[item.representative_position.x, item.representative_position.y, item.representative_position.z])
         jpeg = self.capture_image(scene, proposal.get('target'), cancelled)
         if jpeg is None and proposal['state'] == 'READY':
-            raise ValueError('제안 관측과 일치하는 이미지를 받지 못했습니다. 다시 제안받으세요.')
+            message = '제안 관측과 일치하는 이미지를 받지 못했습니다. 다시 제안받으세요.'
+            if not nearest_only:
+                raise ValueError(message)
+            proposal.update(state='DISPLAY_ONLY', reason=message)
         proposal['image_available'] = jpeg is not None
         if cancelled():
             raise InterruptedError('제안을 취소했습니다.')
@@ -142,40 +169,19 @@ class ProposalROS(OperatorROS):
 
     def revalidate(self, proposal, cancelled):
         audit = dict(proposal_id=proposal['id'], mode='local_target_frozen_semantics',
-                     started_at=time.time(), approved_target=proposal['target'], attempts=[], success=False)
+                     started_at=time.time(), source_snapshot_id=proposal['snapshot_id'],
+                     approved_target=proposal['target'], attempts=[], success=False)
         try:
             if cancelled():
                 raise InterruptedError('승인 실행을 취소했습니다.')
-            config = self.config()
-            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=proposal['snapshot_id']))
-            if not cached.found or cached.detections.snapshot_id != proposal['snapshot_id']:
-                raise ValueError('승인한 관측이 만료되었습니다. 다시 제안받으세요.')
-            validate_fresh_target(proposal, cached.detections, config, self.policy, time.time())
-            for attempt in range(self.policy.get('proposal_reobservation_attempts', 2)):
-                requested_ns = time.time_ns()
-                response = self._observe_target(proposal, cancelled, requested_ns)
-                entry = dict(attempt=attempt + 1, requested_at_ns=requested_ns,
-                             success=response.success, error_code=response.error_code, message=response.message)
-                audit['attempts'].append(entry)
-                if not response.success:
-                    if (response.error_code in (response.ERROR_MASK, response.ERROR_RGBD_TIMEOUT)
-                            and attempt + 1 < self.policy.get('proposal_reobservation_attempts', 2)):
-                        continue
-                    raise ValueError(f'{response.message} 다시 제안받으세요.')
-                scene = response.detections
-                entry['observation'] = self._observation_record(scene)
-                captured_ns = scene.header.stamp.sec * 1_000_000_000 + scene.header.stamp.nanosec
-                if (response.source_snapshot_id != proposal['snapshot_id']
-                        or response.source_object_id != proposal['target']['object_id']):
-                    raise ValueError('재확인 응답이 승인한 관측 또는 대상을 참조하지 않습니다.')
-                if not requested_ns < captured_ns <= time.time_ns():
-                    raise ValueError('재확인 영상의 촬영 시각이 유효하지 않습니다.')
-                validate_fresh_target(proposal, scene, self.config(), self.policy, time.time())
-                break
-            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=proposal['snapshot_id']))
-            if not cached.found or cached.detections.snapshot_id != proposal['snapshot_id']:
-                raise ValueError('승인한 관측이 만료되었습니다. 다시 제안받으세요.')
-            validate_fresh_target(proposal, cached.detections, self.config(), self.policy, time.time())
+            config = self._validate_cached_approval(proposal)
+            if (supervised_placement_mode(config) and config.get('assume_stationary_target') is True
+                    and config.get('visual_servo_enabled') is False
+                    and config.get('wrist_observation_enabled') is False):
+                audit['mode'] = 'stationary_target_assumed'
+            else:
+                self._validate_new_observation(proposal, cancelled, audit)
+                self._validate_cached_approval(proposal)
             if cancelled():
                 raise InterruptedError('승인 실행을 취소했습니다.')
             audit['success'] = True
@@ -185,6 +191,42 @@ class ProposalROS(OperatorROS):
         finally:
             audit['finished_at'] = time.time()
             write_json(self.store.root / 'revalidations' / f"{proposal['id']}.json", audit)
+
+    def _validate_cached_approval(self, proposal: dict) -> dict:
+        cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=proposal['snapshot_id']),
+                           read_only_label='원본 장면 조회')
+        if not cached.found or cached.detections.snapshot_id != proposal['snapshot_id']:
+            raise ValueError('승인한 관측이 만료되었습니다. 다시 제안받으세요.')
+        target = proposal['target']
+        tracks = [item.track_id for item in cached.detections.detections if item.object_id == target['object_id']]
+        if tracks != [target['track_id']]:
+            raise ValueError('원본 관측의 물체 번호와 추적 ID가 승인한 대상과 일치하지 않습니다.')
+        config = self.config()
+        validate_fresh_target(proposal, cached.detections, config, self.policy, time.time())
+        return config
+
+    def _validate_new_observation(self, proposal, cancelled, audit):
+        for attempt in range(self.policy.get('proposal_reobservation_attempts', 2)):
+            requested_ns = time.time_ns()
+            response = self._observe_target(proposal, cancelled, requested_ns)
+            entry = dict(attempt=attempt + 1, requested_at_ns=requested_ns,
+                         success=response.success, error_code=response.error_code, message=response.message)
+            audit['attempts'].append(entry)
+            if not response.success:
+                if (response.error_code in (response.ERROR_MASK, response.ERROR_RGBD_TIMEOUT)
+                        and attempt + 1 < self.policy.get('proposal_reobservation_attempts', 2)):
+                    continue
+                raise ValueError(f'{response.message} 다시 제안받으세요.')
+            scene = response.detections
+            entry['observation'] = self._observation_record(scene)
+            captured_ns = scene.header.stamp.sec * 1_000_000_000 + scene.header.stamp.nanosec
+            if (response.source_snapshot_id != proposal['snapshot_id']
+                    or response.source_object_id != proposal['target']['object_id']):
+                raise ValueError('재확인 응답이 승인한 관측 또는 대상을 참조하지 않습니다.')
+            if not requested_ns < captured_ns <= time.time_ns():
+                raise ValueError('재확인 영상의 촬영 시각이 유효하지 않습니다.')
+            validate_fresh_target(proposal, scene, self.config(), self.policy, time.time())
+            return
 
     def _observe_target(self, proposal, cancelled, requested_ns):
         client = self.target_observation

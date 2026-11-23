@@ -299,7 +299,7 @@ test("torque, gripper and recovery confirmations are explicit and revisions stay
   await expect(
     dialog.getByRole("button", { name: "확인 후 요청" }),
   ).toBeDisabled();
-  await dialog.getByLabel("모터 토크 활성화를 확인했습니다.").check();
+  await dialog.getByLabel(/양쪽 그리퍼가 비었고 작업 범위가 비어 있음을 확인했습니다/).check();
   await dialog.getByRole("button", { name: "확인 후 요청" }).click();
   await expect(dialog).toHaveCount(0);
   expect(f.sent[0].args).toEqual({ confirm_torque_on: true });

@@ -49,6 +49,7 @@ const jobStates: Record<string, string> = {
   ACKNOWLEDGED: "운영자 기록 확인",
 };
 const proposalPhases: Record<string, string> = {
+  HOMING: "양팔을 저장된 기본 자세로 옮기고 그리퍼를 닫고 있습니다.",
   PROPOSING: "현재 장면을 관찰하고 다음 작업을 제안하고 있습니다.",
   REVALIDATING: "승인한 대상의 동일성과 현재 위치를 다시 확인하고 있습니다.",
   EXECUTING: "승인한 물체의 동작을 실행하고 있습니다.",
@@ -500,9 +501,11 @@ export function OperatorControls({
             <strong>
               {state.operation_mode === "pick_return_release"
                 ? "집기 → 들기 → 원위치 놓기"
-                : state.operation_mode || "확인 필요"}
+                : state.operation_mode === "pick_rear_bin_release"
+                  ? "집기 → 후방 수거함에 놓기 → 대기 자세 복귀"
+                  : state.operation_mode || "확인 필요"}
             </strong>
-            {state.operation_mode === "pick_return_release" && (
+            {(state.operation_mode === "pick_return_release" || state.operation_mode === "pick_rear_bin_release") && (
               <small>안착은 가정</small>
             )}
           </div>
@@ -868,7 +871,7 @@ export function OperatorControls({
               </div>
               {modal === "prepare" && (
                 <p>
-                  모터 토크를 활성화하고 센서·계획 서비스와 실행기를 준비합니다.
+                  현재 자세에서 모터 토크를 활성화하고 센서와 실행기를 준비합니다.
                 </p>
               )}
               {modal === "return_arm" && (
@@ -938,7 +941,7 @@ export function OperatorControls({
                     : modal === "shutdown"
                       ? "팔·물체 지지와 토크 해제를 확인했습니다."
                       : modal === "prepare"
-                        ? "모터 토크 활성화를 확인했습니다."
+                        ? "양쪽 그리퍼가 비었고 작업 범위가 비어 있음을 확인했습니다. 모터 토크 활성화를 승인합니다."
                         : "실물 상태와 명령 처리 결과를 확인했습니다."}
               </label>
               {modal === "recover" && (

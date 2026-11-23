@@ -138,7 +138,7 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
 {
   const auto entered = std::chrono::steady_clock::now();
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
+  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
       "Depth callback entered: capture_ns=%ld node_now_ns=%ld points=%zu",
       static_cast<long>(capture_ns), static_cast<long>(node_->now().nanoseconds()),
       std::size_t(cloud.width) * cloud.height);
@@ -158,7 +158,7 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
   }
   const double elapsed_ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now()-entered).count();
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
+  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
       "Depth callback finished: integrated=%d stage=%s capture_ns=%ld node_now_ns=%ld "
       "last_update_ns=%ld wall_ms=%.2f frame_wait_ms=%.2f", integrated, stage, static_cast<long>(capture_ns),
       static_cast<long>(node_->now().nanoseconds()), static_cast<long>(last_update_ns_), elapsed_ms,
@@ -254,8 +254,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   // its shape-handles/tree locks while waiting to register geometry here.
   geometry_lock.unlock();
   stage = "raycasting";
-  // 트리 접근 중에는 형상 잠금을 잡지 않습니다. 장면 갱신은 제외 형상을 바꾸며
-  // 트리 잠금을 소유할 수 있습니다. 복제본이 이번 촬영의 형상을 보존합니다.
+  // No geometry lock during tree access. Scene updates can own the tree lock
+  // while changing excluded shapes. Clones preserve this capture's geometry.
   octomap::KeySet occupied, model, clipped;
   std::vector<FreeVoxelBlock> free;
   const auto origin = octoPoint(map_from_cloud.translation());
@@ -345,7 +345,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   }
   const double elapsed_ms = elapsed(begin, std::chrono::steady_clock::now());
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
+  RCLCPP_DEBUG_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
                        "Consistent depth frame: cleared=%zu examined=%zu occupied=%zu elapsed_ms=%.2f "
                        "transforms_ms=%.2f mask_ms=%.2f rays_ms=%.2f tree_ms=%.2f "
                        "receipt_ms=%.2f snapshot_ms=%.2f geometry_wait_ms=%.2f "

@@ -12,7 +12,7 @@
   "board_pdf_sha256": "52ca2a4364091bcd19d3008a9973c95373dfd0769474b4265f89803757897464",
   "minimum_corners": 16,
   "minimum_calibration_views": 20,
-  "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+  "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14111971-if00",
   "baudrate": 1000000,
   "encoder_period_ticks": 4096,
   "maximum_step_ticks": 512,

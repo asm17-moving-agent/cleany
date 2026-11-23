@@ -517,6 +517,29 @@ class GraspFirstPort(FakePort):
         return True
 
 
+def test_batch_grasp_screening_keeps_reachable_lower_score_before_candidate_limit():
+    from dataclasses import replace
+
+    class ScreeningPort(GraspFirstPort):
+        def prescreen_grasps(self, requests):
+            self.calls.append(('screen', requests))
+            return {request for request in requests
+                    if request.candidate_index == 2 and request.arm == 'right'}
+
+    port = ScreeningPort('grasp_ik')
+    a = replace(candidate(1, y=.2), score=.9)
+    b = replace(candidate(2, y=.2), position=(.55, .2, .8), score=.5)
+    config = GraspSelectionConfig(grasp_ik_first=True, maximum_candidates=1,
+                                  batch_grasp_ik_before_limit=True)
+    selected = GraspSelector(port, config).select([a, b])
+    assert selected is not None and selected.candidate_index == 2 and selected.arm == 'right'
+    checked = next(call[1] for call in port.calls if call[0] == 'screen')
+    assert {(request.candidate_index, request.arm) for request in checked} == {
+        (1, 'left'), (1, 'right'), (2, 'left'), (2, 'right')}
+    assert any(call[:2] == ('valid', 'right') for call in port.calls)
+    assert any(call[:2] == ('plan_current', 'right') for call in port.calls)
+
+
 def test_grasp_first_registers_final_targets_and_seeds_pregrasp_from_grasp():
     port = GraspFirstPort()
     value = candidate(17, y=.2)

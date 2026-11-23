@@ -4,6 +4,8 @@
 경로 계획과 파지 전 준비 자세는 [physical-pregrasp.md](physical-pregrasp.md)를 따른다.
 MoveIt은 경로만 계산하고 실제 명령은 하드웨어 실행기가 보낸다.
 
+새 cuRobo 실물 준비 세션은 모터 보호 노드의 실시간 준비 상태와 MoveIt 계획 장면 서비스의 관절 상태 응답을 확인한 뒤 GPU IK 초기화를 시작한다. GPU 기동 전과 전체 준비 검사에서 MoveIt의 궤적 실행 설정이 불리언 false인지 확인한다. 탐색이 끝난 뒤에도 설정 조회 응답이 도착하지 않으면 10초 검사 기한 안에 한 번 재조회한다.
+
 ## 실행 경로
 
 `manipulation_jetson_server`는 기존 수거 트리를 실행하며 실행 기록을 별도 SQLite에 보존한다.
@@ -37,7 +39,7 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 | 파라미터 | Jetson 값 | 적용 내용 |
 |---|---|---|
 | `hardware_trajectory_limit_scale` | 1.0 | 현재 관절별 속도와 가속도 상한을 명령 시간 계산에 반영. 코드 기본값은 0.8 |
-| `hardware_path_step_rad` | 0.02 | cubic 경로의 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
+| `hardware_path_step_rad` | 0.02 | 궤적 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
 | `hardware_start_delay_sec`, `hardware_return_start_delay_sec` | 0.2초 | 팔과 그리퍼의 공통 시작 여유. 시작 전 수락 조건 유지 |
 | `hardware_retime_retreat` | true | 기록 후퇴 곡선의 속도와 가속도 극값으로 실행 시간을 다시 계산 |
 | `hardware_retreat_min_duration_sec`, `hardware_lift_min_duration_sec` | 0.3초 | 후퇴 역재생과 일반 들어올리기의 최소 시간. 실제 제한이 요구하면 더 길어짐 |
@@ -48,6 +50,13 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 시간 계산의 5% 수치 여유와 관절 범위 검사는 유지한다. 곡선 표본은 벡터 계산하고
 URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 복사하고 하나의 응답
 대기 반복에서는 같은 측정을 두 번 만들지 않는다.
+
+파지 접근에서 준비점에 정착한 관절각과 선택된 궤적의 첫 점이 모든 팔 관절에서
+`hardware_start_tolerance_rad`(기본 0.005 rad) 이내이면 원본 관절 위치, 시간,
+속도와 가속도를 제어기에 전달한다. 전송 직전에도 시작 자세를 비교한다. 둘 중
+어느 검사에서든 허용치를 넘으면 실측 자세에서 같은 파지 TCP로 다시 계획한다.
+원본 궤적도 관절 범위, 속도, 가속도와 운영 충돌 정책을 적용한 전송 전 검사를
+받는다. 후퇴용 기록에는 실제 보낸 가속도도 저장한다.
 
 복귀 조회는 현재 팔, 명령 횟수, 통신 복구 세대와 신선도가 일치할 때 한 번 소비한다.
 후퇴 직후의 도착 확인은 전체 관절 위치와 모델이 정확히 같을 때만 재사용한다.
@@ -83,6 +92,9 @@ URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 
    ```
 
 3. `make collection-start`로 런타임을 시작하고 `make manipulation-start`로 대기 중인 BT 서버를 연결한다.
+   시작 시 설치된 ROS 패키지로 보정 파일과 제어 모델을 먼저 읽는다.
+   파일을 열거나 모델을 생성할 수 없으면 웹 작업 이력에 원인을 기록하고 장치 기동 전에 종료한다.
+   제어기가 첫 관절 피드백을 기다리는 `waiting` 상태에서는 기존 상태 조회 기한 안에 `ready`로 전환되는지 확인한다.
    `make collection-plan`은 계획만 확인하고 `make manipulation-run`은 실제 단일 수거를 요청한다.
 4. 진행 상태는 `make collection-status`와 `make collection-logs`로 확인한다.
    `make manipulation-recover`는 복구 상태를 조회하며 확인 인자는
@@ -94,7 +106,11 @@ URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 
 ## 접촉과 대상 근거
 
 `manipulation_evidence`는 원시 모터 피드백의 접촉 판정과 손목 관측의 대상 식별을 결합한다.
-전류나 부하를 힘으로 해석하지 않으며, 관측의 대상 ID, 신선도와 시간 차이를 검사한다.
+Jetson 운영 프로파일은 양쪽 그리퍼에서 토크 한도 읽기값 400과 정상 정지 피드백을 확인한다.
+0.4초 창의 전류 원시값 중앙값이 15 이상이고 부하 원시값 최솟값이 200 이상이면 접촉으로 판정한다.
+전류 중앙값과 부하 최댓값이 각각 기준 미만이면 빈 상태로 판정한다.
+닫힘 목표까지 남은 인코더 틱은 진단에 기록한다.
+손목 관측은 대상 ID, 신선도와 시간 차이를 검사한다.
 구형 부하 단독 판정은 사용하지 않는다. 같은 근거를 재전송해도 새 관측이 되지 않는다.
 서비스와 메시지 정의는 [인터페이스](interfaces.md#manipulation_evidence)를 따른다.
 

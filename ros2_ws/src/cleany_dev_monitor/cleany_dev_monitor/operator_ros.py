@@ -28,19 +28,42 @@ class OperatorROS:
         self.thread.start()
 
     @staticmethod
-    def call(client, request, timeout=3., *, discovery_timeout=.5):
+    def call(client, request, timeout=3., *, discovery_timeout=.5, read_only_label: str | None = None):
+        """Allow one extra request within the response budget for explicit read-only calls."""
         if not client.wait_for_service(timeout_sec=discovery_timeout):
+            if read_only_label is not None:
+                raise RuntimeError(f'{read_only_label} 서비스가 없습니다.')
             raise RuntimeError('실행기의 제어 상태 서비스가 없습니다. 실행기 준비 또는 업데이트를 확인하세요.')
-        future = client.call_async(request)
         ready = threading.Event()
-        future.add_done_callback(lambda _: ready.set())
-        if not ready.wait(timeout):
-            raise TimeoutError('응답을 확인하지 못했습니다. 상태를 다시 조회하세요.')
-        return future.result()
+        deadline = time.monotonic() + timeout
+        futures = []
+
+        def send():
+            future = client.call_async(request)
+            futures.append(future)
+            future.add_done_callback(lambda _: ready.set())
+
+        try:
+            send()
+            if (read_only_label is not None and not ready.wait(timeout / 2)
+                    and time.monotonic() < deadline):
+                send()
+            ready.wait(max(0., deadline - time.monotonic()))
+            for future in reversed(futures):
+                if future.done():
+                    return future.result()
+            label = f'{read_only_label} ' if read_only_label is not None else ''
+            raise TimeoutError(f'{label}응답을 확인하지 못했습니다. 상태를 다시 조회하세요.')
+        finally:
+            if read_only_label is not None:
+                for future in futures:
+                    if not future.done():
+                        future.cancel()
 
     def snapshot(self):
         # Job workers discover the executor from a new DDS participant.
-        response = self.call(self.state_client, Trigger.Request(), discovery_timeout=3.)
+        response = self.call(self.state_client, Trigger.Request(), discovery_timeout=3.,
+                             read_only_label='실행기 상태 조회')
         if not response.success:
             raise RuntimeError(response.message)
         data = json.loads(response.message)

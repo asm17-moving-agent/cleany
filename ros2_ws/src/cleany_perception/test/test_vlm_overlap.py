@@ -57,6 +57,22 @@ def test_geometry_runs_during_vlm_and_selected_reconstruction_reuses_it(syntheti
     np.testing.assert_allclose(output.objects[0].box.size, baseline.objects[0].box.size)
 
 
+def test_local_detection_keeps_raw_detections_and_never_calls_decision(synthetic_scene):
+    detection = synthetic_scene['detection']
+    detector = YoloeGeminiDetector(
+        SimpleNamespace(detect_scene=lambda *_: [detection], prepare=lambda: None),
+        SimpleNamespace(
+            prepare=lambda: pytest.fail('Decision was prepared'),
+            classify=lambda *_: pytest.fail('Decision was called'),
+        ),
+        decision_enabled=False,
+    )
+    detector.prepare()
+    rgb = synthetic_scene['snapshot'].rgb
+    assert detector.detect(rgb, '') == (detection,)
+    assert detector.detect_with_preprocessing(rgb, '', lambda _: None) == (detection,)
+
+
 def test_vlm_error_closes_window_and_does_not_publish_speculative_detection(synthetic_scene):
     events = []
     def fail(*_):

@@ -312,3 +312,32 @@ def test_obb_frame_and_capture_stamp_are_required(fault):
         request.target_cloud.header.stamp.sec = request.context_cloud.header.stamp.sec = 0
     with pytest.raises(ValueError, match='explicit frame|positive capture timestamp'):
         GraspNode._validate(request)
+def test_adaptive_retry_uses_the_same_body_workspace_and_obstacle_cloud():
+    body_points = np.column_stack((np.arange(31) * .004, np.zeros((31, 2))))
+    detached = np.array([.35, .02, 0.])
+    points = np.vstack((body_points, detached))
+    observed = PointCloud(points, np.zeros_like(points))
+    scene = PointCloud(body_points, np.zeros_like(body_points))
+    config = GraspConfig()
+    body, context, workspace = config.prediction_inputs(observed, scene)
+    calls = []
+
+    class Predictor:
+        def predict(self, target, context, bounds):
+            calls.append((target, context, bounds))
+            return (RawGrasp(np.eye(3), detached, .04, 0., .95),)
+
+        def should_retry_full_resolution(self, context):
+            return True
+
+        def predict_full_resolution(self, target, context, bounds):
+            calls.append((target, context, bounds))
+            return (RawGrasp(np.eye(3), body_points[8], .04, 0., .8),)
+
+    _, ranked, retried = _predict_and_rank(Predictor(), body, context, workspace, config)
+    assert retried and len(ranked) == 1
+    for target, surroundings, bounds in calls:
+        np.testing.assert_array_equal(target.points, body_points)
+        np.testing.assert_array_equal(surroundings.points[-1], detached)
+        assert bounds[1] == pytest.approx(body_points[-1, 0] + config.workspace_margin_m)
+    np.testing.assert_allclose(ranked[0].translation, body_points[8])

@@ -54,6 +54,7 @@ class Servos:
             set_value(5, motor, 1)
             set_value(13, 80, 1)
             set_value(16, 1000)
+            set_value(85, 254, 1)
             set_value(28, 250)
             set_value(63, 30, 1)
             set_value(62, 120, 1)
@@ -79,6 +80,10 @@ class Servos:
             goal = int.from_bytes(mem[42:44], 'little')
             measured = goal-self.load_offsets.get(motor, 0)
             mem[56:58] = measured.to_bytes(2, 'little')
+
+    def acknowledge_write(self, motor, address, data):
+        self.update(motor, address, data)
+        return True
 
     def run(self):
         buffer = bytearray()
@@ -115,7 +120,8 @@ class Servos:
                         result = bytearray(result)
                         result[23] = samples.popleft()
                 elif instruction == 3:
-                    self.update(motor, params[0], params[1:])
+                    if not self.acknowledge_write(motor, params[0], params[1:]):
+                        continue
                 elif instruction == 131:
                     address, width = params[:2]
                     for i in range(2, len(params), width+1):
@@ -201,11 +207,39 @@ class ProcessServos(Servos):
         os.close(self.slave)
 
 
+class SlowActivationServos(ProcessServos):
+    """Delay the 48 startup profile writes without stalling position reads."""
+
+    def update(self, motor, address, data):
+        if address in (41, 44, 46, 48):
+            time.sleep(.003)
+        super().update(motor, address, data)
+
+
+class MissingTorqueAckServos(ProcessServos):
+    """Suppress only the addressed torque-on response from motor 2."""
+
+    applies_torque = True
+
+    def acknowledge_write(self, motor, address, data):
+        if (motor, address, data) != (2, 40, b'\x01'):
+            return super().acknowledge_write(motor, address, data)
+        if self.applies_torque:
+            self.update(motor, address, data)
+        else:
+            self.writes.append({'id': motor, 'address': address, 'data': list(data)})
+        return False
+
+
+class UnappliedTorqueWriteServos(MissingTorqueAckServos):
+    applies_torque = False
+
+
 class Runtime:
     def __init__(self, directory, read_only, control_file=None, shared_bus=False,
                  serial_timeout_ms=100, max_state_age_s=.5, serial_read_retries=0,
                  serial_read_recovery_budget_ms=60, servo_type=Servos, start_controllers=True,
-                 current_calibration=False):
+                 current_calibration=False, cold_start=False):
         self.directory, self.read_only = directory, read_only
         state = json.loads((ROOT/'configs/robot/camera_preview.json').read_text())
         state.pop('camera_pose_config', None)  # Synthetic motors have no fitted camera model.
@@ -246,6 +280,8 @@ class Runtime:
             hardware.find("param[@name='serial_read_recovery_budget_ms']").text = str(serial_read_recovery_budget_ms)
             config = yaml.safe_load(self.profile.controllers.read_text())
             config['controller_manager']['ros__parameters']['robot_description'] = ET.tostring(tree.getroot(), encoding='unicode')
+            if cold_start:
+                config['controller_manager']['ros__parameters']['hardware_components_initial_state.inactive'] = ['FeetechSystem']
             parameters = directory/'manager.yaml'
             parameters.write_text(yaml.safe_dump(config))
             self.log = (directory/'manager.log').open('w')
@@ -270,6 +306,8 @@ class Runtime:
             if start_controllers:
                 spawners.append((list(self.profile.controller_names),
                                  ['--inactive'] if read_only else ['--activate-as-group']))
+            if cold_start:
+                spawners = [(list(self.profile.controller_names), ['--inactive']), (['joint_state_broadcaster'], [])]
             for names, options in spawners:
                 result = subprocess.run(['ros2', 'run', 'controller_manager', 'spawner', *names,
                                          '--controller-manager-timeout', '20', *options],
@@ -278,7 +316,7 @@ class Runtime:
             self.spin(.3)
             assert self.states
             self.clients = {name: ActionClient(self.node, FollowJointTrajectory, f'/{name}/follow_joint_trajectory')
-                            for name in self.profile.controller_names if start_controllers}
+                            for name in self.profile.controller_names if start_controllers and not cold_start}
             assert all(c.wait_for_server(timeout_sec=5) for c in self.clients.values())
         except BaseException:
             self.close()
@@ -504,6 +542,35 @@ def test_powered_recovery_rejects_incompatible_existing_hold(tmp_path, fault):
     assert not any(w['address'] in (40, 41, 44, 46, 48) for w in wire['arm_writes'])
 
 
+@pytest.mark.parametrize('over_limit', [False, True], ids=['at_limit', 'above_limit'])
+def test_jetson_gripper_acceleration_limit(tmp_path, over_limit):
+    class GripperLimitServos(Servos):
+        def __init__(self, elements):
+            super().__init__(elements)
+            for motor in (6, 12):
+                self.registers[motor][85] = 50
+
+    control = ROOT / 'configs/robot/jetson/feetech_control.yaml'
+    if over_limit:
+        profile = yaml.safe_load(control.read_text())
+        profile['joint_overrides']['left_gripper_joint']['acceleration_raw'] = 52
+        control = tmp_path / 'over_limit.yaml'
+        control.write_text(yaml.safe_dump(profile))
+        with pytest.raises(AssertionError):
+            Runtime(tmp_path, False, control_file=control, shared_bus=True, servo_type=GripperLimitServos)
+        log = (tmp_path / 'manager.log').read_text()
+        assert 'left_gripper_joint ID 6: acceleration_raw=52 exceeds motor maximum=50' in log
+        assert not json.loads((tmp_path / 'wire.json').read_text())['arm_writes']
+    else:
+        runtime = Runtime(tmp_path, False, control_file=control, shared_bus=True, servo_type=GripperLimitServos)
+        try:
+            for motor in (6, 12):
+                assert runtime.arms.registers[motor][41] == 50
+                assert runtime.arms.registers[motor][40] == 1
+        finally:
+            runtime.close()
+
+
 def test_repeated_stop_and_shutdown_do_not_relatch_each_sagged_position(tmp_path):
     runtime = Runtime(tmp_path, False)
     try:
@@ -589,7 +656,7 @@ def test_shared_bus_readonly_has_no_writes(tmp_path):
 
 def test_single_read_timeout_holds_and_recovers_but_persistent_loss_stops(tmp_path):
     runtime = Runtime(tmp_path, False, shared_bus=True, serial_timeout_ms=20,
-                      max_state_age_s=.1, serial_read_retries=1)
+                      max_state_age_s=.1, serial_read_retries=1, servo_type=ProcessServos)
     try:
         handle, _ = runtime.goal('left_arm_controller', delta=.03, duration=2)
         assert handle.accepted
@@ -604,13 +671,13 @@ def test_single_read_timeout_holds_and_recovers_but_persistent_loss_stops(tmp_pa
         result = runtime.wait(handle.get_result_async())
         assert result.status == 4 and result.result.error_code == 0
         assert all(runtime.arms.registers[motor][40] == 1 for motor in range(1, 13))
-        assert not any(w['address'] == 40 and w['data'] == [0] for w in runtime.arms.writes)
         runtime.arms.drop_reads = True
         runtime.spin(.6)
         assert 'LATCHED hardware fault' in (tmp_path/'manager.log').read_text()
         assert runtime.guard.fault
     finally:
         runtime.close()
+    assert not any(w['address'] == 40 and w['data'] == [0] for w in runtime.arms.writes)
 
 
 
@@ -1053,10 +1120,15 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
     from cleany_skill_executor.core.gripper_contact import (
         ContactState, LiveContactHistory, load_contact_criteria,
     )
-    runtime = Runtime(tmp_path, False, current_calibration=True)
+    criteria = load_contact_criteria(ROOT/'configs/robot/gripper_contact_decision.yaml')[side]
+    assert criteria.closed_goal_raw == closed
+    config = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml').read_text())
+    config['joint_overrides'][f'{side}_gripper_joint']['torque_limit_raw'] = criteria.output_limit_raw
+    control_file = tmp_path/'contact_control.yaml'
+    control_file.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, False, control_file=control_file, current_calibration=True)
     try:
-        history = LiveContactHistory(load_contact_criteria(
-            ROOT/'configs/robot/gripper_contact_decision.yaml')[side])
+        history = LiveContactHistory(criteria)
         joint = f'{side}_gripper_joint'
         def feedback(message):
             row = message.interface_values[message.joint_names.index(joint)]
@@ -1064,10 +1136,10 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
         subscription = runtime.node.create_subscription(DynamicJointState,
             '/joint_state_broadcaster/dynamic_joint_states', feedback, 10)
         mem = runtime.arms.registers[motor]
-        assert int.from_bytes(mem[48:50], 'little') == 200
+        assert int.from_bytes(mem[48:50], 'little') == criteria.output_limit_raw
         runtime.arms.load_offsets[motor] = 340
         mem[60:62] = (0x400 | 200).to_bytes(2, 'little')
-        mem[69:71] = (0x8000 | 18).to_bytes(2, 'little')
+        mem[69:71] = (0x8000 | 15).to_bytes(2, 'little')
         element = ET.parse(runtime.profile.model).find(f"ros2_control/joint[@name='{joint}']")
         p = {v.get('name'):float(v.text) for v in element.findall('param')}
         target = p['offset_rad']+p['direction']*(closed-p['zero_tick'])*math.tau/4096
@@ -1108,4 +1180,140 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
         assert history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds).state == ContactState.UNKNOWN
         runtime.node.destroy_subscription(subscription)
     finally:
+        runtime.close()
+
+@pytest.mark.parametrize('latched,slow_activation', [(False, False), (True, False), (False, True)])
+def test_preloaded_controllers_keep_torque_off_until_guarded_activation(tmp_path, latched, slow_activation):
+    runtime = Runtime(tmp_path, False, shared_bus=True, cold_start=True, max_state_age_s=.1,
+                      servo_type=SlowActivationServos if slow_activation else ProcessServos)
+    proc = None
+    try:
+        assert all(mem[40] == 0 for mem in runtime.arms.registers.values())
+        if latched:
+            runtime.guard.latch('Emulated startup fault')
+        proc = subprocess.Popen(['python3', '-m', 'cleany_robot_interface.control_feedback_startup',
+                                 '--timeout', '12', '--cold-controllers', *runtime.profile.controller_names],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        deadline = time.monotonic() + 18.
+        while proc.poll() is None and time.monotonic() < deadline:
+            runtime.spin(.05)
+        output, _ = proc.communicate(timeout=2)
+        assert proc.returncode == (1 if latched else 0), output
+        states = runtime.wait(runtime.list.call_async(ListControllers.Request())).controller
+        actual = {c.name: c.state for c in states}
+        assert all(actual[name] == ('inactive' if latched else 'active') for name in runtime.profile.controller_names)
+        assert all(mem[40] == (0 if latched or motor > 12 else 1)
+                   for motor, mem in runtime.arms.registers.items())
+        if slow_activation:
+            os.killpg(runtime.process.pid, signal.SIGSTOP)
+            try:
+                time.sleep(.15)
+            finally:
+                os.killpg(runtime.process.pid, signal.SIGCONT)
+            runtime.spin(1.)
+            assert 'LATCHED hardware fault: Stale state/control cycle' in (tmp_path/'manager.log').read_text()
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.wait()
+        runtime.close()
+
+
+@pytest.mark.parametrize(
+    'servo_type,applied', [(MissingTorqueAckServos, True), (UnappliedTorqueWriteServos, False)],
+    ids=['applied', 'unapplied'],
+)
+def test_cold_start_missing_torque_ack_requires_readback(tmp_path, servo_type, applied):
+    runtime = Runtime(tmp_path, False, shared_bus=True, cold_start=True, max_state_age_s=.1,
+                      serial_timeout_ms=20, servo_type=servo_type)
+    process = None
+    try:
+        process = subprocess.Popen(['python3', '-m', 'cleany_robot_interface.control_feedback_startup',
+                                    '--timeout', '12', '--cold-controllers', *runtime.profile.controller_names],
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        deadline = time.monotonic() + 18.
+        while process.poll() is None and time.monotonic() < deadline:
+            runtime.spin(.05)
+        output, _ = process.communicate(timeout=2)
+        assert process.returncode == (0 if applied else 1), output
+        states = runtime.wait(runtime.list.call_async(ListControllers.Request())).controller
+        actual = {controller.name: controller.state for controller in states}
+        assert all(actual[name] == ('active' if applied else 'inactive') for name in runtime.profile.controller_names)
+        assert runtime.arms.registers[2][40] == int(applied)
+        log = (tmp_path/'manager.log').read_text()
+        outcome = ('Torque enable verified by readback for ID 2' if applied
+                   else 'LATCHED hardware fault: Torque enable verification failed for ID 2')
+        assert outcome in log
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.wait()
+        runtime.close()
+    assert runtime.arms.writes.count({'id': 2, 'address': 40, 'data': [1]}) == 1
+
+
+@pytest.mark.parametrize('planning_ok', [True, False])
+def test_deferred_activation_waits_for_planning_with_all_torques_off(tmp_path, planning_ok):
+    runtime = Runtime(tmp_path, False, shared_bus=True, servo_type=ProcessServos, cold_start=True)
+    process = None
+    try:
+        for name in runtime.profile.controller_names:
+            client = ActionClient(runtime.node, FollowJointTrajectory, f'/{name}/follow_joint_trajectory')
+            try:
+                assert client.wait_for_server(timeout_sec=5.)
+            finally:
+                client.destroy()
+        script = r"""
+from pathlib import Path
+import sys
+from rclpy.node import Node
+from cleany_skill_executor import runtime_readiness
+
+class PlanningFixture(Node):
+    def __init__(self, **kwargs):
+        super().__init__('deferred_activation_planning_fixture')
+
+    def pending(self):
+        Path(sys.argv[1], 'waiting-for-planning').touch()
+        if not Path(sys.argv[1], 'planning-result').exists():
+            return ['simulated planning and GPU warmup']
+        if sys.argv[2] == 'failed':
+            raise RuntimeError('simulated planning failure')
+        return []
+
+runtime_readiness.ReadinessProbe = PlanningFixture
+raise SystemExit(runtime_readiness.main(
+    ['--timeout', '18', '--activate-cold-controllers', *sys.argv[3:]]))
+"""
+        process = subprocess.Popen(
+            ['python3', '-c', script, str(tmp_path), 'ready' if planning_ok else 'failed',
+             *runtime.profile.controller_names],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        deadline = time.monotonic() + 10.
+        while (not (tmp_path/'waiting-for-planning').exists() and process.poll() is None
+               and time.monotonic() < deadline):
+            runtime.spin(.05)
+        assert (tmp_path/'waiting-for-planning').exists()
+        runtime.spin(.2)
+        assert process.poll() is None
+        assert all(memory[40] == 0 for memory in runtime.arms.registers.values())
+        (tmp_path/'planning-result').touch()
+        deadline = time.monotonic() + 19.
+        while process.poll() is None and time.monotonic() < deadline:
+            runtime.spin(.05)
+        output, _ = process.communicate(timeout=2.)
+        assert process.returncode == (0 if planning_ok else 1), output
+        assert ('"status": "ready"' in output) is planning_ok
+        if not planning_ok:
+            assert 'simulated planning failure' in output
+        states = runtime.wait(runtime.list.call_async(ListControllers.Request())).controller
+        actual = {c.name: c.state for c in states}
+        assert all(actual[name] == ('active' if planning_ok else 'inactive')
+                   for name in runtime.profile.controller_names)
+        assert all(memory[40] == (1 if planning_ok and motor <= 12 else 0)
+                   for motor, memory in runtime.arms.registers.items())
+    finally:
+        if process is not None and process.poll() is None:
+            process.kill()
+            process.wait()
         runtime.close()

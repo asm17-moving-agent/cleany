@@ -18,14 +18,17 @@ execution_stop_timeout="${CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC:-25}"
 gui="${CLEANY_COLLECTION_GUI:-false}"
 record_motor_telemetry="${CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY:-false}"
 motion_backend="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
+requested_motion_runtime="${CLEANY_COLLECTION_MOTION_RUNTIME:-native}"
+curobo_python="${CLEANY_CUROBO_VENV:-${repo_root}/runtime/curobo-venv}/bin/python"
 grasp_predictor="${CLEANY_COLLECTION_GRASP_PREDICTOR:-geometric}"
 planning_mode_file="${state_dir}/planning-mode"
+motion_runtime_file="${state_dir}/motion-runtime"
 use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-false}"
 perception_mode_file="${state_dir}/perception-mode"
 shared_rmw="${CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 perception_rmw_file="${state_dir}/perception-rmw"
 robot_profile="${CLEANY_ROBOT_STATE_PROFILE:-${repo_root}/configs/robot/camera_preview.json}"
-arm_port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
+arm_port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14111971-if00
 
 usage() {
   cat <<'EOF'
@@ -66,6 +69,8 @@ Environment:
   CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY
                                         true writes raw motor diagnostics (default: false)
   CLEANY_COLLECTION_MOTION_BACKEND      curobo_ik_moveit (default) or moveit
+  CLEANY_COLLECTION_MOTION_RUNTIME      native (default) or container for cuRobo
+  CLEANY_CUROBO_VENV                     Native cuRobo environment (default: runtime/curobo-venv)
   CLEANY_COLLECTION_GRASP_PREDICTOR     geometric (default) or anygrasp
   CLEANY_COLLECTION_USE_EXISTING_PERCEPTION
                                         true reuses running perception and head RGB-D (default: false)
@@ -77,9 +82,13 @@ EOF
 }
 
 validate_planning_mode() {
+  case "${requested_motion_runtime}" in
+    native|container) ;;
+    *) echo "CLEANY_COLLECTION_MOTION_RUNTIME must be native or container." >&2; return 2 ;;
+  esac
   case "${motion_backend}" in
     moveit) motion_runtime=native ;;
-    curobo_ik_moveit) motion_runtime=container ;;
+    curobo_ik_moveit) motion_runtime="${requested_motion_runtime}" ;;
     *) echo "CLEANY_COLLECTION_MOTION_BACKEND must be moveit or curobo_ik_moveit." >&2; return 2 ;;
   esac
   case "${grasp_predictor}" in
@@ -96,6 +105,25 @@ validate_planning_mode() {
   fi
 }
 
+recorded_motion_runtime() {
+  if [[ -f "${motion_runtime_file}" ]]; then
+    cat -- "${motion_runtime_file}"
+  elif [[ -f "${planning_mode_file}" && "$(<"${planning_mode_file}")" == curobo_ik_moveit\ * ]]; then
+    # Sessions started before runtime selection always used the motion container.
+    printf '%s\n' container
+  else
+    printf '%s\n' native
+  fi
+}
+
+recorded_shared_perception() {
+  if [[ -f "${perception_mode_file}" ]]; then
+    cat -- "${perception_mode_file}"
+  else
+    printf '%s\n' "${use_existing_perception}"
+  fi
+}
+
 require_matching_planning_mode() {
   if [[ ! -f "${planning_mode_file}" ]]; then
     echo "Running planning mode is unknown; use make collection-stop, then restart." >&2
@@ -106,6 +134,10 @@ require_matching_planning_mode() {
   if [[ "${active_mode}" != "${motion_backend} ${grasp_predictor}" ]]; then
     echo "Running planning mode: ${active_mode}; requested: ${motion_backend} ${grasp_predictor}." >&2
     echo "Use make collection-stop, then restart with the requested planning options." >&2
+    return 1
+  fi
+  if [[ "$(recorded_motion_runtime)" != "${motion_runtime}" ]]; then
+    echo "Running motion runtime differs; use make collection-stop before changing it." >&2
     return 1
   fi
   local active_shared=false
@@ -120,9 +152,26 @@ require_matching_planning_mode() {
   fi
 }
 
-prepare_motion_runtime() {
+check_motion_runtime() {
   if [[ "${motion_runtime}" == container ]]; then
-    "${repo_root}/tools/motion-container" check || return
+    local check_output
+    if ! check_output=$("${repo_root}/tools/motion-container" check 2>&1); then
+      printf 'Collection readiness failed: %s\n' "${check_output//$'\n'/ }" >&2
+      return 1
+    fi
+    printf '%s\n' "${check_output}"
+  elif [[ "${motion_backend}" == curobo_ik_moveit ]]; then
+    if [[ ! -x "${curobo_python}" ]] || ! "${curobo_python}" -c \
+      'import torch; from curobo.wrap.reacher.ik_solver import IKSolver; raise SystemExit(not torch.cuda.is_available())'; then
+      echo "Native cuRobo with CUDA is unavailable at ${curobo_python}. Run tools/setup-curobo or set CLEANY_CUROBO_VENV." >&2
+      return 1
+    fi
+  fi
+}
+
+prepare_motion_runtime() {
+  check_motion_runtime || return
+  if [[ "${motion_runtime}" == container ]]; then
     export CLEANY_MOTION_OWNER="${state_dir}"
     "${repo_root}/tools/motion-container" stop --owner "${state_dir}"
   fi
@@ -161,6 +210,10 @@ source_ros() {
   if [[ "${use_existing_perception}" == true ]]; then
     export RMW_IMPLEMENTATION="${shared_rmw}"
     if [[ "${shared_rmw}" != rmw_cyclonedds_cpp ]]; then unset CYCLONEDDS_URI; fi
+    if [[ "${shared_rmw}" == rmw_fastrtps_cpp ]]; then
+      # Use the local RGB-D shared-memory transport for collection participants.
+      export FASTRTPS_DEFAULT_PROFILES_FILE="${FASTRTPS_DEFAULT_PROFILES_FILE:-${repo_root}/ros2_ws/src/cleany_perception/config/fastdds_rgbd.xml}"
+    fi
   fi
   set -u
   export ROS2CLI_DISABLE_DAEMON=1
@@ -229,6 +282,10 @@ start_group() {
 
 start_real_control() {
   local log="$1"
+  local feedback_profile=''
+  if [[ "${RMW_IMPLEMENTATION:-}" == rmw_fastrtps_cpp ]]; then
+    feedback_profile="${repo_root}/ros2_ws/src/cleany_robot_interface/config/fastdds_control.xml"
+  fi
   start_group real_control "${log}" \
     ros2 launch cleany_robot_interface real_control.launch.py \
       repository_root:="${repo_root}" \
@@ -236,42 +293,73 @@ start_real_control() {
       control_file:="${CLEANY_FEETECH_CONTROL_CONFIG}" \
       output_root:="${HOME}/.local/share/cleany/real_control" \
       read_only:=false with_moveit:=true allow_trajectory_execution:=false \
+      staged_moveit:=true preload_cold_controllers:="${2:-false}" defer_cold_activation:="${2:-false}" \
+      feedback_fastdds_profile:="${feedback_profile}" \
+      startup_timeout_sec:="${start_timeout}" \
       enable_depth_octomap:=true use_rviz:="${gui}"
 }
 
 start_hardware_support() {
   local log="$1"
   local run_dir="$2"
+  local staged_startup="${3:-false}"
+  local startup_ready_file="${4:-}"
   validate_planning_mode || return
-  # Keep the automatic-arm launch default; ROS launch rejects empty CLI values.
+  local selection_args=("motion_runtime:=${motion_runtime}")
+  [[ -z "${startup_ready_file}" ]] || selection_args+=("startup_ready_file:=${startup_ready_file}")
+  if [[ "${motion_backend}" == curobo_ik_moveit && "${motion_runtime}" == native ]]; then
+    selection_args+=("curobo_python:=${curobo_python}")
+  fi
   start_group hardware_support "${log}" \
-    ros2 launch cleany_skill_executor pregrasp_hardware_support.launch.py \
+    env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 ros2 launch cleany_skill_executor pregrasp_hardware_support.launch.py \
       repository_root:="${repo_root}" \
       profile_file:="${robot_profile}" \
       collection_config_file:="${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
       output_root:="${HOME}/.local/share/cleany/pregrasp_hardware" \
       evidence_output_directory:="${run_dir}/evidence" \
       motion_backend:="${motion_backend}" \
-      motion_runtime:="${motion_runtime}" grasp_predictor:="${grasp_predictor}" \
+      grasp_predictor:="${grasp_predictor}" \
       start_head_camera:="$([[ "${use_existing_perception}" != true ]] && echo true || echo false)" \
+      staged_startup:="${staged_startup}" startup_timeout_sec:="${start_timeout}" \
       scene_pixel_stride:=4 maximum_candidates:=32 \
-      selection_timeout_sec:=480.0 pipeline_timeout_sec:=600.0
+      selection_timeout_sec:=480.0 pipeline_timeout_sec:=600.0 "${selection_args[@]}"
 }
 
-wait_for_perception_snapshot() {
-  timeout 15 python3 - <<'PYTHON'
-import rclpy
-from cleany_interfaces.srv import GetSceneSnapshot
+start_staged_hardware_support() {
+  local log="$1" run_dir="$2" startup_dir startup_deadline
+  startup_dir="$(mktemp -d "${run_dir}/startup.XXXXXXXX")" || return
+  start_hardware_support "${log}" "${run_dir}" true "${startup_dir}/ready" || return
+  startup_deadline=$(python3 -c 'import math, sys; print(int(sys.argv[1]) + math.ceil(float(sys.argv[2])))' "$SECONDS" "${start_timeout}") || return
+  while [[ ! -f "${startup_dir}/ready" ]]; do
+    check_managed_health || return 1
+    if (( SECONDS >= startup_deadline )); then
+      echo "Planning and GPU warmup startup timed out." >&2
+      return 1
+    fi
+    sleep .25
+  done
+}
 
-rclpy.init()
-node = rclpy.create_node('collection_snapshot_discovery')
+wait_for_startup_service() {
+  OPENBLAS_NUM_THREADS=1 timeout 15 python3 - "$1" "$2" <<'PYROS'
+import sys
+import rclpy
+from rosidl_runtime_py.utilities import get_service
+
+rclpy.init(args=[])
+node = rclpy.create_node('collection_startup_discovery')
 try:
-    client = node.create_client(GetSceneSnapshot, '/perception/get_scene_snapshot')
-    raise SystemExit(0 if client.wait_for_service(timeout_sec=10.) else 1)
+    client = node.create_client(get_service(sys.argv[2]), sys.argv[1])
+    if not client.wait_for_service(timeout_sec=10.):
+        raise SystemExit(f'Startup service unavailable: {sys.argv[1]}')
 finally:
     node.destroy_node()
     rclpy.try_shutdown()
-PYTHON
+PYROS
+}
+
+wait_for_perception_snapshot() {
+  wait_for_startup_service /perception/get_scene_snapshot cleany_interfaces/srv/GetSceneSnapshot
 }
 
 require_gui_node() {
@@ -279,27 +367,43 @@ require_gui_node() {
 }
 
 check_managed_health() {
-  local name pid
+  local required="${1:-}" name pid
   while read -r name pid; do
+    [[ -z "${required}" || "${name}" == "${required}" ]] || continue
     if ! alive "${pid}"; then
       echo "Managed process exited: ${name} (PID ${pid})" >&2
       return 1
     fi
+    if [[ -n "${required}" ]]; then
+      return 0
+    fi
   done < "${pids_file}"
+  if [[ -n "${required}" ]]; then
+    echo "Managed process is missing: ${required}" >&2
+    return 1
+  fi
+}
+
+wait_startup_cpu() {
+  python3 "${repo_root}/ros2_ws/src/cleany_skill_executor/cleany_skill_executor/startup_cpu.py" \
+    --timeout "${start_timeout}" "$1"
 }
 
 wait_for_graph() {
-  check_managed_health || return 1
-  local readiness_pid result
-  local options=(--timeout "${start_timeout}")
+  local required='' readiness_pid result
+  if [[ "${1:-}" == --control-startup ]]; then
+    required=real_control
+  fi
+  check_managed_health "${required}" || return 1
+  local options=(--timeout "${start_timeout}" "$@")
   [[ "${gui}" != true ]] || options+=(--gui)
   # One participant discovers the existing requirements and waits for feedback
   # concurrently. The parent continues monitoring all managed processes.
-  python3 "${repo_root}/ros2_ws/src/cleany_skill_executor/cleany_skill_executor/runtime_readiness.py" \
+  OPENBLAS_NUM_THREADS=1 python3 "${repo_root}/ros2_ws/src/cleany_skill_executor/cleany_skill_executor/runtime_readiness.py" \
     "${options[@]}" &
   readiness_pid=$!
   while alive "${readiness_pid}"; do
-    if ! check_managed_health; then
+    if ! check_managed_health "${required}"; then
       kill -TERM "${readiness_pid}" 2>/dev/null || true
       wait "${readiness_pid}" 2>/dev/null || true
       return 1
@@ -308,12 +412,32 @@ wait_for_graph() {
   done
   if wait "${readiness_pid}"; then result=0; else result=$?; fi
   (( result == 0 )) || return "${result}"
-  check_managed_health || return 1
+  check_managed_health "${required}" || return 1
 }
 
 check_dds_transport() {
   # Fail before starting any hardware when Linux would clamp RGB-D DDS buffers.
   python3 "${repo_root}/tools/dds_transport.py" check
+}
+
+check_control_profile() {
+  python3 - "${repo_root}" "${robot_profile}" "${CLEANY_FEETECH_CONTROL_CONFIG}" <<'PYTHON'
+from pathlib import Path
+import sys
+from tempfile import TemporaryDirectory
+
+try:
+    from cleany_robot_interface.calibrated_cad_model import require_cad_motion_ready
+    from cleany_robot_interface.control_profile import prepare_control_profile
+
+    repository, profile, control = (Path(value).resolve() for value in sys.argv[1:])
+    require_cad_motion_ready(profile, repository)
+    with TemporaryDirectory() as directory:
+        prepare_control_profile(profile, repository, Path(directory) / 'control', control,
+                                read_only=False)
+except Exception as error:
+    sys.exit(f'Collection readiness failed: control profile: {error}')
+PYTHON
 }
 
 start_runtime() {
@@ -337,10 +461,11 @@ start_runtime() {
     echo "Next: make collection-execute"
     return 0
   fi
+  source_ros
+  check_control_profile || return
   # The native CPU selector does not require a prepared cuRobo workspace.
   prepare_motion_runtime || return
   if [[ "${use_existing_perception}" == true ]]; then
-    source_ros
     python3 "${repo_root}/tools/shared_perception_readiness.py" --timeout 10.0 || return
   fi
   if fuser -s "${arm_port}"; then
@@ -352,8 +477,7 @@ start_runtime() {
     echo "Load GEMINI_API_KEY into the environment before starting collection." >&2
     return 1
   fi
-  "${repo_root}/tools/feetech-torque" check-off
-  source_ros
+  "${repo_root}/tools/feetech-torque" check-off || return
 
   local timestamp run_dir log_dir
   timestamp="$(date +%Y%m%d-%H%M%S)"
@@ -362,50 +486,27 @@ start_runtime() {
   mkdir -p "${log_dir}" "${run_dir}/evidence"
   printf '%s\n' "${run_dir}" > "${run_dir_file}"
   printf '%s %s\n' "${motion_backend}" "${grasp_predictor}" > "${planning_mode_file}"
+  printf '%s\n' "${motion_runtime}" > "${motion_runtime_file}"
   printf '%s\n' "${use_existing_perception}" > "${perception_mode_file}"
   printf '%s\n' "${shared_rmw}" > "${perception_rmw_file}"
   : > "${pids_file}"
   rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
 
-  export CLEANY_REFERENCE_OBSERVATION=true
-  export CLEANY_WRIST_OBSERVATION=true
-  export CLEANY_PERCEPTION_USE_SIM_TIME=false
-  export CLEANY_PIPELINE_PROFILE=optimized
-  if [[ "${gui}" == true ]]; then
-    configure_gui_environment
-  fi
-
-  echo "Planning mode: ${grasp_predictor} candidates + ${motion_backend} (${motion_runtime})"
-  start_vision "${log_dir}/vision.log" || return
-  start_group left_wrist_camera "${log_dir}/left-wrist-camera.log" \
-    ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
-      -r __node:=left_wrist_rgb_camera \
-      -p repository_root:="${repo_root}" \
-      -p start_enabled:=false \
-      -p config_file:="${repo_root}/configs/robot/left_wrist_rgb.json"
-  start_group right_wrist_camera "${log_dir}/right-wrist-camera.log" \
-    ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
-      -r __node:=right_wrist_rgb_camera \
-      -p repository_root:="${repo_root}" \
-      -p start_enabled:=false \
-      -p config_file:="${repo_root}/configs/robot/right_wrist_rgb.json"
-  start_real_control "${log_dir}/real-control.log"
-  start_group manipulation_evidence "${log_dir}/manipulation-evidence.log" \
-    ros2 launch cleany_skill_executor manipulation_evidence.launch.py \
-      contact_rule_file:="${repo_root}/configs/robot/gripper_contact_decision.yaml"
-  if [[ "${record_motor_telemetry}" == true ]]; then
-    start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
-      ros2 run cleany_robot_interface motor_telemetry_recorder
-  fi
-  start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}"
-  if [[ "${gui}" == true ]]; then
-    start_group bbox_view "${log_dir}/bbox-view.log" \
-      ros2 run rqt_image_view rqt_image_view \
-        --ros-args -r image:=/perception/debug_image_latched
+  local cold_status=0
+  prepare_cold_runtime "${run_dir}" "${log_dir}" || cold_status=$?
+  if (( cold_status != 0 )); then
+    echo "Collection startup failed before torque activation. Logs: ${log_dir}" >&2
+    stop_runtime check-off || echo "Cold startup cleanup could not be verified; inspect the runtime before retrying." >&2
+    return "${cold_status}"
   fi
 
   echo "Waiting for services, actions, 14-joint feedback, depth and OctoMap input..."
-  if ! wait_for_graph; then
+  local controller_arm
+  local cold_controllers=()
+  for controller_arm in left right; do
+    cold_controllers+=("${controller_arm}_arm_controller" "${controller_arm}_gripper_controller")
+  done
+  if ! wait_for_graph --activate-cold-controllers "${cold_controllers[@]}"; then
     echo "Startup preflight failed. Runtime is left running for inspection." >&2
     echo "Logs: ${log_dir}" >&2
     echo "Stop explicitly with: make collection-stop" >&2
@@ -421,6 +522,67 @@ start_runtime() {
   fi
   echo "Logs/results: ${run_dir}"
   echo "Next: make collection-execute"
+}
+
+prepare_cold_runtime() {
+  local run_dir="$1" log_dir="$2"
+  export CLEANY_REFERENCE_OBSERVATION=true
+  export CLEANY_WRIST_OBSERVATION=true
+  export CLEANY_PERCEPTION_USE_SIM_TIME=false
+  export CLEANY_PIPELINE_PROFILE=optimized
+  if [[ "${gui}" == true ]]; then
+    configure_gui_environment || return
+  fi
+
+  echo "Planning mode: ${grasp_predictor} candidates + ${motion_backend} (${motion_runtime})"
+  local wrist_observation
+  wrist_observation="$(python3 - "${CLEANY_MANIPULATION_COLLECTION_CONFIG}" <<'PYWRIST'
+import json
+import sys
+
+with open(sys.argv[1], encoding='utf-8') as profile:
+    enabled = json.load(profile).get('wrist_observation_enabled', True)
+if type(enabled) is not bool:
+    raise SystemExit('wrist_observation_enabled must be boolean')
+print('true' if enabled else 'false')
+PYWRIST
+)" || return
+  start_vision "${log_dir}/vision.log" || return
+  if [[ "${wrist_observation}" == true ]]; then
+    wait_startup_cpu left_wrist_camera || return
+    start_group left_wrist_camera "${log_dir}/left-wrist-camera.log" \
+      ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
+        -r __node:=left_wrist_rgb_camera \
+        -p repository_root:="${repo_root}" \
+        -p start_enabled:=false \
+        -p config_file:="${repo_root}/configs/robot/left_wrist_rgb.json" || return
+    wait_startup_cpu right_wrist_camera || return
+    start_group right_wrist_camera "${log_dir}/right-wrist-camera.log" \
+      ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
+        -r __node:=right_wrist_rgb_camera \
+        -p repository_root:="${repo_root}" \
+        -p start_enabled:=false \
+        -p config_file:="${repo_root}/configs/robot/right_wrist_rgb.json" || return
+  fi
+  wait_startup_cpu real_control || return
+  start_real_control "${log_dir}/real-control.log" true || return
+  wait_for_graph --control-startup || return
+  wait_startup_cpu manipulation_evidence || return
+  start_group manipulation_evidence "${log_dir}/manipulation-evidence.log" \
+    ros2 launch cleany_skill_executor manipulation_evidence.launch.py \
+      contact_rule_file:="${repo_root}/configs/robot/gripper_contact_decision.yaml" || return
+  if [[ "${record_motor_telemetry}" == true ]]; then
+    wait_startup_cpu motor_telemetry || return
+    start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
+      ros2 run cleany_robot_interface motor_telemetry_recorder || return
+  fi
+  wait_startup_cpu depth_scene || return
+  start_staged_hardware_support "${log_dir}/hardware-support.log" "${run_dir}" || return
+  if [[ "${gui}" == true ]]; then
+    start_group bbox_view "${log_dir}/bbox-view.log" \
+      ros2 run rqt_image_view rqt_image_view \
+        --ros-args -r image:=/perception/debug_image_latched || return
+  fi
 }
 
 recover_control() {
@@ -470,7 +632,7 @@ recover_control() {
   run_dir="$(current_run_dir)" || return
   start_real_control "${run_dir}/logs/real-control-recovery.log" || return
   echo "Waiting for torque-on hold adoption and controller readiness..."
-  wait_for_graph || return
+  wait_for_graph --control-startup || return
   echo "REAL CONTROL RECOVERED; TORQUE REMAINED ON"
 }
 
@@ -478,9 +640,7 @@ recover_planning() {
   require_runtime
   validate_planning_mode || return
   require_matching_planning_mode || return
-  if [[ "${motion_runtime}" == container ]]; then
-    "${repo_root}/tools/motion-container" check
-  fi
+  check_motion_runtime || return
   export CLEANY_MOTION_OWNER="${state_dir}"
   local old_pid=''
   while read -r name pid; do
@@ -516,8 +676,7 @@ recover_planning() {
   source_ros
   local run_dir
   run_dir="$(current_run_dir)"
-  start_hardware_support \
-    "${run_dir}/logs/hardware-support-recovery.log" "${run_dir}"
+  start_staged_hardware_support "${run_dir}/logs/hardware-support-recovery.log" "${run_dir}" || return
   echo "Waiting for refreshed D435, OctoMap and planning services..."
   wait_for_graph
   echo "PLANNING SUPPORT RECOVERED; ARM CONTROL REMAINED RUNNING"
@@ -572,6 +731,7 @@ PY
 }
 
 execute_once() {
+  validate_planning_mode || return
   require_runtime
   check_managed_health
   source_ros
@@ -619,6 +779,8 @@ start_action_server() {
   local name pid
   while read -r name pid; do
     if [[ "${name}" == manipulation_action ]] && alive "${pid}"; then
+      source_ros || return
+      wait_for_graph --action-startup --timeout 30 || return
       echo "Manipulation Action server is already running (PID ${pid})."
       return 0
     fi
@@ -630,25 +792,27 @@ start_action_server() {
   fi
   local run_dir
   run_dir="$(current_run_dir)" || return
+  local startup_dir checker launch_status=0
+  startup_dir="$(mktemp -d "${run_dir}/action-startup.XXXXXXXX")" || return
+  wait_for_graph --action-startup --before-action-marker "${startup_dir}/ready" --timeout "${start_timeout}" &
+  checker=$!
+  while [[ ! -e "${startup_dir}/ready" ]]; do
+    if ! alive "${checker}"; then
+      wait "${checker}" || return
+      echo "Executor startup probe exited before confirming protected feedback." >&2
+      return 1
+    fi
+    sleep .2
+  done
   start_group manipulation_action "${run_dir}/logs/manipulation-action.log" \
-    ros2 launch cleany_manipulation_bt manipulation_jetson.launch.py \
+    env OPENBLAS_NUM_THREADS=1 ros2 launch cleany_manipulation_bt manipulation_jetson.launch.py \
       repository_root:="${repo_root}" \
       shutdown_timeout_sec:="${execution_stop_timeout}" \
       collection_config:="${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
-      hardware_monitor_config:="${CLEANY_HARDWARE_MONITOR_CONFIG}" || return
-  local deadline=$((SECONDS + 30)) info=''
-  while (( SECONDS < deadline )); do
-    check_managed_health || return 1
-    info="$(timeout 5 ros2 action info /manipulation/execute_skill 2>/dev/null)" || info=''
-    if grep -Fqx 'Action servers: 1' <<<"${info}"; then
-      break
-    fi
-    sleep .25
-  done
-  if ! grep -Fqx 'Action servers: 1' <<<"${info}"; then
-    echo "The manipulation Action endpoint did not become uniquely available." >&2
-    return 1
-  fi
+      hardware_monitor_config:="${CLEANY_HARDWARE_MONITOR_CONFIG}" || launch_status=$?
+  # The same probe remains attached and validates the new server and its feedback.
+  wait "${checker}" || return
+  (( launch_status == 0 )) || return "${launch_status}"
   echo "Manipulation Action server started; waiting for approved object Goals."
   echo "Log: ${run_dir}/logs/manipulation-action.log"
 }
@@ -812,9 +976,13 @@ status_runtime() {
   if [[ -f "${pipeline_pid_file}" ]]; then
     echo "Pipeline PID: $(<"${pipeline_pid_file}")"
   fi
-  "${repo_root}/tools/vision-container" hybrid-config >/dev/null 2>&1 || true
-  docker ps --format '{{.Names}} {{.Status}}' | grep -F 'cleany-vision-' || true
-  "${repo_root}/tools/motion-container" status --owner "${state_dir}" || true
+  if [[ "$(recorded_shared_perception)" != true ]]; then
+    "${repo_root}/tools/vision-container" hybrid-config >/dev/null 2>&1 || true
+    docker ps --format '{{.Names}} {{.Status}}' | grep -F 'cleany-vision-' || true
+  fi
+  if [[ "$(recorded_motion_runtime)" == container ]]; then
+    "${repo_root}/tools/motion-container" status --owner "${state_dir}" || true
+  fi
 }
 
 follow_logs() {
@@ -857,6 +1025,11 @@ wait_for_execution_shutdown() {
 }
 
 stop_runtime() {
+  local torque_action="${1:-off}"
+  if [[ "${torque_action}" == check-off ]] && execution_owners_alive; then
+    echo "Cold startup cleanup refused while an execution owner is running." >&2
+    return 1
+  fi
   if [[ ! "${execution_stop_timeout}" =~ ^[0-9]+$ ]] || (( execution_stop_timeout < 1 )); then
     echo "CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC must be a positive integer." >&2
     return 1
@@ -904,30 +1077,32 @@ stop_runtime() {
     sleep 2
   fi
   if [[ ! -f "${state_dir}/manual-rviz-profile" ]]; then
-    local active_shared="${use_existing_perception}"
-    [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
-    if [[ "${active_shared}" != true ]]; then
+    if [[ "$(recorded_shared_perception)" != true ]]; then
       "${repo_root}/tools/vision-container" hybrid-down || true
     fi
-    "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+    if [[ "$(recorded_motion_runtime)" == container ]]; then
+      "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+    fi
   fi
-  source_ros
-  local daemon_stop_status=0
-  timeout --signal=TERM --kill-after=1s "${daemon_stop_timeout}s" \
-    ros2 daemon stop >/dev/null 2>&1 \
-    || daemon_stop_status=$?
-  if [[ "${daemon_stop_status}" -eq 124 || "${daemon_stop_status}" -eq 137 ]]; then
-    echo "ROS 2 daemon stop timed out after ${daemon_stop_timeout}s; continuing shutdown." >&2
-  elif [[ "${daemon_stop_status}" -ne 0 ]]; then
-    echo "ROS 2 daemon stop failed (status ${daemon_stop_status}); continuing shutdown." >&2
+  if [[ "${torque_action}" == off ]]; then
+    source_ros
+    local daemon_stop_status=0
+    timeout --signal=TERM --kill-after=1s "${daemon_stop_timeout}s" \
+      ros2 daemon stop >/dev/null 2>&1 \
+      || daemon_stop_status=$?
+    if [[ "${daemon_stop_status}" -eq 124 || "${daemon_stop_status}" -eq 137 ]]; then
+      echo "ROS 2 daemon stop timed out after ${daemon_stop_timeout}s; continuing shutdown." >&2
+    elif [[ "${daemon_stop_status}" -ne 0 ]]; then
+      echo "ROS 2 daemon stop failed (status ${daemon_stop_status}); continuing shutdown." >&2
+    fi
   fi
 
   if fuser -s "${arm_port}"; then
-    echo "Cannot release torque: a serial port is still in use." >&2
+    echo "Motor serial port is still in use. Torque state could not be verified." >&2
     fuser -v "${arm_port}" >&2 || true
     return 1
   fi
-  "${repo_root}/tools/feetech-torque" off
+  "${repo_root}/tools/feetech-torque" "${torque_action}" || return
   if managed_processes_alive || execution_owners_alive; then
     echo "Torque off verified, but execution/runtime processes remain; PID records retained." >&2
     return 1
@@ -935,6 +1110,30 @@ stop_runtime() {
   : > "${pids_file}"
   rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
   echo "COLLECTION RUNTIME STOPPED; TORQUE OFF VERIFIED FOR IDS 1-14"
+}
+
+# Keep collection startup and model workers off the cores used by the motor loop.
+# Other services retain their host-level CPU affinity.
+configure_feedback_cpus() {
+  local groups workers feedback
+  groups="$(python3 - "${CLEANY_COLLECTION_FEEDBACK_CORES:-2}" <<'PYCPU'
+import os
+import sys
+
+count = int(sys.argv[1])
+if count < 0:
+    sys.exit("CLEANY_COLLECTION_FEEDBACK_CORES must be nonnegative")
+cpus = sorted(os.sched_getaffinity(0))
+if count and len(cpus) >= count + 2:
+    print(",".join(map(str, cpus[:-count])), ",".join(map(str, cpus[-count:])))
+PYCPU
+)" || return
+  if [[ -n "${groups}" ]]; then
+    read -r workers feedback <<< "${groups}"
+    taskset -pc "${workers}" "$$" > /dev/null || return
+    export CLEANY_REAL_FEEDBACK_CPU_LIST="${feedback}"
+    echo "Collection CPU affinity: workers=${workers} motor feedback=${feedback}"
+  fi
 }
 
 command="${1:-}"
@@ -967,6 +1166,10 @@ if [[ -f "${operator_directory}/enabled" && "${CLEANY_CONTROL_RUNTIME_LOCKED:-0}
       ;;
   esac
 fi
+case "${command}" in
+  start|run|action-start|action-restart|recover-control|recover-planning)
+    configure_feedback_cpus || exit 1 ;;
+esac
 case "${command}" in
   start) start_runtime ;;
   recover-control) recover_control ;;

@@ -12,7 +12,7 @@ grasp_selection_server:
     curobo_ik_primary_seeds: 16
     curobo_ik_fallback_seeds: 32
     curobo_ik_batch_size: 8
-    curobo_ik_endpoint_margin_rad: 0.1
+    curobo_ik_endpoint_margin_rad: 0.0
     maximum_path_candidates: 4
     # Reuse one captured batch shape for pregrasp and single-target grasp IK.
     curobo_ik_adaptive_batch_size: false

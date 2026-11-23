@@ -10,7 +10,7 @@ from uuid import UUID
 
 from aiohttp import web
 
-from .operator_jobs import alive, atomic_json, cancel_external_client, command_report, process_start, runtime_info
+from .operator_jobs import alive, atomic_json, cancel_external_client, selection_message, command_report, process_start, runtime_info
 from .operator_policy import capabilities, validate_action
 from .proposals import ProposalStore, identifier, policy_settings
 
@@ -55,6 +55,9 @@ class OperatorControl:
                         job = {**job, 'state': 'UNKNOWN', 'message': '명령 시작을 확인하지 못했습니다. 상태를 다시 조회하세요.'}
                     if job['action'] in ('run', 'approve') and job['state'] in ('SUCCEEDED', 'FAILED', 'INTERRUPTED') and 'result' not in job:
                         job = {**job, **command_report(path.with_suffix('.log'))}
+                    record = job.get('result')
+                    if isinstance(record, dict) and record.get('message') == 'No reachable commissioned arm':
+                        job = {**job, 'message': selection_message(record['message'])}
                     rows.append(job)
                 except (OSError, ValueError, KeyError):
                     pass

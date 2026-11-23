@@ -1,6 +1,6 @@
-"""Raw-feedback contact decision adopted from bilateral experiments.
+"""Classify gripper contact from raw motor feedback.
 
-CONTACT means motor resistance before the closed goal. It does not establish
+CONTACT means sustained motor resistance during a close request. It does not establish
 target identity, lifting, retention, calibrated force, or runtime activation.
 Values below are supplied by configs/robot/gripper_contact_decision.yaml.
 """
@@ -29,13 +29,13 @@ class ContactCriteria:
     window_sec: float
     maximum_gap_sec: float
     maximum_age_sec: float
-    residual_threshold_ticks: int
     current_threshold_raw: int
     current_stop_raw: int
     load_threshold_raw: int
     voltage_min_raw: int
     voltage_max_raw: int
     temperature_limit_c: float
+    residual_threshold_ticks: int | None = None
 
     def __post_init__(self) -> None:
         if (not 1 <= self.motor_id <= 253 or not 0 <= self.closed_goal_raw <= 4095
@@ -45,11 +45,14 @@ class ContactCriteria:
                 or not 1 <= self.load_threshold_raw <= 1000
                 or not 0 <= self.voltage_min_raw <= self.voltage_max_raw <= 255):
             raise ValueError('Invalid gripper identity or register limits')
+        if (self.residual_threshold_ticks is not None
+                and (type(self.residual_threshold_ticks) is not int
+                     or self.residual_threshold_ticks <= 0)):
+            raise ValueError('Legacy contact position threshold must be positive')
         for value in (self.window_sec, self.maximum_gap_sec, self.maximum_age_sec,
-                      self.residual_threshold_ticks,
                       self.temperature_limit_c):
             if not math.isfinite(value) or value <= 0:
-                raise ValueError('Contact time, position and temperature limits must be positive')
+                raise ValueError('Contact time and temperature limits must be positive')
 
 
 @dataclass(frozen=True)
@@ -196,13 +199,18 @@ an empty gripper. The caller supplies samples from one monotonic clock domain.
     residuals = [(s.position_raw-c.closed_goal_raw)*c.opening_direction for s in w]
     current = median(s.current_raw for s in w)
     load = min(s.load_magnitude_raw for s in w)
+    minimum_residual = min(residuals)
+    contact = current >= c.current_threshold_raw and load >= c.load_threshold_raw
+    empty = (current < c.current_threshold_raw
+             and max(s.load_magnitude_raw for s in w) < c.load_threshold_raw)
+    if c.residual_threshold_ticks is not None:
+        # Archived profiles can still replay the original encoder condition.
+        contact = contact and minimum_residual > c.residual_threshold_ticks
+        empty = empty and max(abs(r) for r in residuals) <= c.residual_threshold_ticks
     state, reason = ContactState.UNKNOWN, 'inconsistent_contact_signals'
-    if (min(residuals) > c.residual_threshold_ticks
-            and current >= c.current_threshold_raw and load >= c.load_threshold_raw):
-        state, reason = ContactState.CONTACT, 'loaded_before_closed_goal'
-    elif (max(abs(r) for r in residuals) <= c.residual_threshold_ticks
-          and current < c.current_threshold_raw
-          and max(s.load_magnitude_raw for s in w) < c.load_threshold_raw):
-        state, reason = ContactState.EMPTY, 'empty_closed'
+    if contact:
+        state, reason = ContactState.CONTACT, 'sustained_current_and_load'
+    elif empty:
+        state, reason = ContactState.EMPTY, 'low_current_and_load'
     return ContactDecision(state, reason, len(w), (w[-1].stamp_ns-w[0].stamp_ns)/1e9,
-                           min(residuals), span, float(current), load)
+                           minimum_residual, span, float(current), load)
