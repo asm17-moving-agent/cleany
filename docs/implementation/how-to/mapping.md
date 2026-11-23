@@ -177,7 +177,7 @@ RViz에서는 `/map_extension/map`과 `/map_extension/tracked_pose`를 선택합
    systemctl --user enable --now cleany-floor19-capture.service
    ```
 
-3. 노트북의 ROS 2 Humble 환경에서 같은 LAN의 Jetson IPv4를 `CLEANY_JETSON_LAN_IP`로 지정합니다. 아래 두 뷰어를 로컬 사용자 서비스로 띄우면 GTK 4 패널에서 RViz를 다시 열 수 있습니다. 패널은 SSH 별칭 `jetson-orin-via-n100`을 사용하며 `CLEANY_JETSON_SSH`로 바꿀 수 있습니다.
+3. 노트북에는 ROS 2 Humble의 RViz와 JPEG 수신 플러그인(`ros-humble-compressed-image-transport`), GTK 4와 PyGObject가 필요합니다. 같은 LAN의 Jetson IPv4를 `CLEANY_JETSON_LAN_IP`로 지정합니다. 아래 두 뷰어를 로컬 사용자 서비스로 띄우면 GTK 4 패널에서 RViz를 다시 열 수 있습니다. 패널은 SSH 별칭 `jetson-orin-via-n100`을 사용하며 `CLEANY_JETSON_SSH`로 바꿀 수 있습니다.
 
    ```bash
    view="$PWD/tools/ros2/floor19_session/view/start"
