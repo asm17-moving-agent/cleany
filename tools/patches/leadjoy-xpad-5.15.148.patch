@@ -1,0 +1,93 @@
+--- a/xpad.c
++++ b/xpad.c
+@@ -351,6 +351,7 @@
+ 	{ 0x31e3, 0x1310, "Wooting 60HE (ARM)", 0, XTYPE_XBOX360 },
+ 	{ 0x3285, 0x0607, "Nacon GC-100", 0, XTYPE_XBOX360 },
+ 	{ 0x3767, 0x0101, "Fanatec Speedster 3 Forceshock Wheel", 0, XTYPE_XBOX },
++	{ 0x4131, 0x3519, "LeadJoy Xeno Plus", 0, XTYPE_XBOX360 },
+ 	{ 0xffff, 0xffff, "Chinese-made Xbox Controller", 0, XTYPE_XBOX },
+ 	{ 0x0000, 0x0000, "Generic X-Box pad", 0, XTYPE_UNKNOWN }
+ };
+@@ -432,51 +433,7 @@
+ 	{ XPAD_XBOXONE_VENDOR_PROTOCOL((vend), 208) }
+ 
+ static const struct usb_device_id xpad_table[] = {
+-	{ USB_INTERFACE_INFO('X', 'B', 0) },	/* X-Box USB-IF not approved class */
+-	XPAD_XBOX360_VENDOR(0x0079),		/* GPD Win 2 Controller */
+-	XPAD_XBOX360_VENDOR(0x03eb),		/* Wooting Keyboards (Legacy) */
+-	XPAD_XBOX360_VENDOR(0x044f),		/* Thrustmaster X-Box 360 controllers */
+-	XPAD_XBOXONE_VENDOR(0x03f0),		/* HP HyperX Xbox One Controllers */
+-	XPAD_XBOX360_VENDOR(0x045e),		/* Microsoft X-Box 360 controllers */
+-	XPAD_XBOXONE_VENDOR(0x045e),		/* Microsoft X-Box One controllers */
+-	XPAD_XBOX360_VENDOR(0x046d),		/* Logitech X-Box 360 style controllers */
+-	XPAD_XBOX360_VENDOR(0x056e),		/* Elecom JC-U3613M */
+-	XPAD_XBOX360_VENDOR(0x06a3),		/* Saitek P3600 */
+-	XPAD_XBOX360_VENDOR(0x0738),		/* Mad Catz X-Box 360 controllers */
+-	{ USB_DEVICE(0x0738, 0x4540) },		/* Mad Catz Beat Pad */
+-	XPAD_XBOXONE_VENDOR(0x0738),		/* Mad Catz FightStick TE 2 */
+-	XPAD_XBOX360_VENDOR(0x07ff),		/* Mad Catz GamePad */
+-	XPAD_XBOX360_VENDOR(0x0c12),		/* Zeroplus X-Box 360 controllers */
+-	XPAD_XBOX360_VENDOR(0x0e6f),		/* 0x0e6f X-Box 360 controllers */
+-	XPAD_XBOXONE_VENDOR(0x0e6f),		/* 0x0e6f X-Box One controllers */
+-	XPAD_XBOX360_VENDOR(0x0f0d),		/* Hori Controllers */
+-	XPAD_XBOXONE_VENDOR(0x0f0d),		/* Hori Controllers */
+-	XPAD_XBOX360_VENDOR(0x1038),		/* SteelSeries Controllers */
+-	XPAD_XBOXONE_VENDOR(0x10f5),		/* Turtle Beach Controllers */
+-	XPAD_XBOX360_VENDOR(0x11c9),		/* Nacon GC100XF */
+-	XPAD_XBOX360_VENDOR(0x11ff),		/* PXN V900 */
+-	XPAD_XBOX360_VENDOR(0x1209),		/* Ardwiino Controllers */
+-	XPAD_XBOX360_VENDOR(0x12ab),		/* X-Box 360 dance pads */
+-	XPAD_XBOX360_VENDOR(0x1430),		/* RedOctane X-Box 360 controllers */
+-	XPAD_XBOX360_VENDOR(0x146b),		/* BigBen Interactive Controllers */
+-	XPAD_XBOX360_VENDOR(0x1532),		/* Razer Sabertooth */
+-	XPAD_XBOXONE_VENDOR(0x1532),		/* Razer Wildcat */
+-	XPAD_XBOX360_VENDOR(0x15e4),		/* Numark X-Box 360 controllers */
+-	XPAD_XBOX360_VENDOR(0x162e),		/* Joytech X-Box 360 controllers */
+-	XPAD_XBOX360_VENDOR(0x1689),		/* Razer Onza */
+-	XPAD_XBOX360_VENDOR(0x1949),		/* Amazon controllers */
+-	XPAD_XBOX360_VENDOR(0x1bad),		/* Harminix Rock Band Guitar and Drums */
+-	XPAD_XBOX360_VENDOR(0x20d6),		/* PowerA Controllers */
+-	XPAD_XBOXONE_VENDOR(0x20d6),		/* PowerA Controllers */
+-	XPAD_XBOX360_VENDOR(0x24c6),		/* PowerA Controllers */
+-	XPAD_XBOXONE_VENDOR(0x24c6),		/* PowerA Controllers */
+-	XPAD_XBOX360_VENDOR(0x2563),		/* OneXPlayer Gamepad */
+-	XPAD_XBOX360_VENDOR(0x260d),		/* Dareu H101 */
+-	XPAD_XBOXONE_VENDOR(0x2dc8),		/* 8BitDo Pro 2 Wired Controller for Xbox */
+-	XPAD_XBOXONE_VENDOR(0x2e24),		/* Hyperkin Duke X-Box One pad */
+-	XPAD_XBOX360_VENDOR(0x2f24),		/* GameSir Controllers */
+-	XPAD_XBOX360_VENDOR(0x31e3),		/* Wooting Keyboards */
+-	XPAD_XBOX360_VENDOR(0x3285),		/* Nacon GC-100 */
++	{ USB_DEVICE_AND_INTERFACE_INFO(0x4131, 0x3519, USB_CLASS_VENDOR_SPEC, 93, 1) },
+ 	{ }
+ };
+ 
+@@ -983,7 +940,11 @@
+ 
+ 	switch (xpad->xtype) {
+ 	case XTYPE_XBOX360:
+-		xpad360_process_packet(xpad, xpad->dev, 0, xpad->idata);
++		if (urb->actual_length >= 20 && xpad->idata[0] == 0 && xpad->idata[1] == 20) {
++			/* Preserve unchanged physical reports for the userspace input watchdog. */
++			input_event(xpad->dev, EV_MSC, MSC_TIMESTAMP, (u32)ktime_to_us(ktime_get()));
++			xpad360_process_packet(xpad, xpad->dev, 0, xpad->idata);
++		}
+ 		break;
+ 	case XTYPE_XBOX360W:
+ 		xpad360w_process_packet(xpad, 0, xpad->idata);
+@@ -1686,6 +1647,7 @@
+ 	input_dev->dev.parent = &xpad->intf->dev;
+ 
+ 	input_set_drvdata(input_dev, xpad);
++	input_set_capability(input_dev, EV_MSC, MSC_TIMESTAMP);
+ 
+ 	if (xpad->xtype != XTYPE_XBOX360W) {
+ 		input_dev->open = xpad_open;
+@@ -1994,7 +1956,7 @@
+ }
+ 
+ static struct usb_driver xpad_driver = {
+-	.name		= "xpad",
++	.name		= "cleany_xpad",
+ 	.probe		= xpad_probe,
+ 	.disconnect	= xpad_disconnect,
+ 	.suspend	= xpad_suspend,
