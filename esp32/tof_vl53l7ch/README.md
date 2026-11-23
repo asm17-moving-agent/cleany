@@ -34,10 +34,6 @@ make tof-firmware-upload CLEANY_TOF_PORT="/dev/serial/by-id/<ToF 보드 ID>" CON
 
 ## 실물 기록과 재생
 
-`CLEANY_DATA_ROOT` 아래에 2026-10-25 단독 보드의 검증 자료가 있다.
+단독 보드 시험에서 8×8, 15 Hz로 설정한 센서의 프레임 1,816개를 120초 동안 수신했습니다. 이 구간에서 순번 누락, I²C 읽기 오류와 USB 드롭은 각각 0건이었습니다. 장착 후 감지 범위와 정지 거리는 [로봇 장착 검증](../../docs/implementation/calibration.md#tof-근접-보호-commissioning)에서 확인합니다.
 
-- 보고서와 배선·기능 시험 결과는 `runs/hardware/2026-10-25_tof/reports/vl53l7ch-20261025/outputs/vl53l7ch-esp32/VALIDATION.md`에 있다.
-- 원본 JSONL, 시험본 해시 목록, 플래시 검증 로그는 `runs/hardware/2026-10-25_tof/vl53l7ch-20261025/outputs/vl53l7ch-esp32/evidence/`에 있다.
-- 당시 업로드한 바이너리와 플래시 오프셋은 `datasets/reference/tof/vl53l7ch-20261025/outputs/vl53l7ch-esp32/bin/`에 있다.
-
-8×8, 15 Hz로 설정한 120초 측정 구간에서 1,816프레임(15.1496 Hz)을 수신했고 해당 구간의 순번 단절, I²C 읽기 오류, USB 드롭은 모두 0건이었다. 전체 로그에는 마지막 통계 응답을 기다리는 동안 수신한 프레임 한 개가 더 있다. 이 기록은 단독 보드에서 측정한 값이다. [ROS 파서 재생 절차](../../docs/TESTING.md#tof와-supervisor-통합)
+재생 입력은 `CLEANY_DATA_ROOT/runs/hardware/2026-10-25_tof/vl53l7ch-20261025/outputs/vl53l7ch-esp32/evidence/`에 있는 원본 JSONL입니다. [ROS 파서 재생 절차](../../docs/implementation/reference/testing.md#tof와-supervisor-통합)

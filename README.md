@@ -129,7 +129,7 @@ Navigation, manipulation, and dashboard integration are in progress. **The full 
 - [ ] Verify desk approach coordinates and robot calibration at the deployment site.
 - [ ] Validate the complete request → navigation → desk clearing → return → result sequence on Jetson.
 
-[Validation records](docs/EVIDENCE.md)
+[Validation results and scope](docs/EVIDENCE.md)
 
 ## Getting started
 
