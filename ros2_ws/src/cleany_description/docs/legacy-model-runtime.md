@@ -171,9 +171,7 @@ control contract.
 
 Model-parity checks compare geometry and FK; they do not validate every existing
 motion fixture after a CAD migration. Run `make test` with a working X display
-for controller, planning and hand-eye regressions as well. Current findings and
-fixture migration results and remaining dynamics issues are recorded in the
-[quality review](../../../../docs/QUALITY_REVIEW_20260914.md).
+for controller, planning and hand-eye regressions as well.
 
 Run geometry, color, mass, joint-contract, and randomized FK checks from `ros2_ws`:
 
