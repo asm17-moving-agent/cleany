@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="LeadJoy Xeno Plus", ENV{ID_VENDOR_ID}=="4131", ENV{ID_MODEL_ID}=="3519", GROUP="plugdev", MODE="0640", SYMLINK+="input/cleany-gamepad"
