@@ -110,7 +110,7 @@ IMU 상태와 주행 정지의 연동, 장착 축 및 wheel 시간 정렬은 실
 make test-imu-runtime
 make test-motor-core
 make test-base
-make firmware-build
+make firmware-build FIRMWARE_ENV=esp32-s3-microros
 ```
 
 합성 ROS 검사는 host 보정 노드를 실행해 고정 bias와 공분산, acceleration 전달,

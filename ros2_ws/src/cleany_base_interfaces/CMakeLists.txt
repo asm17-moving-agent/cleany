@@ -5,6 +5,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WheelCommand.msg"
   "msg/WheelState.msg"
+  "msg/WheelDriveState.msg"
   "srv/SetBaseEnabled.srv"
 )
 if(BUILD_TESTING)
