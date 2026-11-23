@@ -45,10 +45,15 @@ class Nav2Navigator:
     capability로 Nav2 사용 가능 상태를 관리하고 이 어댑터는 lifecycle을 조회하지 않습니다.
     """
     def __init__(self, node, targets: TargetMap, journal: MissionJournal, *,
-                 check_lifecycle: bool = True) -> None:
+                 check_lifecycle: bool = True, mission_lease=None) -> None:
         self.node, self.targets, self.journal = node, targets, journal
-        self.client = ActionClient(node, NavigateToPose, "navigate_to_pose")
-        self.cancel_client = node.create_client(CancelGoal, "navigate_to_pose/_action/cancel_goal")
+        self.mission_lease = mission_lease
+        action, action_name = NavigateToPose, "navigate_to_pose"
+        if mission_lease is not None:
+            from cleany_interfaces.action import DriveMissionTarget
+            action, action_name = DriveMissionTarget, "navigation/drive_mission_target"
+        self.client = ActionClient(node, action, action_name)
+        self.cancel_client = node.create_client(CancelGoal, action_name + "/_action/cancel_goal")
         self.buffer = Buffer()
         self.listener = TransformListener(self.buffer, node)
         self.operation: NavigationOperation | None = None
@@ -87,7 +92,7 @@ class Nav2Navigator:
         )) or any(not math.isfinite(v) or v < 0 for v in (self.stop_linear, self.stop_angular))):
             raise ValueError("navigation freshness/stopped parameters must be finite and bounded")
         node.create_subscription(Odometry, self.odom_topic, self._odom, qos_profile_sensor_data)
-        node.create_subscription(GoalStatusArray, "navigate_to_pose/_action/status",
+        node.create_subscription(GoalStatusArray, action_name + "/_action/status",
                                  self._status, qos_profile_action_status_default)
 
     def _status(self, message) -> None:
@@ -187,18 +192,35 @@ class Nav2Navigator:
             return False, "LOCALIZATION_UNAVAILABLE"
         return True, ""
 
+    def at_home(self):
+        try:
+            measurement = self.localization_snapshot()
+            home, pose = self.targets.home, measurement["pose"]
+            error = arrival_error((home.x, home.y, home.yaw), (pose["x"], pose["y"], pose["yaw"]))
+            return (0 <= measurement["age_s"] <= self.arrival_pose_timeout
+                    and error.within(self.arrival_position_tolerance, self.arrival_yaw_tolerance))
+        except Exception:
+            return False
+
     def start(self, target: object) -> str:
         if self.operation and self.operation.result is None:
             raise RuntimeError("navigation already running")
         if not self.ready()[0] or not self.stopped():
             raise RuntimeError("navigation or stopped feedback unavailable")
         pose = self.targets.home if target == "home" else self.targets.seats[str(target)]
-        goal = NavigateToPose.Goal()
-        goal.pose.header.frame_id = self.targets.frame_id
-        goal.pose.header.stamp = self.node.get_clock().now().to_msg()
-        goal.pose.pose.position.x, goal.pose.pose.position.y = pose.x, pose.y
-        goal.pose.pose.orientation.z = math.sin(pose.yaw / 2)
-        goal.pose.pose.orientation.w = math.cos(pose.yaw / 2)
+        if self.mission_lease is not None:
+            from cleany_interfaces.action import DriveMissionTarget
+            lease = self.mission_lease
+            goal = DriveMissionTarget.Goal(target_id=str(target), target_digest=self.targets.binding["target_digest"],
+                mission_id=lease.mission_id, lease_id=lease.lease_id,
+                lease_epoch=lease.lease_epoch, lease_version=lease.version)
+        else:
+            goal = NavigateToPose.Goal()
+            goal.pose.header.frame_id = self.targets.frame_id
+            goal.pose.header.stamp = self.node.get_clock().now().to_msg()
+            goal.pose.pose.position.x, goal.pose.pose.position.y = pose.x, pose.y
+            goal.pose.pose.orientation.z = math.sin(pose.yaw / 2)
+            goal.pose.pose.orientation.w = math.cos(pose.yaw / 2)
         operation = NavigationOperation(str(uuid4()), target=pose)
         self.operation = operation
         # 목표 UUID는 Nav2로 보내기 전에 영속 저장합니다. 재시작 시 이 목표만 취소합니다.
@@ -232,7 +254,10 @@ class Nav2Navigator:
             operation.terminal_known = response.status in (
                 GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED, GoalStatus.STATUS_ABORTED,
             )
-            if response.status == GoalStatus.STATUS_SUCCEEDED:
+            if (self.mission_lease is not None and response.status == GoalStatus.STATUS_SUCCEEDED
+                    and not (response.result.arrived and response.result.stop_confirmed)):
+                result = ModuleResult.failed(FailureCode.NAVIGATION_FAIL, message="Base stop not confirmed")
+            elif response.status == GoalStatus.STATUS_SUCCEEDED:
                 result = ModuleResult.success(message="Nav2 arrived.")
             elif response.status == GoalStatus.STATUS_CANCELED:
                 result = ModuleResult(False, ResultStatus.CANCELLED, message="Nav2 cancelled.")

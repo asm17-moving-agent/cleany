@@ -283,3 +283,28 @@ TEST(Serial, CorruptWriteAcknowledgementIsNeverRetried)
   EXPECT_EQ(retries, 0);
   servo.join(); bus.close(); close(master);
 }
+
+
+TEST(FieldBoot, ParkedEmptyArmsOnly)
+{
+  std::vector<Joint> joints(12);
+  std::string specification;
+  for (size_t i = 0; i < joints.size(); ++i) {
+    auto & j = joints[i];
+    j.name = "joint" + std::to_string(i);
+    j.enabled = true;
+    j.torque_enabled = 0;
+    j.raw_min = 20; j.raw_max = 4000; j.raw = 2000; j.position = 0.4;
+    specification += j.name + " 0.4 ";
+  }
+  auto verify = [&]() {cleany_feetech_hardware::verify_field_park(joints, specification.c_str());};
+  EXPECT_NO_THROW(verify());
+  joints.back().position = -1.0;
+  EXPECT_THROW(verify(), std::runtime_error);
+  joints.back().position = 0.4;
+  joints.front().torque_enabled = 1.0;
+  EXPECT_THROW(verify(), std::runtime_error);
+  joints.front().torque_enabled = 0.0;
+  joints.front().enabled = false;
+  EXPECT_THROW(verify(), std::runtime_error);
+}

@@ -321,9 +321,15 @@ def main():
                     with lock:
                         self.respond(202,navigation.request(self.path.rsplit('/',1)[-1],data))
                     return
-                if navigation and navigation.phase in ('active','preparing','stopping'):
-                    with lock: navigation.cancel('수동 조작 또는 지도 초기화')
-                    if data.get('action') != 'stop': raise ValueError('자동 이동 정지 후 다시 조작하세요')
+                with lock:
+                    mission_drive = getattr(navigation, "mission_drive", None)
+                    stopping = self.path == "/api/control" and data.get("action") in ("stop", "release")
+                    if mission_drive and not stopping and mission_drive.operator_blocked():
+                        raise ValueError("Mission 실행 중이거나 주행 권한을 확인할 수 없습니다")
+                    if navigation and navigation.phase in ('active','preparing','stopping'):
+                        navigation.cancel('수동 조작 또는 지도 초기화')
+                        if data.get('action') != 'stop':
+                            raise ValueError('자동 이동 정지 후 다시 조작하세요')
                 if self.path == "/api/reset":
                     if mapping is None:
                         raise ValueError("매핑 관리자가 연결되지 않았습니다.")

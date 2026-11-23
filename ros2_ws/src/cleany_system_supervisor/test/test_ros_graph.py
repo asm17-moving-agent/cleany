@@ -197,3 +197,26 @@ def test_pose_covariance_allows_roundoff_but_rejects_invalid_variance(index):
     for value in (-1e-8, .50001, float('nan'), float('inf')):
         pose.pose.covariance[index] = value
         assert not valid_pose(pose, .5)
+
+
+
+def test_stop_endpoint_follows_original_lease_across_restart():
+    from types import SimpleNamespace
+    from cleany_system_supervisor.permissions import MissionPermissionManager
+    from cleany_system_supervisor.ros_transport import MissionStopPort
+
+    records = [
+        {"mission_id": "phone", "lease_id": "nav", "capabilities": ["NAVIGATION"]},
+        {"mission_id": "field", "lease_id": "both", "capabilities": ["MOBILE_MANIPULATION"]},
+        {"mission_id": "old", "lease_id": "unknown"},
+    ]
+    permissions = MissionPermissionManager("new-epoch", {})
+    permissions.restore(records)
+    assert permissions.persisted()[:2] == records[:2]
+    routed = {}
+    port = MissionStopPort.__new__(MissionStopPort)
+    port.endpoint, port.navigation_endpoint = "mission/stop", "navigation/stop"
+    port.calls = SimpleNamespace(send=lambda key, endpoint, goal: routed.update({key: endpoint}))
+    for lease in permissions.leases.values():
+        port.request(lease, "new-epoch")
+    assert routed == {"nav": "navigation/stop", "both": "mission/stop", "unknown": "mission/stop"}

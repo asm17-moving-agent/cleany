@@ -179,3 +179,7 @@ flowchart LR
 | 경로 상태 | global_path_topic, global_path_points, global_path_age_s; 없으면 “경로 생성 대기” |
 
 Subscription 변경은 기존 서버 프로세스에 자동 반영되지 않으므로 코드 반영 뒤 서버를 재실행합니다.
+
+## 실물 미션 주행
+
+검증된 목표 파일과 점유 격자 revision을 지정하면 기존 주행 서버가 `navigation/drive_mission_target` Action을 제공한다. 좌석 ID 또는 `home`을 로컬 목표 파일에서 해석한다. 요청 digest, 현재 map revision, 원 미션의 `MOBILE_MANIPULATION` lease ID, epoch와 version이 일치해야 출발할 수 있다. 이 Action은 기존 Nav2 및 MCU 명령 소유자를 사용한다. 완료에는 Nav2 종료, MCU 정지 응답과 네 바퀴의 최근 정지 피드백이 필요하다. 미션 소유 중 조종 입력은 차단되고 정지 요청은 가능하다.

@@ -81,7 +81,8 @@ class SupervisorNode(Node):
         self.action_group = ReentrantCallbackGroup()
         state_file = config.get('persistence', {}).get('state_file', '')
         self.core = SystemSupervisor(config, recovery_port=RecoveryPort(self, self.action_group),
-                                     stop_port=MissionStopPort(self, self.settings['stop_action'], self.action_group),
+                                     stop_port=MissionStopPort(self, self.settings['stop_action'], self.action_group,
+                                                               self.settings.get('navigation_stop_action')),
                                      store=LatchStore(state_file) if state_file else None)
         self.stamps = StampGuard(self.settings['max_sensor_age_s'])
         self.lifecycle = {}
