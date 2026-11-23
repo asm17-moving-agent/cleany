@@ -251,21 +251,9 @@ Mission Manager adapter는 후속 구현 대상입니다.
 
 실물 기본값은 미정입니다. MuJoCo는 횟수와 지속 시간 / 관절별 freshness를 함께 검사하며 [BT 설정](../../cleany_manipulation_bt/docs/execution-contract.md#정상-수거의-놓기정지-확인)을 따릅니다.
 
-## 기존 코드에서 재사용할 부분
+## 실행 환경별 연동
 
-| 코드 | 재사용하는 부분 | 현재 적용·후속 작업 |
-|---|---|---|
-| [sorting.py](../cleany_skill_executor/core/sorting.py) | pick, transport, release, retreat와 verify 순서 | MuJoCo BT core가 동작별 진행과 typed Result를 관리 |
-| [sorting_coordinator.py](../cleany_skill_executor/sorting_coordinator.py) | 준비, grasp, motion과 stop port | MuJoCo BT backend에서 개별 동작 재사용. 전체 반복은 별도 데모 |
-| [nearest_pregrasp_coordinator.py](../cleany_skill_executor/nearest_pregrasp_coordinator.py) | grasp 선택과 arm 동작 | ROS wrapper와 core port 분리 필요 |
-| Mission Manager core | 미션 요청과 기존 결과 envelope | 승인된 high-level 행동, 재관찰과 취소 adapter 필요 |
-
-현재 `sorting_required_categories`는 simulation demo에
-남습니다. 제품 `collect_trash`에는 분실물과 handoff를 자동 포함하지 않습니다.
-팔 동작을 재사용할 때 시뮬레이션 좌석 순회와 물체 선택까지 서버로 가져오지 않습니다.
-
-관련 문서: [Action 명세](execute-manipulation-skill-action-spec.md),
-[Mission 연동 후속 작업](../../cleany_mission_manager/docs/manipulation-mock-integration.md), [설계 안내](manipulation-action-design.md).
+MuJoCo의 [BT 서버](../../cleany_manipulation_bt/README.md)는 팔 동작별 진행 상태와 Result를 관리합니다. Gazebo 미션에서 조작 요청·취소와 재관찰을 확인할 때는 [Mission Manager의 Mock 연동](../../cleany_mission_manager/docs/manipulation-mock-integration.md)을 사용합니다. 시뮬레이션의 좌석 순회와 물체 선택은 개별 조작 서버의 책임 범위 밖입니다.
 
 ## 모의 서버의 구현 경계
 
