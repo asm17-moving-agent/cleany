@@ -1,0 +1,67 @@
+#!/bin/bash
+# Prepare field role checks without starting ROS nodes or taking ownership of devices.
+set -eo pipefail
+umask 077
+release=$(realpath -e "${1:?release required}")
+repo=$(realpath -e "${2:?field checkout required}")
+overlay=$(realpath -e "${3:?field recovery install required}")
+active=/opt/cleany/current
+[[ $(dirname "$release") == /opt/cleany/releases && "$release" != "$(readlink -f "$active")" ]] || exit 2
+shift 3
+case $# in
+  2|5) motion_install=$(realpath -e "$1"); curobo_env=$(realpath -e "$2"); shift 2 ;;
+  3) # Older callers supplied only an updated hardware install.
+    hardware=$(realpath -e "$1"); motion_install=$(realpath -e "$2"); curobo_env=$(realpath -e "$3")
+    set -- --deps-from "$hardware" "$active/field/deps" ;;
+  *) echo "Expected MOTION_INSTALL CUROBO_ENV [--deps-from HARDWARE_INSTALL MOVEIT_OVERLAYS]" >&2; exit 2 ;;
+esac
+case $# in
+  0) dependency_args=(--inherit "$active/field/deps") ;;
+  3) [[ $1 == --deps-from ]] || exit 2
+     hardware=$(realpath -e "$2")
+     overlays=$(realpath -e "$3")
+     dependency_args=("$hardware" "$overlays") ;;
+  *) exit 2 ;;
+esac
+field="$release/field"
+config=/etc/opt/cleany/field
+state=/var/opt/cleany/state/cleany
+[[ -r "$config/field.env" ]] || { echo "Provision $config/field.env before staging" >&2; exit 2; }
+mkdir -p "$field"/{repo/ros2_ws/src,install,overlay,systemd-user} "$config/profiles" "$state"
+install -m 0644 "$repo"/configs/host/systemd/jetson-field/cleany-field{.target,@.service} "$field/systemd-user/"
+rsync -a --exclude=__pycache__ "$repo"/{tools,configs} "$field/repo/"
+for pkg in cleany_bringup cleany_perception cleany_mission_manager; do
+  rsync -a --exclude=__pycache__ "$repo/ros2_ws/src/$pkg" "$field/repo/ros2_ws/src/"
+done
+installer=$(dirname "$(realpath "$0")")
+mkdir -p "$release/installer"
+if [[ "$installer" != "$release/installer" ]]; then
+  for file in stage-jetson-field stage-jetson-motion field_deps.py field-service field_service.py robot_map.py nav2_map_probe.py run-navigation switch-jetson-field; do
+    cp -p -- "$installer/$file" "$release/installer/"
+  done
+fi
+install -m 0644 "$installer"/{field_deps.py,field_service.py,robot_map.py,nav2_map_probe.py} "$field/repo/tools/ros2/"
+install -m 0755 "$installer"/{stage-jetson-field,stage-jetson-motion,field-service,run-navigation} "$field/repo/tools/ros2/"
+for path in cleany_skill_executor/cleany_skill_executor/runtime_readiness.py cleany_manipulation_bt/config/manipulation_jetson.yaml; do
+  install -Dm 0644 "$repo/ros2_ws/src/$path" "$field/repo/ros2_ws/src/$path"
+done
+rsync -a --exclude=__pycache__ "$overlay/" "$field/overlay/"
+python3 "$installer/field_deps.py" "${dependency_args[@]}" "$field/deps"
+if [[ ! -e "$config/fastdds.xml" ]]; then
+  install -m 0600 "$repo/ros2_ws/src/cleany_perception/config/fastdds_rgbd.xml" "$config/fastdds.xml"
+fi
+cat >"$field/install/local_setup.bash" <<'SETUP'
+for prefix in /opt/cleany/current/{native/description,native/install,field/deps/install,ros,field/overlay}; do
+  source "$prefix/local_setup.bash" || return 1
+done
+SETUP
+cat >"$field/install/setup.bash" <<'SETUP'
+source /opt/ros/humble/setup.bash || return 1
+source /opt/cleany/current/field/install/local_setup.bash
+SETUP
+if [[ ! -e /var/opt/cleany/robot/map ]]; then
+  seed=/var/opt/cleany/control-plane/maps/navigation/slam-20261108/1
+  [[ -d "$seed" ]] || seed="$release/apps/backend/maps/slam-20261108"
+  python3 "$field/repo/tools/ros2/robot_map.py" "$seed" --revision 1
+fi
+"$installer/stage-jetson-motion" "$release" "$motion_install" "$curobo_env" "$repo"

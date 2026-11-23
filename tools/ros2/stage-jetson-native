@@ -1,0 +1,99 @@
+#!/bin/bash
+# Build the packages used by the deployed native services from their actual checkout.
+set -eo pipefail
+umask 077
+release=$(realpath -e "${1:?usage: stage-jetson-native /opt/cleany/releases/VERSION /path/to/deployed/cleany}")
+checkout=$(realpath -e "${2:?deployed checkout required}")
+[[ $(dirname "$release") == /opt/cleany/releases && "$release" != "$(readlink -f /opt/cleany/current)" ]] || exit 2
+root="$release/native"
+[[ ! -e "$root/.ready" ]] || { echo "Choose a new release for rebuilding." >&2; exit 2; }
+state=/var/opt/cleany
+config=/etc/opt/cleany
+active=/opt/cleany/current/native
+installer=$(dirname "$(realpath "$0")")
+mkdir -p "$release/installer"
+if [[ "$installer" != "$release/installer" ]]; then
+  for file in stage-jetson-native stage-jetson-description provision_yoloe.py run-jetson-native switch-jetson-native; do
+    cp -p -- "$installer/$file" "$release/installer/"
+  done
+fi
+build="$state/cache/native-build-$(basename "$release")"
+mkdir -p "$root"/{src,host/tools/ros2,host/launch,host/ros2_ws/src,host/configs} \
+  "$state/cache/yolo" "$build" "$config/native/configs/robot"
+models="$state/models/yoloe"
+python3 "$(dirname "$0")/provision_yoloe.py" "${CLEANY_STAGE_YOLO_MODELS:-$models}" "$models"
+ln -sfnT "$models" "$root/models"
+for pkg in cleany_interfaces cleany_robot_interface cleany_perception; do
+  rsync -a --exclude=__pycache__ "$checkout/ros2_ws/src/$pkg" "$root/src/"
+done
+rsync -a "$checkout/configs/robot" "$root/host/configs/"
+for file in cad_grasp.json head_board_view.json head_rgbd_bridge.json; do
+  [[ -e "$config/native/configs/robot/$file" ]] || install -m 0600 "$checkout/configs/robot/$file" "$config/native/configs/robot/"
+done
+ln -sfn "$(realpath --relative-to="$root/host/ros2_ws/src" "$root/src/cleany_perception")" "$root/host/ros2_ws/src/cleany_perception"
+install -m 0755 "$checkout"/tools/{perception-native,robot-model} "$root/host/tools/"
+install -m 0644 "$checkout/tools/ros2/cleany-install-env" "$root/host/tools/ros2/"
+camera_launch="$checkout/ros2_ws/src/cleany_skill_executor/launch/head_rgbd.launch.py"
+if [[ ! -f "$camera_launch" ]]; then camera_launch="$active/host/launch/head_rgbd.launch.py"; fi
+install -m 0644 "$camera_launch" "$root/host/launch/"
+install -m 0755 "$(dirname "$0")/run-jetson-native" "$root/"
+mkdir -p "$root/systemd-user"
+for pair in cleany-head-rgbd:head-rgbd cleany-perception:perception cleany-runtime-model:model; do
+  unit=${pair%:*}
+  cat >"$root/systemd-user/$unit.service" <<UNIT
+[Unit]
+Description=Cleany native ${pair#*:}
+ConditionUser=cleany
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/cleany/current/native
+Environment=HOME=/var/opt/cleany/state XDG_CACHE_HOME=/var/opt/cleany/cache ROS_LOG_DIR=/var/opt/cleany/ros-log
+Environment=PATH=/usr/local/bin:/usr/bin:/bin ROS_DOMAIN_ID=0 PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+ExecStart=/usr/bin/bwrap --bind / / --dev-bind /dev /dev --tmpfs /home -- /opt/cleany/current/native/run-jetson-native ${pair#*:}
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=25
+UMask=0077
+
+[Install]
+WantedBy=default.target
+UNIT
+done
+runtime_tool="$release/installer/shared_runtime.py"
+if [[ ! -f "$runtime_tool" ]]; then runtime_tool=/opt/cleany/current/installer/shared_runtime.py; fi
+stage_runtime() {
+  local kind=$1 source=$2 dest=$3
+  shift 3
+  if [[ -f "$runtime_tool" ]]; then
+    python3 "$runtime_tool" "$kind" "$source" "$dest" "$@"
+  else
+    # Standalone provisioning predates the control-plane release assembler.
+    [[ ! -L "$dest" ]] || return 1
+    mkdir -p "$dest"
+    if (( $# == 0 )); then set -- ./; fi
+    (cd "$source"; rsync -a --exclude=__pycache__ "$@" "$dest/")
+  fi
+}
+yolo_source="${CLEANY_STAGE_YOLO_ENV:-$active/yolo-env}"
+stage_runtime yolo-env "$yolo_source" "$root/yolo-env"
+torch_source="${CLEANY_STAGE_TORCH_SITE:-$active/torch-site}"
+if [[ -n ${CLEANY_STAGE_TORCH_SITE:-} ]]; then
+  (
+    cd "$torch_source"
+    stage_runtime torch "$torch_source" "$root/torch-site" torch torch-*.dist-info torchvision torchvision-*.dist-info \
+      torchgen functorch typing_extensions* sympy* networkx* jinja2* markupsafe* filelock* fsspec* mpmath*
+  )
+else
+  stage_runtime torch "$torch_source" "$root/torch-site"
+fi
+if [[ ${3:-} == --prepare-only ]]; then exit 0; fi
+export HOME="$state/state" PYTHONNOUSERSITE=1 CMAKE_BUILD_PARALLEL_LEVEL=2 MAKEFLAGS=-j2
+source /opt/ros/humble/setup.bash
+nice -n 15 colcon --log-base "$build/install-log" build --base-paths "$root/src" \
+  --build-base "$build/install" --install-base "$root/install" --executor sequential \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+description=$("$(dirname "$0")/stage-jetson-description" "$checkout/ros2_ws/src/cleany_description")
+ln -sfnT "$description" "$root/description"
+touch "$root/.ready"

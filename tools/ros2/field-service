@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+source /opt/ros/humble/setup.bash
+source "${CLEANY_FIELD_INSTALL:?missing field install}/setup.bash"
+if [[ "${1:-}" == collection && "${CLEANY_FIELD_INSTALL}" == /opt/cleany/current/field/install ]]; then
+  source "${CLEANY_FIELD_INSTALL}/../native-motion.env"
+fi
+case "${1:-}" in
+  navigation|mission|pose|collection)
+    if [[ "${CLEANY_FIELD_MAP:-}" == /var/opt/cleany/robot/map/source.yaml ]]; then
+      exec flock --shared --nonblock --no-fork /var/opt/cleany/robot python3 "$(dirname "$0")/field_service.py" "$@"
+    fi
+    ;;
+esac
+exec python3 "$(dirname "$0")/field_service.py" "$@"

@@ -1,0 +1,30 @@
+#!/bin/bash
+# Entrypoints for the installed Jetson camera, perception and CAD preview units.
+set -eo pipefail
+root=/opt/cleany/current/native
+source /opt/ros/humble/setup.bash
+case "${1:?missing service}" in
+  head-rgbd)
+    export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    source "$root/install/local_setup.bash"
+    exec ros2 launch "$root/host/launch/head_rgbd.launch.py" repository_root:=/etc/opt/cleany/native "${@:2}"
+    ;;
+  perception)
+    export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    export CLEANY_YOLOE_NATIVE_VENV="$root/yolo-env"
+    export YOLOE_MODEL_HOST_DIR="${YOLOE_MODEL_HOST_DIR:-/var/opt/cleany/models/yoloe}"
+    export CLEANY_YOLOE_NATIVE_INSTALL="$root/install" CLEANY_INSTALL_BASE="$root/install"
+    export PYTHONPATH="$root/torch-site:${PYTHONPATH:-}" YOLO_CONFIG_DIR=/var/opt/cleany/cache/yolo
+    if [[ -r /etc/opt/cleany/ros/gemini.env ]]; then
+      set -a; source /etc/opt/cleany/ros/gemini.env; set +a
+    fi
+    exec "$root/host/tools/perception-native" enable_reference_observation:=true \
+      enable_wrist_observation:=true reference_ttl_seconds:=600.0 "${@:2}"
+    ;;
+  model)
+    export DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$XDG_RUNTIME_DIR/gdm/Xauthority}"
+    export CLEANY_INSTALL_BASE="$root/description"
+    exec "$root/host/tools/robot-model" "${2:-preview}"
+    ;;
+  *) exit 2 ;;
+esac

@@ -14,15 +14,23 @@ from cleany_paths import install_base
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-root', type=Path, required=True)
+    parser.add_argument('--state-root', type=Path, help='Persistent hardware state directory shared with the dashboard token reader')
     parser.add_argument('--profile', type=Path, required=True)
     parser.add_argument('--map', type=Path, required=True)
     parser.add_argument('--dds-profile', type=Path, required=True)
+    parser.add_argument('--mission-targets', type=Path, help='Field-verified Backend export for mission drive')
+    parser.add_argument('--mission-grid-revision', help='Expected grid revision from the registered SLAM map')
+    parser.add_argument('--rmw', choices=('rmw_fastrtps_cpp', 'rmw_cyclonedds_cpp'), default='rmw_fastrtps_cpp')
     parser.add_argument('--motion-profile', choices=('omni', 'longitudinal'), default='omni')
     parser.add_argument('--slip-recovery', choices=('true', 'false'), default='true')
     parser.add_argument('--depth-params', type=Path, help='Physical depth local-costmap/monitor overlay')
     parser.add_argument('--container', default='ros2-humble')
     parser.add_argument('--exec', dest='command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
+    if bool(args.mission_targets) != bool(args.mission_grid_revision):
+        parser.error('--mission-targets and --mission-grid-revision must be specified together')
+    if args.mission_targets and not args.mission_targets.is_file():
+        parser.error('missing field-verified mission target export')
     if not Path('/opt/ros/humble/setup.bash').is_file():
         os.execvp('distrobox', ['distrobox', 'enter', '--name', args.container,
                               '--no-tty', '--clean-path', '--', 'python3',
@@ -41,16 +49,28 @@ def main():
     command = args.command or [
         'ros2', 'launch', 'cleany_bringup', 'hardware_mapping.launch.py',
         'profile:='+str(args.profile.resolve()), 'navigation_map:='+str(args.map.resolve()),
-        'state_root:='+str(args.run_root.resolve()/'runtime'), 'host:=0.0.0.0',
+        'state_root:='+str((args.state_root or args.run_root/'runtime').resolve()), 'host:=0.0.0.0',
         'phone_port:=8766', 'motion_profile:='+args.motion_profile,
         'slip_recovery:='+args.slip_recovery,
         'depth_params_file:='+str(args.depth_params.resolve()) if args.depth_params else 'depth_params_file:=']
     environment = dict(os.environ, ROS_DOMAIN_ID='0', ROS_LOCALHOST_ONLY='0',
-                       RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
-                       FASTRTPS_DEFAULT_PROFILES_FILE=str(args.dds_profile.resolve()),
+                       RMW_IMPLEMENTATION=args.rmw,
                        ROS_LOG_DIR=str(log))
+    if args.rmw == 'rmw_cyclonedds_cpp':
+        environment['CYCLONEDDS_URI'] = args.dds_profile.resolve().as_uri()
+    else:
+        environment['FASTRTPS_DEFAULT_PROFILES_FILE'] = str(args.dds_profile.resolve())
+    if args.mission_targets:
+        environment['CLEANY_MISSION_TARGETS_FILE'] = str(args.mission_targets.resolve())
+        environment['CLEANY_MISSION_GRID_REVISION'] = args.mission_grid_revision
+    else:
+        environment.pop('CLEANY_MISSION_TARGETS_FILE', None)
+        environment.pop('CLEANY_MISSION_GRID_REVISION', None)
     script = 'set -e; '+''.join('source '+shlex.quote(str(p))+'; ' for p in setup)
     script += 'exec '+shlex.join(command)
+    if args.map.resolve() == Path('/var/opt/cleany/robot/map/source.yaml'):
+        os.execve('/usr/bin/flock', ['flock', '--shared', '--nonblock', '--no-fork',
+                                     '/var/opt/cleany/robot', '/bin/bash', '-c', script], environment)
     os.execve('/bin/bash', ['bash', '-c', script], environment)
 
 

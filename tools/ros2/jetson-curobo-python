@@ -1,0 +1,10 @@
+#!/bin/bash
+# Scope the Jetson Torch and CUDA libraries to the native GPU interpreter.
+set -eu
+field="$(dirname "$(realpath "$0")")"
+native="$field/../native"
+export PYTHONPATH="$field/gpu-python:$native/torch-site${PYTHONPATH:+:$PYTHONPATH}"
+export CUDA_HOME=/usr/local/cuda
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$native/torch-site/torch/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PATH="$CUDA_HOME/bin:$PATH"
+exec "$native/curobo-env/bin/python" "$@"

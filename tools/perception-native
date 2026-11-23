@@ -15,6 +15,9 @@ for required in "${venv}/bin/python" "${install_root}/setup.bash" "${profile}" "
     exit 1
   fi
 done
+if [[ "${1:-}" == --check ]]; then
+  exit 0
+fi
 set +u
 source /opt/ros/humble/setup.bash
 source "${install_root}/setup.bash"
