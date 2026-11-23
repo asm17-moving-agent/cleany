@@ -20,6 +20,7 @@ class Command:
 class Control:
     STOP, ENABLE, VELOCITY = 0, 1, 2
     MAX_WEB_VELOCITY = 10.0
+    LEASE_SECONDS = 0.25
 
     def __init__(self, publish, now=time.monotonic, event_sink=None):
         self.publish, self.now = publish, now
@@ -100,13 +101,20 @@ class Control:
         client, sequence = payload.get("client"), payload.get("sequence")
         self.accept_request(client, sequence)
         action = payload.get("action")
+        if action in ("gamepad_press", "gamepad_update"):
+            deadline = payload.get("expires_at")
+            if type(deadline) not in (float, int) or not 0 < deadline - self.now() <= self.LEASE_SECONDS:
+                raise ValueError("만료된 패드 입력입니다")
+            action = action.removeprefix("gamepad_")
         if action == "pause":
             self.paused = True
             self.stop(
                 "지도 초기화 중 · 새 조종기 연결을 기다립니다", source="maintenance"
             )
             return
-        if action == "stop":
+        if action == "release" and self.owner != client:
+            return
+        if action in ("release", "stop"):
             reason = payload.get("reason")
             self.stop(
                 "정지 요청"
@@ -131,7 +139,7 @@ class Control:
                 "moving",
             ):
                 raise ValueError("조종이 종료되었습니다. 버튼을 놓고 다시 눌러주세요.")
-            self.lease_until = self.now() + 0.25
+            self.lease_until = self.now() + self.LEASE_SECONDS
             return
         if action not in ("press", "update"):
             raise ValueError("알 수 없는 명령")
@@ -173,10 +181,10 @@ class Control:
             )
         self.targets = targets
         if action == "update":
-            self.lease_until = self.now() + 0.25
+            self.lease_until = self.now() + self.LEASE_SECONDS
             return
         self.owner = client
-        self.lease_until = self.now() + 0.25
+        self.lease_until = self.now() + self.LEASE_SECONDS
         self.started_at = self.now()
         self.pending = self.packet(self.STOP)
         self.phase = "stopping_before_enable"

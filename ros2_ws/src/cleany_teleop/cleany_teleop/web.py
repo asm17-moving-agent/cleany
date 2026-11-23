@@ -43,6 +43,17 @@ def ui_asset(ui_root: Path, request_path: str) -> tuple[bytes, str] | None:
     return asset.read_bytes(), content_type
 
 
+def gamepad_status(control: Control, navigation, data: dict) -> dict:
+    """Process local pad input without interrupting a navigation goal or another owner."""
+    if data["action"] != "release":
+        if data.get("ui_version") != 2:
+            raise ValueError("지원하지 않는 조종 프로토콜입니다")
+        if navigation and navigation.phase in ("active", "preparing", "stopping"):
+            raise ValueError("자동 이동이 종료된 후 조작하세요")
+    control.request(data)
+    return control.status()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--navigation", action="store_true", help="Use guarded Nav2 mode with motion/cmd_vel safety routing")
@@ -316,6 +327,13 @@ def main():
                 data = json.loads(self.rfile.read(length))
                 if not isinstance(data, dict):
                     raise ValueError("잘못된 요청")
+                if self.path == "/api/control" and data.get("action") in (
+                    "gamepad_press", "gamepad_update", "release"
+                ):
+                    with lock:
+                        status = gamepad_status(control, navigation, data)
+                    self.respond(200, status)
+                    return
                 if self.path.startswith('/api/navigation/'):
                     if navigation is None: raise ValueError('주행 모드가 준비되지 않았습니다')
                     with lock:

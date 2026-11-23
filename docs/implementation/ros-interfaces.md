@@ -482,6 +482,7 @@ MoveGroup 배치 서비스는 [계획 capability](../../ros2_ws/src/cleany_movei
 | 패키지 | 실행 파일 | 인터페이스 |
 |---|---|---|
 | cleany_teleop | phone_remote | [조종과 웹 계약](../../ros2_ws/src/cleany_teleop/docs/interfaces.md) |
+| cleany_teleop | gamepad_input / gamepad_teleop / gamepad_head | [Jetson 패드 입력 및 조종](how-to/gamepad.md) |
 | cleany_teleop | commission_wheels | 같은 문서의 독립 시험 CLI |
 | cleany_navigation | mapping_scan_filter, mapping_session | [매핑 계약](../../ros2_ws/src/cleany_navigation/docs/mapping.md) |
 | cleany_bringup | hardware_runtime | [프로세스 수명](../../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
