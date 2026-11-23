@@ -129,7 +129,7 @@ flowchart TB
 - [ ] 현장 좌석 배치에 맞춰 접근 좌표와 로봇 보정값 확인
 - [ ] Jetson에서 작업 요청 → 이동 → 책상 정리 → 복귀 → 결과 보고 검증
 
-[검증 기록](docs/EVIDENCE.md)
+[환경별 검증 범위와 결과](docs/EVIDENCE.md)
 
 ## 실행 방법
 

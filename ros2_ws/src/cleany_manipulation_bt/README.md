@@ -228,82 +228,9 @@ MuJoCo 포트는 `bt_monitor_port`로 변경합니다. 뷰어의 기본 포트�
 지원 label을 조정한다. 이 수치는 첫 시뮬레이션 구현의 조정 가능한 기본값이다.
 전체 물체 수거 성공률이나 실제 하드웨어에 대한 보장을 뜻하지 않는다.
 
-## 검증 기록 (2026-10-14)
+## 시뮬레이션 검증 범위
 
-### 제어 주기 수정 후
-
-로컬 제어 실행기에 한 주기의 시각을 고정하고 새 시뮬레이션 시각에서만 다음 실행을
-허용한 뒤, 같은 환경의 실제 MuJoCo/MoveIt 컵 수거를 다시 검증했다.
-
-| 실제 시험 | 결과 |
-|---|---|
-| 개별 추적 ID를 사용하는 컵 한 개 수거 | `SUCCESS / NONE`, `LEFT_GRIPPER / CONFIRMED`, `arm_recovered=true`, `stop_confirmed=true` |
-| 첫 MoveIt 이동 요청 직후 physics 일시 정지 | 수신 만료와 시계 정지 감지. `FATAL / STOP_UNCONFIRMED`, `stop_confirmed=false`; 조회 후 physics를 재개해 피드백 복구 확인 |
-
-성공 실행 ID는 `7076b0e7-88d8-4991-96de-155c6e15e8aa`이다. DB에 BT 전환 72개가
-남았고, 독립 안착 평가·관절 속도 관찰·원래 팔 자세 복귀와 Action/조회 결과 일치를
-확인했다. 마지막 관찰 구간은 약 0.50초이며 팔 관절 복귀 오차는 최대 약 0.00042 rad였다.
-worker가 받은 관절 메시지 8,162개에서 timestamp 중복·역행은 0개였고 최소 간격은
-설정 주기인 10 ms였다. 일시 정지 실행 ID는 `94b25e6c-c1f6-43ac-bc62-62e13eb6c633`이다.
-
-관련 10개 패키지 빌드, `make test-manipulation-bt` 528개 검사와 제어 주기 회귀 검사
-5개가 통과했다. 보고서는 로컬 `artifacts/manipulation-validation-20261014-201912/`와
-`artifacts/manipulation-validation-20261014-202326/`에 보존했다. 이 결과는 고정 베이스의
-단일 컵과 시계 정지 시험이며 전체 물체 수거 성공률·실물·Mission Manager·모바일 베이스
-통합을 검증한 것은 아니다.
-
-### 수정 전 기록
-
-최신 main을 기반으로 정리한 브랜치에서 실제 MuJoCo/MoveIt, CPU YOLOE와 Gemini API로
-컵 한 개 수거를 6회 실행했다. 실행마다 새 장면과 별도 SQLite DB를 사용했다.
-당시에는 정상 수거 완료를 확인하지 못했다. 다음 표와 실행 ID는 수정 전 실패 이력이다.
-
-| 관찰 결과 | 상태와 조치 |
-|---|---|
-| 첫 팔 이동에서 충돌 장면을 이중 등록 | `MOTION_FAILED`. 재관찰 장면을 정리한 뒤 pregrasp 장면을 등록하도록 수정하고 회귀 검사 추가 |
-| 관절 피드백 시각 중복 | 내용까지 같은 메시지는 새 관측으로 세지 않도록 수정했으나, 같은 시각에 값이 달라지는 수신은 `HARDWARE_ERROR`로 중단됨. 이후 위 제어 주기 수정 적용 |
-| 추적 없는 경로의 컵 재관측 | 대상 종류가 없거나 두 개 검출되면 수거 중단. 마지막 두 개 검출 사례는 `FAILED / MOTION_FAILED`, `NOT_TOUCHED` |
-| 개별 추적 ID를 사용하는 컵 수거 | 접근 전까지 같은 track ID 유지. 관절 피드백 문제로 `FATAL / HARDWARE_ERROR`, `NOT_TOUCHED`, `arm_recovered=false` |
-
-마지막 실행 ID는 `743a9d90-7acf-43b2-8dc0-607149664648`이다. 모든 실행에서
-`stop_confirmed=true`였고, 별도 관절 속도 관찰과 Action/조회 결과 일치도 확인했다.
-마지막 실패 시 피드백 수신 지연은 약 0.9 ms였으며, 같은 timestamp의 메시지 두 개에서
-position/velocity가 달랐다. 스트림 지연과 시각 중복에 따른 무효 판정을 구분할 필요가 있다.
-보고서와 전환 이력은 로컬 `artifacts/manipulation-validation-20261014-*`에 보존했다.
-
-수정 전에도 관련 10개 패키지 빌드와 `make test-manipulation-bt` 523개 검사는
-통과했지만 실제 수거는 중단됐다. 자동 검사와 실제 수거 시나리오를 별도로 검증한다.
-
-## 검증 기록 (2026-10-01)
-
-이 절은 당시의 물리 연동 기록이다. 현재 코드의 자동 검사 명령은 [빌드와 검증](#빌드와-검증)을 따른다.
-
-Ubuntu 22.04 arm64 / ROS Humble, BehaviorTree.CPP 4.10.0, 기존 head/손목 YOLOE 모델의
-CPU 추론과 실제 Gemini API를 사용했다. 독립 시뮬레이션 실행별로 별도 `/tmp` DB를 지정했다.
-실패/취소 기록을 지우거나 보유 중인 물체의 자동 재개를 허용하지 않았다.
-
-| 실제 MuJoCo 시험 | 결과 |
-|---|---|
-| 승인된 컵 한 개 수거 | `SUCCESS / NONE`, `LEFT_GRIPPER / CONFIRMED`, `arm_recovered=true`, `stop_confirmed=true` |
-| `GRASPING/GraspObject`에서 취소 | 닫기·파지 확인 후 정지, 들기 시작 없음. `CANCELED / HELD`, `stop_confirmed=true` |
-| 취소 후 후속 Goal | 사람 확인 필요 기록을 유지하며 Goal 거절 |
-| controller 추종 실패 | 정상 경로 중단, 자동 재실행 없음, `FAILED / MOTION_FAILED`, 실제 정지 확인 후 조회 |
-| 이동 시작 시 시뮬레이터/controller 프로세스 일시 정지 | 시계·관절 수신 중단 감지, `FATAL / STOP_UNCONFIRMED`, `stop_confirmed=false`. Result 조회 후 프로세스를 복원하여 시험 종료 |
-
-성공 Goal의 snapshot은 `rgbd-0000000001042000000-000003`, `object_id=2`, 관측 label은
-`cup`, 목적지는 `trash_right`였다. 실행 ID `7c1918eb5b4a48a587997a05860d5152`의
-DB(`/tmp/cleany-bt-physical-clean.sqlite3`)에는 checkpoint 39개와 실제 BT 전환 72개가 남았다.
-방출 뒤와 팔 복귀 뒤 평가가 각각 성공했고, Action Result와 조회 서비스 결과가 일치했다.
-실제 ROS 이동 중 모니터의 UID 10(`MoveToPregrasp`)이 `RUNNING`인 것도 확인했다.
-취소 실행 ID는 `d123a39d4c5643d19f8d8188adedf8ec`이며 별도 취소 DB에 기록했다.
-일시 정지 실행 ID는 `8c9b82db607848d5b019ec6c61c63e33`이며
-`/tmp/cleany-bt-physical-paused.sqlite3`에 FATAL 기록을 보존했다.
-
-`make test-manipulation-bt`의 272개 검사와 `make test-manipulation`의 기존 mock 102개 검사가
-통과했다. 당시의 `make test-grasp-pregrasp`로 관련 C++ 지도/관측과 기존 인식·파지·수거·MoveIt·MuJoCo
-회귀 검사도 통과했다. native BT 실패 경로, 원자적 취소, stale/잘못된 대상 차단, false 평가 응답의
-확인 대기, 늦은 응답 격리, stop 근거 누락과 기록 실패, 재시작 자동 재개 금지를 포함한다.
-이 기록은 첫 컵 한 개의 연동 검증이며 다른 대상의 수거 성공률 측정은 아니다.
+고정 베이스 MuJoCo에서 단일 컵의 수거함 안착, 팔 복귀와 정지를 확인했습니다. 파지 중 취소하면 물체를 보유한 상태로 정지하고, 사람의 확인이 필요하면 다음 Goal을 거절합니다. 시뮬레이터와 제어기를 일시 정지해 정지를 확인할 수 없는 경우에는 `FATAL / STOP_UNCONFIRMED`를 기록했습니다. [시험 조건과 결과](../../../docs/EVIDENCE.md)
 
 ## Jetson 실물 실행
 
