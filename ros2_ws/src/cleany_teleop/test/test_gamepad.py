@@ -176,18 +176,17 @@ def test_late_gamepad_command_and_scoped_release_do_not_stop_phone():
             dict(client="pad", sequence=2, action="gamepad_press", expires_at=10.1)
         )
 
+
 @pytest.mark.parametrize("phase", ["preparing", "active", "stopping"])
-def test_delayed_gamepad_input_preserves_navigation_goal(phase):
+def test_gamepad_cannot_preempt_navigation(phase):
     from types import SimpleNamespace
 
-    from cleany_teleop.web import gamepad_status
+    from cleany_teleop.web import check_gamepad_navigation
 
-    packets = []
-    ctrl = Control(packets.append, now=lambda: 10)
     navigation = SimpleNamespace(phase=phase)
-    data = dict(client="pad", sequence=1, action="gamepad_press", ui_version=2, expires_at=10.1)
-    with pytest.raises(ValueError, match="자동 이동"):
-        gamepad_status(ctrl, navigation, data)
-    gamepad_status(ctrl, navigation, dict(client="pad", sequence=2, action="release"))
-    assert navigation.phase == phase
-    assert not packets
+    for action in ("gamepad_press", "gamepad_update"):
+        with pytest.raises(ValueError, match="자동 이동"):
+            check_gamepad_navigation(navigation, action)
+    check_gamepad_navigation(navigation, "release")
+    check_gamepad_navigation(navigation, "stop")
+    check_gamepad_navigation(SimpleNamespace(phase="idle"), "gamepad_press")
