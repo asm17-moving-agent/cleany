@@ -37,6 +37,7 @@ grasp_selection_server:
     use_verified_local_fk: true
     pose_refinement_iterations: 10
     align_wrist_roll: true
+    ik_seed_wrist_offsets_degrees: [0.0]
     # Keep the +20mm asymmetric bias without clearance-based shifts.
     fixed_jaw_clearance_enabled: false
     fixed_jaw_minimum_clearance_m: 0.005
