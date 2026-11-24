@@ -10,6 +10,7 @@ import tempfile
 import time
 
 from .operator_policy import capabilities, validate_action
+from .prepare_progress import prepare_progress
 
 
 RUNTIME_ENV_KEYS = (
@@ -216,6 +217,27 @@ def command_report(path: Path) -> dict:
     return {}
 
 
+def previous_action_times(path: Path) -> dict:
+    """Carry prior timings across the monitor's bounded recent-job window."""
+    times = {}
+    for other in path.parent.glob('*.json'):
+        if other == path:
+            continue
+        try:
+            job = json.loads(other.read_text())
+            if not isinstance(job, dict):
+                continue
+            action, state = job.get('action'), job.get('state')
+            start, end = job.get('created_at'), job.get('finished_at')
+            if (isinstance(action, str) and isinstance(state, str)
+                    and isinstance(start, (int, float)) and isinstance(end, (int, float))
+                    and end >= start and start > times.get(action, {}).get('created_at', 0)):
+                times[action] = dict(created_at=start, finished_at=end, state=state)
+        except (OSError, ValueError):
+            continue
+    return times
+
+
 def execute_job(path: Path, repo: Path):
     from .operator_ros import OperatorROS
     value = json.loads(path.read_text())
@@ -247,6 +269,7 @@ def execute_job(path: Path, repo: Path):
             raise RuntimeError('웹 제어가 비활성화되었습니다.')
         if cancelled.exists():
             raise InterruptedError('실행 요청이 취소되었습니다.')
+        value['previous_action_times'] = previous_action_times(path)
         value.update(state='RUNNING', owner_pid=os.getpid(), owner_start=process_start(os.getpid()), started_at=time.time())
         atomic_json(path, value)
         if action in ('prepare', 'propose', 'skip', 'approve', 'run'):
@@ -262,9 +285,10 @@ def execute_job(path: Path, repo: Path):
                 restart_executor = (state.get('operation_mode') != 'pick_rear_bin_release'
                                     or state.get('return_home_joint_rad') != expected_home)
         if action != 'prepare':
-            if action in ('propose', 'approve', 'skip'):
+            if action in ('inspect', 'propose', 'approve', 'skip'):
+                from .proposals import policy_settings
                 from .proposal_ros import ProposalROS
-                port = ProposalROS(path.parent.parent, value['proposal_policy'])
+                port = ProposalROS(path.parent.parent, value.get('proposal_policy') or policy_settings({}))
             else:
                 port = OperatorROS()
             info = runtime_info()
@@ -290,7 +314,7 @@ def execute_job(path: Path, repo: Path):
             if not result['success']:
                 raise RuntimeError(result['message'])
         elif action == 'inspect':
-            value['result'] = port.inspect(cancelled.is_file)
+            value['result'] = port.inspect_for_monitor(value['id'], cancelled.is_file)
         elif action in ('propose', 'skip'):
             value['phase'] = 'PROPOSING'
             atomic_json(path, value)
@@ -316,7 +340,14 @@ def execute_job(path: Path, repo: Path):
                 value['command_pid'] = process.pid
                 atomic_json(path, value)
                 signalled = False
+                next_progress = 0.0
                 while process.poll() is None:
+                    if action == 'prepare' and time.monotonic() >= next_progress:
+                        next_progress = time.monotonic() + 1.0
+                        observed = prepare_progress(path.with_suffix('.log'), repo)
+                        if observed != value.get('prepare_progress'):
+                            value['prepare_progress'] = observed
+                            atomic_json(path, value)
                     if cancelled.exists() and not signalled:
                         os.killpg(process.pid, signal.SIGINT)
                         signalled = True
@@ -354,6 +385,8 @@ def execute_job(path: Path, repo: Path):
             except Exception:
                 pass
         if record_result:
+            if value.get('action') == 'prepare':
+                value['prepare_progress'] = prepare_progress(path.with_suffix('.log'), repo)
             value.update(finished_at=time.time(), command_pid=0)
             atomic_json(path, value)
         lock.close()

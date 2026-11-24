@@ -558,3 +558,5 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 `FollowJointTrajectory` Action을 유지하면서 완료 결과를 이벤트로 전달한다.
 별도 노드 실행 파일은 추가하지 않는다. 설정과 취소 및 명령 교체 규약은
 [제어기 인터페이스](../../ros2_ws/src/cleany_trajectory_controller/docs/interfaces.md)를 따른다.
+
+Jetson의 `/check_grasp_octomap` 서비스는 [실물 충돌 검사](../../ros2_ws/src/cleany_moveit_collision/docs/calibrated-cad.md#jetson-파지-후보의-octomap-검사)에 설명합니다.

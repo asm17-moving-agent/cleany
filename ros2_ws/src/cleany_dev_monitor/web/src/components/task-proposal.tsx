@@ -5,10 +5,12 @@ import "./task-proposal.css";
 
 export function TaskProposal({
   proposal,
+  timing,
   reason,
   submit,
 }: {
   proposal?: Data | null;
+  timing: (action: string) => import("react").ReactNode;
   reason: (action: string) => string;
   submit: (action: string, args?: Data) => Promise<void>;
 }) {
@@ -111,6 +113,7 @@ export function TaskProposal({
                 <Check />
                 승인하여 1회 실행
               </Button>
+              {timing("approve")}
             </span>
             {!nearestDetected && (
               <span title={reason("skip") || unavailable}>
@@ -123,6 +126,7 @@ export function TaskProposal({
                 >
                   <SkipForward />이 물체 건너뛰기
                 </Button>
+                {timing("skip")}
               </span>
             )}
             <span title={reason("propose")}>
@@ -134,6 +138,7 @@ export function TaskProposal({
                 <RefreshCw />
                 다시 제안받기
               </Button>
+              {timing("propose")}
             </span>
           </div>
           {ready && !nearestDetected && (

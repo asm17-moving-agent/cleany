@@ -108,14 +108,14 @@ class JetsonManipulationNode(ManipulationNode):
             backend = WorkerBackend(self.operations.execute, quiescent=self.operations.quiescent)
         self.backend = backend
         self.store = BTExecutionStore(self.get_parameter('database_path').value)
+        collection_config = getattr(self.operations, 'config', {})
         self.core = ExecutionCore(self.backend, self.store, self.get_parameter('tree_xml').value, Runner,
                                   timeout_sec=float(self.get_parameter('bt_operation_timeout_sec').value),
                                   stop_timeout_sec=float(self.get_parameter('bt_stop_timeout_sec').value) + 2.,
                                   execution_profile='jetson',
                                   operation_timeouts={'SelectArmAndPath': float(
                                       self.get_parameter('bt_selection_timeout_sec').value)},
-                                  allow_assumed_placement=supervised_placement_mode(
-                                      getattr(self.operations, 'config', {})))
+                                  allow_assumed_placement=supervised_placement_mode(collection_config))
         self._handle = self._result_future = None
         self._closing = False
         self._futures = {}

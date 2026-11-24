@@ -203,6 +203,7 @@ class GraspSelectionNode(Node):
             'fixed_jaw_maximum_correction_m': 0.010,
             'fixed_jaw_collision_meshes': ['Fixed_Jaw_part2.ply.convex.stl'],
             'support_patch_margin_m': 0.0,
+            'ignore_topdown_support': False,
             'require_pregrasp_visibility': False,
             'visibility_camera_frame': 'head_camera_rgb_optical_frame',
             'visibility_camera_max_age_sec': 0.5,
@@ -362,6 +363,7 @@ class GraspSelectionNode(Node):
         self._scene = TargetSceneTransaction(self, spin_once=wait, response_wait_factory=response_waiter,
             timeout_sec=float(self.get_parameter('planning_scene_timeout_sec').value),
             support_patch_margin_m=float(self.get_parameter('support_patch_margin_m').value),
+            ignore_topdown_support=self.get_parameter('ignore_topdown_support').value,
             geometry_lookup=self._geometry_cache.get if use_mesh else None)
         self._scene_port = SceneAwarePort(self._adapter, self._scene)
         self._selector = GraspSelector(

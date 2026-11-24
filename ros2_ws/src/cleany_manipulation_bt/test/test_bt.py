@@ -182,6 +182,29 @@ def test_failed_operation_never_starts_following_normal_motion(execution, node):
     assert 'FinalizeFailure' in store.get('execution-1').substage
 
 
+def test_jetson_rear_placement_failure_blocks_opening(tmp_path):
+    store = ExecutionStore(str(tmp_path / 'rear.sqlite3'))
+    backend = FakeBackend(store, failures={
+        'CheckPlacementTarget': Observation(
+            False, Error.DESTINATION_UNAVAILABLE, 'Attached payload does not clear the rear opening'),
+    })
+    clock = [0.]
+    core = ExecutionCore(backend, store, TREE, Runner, clock=lambda: clock[0],
+                         execution_profile='jetson', allow_assumed_placement=True)
+    backend.store = core.store
+    try:
+        goal = Goal('m', 't', 'rear', 'collect_trash', 'physical', 1, 'rear_bin_a')
+        assert core.accept(goal)[0]
+        result = finish(core, clock)
+        assert result.failed_substage == 'CheckPlacementTarget'
+        assert result.error_code == Error.DESTINATION_UNAVAILABLE
+        assert backend.started.index('CarryObject') < backend.started.index('CheckPlacementTarget')
+        assert 'OpenGripperAtDestination' not in backend.started
+    finally:
+        core.tree.halt()
+        store.close()
+
+
 def test_running_is_actual_native_state_and_monitor_uid(execution):
     core, backend, _, _ = execution
     idle = core.tree.snapshot()

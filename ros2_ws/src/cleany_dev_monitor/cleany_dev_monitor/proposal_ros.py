@@ -137,6 +137,25 @@ class ProposalROS(OperatorROS):
         self.store.save(proposal, jpeg)
         return proposal
 
+    def inspect_for_monitor(self, image_id, cancelled):
+        """Keep the detections and the numbered image from the same RGB capture."""
+        started = time.monotonic()
+        scene = self.inspect_scene(cancelled)
+        observed = time.monotonic()
+        data = self._observation_record(scene)
+        data['objects'] = data.pop('targets')
+        jpeg = self.capture_image(scene, None, cancelled)
+        if cancelled():
+            raise InterruptedError('장면 인식을 중단했습니다.')
+        data['image_available'] = jpeg is not None
+        if jpeg is not None:
+            self.store.save_image(image_id, jpeg)
+            frame = next((im for im in list(self.images) if im.header == scene.header), None)
+            if frame is not None:
+                data.update(source_width=frame.width, source_height=frame.height)
+        data["seconds"] = {"inspection": observed - started, "capture": time.monotonic() - observed}
+        return data
+
     def capture_image(self, scene, target, cancelled):
         deadline = time.monotonic() + 3.
         while not cancelled() and time.monotonic() < deadline:

@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import time
+import json
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -75,6 +77,7 @@ def main() -> int:
         help="Read-only torque-off check, or write torque OFF and verify it.",
     )
     arguments = parser.parse_args()
+    started = time.monotonic()
     failures = [
         failure
         for bus in BUSES
@@ -84,6 +87,8 @@ def main() -> int:
         for failure in failures:
             print(f"ERROR: {failure}")
         return 1
+    if arguments.operation == "check-off":
+        print(json.dumps({"event": "torque_check_off", "status": "ready", "wall_sec": time.monotonic() - started}))
     print("TORQUE OFF VERIFIED FOR IDS 1-14")
     return 0
 
