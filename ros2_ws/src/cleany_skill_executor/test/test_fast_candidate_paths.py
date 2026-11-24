@@ -72,6 +72,29 @@ def selection_fixture(port=None, **options):
     return port, GraspSelector(port, config), candidates
 
 
+@pytest.mark.parametrize('adjusted', [None, 'approach', 'entry'])
+def test_native_path_endpoints_are_checked_once_under_the_path_contact_policy(adjusted):
+    class NativePathPort(CandidatePort):
+        validates_path_endpoints = True
+
+        def _path(self, stage, goal):
+            if stage == adjusted:
+                goal = JointSolution(goal.names, (.00001+goal.positions[0],))
+            return super()._path(stage, goal)
+
+    port, selector, candidates = selection_fixture(NativePathPort(blocked=()))
+    selector._config = replace(selector._config, require_gripper_closure_clearance=False)
+    selected = selector.select(candidates, required_arm='left')
+    assert selected.candidate_index == 0
+    assert [call for call in port.calls if call[0] == 'valid'] == (
+        [('valid', .2)] if adjusted else [])
+    if adjusted:
+        check_index = port.calls.index(('valid', .2))
+        active_contacts = [value for stage, value, *_ in port.calls[:check_index]
+                           if stage == 'contacts'][-1]
+        assert active_contacts == ('left' if adjusted == 'approach' else None)
+
+
 @pytest.mark.parametrize('stage', ['approach', 'entry'])
 def test_fast_candidate_avoids_earlier_rrt_for_both_connections(stage):
     port, selector, candidates = selection_fixture(CandidatePort(failed_stage=stage))
@@ -177,7 +200,7 @@ def test_fast_candidate_hybrid_wrapper_does_not_repeat_direct_check_or_send_rrt(
     wrapped = SceneAwarePort(adapter, scene)
     direct = []
     adapter._direct_joint_path = lambda *args: direct.append(args) or None
-    adapter._validated_cubic_path = lambda *_: None
+    adapter._validate_moveit_trajectory = lambda *_: None
     goal = JointSolution(ARM_JOINT_NAMES['left'], (.4, .28, .3, 0., 0.))
     with wrapped.planning_pass(fast_only=True):
         assert wrapped.plan('left', goal, None) is None

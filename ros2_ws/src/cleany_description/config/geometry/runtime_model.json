@@ -1,7 +1,7 @@
 {
   "schema": "cleany.runtime_cad/v1",
   "model": "urdf/cleany.urdf",
-  "sha256": "695317fe6f3b4132a840beabe9328bff522e985b7fbc5b36a1dc572ee8024308",
+  "sha256": "af2741288b56daefb1529a9449d78177297dad586a6dae3b047d2a0bd167eeec",
   "state_profile": "configs/robot/cad_grasp.json",
   "source_model_sha256": "6cc5077bede8a1c35e8c401903e74cc1eb7c70f0079bbfee4d10436146eb028b",
   "gripper_endpoint_sha256": "a5f425bd27a0c3618a3ad20f1e88491c5189d029388c12b10c169d9d570613d4",

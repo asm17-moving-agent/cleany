@@ -8,6 +8,8 @@ from itertools import islice
 import numpy as np
 
 from cleany_grasping.core.models import PointCloud, RawGrasp
+from cleany_grasping.core.target_component import BodyFilter
+from cleany_grasping.core.top_face import TopFace
 
 
 @dataclass(frozen=True)
@@ -17,6 +19,11 @@ class GeometricGraspConfig:
     maximum_gripper_width_m: float = 0.10
     opening_margin_m: float = 0.008
     grasp_depth_m: float = 0.025
+    pad_half_length_m: float = 0.0
+    distal_pad_offset_m: float = 0.0
+    distal_contact_depth_m: float = 0.003
+    top_face_tolerance_m: float = 0.0
+    top_face_tip_reach_m: float = 0.0
     maximum_top_contact_depth_m: float = 0.0  # 0이면 부피 중심의 접촉점을 유지합니다.
     finger_thickness_m: float = 0.010
     finger_length_m: float = 0.045
@@ -41,7 +48,16 @@ class GeometricGraspConfig:
     defer_support_plane_collision: bool = False
     approach_reference_positions: tuple[tuple[float, float, float], ...] = ()
 
+    body_connectivity_radius_m: float = BodyFilter.radius_m
+    minimum_body_fraction: float = BodyFilter.minimum_fraction
+
     def __post_init__(self) -> None:
+        BodyFilter(self.body_connectivity_radius_m, self.minimum_body_fraction)
+        if (not math.isfinite(self.top_face_tolerance_m) or self.top_face_tolerance_m < 0
+                or not math.isfinite(self.top_face_tip_reach_m) or self.top_face_tip_reach_m < 0
+                or (self.top_face_tolerance_m and not (0 < self.distal_pad_offset_m
+                                                        <= self.top_face_tip_reach_m))):
+            raise ValueError('Top-face fitting requires a calibrated pad offset and fingertip reach')
         positive = (
             self.maximum_gripper_width_m,
             self.opening_margin_m,
@@ -54,12 +70,19 @@ class GeometricGraspConfig:
         )
         if not all(math.isfinite(value) and value > 0.0 for value in positive):
             raise ValueError('Geometric grasp dimensions must be finite and positive')
+        if (not all(math.isfinite(v) for v in (self.pad_half_length_m,
+                self.distal_pad_offset_m, self.distal_contact_depth_m))
+                or self.pad_half_length_m < 0 or self.distal_pad_offset_m < 0
+                or self.distal_contact_depth_m <= 0
+                or (self.distal_pad_offset_m > 0
+                    and self.distal_pad_offset_m + self.distal_contact_depth_m > self.pad_half_length_m)):
+            raise ValueError('Distal contact must lie inside the measured pad length')
         if not math.isfinite(self.maximum_top_contact_depth_m) or self.maximum_top_contact_depth_m < 0:
             raise ValueError('Maximum top contact depth must be finite and nonnegative')
         if (not self.longitudinal_offset_fractions
                 or not all(math.isfinite(v) and abs(v) < .5 for v in self.longitudinal_offset_fractions)
                 or not math.isfinite(self.longitudinal_max_height_ratio)
-                or not 0 < self.longitudinal_max_height_ratio < 1
+                or not 0 <= self.longitudinal_max_height_ratio < 1
                 or not math.isfinite(self.longitudinal_contact_height_offset_m)
                 or not 0 <= self.longitudinal_contact_height_offset_m <= .01):
             raise ValueError('Invalid longitudinal contact search bounds')
@@ -113,6 +136,9 @@ class _PreparedGeometry:
     minor: np.ndarray
     center: np.ndarray
     obstacles: np.ndarray
+    distal_contact_height: float | None
+    distal_surface_xy: np.ndarray | None
+    top_face: TopFace | None
 
 
 def _fit_support_plane(
@@ -214,7 +240,7 @@ def _minimum_width_axis(
 def _longitudinal_contacts(center, lateral, normal, target, config):
     """명시적으로 선택한 높이 보정을 적용하며 가느다란 물체를 따라 탐색합니다.
 
-    관측에서 강건하게 추정한 범위 안에 손가락 전체 길이의 footprint를 유지합니다.
+    관측한 물체 범위 안에 손가락 전체 길이가 들어가는 위치를 찾습니다.
     후보 생성 단계이며 힘에 의한 구속이나 도달 가능성을 보장하지 않습니다.
     """
     if config.longitudinal_offset_fractions == (0.0,):
@@ -226,10 +252,13 @@ def _longitudinal_contacts(center, lateral, normal, target, config):
     direction /= length
     trim = config.extent_trim_percentile
     low, high = np.percentile(target @ direction, (trim, 100-trim))
-    bottom, top = np.percentile(target @ normal, (trim, 100-trim))
     span = float(high-low)
-    if span <= config.finger_length_m or top-bottom > config.longitudinal_max_height_ratio*span:
+    if span <= config.finger_length_m:
         return (center,)
+    if config.longitudinal_max_height_ratio:
+        bottom, top = np.percentile(target @ normal, (trim, 100-trim))
+        if top - bottom > config.longitudinal_max_height_ratio * span:
+            return (center,)
     current = float(center @ direction)
     lower = float(low + config.finger_length_m/2 - current)
     upper = float(high - config.finger_length_m/2 - current)
@@ -270,6 +299,30 @@ def _collides(
         & (np.abs(lateral) <= half_length + clearance)
     )
     return bool(np.any(finger_collision | palm_collision))
+
+
+def _distal_pad_candidate(candidate, prepared, config):
+    """Place a point on the distal pad at an observed upper contact of a low object."""
+    if prepared.distal_contact_height is None:
+        return None
+    approach = candidate.rotation[:, 0]
+    if -float(approach @ prepared.normal) * config.distal_pad_offset_m < config.distal_contact_depth_m:
+        return None
+    contact = candidate.translation + candidate.depth_m * approach
+    xy = np.array([contact @ prepared.major, contact @ prepared.minor])
+    offsets = prepared.distal_surface_xy - xy
+    offsets = offsets[np.linalg.norm(offsets, axis=1) <= config.finger_length_m / 2]
+    if len(offsets) < 3:
+        return None
+    # A half-plane containing all nearby samples leaves the contact unsupported.
+    angles = np.sort(np.arctan2(offsets[:, 1], offsets[:, 0]))
+    if np.max(np.diff(angles, append=angles[0] + 2 * np.pi)) >= np.pi:
+        return None
+    rise = prepared.distal_contact_height - float(contact @ prepared.normal)
+    if rise < 0:
+        return None
+    return replace(candidate, translation=candidate.translation + rise * prepared.normal
+                   - config.distal_pad_offset_m * approach, pad_offset_m=config.distal_pad_offset_m)
 
 
 class GeometricGraspPredictor:
@@ -327,6 +380,9 @@ class GeometricGraspPredictor:
         context = context_cloud.points
         if target.shape[0] < 3 or context.shape[0] < 3:
             raise ValueError('Geometric grasping needs at least three target and context points')
+        body = BodyFilter(
+            self._config.body_connectivity_radius_m, self._config.minimum_body_fraction).target(target_cloud)
+        target = body.points
         normal, plane_center = _fit_support_plane(target, context, self._config)
         collision_context = context
         if self._config.defer_support_plane_collision:
@@ -340,6 +396,9 @@ class GeometricGraspPredictor:
         obstacles = collision_context[
             np.any((collision_context < target_min) | (collision_context > target_max), axis=1)
         ]
+        if body.detached is not None:
+            # Preserve detached returns even inside the target bounding box.
+            obstacles = np.concatenate((obstacles, body.detached.points))
         major, pca_minor = _tangent_axes(target, normal)
         minor = _minimum_width_axis(
             target,
@@ -355,8 +414,20 @@ class GeometricGraspPredictor:
             (major, minor, normal),
             self._config.extent_trim_percentile,
         )
+        distal_height, distal_xy = None, None
+        if self._config.distal_pad_offset_m:
+            heights = target @ normal
+            top = float(np.percentile(heights, 100 - self._config.extent_trim_percentile))
+            height = top - float(plane_center @ normal)
+            if self._config.distal_contact_depth_m < height <= 2 * self._config.pad_half_length_m:
+                distal_height = top - self._config.distal_contact_depth_m
+                surface = target[np.abs(heights - distal_height) <= self._config.plane_distance_threshold_m]
+                distal_xy = surface @ np.column_stack((major, minor))
+        top_face = TopFace.fit(body, context_cloud, normal, self._config.top_face_tolerance_m)
         return _PreparedGeometry(
-            target=target,
+            top_face=top_face,
+            distal_contact_height=distal_height,
+            distal_surface_xy=distal_xy,            target=target,
             target_median=np.median(target, axis=0),
             normal=normal,
             major=major,
@@ -373,6 +444,33 @@ class GeometricGraspPredictor:
             self._iter_prepared(prepared),
             self._config.maximum_candidates,
         ))
+
+    def _top_face_candidates(
+        self, prepared: _PreparedGeometry, rotation: np.ndarray,
+        yaw_degrees: float, base_axis: np.ndarray,
+    ) -> Iterator[RawGrasp]:
+        """Measure shallow contacts independently of deeper grasps at the same yaw."""
+        face = prepared.top_face
+        if face is None:
+            return
+        cfg = self._config
+        approach, _, lateral = rotation.T
+        half_span = cfg.finger_length_m / 2
+        angle_score = 1 - min(abs(yaw_degrees), 45.) / 45.
+        short_axis_score = abs(float(base_axis @ prepared.minor))
+        for site in _longitudinal_contacts(prepared.center, lateral, prepared.normal, face.points, cfg):
+            section = face.contact(
+                prepared.target, site, rotation, half_span, cfg.distal_pad_offset_m,
+                cfg.distal_contact_depth_m, cfg.top_face_tip_reach_m, cfg.opening_margin_m,
+                cfg.extent_trim_percentile)
+            if section is None or section.opening_m > cfg.maximum_gripper_width_m:
+                continue
+            width_score = 1 - (section.face_width_m + cfg.opening_margin_m) / cfg.maximum_gripper_width_m
+            score = .55 * width_score + .30 * angle_score + .15 * short_axis_score
+            yield RawGrasp(
+                rotation=rotation, translation=section.center - cfg.grasp_depth_m * approach,
+                width_m=section.opening_m, depth_m=cfg.grasp_depth_m, score=float(np.clip(score, 0., 1.)),
+                pad_offset_m=cfg.distal_pad_offset_m, face_width_m=section.face_width_m)
 
     def _iter_prepared(
         self,
@@ -433,6 +531,7 @@ class GeometricGraspPredictor:
                 lateral = np.cross(approach, closing)
                 lateral /= np.linalg.norm(lateral)
                 rotation = np.column_stack((approach, closing, lateral))
+                generated.extend(self._top_face_candidates(prepared, rotation, yaw_degrees, base_axis))
                 closing_coordinates = (target - center) @ closing
                 trim = self._config.extent_trim_percentile
                 low, high = np.percentile(
@@ -480,12 +579,10 @@ class GeometricGraspPredictor:
         else:
             generated.sort(key=lambda candidate: candidate.score, reverse=True)
         for candidate in generated:
-            if not _collides(
-                candidate.translation,
-                candidate.rotation,
-                candidate.width_m,
-                target,
-                prepared.obstacles,
-                self._config,
-            ):
-                yield candidate
+            distal = (None if candidate.pad_offset_m else
+                      _distal_pad_candidate(candidate, prepared, self._config))
+            poses = (distal, candidate) if distal is not None else (candidate,)
+            for pose in poses:
+                if not _collides(pose.translation, pose.rotation, pose.width_m,
+                                 target, prepared.obstacles, self._config):
+                    yield pose

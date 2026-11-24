@@ -1,14 +1,16 @@
-"""Replay the actual controller cubics without IK, simplification or rebiasing."""
+"""Replay the actual controller splines without IK, simplification or rebiasing."""
 from dataclasses import dataclass, field
 from collections.abc import Callable, Sequence
 from bisect import bisect_right
 from functools import cached_property
 import math
 
+from numpy.polynomial.polynomial import polyroots
+
 from .hardware_execution import (
     CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit, joint_rate_limits,
 )
-from .joint_path import JointPathSample
+from .joint_path import JointPathSample, spline_coefficients
 
 
 @dataclass(frozen=True)
@@ -16,6 +18,7 @@ class CommandPoint:
     time_ns: int
     positions: tuple[float, ...]
     velocities: tuple[float, ...]
+    accelerations: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -32,9 +35,16 @@ class RecordedTrajectory:
         segments = []
         for first, last in zip(self.points, self.points[1:]):
             dt = (last.time_ns-first.time_ns)/1e9
-            coefficients = tuple((2*q0-2*q1+dt*(v0+v1), 3*q1-3*q0-dt*(2*v0+v1), dt*v0, q0)
-                                 for q0, q1, v0, v1 in zip(first.positions, last.positions,
-                                                         first.velocities, last.velocities, strict=True))
+            width = len(self.joint_names)
+            if first.accelerations and last.accelerations:
+                a0 = tuple(a*dt**2 for a in first.accelerations)
+                a1 = tuple(a*dt**2 for a in last.accelerations)
+            else:
+                a0 = a1 = (None,)*width
+            coefficients = tuple(
+                spline_coefficients(q0, q1, dt*v0, dt*v1, b0, b1)
+                for q0, q1, v0, v1, b0, b1 in zip(first.positions, last.positions,
+                    first.velocities, last.velocities, a0, a1, strict=True))
             segments.append((dt, coefficients))
         return tuple(segments)
 
@@ -47,7 +57,9 @@ class RecordedTrajectory:
         for point in self.points:
             if (type(point.time_ns) is not int or point.time_ns <= previous
                     or len(point.positions) != width or len(point.velocities) != width
-                    or not all(math.isfinite(q) for q in (*point.positions, *point.velocities))):
+                    or (point.accelerations and len(point.accelerations) != width)
+                    or not all(math.isfinite(q) for q in (
+                        *point.positions, *point.velocities, *point.accelerations))):
                 raise CommandPathValidationError('Malformed recorded arm trajectory point')
             previous = point.time_ns
 
@@ -61,7 +73,11 @@ class RecordedTrajectory:
         for point in reversed(self.points):
             positions, velocities = list(point.positions), [-v for v in point.velocities]
             positions[index], velocities[index] = float(roll), 0.
-            points.append(CommandPoint(end_ns-point.time_ns, tuple(positions), tuple(velocities)))
+            accelerations = list(point.accelerations)
+            if accelerations:
+                accelerations[index] = 0.
+            points.append(CommandPoint(end_ns-point.time_ns, tuple(positions),
+                                       tuple(velocities), tuple(accelerations)))
         return RecordedTrajectory(self.joint_names, tuple(points))
 
     def reversed(self) -> 'RecordedTrajectory':
@@ -70,7 +86,8 @@ class RecordedTrajectory:
         end_ns = self.points[-1].time_ns
         return RecordedTrajectory(self.joint_names, tuple(
             CommandPoint(end_ns-point.time_ns, point.positions,
-                         tuple(-v for v in point.velocities)) for point in reversed(self.points)))
+                         tuple(-v for v in point.velocities), point.accelerations)
+            for point in reversed(self.points)))
 
     def command_samples(self) -> list[JointPathSample]:
         self.validate()
@@ -89,8 +106,11 @@ class RecordedTrajectory:
         last = self.points[index+1]
         dt, coefficients = self._segments[index]
         u = (time_ns-first.time_ns)/(last.time_ns-first.time_ns)
-        return CommandPoint(time_ns, tuple(((a*u+b)*u+c)*u+d for a,b,c,d in coefficients),
-                            tuple((3*a*u*u+2*b*u+c)/dt for a,b,c,_ in coefficients))
+        rates = tuple(_differentiate(poly) for poly in coefficients)
+        accelerations = (tuple(_evaluate(_differentiate(rate), u)/dt**2 for rate in rates)
+                         if first.accelerations and last.accelerations else ())
+        return CommandPoint(time_ns, tuple(_evaluate(poly, u) for poly in coefficients),
+                            tuple(_evaluate(rate, u)/dt for rate in rates), accelerations)
 
 
 @dataclass
@@ -120,11 +140,24 @@ def reversed_command_history(paths: Sequence[RecordedTrajectory]) -> RecordedTra
         raise CommandPathValidationError('Reverse return has no completed command history')
     validate_command_history(paths, paths[0].joint_names)
     points, elapsed = [], 0
+    quintic_segments = []
     for path in reversed(paths):
         backward = path.reversed()
-        points.extend(CommandPoint(elapsed+p.time_ns, p.positions, p.velocities)
+        if points and backward.points[0].accelerations:
+            previous = points[-1]
+            acceleration = backward.points[0].accelerations
+            if previous.accelerations and previous.accelerations != acceleration:
+                raise CommandPathValidationError('Reverse history has unequal knot accelerations')
+            points[-1] = CommandPoint(previous.time_ns, previous.positions,
+                                      previous.velocities, acceleration)
+        points.extend(CommandPoint(elapsed+p.time_ns, p.positions, p.velocities, p.accelerations)
                       for p in (backward.points if not points else backward.points[1:]))
+        quintic_segments.extend(bool(a.accelerations and b.accelerations)
+                                for a, b in zip(backward.points, backward.points[1:]))
         elapsed += backward.points[-1].time_ns
+    if quintic_segments != [bool(a.accelerations and b.accelerations)
+                            for a, b in zip(points, points[1:])]:
+        raise CommandPathValidationError('Reverse history would change spline interpolation')
     return RecordedTrajectory(paths[0].joint_names, tuple(points))
 
 
@@ -135,7 +168,7 @@ def recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int) -> Rec
     points = (path.sample_at(start_ns),
               *(p for p in path.points if start_ns < p.time_ns < end_ns), path.sample_at(end_ns))
     return RecordedTrajectory(path.joint_names, tuple(
-        CommandPoint(p.time_ns-start_ns, p.positions, p.velocities) for p in points))
+        CommandPoint(p.time_ns-start_ns, p.positions, p.velocities, p.accelerations) for p in points))
 
 
 def _cubic_slope_bound(a: float, b: float, c: float) -> float:
@@ -148,14 +181,61 @@ def _cubic_slope_bound(a: float, b: float, c: float) -> float:
     return math.nextafter(bound, math.inf)
 
 
+def _differentiate(coefficients):
+    return tuple(index*value for index, value in enumerate(coefficients) if index)
+
+
+def _evaluate(coefficients, fraction):
+    result = 0.
+    for coefficient in reversed(coefficients):
+        result = result*fraction+coefficient
+    return result
+
+
+def _interior_roots(coefficients):
+    """Find stationary points in normalized segment time."""
+    coefficients = list(coefficients)
+    while coefficients and coefficients[-1] == 0.:
+        coefficients.pop()
+    if len(coefficients) < 2:
+        return ()
+    if len(coefficients) == 2:
+        roots = (-coefficients[0]/coefficients[1],)
+    elif len(coefficients) == 3:
+        c, b, a = coefficients
+        discriminant = b*b-4*a*c
+        if discriminant < 0.:
+            return ()
+        root = math.sqrt(discriminant)
+        roots = ((-b-root)/(2*a), (-b+root)/(2*a))
+    else:
+        roots = polyroots(coefficients)
+    return tuple(float(value.real) for value in roots
+                 if abs(value.imag) <= 1e-9 and 0. < value.real < 1.)
+
+
+def _segment_motion_bounds(coefficients):
+    """Bound absolute normalized velocity and acceleration at spline extrema."""
+    if len(coefficients) == 4:
+        _, c, b, a = coefficients
+        return _cubic_slope_bound(a, b, c), max(abs(2*b), abs(6*a+2*b))
+    velocity = _differentiate(coefficients)
+    acceleration = _differentiate(velocity)
+    speed_bound = max(abs(_evaluate(velocity, u))
+                      for u in (0., 1., *_interior_roots(acceleration)))
+    acceleration_bound = max(abs(_evaluate(acceleration, u))
+                             for u in (0., 1., *_interior_roots(_differentiate(acceleration))))
+    return math.nextafter(speed_bound, math.inf), acceleration_bound
+
+
 def retime_recorded_trajectory(
         path: RecordedTrajectory, limits: dict[str, PhysicalJointLimit], *,
         velocity: float, acceleration: float, minimum_duration_sec: float = .3,
         limit_scale: float = .8) -> RecordedTrajectory:
-    """Uniformly retime saved cubics using their analytical rate extrema.
+    """Uniformly retime saved splines using their analytical rate extrema.
 
     Positions and relative timing are retained. Velocities change inversely
-    with time, preserving each Hermite curve within timestamp quantization.
+    with time, and accelerations change inversely with squared time.
     """
     path.validate()
     if (not set(path.joint_names) <= limits.keys()
@@ -167,16 +247,16 @@ def retime_recorded_trajectory(
         limit_scale=limit_scale)
     required_scale = 0.
     for dt, coefficients in path._segments:
-        for (a, b, c, _), vmax, amax in zip(
+        for poly, vmax, amax in zip(
                 coefficients, velocity_limits, acceleration_limits, strict=True):
-            required_scale = max(required_scale,
-                _cubic_slope_bound(a, b, c)/dt/vmax,
-                math.sqrt(max(abs(2*b), abs(6*a+2*b))/dt**2/amax))
+            v_bound, a_bound = _segment_motion_bounds(poly)
+            required_scale = max(required_scale, v_bound/dt/vmax, math.sqrt(a_bound/amax)/dt)
     duration = path.points[-1].time_ns/1e9
     scale = max(minimum_duration_sec/duration, required_scale*1.05)
     result = RecordedTrajectory(path.joint_names, tuple(
         CommandPoint(round(point.time_ns*scale), point.positions,
-                     tuple(value/scale for value in point.velocities))
+                     tuple(value/scale for value in point.velocities),
+                     tuple(value/scale**2 for value in point.accelerations))
         for point in path.points))
     result.validate()
     return result
@@ -189,7 +269,7 @@ def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[flo
 
     A positive tolerance may finish bisection once its upper-height endpoint
     is within that many meters of the target. Zero retains nanosecond search.
-    Analytical cubic slopes bound joint steps without a loose coefficient sum.
+    Analytical spline slopes bound joint step sizes.
     This is a joint sampling bound, not a continuous Cartesian collision proof.
     """
     if (not math.isfinite(target_z) or not math.isfinite(step_rad) or step_rad <= 0
@@ -208,7 +288,7 @@ def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[flo
     examined = 1
     for index, (first, last) in enumerate(zip(path.points, path.points[1:])):
         _, coefficients = path._segments[index]
-        bound = max(_cubic_slope_bound(a, b, c) for a, b, c, _ in coefficients)
+        bound = max(_segment_motion_bounds(poly)[0] for poly in coefficients)
         count = max(2, math.ceil(bound/step_rad))
         examined += count
         if examined > maximum_points:
@@ -257,6 +337,8 @@ def stopped_recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int
     duration = source.points[-1].time_ns/1e9
     start_stopped = all(abs(v) < 1e-9 for v in source.points[0].velocities)
     end_stopped = all(abs(v) < 1e-9 for v in source.points[-1].velocities)
+    if start_stopped and end_stopped and any(p.accelerations for p in source.points):
+        return source
     brake = (0. if end_stopped else min(duration, max(
         abs(v)/(.5*a) for v,a in zip(source.points[-1].velocities, a_limits, strict=True))))
     if start_stopped:
@@ -334,10 +416,10 @@ def validate_recorded_trajectory(
         trajectory: RecordedTrajectory, limits: dict[str, PhysicalJointLimit], *,
         velocity: float, acceleration: float, step: float,
         maximum_points: int = 2000, limit_scale: float = .8) -> list[JointPathSample]:
-    """Check exact Hermite extrema/rates and sample the cubics for collisions.
+    """Check Hermite extrema and rates, then sample the splines for collisions.
 
     The returned collision samples do not change the recorded command points.
-    ROS JTC reconstructs cubics from the saved positions, velocities and times.
+    ROS JTC selects a quintic when both knots include accelerations.
     """
     trajectory.validate()
     names = trajectory.joint_names
@@ -349,33 +431,16 @@ def validate_recorded_trajectory(
         names, limits, velocity=velocity, acceleration=acceleration, limit_scale=limit_scale)
     duration = end_ns/1e9
     result = []
-    for first, last in zip(trajectory.points, trajectory.points[1:]):
-        dt = (last.time_ns-first.time_ns)/1e9
-        coefficients, fractions, maximum = [], {0., 1.}, 0.
-        for name, q0, q1, v0, v1, velocity_limit, acceleration_limit in zip(
-                names, first.positions, last.positions, first.velocities, last.velocities,
-                velocity_limits, acceleration_limits, strict=True):
-            a = 2*q0-2*q1+dt*(v0+v1)
-            b = 3*q1-3*q0-dt*(2*v0+v1)
-            c = dt*v0
-            coefficients.append((a, b, c, q0))
-            slope_bound = max(abs(c), abs(3*a+2*b+c))
-            if abs(a) > 1e-14:
-                extremum = -b/(3*a)
-                if 0 < extremum < 1:
-                    slope_bound = max(slope_bound, abs((3*a*extremum+2*b)*extremum+c))
-                discriminant = 4*b*b-12*a*c
-                if discriminant >= 0:
-                    fractions.update(u for u in (
-                        (-2*b-math.sqrt(discriminant))/(6*a),
-                        (-2*b+math.sqrt(discriminant))/(6*a)) if 0 < u < 1)
-            elif abs(b) > 1e-14:
-                extremum = -c/(2*b)
-                if 0 < extremum < 1:
-                    fractions.add(extremum)
-            acceleration_bound = max(abs(2*b), abs(6*a+2*b))/dt**2
+    for index, (dt, coefficients) in enumerate(trajectory._segments):
+        first, last = trajectory.points[index:index+2]
+        fractions, maximum = {0., 1.}, 0.
+        rates = tuple(_differentiate(poly) for poly in coefficients)
+        for name, poly, rate, velocity_limit, acceleration_limit in zip(
+                names, coefficients, rates, velocity_limits, acceleration_limits, strict=True):
+            slope_bound, acceleration_bound = _segment_motion_bounds(poly)
+            fractions.update(_interior_roots(rate))
             if (slope_bound/dt > velocity_limit+1e-7
-                    or acceleration_bound > acceleration_limit+1e-7):
+                    or acceleration_bound/dt**2 > acceleration_limit+1e-7):
                 raise CommandPathValidationError(f'Recorded trajectory exceeds joint rate limits: joint={name}')
             maximum = max(maximum, slope_bound)
         count = max(2, math.ceil(maximum/step))
@@ -385,14 +450,15 @@ def validate_recorded_trajectory(
         for u in sorted(fractions):
             if result and u == 0.:
                 continue
-            positions = tuple(((a*u+b)*u+c)*u+d for a, b, c, d in coefficients)
+            positions = (first.positions if u == 0. else last.positions if u == 1.
+                         else tuple(_evaluate(poly, u) for poly in coefficients))
             for name, q in zip(names, positions, strict=True):
                 try:
                     limits[name].check(q)
                 except JointRangeValidationError as error:
                     raise error.at(name, len(result)) from error
             progress = (first.time_ns+u*(last.time_ns-first.time_ns))/end_ns
-            derivatives = tuple((3*a*u*u+2*b*u+c)*duration/dt for a, b, c, _ in coefficients)
+            derivatives = tuple(_evaluate(rate, u)*duration/dt for rate in rates)
             result.append(JointPathSample(progress, positions, derivatives))
             if len(result) > maximum_points:
                 raise CommandPathValidationError('Recorded trajectory exceeds collision sample budget')

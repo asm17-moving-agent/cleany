@@ -619,7 +619,7 @@ def test_temporary_preflight_and_payload_monitor_do_not_require_contact_ports(te
     node.real.closed_contact_position = node.real.contact_decision = forbidden
     node.evidence = NS(wait_for_service=forbidden)
     selected = NS(selected_arm=arm, selected_candidate=NS(required_opening_m=.04),
-                  gripper_joint_position=load_arm(raw, require_bins=False).opening(.04))
+                  gripper_joint_position=load_arm(raw, require_bins=False).opened)
     node.before_execution(selected)
     assert node.destination == 'return_to_pick'
     node.carrying = {'release_confirmed': False}

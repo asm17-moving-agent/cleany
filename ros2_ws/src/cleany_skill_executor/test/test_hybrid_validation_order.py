@@ -135,3 +135,26 @@ def test_scene_change_is_rejected_even_after_first_state_passes():
         with gpu._scene_operation():
             assert gpu._choose_valid('left', group) is group[0]
     assert len(calls) == 1 and gpu._active_scene is None
+
+
+@pytest.mark.parametrize('gpu_available', [True, False])
+def test_octomap_batches_limit_64_and_keep_native_validation_for_survivors(gpu_available):
+    gpu, _ = adapter({})
+    group = [alignment(i, 0.) for i in range(69)]
+    batches, native = [], []
+
+    def map_hits(items):
+        batches.append(len(items))
+        return tuple(item is not group[-1] for item in items) if gpu_available else ()
+
+    def finalize(index, item):
+        native.append(item)
+        accepted = item is group[-1]
+        return (item if accepted else None,
+                {'outcome': 'accepted' if accepted else 'final_collision_rejected'})
+
+    gpu._owner.grasp_octomap_hits = map_hits
+    gpu.finalize_alignment = finalize
+    assert gpu._choose_moveit_batch('left', [group]) == [group[-1]]
+    assert batches == [64, 5]
+    assert native == ([group[-1]] if gpu_available else group)

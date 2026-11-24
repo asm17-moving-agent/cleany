@@ -266,7 +266,8 @@ def test_ompl_is_configured_for_each_arm() -> None:
     ):
         expected = ['RRTConnectkConfigDefault']
         if group in ('left_grasp_arm', 'right_grasp_arm'):
-            expected.append('RRTConnectReturnkConfigDefault')
+            expected.extend(('RRTConnectGraspApproachkConfigDefault',
+                             'RRTConnectReturnkConfigDefault'))
         assert ompl[group]['planner_configs'] == expected
 
 
@@ -412,6 +413,10 @@ def test_return_profile_keeps_collision_resolution_and_avoids_duplicate_simplifi
     assert fast['type'] == base['type'] and fast['range'] == base['range']
     assert fast['simplify_solutions'] == 0 and 'simplify_solutions' not in base
     assert 'interpolate' not in fast
+    approach = ompl['planner_configs']['RRTConnectGraspApproachkConfigDefault']
+    assert approach['enforce_joint_model_state_space'] == 1
+    assert 'longest_valid_segment_fraction' not in approach
+    assert 'longest_valid_segment_fraction' not in fast
     for side in SIDES:
         assert ompl[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
     assert 'cleany/RobustTimeParameterization' in ompl['request_adapters']
