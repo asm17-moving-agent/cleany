@@ -28,6 +28,10 @@ def component_fingerprint(project: Path, environment: str) -> str:
     interfaces = ROOT / "ros2_ws/src/cleany_base_interfaces"
     files += [interfaces / "CMakeLists.txt", interfaces / "package.xml"]
     files += sorted((interfaces / "msg").glob("*.msg"))
+    files += sorted((interfaces / "srv").glob("*.srv"))
+    if environment == "esp32-s3-integrated":
+        subset = CONTROLLER / "mcu_interfaces/cleany_interfaces"
+        files += [subset / name for name in ("CMakeLists.txt", "package.xml", "msg/TofFrame.msg")]
     for file in files:
         digest.update(str(file).encode())
         digest.update(file.read_bytes())
@@ -38,7 +42,7 @@ def refresh_component(project: Path, environment: str) -> None:
     """입력이나 IDF 빌드 환경이 바뀌면 파생 타입 지원 코드를 재생성합니다."""
     component = OUTPUT / "micro_ros_espidf_component"
     defaults = hashlib.sha256((CONTROLLER / "sdkconfig.defaults").read_bytes()).hexdigest()
-    defaults_stamp = project / ".pio/cleany-sdkconfig-defaults"
+    defaults_stamp = project / f".pio/cleany-sdkconfig-defaults-{environment}"
     if not defaults_stamp.exists() or defaults_stamp.read_text() != defaults:
         # sdkconfig.defaults는 최초 생성에만 적용되고 기존 sdkconfig에는 반영되지 않습니다.
         # 검토된 기본값이 바뀌면 파생 설정을 초기화합니다.
@@ -50,6 +54,14 @@ def refresh_component(project: Path, environment: str) -> None:
             cache.unlink()
         defaults_stamp.parent.mkdir(parents=True, exist_ok=True)
         defaults_stamp.write_text(defaults)
+    integrated = environment == "esp32-s3-integrated"
+    subset = CONTROLLER / "mcu_interfaces/cleany_interfaces"
+    subset_link = project / "extra_ros_packages/cleany_interfaces"
+    if integrated:
+        subset_link.parent.mkdir(parents=True, exist_ok=True)
+        link_generated_config(subset_link, subset)
+    elif subset_link.is_symlink() and subset_link.resolve() == subset.resolve():
+        subset_link.unlink()
     fingerprint = component_fingerprint(project, environment)
     stamp = component / ".cleany-build-fingerprint"
     if stamp.exists() and stamp.read_text() == fingerprint:
@@ -80,6 +92,11 @@ def refresh_component(project: Path, environment: str) -> None:
             shutil.rmtree(package)
         shutil.copytree(ROOT / "ros2_ws/src/cleany_base_interfaces", package,
                         ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"))
+        tof_package = source / "extra_packages/cleany_interfaces"
+        if tof_package.exists():
+            shutil.rmtree(tof_package)
+        if integrated:
+            shutil.copytree(subset, tof_package)
     stamp.write_text(fingerprint)
 
 

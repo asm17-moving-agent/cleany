@@ -156,3 +156,13 @@ def test_provider_resolves_preview_and_rejects_depth_without_leasing():
             assert response.status == 400
             assert cameras.selected() == {preview}
     asyncio.run(scenario())
+
+
+def test_operational_preview_only_catalogs_redacted_source():
+    topic = '/camera/head/color/image_redacted'
+    c = Cameras(allowed_topic=topic)
+    c.discover({k: ['sensor_msgs/msg/Image'] for k in
+                (topic, '/camera/color/image_raw', '/perception/debug_image_latched')})
+    assert list(c.catalog()) == [topic]
+    c.discover({'/camera/color/image_raw': ['sensor_msgs/msg/Image']})
+    assert c.catalog() == {}

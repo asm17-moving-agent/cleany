@@ -63,3 +63,22 @@ def test_recovery_marks_abandoned_bags_incomplete_and_uses_new_session(tmp_path)
         assert worker.snapshot()['session_id'] != 'abandoned'
     finally:
         worker.close()
+
+
+def test_camera_policy_migrates_saved_raw_topic_and_refuses_override(tmp_path):
+    import json
+    safe = '/camera/head/color/image_redacted'
+    old = defaults()
+    old['topics']['camera'] = '/camera/head/color/image_raw'
+    (tmp_path / 'recording-settings.json').write_text(json.dumps(old))
+    worker = RecordingWorker(ObservationBuffer(), config(tmp_path),
+                             record_on_start=False)
+    worker.start()
+    try:
+        saved = worker.submit('get_config').result(2)['settings']
+        assert saved['topics']['camera'] == safe
+        with pytest.raises(ValueError, match='restricted'):
+            worker.submit('configure', settings=old).result(2)
+        assert worker.submit('get_config').result(2)['settings']['topics']['camera'] == safe
+    finally:
+        worker.close()

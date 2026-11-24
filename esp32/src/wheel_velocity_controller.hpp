@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "wheel_friction.hpp"
+
 namespace cleany {
 
 struct WheelVelocityControllerConfig {
@@ -23,28 +25,44 @@ class WheelVelocityController {
  public:
   WheelVelocityController() = default;
 
-  explicit WheelVelocityController(WheelVelocityControllerConfig config)
-      : config_(config) {}
+  explicit WheelVelocityController(WheelVelocityControllerConfig config,
+                                   const WheelFriction* friction = nullptr)
+      : config_(config), friction_(friction) {}
 
   /**
    * @brief PI 상태를 갱신하고 제한된 PWM %를 반환합니다.
    * 목표가 0이거나 경과 시간이 0 이하이면 적분 상태를 초기화하고 0을 반환합니다.
    */
   float update(float targetRadPerSecond, float measuredRadPerSecond,
-               float elapsedSeconds) {
+               float elapsedSeconds, int32_t encoderCount = 0, int64_t nowUs = 0) {
     if (targetRadPerSecond == 0.0F || elapsedSeconds <= 0.0F) {
       reset();
       return 0.0F;
     }
 
     const float error = targetRadPerSecond - measuredRadPerSecond;
-    const float feedForward =
+    float feedForward =
         targetRadPerSecond / config_.maximumTargetRadPerSecond *
         config_.outputLimitPercent;
+    float minimumOutput = 0.0F;
+    if (friction_) {
+      const auto& direction = targetRadPerSecond > 0.0F ? friction_->forward : friction_->reverse;
+      feedForward = std::copysign(holdingFeedForward(direction, std::fabs(targetRadPerSecond),
+                                                     std::fabs(feedForward)), targetRadPerSecond);
+      const auto startup = start_.update(targetRadPerSecond, measuredRadPerSecond,
+                                         encoderCount, nowUs, direction);
+      minimumOutput = startup.floorPercent;
+      feedForward += startup.anglePercent;
+      if (startup.integralTransferPercent != 0.0F && config_.integralGain > 0.0F) {
+        const float limit = config_.outputLimitPercent / config_.integralGain;
+        integralError_ = std::clamp(integralError_ + startup.integralTransferPercent /
+                                    config_.integralGain, -limit, limit);
+      }
+    }
     const float lowerOutput =
-        targetRadPerSecond > 0.0F ? 0.0F : -config_.outputLimitPercent;
+        targetRadPerSecond > 0.0F ? minimumOutput : -config_.outputLimitPercent;
     const float upperOutput =
-        targetRadPerSecond > 0.0F ? config_.outputLimitPercent : 0.0F;
+        targetRadPerSecond > 0.0F ? config_.outputLimitPercent : -minimumOutput;
     float candidateIntegral = integralError_ + error * elapsedSeconds;
     if (config_.integralGain > 0.0F) {
       const float integralLimit =
@@ -71,6 +89,7 @@ class WheelVelocityController {
   }
 
   void reset() {
+    start_.reset();
     integralError_ = 0.0F;
   }
 
@@ -80,6 +99,8 @@ class WheelVelocityController {
 
  private:
   WheelVelocityControllerConfig config_;
+  const WheelFriction* friction_ = nullptr;
+  StartFriction start_;
   float integralError_ = 0.0F;
 };
 

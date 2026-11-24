@@ -36,6 +36,7 @@ setup(
     entry_points={
         'console_scripts': [
             'calibrated_rgbd = cleany_perception.calibrated_rgbd:main',
+            'camera_privacy = cleany_perception.privacy_node:main',
             'inspection_node = cleany_perception.inspection_node:main',
             'depth_scene_node = cleany_perception.depth_scene_node:main',
             'scene_cloud_receipt_node = cleany_perception.scene_cloud_receipt_node:main',

@@ -1,0 +1,14 @@
+gamepad_teleop:
+  ros__parameters:
+    forward_axis: 1
+    left_axis: 0
+    slow_trigger_axis: 2
+    fast_trigger_axis: 5
+    trigger_threshold: 0.5
+    slow_mps: 0.1
+    fast_mps: 0.5
+    turn_axis: 3
+    deadzone: 0.08
+    speed: 2.0
+    max_age: 0.15
+    update_period: 0.07

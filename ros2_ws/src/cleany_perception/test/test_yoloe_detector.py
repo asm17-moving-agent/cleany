@@ -280,7 +280,7 @@ def test_scene_suppresses_duplicate_masks_before_applying_candidate_limit(tmp_pa
     np.testing.assert_array_equal(scene[1].segmentation_mask, masks[2])
 
 
-def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path):
+def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path, gemini_privacy_model):
     checkpoint, encoder_directory = _model_files(tmp_path)
     model = _Model()
     original_predict = model.predict

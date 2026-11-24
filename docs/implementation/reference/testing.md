@@ -45,6 +45,7 @@ flowchart TB
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | IMU 고정 보정 | `make test-imu-runtime` | 기존 계수 적용 core, 합성 IMU 각속도와 가속도 전달, 오류와 수신 회복 |
 | Wheel/IMU EKF | `make test-base-ekf` | mock wheel, 합성 IMU, covariance에 따른 융합, 장착 회전 변환과 실제 TF 발행자 |
+| 통합 및 기존 모터 펌웨어 | `make firmware-build`, `make firmware-build FIRMWARE_ENV=esp32-s3-microros` | 같은 micro-ROS 캐시를 사용하므로 순차 실행합니다. |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
 | Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
@@ -708,18 +709,12 @@ python3 ros2_ws/src/cleany_moveit_config/runtime_test/check_freecad_lower_body.p
   /path/to/lower-body-probes.json
 ```
 
-실제 CAD에서 만든 입력과 생성 스크립트의 위치는
-[하부 최적화 실행 근거](../../EVIDENCE.md#2026-11-05-freecad-moveit-하부-단순-형상)에 있습니다.
-투입구 보존과 상부 추가 감면의 입력은
-[몸통과 상부 최적화 실행 근거](../../EVIDENCE.md#2026-11-05-freecad-투입구-보존과-상부-추가-감면)에 있습니다.
-기둥 상세화와 팔 분할 외피의 입력은
-[분할 외피 실행 근거](../../EVIDENCE.md#2026-11-05-freecad-기둥-상세화와-팔-분할-외피)에 있습니다.
-집게 입구 보존, 강체 묶음과 native cuboid의 입력은
-[추가 최적화 실행 근거](../../EVIDENCE.md#2026-11-05-집게-입구-보존과-curobo-기본-박스-최적화)에 있습니다.
-캠과 링크 감면, 개방 자세별 입구 검사의 입력은
-[그리퍼 단순화 실행 근거](../../EVIDENCE.md#2026-11-05-그리퍼-캠과-링크-추가-단순화)에 있습니다.
-추가 자기 접촉의 형상 수정과 세 모델 대조는
-[결합부 복원 실행 근거](../../EVIDENCE.md#2026-11-05-그리퍼-결합부-형상-복원과-자기-접촉-회귀-검사)에 있습니다.
+| 준비할 입력 | 용도 | 생성 근거 |
+|---|---|---|
+| `lower-body-probes.json` | 하부 외피의 점군과 장애물 접촉 검사 | [생성 스크립트와 입력 목록](https://github.com/asm17-moving-agent/cleany/blob/11fbb1f6aeeaf6acd920927425f9a6141ad4d56f/docs/EVIDENCE.md?plain=1#L1822) |
+| `body-probes.json`, `curobo-probes.json` | 몸통과 분할 외피의 점유·충돌 비교 | [입력과 생성 스크립트](https://github.com/asm17-moving-agent/cleany/blob/11fbb1f6aeeaf6acd920927425f9a6141ad4d56f/docs/EVIDENCE.md?plain=1#L1928) |
+| `open-probes-final.json`, `aperture-geometry-final.json` | 열린 집게의 입구 보존 검사 | [자세와 입력 목록](https://github.com/asm17-moving-agent/cleany/blob/11fbb1f6aeeaf6acd920927425f9a6141ad4d56f/docs/EVIDENCE.md?plain=1#L1991) |
+
 저장 자세의 검사 통과는 모든 관절 자세나 실물 계획 검증을 대신하지 않습니다.
 
 ## 인식과 파지 후보 검증

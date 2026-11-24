@@ -13,7 +13,7 @@ import zlib
 from pathlib import Path
 from uuid import uuid4
 
-from .recording import allowed, category, validate
+from .recording import REDACTED_CAMERA_TOPIC, allowed, category, validate
 from .rosbag import RosbagWriter
 from .sources import resolved, validate_sources
 from .archive import ArchiveReader, decode_record
@@ -97,6 +97,7 @@ class Recorder(ArchiveReader):
         try:
             loaded = validate(json.loads(path.read_text()))
             validate_sources({**resolved(config), **loaded["sources"]})
+            loaded['topics']['camera'] = REDACTED_CAMERA_TOPIC
             self.controls.configure(loaded)
             self.session_limit = self.controls.settings["limit_mib"] * 1024**2
         except (ValueError, OSError, TypeError):

@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Build an external, receiver-specific module against the running Jetson ABI.
+set -euo pipefail
+
+release=$(uname -r)
+if [[ $release != 5.15.148-tegra ]]; then
+    echo "Supported kernel: 5.15.148-tegra (running: $release)" >&2
+    exit 1
+fi
+headers="/lib/modules/$release/build"
+root=$(cd "$(dirname "$0")" && pwd)
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/cleany/xpad/$release"
+rule=72-cleany-gamepad.rules
+installed="/lib/modules/$release/updates/cleany/cleany_xpad.ko"
+action=${1:-build}
+
+case "$action" in
+    build|load|install)
+        mkdir -p "$cache"
+        build=$(mktemp -d "$cache/build.XXXXXXXX")
+        curl -fsSL --retry 2 https://raw.githubusercontent.com/gregkh/linux/v5.15.148/drivers/input/joystick/xpad.c -o "$build/xpad.c"
+        cd "$build"
+        echo "34a522dc1a3bdb8434334a1b1a67bde678adcaa0eafa14b38ee1f9c02d2070e7  xpad.c" | sha256sum -c -
+        patch --batch -p1 < "$root/patches/leadjoy-xpad-5.15.148.patch"
+        printf 'obj-m := cleany_xpad.o\ncleany_xpad-y := xpad.o\n' > Makefile
+        make -C "$headers" M="$build" modules
+        module="$build/cleany_xpad.ko"
+        [[ $(modinfo -F vermagic "$module") == "$release "* ]]
+        modinfo -F alias "$module" | grep -Fx 'usb:v4131p3519d*dc*dsc*dp*icFFisc5Dip01in*'
+        echo "$module"
+        if [[ $action == load && ! -d /sys/module/cleany_xpad ]]; then
+            sudo insmod "$module"
+        elif [[ $action == install ]]; then
+            sudo install -D -m 0644 "$root/../configs/host/udev/$rule" "/etc/udev/rules.d/$rule"
+            sudo udevadm control --reload-rules
+            sudo install -D -m 0644 "$module" "$installed"
+            sudo depmod -a "$release"
+            sudo modprobe cleany_xpad
+            for event in /sys/class/input/event*; do
+                if [[ $(cat "$event/device/name") == "LeadJoy Xeno Plus" ]]; then
+                    sudo udevadm trigger --action=change "$event"
+                fi
+            done
+        fi
+        ;;
+    remove)
+        if [[ -d /sys/module/cleany_xpad ]]; then sudo rmmod cleany_xpad; fi
+        if [[ -e /etc/udev/rules.d/$rule ]]; then
+            sudo rm -- "/etc/udev/rules.d/$rule"
+            sudo udevadm control --reload-rules
+        fi
+        if [[ -f $installed ]]; then sudo rm -- "$installed"; sudo depmod -a "$release"; fi
+        ;;
+    *) echo "Usage: $0 {build|load|install|remove}" >&2; exit 2 ;;
+esac

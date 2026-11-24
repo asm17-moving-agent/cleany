@@ -137,78 +137,35 @@ ros2 launch cleany_description description.launch.py \
 
 D435 점군은 촬영 시각의 실제 head encoder TF로 변환합니다. 높이 하한은 로봇 좌표에 고정되어 tilt·바닥 평면 추정에 따라 바뀌지 않습니다. **하한보다 낮은 물체도 제외**되므로 낮은 장애물 검출을 보장하지 않습니다. 측정 바닥면은 표시 grid와 상한 기준으로만 사용하며, 위 값은 CAD 기반 추정입니다.
 
-## 2026-11-09 머리 모터 교체와 허용 범위
+## 머리 모터의 영점과 허용 범위
 
-사용자가 지정한 좌우 끝과 상하 끝을 각각 5 Hz로 15회 수집해 다음 범위를
-등록했다. 각 끝점의 15개 tick은 모두 같았다. 14번의 정면 영점은 별도로
-수집한 425 tick이며 13번은 2009 tick을 사용한다.
+[헤드 관절 설정](../../configs/robot/head_preview_joints.json)의 `reference_ticks`를 정면 영점으로 사용합니다. 상태 모델과 제어 모델에는 같은 파일의 `joint_position_bounds`를 적용합니다.
 
 | 모터 | 허용 tick 범위 | 정면 영점 tick | 정면 기준 각도 범위 |
 |---|---|---|---|
 | 13번 좌우 | 8~4001 | 2009 | −175.078125°~+175.869141° |
 | 14번 상하 | 44~1101 | 425 | −33.486328°~+59.414063° |
 
-모터 EEPROM의 최소 위치 주소 9와 최대 위치 주소 11에 범위를 저장하고
-잠금 주소 55를 다시 잠갔다. 포트를 닫았다 다시 열어 저장값과 토크 OFF를
-확인했다. 회전 방향은 왼쪽 및 위쪽 이동에서 raw tick이 감소하는 측정과
-대조했다.
-
-운영 매핑은 `configs/robot/head_preview_joints.json`이며
-`joint_position_bounds`의 rad 범위를 상태 모델과 제어 모델에 적용한다.
-읽기 전용 RViz의 별도 매핑은 Jetson
-`~/.config/cleany/head-rviz-mapping.json`에 저장한다. 원본 측정, 변경 전 값과
-적용 검증은 [실행 근거](../EVIDENCE.md)에 연결한다.
-
+좌우 모터는 왼쪽으로, 상하 모터는 위쪽으로 움직일 때 원시 tick이 감소합니다. 읽기 전용 RViz에는 별도 매핑 `~/.config/cleany/head-rviz-mapping.json`을 사용합니다.
 
 ## 양팔의 수동 ROS 영점 정렬
 
-2026-11-02에 사용자가 양팔을 차례로 URDF의 다섯 관절이 모두 0 rad인
-자세로 유지한 상태에서 ID 1–5와 7–11의 엔코더를 읽었다. 현재 운영 설정
-`cleany_robot_interface/config/arm_preview.yaml`은 다음 `zero_tick`을 사용한다.
+[양팔 미리보기 설정](../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml)의 `overrides.left`와 `overrides.right`에서 각 관절의 `direction`, `zero_tick`, `offset_rad`를 확인합니다. 엔코더의 현재 위치에는 EEPROM의 homing offset이 이미 반영되어 있습니다. 손목 CAD 중심과 URDF의 영점은 서로 다른 기준입니다.
 
-| 관절 | 왼팔 모터 | 왼팔 영점 tick | 오른팔 모터 | 오른팔 영점 tick |
-|---|---:|---:|---:|---:|
-| shoulder_pan | 1 | 1997 | 7 | 2042 |
-| shoulder_lift | 2 | 3075 | 8 | 3111 |
-| elbow_flex | 3 | 1066 | 9 | 997 |
-| wrist_flex | 4 | 1995 | 10 | 2081 |
-| wrist_roll | 5 | 3092.5 | 11 | 3055.5 |
+다시 정렬할 때는 제어기와 조회 프로세스의 포트 점유를 해제하고, 토크가 꺼진 팔을 기준 자세로 지지한 뒤 안정된 엔코더 구간을 수집합니다. 읽기 전용 상태 조회를 다시 시작해 방향과 영점을 확인합니다. 카메라 마운트의 시각적 정렬로는 광학축이나 관절의 절대 정확도를 평가할 수 없습니다. 재조립한 손목의 물리적 영점은 별도 확인이 필요합니다.
 
-초기값은 20 Hz로 읽은 연속 60개 표본의 중앙값이다. 오른팔 팔꿈치의 최종
-영점은 사용자가 양쪽 팔꿈치의 접힘 각도가 같다고 지정한 자세에서
-왼쪽 ID 3의 ROS 각도와 일치하도록 보완한 값이다. 이는 왼팔 기준의
-상대 각도 보정이다. 채택한 구간의 관절별
-최대 변동은 양팔 모두 8 tick 이하였다. `direction`과 `offset_rad`, 양쪽
-그리퍼와 모터 EEPROM은 변경하지 않았다. 이는 사용자 수동 정렬에 대한
-기준점이며 절대 각도 정확도나 구동 검증 결과가 아니다.
+## 그리퍼 보정과 복원
 
-손목 회전은 실물의 양쪽 카메라 마운트가 위쪽을 향하는 자세를 기준으로
-RViz에서 방향을 확인한 뒤 보완했다. 현재 영점은 이 미리보기의 회전량을
-실측 tick의 ROS 변환에 반영한 값이다. 카메라 외부 보정과 다른 관절 값은
-유지했으며, 시각적 방향 확인을 카메라 광학축의 정밀 보정으로 간주하지 않는다.
-
-다시 정렬할 때는 제어기와 조회 프로세스의 포트 점유를 해제하고, 토크가
-꺼진 팔을 기준 자세로 지지한 뒤 안정된 엔코더 구간을 수집한다. 현재 팔의
-`offset_rad`는 0이므로 해당 중앙값을 `zero_tick`으로 사용한다. 새 설정은
-읽기 전용 상태 조회 또는 제어 프로세스가 다음에 시작할 때 읽는다.
-원본 측정과 적용 근거는 [실행 근거](../EVIDENCE.md)를 따른다.
-
-## 2026-11-15 양팔 보정과 그리퍼 복원 기준
-
-양팔 모터의 영점과 범위는 [현장 보정 기록](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json)에 보관한다.
-이후 [개방 0° 보정](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/manifest.json)에서 그리퍼 6번과 12번만 갱신했다.
+[양팔 보정 스냅샷](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json)은 기본 복원 자료입니다. [그리퍼 개방 기준 스냅샷](../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115_open160/manifest.json)은 양쪽 그리퍼에 최대 개방 0°를 적용합니다.
 
 | 모터 | Homing offset | 최대 개방 | 닫힘 목표 |
 | --- | ---: | ---: | ---: |
 | 6, 왼쪽 | −1400 | 2048 tick | 3868 tick |
 | 12, 오른쪽 | −1618 | 2048 tick | 3868 tick |
 
-모터 혼 정면에서 시계 방향 닫힘 160°는 1820 tick이다. 모터 보정 JSON,
-EEPROM 읽기 근거와 로봇별 설정에 병합할 조각은 스냅샷에 담았다.
-실측은 양쪽 닫힘 목표 도달을 확인했다. 왕복 동작, 개구 폭 곡선과 힘은
-이 측정에서 검증하지 않았다.
+모터 혼 정면에서 시계 방향으로 닫히며 개방점에서 닫힘 목표까지의 차이는 1,820 tick(약 160°)입니다. 양쪽 모터에서 닫힘 목표 도달을 확인했습니다. 왕복 동작, 개구 폭 곡선과 파지력은 아직 검증하지 않았습니다.
 
-운영 시 [양팔 매핑](../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml)은 같은 패키지의 `calibration/jetson_20261115_open160/motors/`에서 좌우 모터 JSON을 읽는다. 두 파일은 Jetson LeRobot 캐시의 운영 사본과 바이트 단위로 같다. [카메라 자세](../../configs/robot/jetson/calibration/camera_pose.json)는 이 매핑, 모터 보정과 기준 파일들의 SHA-256을 확인한다. 모델과 검증 입력 경로는 자세 파일을 기준으로 해석한다. 과거 촬영 기록에 남은 장비 경로는 당시 데이터의 출처다.
+양팔 매핑은 `calibration/jetson_20261115_open160/motors/`의 좌우 모터 JSON을 읽습니다. [카메라 자세 설정](../../configs/robot/jetson/calibration/camera_pose.json)에는 매핑과 기준 파일을 대조할 SHA-256이 있습니다.
 
 ## LiDAR 평면 extrinsic
 
@@ -223,11 +180,13 @@ EEPROM 읽기 근거와 로봇별 설정에 병합할 조각은 스냅샷에 담
 | Y | −0.001191569 m |
 | yaw | 179.997034° |
 
-2026-11-16의 정지 스캔 180.03초를 현재 `Cleany.FCStd`의 여섯 수직 프로파일에
-정합한 값이다. 재측정 시 SDK 원시 각도와 거리를 보존하고, 라이다 높이의
-실제 홈과 곡면을 포함한 단면을 추출한다. 반복 관측의 각도별 중앙값을
-라이다에서 보이는 외곽 면에 정합한 뒤, 위 좌표계로 변환해 새 날짜의 파일에
-저장한다. 측정 원본과 검증은 [실행 근거](../EVIDENCE.md#2026-11-16-lidar-평면-extrinsic)에 연결한다.
+보정 파일의 `measurement`에는 측정에 사용한 CAD와 원시 CSV의 SHA-256이 있습니다. 재측정할 때는 원시 각도와 거리를 보존하고, LiDAR 높이에서 홈과 곡면을 포함한 CAD 단면을 추출합니다. 반복 관측의 각도별 중앙값을 센서에서 보이는 외곽 면에 정합한 뒤 위 좌표계로 변환합니다.
+
+## 휠 저속 기동 보정
+
+[보정 계수](../../esp32/src/wheel_friction_values.hpp)는 기존 모터 보드에서 네 바퀴를 띄워 얻은 정방향 및 역방향 값입니다. 각 방향의 기동 듀티와 0.2, 0.3, 0.4, 0.5 rad/s에서의 유지 듀티를 사용하며, 0.5–1.0 rad/s에서는 표의 끝값에서 기존 FF로 이어집니다.
+
+보드 또는 하중을 바꾼 뒤 같은 저속 명령으로 네 바퀴의 기동 시차를 비교합니다. `/base/wheel_drive_state`의 `fifth_us`는 목표 방향으로 5카운트 진행하기까지 걸린 시간이며, 미도달 값은 −1입니다. [휠 진단 메시지](../../ros2_ws/src/cleany_base_interfaces/docs/protocol.md#pwm-듀티와-기동-시각)
 
 ## IMU factory gyro bias
 

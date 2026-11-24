@@ -20,7 +20,7 @@ def _inspection_node(context):
             LaunchConfiguration('yoloe_config_file'),
             {
                 **{name: ParameterValue(LaunchConfiguration(name), value_type=bool)
-                   for name in ('use_sim_time', 'enable_reference_observation', 'enable_wrist_observation', 'preload_models', 'vlm_ik_warmup_enabled')},
+                   for name in ('use_sim_time', 'allow_external_images', 'enable_reference_observation', 'enable_wrist_observation', 'preload_models', 'vlm_ik_warmup_enabled')},
                 'reference_ttl_seconds': ParameterValue(LaunchConfiguration('reference_ttl_seconds'), value_type=float),
                 **{name: LaunchConfiguration(name) for name in (
                     'yoloe_model_path', 'yoloe_text_encoder_directory',
@@ -50,6 +50,7 @@ def generate_launch_description() -> LaunchDescription:
                 'enable_wrist_observation': 'false', 'preload_models': 'true',
                 'vlm_ik_warmup_enabled': 'false',
                 'reference_ttl_seconds': '600.0'}.items()),
+            DeclareLaunchArgument('allow_external_images', default_value='true'),
             DeclareLaunchArgument('detector_type', default_value=''),
             DeclareLaunchArgument('segmenter_type', default_value=''),
             DeclareLaunchArgument(
