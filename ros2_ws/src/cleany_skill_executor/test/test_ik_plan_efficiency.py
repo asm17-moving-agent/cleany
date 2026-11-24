@@ -130,8 +130,8 @@ def test_rrt_retry_does_not_repeat_failed_direct_joint_check():
     goal = JointSolution(ARM_JOINT_NAMES['left'], (.4, .28, .3, 0., 0.))
     direct = []
     adapter._direct_joint_path = lambda *args: direct.append(args) or None
-    # Reject both final RRT cubics. The stochastic planner still gets two attempts.
-    adapter._validated_cubic_path = lambda *_: None
+    # Reject both timed RRT paths at final collision validation.
+    adapter._collision_samples_valid = lambda *_: False
     assert adapter.plan('left', goal, None) is None
     assert len(direct) == 1
     assert trace.count('cpu_rrtconnect_request') == 2

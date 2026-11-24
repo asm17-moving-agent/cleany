@@ -40,7 +40,7 @@
 추적 session/ID를 확인하고 원본과 `after_stamp_ns`(ns)보다 새 RGB-D 한 장에서 대상을
 측정한다. 원본 캐시, 좌표계나 카메라 보정이 달라지거나 대응 후보가 모호하면 실패한다.
 
-원본 검출 클래스와 bbox, 마스크로 대상을 대응한다. 응답 한 건은 원본 object/track ID,
+물체 번호는 승인 사진 안에서만 유효하다. 동일 원시 클래스의 bbox가 여러 원본이나 여러 최신 검출과 겹치면 각 최신 후보가 원본 추적 위치와 마스크에 일대일로 대응해야 한다. 거리 한계로 `tracking_maximum_distance_m`, bbox와 마스크의 IoU 하한으로 `reference_minimum_detection_iou`를 사용한다. 승인 track이 사라지거나 대응이 모호하면 실패한다. 응답 한 건은 원본 object/track ID,
 종류명, 처리 분류와 `sorting_reason`을 유지하고 신뢰도, 위치, 크기, 깊이는 최신 값을 쓴다.
 Gemini 재분류, 추적 이력 갱신, 참조 고정이나 모터 동작은 수행하지 않는다.
 진단 snapshot은 파지용 캐시에 저장하지 않으며 승인 실행은 원래 snapshot/object를 쓴다.
@@ -70,6 +70,8 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 않는다. RGB 해상도가 보정값과 다르거나 깊이 투영행렬이 유효하지 않으면
 처리하지 않는다. `realsense.launch.py`는 `rgb_intrinsics_file`을 우선한다. 설정에 등록된 일련번호와 `serial_no`가 일치하면 패키지에 설치된 보정 파일을 사용한다. 일치하는 설정이 없으면 SDK 보정을 사용한다. 실측 보정 파일을 선택하면 SDK RGB를
 `/camera/sdk/color/*`로 옮기고 SDK 자동 정렬 대신 이 노드를 실행한다.
+
+선택한 물체의 `context_cloud`에는 촬영 시각의 카메라 원점을 점군 좌표계의 미터로 담은 FLOAT32 필드 `vp_x`, `vp_y`, `vp_z`가 있다. 세 값은 한 메시지 안에서 동일하다. XYZ와 RGB는 기존 오프셋을 유지하며 소비자는 `point_step`을 따른다. 원점 필드가 없는 과거 기록도 깊이 기반 파지 입력으로 사용할 수 있다.
 
 ## 헤드캠 비식별 영상
 

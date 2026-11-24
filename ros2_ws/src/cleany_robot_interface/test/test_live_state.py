@@ -41,7 +41,9 @@ def fake_node():
     joints = [JointMapping(f'joint_{i}', i, 777, 2048., 1, 0., 0, 0, 4095)
               for i in range(1, 13)]
     return SimpleNamespace(
-        joints=joints, arm=SimpleNamespace(read=Mock(return_value=2048)),
+        joints=joints, cad_coordinates=None,
+        measured_names=[joint.name for joint in joints] + ['head_pan_joint', 'head_tilt_joint'],
+        arm=SimpleNamespace(read=Mock(return_value=2048)),
         head=SimpleNamespace(read=Mock(side_effect=[2010, 2150])), head_mapping=HEAD,
         publisher=SimpleNamespace(publish=Mock()), last_warning=0.,
         get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(to_msg=lambda: Time(sec=1))),
@@ -56,6 +58,32 @@ def test_complete_14_joint_frame_without_invented_velocity_or_effort():
     assert message.name[-2:] == ['head_pan_joint', 'head_tilt_joint']
     assert list(message.position) == [0.] * 14
     assert not message.velocity and not message.effort
+
+
+def test_calibrated_frame_uses_current_measurements_and_their_timestamp():
+    node = fake_node()
+    node.measured_names[:2] = ['left_gripper_joint', 'right_gripper_joint']
+    node.arm.read.side_effect = lambda motor, *_: 2100 if motor == 1 else 2000
+    node.cad_coordinates = Mock()
+    node.cad_coordinates.dependent_positions.return_value = {'left_finger': 0.31, 'right_finger': -0.23}
+    RobotStateReader.poll(node)
+    message = node.publisher.publish.call_args.args[0]
+    measured = dict(zip(message.name[:14], message.position[:14]))
+    node.cad_coordinates.dependent_positions.assert_called_once_with(measured)
+    assert measured['left_gripper_joint'] != measured['right_gripper_joint']
+    assert list(message.name[14:]) == ['left_finger', 'right_finger']
+    assert list(message.position[14:]) == pytest.approx([0.31, -0.23])
+    assert message.header.stamp == Time(sec=1)
+    assert not message.velocity and not message.effort
+    assert node.arm.read.call_count == 12 and node.head.read.call_count == 2
+
+
+def test_linkage_failure_suppresses_the_entire_sample():
+    node = fake_node()
+    node.cad_coordinates = Mock()
+    node.cad_coordinates.dependent_positions.side_effect = ValueError('Infeasible linkage')
+    RobotStateReader.poll(node)
+    node.publisher.publish.assert_not_called()
 
 
 @pytest.mark.parametrize('failing_bus', ['arm', 'head'])
@@ -94,7 +122,8 @@ def shared_reader_inputs(tmp_path, monkeypatch, *, alias=False, head_baudrate=1_
         (tmp_path / (side + '.json')).write_text('{}')
     # Exercise the real reader constructor and poll with no ROS graph or device access.
     monkeypatch.setattr(reader.Node, '__init__', lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(reader.Node, 'declare_parameter', lambda *_args: None)
+    monkeypatch.setattr(reader.Node, 'declare_parameter',
+                        lambda _, name, default: SimpleNamespace(value=parameters.get(name, default)))
     monkeypatch.setattr(reader.Node, 'get_parameter', lambda _, name: SimpleNamespace(value=parameters[name]))
     monkeypatch.setattr(reader.Node, 'create_publisher', lambda *_args: SimpleNamespace(publish=Mock()))
     monkeypatch.setattr(reader.Node, 'create_timer', lambda *_args: Mock())

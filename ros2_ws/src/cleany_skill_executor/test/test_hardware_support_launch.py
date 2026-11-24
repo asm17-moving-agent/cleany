@@ -6,17 +6,19 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
+from cleany_description.cad_coordinates import CadCoordinates
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
 
 
-@pytest.mark.parametrize('backend,predictor', [
-    ('moveit', 'geometric'), ('moveit', 'anygrasp'),
-    ('curobo_ik_moveit', 'geometric'), ('curobo_ik_moveit', 'anygrasp'),
+@pytest.mark.parametrize('backend,predictor,calibrated_cad', [
+    ('moveit', 'geometric', False), ('moveit', 'anygrasp', False),
+    ('curobo_ik_moveit', 'geometric', False), ('curobo_ik_moveit', 'anygrasp', False),
+    ('curobo_ik_moveit', 'geometric', True), ('curobo_ik_moveit', 'anygrasp', True),
 ])
 @pytest.mark.parametrize('with_collection', [False, True])
 def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
-        monkeypatch, tmp_path, backend, predictor, with_collection):
+        monkeypatch, tmp_path, backend, predictor, calibrated_cad, with_collection):
     package = Path(__file__).resolve().parents[1]
     root = package.parents[2]
     spec = importlib.util.spec_from_file_location(
@@ -25,6 +27,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
     spec.loader.exec_module(module)
     model = tmp_path / 'model.urdf'
     model.write_text('<robot name="synthetic"/>')
+    monkeypatch.setattr(CadCoordinates, 'from_urdf',
+                        lambda _description: SimpleNamespace() if calibrated_cad else None)
     monkeypatch.setattr(module, 'prepare_state_profile',
                         lambda *args: SimpleNamespace(camera_serial='TEST', model=model))
     monkeypatch.setattr(module, 'get_package_share_directory',
@@ -44,7 +48,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         motion_runtime='native' if backend == 'moveit' else 'container')
     if with_collection:
         collection = tmp_path / 'collection.json'
-        collection.write_text(json.dumps({'pregrasp_z_offset_m': .010, 'arms': {side: {
+        collection.write_text(json.dumps({'pregrasp_z_offset_m': .010, 'batch_grasp_ik_before_limit': True,
+            'arms': {side: {
             'gripper': {'approved_existing_mapping': True, 'closed_joint_rad': -.3,
                         'open_joint_rad': 2.4, 'maximum_width_m': .09},
             'home_joint_rad': 'startup', 'bins': {}} for side in ('left', 'right')}}))
@@ -63,6 +68,7 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         assert config['anygrasp_preload'] is False
         assert config['geometric.maximum_candidates'] == 96
         assert config['geometric.defer_support_plane_collision'] is False
+        assert config['geometric.include_reverse_closing_axis'] is calibrated_cad
     selector = next(item for item in records if item['executable'] == 'physical_grasp_selection_server')
     config = {}
     for item in selector['parameters']:
@@ -78,6 +84,8 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
         assert config['gripper_open_joint_rad'] == 2.4173120563240813
     assert config['position_tolerance_m'] == config['pregrasp_position_tolerance_m'] == .010
     assert config['approach_tolerance_degrees'] == config['closing_tolerance_degrees'] == 30.
+    assert config['ik_seed_wrist_offsets_degrees'] == [0.0]
+    assert config['align_wrist_roll'] is True
     assert config['maximum_candidates'] == 32
     assert config['grasp_ik_first'] is True
     assert config['grasp_approach_offset_m'] == 0.
@@ -89,7 +97,9 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(
     assert config['grasp_direction_pair_position_tolerance_m'] == .00001
     assert config['grasp_direction_pair_axis_tolerance_degrees'] == 1.0
     assert config['require_sensor_scene'] is True
-    assert config['require_gripper_closure_clearance'] is True
+    assert config['require_gripper_closure_clearance'] is False
+    assert config['grasp_octomap_mode'] == 'compare'
+    assert config.get('batch_grasp_ik_before_limit', False) is with_collection
     assert config['asymmetric_gripper_enabled'] is False
     assert config['fixed_jaw_tcp_offset_m'] == 0.
     assert config['fixed_jaw_additional_bias_m'] == 0.

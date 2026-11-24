@@ -157,7 +157,12 @@ require_matching_planning_mode() {
 
 check_motion_runtime() {
   if [[ "${motion_runtime}" == container ]]; then
-    "${repo_root}/tools/motion-container" check
+    local check_output
+    if ! check_output=$("${repo_root}/tools/motion-container" check 2>&1); then
+      printf 'Collection readiness failed: %s\n' "${check_output//$'\n'/ }" >&2
+      return 1
+    fi
+    printf '%s\n' "${check_output}"
   elif [[ "${motion_backend}" == curobo_ik_moveit ]]; then
     if [[ ! -x "${curobo_python}" ]] || ! "${curobo_python}" -c \
       'import torch; from curobo.wrap.reacher.ik_solver import IKSolver; raise SystemExit(not torch.cuda.is_available())'; then
@@ -345,7 +350,7 @@ check_managed_health() {
 wait_for_graph() {
   check_managed_health || return 1
   local readiness_pid result
-  local options=(--timeout "${start_timeout}")
+  local options=(--timeout "${start_timeout}" "$@")
   [[ "${gui}" != true ]] || options+=(--gui)
   # One participant discovers the existing requirements and waits for feedback
   # concurrently. The parent continues monitoring all managed processes.
@@ -370,6 +375,26 @@ check_dds_transport() {
   python3 "${repo_root}/tools/dds_transport.py" check
 }
 
+check_control_profile() {
+  python3 - "${repo_root}" "${robot_profile}" "${CLEANY_FEETECH_CONTROL_CONFIG}" <<'PYTHON'
+from pathlib import Path
+import sys
+from tempfile import TemporaryDirectory
+
+try:
+    from cleany_robot_interface.calibrated_cad_model import require_cad_motion_ready
+    from cleany_robot_interface.control_profile import prepare_control_profile
+
+    repository, profile, control = (Path(value).resolve() for value in sys.argv[1:])
+    require_cad_motion_ready(profile, repository)
+    with TemporaryDirectory() as directory:
+        prepare_control_profile(profile, repository, Path(directory) / 'control', control,
+                                read_only=False)
+except Exception as error:
+    sys.exit(f'Collection readiness failed: control profile: {error}')
+PYTHON
+}
+
 start_runtime() {
   validate_planning_mode || return
   if [[ "${gui}" != true && "${gui}" != false ]]; then
@@ -391,10 +416,11 @@ start_runtime() {
     echo "Next: make collection-execute"
     return 0
   fi
+  source_ros
+  check_control_profile || return
   # The native CPU selector does not require a prepared cuRobo workspace.
   prepare_motion_runtime || return
   if [[ "${use_existing_perception}" == true ]]; then
-    source_ros
     python3 "${repo_root}/tools/shared_perception_readiness.py" --timeout 10.0 || return
   fi
   if fuser -s "${arm_port}"; then
@@ -406,8 +432,7 @@ start_runtime() {
     echo "Load GEMINI_API_KEY into the environment before starting collection." >&2
     return 1
   fi
-  "${repo_root}/tools/feetech-torque" check-off
-  source_ros
+  "${repo_root}/tools/feetech-torque" check-off || return
 
   local timestamp run_dir log_dir
   timestamp="$(date +%Y%m%d-%H%M%S)"
@@ -451,6 +476,10 @@ start_runtime() {
   if [[ "${record_motor_telemetry}" == true ]]; then
     start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
       ros2 run cleany_robot_interface motor_telemetry_recorder
+  fi
+  if [[ "${motion_backend}" == curobo_ik_moveit ]]; then
+    echo "Waiting for guarded feedback and MoveIt before starting GPU IK warmup..."
+    wait_for_graph --control-startup || return
   fi
   start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}"
   if [[ "${gui}" == true ]]; then

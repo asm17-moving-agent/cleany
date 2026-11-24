@@ -1,0 +1,5 @@
+<library path="cleany_gpu_grasp_octomap">
+  <class name="cleany/GpuGraspOctomap" type="cleany::GpuGraspOctomapCapability" base_class_type="move_group::MoveGroupCapability">
+    <description>CUDA OctoMap prefilter for bounded grasp IK batches.</description>
+  </class>
+</library>

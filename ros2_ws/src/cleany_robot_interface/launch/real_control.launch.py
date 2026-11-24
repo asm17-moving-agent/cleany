@@ -37,8 +37,11 @@ def setup(context):
         raise ValueError('A partial commissioning profile requires with_moveit:=false')
     print(f'REAL_CONTROL_RUN_DIR={output}', flush=True)
     model = {'robot_description': profile.model.read_text(), 'use_sim_time': False}
+    # Queue Fast DDS writes so outgoing state does not hold up feedback processing.
+    feedback_env = {'RMW_FASTRTPS_PUBLICATION_MODE': 'ASYNCHRONOUS'}
     manager = Node(package='controller_manager', executable='ros2_control_node',
-                   parameters=[model, str(profile.controllers)], output='screen')
+                   parameters=[model, str(profile.controllers)], output='screen',
+                   additional_env=feedback_env)
     state = Node(package='robot_state_publisher', executable='robot_state_publisher',
                  name='real_robot_state_publisher', parameters=[model], output='screen')
     broadcaster = Node(package='controller_manager', executable='spawner',
@@ -55,6 +58,7 @@ def setup(context):
 
     cad_calibration = ET.parse(profile.model).getroot().get('cleany_cad_calibration', '')
     guard = Node(package='cleany_robot_interface', executable='control_state_guard', output='screen',
+                 additional_env=feedback_env,
                  parameters=[{'controller_names': list(profile.controller_names),
                               'cad_calibration_json': cad_calibration}])
     actions = [state, manager, guard, broadcaster, controllers]

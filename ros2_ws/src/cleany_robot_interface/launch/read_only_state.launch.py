@@ -13,7 +13,7 @@ def setup(context):
     value = lambda key: LaunchConfiguration(key).perform(context)
     reader = Node(package='cleany_robot_interface', executable='robot_state_reader', output='screen',
                   parameters=[{key: value(key) for key in
-                               ('arm_config_file', 'head_config_file', 'head_mapping_file')}])
+                               ('arm_config_file', 'head_config_file', 'head_mapping_file', 'robot_description_file')}])
     state = Node(package='robot_state_publisher', executable='robot_state_publisher',
                  name='real_robot_state_publisher', output='screen',
                  parameters=[{'robot_description': Path(value('robot_description_file')).read_text(),

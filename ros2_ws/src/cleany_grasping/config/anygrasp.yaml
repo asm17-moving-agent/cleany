@@ -30,6 +30,8 @@ grasp_server:
     gripper_height_m: 0.03  # AnyGrasp 충돌 모델의 손가락 높이입니다.
     workspace_margin_m: 0.04
     target_contact_margin_m: 0.015
+    target_body.connectivity_radius_m: 0.009
+    target_body.minimum_fraction: 0.90
     geometric:
       opening_margin_m: 0.008
       grasp_depth_m: 0.025

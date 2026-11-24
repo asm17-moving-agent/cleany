@@ -138,7 +138,7 @@ def test_gripper_sweep_batch_keeps_every_sample_and_full_robot_state(available, 
 
 
 @pytest.mark.parametrize('collision', [False, True])
-def test_real_moveit_fallback_validates_the_final_cubic_once(collision):
+def test_real_moveit_fallback_validates_the_timed_trajectory_once(collision):
     from types import MethodType
     from action_msgs.msg import GoalStatus
     from rclpy.task import Future
@@ -146,6 +146,7 @@ def test_real_moveit_fallback_validates_the_final_cubic_once(collision):
     adapter, _, args, calls = approach_fixture(fraction=.9, collision=collision)
     trajectory = JointTrajectory(joint_names=list(args[1].names), points=[
         JointTrajectoryPoint(positions=list(q)) for q in (args[2].positions, args[1].positions)])
+    trajectory.points[-1].time_from_start.sec = 1
     done = Future()
     done.set_result(NS(status=GoalStatus.STATUS_SUCCEEDED, result=NS(
         error_code=MoveItErrorCodes(val=MoveItErrorCodes.SUCCESS),
