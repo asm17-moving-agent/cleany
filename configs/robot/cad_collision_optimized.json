@@ -1,0 +1,1952 @@
+{
+  "collision_mesh_overrides": {
+    "6318c527ad9f29d55666b7036ffc2f872fc73b444c3a6bf642c1b6ed368f67ab": "926cc73748406e88dfcab07c132a242a9a4e8828a50aeaea25ccf9fa86d48b20",
+    "00cf372d8236aa1b3abad78d8c86732b5791eaf8da16c25da7ae1eae148fe6ce": "921c2587cea37fea3ee42e9c202fb40d8d0cb92db4ac7b3cb1239d98adc8d293",
+    "98c9161ad620098a93c2cd976084fb90d9b0edb19cf031728aabd6e43394f32e": "336a62499eefb9783e0c71cdf716fe713c122300f7441abdf3e7344a5b7f0352",
+    "75c2dbc3b58a91651978b2b1e04366b7a66edc3a6681d1c57163ff8a4e9f8af5": "1936a69b6939f8dfd955c76bf2252435beef4c8e26073087948da086ba17709e",
+    "b04953308b40ee60f1b3a1c129eae58f2886c76a9685ac5124046ea94682f5a5": "2f02ab098557f3d7924469af4b6538b23a6723b2c4f387fd74ef93a6ff5d25b7",
+    "32d6abdaa2afe08ce1fbc2a64066e0f6b56fc187ed1e2970729d68d45cc28288": "a8e15ef4b8710df80f0b7ba299a5d7bd260b6e2065ed2c576bb9ed4eb240cea4",
+    "a6c17f3a0d3ff3f5b1dd29c29a9c55b8e429783985b884c1a864d5075461355d": "3e9f609f360da7f42d00cf6ca6bd1b7ff4fd800b906c2de62de788d44edef7d3",
+    "611721597d91eeac5a2aa0a1ea613258dd902f1e4f2ce40c3d69f32839ac81e0": "9c8e739f495a9eaf86ab9a65639ff9aecad506adc21e5d9cb5c8e103cc82b2dc",
+    "9e55f2c226e6c48823933f408f8a36e3fb5ae2a7f30a208fe687f21461a4e2a6": "d2a31457a3396fbd4c71d163cdfb00d2bff2afcfdfec8051efd8788f2a8b253a",
+    "48ffec756bc6ce3bb5c88d548c2e292e5da8e54478f33cd1985b135ea512c8dd": "a737a7fd1f52b15d03836872fb5b4c008fdfbe184fa1358c2b3bec355a1430ee",
+    "e2df8f29b51d9e3fba9b5d8e1bdd70810783ff24bf2da225f7048f08a08bfd7d": "1f89ed9d907db87164fd93abcc4f0c14c1cfbb33e1d8a7bcb8a009e6848d23e5",
+    "a2344522408b2d9a0987b6c36e90d8d03e43e467836af25de4a1a62ef5564652": "79aeb2389b3fab4e76afa564f8da8082dc77e6c914ea2f9dab2f0bdb03fcef4a",
+    "738af3661e658c311e2633af61b81e261c48803c1834f0ca6a3c03c146bceec6": "007593fceaeed7cab974dff61938a5f0e78227d4fba5365e5db8cedb493c556c",
+    "70931f05c18d9862b65896ed851ccdb2cd4b534490eaa94ff907bc97e126eb97": "4a2481a18d8c5fd0b77b69499b5c276db0e3ef229ca53803c7cecec19459a2bf",
+    "3b3556a1362110d53707091f69aa8614464420a4462994efb5a23d231e3d5ee0": "d13653a4b3c282b629fbf53dfa75d76cfd4b9b9ccc953fc6145f7bafef8e99a2",
+    "9fb6d4b1e57790328b230149ec1e76db1b6989452567d81c869fc6594d3b73c1": "074bb7e728d489cac7488e939544524baa74a2bd2817c99e21bb85c2f96f84ec",
+    "db8b4efbf4b1b8446bf772b19a6ccbc53e3872c910b1acbc2a20389b4de3332e": "d8de4f3e3faf9b712c6718c9af038af1e88c6a0d488bf800577c5c9b70121b8c",
+    "88c32185e0c3b21be75252282e88845e6bd28129ec9089143e8f18a76024e69f": "47de65fabb167e7db6ec1fc170152593e4b671a34cde399470a7b2003a0abfa5",
+    "fb98f1e545d72d562eb74dcfebef959195f00673ff24ba5d73a8604dfacf1616": "b6c27c934977b17a91e59f896a4fa42d0c1dea680bf05df5807f3e51bc044eff",
+    "805998599bed580293eb595eed0f9581c136ac6728b5f00d0228243fff2f3bc8": "7572643ceefcde3aa0b1142cc38cf8c68ae1b65b826134052cb0a0f203c897ba",
+    "ff1fc7ed416906ba0f23736934ff5a7e97429535267bf689d9293c4b2c4b5f9c": "e9c5cadb28ac192e5c54b5bcfc0bdfcffaeee707b2c5511da8e26dd7417d6636",
+    "aa4e0bfe1e478bb5d4da0a961a956ca5b6b78bb165618fc7b26f6d840c022b01": "a47839a3dae8772dd30867bc6bbdc92d6465742d3cf0d33b8246b74b993e3adf",
+    "5d23715e8b993f5301c5c372a2b1a8fe05c65572d438173493fa7a61816662d9": "587410d63740ecae9c3e12ec7e577e10584d13d86f99db271607f78738c195fa",
+    "4de7596af7bafb9171b568e8bbc6a2fcd80159c79741ee5f54305beea75aa327": "91081b84fbcbd8c326753cc1eeaa9ce5978d3732e585958aa83a0d7092526429",
+    "b4f61955301ce1cc141bf349497268b721118d0ffc20c1b6f0d76b8f5f6a52bd": "d54f46f2dd89276ffeaab9bab67658ee49f8941ac588be1723563dd322fee641",
+    "2ab6d66f0af0eff5616143b711893e2dac5c13c322c4b9edc0461e2896b7de8b": "2a8cba830e42b0bb2a517de50481b13322ab84c8ec24c17045e81afbc602cbab",
+    "63bffd6b0265da408f831b399f1e37238ca6ea37da0cf36c39584cdcbcd0b7b8": "6e8bbaaf3ffd62eb7f0601d9c6b8842cffbe67ac98328fd67da4a54cc4dcb882",
+    "5701aaaeb2785f0b35e58056810b314b46868c51658063f41a35dc7415339aa6": "a134d11c11195e938cd4c464007227618e25ef3a248b31cb99ca5db90c5222b4",
+    "b0bfdad0329d7ba013dba62e7a8fab24fec1da51fc7a3575ea04d104d236b950": "be724c796147e6dd4a8ded957d458ea12a4563259e1e7e7cd2c40a2a76565954",
+    "88d93ae7fc3d4d0ea418bc5b4f255b9f2f4ba028a4366caf11bb30fdaa5bac6d": "4e3e1a08fcee168f2ee2662a3a3655e5cb38b5a7a24251ee5bb7018d3c38ccb7",
+    "716e4e600a6ea12a73b731b45a3049fa3c6bde133a318fb84413fb51a998a79c": "c39828c47bf773ec9701cdcf18ea490579f57fda7e49907f8fd99aae27ac796b",
+    "89704f9b8cdcc2d299e21caa3a8ad71c5a86e46d0d223273e7cbdce6fbe4f8e2": "c72415a76f6d5fa8849f02a31538b34ec64b4687499d9f198a2750e1b912417f",
+    "ef323bfd07d05cffb74fd455ea44d6a1dcaa7ef0c8f3c605862f04f08ea932eb": "b8d41e850424d864c611ddffae3cc984746ae1dffd7b6992f488e7e708ea3457",
+    "764dd1b6996b6ae597ab4e71673ec0c81979dbcc1e627ed5df7f5198fd29da02": "bdaa8a10769065c5ffa844d5f4436368ce61fc0b0b8612119077ade4e59f1d6d",
+    "8020b08f1453bb1b905010a075803d2bd6d6bf4080c19a14eaa87593681463c0": "e2a5a6560e6f7c4f2e915307cc652adfd85603c883c0f4b19cc2031386949b9f",
+    "2bf3ac66b620b0c0c19fdb5c5678519d2e0dfcd35a06e10206c8aa0f357fd99b": "22bfac961d69277aa5280041ccb61b5cbff5c4f9965478af1bdf8f974eb69814",
+    "1b862630cda3e776125c63863fe95dc4f7a3e493b43fd0054a3431bdb5379cb0": "b9d5bb8079eae98387eaada48790c9d3d125b0ce5f969744387a56535220edef",
+    "22829863944db2a1e611d771d883061e90c975d330899f7b849fe143d1cffd6b": "7ff6fe580efc491349a49f39262af957be8c38922ca010606a57ac7f5369a75d",
+    "89acdef66912bc22b9d50f9b637b239c7cf4e1db2f7bc99ba4271053cd1a25b3": "0a8017ecc389cc32ec5b5d5eaf34f5775685b0e18a662aab30a28d6be234e240",
+    "c2481da09233469107304a78c45ea5689f3e207bbd398721cb30658665098943": "43bac773ce2fc8cc741c3837cfddcab6d9a8dab8ba60d2ef80d1229e165c7560",
+    "4dc2559082d2a714f8313ef479aaaefc2446b323fc16b58e31b809d71ca0fa2e": "9813ac5623ae26b45df37d7a98720369fc2990e8ad1d8f7be141af48853d7165",
+    "36404bd0ae6e803ba08fe4aeda1f28dd7e11dc36bee83a89849e7cebb23bbdf4": "a3b52d147bb7c60dc276a703790fe69c2714e8b9426798ba7c0b8200603165b1",
+    "3f06ada4a3affcc75cdba3cb1a91f083c7f942830a017df1b26334c77707fea4": "416765b1c695746317418855b4c5f642bf986655d842d87d9cd2aefb8563acf0",
+    "529e59c4fefa5102b8063dbe935fccfa36f931b192c6b2d810a529f5256c7d90": "60d83670a3b0b603d2e6741a05ec8f8a723e3c8889dd695d33d23b0fe612d3f8",
+    "4aeaeb3061408341ebeff79c16437cb10be634307745fc28e82096922d0419b9": "3b433ee95235380c7d5de0ea4b0fec0e377c3023dc4543a5f025ac3dcef0c4a1",
+    "28fd2abe26f261def4e1d8c8af90b9eecea7cb65034eba3153e8573d3c8a568b": "ecc212ff94cb736df51346b033a2d25b86f0daae648fc6e1782f6454dbc6fe94",
+    "d1e74961899f2a12c65ecd0611e904d8f192d04166727b3d7844281bf5615921": "91e269c9676fe1d50b6b1a56e271c70ea5bb195c037b57fa3d8a36921f755fac",
+    "32548d1cfe87742cec9578d4cb66871c3f65cacbfcb139baac064804b203eb51": "8ba22574ed114b3e93ee434bf8d5ab25e459374e6e9bb271c724afdd09ea9df2",
+    "a7648b40baedd56d51e07b65fb9ab88e7901f760674d48a7e0df1941478c7ca5": "2274314b91fc77afa4dd91cdad7eb067f2d6c2bcfe59bb1dda9b6cd027c43340",
+    "8c39fe68778b7e09aecbae0a9ffa46e7f99e2219e24b8b7f227e330b5dab5cee": "c5e514dff3f766fd96cb41e72fc196e9da47fee9d609bb3fe9766a87a61bad51",
+    "08bc846ea4d78569a17722cf89e0e76b79a1833b9677d056be4570f4410a9911": "23589b362cae5251cc4875ccb0ef2cc837dcc2a0f2f37c2079b4f55a2eaed430",
+    "f3af21f3ee2f57f7eb15e244a680eca13f382699db19b39153d9796787b94c37": "d795c1d2f9fa5bd42fbdb161559b93f4096fe2b7dc527a8f5b8517ebafa96bf0",
+    "94733c9d5cc398372a88a19e3989ba9f75e7a1e7203a1796b9657851613a24a9": "80ac48776063096b7f67213388545a380021e21c035a6264c3a4fc686cce3b02",
+    "00568854f066b534faff38717f21c26fbe7959278bbbc99feb8115a24fcf769c": "84a0e4cc4c97bbcb87a9ecbc5fc5c18b347c1a5f0af51926d86e63b3b3faf34a",
+    "5edc320501d6c53e98bd478fba6ff195cff6de56e4d9deb09a077c338d5c5676": "a8f214c62cd4cfde8cb1395f687e3e16d504007043bb5ff80455f4e4eb943722",
+    "8a3a8b352730b74af5bd891f9d7f5e6cda597bac491526a159fb80942a2abfcc": "de03af17712d7c1d63533f9da66d65d6f725e9718aa70aa5011af3c8e12ee7d0",
+    "cebc26468778dda3e1e338f883204840917e42820b9211e3aa020f3dcd474ec1": "5d53b69046581f85ff4ca21a54bbda3f8bf0e6ae4eebba4f9ee07bd950bd95c1",
+    "fe2367ede7f2f07966516f4476935cb35a7363117607d7ca4f1b078e3bb593bd": "181436632a10d5c1c9af56f9bb6d30e10276c5e46b21a6a1da797a5ab8d91733",
+    "c2f34f484a1c68d6cba1dd5e8171ec76211e32880ce531f51e3101352f50c593": "6c5d4d67d45729114a40f0b27efbfaa4390ad3a24c28447a2f54ae3b851ed61e",
+    "775abd518dfbab271560ac6e0f64c3f5d2ccb7b5a398b0d230b275219249cba2": "c7cfa568560800a7c94d5944e57e535660da158f1eca6f6fa12dd71b682e4515",
+    "1dbb98b739d15486c1b6268283e51f1362ac0f31232f767cb9a2cc9629451901": "db69a5daeeac8bc10c0ef265fa7dbb3c9d233bbb4a4d592740d8044c7bae97dc",
+    "6b857ba65dc22508c77d2c1dc7ceca078e23f2a1347b85001a789b71b1032a37": "7b9a75e72d9aac758faa453f8a60c90b0aaeddc49d6d98be5a880c95f010b18a",
+    "328eb2dd2a7e1d60b09e005bc59f34aa5099b512b3474f1fcd0f895af67b5add": "edbc0242c3af06064e02d5fc2d8beeaa6bea73935ad77095e5cec1ed6cf22e12",
+    "45cf41a3fc4f21a06972bda640a986722cb1f3e4df60aa0134d1bfe526eb3cc4": "24663484f76414751b1d0fc9b315a11299c08b00242b1bd1697e5e4a25aea6ff",
+    "bad4b59454a1ea57965873cc6a5c9c8ee903346f48000d0d924e3ffee13e32c5": "7c69829ac42f7c6e2108b25b342772961b9a7615ba5dc7ff6544acbd31ac9128",
+    "8a813b4f2a4383b95f6b8080e6765d73965411e6258b3aa0cba4d7e53f7b6c0a": "cac07fe28f3f541aee59d5f4c1ab953d7e52126f6abab740b321d0817824a01b",
+    "4beddbca946d51a127ae7a5051c936ce308165b323ade1a2a159b5abbe9a8c82": "f20f6250fc5aaaf8e164e217a1507e6f7b5b48fa8ef3c8650852f674d9be94d4",
+    "9977da4f0b7eae1b05751fb48d2d2f2b40dc454a616d2b004343cd7f1398c4ce": "af9665ddce5389c9d095726f424d29a26a6fa435fb937e8b71691efeb1d77806",
+    "42a4d9487b8f6f41de80259a41158aa4ed2eca4f4f1cc002fdf63071fd9fe67c": "a789137f4b348cf5f55183c0564ce8c6f49f7ccd90f31f421b9960ddb2eff43f",
+    "ed82980bd2defa18d046426e580aa767e45455ef2c976577cc066d0e3a3e62e4": "015f42c664cdc695d0de40ea9fcde1c01bc3d34e78d1e9a036d11a99112b3b5b",
+    "95ff5b1587ed6523a8e111d926222f407f4f987eb78e946911bfe62bbe70f18d": "b9c181138e736ed27bfc9a0432de5e2380976f145a221fc4ff989fcec4f6a1b3",
+    "a382bd1aaa659213efd83304792be891352a065b8cab66bf89ccb0ac46164d75": "3dc53ad1ca5ff99aa8ad95fe3637c2fcb3dd8590687f07c673f9e28a85ee6d4a",
+    "c4e6055b27160186824e0c11531b1d9cb1125a483a51763dcde71d62545136f1": "e9e9c460e489524926c6cb360e807f784a78a7abd932cf6f087aaa4cb8706cad",
+    "7593e289039ca4fb37ae52de263166638ea64d9117cf970fd560a607c9e3bb79": "9b07bed299bf800ae21af98ff3056ad02f4480538c22d5208e4b96d870bcc8f4",
+    "961a61732678d679c4a2da4410f237dc11ca7a5ad03f279ec18ad96dda3d2114": "d5bad896b5b44dfefc46d97173d122179de45d9c19ed996426d3ec7aee14530f",
+    "3af78e4b1f4dfdd7a5e5690d89fa098aa12b754b7d5810a88d8752014bdc5493": "c7a7f7aff602aea77818fc240261f66e10a38e5160f908fd060dad7827ea341a",
+    "911fa2cf0d0f2c0d2bf7536a79d8d02ee81ddb2a649449cf7fa4cc125038a2f4": "30a0ba553a4088b7e25c2398e55869ec8523c93cb55abd4137b7e8b88e59ef82",
+    "7357f15d0a82de32014f4d8304e066b124377225de3339d7ba10cd66f3216684": "807b34238c64f42d68a1ddeb13595f12810dd5f23c4f45e8176ea492762064e7",
+    "29e238f0da0f7c060832ad801b4157edba99891cda5783eac688ab7a58bda498": "14896114039bf6e8c6a3c315a6ce1e21e7ceb5b84f903f514b85b0b392715132",
+    "4e21bc7ddaec08527e09693fceaba07950b9de0df1370ef927c53f74f51a118b": "cc34efa5559ab8c47fbccd0ad74963394485068544f03f664d39343f331ec072",
+    "be653b4d936ee85b5ff02db78336e058ebac1ff5eabbab4a8c67d10277397d63": "674c111be9a1cb302ef468b8364c7bba4246a42ad21c516e5ef3187857247a2f",
+    "2d01f695185b9c26152149d60f20fc32caa43f1e4ac53d1c3ccea74395a9d055": "5146193d02ece746fe816c40040ce52603236cdacc0a22141d2c761a7667fcac",
+    "567720d5255b6c027c0da09ed3ce1f97be7ecca1afb1b795eaa0b5f157cf240c": "f6c6c6a21cd0c754143faf414acd926722021163733acba228581ae01581b15f",
+    "b243a60e7cd2278b34628d19f204f136a3e6906af7036592b94809b4b51252ab": "e7e3edc5e0bf361f8d6f31f20aaceb53f2412543190ba79ab5b49c82dd6855a8",
+    "325d8d0c99f9854ae6cde51da4bc1dd04fe6a354c8b58f92742958c73fa084ff": "5411da4d3d3113ac1e21cd8cd94d212b224d53cea8ca388c36d83ab1160b93e1",
+    "af6609ddb4cbb44688fa0344a4ab34e0879ae1e31e7a7125c6ad97e4a0525a64": "b5db90c5d1440d0b4e4b53530c90238b5c596e21050beab00f4f739d625e2786",
+    "d45daee4bd2495e41fb70e923a8b3d164559a54ce95f132301c9ca8ebc1b9988": "7d56bb7130fbb5cacda3b19b3c94c142174aad21607612866a41475b8126c38a",
+    "84a4a16fa84f9c636a7ab52c204771a481709ac4d52225e4ebe8b0f3387226c4": "99c4d108cc31ebe579f8039c6599d5b5a2e37fefeb412e7447c185d89e5e8af9",
+    "4ad45080e4e0d4918f2b51ba1d34ca6d9910fa1dea25b6cf8d0efb4de60d9248": "543bd4921fd254f8d6e352e317150d57a258d3dead45ad4bd7cea9efbee89f87",
+    "909a1932808444e145109074e663fcb0fcab883c35450fd645fbea4da9bd0da7": "5b6e61d92ef1a82731bf4a5e2f82d213a9b2face235602a186853c0144e12aee",
+    "bd7b3ec131cd3340feaa38a49f6cdbd8207a1f8ffabc0c41b5bfba3f81e165a9": "6f3795db736a7a84d123e6d8eb99232ee4c291e12d0e1908e9f19168b09a794c",
+    "21d03d80e86125d1743bab5bd159a798b9f2990a5a045a0fe4ddc40769a525e0": "5ce171b274fdaba62866a0d1f500b27a39a643e7e4be54dbe812adefe0351272",
+    "bf8d6fbeb8cbee921a21b94926a1b785f46da993c39c5978d8ca37eb7aa297e7": "d79129882200b3b4b30bf9de2963cc3807103c92880d4c495d9c7d095f77422b",
+    "c5b24fcb0bfed42af8097e8160b72bdc0c7b45bb3b077e342f71b67f41631ad6": "395f2895e7e7e474ccb2ed8f5b4bba8fb4e5fde9c57408a56c7b4a71d82a7829",
+    "0ed0e2f2c1839aad119a43e82a0588ca215541b969f1be7bd15b5c4733113a76": "ba32099a4b44ad9b06628f0ef76712380a1027567604303332fed3d87ec1e333",
+    "aa6944ad0db1abd54d1fe2b949ccec9a7fdddc63fa8a074fe408ba90ae6b8284": "786d9ed5a009ed3266a89e7d2027b4ed1a0e296bd2ecd0f28c850d5b4a359b79",
+    "35e5c7e059c09002d525ed120409876b21a6400d5daefaf82be4366f99646e11": "722d10a0e95c3f7c877f20424aea5ec96dc93a81fb3f9d91eaac75a0e43bd1f5",
+    "6b0dd272e3d78c017719ac6d7399053c08d62218b75f0be3c965ac23c0cd34cd": "10738adaff3e7c50b22eac21f2a0e0643450fa6a8235dc662ac21d60ec014b12",
+    "0a89ebcfe5242ec8da98c010ceb26f13e1ce98547eba5bc1860dab523a595011": "be36f458aacfc02df85be938301a0c9982d67758934eca6db7cf18f97d31c6ed",
+    "2fe16ca64ef8b293132d178dcf1b2c9c790e1d1698af2f2f9c259fa9be56c78e": "ffa3afc6325569c0187d3b22351823da7274d0f69fe639ecf2eb754bd8e6bf9f",
+    "2f779ecfd0633b8bba975b46fadda853c891ceb834f152546b73d2eb9687f473": "15b4dea6dc1f74c04daca6c88760cfa65b32cf0878d54fcacab1bf5fa1c26ee2",
+    "fa1e8e5bf5528a1bd4db137be6c714df8a74a38bcc52176df47bb3c5479d9b40": "2c995c6024d089d46037ad6b33d7246a00eed6b73ab1341a8407cf54dfb16403",
+    "3077aec18943597ba04942d602b421c171cdc64d60b84adb738950c4dbdcb127": "12054144437ee4500b602365a97c4a8d2a9968827d4979c787e7b08ebd4cc0fc",
+    "07f2e5375cc38ad9e19ba07ac0d8a08c77948638ab3ce810627d7f8452f924ee": "47c5b65148be4e0825dd2ceeac36b51a22f243d15933738940bacbfcfe43f614",
+    "77e7caacf93394379ef183f7b3ced73aaa82e423fc42cadfd94f9cca213b7257": "05bebd783ccd01b6359757a7d3255a800ce5704921115caa7e93b00338707a1d",
+    "f7d168197c0c7fd666076c8f15a7c72668376094e540c79a47f6ea4f6b957608": "f3e6bf2b79d0db12bbd14d9fb82e7d285747dd440c86e19bc5e3fd918e37ec81",
+    "cf476e1a799a66a7c17445cb2bdf8d39a13ae2a808eaeb9875a090deb27d358e": "3125acdbe31f13f01e8c39141d08ce05bc6a247c56aea3f12fd897781e2bb971",
+    "8622ef993b8672c359aef4e96de4f70b0a18fc39ee0afd2aa054e028ae74297c": "d6b1280298ac5a749d27de2f052f669fbdbe69d64bb25fe633f32b06cfaebcaa",
+    "7506381f15558258ceef8dd12c438c424e30582f434aa236ed358c47cb08d26c": "98345aed89be4fd8f9d3cc29b35d496494806957b04892a9785cb9f52dfaa9e9",
+    "69d62582681f07355fcf123a92b75fbb9b20883ef5b6ca1206da931908bb6dc4": "7cf440bb02ccab6de464aa93c3bc5a2de84f06db4154976426d145dc369332ff",
+    "725383ee1a8642b0b362c92592fb4157242d6a6b122c9f4338b0b05860214329": "5f0ad56a7012daec510e17aa5fdfbb3f15f973a73914696bc7a34da643e99494",
+    "2fce9c102206d319bf3b4a794c7bb56d071ef065b0bf053fb43c299ee9b9cb9f": "869530b362ad6f879b6985fd1f3f1b73e67bf297bd14fbc1759cfe99ac63aaa5",
+    "3a4923042f913e3c0667b758a073b4c72457fc0bccbfb1e0c276d6c83ba5a93a": "6732483da4a90a89941d7c82b775d37da02cecba36505f86010560c2cf6d3ffb",
+    "6339c9f45347757409e155c3636fe8bb12fdb6fd34c8d672817c95de2dd2c105": "a56910f64a3b8f926e425784c159fbdc81e100651033a9533f09ce48def907d2",
+    "db2225bf2040d6d8269f60b6a7d9120a66ad415b07dc1c468e7d4af2ed373407": "3c754e9d7b512ecf828d4f8c72d58576bf9c811d82de37bebc47c5e32243e0c0",
+    "3e47b7510dc71ed4cc99069cd9a5bf2ff7027cafee682eab0488a7b2ea85987f": "047d8330aae5d09675a774e605d068d72dcac215b459c84d81715b8e5e23c722",
+    "399201f43b9495ff18af59236182b34ee0aa108d81c6ec046e14f53c007f4989": "2984ff5bf05c23360b0669f498d9f8ae1fff1752098e172dfd71983bd15d8292",
+    "660c973f025ae12429d918261d383f01cce90585752939e10fbac4fe0728e105": "b8b1c2aa656d568a72cc1fd280460db39af4b81cc60325245137775738cece47",
+    "9770bd8a075f6223d90b75742ab69f336af662244e46552c91506f99a6d95343": "85fa68d1937e7ba7d6c53490e3c06f9c892db26aae93a0326367b5a96c37e1ec",
+    "6bf86c8ff0d43dc28e4237fdd706395824ebd00e60e06f3c65e0f39ea2a20cea": "a3910d84b4047f96ca057f57423c40ec8602d3bd1f17e9e0231cb6cc27717500",
+    "1214cc45c94ae41c4064b9234abe883ecffa3379b142333a186f9f58c7e59ba6": "d7c8e7ed8f4cb84e4ac5450e263e556ec7390c725bbe9fdc51b1513b20e07c94",
+    "5f9b801ef3b5c95a13b8a9e34fdb6f0d6402dfb6b08f6bc4429aebc39ec2e3f9": "6ca7aa439c091480d1cf99781436db829b5f736e3ac9713a31a83eaa9ef96190",
+    "c2a840c7fa3b4c367cb891a01e53932c7c722a7d53861f4613e13da8f5f5691e": "67432ed98c29885ae1467f06022ce66a1be0daf4bd1f4ef3c3978000e368bced",
+    "42c719ed9fdc0798b59030e0447433b9ef29f3f2128e1634c18e64288673193a": "7e94aedc6768881f7d9e6515e2925269327badfc275b1c65d59549fb1c64e97d",
+    "cdd172621b896dc12ecc0e673793ae46498b3de1667bae56cce093c912dc41be": "4ef02501b5c7d801efb5f0a627b7a04952e647e952da76e9758e9515fcc7f080",
+    "15011d217432bc3116e0d7e34bf4f7ac9faf3fa5a7f50ba28c4dfbde5a95f707": "9d05914c8be4dd646d590bb208d6d668f35777dd4ac6e08ceaea5f9c5be67268",
+    "2c668c22d15990edb7f7e8411f5fbafea2762680b15089fcf7c2b303f25c65ca": "73009aea2d02b680bff5df250cd68e23b2293745dbda576a965cef82fbc6cd6d",
+    "4cc58770bb4800033cdd2c2d89f1b549345a79bc3d4e6469e11c1e3ee913bdb8": "e625532fb23b1419499f2ac17722cac3b334903f59129dffd2afbadc22ef9593"
+  },
+  "shared_world_collision_links": [
+    "base_link",
+    "cad_right_shoulder_yaw",
+    "cad_right_shoulder_pitch",
+    "cad_right_elbow_pitch",
+    "cad_right_wrist_pitch",
+    "cad_left_shoulder_yaw",
+    "cad_left_shoulder_pitch",
+    "cad_left_elbow_pitch",
+    "cad_left_wrist_pitch",
+    "cad_head_pan",
+    "cad_head_tilt"
+  ],
+  "installed_baseline_sha256": "af2741288b56daefb1529a9449d78177297dad586a6dae3b047d2a0bd167eeec",
+  "rigid_collision_groups": [
+    {
+      "link": "cad_right_wrist_pitch",
+      "name": "cad_right_wrist_pitch_wrist_housing_and_servo_0",
+      "members": [
+        "WristPrint_collision",
+        "Wrist_servo_collision",
+        "Wrist_servo_middle_collision",
+        "Wrist_servo_other_collision"
+      ],
+      "source_sha256": "aa2aba43aab0e087043c9926e60a6d9ade2e791b41b6217e8c7e929ae69c1fcb",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.020855586286576418,
+            -0.02525533571815129,
+            0.0006117380539422446
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "f9c5e7ad0ce5bda5bc528dd5cd432ee475416544ef6d4dbfb72413a000405f62"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_pitch",
+      "name": "cad_left_wrist_pitch_wrist_housing_and_servo_1",
+      "members": [
+        "WristPrint001_collision",
+        "Wrist_servo001_collision",
+        "Wrist_servo_middle001_collision",
+        "Wrist_servo_other001_collision"
+      ],
+      "source_sha256": "d9cc64e6d78a10a63ebb669350f86e0f81840668a278f434379a4a8763d87195",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.020167028782198445,
+            0.026483094232778878,
+            0.0009900843657263613
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "1c3db0caa510b6b8bb53c4dcfe9ef75d34189401e1f29d78a2fb889fc0810dd1"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_head_fixed_bracket_and_servo_2",
+      "members": [
+        "HeadFixedBracket_collision",
+        "HeadPanServoCase_collision",
+        "HeadPanServoFront_collision",
+        "HeadPanServoMiddle_collision"
+      ],
+      "source_sha256": "1effeb7242adea990d1a5efcec7b75ff993e7275f0cb524587007d3fa4d882d2",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.09170151806786538,
+            -0.0005332026005414334,
+            0.6480613655504321
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "c3d6b51fad071e05f5ac4446fc88d62ff93532e2a47615da8f405bfc5b5d05ca"
+        }
+      ]
+    },
+    {
+      "link": "cad_head_pan",
+      "name": "cad_head_pan_bracket_and_servo_3",
+      "members": [
+        "HeadPanBracket_collision",
+        "HeadPanDriveHorn_collision"
+      ],
+      "source_sha256": "97dbb512d3a7e4b5b628375e36c3709b575b38c3c3f3ee1d4988f2601ca2420a",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.012554769534534292,
+            -0.0007766587809497467,
+            0.014515183066821896
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "cdf69121b74cda5829746ee7fd42bfb0d390ead7c5b8693b20e023f4b0166274"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_gripper_driving_L",
+      "name": "cad_right_gripper_driving_L_drive_rod_4",
+      "members": [
+        "cad_self__source_cad_right_gripper_driving_L_0"
+      ],
+      "source_sha256": "a64577598b5a21fe94036fdf32503a1de1d974fff3af5afc98bac0c98b02acec",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.019599146160821243,
+            -0.0016043159403057979,
+            -0.006407583906937018
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "1a493a48e5c449b10a53f8421e4a605bfd19b88ea3930afce16354c91c471bcb"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_gripper_driving_L",
+      "name": "cad_left_gripper_driving_L_drive_rod_5",
+      "members": [
+        "cad_self__source_cad_left_gripper_driving_L_0"
+      ],
+      "source_sha256": "0d0b64a573abe66284539d7f49874fcb8742876f8ef29de1676db2fdbd4b3259",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.01941232987988356,
+            0.001567084982221044,
+            -0.006407725593909403
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "ede7e515f1cb2cb02cca4b24a1aee83ffda7e777dfb5c6aa6d1dc04a637f8ef4"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_gripper_driving_R",
+      "name": "cad_left_gripper_driving_R_drive_rod_6",
+      "members": [
+        "cad_self__source_cad_left_gripper_driving_R_0"
+      ],
+      "source_sha256": "555835d436fd8cf6ede1586ea29f9cfc921eff1af0e8b0f21c334bc3b662047a",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.01946695801262104,
+            -0.0020553050094196073,
+            -0.006367893271111215
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "9ee0202c8b4cebc03ab0ae51a43b98b38546d7070579273fe9312635b14ae957"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_gripper_driving_R",
+      "name": "cad_right_gripper_driving_R_drive_rod_7",
+      "members": [
+        "cad_self__source_cad_right_gripper_driving_R_0"
+      ],
+      "source_sha256": "82e9d7097d47b81c593cb780904116813f9c915075dc2a51f61d3a0d161e1ded",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.01942634159778001,
+            0.002066397108719885,
+            -0.006406165344610954
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "d29076f311755cfd6d10b63f196e0bb2f2dfec8dd4e02c08c697862af6157451"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_gripper_internal_L",
+      "name": "cad_left_gripper_internal_L_internal_rod_8",
+      "members": [
+        "LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision"
+      ],
+      "source_sha256": "b51182630e37f804762e563aa96707f18237c8eb6568032b4d63c62ada6766ea",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.0042181178700112995,
+            0.007288632641356541,
+            -0.001003658584270079
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "104da5ea525764bf79f79e23b9cb6d915eace14fd00f3932096ed46f1c7ca63e"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_gripper_internal_R",
+      "name": "cad_left_gripper_internal_R_internal_rod_9",
+      "members": [
+        "LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision"
+      ],
+      "source_sha256": "69f9a34f5f152df9a5f00e5bf9c7c373e750ea528fa68e4a544847d8ccf4e416",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.004605690317624189,
+            0.00773474402632316,
+            -0.0009048684370980436
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "6d2fcb5c72696df7fd9308164ed262ad2fe0d5b13ba3822a3ba748896287c4ea"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_gripper_plates_and_servo_10",
+      "members": [
+        "RightKinematic_CameraTool180_Pinc_Bottom_Plate_collision",
+        "RightKinematic_CameraTool180_Pinc_Top_Plate_collision",
+        "RightKinematic_CameraTool180_Pinc_servo_collision",
+        "RightKinematic_CameraTool180_Pinc_servo_middle_collision",
+        "RightKinematic_CameraTool180_Pinc_servo_other_collision"
+      ],
+      "source_sha256": "f7dfcfc6f163b64133e1faf3ff8a3bffc12a48cde588e6515d271662829a2fc7",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.0006924696059142176,
+            -0.04151087873565393,
+            0.012261593416659073
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "a84b0cb629bb215a2fe313743f92b9384f675640f230bca3e8f7b89fe10e7505"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_gripper_plates_and_servo_11",
+      "members": [
+        "LeftKinematic_CameraTool180_Pinc_Bottom_Plate_collision",
+        "LeftKinematic_CameraTool180_Pinc_Top_Plate_collision",
+        "LeftKinematic_CameraTool180_Pinc_servo_collision",
+        "LeftKinematic_CameraTool180_Pinc_servo_middle_collision",
+        "LeftKinematic_CameraTool180_Pinc_servo_other_collision"
+      ],
+      "source_sha256": "3b00cc54432007b274d7862e97f4c3d0a60889a58d34be0a8a05e60ca23d2a06",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            -0.0002511526340304416,
+            0.04187790258779427,
+            0.011870494795804688
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "bf1a92fc86b6936882d662839a6b83ec9a24289f4a7b40e6f2fb80a24b5f1a10"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "name": "cad_right_shoulder_pitch_UpperIdlerHorn_0_12",
+      "members": [
+        "cad_enclosure__UpperIdlerHorn_0"
+      ],
+      "source_sha256": "1f1e629bd36befdad0e884b778e8701471757b592a1cc82ac76eea1f8d4a39a4",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.03282499765,
+            7.950000000533919e-10,
+            4.26500000028085e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010695360832102428,
+          "length": 0.0033522119199999962
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "name": "cad_left_shoulder_pitch_UpperIdlerHorn001_0_13",
+      "members": [
+        "cad_enclosure__UpperIdlerHorn001_0"
+      ],
+      "source_sha256": "d5880b593eb9a93f428d63e3e030db032ad83822f6f2f07680fe5ad245cd6e00",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.032824999290000004,
+            -7.950000000533919e-10,
+            4.26500000028085e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010695367496182861,
+          "length": 0.0033521895799999953
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_AssembledWristSocket_0_14",
+      "members": [
+        "cad_enclosure__Aligned_AssembledWristSocket_0"
+      ],
+      "source_sha256": "75bddf14295868d01381bcfd6d7832f433f441bbed5d6ab939adbd6565842b3b",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.016317208159999996,
+            -0.1390092386311912,
+            2.3487149999996682e-06
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "d21719a838b1c99bfa1098c489406b2a4281be7f2d75cdce48812985c24d272b"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "name": "cad_left_elbow_pitch_Aligned_AssembledWristSocket001_0_15",
+      "members": [
+        "cad_enclosure__Aligned_AssembledWristSocket001_0"
+      ],
+      "source_sha256": "8ec2b4c1689a05df9eaca5f1e6f4238ff0fb5d6cc66c0cead9052c71532a9b1f",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.016317201106662804,
+            0.13900923863118858,
+            2.348714999999816e-06
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "388fa73c60446fa6c3cd81273cb85a1140b8fb1c821018d945405b65fc04f1c2"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_gripper_cam",
+      "name": "cad_right_gripper_cam_cam_and_horn_16",
+      "members": [
+        "RightKinematic_CameraTool180_Pinc_Cam_collision",
+        "RightKinematic_CameraTool180_Pinc_CamHorn_collision"
+      ],
+      "source_sha256": "381bf36bdc8365cd35abbed4cd5eadd7c01d70b92ce43f4d3e6f8024057c7fcc",
+      "shapes": [
+        {
+          "type": "surface",
+          "xyz": [
+            0.000312232210148169,
+            -6.581595111054161e-05,
+            0.001844480383129823
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "a9b1effaf28728a314fec20054a6031ca25604b143522ee5b5add0340de9874e"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_yaw",
+      "name": "cad_right_shoulder_yaw_YawDriveHorn_0_17",
+      "members": [
+        "cad_enclosure__YawDriveHorn_0"
+      ],
+      "source_sha256": "9e755e570c4b2a5f5e057eec8298c347f7e4ff90387e82439ed9480360b3e553",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -2.6850000001132912e-09,
+            -2.754999999687868e-09,
+            -0.00034999017500000006
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.010553247846380169,
+          "length": 0.0045020302300000006
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "name": "cad_right_shoulder_pitch_UpperDriveHorn_0_18",
+      "members": [
+        "cad_enclosure__UpperDriveHorn_0"
+      ],
+      "source_sha256": "55856e01b63f072b845207ebc3febe7842f7793bd9d043dcb0a42fd39f89a2be",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.000349999265,
+            7.950000000533919e-10,
+            4.269999999806373e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010549746337190403,
+          "length": 0.00450199297
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_pitch",
+      "name": "cad_right_wrist_pitch_WristDriveHorn_0_19",
+      "members": [
+        "cad_enclosure__WristDriveHorn_0"
+      ],
+      "source_sha256": "f0e613b0bc170b98e006c643f58137fa5327272c0229aa68858718855f9e4e9e",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.00034999723499999993,
+            -5.07499999979899e-09,
+            -7.055000000200096e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010553233464466455,
+          "length": 0.00450200043
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "name": "cad_left_shoulder_pitch_UpperDriveHorn001_0_20",
+      "members": [
+        "cad_enclosure__UpperDriveHorn001_0"
+      ],
+      "source_sha256": "49129e981b6a3fc8693bc6d3256c9d986784537d259f696e6f5284161eab6e6e",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.000350000905,
+            -7.950000000533919e-10,
+            4.269999999806373e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010549746337190403,
+          "length": 0.004502000430000001
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_pitch",
+      "name": "cad_left_wrist_pitch_WristDriveHorn001_0_21",
+      "members": [
+        "cad_enclosure__WristDriveHorn001_0"
+      ],
+      "source_sha256": "1146c5c9af349c7cf5b329b7892cc48f43cab7adc27e055a556a27c4e0a0c130",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.00035000260000000007,
+            5.07499999979899e-09,
+            -7.055000000200096e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010553233464466455,
+          "length": 0.00450200042
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "name": "cad_right_shoulder_pitch_AssembledShoulderSocket_1_22",
+      "members": [
+        "cad_enclosure__AssembledShoulderSocket_1"
+      ],
+      "source_sha256": "29790e0f2c9d3ef5e28fc7c4729c3c7516a8d46280d6b693e86f0614837722bb",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.04195035896907731,
+            0.00884150391854604,
+            0.0010785834282592262
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "24cfc045be7a26fc2c03b699b73cebcd769c2c868e26f3033dc33ebe6d455593"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "name": "cad_left_shoulder_pitch_AssembledShoulderSocket001_1_23",
+      "members": [
+        "cad_enclosure__AssembledShoulderSocket001_1"
+      ],
+      "source_sha256": "5aace0930f53a9f30cb5527d470bbe02af43fe32305c57d447ac1b2e71cb5c10",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.0419503587679361,
+            -0.00884150169762762,
+            0.0010785911457508656
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "a088a97f328833dc456f3f460d59f7c7b803e8ce1f536dc707178781d4a79532"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_yaw",
+      "name": "cad_right_shoulder_yaw_YawIdlerHorn_0_24",
+      "members": [
+        "cad_enclosure__YawIdlerHorn_0"
+      ],
+      "source_sha256": "43095297f3f99183ed745bc13073b6dfbefd3da45557d4955be6a8cb7961d2b0",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            1.045000000310381e-09,
+            -2.754999999687868e-09,
+            -0.032824999735
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.010678957289101579,
+          "length": 0.003352226829999997
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_LowerIdlerHorn_0_25",
+      "members": [
+        "cad_enclosure__Aligned_LowerIdlerHorn_0"
+      ],
+      "source_sha256": "c229b6f5f69f47cc8437aa669706d9269a4af24918277c1e0c27124315e96289",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.03282499765,
+            -6.599999995415828e-10,
+            -5.670000000179698e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010685702803572821,
+          "length": 0.0033522119199999962
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_pitch",
+      "name": "cad_right_wrist_pitch_WristIdlerHorn_0_26",
+      "members": [
+        "cad_enclosure__WristIdlerHorn_0"
+      ],
+      "source_sha256": "773f07beafbf0adcc94a550310507707bbf4c176c067224bd11fbc9fc4b19f42",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.03262499596,
+            2.3750000002209505e-09,
+            -7.055000000200096e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010685709486354014,
+          "length": 0.003352211920000003
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_yaw",
+      "name": "cad_left_shoulder_yaw_YawIdlerHorn001_0_27",
+      "members": [
+        "cad_enclosure__YawIdlerHorn001_0"
+      ],
+      "source_sha256": "849abb677341ab29130977cda4bb214c59ad35381d4d8ebaf3e1e86b087cf9c5",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            1.045000000310381e-09,
+            2.754999999687868e-09,
+            -0.032824999735
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.010678957289101579,
+          "length": 0.003352226829999997
+        }
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "name": "cad_left_elbow_pitch_Aligned_LowerDriveHorn001_0_28",
+      "members": [
+        "cad_enclosure__Aligned_LowerDriveHorn001_0"
+      ],
+      "source_sha256": "c33bc31b176868a8445764713ae2ff8c25bc1a27caceb9f49ac9c7e6ab02134e",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.000350000905,
+            2.5199999997838064e-09,
+            -5.674999999705221e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.01055323582900279,
+          "length": 0.004502000430000001
+        }
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "name": "cad_left_elbow_pitch_Aligned_LowerIdlerHorn001_0_29",
+      "members": [
+        "cad_enclosure__Aligned_LowerIdlerHorn001_0"
+      ],
+      "source_sha256": "9462b80e08b1d93695489248dfd995bb9f3a1804726d32f0b10689d8e6f1ebfe",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.032824999290000004,
+            6.599999995415828e-10,
+            -5.670000000179698e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010685702803572821,
+          "length": 0.0033521895799999953
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_pitch",
+      "name": "cad_left_wrist_pitch_WristIdlerHorn001_0_30",
+      "members": [
+        "cad_enclosure__WristIdlerHorn001_0"
+      ],
+      "source_sha256": "fa40228ec839e355c4217b308db56a08f07a1f60e36200a8d3b716384bad8f05",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -0.032625001325,
+            -2.3750000002209505e-09,
+            -7.055000000200096e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010685709486354014,
+          "length": 0.0033521970300000006
+        }
+      ]
+    },
+    {
+      "link": "cad_head_pan",
+      "name": "cad_head_pan_rigid_head_tilt_servo_0_31",
+      "members": [
+        "cad_enclosure__rigid_head_tilt_servo_0"
+      ],
+      "source_sha256": "e7e9ccb5fbaceba9d87607c4bf9fa744fefe087f582bd5995c4d10d3ffcb66c7",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.009914258544672008,
+            0.00435358338773531,
+            0.02511878690860927
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "dbf2093479f277c630149ace016e08572bb7753297949ca6acb042e6da1505be"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_LowerDriveHorn_0_32",
+      "members": [
+        "cad_enclosure__Aligned_LowerDriveHorn_0"
+      ],
+      "source_sha256": "8857df1910da2f937509ba78e0953cda8f3f5a7b612e99141a2dc57ed2b21613",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            0.0003499992700000001,
+            -6.600000004297613e-10,
+            -5.6699999992915195e-09
+          ],
+          "rpy": [
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966
+          ],
+          "radius": 0.010553568554050603,
+          "length": 0.00450258902
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_yaw",
+      "name": "cad_left_shoulder_yaw_YawDriveHorn001_0_33",
+      "members": [
+        "cad_enclosure__YawDriveHorn001_0"
+      ],
+      "source_sha256": "7dd513cad407231da04b38274dbd7e2e3184a979fecd91f3917b55ef171e35da",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -2.680000000587768e-09,
+            2.754999999687868e-09,
+            -0.00034999017499999995
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "radius": 0.010553574626071656,
+          "length": 0.004502626270000001
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_HeadPanIdlerHorn_0_34",
+      "members": [
+        "cad_enclosure__HeadPanIdlerHorn_0"
+      ],
+      "source_sha256": "a64beb3dbfbf60b8e50a331c8d5d460e860cdc9d6c8b1eda40ecd83cdb556c39",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.087417740375,
+            -7.462225000000266e-06,
+            0.6459365189049999
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.01920259943000001,
+            0.01920260223,
+            0.0033525844499999995
+          ]
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_rigid_Base_servo_0_35",
+      "members": [
+        "cad_enclosure__rigid_Base_servo_0"
+      ],
+      "source_sha256": "ffecb2970ae6011c586a9f1069556d46de52d3d50930039ab98e6b95c35709e0",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.11999997087359617,
+            -0.18329072662350437,
+            0.3718541750564781
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "35ea14bc541fca867b5a324a7d01402b10e9a124bdfeae17ce349adf6341c2d9"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_rigid_Base_servo001_0_36",
+      "members": [
+        "cad_enclosure__rigid_Base_servo001_0"
+      ],
+      "source_sha256": "4d89ddca575ded5b8ac3ffe1ebf1647db0cb0e0c5f8363769e502b752a1dd91a",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.12000004339516403,
+            0.18329072586053394,
+            0.3718541758935072
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "fa4c3fbd281592d158dbdf52f0b2a92c51725ecdfbdc9cfa81dc4a88d24b0e45"
+        }
+      ]
+    },
+    {
+      "link": "cad_head_tilt",
+      "name": "cad_head_tilt_HeadTiltDriveHorn_0_37",
+      "members": [
+        "cad_enclosure__HeadTiltDriveHorn_0"
+      ],
+      "source_sha256": "115d30aed6678ff604d5669e661ba9d23687a4d29ed6d4d1d057956d3c3f5512",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -1.3799999996066959e-09,
+            0.0003500000649999999,
+            2.305000000646373e-09
+          ],
+          "rpy": [
+            -1.5707963267948966,
+            -1.5707963267948966,
+            0.0
+          ],
+          "radius": 0.010372758561381822,
+          "length": 0.00450260299
+        }
+      ]
+    },
+    {
+      "link": "cad_head_tilt",
+      "name": "cad_head_tilt_HeadTiltIdlerHorn_0_38",
+      "members": [
+        "cad_enclosure__HeadTiltIdlerHorn_0"
+      ],
+      "source_sha256": "b50ced59014b669597232be797b542341f258b0efcb4812cde6346d21f2e9864",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -1.3799999996066959e-09,
+            0.03367500026,
+            2.305000000646373e-09
+          ],
+          "rpy": [
+            -1.5707963267948966,
+            -1.5707963267948966,
+            0.0
+          ],
+          "radius": 0.010372750103439882,
+          "length": 0.003352603079999996
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint_2_39",
+      "members": [
+        "cad_enclosure__BasePrint_2"
+      ],
+      "source_sha256": "f8720c44df26ba814911166e94413d799bc14e0a4a43a22f9a0dc406c5920cbf",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.11999435632689155,
+            -0.1617670334507463,
+            0.3818647547936545
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "cbb3f6b596349d18b86ea8b3faa9ebbc637157efd03abdede5daedbc626aaf1c"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint001_2_40",
+      "members": [
+        "cad_enclosure__BasePrint001_2"
+      ],
+      "source_sha256": "8bc5188fe0b454c9c4554e76e4959f0f7df47766fad5121f83b5da00cd26a419",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.12000564613532809,
+            0.16176703439483256,
+            0.381864742786844
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "b5d9b0fa2af12389083d3bc695aea6854ae1d6afda34a7b5c4174ab530decf93"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftKinematic_CameraTool180_Pinc_Interface_ARM100_0_41",
+      "members": [
+        "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Interface_ARM100_0"
+      ],
+      "source_sha256": "72f6eb00296614ca10d022f55396bcf6e47bc7fef06eae7f14c809f0e21935ac",
+      "shapes": [
+        {
+          "type": "cylinder",
+          "xyz": [
+            -7.451810000000059e-06,
+            0.0034291387049999998,
+            -5.878109999999381e-06
+          ],
+          "rpy": [
+            -1.5707963267948966,
+            -1.5707963267948966,
+            0.0
+          ],
+          "radius": 0.012934648578896191,
+          "length": 0.005060913170000001
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_WristMotorHolder_0_42",
+      "members": [
+        "cad_enclosure__Aligned_WristMotorHolder_0"
+      ],
+      "source_sha256": "9558c3b0849069753552af94512041c90fffb9342d2cff079452bd31a24e1929",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.022765051858973658,
+            -0.15614768867715603,
+            0.0018172150505515344
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "1d4d610a2605549079b09b91c2084431688ab749f3352fa72125272f0fadf98b"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_RightKinematic_CameraTool180_Pinc_Interface_ARM100_0_43",
+      "members": [
+        "cad_enclosure__RightKinematic_CameraTool180_Pinc_Interface_ARM100_0"
+      ],
+      "source_sha256": "93b35905e92418cfc0c50bd5946c34229cf9970d7d2e4bb6cbaf9e245e1f7f7b",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            1.64258596445567e-07,
+            -0.008490333004999998,
+            -1.1799439149673407e-07
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "1deee584acf6dde5dfcf50f18b04500e67522f4f2b538058bb0441f7f6255026"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "name": "cad_left_elbow_pitch_Aligned_WristMotorHolder001_0_44",
+      "members": [
+        "cad_enclosure__Aligned_WristMotorHolder001_0"
+      ],
+      "source_sha256": "40758b412e975d707f8ae03aba73d046277d42d20ead44e95e9231e137ad1797",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.022765047235548664,
+            0.15614768867816187,
+            0.0018172120492968454
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "b38fba3bfb9b473299047d981fe5ff2214414895362646a6789507283d183e91"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftKinematic_CameraTool180_Pinc_Interface_ARM100_1_45",
+      "members": [
+        "cad_enclosure__LeftKinematic_CameraTool180_Pinc_Interface_ARM100_1"
+      ],
+      "source_sha256": "eda730d89d693fa7bc1ed98a17898aad0de7b897f9fbc613aacbf49c47aee2f0",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -1.640248625182014e-07,
+            0.008490333004999998,
+            -1.1404176192297832e-07
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "d790ff4beb57410e435cb87cbcdadb5dd463c990c90abec3bc420cb87b2cbce9"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BaseCover_0_46",
+      "members": [
+        "cad_enclosure__BaseCover_0"
+      ],
+      "source_sha256": "1cef39f50655305caff24cee7ede5af46773931a20297c1e92c27a5c7e85888d",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.12660270760492748,
+            -0.16942976276203675,
+            0.3839394937317887
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "b35dd60d70b735415a55d51893bf783c8bd3eeac793119d922ce7a9e4d69dfd5"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BaseCover001_0_47",
+      "members": [
+        "cad_enclosure__BaseCover001_0"
+      ],
+      "source_sha256": "8e7a9c7644b5903b739e0effd5d927c7a49a7bd7541dc72a743560383d314a66",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.11339729409249984,
+            0.16942977059394201,
+            0.3839394922118507
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "76698497ed89ac2ce72d31e1c81810c8cb389127af7e94570388459e133e9e1f"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint_0_48",
+      "members": [
+        "cad_enclosure__BasePrint_0"
+      ],
+      "source_sha256": "f88cd7b1425b37b22f16be7fe7bcad6419ded969fcc19c7a9d93c21d7e08f4c1",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.12000003174977569,
+            -0.17386505974856126,
+            0.3456473643206286
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "b7a79e8463e5806080679db4530437a8935ea94e650a4b69a5997dd0f5b50de3"
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint001_0_49",
+      "members": [
+        "cad_enclosure__BasePrint001_0"
+      ],
+      "source_sha256": "a0205f5f3574d34499a72d0cf941570b6ffc931ca4de676642452a0e002a1699",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.11999996478857275,
+            0.1738650472238619,
+            0.3456473621559018
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "168a67c8074556a6b624fab3d7a83f850ccc36d222122e4a7959c8c5706f854e"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_yaw",
+      "name": "cad_right_shoulder_yaw_ShoulderMotorHolder_0_50",
+      "members": [
+        "cad_enclosure__ShoulderMotorHolder_0"
+      ],
+      "source_sha256": "ac66eac29cbfb0e499c3efe6012a30086bf0d93aefa1d3d0aa43a580037ac54b",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.008559622112176491,
+            -0.027434934401178376,
+            0.026371230852938875
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "e3892919fdd70625ba6112d08821176f666c04aa24b4575de942bf2626f383c9"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_RightCamera_BaseScrew0_0_51",
+      "members": [
+        "cad_enclosure__RightCamera_BaseScrew0_0"
+      ],
+      "source_sha256": "511c715e7671f94f534b2fd7fdcdf23af5fa9ca2e7b72fbd5e0c7ca9e5e0edf6",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.018910002380000002,
+            -0.023241588520000002,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502194140000002,
+            0.0045022090400000025,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_RightCamera_BaseScrew1_0_52",
+      "members": [
+        "cad_enclosure__RightCamera_BaseScrew1_0"
+      ],
+      "source_sha256": "8510418556c67c83203641cc53724b846bb599a3f34a5d222af9bd915297071b",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.018909994099999997,
+            -0.023241588520000002,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502209039999998,
+            0.0045022090400000025,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_RightCamera_BaseScrew2_0_53",
+      "members": [
+        "cad_enclosure__RightCamera_BaseScrew2_0"
+      ],
+      "source_sha256": "36e9cc98c030844654242b54c2548f9681f113b3b2fc7b5bd0e8c3c6f69ee534",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.018910002380000002,
+            -0.03824157421,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502194140000002,
+            0.004502209039999995,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_RightCamera_BaseScrew3_0_54",
+      "members": [
+        "cad_enclosure__RightCamera_BaseScrew3_0"
+      ],
+      "source_sha256": "617818ebe1aa9a5299b5faadd15f12ea312bf40a1968f7eb43fcb0f5489c7f1b",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.018909994099999997,
+            -0.03824157421,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502209039999998,
+            0.004502209039999995,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_yaw",
+      "name": "cad_left_shoulder_yaw_ShoulderMotorHolder001_0_55",
+      "members": [
+        "cad_enclosure__ShoulderMotorHolder001_0"
+      ],
+      "source_sha256": "451b8acbe9cbc8a28740fd872afed211000961846466c392a9b5bc8bb5f76d58",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.008559623122311684,
+            0.027434920303007093,
+            0.026371232260659093
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "05ede0e7af2d2d9ed5959c4dd713c4698c42ea98b80831d99d4a9edd6f887866"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftCamera_BaseScrew0_0_56",
+      "members": [
+        "cad_enclosure__LeftCamera_BaseScrew0_0"
+      ],
+      "source_sha256": "c501d31691975f0a668385bae3a990a647f1d0f43b141f6cbe43885db960c883",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.01890999701,
+            0.023241588520000002,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502209039999998,
+            0.0045022090400000025,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftCamera_BaseScrew1_0_57",
+      "members": [
+        "cad_enclosure__LeftCamera_BaseScrew1_0"
+      ],
+      "source_sha256": "288aa5819eb6ea14143ec7705bb9ba69568cb2e44bbb7071885324a8ac12ad0f",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.01890999946,
+            0.023241588520000002,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502194140000002,
+            0.0045022090400000025,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftCamera_BaseScrew2_0_58",
+      "members": [
+        "cad_enclosure__LeftCamera_BaseScrew2_0"
+      ],
+      "source_sha256": "9923d0d874949791faf072440ee7fc3ed56ecae3dd1066a6b53873de1bfb11aa",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.01890999701,
+            0.03824157421,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502209039999998,
+            0.004502209039999995,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_LeftCamera_BaseScrew3_0_59",
+      "members": [
+        "cad_enclosure__LeftCamera_BaseScrew3_0"
+      ],
+      "source_sha256": "f605145ea70e60f96e9416e68f0db2ba3cc3c6326889576374b2795315161942",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.01890999946,
+            0.03824157421,
+            0.02050001214
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.004502194140000002,
+            0.004502209039999995,
+            0.01000222764
+          ]
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint_1_60",
+      "members": [
+        "cad_enclosure__BasePrint_1"
+      ],
+      "source_sha256": "f30b0ae1b8a61cc448a00d0bed6340d8781608626d7272d479552baab433016c",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.117458615455,
+            -0.14000441879,
+            0.35578614473000003
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.005107933790000009,
+            0.010002242540000003,
+            0.0010299106599999898
+          ]
+        }
+      ]
+    },
+    {
+      "link": "base_link",
+      "name": "base_link_BasePrint001_1_61",
+      "members": [
+        "cad_enclosure__BasePrint001_1"
+      ],
+      "source_sha256": "f8e33c6b149c51b3be80af2746323add6ecddb9ac15abb47d3ab828a09454f73",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.122541394085,
+            0.14000441879,
+            0.35578614473000003
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.005107948689999991,
+            0.010002242540000003,
+            0.0010299106599999898
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "name": "cad_right_shoulder_pitch_AssembledShoulderSocket_2_62",
+      "members": [
+        "cad_enclosure__AssembledShoulderSocket_2"
+      ],
+      "source_sha256": "cce5fa12766b482c9efcb15a72a10ab389dacf763b8d7ae7241aed80c9fb0d7a",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.01627452382232242,
+            0.041104829322994064,
+            6.226981812875998e-05
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "eefb7d55a7f8a973425f7d37ac614ceb0693519b25014846e1cb4753277ad966"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_shoulder_pitch",
+      "name": "cad_right_shoulder_pitch_AssembledUpperTube_0_63",
+      "members": [
+        "cad_enclosure__AssembledUpperTube_0"
+      ],
+      "source_sha256": "bafd45b4bd15e40526ff1b90751a56ab4a8c97b480945f0f43ac68d8f00f1a02",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.016299997315,
+            0.088499856045,
+            0.00015446970999999986
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.01800398729,
+            0.08703524819,
+            0.018155874819999997
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_AssembledElbowBSocket_0_64",
+      "members": [
+        "cad_enclosure__Aligned_AssembledElbowBSocket_0"
+      ],
+      "source_sha256": "662bb88b22ee86ffa802a5cad55047b1b80602f0abf3fc99728da449952cfd05",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.016300006260274096,
+            -0.041604281298477507,
+            4.593948188400088e-06
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "ab6e3768edfdbbb9c80a359572b0d5c9cf1668fe444bd74b3e7643c30ac2370b"
+        }
+      ]
+    },
+    {
+      "link": "cad_right_elbow_pitch",
+      "name": "cad_right_elbow_pitch_Aligned_AssembledLowerTube_0_65",
+      "members": [
+        "cad_enclosure__Aligned_AssembledLowerTube_0"
+      ],
+      "source_sha256": "5138847d8ec21d525c7eeb2f0245d0eae3f506fd05bd73aa534b34c03c525222",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            0.016299997315,
+            -0.08669874138,
+            -5.6750000005934e-09
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.01800398729,
+            0.08200613609999999,
+            0.018004061789999998
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "name": "cad_left_shoulder_pitch_AssembledShoulderSocket001_0_66",
+      "members": [
+        "cad_enclosure__AssembledShoulderSocket001_0"
+      ],
+      "source_sha256": "44b429a21044b015542ac36d67df23bd6b563211ef82f72a544301691715ea94",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.016274516294152604,
+            -0.04110483909318145,
+            6.224262351440867e-05
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "5bbcf717d7804b3d829340484a2562d528b47e5e05ff4f5f91014d0263c13cd1"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_shoulder_pitch",
+      "name": "cad_left_shoulder_pitch_AssembledUpperTube001_0_67",
+      "members": [
+        "cad_enclosure__AssembledUpperTube001_0"
+      ],
+      "source_sha256": "67bb1e099aa45b44ddc64ac99de92c3f9fa692d64a1e46e061c7cf7341c97a64",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.016300002685,
+            -0.088499856045,
+            0.00015446970999999986
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.01800398729,
+            0.08703524819,
+            0.018155874819999997
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_left_elbow_pitch",
+      "name": "cad_left_elbow_pitch_Aligned_AssembledLowerTube001_0_68",
+      "members": [
+        "cad_enclosure__Aligned_AssembledLowerTube001_0"
+      ],
+      "source_sha256": "ddbf181b86bb8f7d5767c2b510f8933dfc0f0b1a0458adbd4308cc84e4a97b0f",
+      "shapes": [
+        {
+          "type": "box",
+          "xyz": [
+            -0.016300002685,
+            0.08669874138,
+            -5.6750000005934e-09
+          ],
+          "rpy": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            0.01800398729,
+            0.08200613609999999,
+            0.018004061789999998
+          ]
+        }
+      ]
+    },
+    {
+      "link": "cad_right_wrist_roll",
+      "name": "cad_right_wrist_roll_camera_lens_and_glass_69",
+      "members": [
+        "RightCamera_Lens_collision",
+        "RightCamera_Glass_collision"
+      ],
+      "source_sha256": "13646b3fb2caad42cf4a4cf043c9ffcda2d338ad2b293f041d723df1337a4179",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            0.0005064419123729811,
+            -0.048078267227232914,
+            0.08144074354401375
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "935f435da1c8b2327e389afcea3793e1e7e2d63c3021047e3a05c8896e500f80"
+        }
+      ]
+    },
+    {
+      "link": "cad_left_wrist_roll",
+      "name": "cad_left_wrist_roll_camera_lens_and_glass_70",
+      "members": [
+        "LeftCamera_Lens_collision",
+        "LeftCamera_Glass_collision"
+      ],
+      "source_sha256": "1d2d17376a510cb2ad803ed718b0d9ac03b4ab62bbc99903d7256a23f6a1b716",
+      "shapes": [
+        {
+          "type": "hull",
+          "xyz": [
+            -0.00032566570462899414,
+            0.04769175960861248,
+            0.08165197088676561
+          ],
+          "rpy": [
+            0,
+            0,
+            0
+          ],
+          "sha256": "c6b0b12186c82026769fc7fc7e8b358be3e584847323cb341137d3e98ca8c343"
+        }
+      ]
+    }
+  ]
+}

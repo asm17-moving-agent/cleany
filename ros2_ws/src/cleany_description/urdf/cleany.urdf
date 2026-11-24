@@ -361,13 +361,7 @@
         <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
       </material>
     </visual>
-    <collision name="HeadFixedBracket_collision">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/fe2367ede7f2f07966516f4476935cb35a7363117607d7ca4f1b078e3bb593bd.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="HeadPanServoCase_visual">
+    <collision name="rigid_fit_base_link_head_fixed_bracket_and_servo_2_0"><origin xyz="0.091701518067865376 -0.0005332026005414334 0.64806136555043214" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/c3d6b51fad071e05f5ac4446fc88d62ff93532e2a47615da8f405bfc5b5d05ca.glb" /></geometry></collision><visual name="HeadPanServoCase_visual">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanServoCase.stl" scale="1 1 1" />
@@ -376,12 +370,6 @@
         <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
       </material>
     </visual>
-    <collision name="HeadPanServoCase_collision">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c2f34f484a1c68d6cba1dd5e8171ec76211e32880ce531f51e3101352f50c593.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="HeadPanServoFront_visual">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
@@ -391,12 +379,6 @@
         <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
       </material>
     </visual>
-    <collision name="HeadPanServoFront_collision">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d809e1d1fdc1222a6880da7696580e0a14f93cab547e1861cb6897f4d9cc1605.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="HeadPanServoMiddle_visual">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
@@ -406,12 +388,6 @@
         <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
       </material>
     </visual>
-    <collision name="HeadPanServoMiddle_collision">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5e4f4ae29c9052ece09f48f95fc0c4fa607efeae45402f358bac93924dc3944d.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="HeadPanIdlerHorn_visual">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
@@ -1422,106 +1398,40 @@
     <collision name="cad_enclosure__InstalledMast_2">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/01b57da30c0919d50a71ee98ac573728e568d76b4300b17e37e6db5d8f114491.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a47839a3dae8772dd30867bc6bbdc92d6465742d3cf0d33b8246b74b993e3adf.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__InstalledMast_3">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/318f2308f8febe6d04ad831eb3f5534e706e4dc57b1d4d6631398a2bf4675ebf.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/587410d63740ecae9c3e12ec7e577e10584d13d86f99db271607f78738c195fa.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__InstalledMast_4">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a3b464d1e63ee63a8c0a36fbc5273540ed86c88b1f3946471a81d30221190073.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/91081b84fbcbd8c326753cc1eeaa9ce5978d3732e585958aa83a0d7092526429.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__InstalledMast_5">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/730580d91c8cc3914f1b6c7ba22944c3ed3163a383766f2a8b6d240999d22407.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d54f46f2dd89276ffeaab9bab67658ee49f8941ac588be1723563dd322fee641.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__InstalledMast_6">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a73579c404f368569b7e2f6ba037abf741936a517a951533897ab1a6c9cc5785.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2a8cba830e42b0bb2a517de50481b13322ab84c8ec24c17045e81afbc602cbab.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__InstalledMast_7">
       <origin xyz="-0 -0 -0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a2761c35cb5c7ef4265b3c12ce16162366428f33eeb88f5db93d0d844df4a10f.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6e8bbaaf3ffd62eb7f0601d9c6b8842cffbe67ac98328fd67da4a54cc4dcb882.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__BasePrint_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/775abd518dfbab271560ac6e0f64c3f5d2ccb7b5a398b0d230b275219249cba2.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BasePrint_1">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/1dbb98b739d15486c1b6268283e51f1362ac0f31232f767cb9a2cc9629451901.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BasePrint_2">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a134d11c11195e938cd4c464007227618e25ef3a248b31cb99ca5db90c5222b4.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BaseCover_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6b857ba65dc22508c77d2c1dc7ceca078e23f2a1347b85001a789b71b1032a37.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BasePrint001_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/328eb2dd2a7e1d60b09e005bc59f34aa5099b512b3474f1fcd0f895af67b5add.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BasePrint001_1">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/45cf41a3fc4f21a06972bda640a986722cb1f3e4df60aa0134d1bfe526eb3cc4.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BasePrint001_2">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/be724c796147e6dd4a8ded957d458ea12a4563259e1e7e7cd2c40a2a76565954.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__BaseCover001_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/bad4b59454a1ea57965873cc6a5c9c8ee903346f48000d0d924e3ffee13e32c5.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__HeadPanIdlerHorn_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/8a813b4f2a4383b95f6b8080e6765d73965411e6258b3aa0cba4d7e53f7b6c0a.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__rigid_Base_servo_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4beddbca946d51a127ae7a5051c936ce308165b323ade1a2a159b5abbe9a8c82.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__rigid_Base_servo001_0">
-      <origin xyz="-0 -0 -0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/9977da4f0b7eae1b05751fb48d2d2f2b40dc454a616d2b004343cd7f1398c4ce.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    </link>
+    <collision name="cad_enclosure__rigid_fit_base_link_BasePrint_0_48_0"><origin xyz="0.12000003174977569 -0.17386505974856126 0.34564736432062859" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/b7a79e8463e5806080679db4530437a8935ea94e650a4b69a5997dd0f5b50de3.glb" /></geometry></collision><collision name="rigid_fit_base_link_BasePrint_1_60_0"><origin xyz="0.117458615455 -0.14000441879 0.35578614473000003" rpy="0 0 0" /><geometry><box size="0.0051079337900000093 0.010002242540000003 0.0010299106599999898" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_BasePrint_2_39_0"><origin xyz="0.11999435632689155 -0.16176703345074631 0.3818647547936545" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/cbb3f6b596349d18b86ea8b3faa9ebbc637157efd03abdede5daedbc626aaf1c.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_BaseCover_0_46_0"><origin xyz="0.12660270760492748 -0.16942976276203675 0.38393949373178871" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/b35dd60d70b735415a55d51893bf783c8bd3eeac793119d922ce7a9e4d69dfd5.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_BasePrint001_0_49_0"><origin xyz="0.11999996478857275 0.1738650472238619 0.34564736215590181" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/168a67c8074556a6b624fab3d7a83f850ccc36d222122e4a7959c8c5706f854e.glb" /></geometry></collision><collision name="rigid_fit_base_link_BasePrint001_1_61_0"><origin xyz="0.122541394085 0.14000441879 0.35578614473000003" rpy="0 0 0" /><geometry><box size="0.0051079486899999913 0.010002242540000003 0.0010299106599999898" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_BasePrint001_2_40_0"><origin xyz="0.12000564613532809 0.16176703439483256 0.38186474278684401" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/b5d9b0fa2af12389083d3bc695aea6854ae1d6afda34a7b5c4174ab530decf93.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_BaseCover001_0_47_0"><origin xyz="0.11339729409249984 0.16942977059394201 0.3839394922118507" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/76698497ed89ac2ce72d31e1c81810c8cb389127af7e94570388459e133e9e1f.glb" /></geometry></collision><collision name="rigid_fit_base_link_HeadPanIdlerHorn_0_34_0"><origin xyz="0.087417740374999997 -7.4622250000002663e-06 0.64593651890499992" rpy="0 0 0" /><geometry><box size="0.019202599430000009 0.019202602230000001 0.0033525844499999995" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_rigid_Base_servo_0_35_0"><origin xyz="0.11999997087359617 -0.18329072662350437 0.37185417505647811" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/35ea14bc541fca867b5a324a7d01402b10e9a124bdfeae17ce349adf6341c2d9.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_base_link_rigid_Base_servo001_0_36_0"><origin xyz="0.12000004339516403 0.18329072586053394 0.37185417589350722" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/fa4c3fbd281592d158dbdf52f0b2a92c51725ecdfbdc9cfa81dc4a88d24b0e45.glb" /></geometry></collision></link>
   <link name="cad_right_shoulder_yaw">
     <visual name="YawPrint_visual">
       <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
@@ -1589,13 +1499,13 @@
     <collision name="cad_enclosure__YawPrint_0">
       <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/42a4d9487b8f6f41de80259a41158aa4ed2eca4f4f1cc002fdf63071fd9fe67c.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a789137f4b348cf5f55183c0564ce8c6f49f7ccd90f31f421b9960ddb2eff43f.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__YawPrint_1">
       <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/ed82980bd2defa18d046426e580aa767e45455ef2c976577cc066d0e3a3e62e4.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/015f42c664cdc695d0de40ea9fcde1c01bc3d34e78d1e9a036d11a99112b3b5b.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__YawPrint_2">
@@ -1604,28 +1514,10 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/0630ace1a33bfc0e98114ef8f0fe4bbdc1ce0fbff4c9416e43e43ddf3c9948ed.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__ShoulderMotorHolder_0">
+    <collision name="cad_enclosure__rigid_fit_cad_right_shoulder_yaw_ShoulderMotorHolder_0_50_0"><origin xyz="0.0085596221121764914 -0.027434934401178376 0.026371230852938875" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/e3892919fdd70625ba6112d08821176f666c04aa24b4575de942bf2626f383c9.glb" /></geometry></collision><collision name="rigid_fit_cad_right_shoulder_yaw_YawDriveHorn_0_17_0"><origin xyz="-2.6850000001132912e-09 -2.754999999687868e-09 -0.00034999017500000006" rpy="0 0 0" /><geometry><cylinder radius="0.010553247846380169" length="0.0045020302300000006" /></geometry></collision><collision name="rigid_fit_cad_right_shoulder_yaw_YawIdlerHorn_0_24_0"><origin xyz="1.0450000003103809e-09 -2.754999999687868e-09 -0.032824999734999999" rpy="0 0 0" /><geometry><cylinder radius="0.010678957289101579" length="0.0033522268299999969" /></geometry></collision><collision name="cad_enclosure__rigid_Yaw_servo_0">
       <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/95ff5b1587ed6523a8e111d926222f407f4f987eb78e946911bfe62bbe70f18d.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__YawDriveHorn_0">
-      <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/48fbc4c84de75f89d3f697c95a647c4023793d4877e444203da5b73efa629f41.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__YawIdlerHorn_0">
-      <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a382bd1aaa659213efd83304792be891352a065b8cab66bf89ccb0ac46164d75.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Yaw_servo_0">
-      <origin xyz="-0.12 0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c4e6055b27160186824e0c11531b1d9cb1125a483a51763dcde71d62545136f1.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/e9e9c460e489524926c6cb360e807f784a78a7abd932cf6f087aaa4cb8706cad.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -1714,46 +1606,16 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4e3e1a08fcee168f2ee2662a3a3655e5cb38b5a7a24251ee5bb7018d3c38ccb7.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__AssembledShoulderSocket_1">
-      <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c39828c47bf773ec9701cdcf18ea490579f57fda7e49907f8fd99aae27ac796b.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledShoulderSocket_2">
-      <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c72415a76f6d5fa8849f02a31538b34ec64b4687499d9f198a2750e1b912417f.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledUpperTube_0">
-      <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b8d41e850424d864c611ddffae3cc984746ae1dffd7b6992f488e7e708ea3457.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledElbowASocket_0">
+    <collision name="cad_enclosure__rigid_fit_cad_right_shoulder_pitch_AssembledShoulderSocket_1_22_0"><origin xyz="0.041950358969077312 0.0088415039185460401 0.0010785834282592262" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/24cfc045be7a26fc2c03b699b73cebcd769c2c868e26f3033dc33ebe6d455593.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_right_shoulder_pitch_AssembledShoulderSocket_2_62_0"><origin xyz="0.016274523822322421 0.041104829322994064 6.2269818128759979e-05" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/eefb7d55a7f8a973425f7d37ac614ceb0693519b25014846e1cb4753277ad966.glb" /></geometry></collision><collision name="rigid_fit_cad_right_shoulder_pitch_AssembledUpperTube_0_63_0"><origin xyz="0.016299997314999998 0.088499856045000005 0.00015446970999999986" rpy="0 0 0" /><geometry><box size="0.018003987289999999 0.087035248189999997 0.018155874819999997" /></geometry></collision><collision name="cad_enclosure__AssembledElbowASocket_0">
       <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/bdaa8a10769065c5ffa844d5f4436368ce61fc0b0b8612119077ade4e59f1d6d.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__UpperDriveHorn_0">
+    <collision name="rigid_fit_cad_right_shoulder_pitch_UpperDriveHorn_0_18_0"><origin xyz="0.00034999926500000001 7.9500000005339187e-10 4.2699999998063731e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010549746337190403" length="0.0045019929700000003" /></geometry></collision><collision name="rigid_fit_cad_right_shoulder_pitch_UpperIdlerHorn_0_12_0"><origin xyz="0.03282499765 7.9500000005339187e-10 4.2650000002808498e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010695360832102428" length="0.0033522119199999962" /></geometry></collision><collision name="cad_enclosure__rigid_Upper_servo_0">
       <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/eb2f16af4fb07fb20c4c44ac313b632605d9ebd1b17758b200035fb0d0b337ce.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__UpperIdlerHorn_0">
-      <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7593e289039ca4fb37ae52de263166638ea64d9117cf970fd560a607c9e3bb79.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Upper_servo_0">
-      <origin xyz="-0.1037 0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/961a61732678d679c4a2da4410f237dc11ca7a5ad03f279ec18ad96dda3d2114.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d5bad896b5b44dfefc46d97173d122179de45d9c19ed996426d3ec7aee14530f.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -1845,19 +1707,7 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__Aligned_WristMotorHolder_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3af78e4b1f4dfdd7a5e5690d89fa098aa12b754b7d5810a88d8752014bdc5493.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_AssembledElbowBSocket_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/e2a5a6560e6f7c4f2e915307cc652adfd85603c883c0f4b19cc2031386949b9f.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_AssembledElbowBSocket_1">
+    <collision name="cad_enclosure__rigid_fit_cad_right_elbow_pitch_Aligned_WristMotorHolder_0_42_0"><origin xyz="0.022765051858973658 -0.15614768867715603 0.0018172150505515344" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/1d4d610a2605549079b09b91c2084431688ab749f3352fa72125272f0fadf98b.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_right_elbow_pitch_Aligned_AssembledElbowBSocket_0_64_0"><origin xyz="0.016300006260274096 -0.041604281298477507 4.5939481884000876e-06" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/ab6e3768edfdbbb9c80a359572b0d5c9cf1668fe444bd74b3e7643c30ac2370b.glb" /></geometry></collision><collision name="cad_enclosure__Aligned_AssembledElbowBSocket_1">
       <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/22bfac961d69277aa5280041ccb61b5cbff5c4f9965478af1bdf8f974eb69814.glb" scale="1 1 1" />
@@ -1869,34 +1719,10 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b9d5bb8079eae98387eaada48790c9d3d125b0ce5f969744387a56535220edef.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__Aligned_AssembledLowerTube_0">
+    <collision name="rigid_fit_cad_right_elbow_pitch_Aligned_AssembledLowerTube_0_65_0"><origin xyz="0.016299997314999998 -0.08669874138 -5.6750000005933999e-09" rpy="0 0 0" /><geometry><box size="0.018003987289999999 0.082006136099999988 0.018004061789999998" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_right_elbow_pitch_Aligned_AssembledWristSocket_0_14_0"><origin xyz="0.016317208159999996 -0.13900923863119119 2.3487149999996682e-06" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/d21719a838b1c99bfa1098c489406b2a4281be7f2d75cdce48812985c24d272b.glb" /></geometry></collision><collision name="rigid_fit_cad_right_elbow_pitch_Aligned_LowerDriveHorn_0_32_0"><origin xyz="0.00034999927000000009 -6.6000000042976127e-10 -5.6699999992915195e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010553568554050603" length="0.0045025890200000003" /></geometry></collision><collision name="rigid_fit_cad_right_elbow_pitch_Aligned_LowerIdlerHorn_0_25_0"><origin xyz="0.03282499765 -6.5999999954158281e-10 -5.670000000179698e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010685702803572821" length="0.0033522119199999962" /></geometry></collision><collision name="cad_enclosure__rigid_Aligned_Lower_servo_0">
       <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7ff6fe580efc491349a49f39262af957be8c38922ca010606a57ac7f5369a75d.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_AssembledWristSocket_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/0a8017ecc389cc32ec5b5d5eaf34f5775685b0e18a662aab30a28d6be234e240.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_LowerDriveHorn_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/911fa2cf0d0f2c0d2bf7536a79d8d02ee81ddb2a649449cf7fa4cc125038a2f4.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_LowerIdlerHorn_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7357f15d0a82de32014f4d8304e066b124377225de3339d7ba10cd66f3216684.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Aligned_Lower_servo_0">
-      <origin xyz="-0.1037 0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/29e238f0da0f7c060832ad801b4157edba99891cda5783eac688ab7a58bda498.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/14896114039bf6e8c6a3c315a6ce1e21e7ceb5b84f903f514b85b0b392715132.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -1916,13 +1742,7 @@
         <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
       </material>
     </visual>
-    <collision name="WristPrint_collision">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4e21bc7ddaec08527e09693fceaba07950b9de0df1370ef927c53f74f51a118b.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="Wrist_servo_visual">
+    <collision name="rigid_fit_cad_right_wrist_pitch_wrist_housing_and_servo_0_0"><origin xyz="0.020855586286576418 -0.025255335718151289 0.00061173805394224457" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/f9c5e7ad0ce5bda5bc528dd5cd432ee475416544ef6d4dbfb72413a000405f62.glb" /></geometry></collision><visual name="Wrist_servo_visual">
       <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo.stl" scale="1 1 1" />
@@ -1931,12 +1751,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo_collision">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/be653b4d936ee85b5ff02db78336e058ebac1ff5eabbab4a8c67d10277397d63.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="Wrist_servo_middle_visual">
       <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -1946,12 +1760,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo_middle_collision">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b63f477e00aac9a1093ce5ff2abd6dd8800a5e035ab0bbacd7df711b85ea3c39.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="Wrist_servo_other_visual">
       <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -1961,12 +1769,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo_other_collision">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2cc95f506fad8f4fc40a6588283272f5876fb5063a555e21415b811f21cdf5db.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="WristDriveHorn_visual">
       <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -1985,19 +1787,7 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__WristDriveHorn_0">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4a732728e8fa32cae50a8b9291005fbfd385ccd357e7f22c1f9e7628a7a2f6f0.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__WristIdlerHorn_0">
-      <origin xyz="-0.1038 0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2d01f695185b9c26152149d60f20fc32caa43f1e4ac53d1c3ccea74395a9d055.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  </link>
+    <collision name="rigid_fit_cad_right_wrist_pitch_WristDriveHorn_0_19_0"><origin xyz="0.00034999723499999993 -5.0749999997989901e-09 -7.055000000200096e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010553233464466455" length="0.0045020004299999999" /></geometry></collision><collision name="rigid_fit_cad_right_wrist_pitch_WristIdlerHorn_0_26_0"><origin xyz="0.03262499596 2.3750000002209505e-09 -7.055000000200096e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010685709486354014" length="0.0033522119200000032" /></geometry></collision></link>
   <joint name="right_wrist_pitch_joint" type="revolute">
     <parent link="cad_right_elbow_pitch" />
     <child link="right_wrist_pitch_joint_cad_motor_frame" />
@@ -2023,13 +1813,7 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_Bottom_Plate_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/110754965cdcf49f31cbc5bd0bb71c31ba6b26d810d5aed6f771851a744d5574.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="RightKinematic_CameraTool180_Pinc_Top_Plate_visual">
+    <collision name="rigid_fit_cad_right_wrist_roll_gripper_plates_and_servo_10_0"><origin xyz="0.00069246960591421759 -0.041510878735653928 0.012261593416659073" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/a84b0cb629bb215a2fe313743f92b9384f675640f230bca3e8f7b89fe10e7505.glb" /></geometry></collision><visual name="RightKinematic_CameraTool180_Pinc_Top_Plate_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
@@ -2038,12 +1822,6 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_Top_Plate_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c7bbac81f57ab1d2400e5cdeaa9e315712e30f8084725cc76246bea3293bb6c5.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="RightKinematic_CameraTool180_Pinc_Interface_ARM100_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2062,12 +1840,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_servo_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/86834d852df9eceff9e09cd9ff6f3dfd8b4ecb7efe5b7ebb155b7fb00bf44002.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="RightKinematic_CameraTool180_Pinc_servo_middle_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2077,12 +1849,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_servo_middle_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2c964f0ceca10ba00ab9b2b0b95784502bdcd0a004c57792500834824be5986d.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="RightKinematic_CameraTool180_Pinc_servo_other_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2092,12 +1858,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_servo_other_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d0ed6bcec0fc0435a025785cd49274e05e547c118a0d55b9e43714e9d85b03e6.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="RightCamera_FixedMount_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2110,7 +1870,7 @@
     <collision name="RightCamera_FixedMount_collision">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/1d25286f49d4100243e4bc38e768a1d88d079832ccf68449754d7984e72e989f.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d2a31457a3396fbd4c71d163cdfb00d2bff2afcfdfec8051efd8788f2a8b253a.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="RightCamera_PCB_visual">
@@ -2131,13 +1891,7 @@
         <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
       </material>
     </visual>
-    <collision name="RightCamera_Lens_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/567720d5255b6c027c0da09ed3ce1f97be7ecca1afb1b795eaa0b5f157cf240c.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="RightCamera_Glass_visual">
+    <collision name="cad_enclosure__rigid_fit_cad_right_wrist_roll_camera_lens_and_glass_69_0"><origin xyz="0.00050644191237298115 -0.048078267227232914 0.081440743544013747" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/935f435da1c8b2327e389afcea3793e1e7e2d63c3021047e3a05c8896e500f80.glb" /></geometry></collision><visual name="RightCamera_Glass_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/RightCamera_Glass.stl" scale="1 1 1" />
@@ -2146,12 +1900,6 @@
         <color rgba="0.121568627451 0.321568627451 0.541176470588 1" />
       </material>
     </visual>
-    <collision name="RightCamera_Glass_collision">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b243a60e7cd2278b34628d19f204f136a3e6906af7036592b94809b4b51252ab.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="RightCamera_Connector_visual">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2275,46 +2023,16 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/856fa4b13ee37eba4cfc65b8a15f7cbc62704af2737771534f1251dea1f17701.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__RightKinematic_CameraTool180_Pinc_Interface_ARM100_0">
+    <collision name="cad_enclosure__rigid_fit_cad_right_wrist_roll_RightKinematic_CameraTool180_Pinc_Interface_ARM100_0_43_0"><origin xyz="1.64258596445567e-07 -0.0084903330049999979 -1.1799439149673407e-07" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/1deee584acf6dde5dfcf50f18b04500e67522f4f2b538058bb0441f7f6255026.glb" /></geometry></collision><collision name="cad_enclosure__RightKinematic_CameraTool180_Pinc_Interface_ARM100_1">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6ab7cc3c64277b9bc0a3fa8ee7b8bfdf42bf45df7358e2c487a92371b4de1761.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5411da4d3d3113ac1e21cd8cd94d212b224d53cea8ca388c36d83ab1160b93e1.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__RightKinematic_CameraTool180_Pinc_Interface_ARM100_1">
+    <collision name="rigid_fit_cad_right_wrist_roll_RightCamera_BaseScrew0_0_51_0"><origin xyz="-0.018910002380000002 -0.023241588520000002 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045021941400000022 0.0045022090400000025 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_right_wrist_roll_RightCamera_BaseScrew1_0_52_0"><origin xyz="0.018909994099999997 -0.023241588520000002 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045022090399999982 0.0045022090400000025 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_right_wrist_roll_RightCamera_BaseScrew2_0_53_0"><origin xyz="-0.018910002380000002 -0.038241574209999997 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045021941400000022 0.0045022090399999947 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_right_wrist_roll_RightCamera_BaseScrew3_0_54_0"><origin xyz="0.018909994099999997 -0.038241574209999997 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045022090399999982 0.0045022090399999947 0.01000222764" /></geometry></collision><collision name="cad_enclosure__rigid_right_camera_board_0">
       <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/325d8d0c99f9854ae6cde51da4bc1dd04fe6a354c8b58f92742958c73fa084ff.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__RightCamera_BaseScrew0_0">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/af6609ddb4cbb44688fa0344a4ab34e0879ae1e31e7a7125c6ad97e4a0525a64.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__RightCamera_BaseScrew1_0">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d45daee4bd2495e41fb70e923a8b3d164559a54ce95f132301c9ca8ebc1b9988.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__RightCamera_BaseScrew2_0">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/84a4a16fa84f9c636a7ab52c204771a481709ac4d52225e4ebe8b0f3387226c4.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__RightCamera_BaseScrew3_0">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4ad45080e4e0d4918f2b51ba1d34ca6d9910fa1dea25b6cf8d0efb4de60d9248.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_right_camera_board_0">
-      <origin xyz="-0.121527206567 0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/909a1932808444e145109074e663fcb0fcab883c35450fd645fbea4da9bd0da7.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5b6e61d92ef1a82731bf4a5e2f82d213a9b2face235602a186853c0144e12aee.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -2391,7 +2109,7 @@
     <collision name="cad_enclosure__YawPrint001_0">
       <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/bd7b3ec131cd3340feaa38a49f6cdbd8207a1f8ffabc0c41b5bfba3f81e165a9.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6f3795db736a7a84d123e6d8eb99232ee4c291e12d0e1908e9f19168b09a794c.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <collision name="cad_enclosure__YawPrint001_1">
@@ -2403,31 +2121,13 @@
     <collision name="cad_enclosure__YawPrint001_2">
       <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/21d03d80e86125d1743bab5bd159a798b9f2990a5a045a0fe4ddc40769a525e0.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5ce171b274fdaba62866a0d1f500b27a39a643e7e4be54dbe812adefe0351272.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__ShoulderMotorHolder001_0">
+    <collision name="cad_enclosure__rigid_fit_cad_left_shoulder_yaw_ShoulderMotorHolder001_0_55_0"><origin xyz="-0.0085596231223116839 0.027434920303007093 0.026371232260659093" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/05ede0e7af2d2d9ed5959c4dd713c4698c42ea98b80831d99d4a9edd6f887866.glb" /></geometry></collision><collision name="rigid_fit_cad_left_shoulder_yaw_YawDriveHorn001_0_33_0"><origin xyz="-2.6800000005877679e-09 2.754999999687868e-09 -0.00034999017499999995" rpy="0 0 0" /><geometry><cylinder radius="0.010553574626071656" length="0.0045026262700000007" /></geometry></collision><collision name="rigid_fit_cad_left_shoulder_yaw_YawIdlerHorn001_0_27_0"><origin xyz="1.0450000003103809e-09 2.754999999687868e-09 -0.032824999734999999" rpy="0 0 0" /><geometry><cylinder radius="0.010678957289101579" length="0.0033522268299999969" /></geometry></collision><collision name="cad_enclosure__rigid_Yaw_servo001_0">
       <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/bf8d6fbeb8cbee921a21b94926a1b785f46da993c39c5978d8ca37eb7aa297e7.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__YawDriveHorn001_0">
-      <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c5b24fcb0bfed42af8097e8160b72bdc0c7b45bb3b077e342f71b67f41631ad6.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__YawIdlerHorn001_0">
-      <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/0ed0e2f2c1839aad119a43e82a0588ca215541b969f1be7bd15b5c4733113a76.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Yaw_servo001_0">
-      <origin xyz="-0.12 -0.196204398797 -0.394000000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/aa6944ad0db1abd54d1fe2b949ccec9a7fdddc63fa8a074fe408ba90ae6b8284.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/786d9ed5a009ed3266a89e7d2027b4ed1a0e296bd2ecd0f28c850d5b4a359b79.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -2510,52 +2210,22 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__AssembledShoulderSocket001_0">
-      <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a3b52d147bb7c60dc276a703790fe69c2714e8b9426798ba7c0b8200603165b1.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledShoulderSocket001_1">
-      <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/416765b1c695746317418855b4c5f642bf986655d842d87d9cd2aefb8563acf0.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledShoulderSocket001_2">
+    <collision name="cad_enclosure__rigid_fit_cad_left_shoulder_pitch_AssembledShoulderSocket001_0_66_0"><origin xyz="-0.016274516294152604 -0.041104839093181453 6.2242623514408674e-05" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/5bbcf717d7804b3d829340484a2562d528b47e5e05ff4f5f91014d0263c13cd1.glb" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_left_shoulder_pitch_AssembledShoulderSocket001_1_23_0"><origin xyz="-0.041950358767936097 -0.0088415016976276205 0.0010785911457508656" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/a088a97f328833dc456f3f460d59f7c7b803e8ce1f536dc707178781d4a79532.glb" /></geometry></collision><collision name="cad_enclosure__AssembledShoulderSocket001_2">
       <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/60d83670a3b0b603d2e6741a05ec8f8a723e3c8889dd695d33d23b0fe612d3f8.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__AssembledUpperTube001_0">
-      <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3b433ee95235380c7d5de0ea4b0fec0e377c3023dc4543a5f025ac3dcef0c4a1.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__AssembledElbowASocket001_0">
+    <collision name="rigid_fit_cad_left_shoulder_pitch_AssembledUpperTube001_0_67_0"><origin xyz="-0.016300002684999999 -0.088499856045000005 0.00015446970999999986" rpy="0 0 0" /><geometry><box size="0.018003987289999999 0.087035248189999997 0.018155874819999997" /></geometry></collision><collision name="cad_enclosure__AssembledElbowASocket001_0">
       <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/ecc212ff94cb736df51346b033a2d25b86f0daae648fc6e1782f6454dbc6fe94.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__UpperDriveHorn001_0">
+    <collision name="rigid_fit_cad_left_shoulder_pitch_UpperDriveHorn001_0_20_0"><origin xyz="-0.00035000090500000001 -7.9500000005339187e-10 4.2699999998063731e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010549746337190403" length="0.0045020004300000008" /></geometry></collision><collision name="rigid_fit_cad_left_shoulder_pitch_UpperIdlerHorn001_0_13_0"><origin xyz="-0.032824999290000004 -7.9500000005339187e-10 4.2650000002808498e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010695367496182861" length="0.0033521895799999953" /></geometry></collision><collision name="cad_enclosure__rigid_Upper_servo001_0">
       <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/785945e363fa948b29560ee35918d9ade8cd15ec865868e938d471eb6994f644.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__UpperIdlerHorn001_0">
-      <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/35e5c7e059c09002d525ed120409876b21a6400d5daefaf82be4366f99646e11.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Upper_servo001_0">
-      <origin xyz="-0.1363 -0.226804398797 -0.450100000404" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6b0dd272e3d78c017719ac6d7399053c08d62218b75f0be3c965ac23c0cd34cd.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/10738adaff3e7c50b22eac21f2a0e0643450fa6a8235dc662ac21d60ec014b12.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -2647,13 +2317,7 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__Aligned_WristMotorHolder001_0">
-      <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/0a89ebcfe5242ec8da98c010ceb26f13e1ce98547eba5bc1860dab523a595011.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_AssembledElbowBSocket001_0">
+    <collision name="cad_enclosure__rigid_fit_cad_left_elbow_pitch_Aligned_WristMotorHolder001_0_44_0"><origin xyz="-0.022765047235548664 0.15614768867816187 0.0018172120492968454" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/b38fba3bfb9b473299047d981fe5ff2214414895362646a6789507283d183e91.glb" /></geometry></collision><collision name="cad_enclosure__Aligned_AssembledElbowBSocket001_0">
       <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/91e269c9676fe1d50b6b1a56e271c70ea5bb195c037b57fa3d8a36921f755fac.glb" scale="1 1 1" />
@@ -2671,34 +2335,10 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2274314b91fc77afa4dd91cdad7eb067f2d6c2bcfe59bb1dda9b6cd027c43340.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__Aligned_AssembledLowerTube001_0">
+    <collision name="rigid_fit_cad_left_elbow_pitch_Aligned_AssembledLowerTube001_0_68_0"><origin xyz="-0.016300002684999999 0.08669874138 -5.6750000005933999e-09" rpy="0 0 0" /><geometry><box size="0.018003987289999999 0.082006136099999988 0.018004061789999998" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_left_elbow_pitch_Aligned_AssembledWristSocket001_0_15_0"><origin xyz="-0.016317201106662804 0.13900923863118858 2.348714999999816e-06" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/388fa73c60446fa6c3cd81273cb85a1140b8fb1c821018d945405b65fc04f1c2.glb" /></geometry></collision><collision name="rigid_fit_cad_left_elbow_pitch_Aligned_LowerDriveHorn001_0_28_0"><origin xyz="-0.00035000090500000001 2.5199999997838064e-09 -5.6749999997052213e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010553235829002789" length="0.0045020004300000008" /></geometry></collision><collision name="rigid_fit_cad_left_elbow_pitch_Aligned_LowerIdlerHorn001_0_29_0"><origin xyz="-0.032824999290000004 6.5999999954158281e-10 -5.670000000179698e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010685702803572821" length="0.0033521895799999953" /></geometry></collision><collision name="cad_enclosure__rigid_Aligned_Lower_servo001_0">
       <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c5e514dff3f766fd96cb41e72fc196e9da47fee9d609bb3fe9766a87a61bad51.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_AssembledWristSocket001_0">
-      <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/23589b362cae5251cc4875ccb0ef2cc837dcc2a0f2f37c2079b4f55a2eaed430.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_LowerDriveHorn001_0">
-      <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a22c8a9549f423acf20b97487288cb8ba8ae5c4ddb2f9b89867265d0f84177f3.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__Aligned_LowerIdlerHorn001_0">
-      <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2fe16ca64ef8b293132d178dcf1b2c9c790e1d1698af2f2f9c259fa9be56c78e.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_Aligned_Lower_servo001_0">
-      <origin xyz="-0.1363 -0.0642835155995 -0.47838369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2f779ecfd0633b8bba975b46fadda853c891ceb834f152546b73d2eb9687f473.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/15b4dea6dc1f74c04daca6c88760cfa65b32cf0878d54fcacab1bf5fa1c26ee2.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -2718,13 +2358,7 @@
         <color rgba="0.650980392157 0.690196078431 0.729411764706 1" />
       </material>
     </visual>
-    <collision name="WristPrint001_collision">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/fa1e8e5bf5528a1bd4db137be6c714df8a74a38bcc52176df47bb3c5479d9b40.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="Wrist_servo001_visual">
+    <collision name="rigid_fit_cad_left_wrist_pitch_wrist_housing_and_servo_1_0"><origin xyz="-0.020167028782198445 0.026483094232778878 0.00099008436572636132" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/1c3db0caa510b6b8bb53c4dcfe9ef75d34189401e1f29d78a2fb889fc0810dd1.glb" /></geometry></collision><visual name="Wrist_servo001_visual">
       <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/Wrist_servo001.stl" scale="1 1 1" />
@@ -2733,12 +2367,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo001_collision">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3077aec18943597ba04942d602b421c171cdc64d60b84adb738950c4dbdcb127.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="Wrist_servo_middle001_visual">
       <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2748,12 +2376,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo_middle001_collision">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/8d2520b0403cf2a00a405101357f979dec9dc558eb544c5830d5d63290e2f136.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="Wrist_servo_other001_visual">
       <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2763,12 +2385,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="Wrist_servo_other001_collision">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3f34dec47f471186d189ec7100204138964d1ac94cc5446f576250f3ff0b2a5e.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="WristDriveHorn001_visual">
       <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2787,19 +2403,7 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__WristDriveHorn001_0">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7d3fee2664f53fa62091273fecaf3defe8052fbc06e616e8acb3a5613afca7b2.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__WristIdlerHorn001_0">
-      <origin xyz="-0.1362 -0.249183515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/07f2e5375cc38ad9e19ba07ac0d8a08c77948638ab3ce810627d7f8452f924ee.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  </link>
+    <collision name="rigid_fit_cad_left_wrist_pitch_WristDriveHorn001_0_21_0"><origin xyz="-0.00035000260000000007 5.0749999997989901e-09 -7.055000000200096e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010553233464466455" length="0.00450200042" /></geometry></collision><collision name="rigid_fit_cad_left_wrist_pitch_WristIdlerHorn001_0_30_0"><origin xyz="-0.032625001325 -2.3750000002209505e-09 -7.055000000200096e-09" rpy="1.5707963267948966 0 1.5707963267948966" /><geometry><cylinder radius="0.010685709486354014" length="0.0033521970300000006" /></geometry></collision></link>
   <joint name="left_wrist_pitch_joint" type="revolute">
     <parent link="cad_left_elbow_pitch" />
     <child link="left_wrist_pitch_joint_cad_motor_frame" />
@@ -2825,13 +2429,7 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_Bottom_Plate_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/05cd3ab0fceacfa791066a672ea6f6e7bb5b650db1a59963f11dd374c282d2c1.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="LeftKinematic_CameraTool180_Pinc_Top_Plate_visual">
+    <collision name="rigid_fit_cad_left_wrist_roll_gripper_plates_and_servo_11_0"><origin xyz="-0.00025115263403044158 0.041877902587794273 0.011870494795804688" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/bf1a92fc86b6936882d662839a6b83ec9a24289f4a7b40e6f2fb80a24b5f1a10.glb" /></geometry></collision><visual name="LeftKinematic_CameraTool180_Pinc_Top_Plate_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Top_Plate.stl" scale="1 1 1" />
@@ -2840,12 +2438,6 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_Top_Plate_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/86853ee551d1d4a7a48717eb2dc8f55e5336a976bacadd2b34b4b7ee7b1f9801.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="LeftKinematic_CameraTool180_Pinc_Interface_ARM100_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2864,12 +2456,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_servo_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/0d4e604d019e3c8f59e7b5fe5ced75a36a97593493abc83e3f35a860830d61eb.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="LeftKinematic_CameraTool180_Pinc_servo_middle_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2879,12 +2465,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_servo_middle_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/f83e0e61e6960c20bb68eab8868019d6b344ed2861e7d9ba57eb741e93fb9eaa.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="LeftKinematic_CameraTool180_Pinc_servo_other_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2894,12 +2474,6 @@
         <color rgba="0.141176470588 0.16862745098 0.2 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_servo_other_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/058087ec8e15feaaff6a58659fc929326d17eb63e9a69ff8a018466752c8b4e5.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="LeftCamera_FixedMount_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -2912,7 +2486,7 @@
     <collision name="LeftCamera_FixedMount_collision">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/e0d6c090d65d562530fdc8a72061ea89d19256e9c7a742e3083c059d86df40fc.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/074bb7e728d489cac7488e939544524baa74a2bd2817c99e21bb85c2f96f84ec.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="LeftCamera_PCB_visual">
@@ -2933,13 +2507,7 @@
         <color rgba="0.121568627451 0.141176470588 0.16862745098 1" />
       </material>
     </visual>
-    <collision name="LeftCamera_Lens_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/77e7caacf93394379ef183f7b3ced73aaa82e423fc42cadfd94f9cca213b7257.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="LeftCamera_Glass_visual">
+    <collision name="cad_enclosure__rigid_fit_cad_left_wrist_roll_camera_lens_and_glass_70_0"><origin xyz="-0.00032566570462899414 0.04769175960861248 0.08165197088676561" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/c6b0b12186c82026769fc7fc7e8b358be3e584847323cb341137d3e98ca8c343.glb" /></geometry></collision><visual name="LeftCamera_Glass_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/LeftCamera_Glass.stl" scale="1 1 1" />
@@ -2948,12 +2516,6 @@
         <color rgba="0.121568627451 0.321568627451 0.541176470588 1" />
       </material>
     </visual>
-    <collision name="LeftCamera_Glass_collision">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/f7d168197c0c7fd666076c8f15a7c72668376094e540c79a47f6ea4f6b957608.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="LeftCamera_Connector_visual">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
@@ -3077,46 +2639,10 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/f5260c5bf4317007c2133c50784fe79c297eb9621ee7ea24ca73e5dc569e2b02.glb" scale="1 1 1" />
       </geometry>
     </collision>
-    <collision name="cad_enclosure__LeftKinematic_CameraTool180_Pinc_Interface_ARM100_0">
+    <collision name="rigid_fit_cad_left_wrist_roll_LeftKinematic_CameraTool180_Pinc_Interface_ARM100_0_41_0"><origin xyz="-7.4518100000000587e-06 0.0034291387049999998 -5.8781099999993812e-06" rpy="-1.5707963267948966 -1.5707963267948966 0" /><geometry><cylinder radius="0.012934648578896191" length="0.0050609131700000013" /></geometry></collision><collision name="cad_enclosure__rigid_fit_cad_left_wrist_roll_LeftKinematic_CameraTool180_Pinc_Interface_ARM100_1_45_0"><origin xyz="-1.6402486251820141e-07 0.0084903330049999979 -1.1404176192297832e-07" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/d790ff4beb57410e435cb87cbcdadb5dd463c990c90abec3bc420cb87b2cbce9.glb" /></geometry></collision><collision name="rigid_fit_cad_left_wrist_roll_LeftCamera_BaseScrew0_0_56_0"><origin xyz="0.018909997009999999 0.023241588520000002 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045022090399999982 0.0045022090400000025 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_left_wrist_roll_LeftCamera_BaseScrew1_0_57_0"><origin xyz="-0.01890999946 0.023241588520000002 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045021941400000022 0.0045022090400000025 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_left_wrist_roll_LeftCamera_BaseScrew2_0_58_0"><origin xyz="0.018909997009999999 0.038241574209999997 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045022090399999982 0.0045022090399999947 0.01000222764" /></geometry></collision><collision name="rigid_fit_cad_left_wrist_roll_LeftCamera_BaseScrew3_0_59_0"><origin xyz="-0.01890999946 0.038241574209999997 0.020500012139999999" rpy="0 0 0" /><geometry><box size="0.0045021941400000022 0.0045022090399999947 0.01000222764" /></geometry></collision><collision name="cad_enclosure__rigid_left_camera_board_0">
       <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/cf476e1a799a66a7c17445cb2bdf8d39a13ae2a808eaeb9875a090deb27d358e.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__LeftKinematic_CameraTool180_Pinc_Interface_ARM100_1">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/eb2910532a6fabe79438a4006a1ee29fc2c40392414230998a63360b227b6e26.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__LeftCamera_BaseScrew0_0">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/8622ef993b8672c359aef4e96de4f70b0a18fc39ee0afd2aa054e028ae74297c.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__LeftCamera_BaseScrew1_0">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7506381f15558258ceef8dd12c438c424e30582f434aa236ed358c47cb08d26c.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__LeftCamera_BaseScrew2_0">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/69d62582681f07355fcf123a92b75fbb9b20883ef5b6ca1206da931908bb6dc4.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__LeftCamera_BaseScrew3_0">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/725383ee1a8642b0b362c92592fb4157242d6a6b122c9f4338b0b05860214329.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  <collision name="cad_enclosure__rigid_left_camera_board_0">
-      <origin xyz="-0.118472793433 -0.308833515599 -0.48358369579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2fce9c102206d319bf3b4a794c7bb56d071ef065b0bf053fb43c299ee9b9cb9f.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/869530b362ad6f879b6985fd1f3f1b73e67bf297bd14fbc1759cfe99ac63aaa5.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -3136,13 +2662,7 @@
         <color rgba="0.349019607843 0.470588235294 0.619607843137 1" />
       </material>
     </visual>
-    <collision name="HeadPanBracket_collision">
-      <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3a4923042f913e3c0667b758a073b4c72457fc0bccbfb1e0c276d6c83ba5a93a.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="HeadPanDriveHorn_visual">
+    <collision name="rigid_fit_cad_head_pan_bracket_and_servo_3_0"><origin xyz="-0.012554769534534292 -0.00077665878094974666 0.014515183066821896" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/cdf69121b74cda5829746ee7fd42bfb0d390ead7c5b8693b20e023f4b0166274.glb" /></geometry></collision><visual name="HeadPanDriveHorn_visual">
       <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/HeadPanDriveHorn.stl" scale="1 1 1" />
@@ -3151,12 +2671,6 @@
         <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
       </material>
     </visual>
-    <collision name="HeadPanDriveHorn_collision">
-      <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/8849ef546476e30ef66c078121a00c4806420dd37c8175ba450869a76e0bc180.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
     <visual name="HeadTiltServoCase_visual">
       <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
       <geometry>
@@ -3184,13 +2698,7 @@
         <color rgba="0.16862745098 0.188235294118 0.211764705882 1" />
       </material>
     </visual>
-    <collision name="cad_enclosure__rigid_head_tilt_servo_0">
-      <origin xyz="-0.0874177404373 7.4623620002e-06 -0.679611523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6339c9f45347757409e155c3636fe8bb12fdb6fd34c8d672817c95de2dd2c105.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    </link>
+    <collision name="cad_enclosure__rigid_fit_cad_head_pan_rigid_head_tilt_servo_0_31_0"><origin xyz="-0.0099142585446720076 0.0043535833877353103 0.025118786908609268" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/dbf2093479f277c630149ace016e08572bb7753297949ca6acb042e6da1505be.glb" /></geometry></collision></link>
   <joint name="head_pan_joint" type="revolute">
     <parent link="base_link" />
     <child link="head_pan_joint_cad_motor_frame" />
@@ -3228,7 +2736,7 @@
     <collision name="HeadCameraWindow_collision">
       <origin xyz="-0.0874277404373 0.017307462362 -0.704886523562" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/db2225bf2040d6d8269f60b6a7d9120a66ad415b07dc1c468e7d4af2ed373407.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3c754e9d7b512ecf828d4f8c72d58576bf9c811d82de37bebc47c5e32243e0c0.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="HeadTiltDriveHorn_visual">
@@ -3267,22 +2775,10 @@
         <color rgba="0.749019607843 0.780392156863 0.811764705882 1" />
       </material>
     </visual>
-    <collision name="moveit_enclosure_head_tilt_mount"><origin xyz="2.3419549077807744e-09 0.016699999762126452 0.014448287410213756" rpy="0 0 0" /><geometry><box size="0.020999997854232792 0.066398818045854582 0.049896538257598884" /></geometry></collision><collision name="cad_enclosure__HeadTiltDriveHorn_0">
+    <collision name="moveit_enclosure_head_tilt_mount"><origin xyz="2.3419549077807744e-09 0.016699999762126452 0.014448287410213756" rpy="0 0 0" /><geometry><box size="0.020999997854232792 0.066398818045854582 0.049896538257598884" /></geometry></collision><collision name="rigid_fit_cad_head_tilt_HeadTiltDriveHorn_0_37_0"><origin xyz="-1.3799999996066959e-09 0.0003500000649999999 2.3050000006463732e-09" rpy="-1.5707963267948966 -1.5707963267948966 0" /><geometry><cylinder radius="0.010372758561381822" length="0.00450260299" /></geometry></collision><collision name="rigid_fit_cad_head_tilt_HeadTiltIdlerHorn_0_38_0"><origin xyz="-1.3799999996066959e-09 0.033675000259999997 2.3050000006463732e-09" rpy="-1.5707963267948966 -1.5707963267948966 0" /><geometry><cylinder radius="0.010372750103439882" length="0.0033526030799999958" /></geometry></collision><collision name="cad_enclosure__rigid_head_camera_0">
       <origin xyz="-0.0874277404373 0.017307462362 -0.704886523562" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/3e47b7510dc71ed4cc99069cd9a5bf2ff7027cafee682eab0488a7b2ea85987f.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__HeadTiltIdlerHorn_0">
-      <origin xyz="-0.0874277404373 0.017307462362 -0.704886523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/399201f43b9495ff18af59236182b34ee0aa108d81c6ec046e14f53c007f4989.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <collision name="cad_enclosure__rigid_head_camera_0">
-      <origin xyz="-0.0874277404373 0.017307462362 -0.704886523562" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/660c973f025ae12429d918261d383f01cce90585752939e10fbac4fe0728e105.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b8b1c2aa656d568a72cc1fd280460db39af4b81cc60325245137775738cece47.glb" scale="1 1 1" />
       </geometry>
     </collision>
     </link>
@@ -3366,13 +2862,7 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_Cam_collision">
-      <origin xyz="-0.121527206567 0.355300097684 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/9770bd8a075f6223d90b75742ab69f336af662244e46552c91506f99a6d95343.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-    <visual name="RightKinematic_CameraTool180_Pinc_CamHorn_visual">
+    <collision name="rigid_fit_cad_right_gripper_cam_cam_and_horn_16_0"><origin xyz="0.00031223221014816901 -6.5815951110541609e-05 0.0018444803831298229" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/a9b1effaf28728a314fec20054a6031ca25604b143522ee5b5add0340de9874e.glb" /></geometry></collision><visual name="RightKinematic_CameraTool180_Pinc_CamHorn_visual">
       <origin xyz="-0.121527206567 0.355300097684 -0.48445869579" rpy="0 0 0" />
       <geometry>
         <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_CamHorn.stl" scale="1 1 1" />
@@ -3381,13 +2871,7 @@
         <color rgba="0.780392156863 0.8 0.83137254902 1" />
       </material>
     </visual>
-    <collision name="RightKinematic_CameraTool180_Pinc_CamHorn_collision">
-      <origin xyz="-0.121527206567 0.355300097684 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b9fca79bfcd48b56ad61a6f2133e4ba316cab0145c42de446bbf0f4b7802c107.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  </link>
+    </link>
   <joint name="right_gripper_joint" type="revolute">
     <parent link="cad_right_wrist_roll" />
     <child link="right_gripper_joint_cad_motor_frame" />
@@ -3407,7 +2891,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Internal_Rod_L_collision">
       <origin xyz="-0.0890272065666 0.373342499448 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6bf86c8ff0d43dc28e4237fdd706395824ebd00e60e06f3c65e0f39ea2a20cea.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a3910d84b4047f96ca057f57423c40ec8602d3bd1f17e9e0231cb6cc27717500.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3456,11 +2940,7 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5787794e1f108a69a215b51a95bc8d2fdf844edcc11ce4f78ddf8ea24bd08866.glb" scale="1 1 1" />
       </geometry>
     </collision>
-  <collision name="cad_self__source_cad_right_gripper_driving_L_0"><origin xyz="-0.111112959628 0.35175842284 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
-      </geometry>
-      </collision></link>
+  <collision name="cad_self__rigid_fit_cad_right_gripper_driving_L_drive_rod_4_0"><origin xyz="-0.019599146160821243 -0.0016043159403057979 -0.0064075839069370182" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/1a493a48e5c449b10a53f8421e4a605bfd19b88ea3930afce16354c91c471bcb.glb" /></geometry></collision></link>
   <joint name="cad_delta_right_gripper_driving_L" type="continuous">
     <parent link="cad_right_gripper_cam" />
     <child link="cad_right_gripper_driving_L" />
@@ -3480,7 +2960,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Distal_Rod_L_collision">
       <origin xyz="-0.109027206567 0.407983515599 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/1214cc45c94ae41c4064b9234abe883ecffa3379b142333a186f9f58c7e59ba6.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/d7c8e7ed8f4cb84e4ac5450e263e556ec7390c725bbe9fdc51b1513b20e07c94.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3503,7 +2983,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Internal_Rod_R_collision">
       <origin xyz="-0.154027206567 0.373342499448 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5f9b801ef3b5c95a13b8a9e34fdb6f0d6402dfb6b08f6bc4429aebc39ec2e3f9.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/6ca7aa439c091480d1cf99781436db829b5f736e3ac9713a31a83eaa9ef96190.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3552,11 +3032,7 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b426a16bc5ac01c18e61dec8f22018656ca084e580cbbbe3188ff142ffddd73b.glb" scale="1 1 1" />
       </geometry>
     </collision>
-  <collision name="cad_self__source_cad_right_gripper_driving_R_0"><origin xyz="-0.13202027698 0.358600926867 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/RightKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
-      </geometry>
-      </collision></link>
+  <collision name="cad_self__rigid_fit_cad_right_gripper_driving_R_drive_rod_7_0"><origin xyz="0.019426341597780009 0.0020663971087198849 -0.0064061653446109536" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/d29076f311755cfd6d10b63f196e0bb2f2dfec8dd4e02c08c697862af6157451.glb" /></geometry></collision></link>
   <joint name="cad_delta_right_gripper_driving_R" type="continuous">
     <parent link="cad_right_gripper_cam" />
     <child link="cad_right_gripper_driving_R" />
@@ -3576,7 +3052,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Distal_Rod_R_collision">
       <origin xyz="-0.134027206567 0.407983515599 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/c2a840c7fa3b4c367cb891a01e53932c7c722a7d53861f4613e13da8f5f5691e.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/67432ed98c29885ae1467f06022ce66a1be0daf4bd1f4ef3c3978000e368bced.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3599,7 +3075,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_Cam_collision">
       <origin xyz="-0.118472793433 -0.355300097684 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/42c719ed9fdc0798b59030e0447433b9ef29f3f2128e1634c18e64288673193a.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/7e94aedc6768881f7d9e6515e2925269327badfc275b1c65d59549fb1c64e97d.glb" scale="1 1 1" />
       </geometry>
     </collision>
     <visual name="LeftKinematic_CameraTool180_Pinc_CamHorn_visual">
@@ -3614,7 +3090,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_CamHorn_collision">
       <origin xyz="-0.118472793433 -0.355300097684 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/889dbeaa2fb3bbad7d853b7784ab2cf98e8fc9c606ed84def29c6353cf96eb13.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/b6c27c934977b17a91e59f896a4fa42d0c1dea680bf05df5807f3e51bc044eff.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3634,13 +3110,7 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_L_collision">
-      <origin xyz="-0.150972793433 -0.373342499448 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/cdd172621b896dc12ecc0e673793ae46498b3de1667bae56cce093c912dc41be.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  </link>
+    <collision name="rigid_fit_cad_left_gripper_internal_L_internal_rod_8_0"><origin xyz="-0.0042181178700112995 0.0072886326413565414 -0.0010036585842700791" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/104da5ea525764bf79f79e23b9cb6d915eace14fd00f3932096ed46f1c7ca63e.glb" /></geometry></collision></link>
   <joint name="cad_delta_left_gripper_internal_L" type="continuous">
     <parent link="cad_left_wrist_roll" />
     <child link="cad_left_gripper_internal_L" />
@@ -3686,11 +3156,7 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/f9a087198393febae26a101531bca941ed1498a60135fa8f64270cb1e741adc5.glb" scale="1 1 1" />
       </geometry>
     </collision>
-  <collision name="cad_self__source_cad_left_gripper_driving_L_0"><origin xyz="-0.128887040372 -0.35175842284 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_L.stl" scale="1 1 1" />
-      </geometry>
-      </collision></link>
+  <collision name="cad_self__rigid_fit_cad_left_gripper_driving_L_drive_rod_5_0"><origin xyz="0.019412329879883561 0.0015670849822210439 -0.006407725593909403" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/ede7e515f1cb2cb02cca4b24a1aee83ffda7e777dfb5c6aa6d1dc04a637f8ef4.glb" /></geometry></collision></link>
   <joint name="cad_delta_left_gripper_driving_L" type="continuous">
     <parent link="cad_left_gripper_cam" />
     <child link="cad_left_gripper_driving_L" />
@@ -3710,7 +3176,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_L_collision">
       <origin xyz="-0.130972793433 -0.407983515599 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/15011d217432bc3116e0d7e34bf4f7ac9faf3fa5a7f50ba28c4dfbde5a95f707.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/9d05914c8be4dd646d590bb208d6d668f35777dd4ac6e08ceaea5f9c5be67268.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3730,13 +3196,7 @@
         <color rgba="0.870588235294 0.619607843137 0.301960784314 1" />
       </material>
     </visual>
-    <collision name="LeftKinematic_CameraTool180_Pinc_Internal_Rod_R_collision">
-      <origin xyz="-0.0859727934334 -0.373342499448 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/2c668c22d15990edb7f7e8411f5fbafea2762680b15089fcf7c2b303f25c65ca.glb" scale="1 1 1" />
-      </geometry>
-    </collision>
-  </link>
+    <collision name="rigid_fit_cad_left_gripper_internal_R_internal_rod_9_0"><origin xyz="0.0046056903176241891 0.0077347440263231598 -0.0009048684370980436" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/6d2fcb5c72696df7fd9308164ed262ad2fe0d5b13ba3822a3ba748896287c4ea.glb" /></geometry></collision></link>
   <joint name="cad_delta_left_gripper_internal_R" type="continuous">
     <parent link="cad_left_wrist_roll" />
     <child link="cad_left_gripper_internal_R" />
@@ -3782,11 +3242,7 @@
         <mesh filename="package://cleany_description/meshes/cad_runtime_collision/ee348c23785d56460a1f9011bd3b527765362769a27ce559618e3d199fcd73b0.glb" scale="1 1 1" />
       </geometry>
     </collision>
-  <collision name="cad_self__source_cad_left_gripper_driving_R_0"><origin xyz="-0.10797972302 -0.358600926867 -0.48445869579" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/freecad_final/LeftKinematic_CameraTool180_Pinc_Driving_Rod_R.stl" scale="1 1 1" />
-      </geometry>
-      </collision></link>
+  <collision name="cad_self__rigid_fit_cad_left_gripper_driving_R_drive_rod_6_0"><origin xyz="-0.019466958012621039 -0.0020553050094196073 -0.0063678932711112154" rpy="0 0 0" /><geometry><mesh filename="package://cleany_description/meshes/cad_runtime_collision/9ee0202c8b4cebc03ab0ae51a43b98b38546d7070579273fe9312635b14ae957.glb" /></geometry></collision></link>
   <joint name="cad_delta_left_gripper_driving_R" type="continuous">
     <parent link="cad_left_gripper_cam" />
     <child link="cad_left_gripper_driving_R" />
@@ -3806,7 +3262,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_Distal_Rod_R_collision">
       <origin xyz="-0.105972793433 -0.407983515599 -0.48445869579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/4cc58770bb4800033cdd2c2d89f1b549345a79bc3d4e6469e11c1e3ee913bdb8.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/e625532fb23b1419499f2ac17722cac3b334903f59129dffd2afbadc22ef9593.glb" scale="1 1 1" />
       </geometry>
     </collision>
   </link>
@@ -3847,7 +3303,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Tip_Support_L_collision">
       <origin xyz="-0.106777206567 0.416233515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/59d807bcd5a2da56e05c41643c5f96332a3c182f6ac8a73136ca01c0a6f1e12f.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/84a0e4cc4c97bbcb87a9ecbc5fc5c18b347c1a5f0af51926d86e63b3b3faf34a.glb" scale="1 1 1" />
       </geometry>
     </collision>
   <collision name="cad_enclosure__rigid_right_gripper_tip_L_0">
@@ -3893,7 +3349,7 @@
     <collision name="RightKinematic_CameraTool180_Pinc_Tip_Support_R_collision">
       <origin xyz="-0.136277206567 0.416233515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/e0e4f29bad6c2ba6991ac8bc330d48b8a0e63e001017a5cba6a9ddb5832f3ae0.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/a8f214c62cd4cfde8cb1395f687e3e16d504007043bb5ff80455f4e4eb943722.glb" scale="1 1 1" />
       </geometry>
     </collision>
   <collision name="cad_enclosure__rigid_right_gripper_tip_R_0">
@@ -3939,7 +3395,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_Tip_Support_L_collision">
       <origin xyz="-0.133222793433 -0.416233515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/8594231e8b4f23051bdc11d9d88f47bf60be2888389801ee2d34d6935dcc168f.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/de03af17712d7c1d63533f9da66d65d6f725e9718aa70aa5011af3c8e12ee7d0.glb" scale="1 1 1" />
       </geometry>
     </collision>
   <collision name="cad_enclosure__rigid_left_gripper_tip_L_0">
@@ -3985,7 +3441,7 @@
     <collision name="LeftKinematic_CameraTool180_Pinc_Tip_Support_R_collision">
       <origin xyz="-0.103722793433 -0.416233515599 -0.48358369579" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/9525133c50f21eb20d0c850e69664b34a3cdd7cb10be768c358259a5d048c669.glb" scale="1 1 1" />
+        <mesh filename="package://cleany_description/meshes/cad_runtime_collision/5d53b69046581f85ff4ca21a54bbda3f8bf0e6ae4eebba4f9ee07bd950bd95c1.glb" scale="1 1 1" />
       </geometry>
     </collision>
   <collision name="cad_enclosure__rigid_left_gripper_tip_R_0">

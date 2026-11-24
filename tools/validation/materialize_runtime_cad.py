@@ -35,6 +35,8 @@ def main() -> None:
         'actuator_names': [j.get('name') for j in tree.findall('joint')
                            if j.get('type') == 'revolute' and j.find('mimic') is None],
         'motor_commands_sent': 0}
+    if collision_profile := json.loads(profile.read_text()).get('cad_collision_profile'):
+        manifest['collision_profile'] = collision_profile
     (package/'config/geometry/runtime_model.json').write_text(json.dumps(manifest, indent=2)+'\n')
     print(json.dumps(manifest))
 

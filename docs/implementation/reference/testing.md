@@ -411,6 +411,36 @@ make test-moveit-collision
 | 오류 | 없는 detector 선택 시 프로세스 종료 |
 | 구동 경계 | 가상 장애물만, trajectory execution OFF, motor driver 미실행 |
 
+### 보정 CAD 파지 모델의 형상 검사
+
+ROS 환경에서 다음 회귀 검사를 실행하면 저장소의 장치 보정값으로 파지 모델을
+다시 생성합니다. 설치 대상 URDF와의 바이트 일치, 좌우 팔 튜브의 충돌 범위,
+그리퍼 관절 한계와 메시 파일 경계를 확인합니다.
+
+```bash
+python3 -m pytest -q \
+  ros2_ws/src/cleany_robot_interface/test/test_cad_collision_profile.py \
+  ros2_ws/src/cleany_description/test/test_runtime_model.py
+```
+
+오프라인 형상 도구는 다음 입력과 결과를 사용합니다. 거리 옵션의 단위는 mm입니다.
+후보를 만드는 명령에는 원본 URDF, 그 URDF의 메시 패키지와 별도 출력 디렉터리를
+지정합니다. 산출물은 후보 URDF, GLB와 부품별 `geometry.json`입니다.
+
+| 도구 | 검사 대상 |
+|---|---|
+| `tools/validation/optimize_cad_collision.py` | 평면과 작은 관통 구멍의 단순화, 볼록 외피의 원본 포함, 구형 충돌 캐시와의 편차 |
+| `tools/validation/verify_cad_collision_refit.py` | 같은 충돌 요소의 메시를 교체한 단계에서 원본과 후보의 표면 편차와 외피 팽창 |
+| `tools/validation/verify_cad_rigid_groups.py` | 병합 직전과 직후의 모델, 설치 원본을 대조해 같은 링크의 형상 편차, U자 받침 안쪽의 빈 공간, 손끝과 바퀴 보존 확인 |
+
+```bash
+python3 tools/validation/optimize_cad_collision.py --help
+python3 -m pytest -q tests/tools/test_optimize_cad_collision.py
+```
+
+형상 표본 검사 후에는 실행을 끈 MoveIt에서 같은 관절 상태와 OctoMap으로 접촉 링크
+쌍을 대조합니다. [CAD 분석 환경](../development-setup.md#freecad-형상-내보내기-도구)을 참고합니다.
+
 ## 지도 확장 검증
 
 병행 지도 확장 도구의 원점 변환과 지도 저장 형식은 ROS Python 환경에서
