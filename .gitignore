@@ -97,3 +97,6 @@ containers/vision/models/
 # Cleany display 출력과 로컬 검증 촬영물입니다.
 /output/cleany-display/
 /output/cleany-display-jetson/
+
+# Local documentation reader build output
+/docs/index.html
