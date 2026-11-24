@@ -124,7 +124,7 @@ tools/vision-container perception-run
 > **OpenBLAS CPU 스레드 최적화 (`CLEANY_PERCEPTION_BLAS_THREADS`)**:
 > - 인식 컨테이너의 NumPy / SciPy 연산은 기본 **1개 스레드**(`OPENBLAS_NUM_THREADS=1`)를 사용합니다.
 > - VLM API 응답을 대기하는 동안 씬 매핑 및 경로 계획이 동시에 돌 때 발생하는 CPU 코어 경합을 완화하기 위함입니다.
-> - 스레드 수를 변경하려면 `export CLEANY_PERCEPTION_BLAS_THREADS=2` 등으로 지정한 뒤 `make perception-up`으로 컨테이너를 재생성하고 `make perception-run`을 실행합니다. (ROS 2 콜백 스레드 수는 변경되지 않습니다.)
+> - 스레드 수를 변경하려면 `export CLEANY_PERCEPTION_BLAS_THREADS=2` 등으로 지정한 뒤 `make perception-up`으로 컨테이너를 재생성하고 `tools/vision-container perception-run`을 실행합니다.
 
 `cleany_perception`은 YOLOE-seg의 검출과 마스크에 Gemini 분류를 결합합니다.
 API 키는 환경 변수로 실행 프로세스에 전달하며 identity 파일에는 저장하지 않습니다.

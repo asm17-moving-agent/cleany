@@ -18,9 +18,12 @@ execution_stop_timeout="${CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC:-25}"
 gui="${CLEANY_COLLECTION_GUI:-false}"
 record_motor_telemetry="${CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY:-false}"
 motion_backend="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
+requested_motion_runtime="${CLEANY_COLLECTION_MOTION_RUNTIME:-native}"
+curobo_python="${CLEANY_CUROBO_VENV:-${HOME}/.local/opt/cleany/curobo078/venv}/bin/python"
 grasp_predictor="${CLEANY_COLLECTION_GRASP_PREDICTOR:-geometric}"
 planning_mode_file="${state_dir}/planning-mode"
-use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-false}"
+motion_runtime_file="${state_dir}/motion-runtime"
+use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-true}"
 perception_mode_file="${state_dir}/perception-mode"
 shared_rmw="${CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 perception_rmw_file="${state_dir}/perception-rmw"
@@ -32,11 +35,11 @@ usage() {
 Usage: tools/collection-runtime COMMAND
 
 Commands:
-  start    Start vision, real control, D435, MoveIt/RViz and bbox viewer; wait for readiness
+  start    Start real control and planning; wait for the configured perception provider
   recover-control
            Restart latched real control in-place while preserving torque/current hold
   recover-planning
-           Restart D435 and grasp planning support without restarting arm control
+           Restart grasp planning support without restarting arm control
   action-start
            Attach the idle manipulation Action server to the started physical runtime
   action-restart
@@ -52,7 +55,7 @@ Commands:
   run      Start/check the runtime, then plan once and execute pick/return/release
   status   Show managed processes, containers and the latest result directory
   logs     Follow logs from the current runtime
-  stop     Stop the managed runtime, stop vision containers, and release IDs 1-14 torque
+  stop     Stop managed processes and containers, then release IDs 1-14 torque
 
 Environment:
   COLLECTION_QUERY                     Detection query (default: visible movable tabletop objects)
@@ -66,9 +69,12 @@ Environment:
   CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY
                                         true writes raw motor diagnostics (default: false)
   CLEANY_COLLECTION_MOTION_BACKEND      curobo_ik_moveit (default) or moveit
+  CLEANY_COLLECTION_MOTION_RUNTIME      native (default) or container for cuRobo
+  CLEANY_CUROBO_VENV                     Native cuRobo venv (default: ~/.local/opt/cleany/curobo078/venv)
   CLEANY_COLLECTION_GRASP_PREDICTOR     geometric (default) or anygrasp
   CLEANY_COLLECTION_USE_EXISTING_PERCEPTION
-                                        true reuses running perception and head RGB-D (default: false)
+                                        true reuses running perception and head RGB-D (default)
+                                        false starts managed Vision containers
   CLEANY_ROBOT_STATE_PROFILE             Model/state profile (default: camera_preview.json)
   CLEANY_MANIPULATION_COLLECTION_CONFIG  Required local collection profile
   CLEANY_FEETECH_CONTROL_CONFIG          Required local hardware/controller limits
@@ -77,9 +83,13 @@ EOF
 }
 
 validate_planning_mode() {
+  case "${requested_motion_runtime}" in
+    native|container) ;;
+    *) echo "CLEANY_COLLECTION_MOTION_RUNTIME must be native or container." >&2; return 2 ;;
+  esac
   case "${motion_backend}" in
     moveit) motion_runtime=native ;;
-    curobo_ik_moveit) motion_runtime=container ;;
+    curobo_ik_moveit) motion_runtime="${requested_motion_runtime}" ;;
     *) echo "CLEANY_COLLECTION_MOTION_BACKEND must be moveit or curobo_ik_moveit." >&2; return 2 ;;
   esac
   case "${grasp_predictor}" in
@@ -96,6 +106,27 @@ validate_planning_mode() {
   fi
 }
 
+recorded_motion_runtime() {
+  if [[ -f "${motion_runtime_file}" ]]; then
+    cat -- "${motion_runtime_file}"
+  elif [[ -f "${planning_mode_file}" && "$(<"${planning_mode_file}")" == curobo_ik_moveit\ * ]]; then
+    # 런타임 선택을 저장하기 전에 시작한 cuRobo 세션은 모션 컨테이너를 사용했습니다.
+    printf '%s\n' container
+  else
+    printf '%s\n' native
+  fi
+}
+
+recorded_shared_perception() {
+  if [[ -f "${perception_mode_file}" ]]; then
+    cat -- "${perception_mode_file}"
+  elif [[ -f "${planning_mode_file}" ]]; then
+    printf '%s\n' false
+  else
+    printf '%s\n' "${use_existing_perception}"
+  fi
+}
+
 require_matching_planning_mode() {
   if [[ ! -f "${planning_mode_file}" ]]; then
     echo "Running planning mode is unknown; use make collection-stop, then restart." >&2
@@ -108,8 +139,12 @@ require_matching_planning_mode() {
     echo "Use make collection-stop, then restart with the requested planning options." >&2
     return 1
   fi
-  local active_shared=false
-  [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
+  if [[ "$(recorded_motion_runtime)" != "${motion_runtime}" ]]; then
+    echo "Running motion runtime differs; use make collection-stop before changing it." >&2
+    return 1
+  fi
+  local active_shared
+  active_shared="$(recorded_shared_perception)"
   if [[ "${active_shared}" != "${use_existing_perception}" ]]; then
     echo "Running perception ownership differs; stop the managed runtime before changing providers." >&2
     return 1
@@ -120,7 +155,7 @@ require_matching_planning_mode() {
   fi
 }
 
-prepare_motion_runtime() {
+check_motion_runtime() {
   if [[ "${motion_runtime}" == container ]]; then
     local check_output
     if ! check_output=$("${repo_root}/tools/motion-container" check 2>&1); then
@@ -128,6 +163,18 @@ prepare_motion_runtime() {
       return 1
     fi
     printf '%s\n' "${check_output}"
+  elif [[ "${motion_backend}" == curobo_ik_moveit ]]; then
+    if [[ ! -x "${curobo_python}" ]] || ! "${curobo_python}" -c \
+      'import torch; from curobo.wrap.reacher.ik_solver import IKSolver; raise SystemExit(not torch.cuda.is_available())'; then
+      echo "Native cuRobo with CUDA is unavailable at ${curobo_python}. Run tools/setup-curobo or set CLEANY_CUROBO_VENV." >&2
+      return 1
+    fi
+  fi
+}
+
+prepare_motion_runtime() {
+  check_motion_runtime || return
+  if [[ "${motion_runtime}" == container ]]; then
     export CLEANY_MOTION_OWNER="${state_dir}"
     "${repo_root}/tools/motion-container" stop --owner "${state_dir}"
   fi
@@ -145,7 +192,7 @@ start_vision() {
     start_group vision "${log}" make -C "${repo_root}" hybrid-run
   else
     "${repo_root}/tools/vision-container" perception-up || return
-    start_group vision "${log}" make -C "${repo_root}" perception-run
+    start_group vision "${log}" "${repo_root}/tools/vision-container" perception-run
   fi
 }
 
@@ -248,6 +295,10 @@ start_hardware_support() {
   local log="$1"
   local run_dir="$2"
   validate_planning_mode || return
+  local selector_arguments=("motion_runtime:=${motion_runtime}")
+  if [[ "${motion_backend}" == curobo_ik_moveit && "${motion_runtime}" == native ]]; then
+    selector_arguments+=("curobo_python:=${curobo_python}")
+  fi
   # Keep the automatic-arm launch default; ROS launch rejects empty CLI values.
   start_group hardware_support "${log}" \
     ros2 launch cleany_skill_executor pregrasp_hardware_support.launch.py \
@@ -257,7 +308,7 @@ start_hardware_support() {
       output_root:="${HOME}/.local/share/cleany/pregrasp_hardware" \
       evidence_output_directory:="${run_dir}/evidence" \
       motion_backend:="${motion_backend}" \
-      motion_runtime:="${motion_runtime}" grasp_predictor:="${grasp_predictor}" \
+      grasp_predictor:="${grasp_predictor}" "${selector_arguments[@]}" \
       start_head_camera:="$([[ "${use_existing_perception}" != true ]] && echo true || echo false)" \
       scene_pixel_stride:=4 maximum_candidates:=32 \
       selection_timeout_sec:=480.0 pipeline_timeout_sec:=600.0
@@ -387,6 +438,7 @@ start_runtime() {
   mkdir -p "${log_dir}" "${run_dir}/evidence"
   printf '%s\n' "${run_dir}" > "${run_dir_file}"
   printf '%s %s\n' "${motion_backend}" "${grasp_predictor}" > "${planning_mode_file}"
+  printf '%s\n' "${motion_runtime}" > "${motion_runtime_file}"
   printf '%s\n' "${use_existing_perception}" > "${perception_mode_file}"
   printf '%s\n' "${shared_rmw}" > "${perception_rmw_file}"
   : > "${pids_file}"
@@ -507,9 +559,7 @@ recover_planning() {
   require_runtime
   validate_planning_mode || return
   require_matching_planning_mode || return
-  if [[ "${motion_runtime}" == container ]]; then
-    "${repo_root}/tools/motion-container" check
-  fi
+  check_motion_runtime || return
   export CLEANY_MOTION_OWNER="${state_dir}"
   local old_pid=''
   while read -r name pid; do
@@ -841,9 +891,13 @@ status_runtime() {
   if [[ -f "${pipeline_pid_file}" ]]; then
     echo "Pipeline PID: $(<"${pipeline_pid_file}")"
   fi
-  "${repo_root}/tools/vision-container" hybrid-config >/dev/null 2>&1 || true
-  docker ps --format '{{.Names}} {{.Status}}' | grep -F 'cleany-vision-' || true
-  "${repo_root}/tools/motion-container" status --owner "${state_dir}" || true
+  if [[ "$(recorded_shared_perception)" != true ]]; then
+    "${repo_root}/tools/vision-container" hybrid-config >/dev/null 2>&1 || true
+    docker ps --format '{{.Names}} {{.Status}}' | grep -F 'cleany-vision-' || true
+  fi
+  if [[ "$(recorded_motion_runtime)" == container ]]; then
+    "${repo_root}/tools/motion-container" status --owner "${state_dir}" || true
+  fi
 }
 
 follow_logs() {
@@ -933,12 +987,15 @@ stop_runtime() {
     sleep 2
   fi
   if [[ ! -f "${state_dir}/manual-rviz-profile" ]]; then
-    local active_shared="${use_existing_perception}"
-    [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
-    if [[ "${active_shared}" != true ]]; then
+    use_existing_perception="$(recorded_shared_perception)"
+    if [[ "${use_existing_perception}" != true ]]; then
       "${repo_root}/tools/vision-container" hybrid-down || true
+    elif [[ -f "${perception_rmw_file}" ]]; then
+      shared_rmw="$(<"${perception_rmw_file}")"
     fi
-    "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+    if [[ "$(recorded_motion_runtime)" == container ]]; then
+      "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+    fi
   fi
   source_ros
   local daemon_stop_status=0
