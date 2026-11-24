@@ -86,7 +86,7 @@ def test_admission_busy_unknown_target_and_durable_duplicate(tmp_path):
     assert restarted.offer(request()).report.outcome == "SUCCESS"
     assert restarted_nav.commands == []
     with pytest.raises(RuntimeError, match="immutable"):
-        journal.finish(runtime.last_report)
+        journal.finish(runtime.last_report, error_code="")
 
 
 @pytest.mark.parametrize("objects,outcome", [
@@ -314,3 +314,75 @@ def test_debug_events_retain_short_lived_bt_checks_without_changing_mission():
     assert snapshot['safe_to_drive']
     assert len(snapshot['bt_nodes']) == 9
     assert all(e['boot_id'] == snapshot['boot_id'] for e in events)
+
+
+def test_power_loss_during_interruption_cannot_commit_only_the_result(tmp_path):
+    import sqlite3
+
+    path = str(tmp_path / "restart.db")
+    first_db = MissionJournal(path)
+    first, _, _, _ = make_runtime(journal=first_db)
+    assert first.offer(request()).accepted
+    first_db.close()
+
+    recovering = MissionJournal(path)
+    recovering.db.execute("""CREATE TEMP TRIGGER lose_power BEFORE INSERT ON metadata
+        WHEN NEW.key='error_code' BEGIN SELECT RAISE(ABORT, 'simulated interruption'); END""")
+    with pytest.raises(sqlite3.IntegrityError, match="simulated interruption"):
+        make_runtime(journal=recovering)
+    recovering.close()
+
+    reopened = MissionJournal(path)
+    assert reopened.get("one")[1] is None
+    runtime, _, nav, _ = make_runtime(journal=reopened)
+    assert runtime.state == RuntimeState.ERROR
+    assert runtime.last_report.needs_human_review
+    assert not runtime.offer(request("next")).accepted
+    assert not nav.commands
+    reopened.close()
+
+
+def _kill_mock_runtime(path, phase):
+    import os
+    import signal
+
+    db = MissionJournal(path, exclusive=True)
+    runtime, _, _, clock = make_runtime(journal=db)
+    if phase != "idle":
+        assert runtime.offer(request()).accepted
+        if phase == "result":
+            drive(runtime, clock)
+            assert runtime.last_report.outcome == "SUCCESS"
+        elif phase != "NAVIGATE_TO_TARGET":
+            drive(runtime, clock, until=RuntimeState(phase))
+            assert runtime.state == RuntimeState(phase)
+    os.kill(os.getpid(), signal.SIGKILL)
+
+
+@pytest.mark.parametrize("phase", ["idle", "NAVIGATE_TO_TARGET", "WORKING", "RETURN_HOME", "result"])
+def test_unclean_process_exit_keeps_results_and_never_replays_motion(tmp_path, phase):
+    import multiprocessing
+    import signal
+
+    path = str(tmp_path / "mission.db")
+    child = multiprocessing.get_context("spawn").Process(target=_kill_mock_runtime, args=(path, phase))
+    child.start()
+    child.join(15)
+    if child.is_alive():
+        child.kill()
+        child.join()
+        pytest.fail("mock runtime did not reach the requested failure point")
+    assert child.exitcode == -signal.SIGKILL
+    reopened = MissionJournal(path, exclusive=True)
+    with pytest.raises(RuntimeError, match="owner"):
+        MissionJournal(path, exclusive=True)
+    second, desk, nav, _ = make_runtime(journal=reopened)
+    if phase == "idle":
+        assert second.state == RuntimeState.IDLE and second.last_report is None
+    elif phase == "result":
+        assert second.offer(request()).report.outcome == "SUCCESS"
+    else:
+        assert second.last_report.needs_human_review and not second.offer(request("next")).accepted
+        assert second.offer(request()).report.outcome == "INTERRUPTED"
+    assert not nav.commands and not desk.executor.commands
+    reopened.close()

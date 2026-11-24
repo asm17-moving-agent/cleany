@@ -1,6 +1,7 @@
 """Jetson Action wrapper. Uses the existing contract and a separate persistent journal."""
 from __future__ import annotations
 
+import hashlib
 import os
 import signal
 import threading
@@ -126,6 +127,9 @@ class JetsonManipulationNode(ManipulationNode):
         self._bt_events = self.create_publisher(String, 'manipulation/bt_transitions', qos)
         self._service = self.create_service(GetManipulationExecution, 'manipulation/get_execution', self._get,
                                             callback_group=group)
+        config_bytes = json.dumps(getattr(self.operations, 'config', {}),
+                                  sort_keys=True, separators=(',', ':')).encode()
+        self.collection_digest = hashlib.sha256(config_bytes).hexdigest()
         self._operator_state = self.create_service(Trigger, 'manipulation/control_state',
                                                    self._control_state, callback_group=group)
         self._recovery_service = self.create_service(ConfirmManipulationRecovery,
@@ -197,6 +201,7 @@ class JetsonManipulationNode(ManipulationNode):
                 guard=guard if fresh else None, guard_fresh=fresh,
                 hardware_fault=getattr(real, 'fault', ''),
                 payload_attached=getattr(operations, 'carrying', None) is not None,
+                collection_config_sha256=self.collection_digest,
                 operation_mode=config.get('operation_mode', ''),
                 return_home_joint_rad={arm: settings.get('home_joint_rad')
                                        for arm, settings in config.get('arms', {}).items()},

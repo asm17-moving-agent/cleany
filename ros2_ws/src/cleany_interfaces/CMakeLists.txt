@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SystemEvent.msg"
   "srv/CheckPermission.srv"
   "srv/RequestFaultReset.srv"
+  "action/DriveMissionTarget.action"
   "action/StopMission.action"
   "action/RecoverComponent.action"
   "action/RequestRecovery.action"

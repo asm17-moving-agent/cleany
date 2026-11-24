@@ -6,6 +6,8 @@
 #include <string_view>
 #include <filesystem>
 #include <set>
+#include <sstream>
+#include <map>
 #include <stdexcept>
 #include <thread>
 
@@ -41,6 +43,33 @@ int integer(const std::unordered_map<std::string, std::string> & values, const s
   return static_cast<int>(result);
 }
 }  // namespace
+
+// Field boot may energize only the commissioned empty, parked dual arm.
+void verify_field_park(const std::vector<Joint> & joints, const char * specification)
+{
+  std::istringstream input(specification);
+  std::map<std::string, double> expected;
+  std::string name;
+  double angle;
+  while (input >> name) {
+    if (!(input >> angle) || !std::isfinite(angle) || !expected.emplace(name, angle).second) {
+      throw std::runtime_error("Invalid field park joint specification");
+    }
+  }
+  if (expected.size() != 12) {throw std::runtime_error("Incomplete field park pose");}
+  for (const auto & joint : joints) {
+    if (!joint.enabled) {continue;}
+    auto it = expected.find(joint.name);
+    if (it == expected.end() || joint.torque_enabled != 0 ||
+      joint.raw < joint.raw_min || joint.raw > joint.raw_max ||
+      !std::isfinite(joint.position) || std::abs(joint.position - it->second) > 0.05)
+    {
+      throw std::runtime_error(joint.name + ": verify parked arm and empty gripper before field startup");
+    }
+    expected.erase(it);
+  }
+  if (!expected.empty()) {throw std::runtime_error("Field boot requires both arms and grippers");}
+}
 
 double Joint::radians(int ticks) const
 {
@@ -248,7 +277,8 @@ hardware_interface::CallbackReturn FeetechSystem::on_configure(const rclcpp_life
           ++enabled_count;
           const int torque_enabled = bus.read_value(j.id, 40, 1);
           if ((torque_enabled != 0 &&
-              !(allow_torque_on_recovery_ && torque_enabled == 1)) ||
+              !(allow_torque_on_recovery_ && torque_enabled == 1 &&
+                !std::getenv("CLEANY_FIELD_PARK_JOINTS"))) ||
             bus.read_value(j.id, 16, 2) < j.torque)
           {
             throw std::runtime_error(
@@ -425,6 +455,9 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
   if (fault_) {return CallbackReturn::ERROR;}
   try {
     snapshot();
+    if (const char * park = std::getenv("CLEANY_FIELD_PARK_JOINTS"); park && !read_only_) {
+      verify_field_park(joints_, park);
+    }
     const bool recovering = std::any_of(joints_.begin(), joints_.end(),
       [](const Joint & j) {return j.enabled && j.powered;});
     std::vector<std::pair<int, int>> targets;

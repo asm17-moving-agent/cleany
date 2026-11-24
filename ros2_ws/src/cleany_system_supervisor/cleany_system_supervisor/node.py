@@ -81,7 +81,8 @@ class SupervisorNode(Node):
         self.action_group = ReentrantCallbackGroup()
         state_file = config.get('persistence', {}).get('state_file', '')
         self.core = SystemSupervisor(config, recovery_port=RecoveryPort(self, self.action_group),
-                                     stop_port=MissionStopPort(self, self.settings['stop_action'], self.action_group),
+                                     stop_port=MissionStopPort(self, self.settings['stop_action'], self.action_group,
+                                                               self.settings.get('navigation_stop_action')),
                                      store=LatchStore(state_file) if state_file else None)
         self.stamps = StampGuard(self.settings['max_sensor_age_s'])
         self.lifecycle = {}
@@ -277,7 +278,7 @@ class SupervisorNode(Node):
         state.operating_state = self.core.state.value
         state.permissions = [messages.MissionPermission(
             mission_id=lease.mission_id, lease_id=lease.lease_id, version=lease.version,
-            capabilities=list(lease.capabilities), granted=lease.granted,
+            capabilities=list(lease.capabilities), granted=lease.granted, stop_confirmed=lease.stopped,
             valid_for_s=max(0., lease.expires_at - now) if lease.granted else 0., reason=lease.reason)
             for lease in self.core.permissions.leases.values()]
         caps = envelope(messages.SystemCapabilities)
