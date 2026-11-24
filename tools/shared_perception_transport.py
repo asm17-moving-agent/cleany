@@ -6,7 +6,7 @@ SUPPORTED_RMW = ('rmw_fastrtps_cpp', 'rmw_cyclonedds_cpp')
 
 
 def shared_perception_rmw(settings: Mapping[str, str]) -> str:
-    if settings.get('CLEANY_COLLECTION_USE_EXISTING_PERCEPTION') != 'true':
+    if (settings.get('CLEANY_COLLECTION_USE_EXISTING_PERCEPTION') or 'true') != 'true':
         return ''
     implementation = settings.get('CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION', 'rmw_fastrtps_cpp')
     if implementation not in SUPPORTED_RMW:

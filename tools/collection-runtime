@@ -19,11 +19,11 @@ gui="${CLEANY_COLLECTION_GUI:-false}"
 record_motor_telemetry="${CLEANY_COLLECTION_RECORD_MOTOR_TELEMETRY:-false}"
 motion_backend="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
 requested_motion_runtime="${CLEANY_COLLECTION_MOTION_RUNTIME:-native}"
-curobo_python="${CLEANY_CUROBO_VENV:-${repo_root}/runtime/curobo-venv}/bin/python"
+curobo_python="${CLEANY_CUROBO_VENV:-${HOME}/.local/opt/cleany/curobo078/venv}/bin/python"
 grasp_predictor="${CLEANY_COLLECTION_GRASP_PREDICTOR:-geometric}"
 planning_mode_file="${state_dir}/planning-mode"
 motion_runtime_file="${state_dir}/motion-runtime"
-use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-false}"
+use_existing_perception="${CLEANY_COLLECTION_USE_EXISTING_PERCEPTION:-true}"
 perception_mode_file="${state_dir}/perception-mode"
 shared_rmw="${CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 perception_rmw_file="${state_dir}/perception-rmw"
@@ -35,11 +35,11 @@ usage() {
 Usage: tools/collection-runtime COMMAND
 
 Commands:
-  start    Start vision, real control, D435, MoveIt/RViz and bbox viewer; wait for readiness
+  start    Start real control and planning; wait for the configured perception provider
   recover-control
            Restart latched real control in-place while preserving torque/current hold
   recover-planning
-           Restart D435 and grasp planning support without restarting arm control
+           Restart grasp planning support without restarting arm control
   action-start
            Attach the idle manipulation Action server to the started physical runtime
   action-restart
@@ -55,7 +55,7 @@ Commands:
   run      Start/check the runtime, then plan once and execute pick/return/release
   status   Show managed processes, containers and the latest result directory
   logs     Follow logs from the current runtime
-  stop     Stop the managed runtime, stop vision containers, and release IDs 1-14 torque
+  stop     Stop managed processes and containers, then release IDs 1-14 torque
 
 Environment:
   COLLECTION_QUERY                     Detection query (default: visible movable tabletop objects)
@@ -70,10 +70,11 @@ Environment:
                                         true writes raw motor diagnostics (default: false)
   CLEANY_COLLECTION_MOTION_BACKEND      curobo_ik_moveit (default) or moveit
   CLEANY_COLLECTION_MOTION_RUNTIME      native (default) or container for cuRobo
-  CLEANY_CUROBO_VENV                     Native cuRobo environment (default: runtime/curobo-venv)
+  CLEANY_CUROBO_VENV                     Native cuRobo venv (default: ~/.local/opt/cleany/curobo078/venv)
   CLEANY_COLLECTION_GRASP_PREDICTOR     geometric (default) or anygrasp
   CLEANY_COLLECTION_USE_EXISTING_PERCEPTION
-                                        true reuses running perception and head RGB-D (default: false)
+                                        true reuses running perception and head RGB-D (default)
+                                        false starts managed Vision containers
   CLEANY_ROBOT_STATE_PROFILE             Model/state profile (default: camera_preview.json)
   CLEANY_MANIPULATION_COLLECTION_CONFIG  Required local collection profile
   CLEANY_FEETECH_CONTROL_CONFIG          Required local hardware/controller limits
@@ -109,7 +110,7 @@ recorded_motion_runtime() {
   if [[ -f "${motion_runtime_file}" ]]; then
     cat -- "${motion_runtime_file}"
   elif [[ -f "${planning_mode_file}" && "$(<"${planning_mode_file}")" == curobo_ik_moveit\ * ]]; then
-    # Sessions started before runtime selection always used the motion container.
+    # 런타임 선택을 저장하기 전에 시작한 cuRobo 세션은 모션 컨테이너를 사용했습니다.
     printf '%s\n' container
   else
     printf '%s\n' native
@@ -119,6 +120,8 @@ recorded_motion_runtime() {
 recorded_shared_perception() {
   if [[ -f "${perception_mode_file}" ]]; then
     cat -- "${perception_mode_file}"
+  elif [[ -f "${planning_mode_file}" ]]; then
+    printf '%s\n' false
   else
     printf '%s\n' "${use_existing_perception}"
   fi
@@ -140,8 +143,8 @@ require_matching_planning_mode() {
     echo "Running motion runtime differs; use make collection-stop before changing it." >&2
     return 1
   fi
-  local active_shared=false
-  [[ ! -f "${perception_mode_file}" ]] || active_shared="$(<"${perception_mode_file}")"
+  local active_shared
+  active_shared="$(recorded_shared_perception)"
   if [[ "${active_shared}" != "${use_existing_perception}" ]]; then
     echo "Running perception ownership differs; stop the managed runtime before changing providers." >&2
     return 1
@@ -189,7 +192,7 @@ start_vision() {
     start_group vision "${log}" make -C "${repo_root}" hybrid-run
   else
     "${repo_root}/tools/vision-container" perception-up || return
-    start_group vision "${log}" make -C "${repo_root}" perception-run
+    start_group vision "${log}" "${repo_root}/tools/vision-container" perception-run
   fi
 }
 
@@ -1077,8 +1080,11 @@ stop_runtime() {
     sleep 2
   fi
   if [[ ! -f "${state_dir}/manual-rviz-profile" ]]; then
-    if [[ "$(recorded_shared_perception)" != true ]]; then
+    use_existing_perception="$(recorded_shared_perception)"
+    if [[ "${use_existing_perception}" != true ]]; then
       "${repo_root}/tools/vision-container" hybrid-down || true
+    elif [[ -f "${perception_rmw_file}" ]]; then
+      shared_rmw="$(<"${perception_rmw_file}")"
     fi
     if [[ "$(recorded_motion_runtime)" == container ]]; then
       "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true

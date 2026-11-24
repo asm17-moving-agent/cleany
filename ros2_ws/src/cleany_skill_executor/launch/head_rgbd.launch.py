@@ -1,4 +1,4 @@
-"""Run the commissioned RGB-D camera independently of arm control."""
+"""Publish the head RGB-D stream and calibrated frames without arm control."""
 
 import json
 from pathlib import Path
@@ -12,7 +12,7 @@ from launch_ros.actions import Node
 
 
 def setup(context):
-    root = Path(LaunchConfiguration('repository_root').perform(context)).resolve()
+    root = Path(LaunchConfiguration('repository_root').perform(context)).expanduser().resolve()
     profile_path = Path(LaunchConfiguration('profile_file').perform(context)).expanduser()
     profile = json.loads((root / profile_path).read_text())
     head = json.loads((root / Path(profile['head_config']).expanduser()).read_text())

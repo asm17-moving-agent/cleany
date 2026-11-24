@@ -302,19 +302,20 @@ recover_control || exit $?
     ('', '', ''),
     ('moveit', 'geometric', 'native'),
     ('moveit', 'anygrasp', 'native'),
-    ('curobo_ik_moveit', 'geometric', 'container'),
+    ('curobo_ik_moveit', 'geometric', 'native'),
+    ('curobo_ik_moveit', 'anygrasp', 'native'),
     ('curobo_ik_moveit', 'anygrasp', 'container'),
 ])
 def test_hardware_support_keeps_automatic_arm_default_and_valid_launch_values(
         runtime_functions, backend, predictor, runtime):
-    transport = r"""
+    transport = r'''
 export CLEANY_COLLECTION_MOTION_BACKEND="$2"
 export CLEANY_COLLECTION_GRASP_PREDICTOR="$3"
 export CLEANY_COLLECTION_MOTION_RUNTIME="$4"
 source "$1"
 start_group() { printf '%s\n' "$@"; }
 start_hardware_support /tmp/hardware-support.log /tmp/collection-test
-"""
+'''
     result = subprocess.run(
         ['bash', '-c', transport, 'hardware-support-test', str(runtime_functions), backend, predictor, runtime],
         text=True, capture_output=True, timeout=5,
@@ -332,83 +333,91 @@ start_hardware_support /tmp/hardware-support.log /tmp/collection-test
     assert launch_args['motion_runtime'] == (runtime or 'native')
     assert launch_args['motion_backend'] == (backend or 'curobo_ik_moveit')
     assert launch_args['grasp_predictor'] == (predictor or 'geometric')
+    assert ('curobo_python' in launch_args) == (backend != 'moveit' and runtime != 'container')
     assert launch_args['collection_config_file'] == os.environ['CLEANY_MANIPULATION_COLLECTION_CONFIG']
 
 
-@pytest.mark.parametrize('backend,predictor,runtime', [
-    ('', '', ''),
-    ('moveit', 'geometric', 'native'),
-    ('moveit', 'anygrasp', 'native'),
-    ('curobo_ik_moveit', 'geometric', 'native'),
-    ('curobo_ik_moveit', 'anygrasp', 'container'),
+@pytest.mark.parametrize('backend,predictor,requested,shared', [
+    ('', '', '', ''),
+    ('moveit', 'geometric', '', 'false'),
+    ('moveit', 'anygrasp', '', 'false'),
+    ('curobo_ik_moveit', 'geometric', 'native', 'false'),
+    ('curobo_ik_moveit', 'anygrasp', 'container', 'false'),
 ])
 def test_planning_mode_starts_only_required_gpu_services(
-        tmp_path, runtime_functions, backend, predictor, runtime):
+        tmp_path, runtime_functions, backend, predictor, requested, shared):
     directory = tmp_path / 'tools'
     directory.mkdir()
+    interpreter = tmp_path / 'curobo/bin/python'
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text('#!/bin/bash\nprintf "native cuRobo preflight\\n"\n')
+    interpreter.chmod(0o755)
     for name in ('vision-container', 'motion-container'):
         script = directory / name
         script.write_text(f'#!/bin/bash\nprintf "%s\\n" "{name} $*"\n')
         script.chmod(0o755)
-    native = tmp_path / 'curobo/bin/python'
-    native.parent.mkdir(parents=True)
-    native.write_text('#!/bin/sh\ntest "$1" = -c && printf "NATIVE_CUROBO\\n"\n')
-    native.chmod(0o755)
-    transport = r"""
-export CLEANY_COLLECTION_MOTION_BACKEND="$3"
-export CLEANY_COLLECTION_GRASP_PREDICTOR="$4"
-export CLEANY_COLLECTION_MOTION_RUNTIME="$5"
-export CLEANY_CUROBO_VENV="$2/curobo"
+    transport = r'''
+export CLEANY_COLLECTION_MOTION_BACKEND="$3" CLEANY_COLLECTION_GRASP_PREDICTOR="$4"
+export CLEANY_COLLECTION_MOTION_RUNTIME="$5" CLEANY_COLLECTION_USE_EXISTING_PERCEPTION="$6"
+export CLEANY_CUROBO_VENV="$2/curobo" CLEANY_COLLECTION_STATE_DIR="$2/state"
 source "$1"
 repo_root="$2"
 start_group() { printf '%s\n' "$*"; }
 validate_planning_mode
 prepare_motion_runtime
 start_vision /tmp/vision.log
-"""
+if [[ "$use_existing_perception" == true ]]; then status_runtime; fi
+'''
     result = subprocess.run(
         ['bash', '-c', transport, 'planning-mode-test', str(runtime_functions),
-         str(tmp_path), backend, predictor, runtime],
+         str(tmp_path), backend, predictor, requested, shared],
         text=True, capture_output=True, timeout=5,
     )
     assert result.returncode == 0, result.stderr
-    uses_gpu = backend != 'moveit'
-    assert ('NATIVE_CUROBO' in result.stdout) == (uses_gpu and runtime != 'container')
-    assert ('motion-container check' in result.stdout) == (uses_gpu and runtime == 'container')
-    assert ('motion-container stop' in result.stdout) == (uses_gpu and runtime == 'container')
+    backend = backend or 'curobo_ik_moveit'
+    predictor = predictor or 'geometric'
+    assert ('native cuRobo preflight' in result.stdout) == (backend == 'curobo_ik_moveit' and requested != 'container')
+    assert ('motion-container check' in result.stdout) == (requested == 'container')
+    assert ('motion-container stop' in result.stdout) == (requested == 'container')
+    if shared != 'false':
+        assert 'Reusing existing perception' in result.stdout
+        assert 'container' not in result.stdout and 'docker' not in result.stderr
+        return
     assert ('vision-container hybrid-up' in result.stdout) == (predictor == 'anygrasp')
     assert ('hybrid-run' in result.stdout) == (predictor == 'anygrasp')
-    assert ('vision-container perception-up' in result.stdout) == (predictor != 'anygrasp')
-    assert ('perception-run' in result.stdout) == (predictor != 'anygrasp')
+    assert ('vision-container perception-up' in result.stdout) == (predictor == 'geometric')
+    assert ('tools/vision-container perception-run' in result.stdout) == (predictor == 'geometric')
 
 
-@pytest.mark.parametrize('backend,recorded_mode,recorded_runtime,returncode', [
-    ('moveit', 'moveit geometric', None, 0),
-    ('moveit', 'curobo_ik_moveit anygrasp', None, 1),
-    ('moveit', None, None, 1),
-    ('', 'curobo_ik_moveit geometric', 'native', 0),
-    ('', 'curobo_ik_moveit geometric', None, 1),
-    ('', 'moveit geometric', None, 1),
-    ('', 'curobo_ik_moveit anygrasp', None, 1),
+@pytest.mark.parametrize('backend,requested,recorded_mode,recorded_runtime,returncode', [
+    ('moveit', '', 'moveit geometric', None, 0),
+    ('moveit', '', 'curobo_ik_moveit anygrasp', None, 1),
+    ('moveit', '', None, None, 1),
+    ('', '', 'curobo_ik_moveit geometric', 'native', 0),
+    ('', '', 'curobo_ik_moveit geometric', None, 1),
+    ('', 'container', 'curobo_ik_moveit geometric', None, 0),
+    ('', '', 'moveit geometric', None, 1),
+    ('', '', 'curobo_ik_moveit anygrasp', None, 1),
 ])
 def test_running_runtime_does_not_silently_reuse_a_different_mode(
-        tmp_path, runtime_functions, backend, recorded_mode, recorded_runtime, returncode):
+        tmp_path, runtime_functions, backend, requested, recorded_mode, recorded_runtime, returncode):
     if recorded_mode is not None:
         (tmp_path / 'planning-mode').write_text(recorded_mode + '\n')
     if recorded_runtime is not None:
         (tmp_path / 'motion-runtime').write_text(recorded_runtime + '\n')
-    transport = r"""
+    transport = r'''
 export CLEANY_COLLECTION_MOTION_BACKEND="$3" CLEANY_COLLECTION_GRASP_PREDICTOR=geometric
-export CLEANY_COLLECTION_MOTION_RUNTIME=native CLEANY_COLLECTION_STATE_DIR="$2"
+export CLEANY_COLLECTION_MOTION_RUNTIME="$4" CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=false
+export CLEANY_COLLECTION_STATE_DIR="$2"
 source "$1"
 managed_processes_alive() { return 0; }
 check_dds_transport() { return 0; }
 source_ros() { echo ROS; }
 wait_for_graph() { echo CHECKED; }
 start_runtime
-"""
+'''
     result = subprocess.run(
-        ['bash', '-c', transport, 'mode-reuse-test', str(runtime_functions), str(tmp_path), backend],
+        ['bash', '-c', transport, 'mode-reuse-test', str(runtime_functions), str(tmp_path), backend, requested],
         text=True, capture_output=True, timeout=5,
     )
     assert result.returncode == returncode, result.stderr
