@@ -8,6 +8,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 import yaml
 
+from cleany_description.cad_coordinates import CadCoordinates
 from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.reader import ReadOnlyBus, verify_arm_calibration
 from cleany_robot_interface.state_profile import head_positions
@@ -20,6 +21,8 @@ class RobotStateReader(Node):
         for name in ('arm_config_file', 'head_config_file', 'head_mapping_file'):
             self.declare_parameter(name, '')
         self.declare_parameter('rate_hz', 20.0)
+        model_file = self.declare_parameter('robot_description_file', '').value
+        self.cad_coordinates = CadCoordinates.from_urdf(Path(model_file).read_text()) if model_file else None
         read = lambda name: yaml.safe_load(Path(self.get_parameter(name).value).read_text())
         arm_file = Path(self.get_parameter('arm_config_file').value)
         arm, head = yaml.safe_load(arm_file.read_text()), read('head_config_file')
@@ -34,6 +37,9 @@ class RobotStateReader(Node):
         calibrations = {side: json.loads((directory / cfg['calibration']).read_text())
                         for side, cfg in arm['arms'].items()}
         self.joints = mappings(arm, calibrations)
+        self.measured_names = [joint.name for joint in self.joints] + ['head_pan_joint', 'head_tilt_joint']
+        if self.cad_coordinates and not {'left_gripper_joint', 'right_gripper_joint'}.issubset(self.measured_names):
+            raise ValueError('Calibrated CAD requires measured positions for both grippers')
         rate = float(self.get_parameter('rate_hz').value)
         if not 0 < rate <= 50:
             raise ValueError('rate_hz must be in (0, 50]')
@@ -67,6 +73,11 @@ class RobotStateReader(Node):
                          for joint in self.joints]
             positions += head_positions([self.head.read(i, 56, 2) for i in (13, 14)],
                                         self.head_mapping)
+            names = self.measured_names
+            if self.cad_coordinates is not None:
+                dependent = self.cad_coordinates.dependent_positions(dict(zip(names, positions)))
+                names = [*names, *dependent]
+                positions.extend(dependent.values())
         except (RuntimeError, ValueError, OSError) as error:
             if time.monotonic() - self.last_warning > 2:
                 self.get_logger().error(f'No complete fresh state published: {error}')
@@ -74,7 +85,7 @@ class RobotStateReader(Node):
             return
         message = JointState()
         message.header.stamp = stamp
-        message.name = [joint.name for joint in self.joints] + ['head_pan_joint', 'head_tilt_joint']
+        message.name = names
         message.position = positions
         # Velocity/effort are absent: no unverified values are manufactured.
         self.publisher.publish(message)

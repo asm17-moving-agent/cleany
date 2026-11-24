@@ -11,6 +11,15 @@ from .core.urdf_fk import UrdfChain
 MAST_LINK = 'top_base_link'
 
 
+def mast_query_sphere_layout(kinematics: dict) -> tuple[int, list[int]]:
+    """Return the sphere count and the non-arm indices for the body-box query."""
+    owners = [name for name in kinematics['collision_link_names']
+              for _ in kinematics['collision_spheres'][name]]
+    arm_prefixes = ('left_', 'right_', 'cad_left_', 'cad_right_')
+    excluded = [index for index, name in enumerate(owners) if not name.startswith(arm_prefixes)]
+    return len(owners), excluded
+
+
 def _compact_boxes(boxes, tolerance):
     """Remove contained boxes and join overlapping sections with similar widths."""
     boxes = list(boxes)

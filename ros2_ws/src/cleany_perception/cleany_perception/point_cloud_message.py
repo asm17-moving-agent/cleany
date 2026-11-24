@@ -14,6 +14,7 @@ def colored_point_cloud_message(
     cloud: ColoredPointCloud,
     stamp: Time,
     frame_id: str,
+    *, viewpoint: np.ndarray | None = None,
 ) -> PointCloud2:
     message = PointCloud2()
     message.header.stamp = stamp
@@ -29,11 +30,17 @@ def colored_point_cloud_message(
         ),
     ]
     message.is_bigendian = False
-    message.point_step = 16
+    layout = [('xyz', '<f4', (3,)), ('rgb', 'u1', (4,))]
+    if viewpoint is not None:
+        message.fields.extend(PointField(name=name, offset=16+4*i, datatype=PointField.FLOAT32, count=1)
+                              for i, name in enumerate(('vp_x', 'vp_y', 'vp_z')))
+        layout.append(('viewpoint', '<f4', (3,)))
+    message.point_step = np.dtype(layout).itemsize
     message.row_step = message.point_step * message.width
-    # Keep the existing little-endian XYZ + 0x00RRGGBB wire layout.
     payload = array('B', [0]) * message.row_step
-    packed = np.frombuffer(payload, dtype=[('xyz', '<f4', (3,)), ('rgb', 'u1', (4,))])
+    packed = np.frombuffer(payload, dtype=layout)
+    if viewpoint is not None:
+        packed['viewpoint'] = viewpoint
     packed['xyz'] = cloud.points
     packed['rgb'][:, :3] = cloud.colors[:, ::-1]
     packed['rgb'][:, 3] = 0

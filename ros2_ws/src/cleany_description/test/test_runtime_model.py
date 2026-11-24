@@ -27,11 +27,12 @@ def test_canonical_cad_hash_geometry_and_physical_stroke():
         assert endpoint['motor_open_rad']-endpoint['motor_closed_rad'] == pytest.approx(2.7918450339518667)
         assert g['scale']*endpoint['motor_closed_rad']+g['offset_rad'] == pytest.approx(0.)
     assert len(root.findall('.//visual')) == 310
-    for side in ('left', 'right'):
-        for finger in ('L', 'R'):
-            link = root.find(f"link[@name='cad_{side}_gripper_driving_{finger}']")
-            assert any(c.get('name').startswith('cad_self__') for c in link.findall('collision'))
-            assert any(c.get('name').startswith('cad_world__') for c in link.findall('collision'))
+    drives = {f'cad_{side}_gripper_driving_{finger}'
+              for side in ('left', 'right') for finger in ('L', 'R')}
+    for prefix in ('cad_self__', 'cad_world__'):
+        separate = {link.get('name') for link in root.findall('link')
+                    if any(c.get('name', '').startswith(prefix) for c in link.findall('collision'))}
+        assert separate == drives
 
 
 def test_every_runtime_mesh_exists_and_has_finite_bounds():

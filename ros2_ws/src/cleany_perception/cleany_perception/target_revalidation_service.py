@@ -9,7 +9,7 @@ from cleany_interfaces.srv import RevalidateTarget
 from .core.models import FailureKind, InspectionFailure
 from .core.ports import DetectorPort
 from .core.object_ranking import rank_detections_by_distance
-from .core.target_revalidation import match_approved_target
+from .core.target_revalidation import identify_tracked_candidate, match_approved_target, overlapping_instances
 from .core.tracking import TrackedDetection, TrackingOutput, TrackingState
 from .rgbd_snapshot import snapshot_from_messages
 
@@ -97,8 +97,19 @@ class TargetRevalidationService:
         # Retain all boxes when excluding objects from support-plane fitting,
         # exactly as in the proposal's full-scene geometric measurement.
         measured = node._pipeline.estimate_detection_footprints(snapshot, detections, transform)
-        fresh = match_approved_target(source, measured, snapshot.rgb.shape[:2],
-            float(node.get_parameter('reference_minimum_detection_iou').value))
+        minimum_iou = float(node.get_parameter('reference_minimum_detection_iou').value)
+
+        def disambiguate(candidates):
+            if len(candidates) == 1 and len(overlapping_instances(
+                    candidates[0], cached.detections, minimum_iou)) == 1:
+                return candidates[0]
+            observed = rank_detections_by_distance(snapshot, candidates, transform, node._object_ranking_config)
+            return identify_tracked_candidate(
+                observed, cached.detections, tracking.detections, request.track_id,
+                snapshot.rgb.shape[:2], minimum_iou, node._tracker.config.maximum_distance_m)
+
+        fresh = match_approved_target(source, measured, snapshot.rgb.shape[:2], minimum_iou,
+                                      disambiguate=disambiguate)
         ranked = rank_detections_by_distance(snapshot, (fresh,), transform, node._object_ranking_config)[0]
         if ranked.position is None:
             raise InspectionFailure(FailureKind.DEPTH, '승인 물체의 최신 깊이 또는 3D 위치가 유효하지 않습니다.')

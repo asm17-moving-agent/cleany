@@ -17,6 +17,8 @@ namespace
 {
 constexpr double scale = 6.2831853071795864769 / 4096.0;
 constexpr int recovery_goal_tolerance_ticks = 32;
+constexpr int sts3215_model = 777;
+constexpr int sts3215_max_acceleration_address = 85;
 // Used for recovery of an already powered hold without posture correction.
 bool require_powered_hold()
 {
@@ -164,7 +166,7 @@ hardware_interface::CallbackReturn FeetechSystem::on_init(const hardware_interfa
       const auto expected_name = j.id <= 12 ?
         std::string(j.id <= 6 ? "left_" : "right_") + suffixes[(j.id - 1) % 6] + "_joint" :
         std::string(j.id == 13 ? "head_pan_joint" : "head_tilt_joint");
-      const int expected_model = j.id <= 12 && ((j.id - 1) % 6 == 1 || (j.id - 1) % 6 == 2) ? 2825 : 777;
+      const int expected_model = j.id <= 12 && ((j.id - 1) % 6 == 1 || (j.id - 1) % 6 == 2) ? 2825 : sts3215_model;
       if (j.name != expected_name || j.model != expected_model) {throw std::runtime_error("ID/name/model mismatch");}
       if (j.id <= 12) {
         if (description.command_interfaces.size() > 1 ||
@@ -466,6 +468,15 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
         if (arm_.read_value(j.id, 40, 1) != expected_torque) {
           throw std::runtime_error("Torque changed before activation");
         }
+        if (!recovering && j.model == sts3215_model) {
+          // An immediate RAM read can echo the request before the servo applies its limit.
+          const int maximum = arm_.read_value(j.id, sts3215_max_acceleration_address, 1);
+          if (j.acceleration > maximum) {
+            throw std::runtime_error(j.name + " ID " + std::to_string(j.id) +
+              ": acceleration_raw=" + std::to_string(j.acceleration) +
+              " exceeds motor maximum=" + std::to_string(maximum) + " at address 85");
+          }
+        }
         targets.emplace_back(j.id, std::clamp(j.raw, j.raw_min, j.raw_max));
       }
     }
@@ -516,7 +527,12 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
             {41, 1, j.acceleration}, {44, 2, 0}, {46, 2, j.speed}, {48, 2, j.torque}})
         {
           arm_.write_value(j.id, address, size, value);
-          if (arm_.read_value(j.id, address, size) != value) {throw std::runtime_error("RAM write verification failed");}
+          const int actual = arm_.read_value(j.id, address, size);
+          if (actual != value) {
+            throw std::runtime_error(j.name + " ID " + std::to_string(j.id) +
+              ": RAM write verification failed address=" + std::to_string(address) +
+              " expected=" + std::to_string(value) + " actual=" + std::to_string(actual));
+          }
         }
       }
       for (auto & j : joints_) {

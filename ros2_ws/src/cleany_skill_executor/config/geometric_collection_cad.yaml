@@ -1,0 +1,11 @@
+grasp_server:
+  ros__parameters:
+    # Saved CAD pad length is 30.75 mm along the approach direction.
+    geometric.pad_half_length_m: 0.015375
+    geometric.distal_pad_offset_m: 0.009
+    geometric.distal_contact_depth_m: 0.003
+    geometric.top_face_tolerance_m: 0.0015
+    # Maximum forward extent of the calibrated fingertip from the pad-center TCP.
+    geometric.top_face_tip_reach_m: 0.022
+    # Sample the opposite wrist orientation for the symmetric jaws.
+    geometric.include_reverse_closing_axis: true

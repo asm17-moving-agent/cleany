@@ -9,6 +9,21 @@ def detection(identifier, depth, **fields):
         estimated_height_m=.1), **fields))
 
 
+@pytest.mark.parametrize('category', ['', 'review', 'trash', 'lost_item'])
+def test_temporary_pick_return_selects_local_target_without_decision(category):
+    snapshot = NS(snapshot_id='test', detections=[
+        detection(1, .1, label='knife'),
+        detection(2, .2, distance_valid=False),
+        detection(3, .3, sorting_category=category),
+        detection(4, .4),
+    ])
+    config = {'operation_mode': 'pick_return_release', 'temporary_ignore_decision': True,
+              'label_destinations': {'*': 'return_to_pick'}}
+    selected = select_automatic_target(snapshot, config)
+    assert (selected.object_id, selected.skill_name, selected.destination_id) == (
+        3, 'collect_lost_item', 'return_to_pick')
+
+
 def test_auto_selection_preserves_real_snapshot_and_chooses_eligible_target():
     snapshot = NS(snapshot_id='camera-capture-423', detections=[
         detection(1, .1, label='battery'), detection(2, .2, sorting_category='review'),

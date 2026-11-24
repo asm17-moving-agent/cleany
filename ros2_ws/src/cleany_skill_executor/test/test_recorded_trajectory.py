@@ -16,6 +16,45 @@ from cleany_skill_executor.core.recorded_trajectory import (
 )
 
 
+def test_quintic_replay_checks_interior_extrema_and_keeps_reversed_fields():
+    # Identical stopped endpoints hide an excursion caused by acceleration.
+    path = RecordedTrajectory(('q',), (
+        CommandPoint(0, (0.,), (0.,), (1.5,)),
+        CommandPoint(1_000_000_000, (0.,), (0.,), (1.5,)),
+    ))
+    limits = {'q': PhysicalJointLimit(-1., 1., 2., 8., 2048., 1., 0., 0., 4095.)}
+    midpoint = path.sample_at(500_000_000)
+    assert midpoint.positions[0] == pytest.approx(.046875)
+    assert midpoint.accelerations[0] == pytest.approx(-.75)
+    reversed_path = path.reversed()
+    assert reversed_path.sample_at(350_000_000).positions == pytest.approx(
+        path.sample_at(650_000_000).positions)
+    assert reversed_path.points[0].accelerations == (1.5,)
+    assert reversed_path.reversed_with_roll('q', .3).points[0].accelerations == (0.,)
+    levels = dict(velocity=2., acceleration=8., step=.02)
+    validate_recorded_trajectory(path, limits, **levels)
+    with pytest.raises(CommandPathValidationError, match='rate limits'):
+        validate_recorded_trajectory(path, limits, **{**levels, 'acceleration': 1.})
+    with pytest.raises(JointRangeValidationError):
+        validate_recorded_trajectory(path, {'q': replace(limits['q'], upper=.04)}, **levels)
+
+
+def test_reverse_mixed_history_retains_quintic_and_cubic_segments_at_join():
+    path = RecordedTrajectory(('q',), (
+        CommandPoint(0, (0.,), (0.,), (.3,)),
+        CommandPoint(1_000_000_000, (.2,), (0.,), (.2,)),
+    ))
+    next_path = RecordedTrajectory(('q',), (
+        CommandPoint(0, (.2,), (0.,)),
+        CommandPoint(1_000_000_000, (.3,), (0.,)),
+    ))
+    merged = reversed_command_history((path, next_path))
+    for elapsed, reference in ((250_000_000, next_path), (1_250_000_000, path)):
+        assert merged.sample_at(elapsed).positions == pytest.approx(
+            reference.sample_at(750_000_000).positions)
+    assert merged.points[1].accelerations == (.2,)
+
+
 @pytest.mark.parametrize('scale', [.8, 1.])
 def test_new_recorded_and_cropped_commands_share_the_current_rate_scale(scale):
     limits = {'q': PhysicalJointLimit(-3., 3., 2., 8., 2048., 1., 0., 0., 4095.)}

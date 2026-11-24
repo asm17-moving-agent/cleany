@@ -13,6 +13,7 @@ from cleany_interfaces.action import InspectScene, SelectReachableGrasp, Validat
 from cleany_interfaces.srv import (CheckManipulation, GetSceneSnapshot,
                                    ObserveObjectReference, ObserveWristTarget, PlanGrasp)
 from cleany_skill_executor.collection_pipeline import CollectionPipeline
+from cleany_skill_executor.core.automatic_goal import target_skill_name
 from cleany_skill_executor.core.collection import (
     contact_verification_required, grasp_identity_verification_required, temporary_return_mode,
 )
@@ -373,8 +374,7 @@ class JetsonOperations(CollectionPipeline):
         target = matches[0]
         if not target.distance_valid or not math.isfinite(target.distance_m) or target.distance_m <= 0:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Approved target has no valid sensor depth')
-        expected = {'collect_trash': 'trash', 'collect_lost_item': 'lost_item'}[goal.skill_name]
-        if (target.sorting_category != expected
+        if (target_skill_name(target.sorting_category, self.config) != goal.skill_name
                 or not math.isfinite(target.confidence)
                 or not self.value('bt_minimum_confidence') <= target.confidence <= 1):
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Model classification does not match approved skill')
@@ -437,6 +437,14 @@ class JetsonOperations(CollectionPipeline):
                 feedback_callback=self._selection_feedback)
             if selected.success:
                 break
+            if selected.error_code != selected.ERROR_NO_REACHABLE_GRASP:
+                errors = {
+                    selected.ERROR_INVALID_INPUT: Error.INVALID_ARGUMENT,
+                    selected.ERROR_CANCELED: Error.CANCELED,
+                    selected.ERROR_INTERNAL: Error.INTERNAL_ERROR,
+                }
+                code = errors.get(selected.error_code, Error.BACKEND_NOT_READY)
+                raise OperationError(code, f'{arm}: {selected.message}')
         else:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'No reachable commissioned arm')
         if (selected.selected_arm != arm or selected.selected_candidate.snapshot_id != context.goal.snapshot_id

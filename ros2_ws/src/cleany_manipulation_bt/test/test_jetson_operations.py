@@ -675,3 +675,32 @@ def test_reference_observation_checks_identity_and_capture_time(operation, inval
         assert failed.value.error == Error.STALE_TARGET
     else:
         assert node.observe('pinned', 100) is response
+
+
+@pytest.mark.parametrize('error_code,expected_calls,expected_error', [
+    (SelectReachableGrasp.Result.ERROR_PLANNING_SCENE, ['right'], Error.BACKEND_NOT_READY),
+    (SelectReachableGrasp.Result.ERROR_NO_REACHABLE_GRASP, ['right', 'left'], Error.TARGET_UNAVAILABLE),
+])
+def test_arm_selection_only_retries_candidate_rejections(operation, error_code, expected_calls, expected_error):
+    node, context, _ = operation
+    node.config['arms'] = {'left': {}, 'right': {}}
+    obj = DetectedObject3D()
+    obj.obb_pose.position.y = -.1
+    context.inspected = NS(objects=NS(objects=[obj]))
+    context.grasps = NS(candidates=[])
+    node._selection = object()
+    node.value = lambda _: 10.
+    node._selection_progress = lambda **_: None
+    calls = []
+
+    def reject(action, goal, *_args, **_kwargs):
+        calls.append(goal.required_arm)
+        return SelectReachableGrasp.Result(error_code=error_code, message='Scene unavailable')
+
+    node.run_action = reject
+    with pytest.raises(OperationError) as failed:
+        node.select(context)
+    assert failed.value.error == expected_error
+    assert calls == expected_calls
+    if len(calls) == 1:
+        assert 'Scene unavailable' in str(failed.value)

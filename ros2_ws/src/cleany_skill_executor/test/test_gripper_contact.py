@@ -90,23 +90,20 @@ def test_bilateral_close_goals_and_synthetic_empty_signatures(arm, empty_residua
 
 
 @pytest.mark.parametrize('field,value,expected', [
-    ('position_raw', 28, ContactState.UNKNOWN),  # Signed residual must be strictly greater.
-    ('position_raw', 29, ContactState.CONTACT),
-    ('current_raw', 8, ContactState.UNKNOWN),
-    ('current_raw', 9, ContactState.CONTACT),
-    ('load_magnitude_raw', 129, ContactState.UNKNOWN),
-    ('load_magnitude_raw', 130, ContactState.CONTACT),
+    ('current_raw', 14, ContactState.UNKNOWN),
+    ('current_raw', 15, ContactState.CONTACT),
+    ('load_magnitude_raw', 199, ContactState.UNKNOWN),
+    ('load_magnitude_raw', 200, ContactState.CONTACT),
 ])
 def test_contact_threshold_boundaries(field, value, expected):
     c = criteria()
-    if field == 'position_raw':
-        value = c.closed_goal_raw+c.opening_direction*value
+    assert c.output_limit_raw == 400 and c.residual_threshold_ticks is None
     assert decide(samples(c, **{field: value}), c).state == expected
 
 
 @pytest.mark.parametrize('field,value', [
     ('protocol_error_code', None), ('current_raw', None),
-    ('motor_id', 12), ('goal_position_raw', 1400), ('torque_limit_readback_raw', 400),
+    ('motor_id', 12), ('goal_position_raw', 1400), ('torque_limit_readback_raw', 200),
     ('torque_enabled', 0), ('motor_status', 32), ('protocol_error_code', 32),
     ('temperature_c', 80), ('temperature_c', 150), ('temperature_c', -1),
     ('voltage_raw', 89), ('voltage_raw', 141), ('moving_flag', 1),
@@ -175,12 +172,14 @@ def test_current_spike_or_one_low_load_sample_cannot_create_contact():
     assert decide(w, c).state == ContactState.UNKNOWN
 
 
-def test_empty_requires_all_three_low_signals():
+@pytest.mark.parametrize('offset', [-400, -28, 0, 28, 100])
+def test_neither_contact_nor_empty_depends_on_position_residual(offset):
     c = criteria()
-    w = samples(c, position_raw=c.closed_goal_raw+c.opening_direction*28,
-                current_raw=8, load_magnitude_raw=129)
+    far_or_near = c.closed_goal_raw + offset
+    assert decide(samples(c, position_raw=far_or_near, current_raw=15), c).state == ContactState.CONTACT
+    w = samples(c, position_raw=far_or_near, current_raw=14, load_magnitude_raw=199)
     assert decide(w, c).state == ContactState.EMPTY
-    w[-1] = replace(w[-1], load_magnitude_raw=130)
+    w[-1] = replace(w[-1], load_magnitude_raw=200)
     assert decide(w, c).state == ContactState.UNKNOWN
 
 
@@ -198,8 +197,8 @@ def test_window_duration_gap_freshness_request_epoch_and_replay_are_explicit():
 
 
 @pytest.mark.parametrize('direction', [-1, 1])
-def test_closing_direction_is_explicit(direction):
-    c = replace(criteria(), opening_direction=direction, closed_goal_raw=2048)
+def test_legacy_profile_keeps_its_explicit_residual_threshold(direction):
+    c = replace(criteria(), opening_direction=direction, closed_goal_raw=2048, residual_threshold_ticks=28)
     assert decide(samples(c), c).state == ContactState.CONTACT
     mirrored = samples(c, position_raw=c.closed_goal_raw-direction*340)
     assert decide(mirrored, c).state == ContactState.UNKNOWN

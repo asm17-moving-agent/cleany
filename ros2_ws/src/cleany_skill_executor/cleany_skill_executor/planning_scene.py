@@ -401,6 +401,10 @@ class SceneAwarePort:
         if prepare is not None:
             prepare(requests)
 
+    @property
+    def prescreen_grasps(self):
+        return getattr(self._adapter, 'prescreen_grasps', None)
+
     def begin_candidate_pass(self, retry: bool) -> bool:
         begin = getattr(self._adapter, 'begin_candidate_pass', None)
         return begin(retry) if begin is not None else False
@@ -414,6 +418,10 @@ class SceneAwarePort:
     @property
     def planning_pass(self):
         return getattr(self._adapter, 'planning_pass', None)
+
+    @property
+    def validates_path_endpoints(self) -> bool:
+        return getattr(self._adapter, 'validates_path_endpoints', False)
 
     @property
     def plan_approach(self):

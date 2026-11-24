@@ -47,10 +47,12 @@ def test_deployed_return_profile_accepts_logged_delay_and_still_bounds_wait(
         'planning_timeout_sec', 'planning_response_margin_sec')])
     adapter = node.motion
     names = ARM_JOINT_NAMES['left']
+    adapter._joint_limits = dict.fromkeys(names, (-1., 1., 1.))
     goal = JointSolution(names, (.1,)*5)
     trajectory = JointTrajectory(joint_names=list(names), points=[
         JointTrajectoryPoint(positions=[0.]*5),
         JointTrajectoryPoint(positions=list(goal.positions))])
+    trajectory.points[-1].time_from_start.sec = 1
     result = Future()
     clock, requests = [0.], []
 
@@ -72,7 +74,7 @@ def test_deployed_return_profile_accepts_logged_delay_and_still_bounds_wait(
     adapter._plan_client = NS(wait_for_server=lambda **_: True, send_goal_async=send)
     adapter._spin_once, adapter._monotonic = spin, lambda: clock[0]
     adapter._merged_state = lambda _: RobotState()
-    adapter._validated_cubic_path = lambda _, path: path
+    adapter._collision_samples_valid = lambda *_: True
     if accepted:
         path = adapter.plan('left', goal, None)
         assert path.points[-1] == goal.positions
