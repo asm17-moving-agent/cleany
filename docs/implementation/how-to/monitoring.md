@@ -231,7 +231,8 @@ ros2 launch cleany_bringup pose_observation.launch.py enable_backend:=true \
 유휴 상태에서 해당 항목을 삭제한다. 저장 경로, 인증, 중복 실행 방지와 결과 해석은
 [운영 제어 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#운영-제어와-상태)을 따른다.
 
-공유 인식 구성은 `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`와
-`CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION`으로 선택합니다. 시작 전 읽기 전용
-준비 검사와 RPC 응답을 확인하고, 종료 시 기존 인식 제공자를 유지합니다.
+기본 수거는 [네이티브 헤드 RGB-D와 인식](manipulation.md#실물-수거와-팔-복귀)을
+공유하고 Jetson 호스트의 cuRobo를 사용합니다. 시작 전 읽기 전용 준비 검사와
+RPC 응답을 확인하고, 종료 시 공유 제공자를 유지합니다.
+별도 cuRobo 가상환경은 `CLEANY_CUROBO_VENV`로 저장할 수 있습니다.
 [공유 인식 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md)을 따릅니다.
