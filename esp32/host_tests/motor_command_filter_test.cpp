@@ -106,6 +106,17 @@ void testAsymmetricDecelSlew() {
 }  // namespace
 
 int main() {
+  // An encoder edge at low measured speed restarts the reversal dwell.
+  cleany::MotorCommandFilter reversing({1, 0, 0.5F, 50000, 3});
+  reversing.setTargetSpeed(1);
+  assert(reversing.step(0.0F, 0) == 1);
+  reversing.setTargetSpeed(-1);
+  assert(reversing.step(0.2F, 5000, false) == 0);
+  assert(reversing.step(0.2F, 10000, true) == 0);
+  assert(reversing.step(0.2F, 55000, false) == 0);
+  assert(reversing.step(0.0F, 60000, true) == 0);
+  assert(reversing.step(0.0F, 105000, true) == 0);
+  assert(reversing.step(0.0F, 110000, true) == -1);
   testRampsCommand();
   testWaitsForStoppedFeedbackBeforeReverse();
   testForceStopIsImmediate();

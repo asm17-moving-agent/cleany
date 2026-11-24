@@ -232,13 +232,13 @@ GPIO3는 JTAG 선택 스트랩과 겸용이다. [모듈 데이터시트의 JTAG 
   - `I2C_NUM_0`: TCA9548A 멀티플렉서 제어 (SDA: GPIO1, SCL: GPIO2)
   - `I2C_NUM_1`: BNO055 IMU 통신 전용 (SDA: GPIO41, SCL: GPIO42)
 - **통신 파라미터**:
-  - 기본 버스 주파수: 100 kHz 표준 모드
+  - 기본 빌드의 ToF 버스는 400 kHz이며 BNO055 전용 버스는 비활성입니다.
   - BNO055 기동 시 클럭 스트레칭(Clock Stretching) 처리 루틴 필수
 - **GPIO 출력 초기화**:
   - 기동 시 GPIO4(LED_DATA)은 LOW 상태로 유지
   - 레귤레이터 안정화 완료 후 데이터 프레임 전송 개시
 
-기존 `esp32/src/main.cpp`의 모터 GPIO 배열은 별도 `motor_controller` 보드를 대상으로 한다. 통합 컨트롤러용 펌웨어는 위 표를 적용해야 하며, 기존 이미지의 핀 할당과 호환되지 않는다. 통합 보드에는 별도 펌웨어 빌드 프로파일이 아직 없다.
+통합 보드용 `esp32-s3-integrated` 환경은 위 표의 모터 및 엔코더 GPIO를 사용합니다. 기존 모터 보드는 `esp32-s3-microros` 환경으로 빌드합니다. [펌웨어 빌드 안내](../../README.md)
 
 ## 7. 참조 규격
 

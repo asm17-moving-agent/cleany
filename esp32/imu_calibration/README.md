@@ -161,7 +161,7 @@ No measured acceptance limits are supplied. Standard deviations are the square r
 Close capture before restoring the motor firmware:
 
 ```bash
-make firmware-upload CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
+make firmware-upload FIRMWARE_ENV=esp32-s3-microros CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
 ```
 
 Apply the normal [motor firmware acceptance procedure](../README.md#3-실물-인수)

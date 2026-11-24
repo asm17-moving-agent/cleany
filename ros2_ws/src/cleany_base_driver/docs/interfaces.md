@@ -60,7 +60,7 @@ Base 정지 관측이며 STOP ACK나 전신 안전의 대체물이 아닙니다.
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
-| 토픽 구독 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | B1 |
+| 토픽 구독 | `imu_uncalibrated/data_raw` | `sensor_msgs/msg/Imu` | B1. 기존 모터 보드는 MPU6050 표본을 발행하며 기본 통합 보드 구성에서는 IMU 입력이 없습니다. |
 | 토픽 발행 | `imu/data_raw` | `sensor_msgs/msg/Imu` | B1; 정상 IMU 수신 시 고정 factory gyro bias 적용 |
 | 토픽 발행 | `imu/status` | `diagnostic_msgs/msg/DiagnosticArray` | R/T1; 상태 변경 시와 1 Hz |
 | 토픽 발행 | `diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | R10; 상태 변경 시와 1 Hz |

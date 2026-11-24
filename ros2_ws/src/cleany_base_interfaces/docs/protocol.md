@@ -11,6 +11,7 @@ ROS driver와 MCU는 이 패키지의 msg/를 원본으로 같은 계약의 type
 |---|---|---|
 | base/wheel_command | ROS → MCU | best effort, volatile, keep last 1 / 50 Hz |
 | base/wheel_state | MCU → ROS | best effort, volatile, keep last 1 / 50 Hz |
+| base/wheel_drive_state | MCU → ROS | best effort, volatile, keep last 1 / 50 Hz |
 
 | 항목 | 계약 |
 |---|---|
@@ -72,6 +73,19 @@ stateDiagram-v2
 | Fault bit 0 | 명령 만료; 새 ENABLE 수락 시 초기화 |
 
 Driver는 중복, 역순 feedback을 무시하고 실제 수신 지연을 감시합니다. Encoder rollover는 modular delta로 누적합니다. Reboot, 단절 뒤에는 baseline을 재설정하되 누적 각도를 유지합니다. 단절 중 이동량은 관측할 수 없습니다.
+
+### PWM 듀티와 기동 시각
+
+[`WheelDriveState`](../msg/WheelDriveState.msg)와 `WheelState`의 같은 표본은 `boot_id`, `sequence`, `timestamp_us`로 연결합니다. 두 메시지 모두 배열 순서는 FL, FR, RL, RR입니다.
+
+| 필드 | 의미 |
+|---|---|
+| `pwm_frequency_hz`, `pwm_period_ticks` | LEDC 타이머 주파수(Hz)와 주기당 틱 수 |
+| `duty_ticks`, `requested_pwm_percent` | 논리 방향 부호를 적용한 LEDC 듀티 읽기값과 출력 변화율 제한 직전의 제어기 요청(%) |
+| `first_sequence`, `received_us`, `start_counts` | 새 속도 목표를 전달한 패킷 번호, MCU 수신 시각(µs), 목표 수락 시 엔코더 카운트. 같은 목표의 갱신은 측정을 계속하며 STOP 뒤 `received_us`는 0 |
+| `first_us`, `fifth_us`, `onset_ticks` | 수신 시각부터 목표 방향으로 1, 5카운트를 처음 관측할 때까지의 시간(µs, 미도달 −1)과 첫 움직임 직전 적용 듀티(틱) |
+
+부호 있는 듀티(%)는 `100 × duty_ticks / pwm_period_ticks`입니다. `WheelState.pwm_percent`는 마지막으로 적용한 듀티를 정수 %로 반올림합니다.
 
 관련 안내: [Driver](../../cleany_base_driver/docs/command-and-odometry.md), [펌웨어](../../../../esp32/README.md), [검증](../../../../docs/implementation/testing.md).
 
