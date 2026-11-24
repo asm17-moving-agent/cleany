@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.16)
+project(floor19_recorder LANGUAGES CXX)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rosbag2_transport REQUIRED)
+find_package(std_srvs REQUIRED)
+
+add_executable(floor19-recorder recorder.cpp)
+target_compile_features(floor19-recorder PRIVATE cxx_std_17)
+ament_target_dependencies(floor19-recorder rclcpp rosbag2_transport std_srvs)
+install(TARGETS floor19-recorder DESTINATION bin)
