@@ -1,0 +1,4 @@
+grasp_selection_server:
+  ros__parameters:
+    gpu_lock_path: /var/opt/cleany/state/cleany/gpu-work.lock
+    curobo_geometry_cache_directory: /var/opt/cleany/cache/robot-geometry

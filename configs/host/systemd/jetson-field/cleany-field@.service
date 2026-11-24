@@ -1,0 +1,19 @@
+[Unit]
+Description=Cleany field %i
+ConditionUser=cleany
+PartOf=cleany-field.target
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=/opt/cleany/current/field/repo
+Environment=HOME=/var/opt/cleany/state XDG_STATE_HOME=/var/opt/cleany/state XDG_CACHE_HOME=/var/opt/cleany/cache
+Environment=PATH=/usr/local/bin:/usr/bin:/bin ROS_LOG_DIR=/var/opt/cleany/ros-log PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+EnvironmentFile=/etc/opt/cleany/control-plane/observations.env
+EnvironmentFile=/etc/opt/cleany/field/field.env
+ExecStart=/usr/bin/bwrap --bind / / --dev-bind /dev /dev --tmpfs /home -- /opt/cleany/current/field/repo/tools/ros2/field-service %i --observe-native-sensors
+Restart=always
+RestartSec=12s
+KillSignal=SIGINT
+TimeoutStopSec=60s
+UMask=0077

@@ -1,0 +1,10 @@
+[Unit]
+Description=Cleany physical desk services
+ConditionUser=cleany
+Wants=cleany-control-plane.service cleany-dashboard-camera.service cleany-dashboard-observe@robot.service
+Wants=cleany-head-rgbd.service cleany-perception.service
+Wants=cleany-field@rgbd.service cleany-field@perception.service cleany-field@navigation.service cleany-field@collection.service cleany-field@mission.service cleany-field@pose.service
+After=cleany-control-plane.service
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,53 @@
+#!/bin/bash
+# Install the native manipulation closure into an inactive Jetson release.
+set -euo pipefail
+umask 077
+release=$(realpath -e "${1:?release required}")
+install_base=$(realpath -e "${2:?commissioned hardware ROS install required}")
+venv=$(realpath -e "${3:?native cuRobo venv required}")
+repo=$(realpath -e "${4:?field checkout required}")
+[[ $(dirname "$release") == /opt/cleany/releases && "$release" != "$(readlink -f /opt/cleany/current)" ]]
+field="$release/field"
+native="$release/native"
+motion="$field/motion"
+state=/var/opt/cleany/state/cleany
+mkdir -p "$state" /var/opt/cleany/cache/robot-geometry
+# Every release uses the same two flock inodes, including during a switch.
+touch "$state/gpu-work.lock" "$state/gpu-work.lock.demand"
+skill="$release/ros/cleany_skill_executor/share/cleany_skill_executor"
+robot=cleany_robot_interface
+description=cleany_description
+pkgdir="$field/repo/ros2_ws/src"
+python3 "$release/installer/shared_runtime.py" curobo "$venv" "$native/curobo-env"
+test -d "$native/torch-site/torch"
+mkdir -p "$motion" "$pkgdir/$robot" "$pkgdir/$description"
+rsync -a "$install_base"/{local_setup.*,_local_setup_util*.py,.colcon_install_layout} "$motion/"
+for pkg in cleany_moveit_config cleany_moveit_capabilities cleany_moveit_collision cleany_scene_mapping cleany_trajectory_controller; do
+  test -f "$install_base/$pkg/share/$pkg/package.xml"
+  rsync -aL --delete --exclude=__pycache__ "$install_base/$pkg/" "$motion/$pkg/"
+done
+relative_link() {
+  test -e "$1"
+  ln -sfnT "$(realpath --relative-to="$(dirname "$2")" "$1")" "$2"
+}
+# cuRobo's SciPy requires newer NumPy than Ubuntu 22.04 provides. Pin the
+# same Jetson NumPy used by TensorRT without importing the detector environment.
+mkdir -p "$field/gpu-python"
+for dep in "$native"/yolo-env/lib/python3.10/site-packages/{numpy,numpy.libs,numpy-*.dist-info}; do
+  relative_link "$dep" "$field/gpu-python/$(basename "$dep")"
+done
+relative_link "$native/description/$description/share/$description/meshes" "$pkgdir/$description/meshes"
+relative_link "$native/install/$robot/share/$robot/config" "$pkgdir/$robot/config"
+# Match the calibrated CAD surfaces used by native MoveIt. Keep the field motor driver.
+module="local/lib/python3.10/dist-packages/$robot/state_profile.py"
+relative_link "$native/install/$robot/$module" "$field/overlay/$robot/$module"
+install -m644 "$repo/ros2_ws/src/cleany_skill_executor/launch/pregrasp_hardware_support.launch.py" "$skill/launch/"
+install -m644 "$repo/configs/robot/jetson/native-selector.yaml" "$field/"
+install -m755 "$repo/tools/ros2/jetson-curobo-python" "$field/"
+install -m644 "$repo/configs/robot/jetson/native-motion.env" "$field/"
+# colcon local setup discovers only the packages present in this isolated prefix.
+cat > "$field/install/local_setup.bash" <<'SETUP'
+for prefix in /opt/cleany/current/{native/description,native/install,field/deps/install,ros,field/motion,field/overlay}; do
+  source "$prefix/local_setup.bash" || return 1
+done
+SETUP

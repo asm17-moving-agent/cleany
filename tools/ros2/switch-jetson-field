@@ -1,0 +1,55 @@
+#!/bin/bash
+# Retire the home unit overrides after the administrator registers the staged units.
+set -euo pipefail
+umask 077
+staged=/opt/cleany/current/field/systemd-user
+global=/etc/systemd/user
+local_units="$HOME/.config/systemd/user"
+backup_root=/var/opt/cleany/backups
+exec 9>"$backup_root/field-switch.lock"
+flock -n 9
+units=(cleany-field.target cleany-field@.service)
+roles=(cleany-field@{rgbd,perception,navigation,collection,mission,pose}.service)
+for name in "${units[@]}"; do
+  cmp "$staged/$name" "$global/$name"
+done
+test "$(realpath -e "$global/default.target.wants/cleany-field.target")" = "$(realpath -e "$global/cleany-field.target")"
+check_stopped() {
+  local unit
+  for unit in cleany-field.target "${roles[@]}"; do
+    [[ $(systemctl --user show "$unit" -p ActiveState --value) == inactive ]] || {
+      echo "Field unit is busy: $unit" >&2; return 1;
+    }
+  done
+}
+check_stopped
+entries=("${units[@]}" default.target.wants/cleany-field.target)
+saved=()
+backup=""
+rollback() {
+  trap - ERR
+  for entry in "${saved[@]}"; do mv "$backup/$entry" "$local_units/$entry"; done
+  systemctl --user daemon-reload
+}
+trap rollback ERR
+for entry in "${entries[@]}"; do
+  if [[ -e "$local_units/$entry" || -L "$local_units/$entry" ]]; then
+    [[ $(readlink -f "$local_units/$entry") != /dev/null ]] || continue
+    [[ -n $backup ]] || backup=$(mktemp -d "$backup_root/field-units.XXXXXXXX")
+    mkdir -p "$(dirname "$backup/$entry")"
+    mv "$local_units/$entry" "$backup/$entry"
+    saved+=("$entry")
+  fi
+done
+systemctl --user daemon-reload
+for unit in cleany-field.target "${roles[@]}"; do
+  if [[ $(systemctl --user show "$unit" -p LoadState --value) == masked ]]; then continue; fi
+  expected=cleany-field@.service
+  if [[ $unit == cleany-field.target ]]; then expected=$unit; fi
+  fragment=$(systemctl --user show "$unit" -p FragmentPath --value)
+  test "$(realpath -e "$fragment")" = "$(realpath -e "$global/$expected")"
+done
+[[ $(systemctl --user show cleany-field.target -p LoadState --value) == masked ]] || systemctl --user is-enabled cleany-field.target
+check_stopped
+trap - ERR
+if [[ -n $backup ]]; then echo "Previous units: $backup"; fi

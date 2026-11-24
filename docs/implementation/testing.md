@@ -51,6 +51,7 @@ export CONTROL_PLANE=/path/to/cleany-control-plane
 ## 문서 사이트 검사
 
 ```bash
+python3 tools/docs/build_site.py
 python3 tools/docs/build_site.py --check
 python3 docs/guide/build_standalone.py --check
 git diff --check

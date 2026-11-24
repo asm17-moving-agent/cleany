@@ -117,6 +117,8 @@ def main() -> None:
     parser.add_argument("--endpoint", default="http://localhost:9228")
     parser.add_argument("--output", type=Path, default=Path.home() / ".cache/cleany/docs-reader-check")
     args = parser.parse_args()
+    if not (ROOT / "docs/index.html").is_file():
+        parser.error("Run python3 tools/docs/build_site.py to generate docs/index.html first")
     asyncio.run(check(args.endpoint, args.output))
 
 

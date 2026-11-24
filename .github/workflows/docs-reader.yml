@@ -1,0 +1,39 @@
+name: Documentation reader
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'docs/index.html'
+      - 'docs/site.template.html'
+      - 'tools/docs/build_site.py'
+      - '.gitignore'
+      - '.github/workflows/docs-reader.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.md'
+      - 'docs/index.html'
+      - 'docs/site.template.html'
+      - 'tools/docs/build_site.py'
+      - '.gitignore'
+      - '.github/workflows/docs-reader.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that the generated reader stays untracked
+        run: |
+          test -z "$(git ls-files -- docs/index.html)"
+          git check-ignore -q docs/index.html
+      - name: Build and verify the offline reader
+        run: |
+          python3 tools/docs/build_site.py
+          python3 tools/docs/build_site.py --check

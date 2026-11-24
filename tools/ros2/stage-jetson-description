@@ -1,0 +1,46 @@
+#!/bin/bash
+# Return the verified ROS install prefix for this CAD source and Python ABI.
+set -eo pipefail
+umask 022
+src=$(realpath -e "${1:?cleany_description source directory required}")
+test -f "$src/package.xml"
+source /opt/ros/humble/setup.bash
+shared=/opt/cleany/shared/cleany_description
+cache=/var/opt/cleany/cache
+mkdir -p "$shared" "$cache"
+source_hash() {
+  LC_ALL=C tar -C "$1" --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+    --mode='u=rwX,go=rX' --exclude=__pycache__ --exclude=.git -cf - . | sha256sum | cut -d' ' -f1
+}
+digest=$(source_hash "$src")
+abi=$(python3 -c 'import sys; print(sys.implementation.cache_tag)')
+prefix="$shared/${ROS_DISTRO}-$(uname -m)-$abi-$digest"
+exec 9>"$prefix.lock"
+flock 9
+if [[ ! -f "$prefix/.files.sha256" ]]; then
+  work=$(mktemp -d "$cache/cad-build.XXXXXXXX")
+  trap 'rm -rf -- "$work"' EXIT
+  if [[ -e "$prefix" ]]; then
+    test -f "$prefix/.building" || { echo "Unrecognized CAD prefix: $prefix" >&2; exit 1; }
+    mv -T "$prefix" "$work/partial"
+  fi
+  mkdir -p "$work/src/cleany_description"
+  rsync -a --exclude=__pycache__ --exclude=.git "$src/" "$work/src/cleany_description/"
+  [[ $(source_hash "$work/src/cleany_description") == "$digest" ]] || { echo "CAD source changed during staging" >&2; exit 1; }
+  mkdir -p "$prefix"
+  touch "$prefix/.building"
+  PYTHONDONTWRITEBYTECODE=1 nice -n 15 colcon --log-base "$work/log" build \
+    --base-paths "$work/src/cleany_description" --packages-select cleany_description --build-base "$work/build" \
+    --install-base "$prefix" --executor sequential \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF >&2
+  (
+    cd "$prefix"
+    find . -type f ! -name '.building' ! -name '.files.sha256*' ! -path '*/__pycache__/*' -print0 \
+      | LC_ALL=C sort -z | xargs -0 -r sha256sum > .files.sha256.new
+    test -s .files.sha256.new
+    mv .files.sha256.new .files.sha256
+  )
+fi
+(cd "$prefix"; sha256sum --quiet --strict -c .files.sha256)
+if [[ -f "$prefix/.building" ]]; then unlink "$prefix/.building"; fi
+printf '%s\n' "$prefix"

@@ -280,6 +280,9 @@ start_group() {
 }
 
 start_real_control() {
+  if [[ -n "${CLEANY_FIELD_PARK_JOINTS:-}" ]]; then
+    "${CLEANY_FIELD_ARM_CHECK:?missing field interlock check}" collection --arm-check || return
+  fi
   local log="$1"
   start_group real_control "${log}" \
     ros2 launch cleany_robot_interface real_control.launch.py \

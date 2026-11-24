@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+source /opt/ros/humble/setup.bash
+source "${CLEANY_FIELD_INSTALL:?missing field overlay}/local_setup.bash"
+token_file=${CLEANY_DEVICE_TOKEN_FILE:?missing device token path}
+base_url=${CLEANY_ROBOT_WS_URL:?missing robot WebSocket URL}
+test -s "$token_file"
+case "$1" in
+  robot)
+    exec ros2 launch cleany_control_bridge robot_observations.launch.py \
+      url:="$base_url/telemetry/ws" device_token_file:="$token_file" provenance:=real
+    ;;
+  pose)
+    exec ros2 launch cleany_bringup pose_observation.launch.py source:=tf enable_backend:=true \
+      map_id:="${CLEANY_MAP_ID:?missing map ID}" pose_url:="$base_url/pose/ws" device_token_file:="$token_file"
+    ;;
+  *) echo "Expected robot or pose" >&2; exit 2 ;;
+esac

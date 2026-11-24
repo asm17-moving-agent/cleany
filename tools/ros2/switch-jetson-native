@@ -1,0 +1,38 @@
+#!/bin/bash
+# Adopt global native unit definitions without changing running services or operator masks.
+set -euo pipefail
+umask 077
+native=/opt/cleany/current/native
+state=/var/opt/cleany
+local_units="$HOME/.config/systemd/user"
+services=(cleany-head-rgbd.service cleany-perception.service cleany-runtime-model.service)
+exec 9>"$state/backups/native-switch.lock"
+flock -n 9
+test -f "$native/.ready"
+for unit in "${services[@]}"; do
+  cmp "$native/systemd-user/$unit" "/etc/systemd/user/$unit"
+done
+backup=$(mktemp -d "$state/backups/native-units.XXXXXXXX")
+saved=()
+restore() {
+  trap - ERR
+  for unit in "${saved[@]}"; do mv "$backup/$unit" "$local_units/$unit"; done
+  systemctl --user daemon-reload
+}
+trap restore ERR
+for unit in "${services[@]}"; do
+  path="$local_units/$unit"
+  if [[ -e "$path" || -L "$path" ]]; then
+    [[ $(readlink -f "$path") != /dev/null ]] || continue
+    mv "$path" "$backup/$unit"
+    saved+=("$unit")
+  fi
+done
+systemctl --user daemon-reload
+for unit in "${services[@]}"; do
+  if [[ $(systemctl --user show "$unit" -p LoadState --value) == masked ]]; then continue; fi
+  fragment=$(systemctl --user show "$unit" -p FragmentPath --value)
+  test "$(realpath -e "$fragment")" = "$(realpath -e "/etc/systemd/user/$unit")"
+done
+trap - ERR
+if (( ${#saved[@]} )); then echo "Previous definitions: $backup"; else rmdir "$backup"; fi

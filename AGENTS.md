@@ -35,7 +35,7 @@ git submodule update --init --recursive docs/cleany-docs
 - 폴더마다 README를 만들지 않는다. 독립 배포, 사용 절차가 필요한 도구, 펌웨어와 asset 출처와 라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록, 코드 요약, 현재 테스트 점수, 작업 일지를 README에 복제하지 않는다.
 - 구현 문서는 현재 사용법, 구현 계약과 제약사항을 설명한다. 날짜별 작업 일지, 일회성 실행 결과와 에이전트 인수인계 내용을 누적하지 않는다.
 - 작업 가이드는 필요한 화면, 동작 순서와 정상 결과를 먼저 보여준다. 연결과 상태 흐름은 편집 가능한 다이어그램을 사용하고, 명령과 설정은 복사·검색 가능한 텍스트로 유지한다. 화면과 영상은 실물, 시뮬레이션, 합성 입력을 구분한다.
-- 문서 사이트의 원본은 Markdown과 `docs/site.template.html`이다. 변경 후 `python3 tools/docs/build_site.py`로 갱신하고 `--check`로 일치 여부를 확인한다.
+- 문서 뷰어의 원본은 Markdown과 `docs/site.template.html`이다. 로컬에서 `python3 tools/docs/build_site.py`로 `docs/index.html`을 생성하고 `--check`로 확인한다. 생성된 HTML은 Git 추적에서 제외한다.
 - 변경별 검증은 PR과 CI 결과에 남긴다. 별도 실험 보고서나 대용량 자료가 필요하면 팀이 합의한 공유 위치를 사용하며, 개인 디렉터리를 팀 문서의 필수 근거로 연결하지 않는다.
 - 개발환경 설치와 system dependency 기준은 `docs/implementation/development-setup.md`에서 관리한다.
 - KB에서 아직 검토 중인 전제는 코드나 구현 문서에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
