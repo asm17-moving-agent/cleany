@@ -25,30 +25,37 @@ def measured_bounds(prepared):
     return calibrated_joint_bounds(joints, [joint.name for joint in joints])
 
 
-@pytest.fixture
-def state_profile_file(tmp_path):
+def write_synthetic_state_profile(directory: Path) -> Path:
     config = json.loads((ROOT / 'configs/robot/camera_preview.json').read_text())
-    config.pop('camera_pose_config', None)  # Synthetic motors have no operator camera model.
+    config.pop('camera_pose_config', None)  # 합성 모터 설정에는 작업자 카메라 모델을 연결하지 않습니다.
     config['arm_config'] = 'ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml'
     config['head_rgb_extrinsics'] = 'configs/robot/head_rgb_board_extrinsics.yaml'
     arm = yaml.safe_load((ROOT / config['arm_config']).read_text())
     arm['port'] = '/dev/cleany-synthetic-test-only'
-    arm['calibration_dir'] = str(tmp_path)
+    arm['calibration_dir'] = str(directory)
     frozen = ROOT / 'ros2_ws/src/cleany_description/config/calibration/jetson_20261009/motors'
     for side in ('left', 'right'):
         filename = arm['arms'][side]['calibration']
-        (tmp_path / filename).write_bytes((frozen / filename).read_bytes())
-    arm_path = tmp_path / 'synthetic_arm.yaml'
+        (directory / filename).write_bytes((frozen / filename).read_bytes())
+    arm_path = directory / 'synthetic_arm.yaml'
     arm_path.write_text(yaml.safe_dump(arm))
     config['arm_config'] = str(arm_path)
-    profile = tmp_path / 'synthetic_state.json'
+    profile = directory / 'synthetic_state.json'
     profile.write_text(json.dumps(config))
     return profile
 
 
 @pytest.fixture
-def prepared(tmp_path, state_profile_file):
-    return prepare_control_profile(state_profile_file, ROOT, tmp_path/'run',
+def state_profile_file(tmp_path):
+    return write_synthetic_state_profile(tmp_path)
+
+
+@pytest.fixture(scope='module')
+def prepared(tmp_path_factory):
+    # 기본 프로파일을 읽기만 하는 검사는 한 번 생성한 모델과 설정을 공유합니다.
+    directory = tmp_path_factory.mktemp('default_control_profile')
+    state_profile = write_synthetic_state_profile(directory)
+    return prepare_control_profile(state_profile, ROOT, directory/'run',
                                    ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml')
 
 
