@@ -102,6 +102,33 @@ def axis_errors_degrees(
     )
 
 
+def closing_axis_euler_bounds(
+    target_xyzw: tuple[float, float, float, float],
+    endpoints_xyzw: tuple[tuple[float, float, float, float], ...],
+    limit_rad: float,
+) -> tuple[float, float] | None:
+    """Fit intrinsic XYZ pitch/yaw bounds inside an acute TCP +X cone.
+
+    Returns bounds in radians or None when the box cannot contain both endpoints.
+    """
+    target_inverse = rotation_from_quaternion(target_xyzw).T
+    min_closing_projection = math.cos(limit_rad)
+    max_pitch = max_yaw = 0.0
+    for orientation in endpoints_xyzw:
+        x, y, z = (target_inverse @ rotation_from_quaternion(orientation))[0]
+        if x < min_closing_projection:
+            return None
+        max_pitch = max(max_pitch, abs(math.asin(float(np.clip(z, -1.0, 1.0)))))
+        max_yaw = max(max_yaw, abs(math.atan2(-y, x)))
+    # Intrinsic XYZ yields closing projection cos(pitch) * cos(yaw).
+    pitch_cost = -math.log(math.cos(max_pitch))
+    yaw_cost = -math.log(math.cos(max_yaw))
+    slack = -math.log(min_closing_projection) - pitch_cost - yaw_cost
+    if slack < 0.0:
+        return None
+    return tuple(math.acos(math.exp(-cost - slack / 2.0)) for cost in (pitch_cost, yaw_cost))
+
+
 def sampled_indices(length: int, maximum: int) -> tuple[int, ...]:
     if length <= 0 or maximum <= 0:
         return ()

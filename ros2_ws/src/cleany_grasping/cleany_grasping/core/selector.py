@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from cleany_grasping.core.models import GraspPose, PointCloud, RawGrasp
+from cleany_grasping.core.target_component import BodyFilter, GraspTarget
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,17 @@ class GraspConfig:
     tcp_approach_axis: np.ndarray = field(
         default_factory=lambda: np.array((0.0, -1.0, 0.0))
     )
+
+    body_filter: BodyFilter = field(default_factory=BodyFilter)
+
+    def prediction_inputs(
+        self, target: PointCloud, context: PointCloud,
+    ) -> tuple[GraspTarget, PointCloud, np.ndarray]:
+        """Use the same body for the workspace, predictor input and contact bounds."""
+        body = self.body_filter.target(target)
+        bounds = np.column_stack((body.points.min(axis=0) - self.workspace_margin_m,
+                                  body.points.max(axis=0) + self.workspace_margin_m)).ravel()
+        return body, body.obstacle_context(context), bounds
 
     def __post_init__(self) -> None:
         conversion = np.asarray(self.canonical_to_tcp_rotation, dtype=float).copy()
@@ -87,8 +99,9 @@ def rank_grasps(
     settings = config or GraspConfig()
     if target_cloud.points.shape[0] == 0:
         raise ValueError('Target cloud must not be empty')
-    target_min = target_cloud.points.min(axis=0)
-    target_max = target_cloud.points.max(axis=0)
+    body = settings.body_filter.target(target_cloud)
+    target_min = body.points.min(axis=0)
+    target_max = body.points.max(axis=0)
     sorted_candidates = sorted(candidates, key=lambda item: item.score, reverse=True)
     kept: list[RawGrasp] = []
     kept_translations = np.empty((len(sorted_candidates), 3), dtype=np.float64)
@@ -97,9 +110,14 @@ def rank_grasps(
     for candidate in sorted_candidates:
         if not 0.0 < candidate.width_m <= settings.maximum_gripper_width_m:
             continue
-        contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
+        contact = candidate.translation + (candidate.depth_m + candidate.pad_offset_m) * candidate.rotation[:, 0]
         if not np.all((contact >= contact_min) & (contact <= contact_max)):
             continue
+        if body.detached is not None:
+            # A detached return can still lie inside the body's axis-aligned bounds.
+            delta = body.detached.points - contact
+            if np.any(np.einsum('ij,ij->i', delta, delta) <= settings.body_filter.radius_m ** 2):
+                continue
         # A Euclidean neighbor must lie inside this axis-aligned cube.
         # Keep the exact distance and rotation tests for every nearby pose.
         nearby = np.flatnonzero(np.all(
@@ -108,7 +126,8 @@ def rank_grasps(
             axis=1,
         ))
         if any(
-            np.linalg.norm(candidate.translation - kept[index].translation)
+            candidate.pad_offset_m == kept[index].pad_offset_m
+            and np.linalg.norm(candidate.translation - kept[index].translation)
             < settings.nms_translation_threshold_m
             and _rotation_distance(candidate.rotation, kept[index].rotation)
             < settings.nms_rotation_threshold_rad
@@ -130,6 +149,7 @@ def rank_grasps(
                 translation=candidate.translation + candidate.depth_m * candidate.rotation[:, 0],
                 approach_direction=approach,
                 required_opening_m=candidate.width_m,
+                face_width_m=candidate.face_width_m,
                 depth_m=candidate.depth_m,
                 score=candidate.score,
             )

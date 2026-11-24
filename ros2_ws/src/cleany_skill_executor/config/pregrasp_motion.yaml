@@ -22,8 +22,10 @@ grasp_selection_server:
     action_timeout_sec: 480.0
     robot_description_startup_timeout_sec: 30.0
     validate_motion_paths: true
+    require_gripper_closure_clearance: false
     # Keep every collision sample while reducing service round trips.
     state_validity_batch_size: 64
+    grasp_octomap_mode: compare
     # Validate a direct joint cubic first; keep RRT for obstructed connections.
     pregrasp_joint_shortcut_enabled: true
     cartesian_approach_first: true
@@ -35,6 +37,7 @@ grasp_selection_server:
     use_verified_local_fk: true
     pose_refinement_iterations: 10
     align_wrist_roll: true
+    ik_seed_wrist_offsets_degrees: [0.0]
     # Keep the +20mm asymmetric bias without clearance-based shifts.
     fixed_jaw_clearance_enabled: false
     fixed_jaw_minimum_clearance_m: 0.005

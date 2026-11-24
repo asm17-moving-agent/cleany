@@ -1,7 +1,22 @@
-"""Explicit transport of validated cubic paths; no implicit execution."""
+"""Transport timed paths without replacing their interpolation coefficients."""
 import math
 
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
+from .core.hardware_execution import CommandPathValidationError
+from .core.recorded_trajectory import CommandPoint, RecordedTrajectory
+
+
+def recorded_from_message(message: JointTrajectory) -> RecordedTrajectory:
+    """Read a JTC arm command in nanoseconds, retaining its acceleration fields."""
+    if any(point.effort for point in message.points):
+        raise CommandPathValidationError('Arm path must not contain effort commands')
+    path = RecordedTrajectory(tuple(message.joint_names), tuple(
+        CommandPoint(point.time_from_start.sec*10**9+point.time_from_start.nanosec,
+                     tuple(point.positions), tuple(point.velocities), tuple(point.accelerations))
+        for point in message.points))
+    path.validate()
+    return path
 
 
 def path_to_message(path):
@@ -14,7 +29,10 @@ def path_to_message(path):
         if path.times:
             nanoseconds = round(path.times[index]*1e9)
             point.time_from_start.sec, point.time_from_start.nanosec = divmod(nanoseconds, 1_000_000_000)
+        if path.velocities:
             point.velocities = list(path.velocities[index])
+        if path.accelerations:
+            point.accelerations = list(path.accelerations[index])
         message.points.append(point)
     return message
 

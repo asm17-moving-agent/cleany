@@ -34,7 +34,7 @@ def fixture(scene):
     def detect(*_):
         events.append('local_yoloe')
         return (replace(scene['detection'], confidence=.7, segmentation_mask=scene['mask']),)
-    node = NS(_snapshot_cache=cache, _busy_lock=threading.Lock(), _busy=False,
+    node = NS(_tracker=tracker, _snapshot_cache=cache, _busy_lock=threading.Lock(), _busy=False,
         _snapshot_buffer=NS(sequence=1, wait_for_new=capture), _snapshot_timeout_seconds=.01,
         _depth_16u_scale_m=.001, _target_frame='base_link', _lookup_capture_transform=transform,
         _object_ranking_config=ObjectRankingConfig(), _action_callback_group=None,
@@ -100,3 +100,42 @@ def test_revalidation_rejects_unverifiable_target(synthetic_scene, case):
     assert service.node._busy == (case == 'busy')
     if case in ('expired', 'object', 'session', 'track', 'stale', 'camera', 'busy'):
         assert 'local_yoloe' not in events
+
+
+@pytest.mark.parametrize('visible', ['both', 'approved_only', 'neighbor_only', 'duplicate'])
+def test_second_approved_track_in_nested_boxes(synthetic_scene, visible):
+    from cleany_perception.core.models import BoundingBox2D
+
+    service, req, _, _ = fixture(synthetic_scene)
+    node = service.node
+    cached = node._snapshot_cache.get('source')
+    approved = cached.detections[0]
+    other = replace(approved, label='plastic box', bbox=BoundingBox2D(112., 77., 209., 162.),
+                    segmentation_mask=~approved.segmentation_mask)
+    # The wider box sees mostly background at 1 m, while the inner box sees the
+    # foreground at 0.8 m. Record the two source positions using the normal ranker.
+    from cleany_perception.core.object_ranking import rank_detections_by_distance
+    refs = (other, approved)
+    depth = synthetic_scene['snapshot'].depth_m
+    depth[100:140, 135:150] = 1.
+    depth[100:140, 170:185] = 1.
+    ranked = rank_detections_by_distance(cached.snapshot, refs, cached.capture_transform, node._object_ranking_config)
+    positions = {r.source_index: r.position for r in ranked}
+    assert np.linalg.norm(np.asarray(positions[0]) - positions[1]) > .03
+    tracker = ObjectTracker()
+    tracking = tracker.update('session', 'source', ['plastic box', 'eye drops'],
+                              [positions[0], positions[1]], detector_labels=['box', 'box'])
+    node._snapshot_cache.put('source', replace(cached, detections=refs, tracking=tracking,
+                                              detection_distances_m=(.1, .2)))
+    req.source_object_id = 2
+    req.track_id = tracking.detections[1].track_id
+    outer, inner = [replace(r, label='box') for r in refs]
+    service.detector.detect = lambda *_: {'both': (inner, outer), 'approved_only': (inner,),
+                                          'neighbor_only': (outer,), 'duplicate': (inner, inner)}[visible]
+    result = service.execute(req, Service.Response())
+    assert result.success == (visible in ('both', 'approved_only')), result.message
+    if result.success:
+        current, = result.detections.detections
+        assert current.object_id == 2 and current.track_id == req.track_id and current.label == 'eye drops'
+    else:
+        assert not result.detections.detections

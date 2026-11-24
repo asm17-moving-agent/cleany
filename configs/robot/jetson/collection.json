@@ -1,6 +1,7 @@
 {
   "frame": "base_link",
   "operation_mode": "pick_return_release",
+  "temporary_ignore_decision": true,
   "temporary_contact_verification": "raw_feedback",
   "temporary_placement_verification": "assume_success",
   "return_to_pick_height_offset_m": 0.02,
@@ -11,6 +12,7 @@
   "return_to_pick_height_correction_max_step_m": 0.005,
   "assume_stationary_target": true,
   "pregrasp_motion_enabled": true,
+  "batch_grasp_ik_before_limit": true,
   "direct_grasp_shortcut_enabled": true,
   "direct_grasp_pose_checks_enabled": false,
   "commissioning_verified": true,
@@ -28,7 +30,7 @@
   "visual_servo_enabled": false,
   "approach_collision_check_enabled": false,
   "grasp_collision_check_enabled": false,
-  "gripper_opening_collision_check_enabled": true,
+  "gripper_opening_collision_check_enabled": false,
   "lift_collision_check_enabled": false,
   "retreat_after_release_collision_check_enabled": true,
   "held_object_octomap_collision_check_enabled": true,
@@ -130,5 +132,5 @@
     }
   },
   "continuous_scene_updates": true,
-  "pregrasp_z_offset_m": 0.01
+  "pregrasp_z_offset_m": 0.02
 }
