@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Data } from "@/lib/monitor";
+import { InspectionResult, JobTime, jobActive } from "./action-result";
+import { PrepareProgress } from "./prepare-progress";
 import { TaskProposal } from "./task-proposal";
 import "./operator-controls.css";
 
@@ -120,7 +122,9 @@ async function api(path: string, data?: Data) {
     });
     throw error;
   }
-  return response.json();
+  const value = await response.json();
+  if (path === "status") value.observedAt = Date.parse(response.headers.get("Date") || "") || Date.now();
+  return value;
 }
 
 export function OperatorControls({
@@ -152,6 +156,16 @@ export function OperatorControls({
   const pending = useRef<Data | null>(null);
   const [uncertain, setUncertain] = useState(false);
   const [lastPoll, setLastPoll] = useState(0);
+  const [clock, setClock] = useState(0);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [requested, setRequested] = useState<{action: string; id: string} | null>(null);
+  const [stopResponse, setStopResponse] = useState<Record<string, number>>({});
+  const timingLive = !!status.active_job && connected && !replay;
+  useEffect(() => {
+    if (!timingLive) return;
+    const tick = setInterval(() => setClock(Date.now()), 500);
+    return () => clearInterval(tick);
+  }, [timingLive]);
   const sequence = useRef(0);
   const polling = useRef<Promise<void> | null>(null);
   const enabledRef = useRef(enabled && connected && !replay);
@@ -175,6 +189,7 @@ export function OperatorControls({
       const value = await api("status");
       if (seq !== sequence.current) return;
       setStatus(value);
+      setRequested(previous => previous && value.jobs?.some((j: Data)=>j.id === previous.id) ? null : previous);
       setLastPoll(Date.now());
       if (
         pending.current &&
@@ -234,6 +249,11 @@ export function OperatorControls({
   const authenticated = status.authenticated === true;
   const state = status.state || {};
   const busy = !!status.active_job;
+  const now = (status.observedAt || Date.now()) + (timingLive && fresh ? Math.max(0, clock - lastPoll) : 0);
+  const recent = (action: string) => status.jobs?.find((j: Data) => j.action === action);
+  const priorTimes = status.jobs?.find((j: Data) => j.previous_action_times)?.previous_action_times || {};
+  const timing = (action: string) => <JobTime job={recent(action) || priorTimes[action]} now={now}/>;
+  const toggle = (action: string, value: boolean) => setExpanded(previous => ({...previous, [action]:value}));
   const reason = (action: string) =>
     !fresh
       ? "라이브 연결과 최신 상태가 필요합니다."
@@ -281,6 +301,10 @@ export function OperatorControls({
       reuse && pending.current
         ? pending.current
         : { request_id: requestId(), action, args };
+    if (["prepare","inspect"].includes(request.action)) {
+      toggle(request.action,true);
+      setRequested({action:request.action,id:request.request_id});
+    }
     pending.current = request;
     sessionStorage.setItem("cleany.operator.pending", JSON.stringify(request));
     setSending(true);
@@ -297,6 +321,7 @@ export function OperatorControls({
       const rejected =
         e instanceof Error && "rejected" in e && e.rejected === true;
       if (rejected) {
+        setRequested(null);
         pending.current = null;
         sessionStorage.removeItem("cleany.operator.pending");
       }
@@ -312,7 +337,9 @@ export function OperatorControls({
     setSending(true);
     setError("");
     try {
-      const response = await api("cancel", { mode });
+      const started = performance.now();
+      const response = await api("cancel", { mode }).finally(() =>
+        setStopResponse(previous=>({...previous,[mode]:(performance.now()-started)/1000})));
       setError(
         response.accepted
           ? "중단을 요청했습니다. 실물 정지 확인을 기다리고 있습니다."
@@ -327,6 +354,7 @@ export function OperatorControls({
   }
 
   function open(action: string) {
+    if (action === "prepare") toggle(action,true);
     setModal(action);
     setConfirmed(false);
     setEmpty(false);
@@ -591,6 +619,7 @@ export function OperatorControls({
                   >
                     <Square aria-hidden="true" />
                     즉시 중단 요청
+                    {Number.isFinite(stopResponse.IMMEDIATE) && <small>응답 {stopResponse.IMMEDIATE.toFixed(1)}초</small>}
                   </Button>
                   <Button
                     variant="outline"
@@ -599,6 +628,7 @@ export function OperatorControls({
                   >
                     <Pause aria-hidden="true" />
                     현재 단계 후 중단
+                    {Number.isFinite(stopResponse.CHECKPOINT) && <small>응답 {stopResponse.CHECKPOINT.toFixed(1)}초</small>}
                   </Button>
                 </div>
                 <small>실물 정지 여부는 실행 기록에서 확인하세요.</small>
@@ -619,16 +649,20 @@ export function OperatorControls({
                 <div className="operator-actions">
                   {mainActions.map(({ id, detail, tag }) => {
                     const Icon = actionIcons[id];
+                    const waiting = requested?.action === id && !status.jobs?.some((j: Data)=>j.id===requested.id);
+                    const job = waiting ? undefined : recent(id);
+                    const hasDetail = id === "prepare" || id === "inspect";
+                    const opened = expanded[id] ?? (!!job && (jobActive(job) || (id === "inspect" && status.jobs?.[0]?.id===job.id)));
                     return (
-                      <span
+                      <div
                         key={id}
-                        title={reason(id)}
                         className="operator-action-wrap"
                       >
                         <Button
                           className="operator-action"
                           data-primary={id === "propose"}
                           variant="outline"
+                          title={reason(id)}
                           aria-label={labels[id]}
                           disabled={!!reason(id)}
                           aria-describedby={
@@ -656,6 +690,18 @@ export function OperatorControls({
                             {detail}
                           </span>
                         </Button>
+                        {hasDetail && !replay ? <>
+                          <button type="button" className="operator-result-toggle" aria-label={id === "prepare" ? "준비 단계 상세" : "검출 결과 상세"}
+                            aria-controls={"result-"+id} aria-expanded={opened} onClick={()=>toggle(id,!opened)}>
+                            <span>{id === "prepare" ? "준비 단계" : "인식 결과"}{job ? " · "+jobStates[job.state] : ""}</span>
+                            <span><JobTime job={job || (!waiting ? priorTimes[id] : undefined)} now={now}/></span><ChevronDown size={14} aria-hidden="true"/>
+                          </button>
+                          {opened && <div className="operator-inline-result" id={"result-"+id}>
+                            {waiting ? <p role="status">{uncertain ? "접수 확인 중" : "요청 전송 중"}</p> : !job ? <p>최근 작업 기록이 없습니다.</p> :
+                              id==="prepare" ? <PrepareProgress job={job} observedAt={now}/> :
+                              <InspectionResult key={job.id} job={job} authenticated={authenticated}/>}
+                          </div>}
+                        </> : timing(id)}
                         {authenticated && !sharedActionReason && reason(id) && (
                           <small
                             id={`operator-reason-${id}`}
@@ -664,7 +710,7 @@ export function OperatorControls({
                             {reason(id)}
                           </small>
                         )}
-                      </span>
+                      </div>
                     );
                   })}
                 </div>
@@ -689,6 +735,7 @@ export function OperatorControls({
                         >
                           <Icon aria-hidden="true" />
                           <span>{labels[action]}</span>
+                          {timing(action)}
                           <ArrowRight aria-hidden="true" />
                         </Button>
                       </span>
@@ -719,7 +766,7 @@ export function OperatorControls({
                             <div className="operator-job-heading">
                               <strong>{labels[job.action]}</strong>
                               <span className="operator-job-state">
-                                {jobStates[job.state]}
+                                {jobStates[job.state]} · <JobTime job={job} now={now}/>
                               </span>
                               <span className="operator-job-meta">
                                 {job.actor}
@@ -799,7 +846,7 @@ export function OperatorControls({
               <p className="operator-message" data-tone="info" role="status">
                 <LoaderCircle className="operator-spin" aria-hidden="true" />
                 <strong>{labels[status.active_job.action]}</strong>
-                {jobStates[status.active_job.state]}
+                {jobStates[status.active_job.state]} · <JobTime job={status.active_job} now={now}/>
               </p>
             )}
             {!status.active_job &&
@@ -842,6 +889,7 @@ export function OperatorControls({
               </div>
             )}
             <TaskProposal
+              timing={timing}
               proposal={status.proposal}
               reason={reason}
               submit={submit}

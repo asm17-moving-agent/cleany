@@ -71,6 +71,7 @@ class TargetSceneTransaction:
         timeout_sec: float = 1.0,
         spin_once: Callable[[float], None] | None = None,
         support_patch_margin_m: float = 0.0,
+        ignore_topdown_support: bool = False,
         geometry_lookup: Callable[[Any], Any] | None = None,
         response_wait_factory: Callable[[Any], Callable[[float], Any]] | None = None,
     ) -> None:
@@ -78,6 +79,11 @@ class TargetSceneTransaction:
             raise ValueError('Planning scene timeout must be positive and finite')
         if not math.isfinite(support_patch_margin_m) or not 0 <= support_patch_margin_m <= .3:
             raise ValueError('Support patch margin must be in [0, .3] metres')
+        if type(ignore_topdown_support) is not bool:
+            raise ValueError('Top-down support exemption must be boolean')
+        self._ignore_topdown_support = ignore_topdown_support
+        self._support_normal: tuple[float, float, float] | None = None
+        self._topdown = False
         self._support_margin = support_patch_margin_m
         self._support_id = ''
         self._support_acm = None
@@ -183,6 +189,11 @@ class TargetSceneTransaction:
         self._collision_object = deepcopy(collision_object)
         self._support_id = support_id
         self._support_acm = support_acm
+        if patch is not None:
+            q = patch.primitive_poses[0].orientation
+            self._support_normal = quaternion_axis((q.x, q.y, q.z, q.w), (0., 0., 1.))
+        approach = getattr(candidate, 'approach_direction', None)
+        self.set_support_approach((approach.x, approach.y, approach.z) if approach is not None else ())
         response = self._apply(scene)
         if not response.success:
             raise InfrastructureError('failed to register target OBB')
@@ -246,16 +257,30 @@ class TargetSceneTransaction:
             acm.entry_values.append(entry)
         return acm
 
+    def set_support_approach(self, direction: tuple[float, ...]) -> bool:
+        """Classify the candidate relative to the perceived support normal."""
+        topdown = False
+        if self._ignore_topdown_support and self._support_normal is not None and len(direction) == 3:
+            magnitude = math.hypot(*direction)
+            projection = -sum(a*b for a, b in zip(direction, self._support_normal, strict=True))
+            topdown = math.isfinite(magnitude) and magnitude > 1e-9 and projection >= magnitude/math.sqrt(2.)
+        changed = self._topdown != topdown
+        self._topdown = topdown
+        return changed
+
     def allow_contacts_for(self, arm: str) -> None:
         if self._saved_acm is None or not self._object_id:
             raise InfrastructureError('target scene transaction is not active')
         scene = PlanningScene()
         scene.is_diff = True
         scene.robot_state.is_diff = True
-        scene.allowed_collision_matrix = self._with_allowed_links(
+        links = set(self._touch_links[arm])
+        acm = self._with_allowed_links(
             self._support_acm if self._support_acm is not None else self._saved_acm,
-            self._object_id, set(self._touch_links[arm])
-        )
+            self._object_id, links)
+        if self._topdown and self._support_id:
+            acm = self._with_allowed_links(acm, self._support_id, links)
+        scene.allowed_collision_matrix = acm
         if not self._apply(scene).success:
             raise InfrastructureError('failed to update target collision permissions')
 
@@ -347,6 +372,8 @@ class TargetSceneTransaction:
         self._attached = False
         self._support_id = ''
         self._support_acm = None
+        self._support_normal = None
+        self._topdown = False
 
 
 class SceneAwarePort:
@@ -363,6 +390,11 @@ class SceneAwarePort:
     @property
     def prepares_pregrasps_lazily(self) -> bool:
         return bool(getattr(self._adapter, 'prepares_pregrasps_lazily', False))
+
+    def set_grasp_candidate(self, candidate) -> None:
+        set_approach = getattr(self._scene, 'set_support_approach', None)
+        if set_approach is not None and set_approach(candidate.approach_direction):
+            self._arm = ''
 
     def set_target_contacts(self, arm: str | None) -> None:
         if arm == self._arm:

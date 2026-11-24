@@ -489,3 +489,51 @@ def test_distal_pad_preserves_center_and_requires_local_observations(height, upp
         ranked = rank_grasps((g, center), target, GraspConfig(target_contact_margin_m=.001))
         assert len(ranked) == 2
         np.testing.assert_allclose(ranked[0].translation, tcp)
+
+
+def test_side_tcp_advances_15_mm_without_moving_topdown_candidates():
+    table = [(x, y, 0.) for x in np.linspace(.1,.9,41) for y in np.linspace(-.3,.3,31)]
+    can = [(.5 + .032*np.cos(a), .032*np.sin(a), z)
+           for a in np.linspace(0., math.tau, 65, endpoint=False)
+           for z in np.linspace(.002,.102,26)]
+    cfg = GeometricGraspConfig(
+        side_approach_tilts=(65.,80.,90.), approach_tilt_options=(0.,),
+        yaw_offsets_degrees=(0.,), round_width_fit_tolerance_m=.002,
+        maximum_gripper_width_m=.086, maximum_candidates=32)
+    from dataclasses import replace
+    target, context = cloud(can), cloud(table+can)
+    original = GeometricGraspPredictor(cfg).predict(target, context, np.zeros(6))
+    shifted = GeometricGraspPredictor(replace(cfg, side_depth_offset_m=.015)).predict(
+        target, context, np.zeros(6))
+    for tilt in (0.,65.,80.,90.):
+        direction_z = -math.cos(math.radians(tilt))
+        before = [g for g in original if g.rotation[2,0] == pytest.approx(direction_z)]
+        after = [g for g in shifted if g.rotation[2,0] == pytest.approx(direction_z)]
+        assert before and len(before) == len(after)
+        for a,b in zip(before,after,strict=True):
+            assert b.translation-a.translation == pytest.approx(
+                (.015 if tilt else 0.)*a.rotation[:,0])
+            if tilt:
+                assert b.rotation[2,1] == pytest.approx(0.)
+                assert b.width_m >= .064
+
+
+def test_topdown_ignores_only_the_fitted_support_points(monkeypatch):
+    from cleany_grasping import geometric_predictor as module
+    table = [(x,y,0.) for x in np.linspace(.1,.9,41) for y in np.linspace(-.3,.3,31)]
+    target = [(.5+.032*np.cos(a),.032*np.sin(a),z)
+              for a in np.linspace(0.,math.tau,33) for z in np.linspace(.01,.10,19)]
+    blocker = (.58,.08,.065)
+    seen = set()
+
+    def check(_, rotation, width, target_points, obstacles, config):
+        side = abs(rotation[2,0]) < .5
+        assert np.any(np.all(np.isclose(obstacles, blocker),axis=1))
+        assert bool(np.any(np.isclose(obstacles[:,2],0.))) == side
+        seen.add(side)
+        return False
+
+    monkeypatch.setattr(module,'_collides',check)
+    cfg=GeometricGraspConfig(ignore_topdown_support=True,side_approach_tilts=(90.,))
+    GeometricGraspPredictor(cfg).predict(cloud(target),cloud(table+target+[blocker]),np.zeros(6))
+    assert seen == {False,True}

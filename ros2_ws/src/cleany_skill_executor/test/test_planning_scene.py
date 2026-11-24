@@ -197,3 +197,44 @@ def test_invalid_support_does_not_open_transaction_or_poison_next_request():
     transaction.begin(candidate, 'valid')
     transaction.restore()
     assert not transaction.active
+
+
+def test_topdown_support_permission_does_not_leak_to_a_side_candidate_on_same_arm():
+    from cleany_skill_executor.planning_scene import SceneAwarePort
+
+    candidate = GraspCandidate()
+    candidate.header.frame_id = 'base_link'
+    candidate.target_object.obb_pose.orientation.w = 1.
+    candidate.target_object.obb_size.x = candidate.target_object.obb_size.y = .06
+    candidate.target_object.obb_size.z = .10
+    candidate.approach_direction.z = -1.
+    original = AllowedCollisionMatrix(entry_names=['base_link', 'right_gripper_frame', '<octomap>'])
+    original.entry_values = [AllowedCollisionEntry(enabled=[False]*3) for _ in range(3)]
+    applied = _ApplyClient([SimpleNamespace(success=True)]*4)
+    fetched = _ApplyClient([SimpleNamespace(scene=PlanningScene(allowed_collision_matrix=original))])
+    scene = TargetSceneTransaction(object(), apply_client=applied, get_client=fetched,
+        support_patch_margin_m=.08, ignore_topdown_support=True)
+    scene.begin(candidate,'target')
+    port = SceneAwarePort(object(),scene)
+    port.set_target_contacts('left')
+
+    def permission(matrix, first, second):
+        if first not in matrix.entry_names or second not in matrix.entry_names:
+            return False
+        i,j = [matrix.entry_names.index(x) for x in (first,second)]
+        return matrix.entry_values[i].enabled[j] and matrix.entry_values[j].enabled[i]
+
+    table = 'target/perceived_support'
+    top = applied.requests[-1].scene.allowed_collision_matrix
+    assert permission(top,table,'left_moving_jaw_link')
+    assert not permission(top,table,'right_gripper_frame')
+    assert not permission(top,table,'base_link')
+    assert not permission(top,'<octomap>','left_moving_jaw_link')
+    side = SimpleNamespace(approach_direction=(1.,0.,0.))
+    port.set_grasp_candidate(side)
+    port.set_target_contacts('left')
+    side_acm = applied.requests[-1].scene.allowed_collision_matrix
+    assert not permission(side_acm,table,'left_moving_jaw_link')
+    assert permission(side_acm,'target','left_moving_jaw_link')
+    scene.restore()
+    assert applied.requests[-1].scene.allowed_collision_matrix == original

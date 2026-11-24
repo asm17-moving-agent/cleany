@@ -198,6 +198,9 @@ class PregraspPipeline(Node):
         return ActionClient(self, action_type, name)
 
     def on_description(self, message):
+        scene = getattr(self, 'scene', None)
+        if scene is not None and self.mode == 'hardware':
+            scene.set_robot_description(message.data)
         with self.lock:
             self.description = message.data
 

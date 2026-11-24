@@ -699,6 +699,9 @@ class GraspSelector:
             set_gripper = getattr(self._port, 'set_gripper_position', None)
             if set_gripper is not None:
                 set_gripper(arm, gripper_position)
+            set_candidate = getattr(self._port, 'set_grasp_candidate', None)
+            if set_candidate is not None:
+                set_candidate(candidate)
             pair_key = (id(candidate), arm)
             pair = ik_pairs.get(pair_key)
             if pair is None:
@@ -881,6 +884,9 @@ class GraspSelector:
             set_gripper = getattr(self._port, 'set_gripper_position', None)
             if set_gripper is not None:
                 set_gripper(arm, opening)
+            set_candidate = getattr(self._port, 'set_grasp_candidate', None)
+            if set_candidate is not None:
+                set_candidate(candidate)
             self._port.set_target_contacts(arm)
             started = self._monotonic()
             feedback(index, arm, EvaluationStage.GRASP_IK, 'evaluating direct grasp')

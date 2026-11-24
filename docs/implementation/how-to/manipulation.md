@@ -183,6 +183,8 @@ Fast DDS에서는 두 노드에 UDP를 사용하고 센서·깊이 지도에는 
 준비가 중단되면 `real-control.log`에서 마지막 유효 모터 피드백과 제어 주기 한도를 확인한다.
 작업 제안과 승인에서 사용하는 대상 확인 조건은 [dev-monitor 작업 제안 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안)에 있다.
 
+정지 물체 `pick_return_release` 프로파일은 원본 관측과 물체 번호로 승인합니다. 대상을 옮긴 경우 새 제안을 받습니다. 다른 프로파일은 승인 뒤 새 영상에서 대상을 재확인합니다.
+
 ### Jetson 수거 서비스의 CPU 배치
 
 CPU 0–7이 모두 온라인이고 기본 피드백 코어 수를 사용하는 Jetson에서 모터 제어기와

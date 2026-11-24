@@ -10,6 +10,7 @@ import numpy as np
 from cleany_grasping.core.models import PointCloud, RawGrasp
 from cleany_grasping.core.target_component import BodyFilter
 from cleany_grasping.core.top_face import TopFace
+from cleany_grasping.core.round_width import RoundSection, fit_round_section
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,13 @@ class GeometricGraspConfig:
     longitudinal_contact_height_offset_m: float = 0.0
     defer_support_plane_collision: bool = False
     approach_reference_positions: tuple[tuple[float, float, float], ...] = ()
+    side_approach_tilts: tuple[float, ...] = ()
+    side_depth_offset_m: float = 0.0
+    round_width_fit_tolerance_m: float = 0.0
+    ignore_topdown_support: bool = False
+
+    body_connectivity_radius_m: float = BodyFilter.radius_m
+    minimum_body_fraction: float = BodyFilter.minimum_fraction
 
     body_connectivity_radius_m: float = BodyFilter.radius_m
     minimum_body_fraction: float = BodyFilter.minimum_fraction
@@ -91,6 +99,11 @@ class GeometricGraspConfig:
         if not all(math.isfinite(v) and 0 <= v < 90
                    for v in self.approach_tilt_options):
             raise ValueError('Approach tilt options must be in [0, 90)')
+        if (not all(math.isfinite(v) and 45 < v <= 90 for v in self.side_approach_tilts)
+                or not math.isfinite(self.side_depth_offset_m) or self.side_depth_offset_m < 0
+                or not math.isfinite(self.round_width_fit_tolerance_m)
+                or self.round_width_fit_tolerance_m < 0):
+            raise ValueError('Invalid side approach angles, depth or round-fit tolerance')
         if any(len(p) != 3 or not all(math.isfinite(v) for v in p)
                for p in self.approach_reference_positions):
             raise ValueError('Approach reference positions must be finite 3-vectors')
@@ -136,6 +149,8 @@ class _PreparedGeometry:
     minor: np.ndarray
     center: np.ndarray
     obstacles: np.ndarray
+    topdown_obstacles: np.ndarray
+    round_section: RoundSection | None
     distal_contact_height: float | None
     distal_surface_xy: np.ndarray | None
     top_face: TopFace | None
@@ -339,19 +354,18 @@ class GeometricGraspPredictor:
     ) -> tuple[RawGrasp, ...]:
         del workspace_bounds
         prepared = self._prepare_geometry(target_cloud, context_cloud)
-        if self._config.approach_tilt_options or self._config.approach_reference_positions:
+        cfg = self._config
+        if cfg.approach_tilt_options or cfg.approach_reference_positions or cfg.side_approach_tilts:
             directions = [self._config.approach_tilt_direction]
             if self._config.approach_reference_positions:
                 directions = [tuple(prepared.target_median-np.asarray(origin))
                               for origin in self._config.approach_reference_positions]
             groups = [
-                GeometricGraspPredictor(replace(
-                    self._config, approach_tilt_degrees=tilt,
-                    approach_tilt_options=(), approach_reference_positions=(),
-                    approach_tilt_direction=direction,
-                ))._iter_prepared(prepared)
-                for tilt in (self._config.approach_tilt_options or (self._config.approach_tilt_degrees,))
-                for direction in directions
+                self._iter_prepared(prepared, tilt=tilt, direction=direction, side=side)
+                for angles, side in (
+                    (cfg.approach_tilt_options or (cfg.approach_tilt_degrees,), False),
+                    (cfg.side_approach_tilts, True))
+                for tilt in angles for direction in directions
             ]
             # 후보 수가 제한되어도 접근 방향의 다양성을 유지하도록 순환 선택합니다.
             # 지연 생성으로 버려질 뒤쪽 후보의 점군 충돌 검사를 피합니다.
@@ -384,21 +398,20 @@ class GeometricGraspPredictor:
             self._config.body_connectivity_radius_m, self._config.minimum_body_fraction).target(target_cloud)
         target = body.points
         normal, plane_center = _fit_support_plane(target, context, self._config)
-        collision_context = context
-        if self._config.defer_support_plane_collision:
-            # 맞춘 평면만 검사를 미루며 다른 주변 물체는 제외하지 않습니다.
-            # 호출자는 실행 전에 인식된 지지면 패치를 등록해 전체 로봇의
-            # 벌린 그리퍼와 닫힘 구간 충돌을 검사해야 합니다.
-            collision_context = context[
-                np.abs((context-plane_center) @ normal) > self._config.plane_distance_threshold_m]
-        target_min = target.min(axis=0) - self._config.collision_clearance_m
-        target_max = target.max(axis=0) + self._config.collision_clearance_m
-        obstacles = collision_context[
-            np.any((collision_context < target_min) | (collision_context > target_max), axis=1)
-        ]
+        cfg = self._config
+        target_min = target.min(axis=0) - cfg.collision_clearance_m
+        target_max = target.max(axis=0) + cfg.collision_clearance_m
+        outside = context[np.any((context < target_min) | (context > target_max), axis=1)]
+        outside_plane = outside
+        if cfg.defer_support_plane_collision or cfg.ignore_topdown_support:
+            outside_plane = outside[
+                np.abs((outside-plane_center) @ normal) > cfg.plane_distance_threshold_m]
+        obstacles = outside_plane if cfg.defer_support_plane_collision else outside
+        topdown_obstacles = outside_plane if cfg.ignore_topdown_support else obstacles
         if body.detached is not None:
-            # Preserve detached returns even inside the target bounding box.
             obstacles = np.concatenate((obstacles, body.detached.points))
+            topdown_obstacles = (np.concatenate((outside_plane, body.detached.points))
+                                 if cfg.ignore_topdown_support else obstacles)
         major, pca_minor = _tangent_axes(target, normal)
         minor = _minimum_width_axis(
             target,
@@ -414,6 +427,13 @@ class GeometricGraspPredictor:
             (major, minor, normal),
             self._config.extent_trim_percentile,
         )
+        round_section = None
+        if cfg.side_approach_tilts and cfg.round_width_fit_tolerance_m:
+            trim = cfg.extent_trim_percentile
+            low, high = np.percentile(target @ normal, (trim, 100.-trim))
+            round_section = fit_round_section(
+                target, center, normal, np.column_stack((major, minor)),
+                min(.1*(high-low), cfg.finger_length_m/4.), cfg.round_width_fit_tolerance_m)
         distal_height, distal_xy = None, None
         if self._config.distal_pad_offset_m:
             heights = target @ normal
@@ -427,13 +447,16 @@ class GeometricGraspPredictor:
         return _PreparedGeometry(
             top_face=top_face,
             distal_contact_height=distal_height,
-            distal_surface_xy=distal_xy,            target=target,
+            distal_surface_xy=distal_xy,
+            target=target,
             target_median=np.median(target, axis=0),
             normal=normal,
             major=major,
             minor=minor,
             center=center,
             obstacles=obstacles,
+            topdown_obstacles=topdown_obstacles,
+            round_section=round_section,
         )
 
     def _predict_prepared(
@@ -475,18 +498,19 @@ class GeometricGraspPredictor:
     def _iter_prepared(
         self,
         prepared: _PreparedGeometry,
+        *, tilt: float | None = None, direction=None, side: bool = False,
     ) -> Iterator[RawGrasp]:
+        cfg = self._config
+        tilt = cfg.approach_tilt_degrees if tilt is None else tilt
         target = prepared.target
         normal = prepared.normal
         major = prepared.major
         minor = prepared.minor
         center = prepared.center
         approach = -normal
-        if self._config.approach_tilt_degrees > 0.0:
-            tilt_direction = np.asarray(
-                self._config.approach_tilt_direction,
-                dtype=float,
-            )
+        if tilt > 0.0:
+            tilt_direction = np.array(cfg.approach_tilt_direction if direction is None else direction,
+                                      dtype=float)
             tilt_direction -= float(tilt_direction @ normal) * normal
             tilt_norm = float(np.linalg.norm(tilt_direction))
             if tilt_norm <= 1e-9:
@@ -495,16 +519,16 @@ class GeometricGraspPredictor:
                     'support normal'
                 )
             tilt_direction /= tilt_norm
-            tilt = math.radians(self._config.approach_tilt_degrees)
+            radians = math.radians(tilt)
             approach = (
-                math.cos(tilt) * approach
-                + math.sin(tilt) * tilt_direction
+                math.cos(radians) * approach
+                + math.sin(radians) * tilt_direction
             )
             approach /= np.linalg.norm(approach)
         # A support-normal approach has no requested sideways direction. A
         # slight support-plane slope must not turn it into a reverse approach.
         if (self._config.reject_robot_opposite_approach
-                and self._config.approach_tilt_degrees > 0.0):
+                and tilt > 0.0):
             robot_to_target = center[:2] - np.asarray(
                 self._config.robot_reference_position[:2],
                 dtype=float,
@@ -517,11 +541,14 @@ class GeometricGraspPredictor:
             ):
                 return
         generated: list[RawGrasp] = []
-        axes = ((minor, major, -minor, -major)
-                if self._config.include_reverse_closing_axis
-                else (minor, major))
+        axes = (minor, major)
+        if side:
+            cross = np.cross(normal, approach)
+            axes = (cross / np.linalg.norm(cross),)
+        if cfg.include_reverse_closing_axis:
+            axes += tuple(-axis for axis in axes)
         for base_axis in axes:
-            for yaw_degrees in self._config.yaw_offsets_degrees:
+            for yaw_degrees in ((0.0,) if side else cfg.yaw_offsets_degrees):
                 yaw = math.radians(yaw_degrees)
                 closing = math.cos(yaw) * base_axis + math.sin(yaw) * np.cross(
                     normal, base_axis
@@ -531,18 +558,22 @@ class GeometricGraspPredictor:
                 lateral = np.cross(approach, closing)
                 lateral /= np.linalg.norm(lateral)
                 rotation = np.column_stack((approach, closing, lateral))
-                generated.extend(self._top_face_candidates(prepared, rotation, yaw_degrees, base_axis))
+                if not side:
+                    generated.extend(self._top_face_candidates(prepared, rotation, yaw_degrees, base_axis))
                 closing_coordinates = (target - center) @ closing
                 trim = self._config.extent_trim_percentile
                 low, high = np.percentile(
                     closing_coordinates,
                     (trim, 100.0 - trim),
                 )
-                width = float(high - low) + self._config.opening_margin_m
+                width = float(high - low) + cfg.opening_margin_m
+                if side and prepared.round_section is not None:
+                    # The open jaws must pass the widest part of the can on entry.
+                    width = max(width, 2.*prepared.round_section.radius_m + cfg.opening_margin_m)
                 if width > self._config.maximum_gripper_width_m:
                     continue
                 contact = center.copy()
-                if self._config.maximum_top_contact_depth_m > 0:
+                if not side and self._config.maximum_top_contact_depth_m > 0:
                     top = float(np.percentile(target @ normal, 100.0-trim))
                     contact += max(0.0, top-self._config.maximum_top_contact_depth_m
                                    -float(contact @ normal)) * normal
@@ -552,7 +583,11 @@ class GeometricGraspPredictor:
                 score = 0.55 * width_score + 0.30 * alignment_score + 0.15 * short_axis_bonus
                 for contact_point in _longitudinal_contacts(
                         contact, lateral, normal, target, self._config):
-                    translation = contact_point - self._config.grasp_depth_m * approach
+                    if side:
+                        if cfg.side_depth_offset_m >= float(np.max((target-contact_point) @ approach)):
+                            continue
+                        contact_point = contact_point + cfg.side_depth_offset_m * approach
+                    translation = contact_point - cfg.grasp_depth_m * approach
                     generated.append(
                         RawGrasp(
                             rotation=rotation,
@@ -578,11 +613,12 @@ class GeometricGraspPredictor:
                 round(candidate.score, 10), float(candidate.rotation[:, 1] @ normal)), reverse=True)
         else:
             generated.sort(key=lambda candidate: candidate.score, reverse=True)
+        obstacles = prepared.topdown_obstacles if not side and tilt <= 45. else prepared.obstacles
         for candidate in generated:
-            distal = (None if candidate.pad_offset_m else
+            distal = (None if side or candidate.pad_offset_m else
                       _distal_pad_candidate(candidate, prepared, self._config))
             poses = (distal, candidate) if distal is not None else (candidate,)
             for pose in poses:
                 if not _collides(pose.translation, pose.rotation, pose.width_m,
-                                 target, prepared.obstacles, self._config):
+                                 target, obstacles, cfg):
                     yield pose

@@ -86,8 +86,8 @@ def test_invalid_control_profile_stops_before_gpu_or_hardware(tmp_path):
     shell = tmp_path / 'runtime-functions.sh'
     shell.write_text(definitions)
     program = '''
+export CLEANY_COLLECTION_STATE_DIR="$2/state"
 source "$1"
-state_dir="$2/state"
 check_dds_transport() { return 0; }
 source_ros() { return 0; }
 check_control_profile() { echo PROFILE_REJECTED; return 1; }
@@ -562,6 +562,7 @@ start_group() {
   : > "$fixture_run_dir/started"
 }
 wait_for_perception_snapshot() { [[ "$failure" != missing_snapshot ]]; }
+wait_startup_cpu() { :; }
 wait_for_graph() {
   [[ "$1" == --action-startup && "$2" == --before-action-marker ]] || return 1
   : > "$3"

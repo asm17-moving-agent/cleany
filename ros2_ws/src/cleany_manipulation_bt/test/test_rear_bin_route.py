@@ -1,4 +1,5 @@
 """Exercise the web profile and real BT route adapter without commanding a robot."""
+from contextlib import nullcontext
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -9,6 +10,7 @@ import pytest
 
 from cleany_manipulation_bt.backend import OperationError
 from cleany_manipulation_bt.jetson_operations import JetsonOperations
+from cleany_skill_executor.collection_pipeline import CollectionPipeline
 from cleany_skill_executor.core.collection import configuration_issues
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.core.hardware_execution import ArmHold, CollisionValidationError
@@ -106,6 +108,45 @@ def test_release_rejects_box_below_rim_even_when_tcp_is_above_it(trial):
     with pytest.raises(OperationError, match='Attached payload does not clear the rear opening'):
         node.check_placement(context)
     assert not commands and 'release' not in stages
+
+
+@pytest.mark.parametrize('valid', [True, False])
+def test_standalone_rear_release_checks_payload_before_opening(trial, valid):
+    node, arm, context, route, _, stages, drop = trial
+    node.config.update(pregrasp_motion_enabled=False, approach_execution_replanning_enabled=False,
+                       lift_height_correction_enabled=False, wrist_observation_enabled=False)
+    context.selected.selected_candidate = NS()
+    node.scene.begin = lambda *_: None
+    node.scene.allow_contacts_for = lambda _: None
+    node.record_approach_commands = node.record_pickup_departure = lambda _: nullcontext()
+    node.approach_target = node.close_until_contact = lambda *_: None
+    node.attach = lambda *_: None
+    node.linear = lambda *_, **__: None
+    node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=123))
+    node.wrist_observation_required = lambda: False
+    node.real.wait_for_contact = lambda *_: None
+    node.stop_wrist_camera = lambda: None
+    node.return_from_rear_bin = lambda _: stages.append('return')
+    node.releasing = False
+    report = {}
+    check_payload = node.check_rear_bin_release
+
+    def check(selected_arm):
+        stages.append('release_check')
+        check_payload(selected_arm)
+
+    node.check_rear_bin_release = check
+    if valid:
+        CollectionPipeline.after_pregrasp(node, context.selected, None, report)
+        assert stages[-3:] == ['release_check', 'release_at_rear_bin', 'return']
+        assert report['released'] and node.carrying is None
+    else:
+        drop.position.z = route.rim_z + .010
+        with pytest.raises(ValueError, match='Attached payload does not clear the rear opening'):
+            CollectionPipeline.after_pregrasp(node, context.selected, None, report)
+        assert stages[-1] == 'release_check'
+        assert 'release_at_rear_bin' not in stages and not node.releasing
+        assert report['payload_preserved_on_failure'] and node.carrying['arm'] == arm
 
 
 @pytest.fixture
