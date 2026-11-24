@@ -44,9 +44,9 @@ GPU의 `joint_simplified_registered` 모드는 기존 링크의 형상 서명과
 
 ## dev-monitor와 운영 인식 공유
 
-Jetson dev-monitor의 저장된 실행 설정은 `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=true`를 사용한다.
-이미 실행 중인 카메라와 `gemini-decision-1` 운영 인식을 공유하며, 파지 자세 계산은
-`curobo_ik_moveit` 컨테이너에 맡긴다. 일반 물체 자동 선택은 유지한다.
+Jetson Dev Monitor와 CLI는 기본으로 헤드 RGB-D와 `gemini-decision-1` 운영 인식을
+공유합니다. `curobo_ik_moveit`의 GPU IK는 호스트 cuRobo 환경에서 실행하고
+MoveIt에 경로 계획을 요청합니다. 일반 물체 자동 선택을 사용합니다.
 
 | 경계 | 동작 |
 |---|---|
@@ -54,7 +54,8 @@ Jetson dev-monitor의 저장된 실행 설정은 `CLEANY_COLLECTION_USE_EXISTING
 | 헤드 카메라 | 지원 launch의 `start_head_camera=false`는 카메라 드라이버와 RGB-D TF bridge를 새로 시작하지 않는다. 기본값은 true다. |
 | 시작·종료 소유권 | 공유된 인식·카메라 서비스를 시작하거나 종료하지 않는다. 관리 중인 런타임의 인식 소유권을 도중에 바꿀 수 없다. |
 | 운영 인식 기능 | 사용자 service의 `50-dev-monitor-observation.conf`는 기존 실행 명령과 모델을 보존하고 물체 참조와 손목 관찰 기능만 켠다. |
-| 독립 CLI | 환경변수를 생략하면 기존 컨테이너 인식 경로를 사용한다. 운영 인식을 공유할 때는 위 값을 명시한다. |
+| 별도 GPU 런타임 | `CLEANY_COLLECTION_MOTION_RUNTIME=container`로 모션 컨테이너를 선택합니다. |
+| 별도 인식 | `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=false`로 Vision 컨테이너를 관리합니다. Vision의 AnyGrasp를 시작할 때도 이 값을 지정합니다. |
 
 공유 제공자는 먼저 실행 중이어야 한다. `python3 tools/shared_perception_readiness.py`로
 모터를 시작하지 않고 준비 상태를 확인할 수 있다. 기본 DDS domain은 호출 환경을 따른다.

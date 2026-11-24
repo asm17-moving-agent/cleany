@@ -392,7 +392,18 @@ make build-motion-foundation
 
 설치 도구는 버전과 패치 입력 영수증을 확인한다. 이미 준비된 환경에서는 다시 설치할 필요가 없다.
 `CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_MOVEIT_PATCH_PREFIX`로 overlay 위치를 바꿀 수 있다.
-GPU IK는 별도의 [모션 컨테이너](../../containers/motion/README.md)를 사용하며 기본 MoveIt 경로는 CUDA를 요구하지 않는다.
+Jetson의 기본 수거는 호스트 CUDA PyTorch를 사용하는 cuRobo 전용 가상환경에서
+GPU IK를 실행합니다. JetPack 6.2의 CUDA 개발 도구, Python 3.10, `python3-venv`,
+CUDA용 PyTorch 및 [호스트 Python 의존성](../../containers/motion/requirements.txt)을 준비한 뒤 설치합니다.
+
+```bash
+tools/setup-curobo
+```
+
+기본 설치 경로는 `~/.local/opt/cleany/curobo078/venv`이며
+`CLEANY_CUROBO_VENV`로 지정할 수 있습니다. 설치기는 cuRobo 0.7.8의 소스
+커밋을 확인하고 가상환경에서 CUDA를 검사합니다. [모션 컨테이너](../../containers/motion/README.md)는
+별도로 선택할 수 있습니다. `moveit` backend는 CUDA를 요구하지 않습니다.
 
 모션 기하 회귀 검사는 `trimesh`가 필요하다. `python3-trimesh`는 rosdep 키가 없으므로
 시스템 Python을 바꾸지 않는 테스트 환경에 설치한다. Jetson에 NumPy 1.26이 설치된
