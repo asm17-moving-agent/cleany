@@ -106,6 +106,10 @@ class MissionRuntimeNode(Node):
                 "map_server", "amcl", "planner_server", "controller_server",
                 "bt_navigator", "collision_monitor",
             ],
+            "observation_directory": "", "collection_config": "",
+            "allowed_trash_labels": [""], "inspection_action": "perception/inspect_scene",
+            "inspection_image_topic": "perception/debug_image", "stow_tolerance_rad": 0.05,
+            "arm_state_max_age_s": 0.5, "scene_max_age_s": 15.0,
             "manipulation_backend": "mock", "manipulation_action": "mock/manipulation/execute_skill",
             "manipulation_query": "mock/manipulation/get_execution",
             "manipulation_initial_mock_safe": False,
@@ -121,8 +125,8 @@ class MissionRuntimeNode(Node):
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
         self.targets = load_targets(value("targets_file"))
-        self.journal = MissionJournal(value("journal_path"))
         manipulation_backend = value("manipulation_backend")
+        self.journal = MissionJournal(value("journal_path"), exclusive=manipulation_backend == "jetson")
         validate_backend(manipulation_backend, self.journal)
         snapshots = tuple(value("manipulation_mock_snapshot_ids")) if manipulation_backend == "action_mock" else ()
         if manipulation_backend == "action_mock" and (len(snapshots) < 4 or len(set(snapshots)) != len(snapshots)):
@@ -134,21 +138,38 @@ class MissionRuntimeNode(Node):
                 "manipulation_mock_snapshot_ids": snapshots,
                 "manipulation_destination": value("manipulation_destination"),
             }, fixture)
-        self.desk = MockDesk(
-            time.monotonic, polls=value("mock_operation_polls"),
-            destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
-            objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
-                    if manipulation_backend == "action_mock" else None,
-        )
-        self.manipulation = (ManipulationPort(
-            ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
-            self.journal, time.monotonic,
-            initial_mock_safe=value("manipulation_initial_mock_safe"),
-            on_success=self.desk.manipulation_succeeded,
-        ) if manipulation_backend == "action_mock" else self.desk.executor)
         backend = value("navigation_backend")
-        if backend not in ("nav2", "mock"):
-            raise ValueError("navigation_backend must be nav2 or mock")
+        physical = manipulation_backend == "jetson"
+        if backend not in ("nav2", "mock", "mission_drive") or (backend == "mission_drive") != physical:
+            raise ValueError("mission_drive and jetson manipulation must be selected together")
+        if physical:
+            if (self.get_parameter("use_sim_time").value or not self.targets.binding
+                    or value("supervision_mode") != "required" or value("desk_approach_enabled")
+                    or value("post_mission") != "return_home" or value("manipulation_initial_mock_safe")
+                    or value("supervision_capabilities") != ["MOBILE_MANIPULATION"]
+                    or value("manipulation_action").strip("/") != "manipulation/execute_skill"
+                    or value("manipulation_query").strip("/") != "manipulation/get_execution"):
+                raise ValueError("physical missions require verified targets, guarded navigation and real supervised arm endpoints")
+            from .adapters.physical_arm import PhysicalArmPort
+            from .adapters.physical_desk import PhysicalDesk
+            self.desk = PhysicalDesk(self, value)
+            self.manipulation = PhysicalArmPort(self,
+                ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+                self.journal, value("collection_config"), value("manipulation_destination"),
+                value("stow_tolerance_rad"), value("arm_state_max_age_s"))
+        else:
+            self.desk = MockDesk(
+                time.monotonic, polls=value("mock_operation_polls"),
+                destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
+                objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
+                        if manipulation_backend == "action_mock" else None,
+            )
+            self.manipulation = (ManipulationPort(
+                ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+                self.journal, time.monotonic,
+                initial_mock_safe=value("manipulation_initial_mock_safe"),
+                on_success=self.desk.manipulation_succeeded,
+            ) if manipulation_backend == "action_mock" else self.desk.executor)
         mode = value("supervision_mode")
         if mode not in ("required", "disabled"):
             raise ValueError("supervision_mode must be required or disabled")
@@ -158,7 +179,7 @@ class MissionRuntimeNode(Node):
             request_timeout=float(value("supervision_request_timeout")),
         ) if mode == "required" else None
         self.navigator = (Nav2Navigator(self, self.targets, self.journal,
-                                        check_lifecycle=self.supervision is None) if backend == "nav2"
+                                        check_lifecycle=self.supervision is None, mission_lease=self.supervision if physical else None) if backend != "mock"
                           else DeferredPort(lambda _: ModuleResult.success(), polls=10))
         if value("desk_approach_enabled"):
             if backend != "nav2":
@@ -173,7 +194,8 @@ class MissionRuntimeNode(Node):
             navigator=self.navigator, perception=self.desk.perception, planner=self.desk.planner,
             executor=self.manipulation, clock=time.monotonic,
             supported_targets=set(self.targets.seats), journal=self.journal,
-            on_accept=self.desk.begin, navigation_mode="sim" if backend == "nav2" else "mock",
+            on_accept=None if physical else self.desk.begin,
+            navigation_mode={"mission_drive": "real", "nav2": "sim", "mock": "mock"}[backend],
             policy=RuntimePolicy(manipulation_destinations=(value("manipulation_destination"),),
                                  **{name: value(name) for name in (
                 "post_mission", "navigation_timeout", "cleaning_timeout", "operation_timeout",

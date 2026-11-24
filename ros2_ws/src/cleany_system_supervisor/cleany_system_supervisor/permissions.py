@@ -83,14 +83,15 @@ class MissionPermissionManager:
 
     def persisted(self) -> list[dict]:
         """허가 여부와 무관하게 미확인 임대는 재시작 후 다시 정지해야 합니다."""
-        return [{'mission_id': lease.mission_id, 'lease_id': lease.lease_id}
+        return [{'mission_id': lease.mission_id, 'lease_id': lease.lease_id,
+                 'capabilities': list(lease.capabilities)}
                 for lease in self.leases.values() if not lease.stopped]
 
     def restore(self, entries: list[dict]) -> None:
         for entry in entries:
             # 버전 0은 발급하지 않으므로 복구된 임대를 갱신할 수 없습니다.
             self.leases[entry['lease_id']] = Lease(
-                entry['mission_id'], entry['lease_id'], 0, (), 0., granted=False,
+                entry['mission_id'], entry['lease_id'], 0, tuple(entry.get('capabilities', ())), 0., granted=False,
                 reason='restored unconfirmed lease from previous supervisor process', restored=True)
 
     def prune(self, now: float, retention_s: float) -> list[str]:

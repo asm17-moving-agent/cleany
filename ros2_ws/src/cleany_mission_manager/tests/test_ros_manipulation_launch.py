@@ -136,3 +136,32 @@ def test_supervision_flag_selects_runtime_mode_and_supervision_stack(composition
     if stacks:
         # 시뮬레이션에는 안전 하드웨어가 없으므로 기본으로 근거 토픽을 만들지 않습니다.
         assert stacks[0]["estop_released_topic"] == stacks[0]["protection_ready_topic"] == ""
+
+
+@pytest.mark.parametrize("custom", [False, True])
+def test_field_path_overrides_preserve_profile_defaults(monkeypatch, tmp_path, custom):
+    from launch_ros.utilities import evaluate_parameters, normalize_parameters
+
+    package = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("mission_launch", package / "launch/mission_runtime.launch.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "get_package_share_directory", lambda name: str(package))
+    context = LaunchContext()
+    for action in module.generate_launch_description().entities:
+        if isinstance(action, DeclareLaunchArgument):
+            action.execute(context)
+    paths = {"collection_config": str(tmp_path / "arm.json"), "observation_directory": str(tmp_path / "frames")}
+    if custom:
+        context.launch_configurations.update(paths)
+    overrides = {}
+
+    def capture_node(**kwargs):
+        if kwargs["executable"] == "mission_runtime":
+            override = kwargs["parameters"][-1]
+            overrides.update(evaluate_parameters(context, normalize_parameters([override]))[0])
+        return Node(**kwargs)
+
+    monkeypatch.setattr(module, "Node", capture_node)
+    module.launch_nodes(context)
+    assert {key: overrides[key] for key in paths if key in overrides} == (paths if custom else {})

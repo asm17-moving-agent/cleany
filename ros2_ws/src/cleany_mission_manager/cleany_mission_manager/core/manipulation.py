@@ -38,10 +38,10 @@ def diagnostic_details(value: Any) -> dict:
 
 
 def validate_backend(backend: str, journal: MissionJournal) -> None:
-    if backend not in ("mock", "action_mock"):
-        raise ValueError("manipulation_backend must be mock or action_mock")
+    if backend not in ("mock", "action_mock", "jetson"):
+        raise ValueError("manipulation_backend must be mock, action_mock or jetson")
     if backend == "mock" and journal.value(ManipulationPort.KEY):
-        raise ValueError("persisted manipulation execution requires action_mock recovery; "
+        raise ValueError("persisted manipulation execution requires its original action backend; "
                          "switching to a local mock cannot bypass the saved arm state")
 
 
@@ -59,12 +59,12 @@ def goal_fields(command: TaskProposal) -> dict:
 
 
 def map_outcome(outcome: ManipulationOutcome, execution_id: str,
-                ros_status: int | None = None) -> ModuleResult:
+                ros_status: int | None = None, *, expected_profile: str = "mock") -> ModuleResult:
     """ROS SUCCEEDED에도 BLOCKED가 포함될 수 있으므로 물리 결과 payload를 기준으로 합니다."""
     status = {"SUCCESS": ResultStatus.OK, "BLOCKED": ResultStatus.BLOCKED,
               "FAILED": ResultStatus.FAILED, "CANCELED": ResultStatus.CANCELLED,
               "FATAL": ResultStatus.FATAL}.get(outcome.status)
-    valid = (outcome.execution_id == execution_id and outcome.execution_profile == "mock"
+    valid = (outcome.execution_id == execution_id and outcome.execution_profile == expected_profile
              and status is not None
              and outcome.object_state in ("NOT_TOUCHED", "HELD", "LEFT_GRIPPER", "UNKNOWN")
              and outcome.placement_state in ("NOT_CHECKED", "CONFIRMED", "NOT_CONFIRMED", "UNKNOWN"))
@@ -101,17 +101,22 @@ class ManipulationPort:
     KEY = "manipulation_boundary"
 
     def __init__(self, transport: ManipulationTransport, journal: MissionJournal, clock: Callable[[], float],
-                 *, initial_mock_safe: bool = False, on_success: Callable[[dict], None] | None = None) -> None:
+                 *, initial_mock_safe: bool = False, execution_profile: str = "mock", on_success: Callable[[dict], None] | None = None) -> None:
         self.transport, self.journal, self.clock = transport, journal, clock
+        if execution_profile not in ("mock", "jetson") or (initial_mock_safe and execution_profile != "mock"):
+            raise ValueError("invalid manipulation profile or mock initial state")
+        self.profile = execution_profile
         self.on_success = on_success
         saved = json.loads(journal.value(self.KEY, "{}"))
+        if saved and saved.get("profile", "mock") != self.profile:
+            raise ValueError("journal belongs to another manipulation profile")
         self.goal = saved.get("goal")
         self.outcome = (ManipulationOutcome(**saved["outcome"])
                         if saved.get("outcome") else None)
         self.human_review = saved.get("human_review", False)
         self.details = diagnostic_details(saved.get("details"))
         self.initial_mock_safe = initial_mock_safe and not saved
-        self.result = map_outcome(self.outcome, self.goal["execution_id"]) if self.outcome else None
+        self.result = map_outcome(self.outcome, self.goal["execution_id"], expected_profile=self.profile) if self.outcome else None
         self.send_future = self.result_future = self.lookup_future = self.cancel_future = None
         self.cancel_requested = bool(self.goal and self.outcome is None)  # 재시작 시 정지하며 자동 재개하지 않습니다.
         self.last_query = self.last_cancel = float("-inf")
@@ -119,7 +124,7 @@ class ManipulationPort:
 
     def _save(self) -> None:
         self.journal.set(self.KEY, json.dumps(dict(
-            goal=self.goal, outcome=asdict(self.outcome) if self.outcome else None,
+            profile=self.profile, goal=self.goal, outcome=asdict(self.outcome) if self.outcome else None,
             human_review=self.human_review,
             **({"details": self.details} if self.details else {}),
         )))
@@ -153,7 +158,7 @@ class ManipulationPort:
     def _complete(self, outcome: ManipulationOutcome, ros_status=None, human_review=False,
                   details=None) -> None:
         assert self.goal is not None
-        result = map_outcome(outcome, self.goal["execution_id"], ros_status)
+        result = map_outcome(outcome, self.goal["execution_id"], ros_status, expected_profile=self.profile)
         self.details.update(diagnostic_details(details))
         self.outcome, self.human_review = outcome, human_review
         self._save()  # 어떤 gate도 해제하기 전에 물리적 근거를 영속 저장합니다.

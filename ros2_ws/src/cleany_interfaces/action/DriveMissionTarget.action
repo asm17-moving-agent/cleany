@@ -1,0 +1,13 @@
+# The drive owner resolves a named, field-verified target in its own map catalog.
+string target_id
+string target_digest
+string mission_id
+string lease_id
+string lease_epoch
+uint64 lease_version
+---
+bool arrived
+bool stop_confirmed
+string detail
+---
+string phase

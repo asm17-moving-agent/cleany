@@ -1,4 +1,5 @@
 """지도와 위치 추정을 읽고 핸드폰 원격 제어의 보호된 Nav2 목표 하나를 소유합니다."""
+import os
 import math
 import json
 import time
@@ -45,6 +46,7 @@ class NavigationBridge:
             raise ValueError('Navigation limits must be finite and positive')
         if not math.isfinite(self.max_wheel_speed) or not 0 < self.max_wheel_speed <= 10:
             raise ValueError('Navigation wheel speed must be in (0, 10] rad/s')
+        self.map_revision=None
         self.map=None;self.path=[];self.path_at=0.;self.scan_at=0.;self.velocity_at=0.
         self.velocity=(0.,0.,0.);self.pose=None;self.pose_at=0.;self.odom_at=0.
         self.phase='idle';self.reason='Nav2 준비 대기';self.goal_id='';self.handle=None
@@ -59,6 +61,13 @@ class NavigationBridge:
         self.preview_client=ActionClient(node,ComputePathToPose,'compute_path_to_pose')
         self.preview_generation=0;self.preview_id='';self.preview_phase='idle'
         self.preview_path=[];self.preview_error='';self.preview_handle=None;self.preview_target=None
+        target_file = node.declare_parameter('navigation.mission_targets_file', os.environ.get('CLEANY_MISSION_TARGETS_FILE', '')).value
+        grid_revision = node.declare_parameter('navigation.mission_grid_revision', os.environ.get('CLEANY_MISSION_GRID_REVISION', '')).value
+        self.mission_drive = None
+        if target_file:
+            from .mission_drive import MissionDrive
+            self.mission_drive = MissionDrive(self, target_file, grid_revision)
+            self.control.operator_blocked = self.mission_drive.operator_blocked
         self.stop_waiters=[]
         self.stop_server=ActionServer(node,StopMission,'navigation/stop',
             execute_callback=self.execute_stop, goal_callback=self.admit_stop)
@@ -99,6 +108,10 @@ class NavigationBridge:
     def admit_stop(self,request):
         with self.lock:
             current=(request.mission_id==self.goal_id and request.lease_id==self.supervision.lease_id)
+            mission = getattr(self, 'mission_drive', None)
+            if mission and mission.goal:
+                req = mission.goal.request
+                current = request.mission_id == req.mission_id and request.lease_id == req.lease_id
             # 프로세스 재시작 후에도 Supervisor가 이전 임대를 소유합니다. 새 유휴
             # 브리지는 목표를 만들거나 이전 이동 권한을 복구하지 않고 출력을 멈추고
             # MCU 정지를 확인할 수 있습니다.
@@ -123,6 +136,7 @@ class NavigationBridge:
             if self.map is not None and updated.revision != self.map.revision:
                 self.path = []
                 self.clear_preview()
+            self.map_revision = updated.revision
             self.map = updated
 
     def on_path(self, message):
@@ -146,7 +160,14 @@ class NavigationBridge:
         with self.lock:
             self.velocity=(m.linear.x,m.linear.y,m.angular.z);self.velocity_at=time.monotonic()
 
-    def readiness(self):
+    def measured_standstill(self, now):
+        return (self.control.stop_confirmed and self.control.stopped()
+                and 0 <= now - self.control.clock.received_at <= .1
+                and self.control.state is not None
+                and len(self.control.state.velocity_rad_s) == 4
+                and all(abs(v) < .05 for v in self.control.state.velocity_rad_s))
+
+    def hardware_ready(self):
         if self.map is None:return False,'지도를 기다립니다'
         if time.monotonic()-self.pose_at>self.pose_timeout:return False,'초기 위치와 TF를 확인하세요'
         if time.monotonic()-self.scan_at>self.scan_timeout:return False,'LiDAR 입력이 오래됐습니다'
@@ -155,6 +176,13 @@ class NavigationBridge:
         # 하위 구독자를 필수로 요구해 베이스로 직접 보내는 대체 경로를 막습니다.
         if self.node.count_subscribers('motion/cmd_vel')<1:return False,'안전 명령 경로를 기다립니다'
         if self.node.count_publishers('cmd_vel')!=1:return False,'최종 구동 명령 소유자를 확인하세요'
+        return True, ''
+
+    def readiness(self):
+        ready, reason = self.hardware_ready()
+        if not ready:return ready,reason
+        mission = getattr(self, 'mission_drive', None)
+        if mission and mission.operator_blocked():return False,'Mission 주행 중'
         available,reason=self.supervision.available()
         quality=getattr(self,'localization',{})
         if not available and quality.get('state') in ('unknown','unavailable'):
@@ -184,6 +212,8 @@ class NavigationBridge:
             self.clear_preview()
             self.cancel('사용자 정지');self.control.stop('사용자 정지');return self.status()
         if operation=='preview':return self.preview(data)
+        mission = getattr(self, 'mission_drive', None)
+        if mission and mission.operator_blocked():raise ValueError('Mission 주행 권한 사용 중')
         if self.map is None:raise ValueError("지도를 기다립니다")
         goal=self.map.validate_goal(data)
         if operation=='initial-pose':
@@ -204,14 +234,20 @@ class NavigationBridge:
         if not ready:raise ValueError(why)
         if self.phase not in ('idle','succeeded','cancelled','failed'):raise ValueError('먼저 현재 이동을 취소하세요')
         if len(self.requests)>=1024:raise ValueError('요청 기록 한도에 도달했습니다')
+        self.requests[rid]=goal
+        self.begin_goal(goal)
+        self.supervision.acquire(self.goal_id)
+        return self.status()
+
+    def begin_goal(self, goal):
         self.clear_preview()
-        self.requests[rid]=goal;self.epoch+=1;self.goal_id=str(uuid.uuid4());self.target=goal
+        self.inner_terminal = True
+        self.epoch+=1;self.goal_id=str(uuid.uuid4());self.target=goal
         self.phase='preparing';self.reason='정지 및 주행 허가 확인 중';self.path=[]
         self.control.stop('자동 주행 전환');self.heartbeat=time.monotonic()
         self.control.automatic_client='navigation-'+self.goal_id
-        self.supervision.acquire(self.goal_id);self.handle=None;self.pending=None;self.cancel_future=None;self.started_control=False
+        self.handle=None;self.pending=None;self.cancel_future=None;self.started_control=False
         self.velocity=(0.,0.,0.);self.velocity_at=0.
-        return self.status()
 
     def clear_preview(self):
         """진행 중인 읽기 전용 요청을 취소하기 전에 이전 결과를 무효화합니다."""
@@ -333,28 +369,32 @@ class NavigationBridge:
                 and (self.nomotion_future is None or self.nomotion_future.done())):
             self.nomotion_at=now;self.nomotion_future=self.nomotion.call_async(Empty.Request())
         self.supervision.maintain()
+        mission = getattr(self, 'mission_drive', None)
+        if mission:mission.tick()
         for handle,future,started in list(self.stop_waiters):
-            stopped=(self.control.stop_confirmed and self.control.stopped()
-                     and now-self.control.clock.received_at<=.1
-                     and all(abs(v)<.05 for v in self.control.state.velocity_rad_s)
+            stopped=(self.measured_standstill(now)
                      and (self.pending is None or self.pending.done())
-                     and (self.cancel_future is None or self.cancel_future.done()))
+                     and (self.cancel_future is None or self.cancel_future.done())
+                     and (not (mission and mission.goal) or self.inner_terminal))
             if stopped or now-started>5.:
                 result=StopMission.Result(stopped=stopped,detail='MCU STOP acknowledged' if stopped else 'Stop unverified')
                 if stopped:handle.succeed()
                 else:handle.abort()
                 future.set_result(result);self.stop_waiters.remove((handle,future,started))
         if self.phase=='stopping':
-            if (self.control.stop_confirmed and self.control.stopped()
-                    and now-self.control.clock.received_at<=.1
-                    and all(abs(v)<.05 for v in self.control.state.velocity_rad_s)
+            if (self.measured_standstill(now)
                     and (self.pending is None or self.pending.done())
-                    and (self.cancel_future is None or self.cancel_future.done())):
-                self.supervision.release();self.control.automatic_client=None;self.phase=self.outcome
+                    and (self.cancel_future is None or self.cancel_future.done())
+                     and (not (mission and mission.goal) or self.inner_terminal)):
+                if not (mission and mission.goal):self.supervision.release()
+                self.control.automatic_client=None;self.phase=self.outcome
                 self.reason='도착 완료' if self.phase=='succeeded' else self.reason+' · 정지 완료'
             return
         if self.phase not in ('preparing','active'):return
-        auth,why=self.supervision.authorization()
+        if mission and mission.goal:
+            auth,why = (Authorization.GRANTED, '') if mission.authorized(mission.goal.request) else (Authorization.DENIED, 'Mission lease expired')
+        else:
+            auth,why=self.supervision.authorization()
         input_reason,ages=self.input_failure(now)
         if input_reason or auth==Authorization.DENIED:
             reason=input_reason or why or '주행 허가가 회수됐습니다'
@@ -379,27 +419,49 @@ class NavigationBridge:
         scale=max(1.,max(abs(v) for v in vector));vector=[v/scale for v in vector];speed*=scale
         self.sequence+=1
         try:
-            self.control.request(dict(client='navigation-'+self.goal_id,sequence=self.sequence,action='update' if self.control.owner=='navigation-'+self.goal_id else 'press',vector=vector,speed=speed))
+            self.control.request(dict(client='navigation-'+self.goal_id,sequence=self.sequence,action='update' if self.control.owner=='navigation-'+self.goal_id else 'press',vector=vector,speed=speed), navigation_input=True)
         except (ValueError,RuntimeError) as e:self.cancel(str(e));return
         self.started_control=True
         if self.phase=='preparing' and self.control.phase=='moving' and self.pending is None:
             msg=NavigateToPose.Goal();msg.pose.header.frame_id='map';msg.pose.header.stamp=self.node.get_clock().now().to_msg()
             x,y,a=self.target;msg.pose.pose.position.x=x;msg.pose.pose.position.y=y;msg.pose.pose.orientation.z=math.sin(a/2);msg.pose.pose.orientation.w=math.cos(a/2)
-            epoch=self.epoch;self.pending=self.client.send_goal_async(msg)
-            self.pending.add_done_callback(lambda f:self.accepted(f,epoch))
+            self.inner_terminal = False
+            epoch=self.epoch; goal_id=self.goal_id
+            self.pending=self.client.send_goal_async(msg)
+            self.pending.add_done_callback(lambda f:self.accepted(f,epoch,goal_id))
 
-    def accepted(self,future,epoch):
+    def accepted(self,future,epoch,goal_id=None):
         with self.lock:
             try:handle=future.result()
             except Exception as e:
                 if epoch==self.epoch:self.cancel(str(e))
                 return
             if epoch!=self.epoch:
-                if handle.accepted:self.cancel_future=handle.cancel_goal_async()
+                if handle.accepted:
+                    mission = getattr(self, "mission_drive", None)
+                    if mission and mission.goal and goal_id == self.goal_id:
+                        handle.get_result_async().add_done_callback(lambda f: self.inner_finished(f, goal_id))
+                    self.cancel_future=handle.cancel_goal_async()
+                elif goal_id == self.goal_id:
+                    self.inner_terminal = True
                 return
-            if not handle.accepted:self.cancel('Nav2가 목표를 거부했습니다');return
+            if not handle.accepted:
+                self.inner_terminal = True
+                self.cancel('Nav2가 목표를 거부했습니다')
+                return
             self.handle=handle;self.phase='active';self.reason='이동 중'
-            handle.get_result_async().add_done_callback(lambda f:self.finished(f,epoch))
+            result = handle.get_result_async()
+            result.add_done_callback(lambda f: self.inner_finished(f, goal_id))
+            result.add_done_callback(lambda f:self.finished(f,epoch))
+
+    def inner_finished(self, future, goal_id):
+        try:
+            terminal = future.result().status in (GoalStatus.STATUS_SUCCEEDED, GoalStatus.STATUS_CANCELED, GoalStatus.STATUS_ABORTED)
+        except Exception:
+            terminal = False
+        with self.lock:
+            if goal_id == self.goal_id:
+                self.inner_terminal = terminal
 
     def finished(self,future,epoch):
         with self.lock:

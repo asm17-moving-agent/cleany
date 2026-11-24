@@ -38,6 +38,16 @@ flowchart TD
 
 환경과 선택 실행 조건, 전체 명령표는 [상세 참조](reference/testing.md#검사-선택)를 따릅니다. 장치가 없는 검사와 실물 실행 검사는 같은 성공으로 합산하지 않습니다.
 
+## Dashboard에서 좌석 미션 왕복 확인
+
+ROS overlay와 control-plane Backend의 가상환경을 준비한 뒤, 사용하지 않는 ROS domain에서 실행합니다. 이 검사는 임시 DB에 운영자와 로봇을 만들고 loopback Gateway로 좌석 두 개를 순서대로 요청합니다. 주행, 인식과 수거는 모두 mock입니다.
+
+```bash
+export CONTROL_PLANE=/path/to/cleany-control-plane
+"$CONTROL_PLANE/apps/backend/.venv/bin/python" tools/validation/jetson_gateway_roundtrip.py \
+  --release "$CONTROL_PLANE" --domain 187 --output /tmp/cleany-gateway-result.json
+```
+
 ## 문서 사이트 검사
 
 ```bash

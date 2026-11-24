@@ -29,6 +29,7 @@ class Control:
         self.phase = "idle"
         self.paused = False
         self.forward_only = False
+        self.operator_blocked = None
         self.message = "ESP32 상태를 기다리는 중"
         self.owner = None
         self.requests = {}
@@ -96,7 +97,7 @@ class Control:
         if self.publisher_count != 1 or self.subscriber_count < 1:
             raise ValueError("다른 제어기가 실행 중이거나 ESP32가 연결되지 않았습니다")
 
-    def request(self, payload):
+    def request(self, payload, *, navigation_input=False):
         client, sequence = payload.get("client"), payload.get("sequence")
         self.accept_request(client, sequence)
         action = payload.get("action")
@@ -125,6 +126,8 @@ class Control:
                 source="user",
             )
             return
+        if not navigation_input and self.operator_blocked and self.operator_blocked():
+            raise ValueError("Mission 실행 중이거나 주행 권한을 확인할 수 없습니다")
         if self.paused:
             raise ValueError("지도 초기화 중에는 조종할 수 없습니다")
         if action == "heartbeat":

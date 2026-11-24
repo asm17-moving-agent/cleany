@@ -4,6 +4,7 @@
 
 | 현재 준비된 것 | 선택할 실행 | 주행 / 조작 |
 |---|---|---|
+| Jetson의 현장 주행 서버와 실제 팔 | [현장 좌석 정리](#현장-좌석-정리) | 실측 좌석 / 실물 수거 |
 | 새 Gazebo 환경과 Backend | [통합 실행](#주행-구성을-함께-실행) | Gazebo/Nav2 / 기본 mock |
 | 이미 실행 중인 AMCL/Nav2 | [Runtime만 연결](#기존-주행-구성에-runtime-연결) | 기존 Nav2 / 설정한 adapter |
 | Backend 없이 연동 시험 | [Gazebo + Mock Action](#gazebo-주행과-mock-조작) | Gazebo/Nav2 / Action mock |
@@ -28,6 +29,16 @@ sequenceDiagram
 ```
 
 ## Mission Runtime과 Backend
+
+### 현장 좌석 정리
+
+대시보드에서 좌석을 선택하면 Gateway가 좌석별 미션을 보냅니다. 로봇은 Home 위치와 팔 수납을 확인한 뒤, 현장 검증을 마친 좌석으로 이동합니다. 책상에 도착해 정지를 확인하면 촬영, 수거, 재촬영 순으로 작업하고 Home으로 돌아갑니다. 수거 대상과 완료 판정 조건은 [실물 미션 계약](../../../ros2_ws/src/cleany_mission_manager/docs/interfaces.md#jetson-좌석-정리)에 있습니다.
+
+| 구성 요소 | 현장에서 일치시킬 값 |
+|---|---|
+| 주행 서버 | `CLEANY_MISSION_TARGETS_FILE`에 승인된 좌석·Home JSON 경로를, `CLEANY_MISSION_GRID_REVISION`에 로드한 점유 격자 revision을 지정합니다. |
+| Mission Runtime | `runtime_jetson_desk.yaml`, `navigation_backend:=mission_drive`, `use_sim_time:=false`를 선택합니다. `targets_file`은 주행 서버와 같은 파일을 가리켜야 합니다. |
+| 팔 실행기와 Backend | `collection_config`는 팔의 실측 설정, `observation_directory`는 Backend에서 읽을 수 있는 관측 디렉터리, `device_token_file`은 해당 로봇의 Gateway 토큰 파일입니다. |
 
 ### 주행 구성을 함께 실행
 

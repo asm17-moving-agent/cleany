@@ -162,6 +162,10 @@ flowchart LR
 
 실물 자동 주행은 별도 통합 검증 대상입니다. Plugin 로딩이나 mock 통과가 실물 구동 증거는 아닙니다.
 
+### 실물 미션 주행
+
+검증된 목표 파일과 점유 격자 revision을 지정하면 기존 주행 서버가 `navigation/drive_mission_target` Action을 제공한다. 좌석 ID 또는 `home`을 로컬 목표 파일에서 해석한다. 요청 digest, 현재 map revision, 원 미션의 `MOBILE_MANIPULATION` lease ID, epoch와 version이 일치해야 출발할 수 있다. 이 Action은 기존 Nav2 및 MCU 명령 소유자를 사용한다. 완료에는 Nav2 종료, MCU 정지 응답과 네 바퀴의 최근 정지 피드백이 필요하다. 미션 소유 중과 허가 회수 후 정지 확인 전에는 수동 이동을 차단하며 STOP은 받는다. 발행 시각이 오래된 Supervisor 상태로는 수동 이동을 열지 않는다.
+
 ### ROS 연결과 재기동 후 정지
 
 | 방향 | Endpoint / 계약 |

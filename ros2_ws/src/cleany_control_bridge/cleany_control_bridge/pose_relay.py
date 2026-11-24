@@ -9,9 +9,10 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Protocol
 from urllib.parse import urlparse
+
+from cleany_control_bridge.device_auth import device_headers
 
 LOGGER = logging.getLogger(__name__)
 
@@ -195,13 +196,7 @@ class PoseRelay:
 def _websocket_transport(url: str, device_token_file: str = "") -> Transport:
     import websocket  # type: ignore[import-not-found]
 
-    headers = {}
-    if device_token_file:
-        # Read on each connection so rotating credentials does not require a ROS restart.
-        token = Path(device_token_file).expanduser().read_text().strip()
-        if not token or any(c.isspace() for c in token):
-            raise ValueError("invalid device token file")
-        headers["Authorization"] = "Bearer " + token
+    headers = device_headers(device_token_file) if device_token_file else {}
     return _WebsocketTransport(
         websocket.create_connection(url, timeout=5, suppress_origin=True, header=headers), websocket
     )
