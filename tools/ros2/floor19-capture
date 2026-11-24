@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# Resume the selected mapping session after a Jetson reboot.
+set -euo pipefail
+root=/var/opt/cleany/runs/mapping
+mapper=cleany-floor19-mapping.service
+recorder=cleany-floor19-record-vslam.service
+camera=cleany-head-rgbd.service
+watcher=cleany-floor19-capture.service
+drop="${XDG_RUNTIME_DIR:?}/systemd/user/$camera.d/50-floor19-vslam.conf"
+ctl=(systemctl --user)
+reserve=$((10 * 1024 ** 3))
+
+if [[ ${1:-} == finish ]]; then
+    "${ctl[@]}" disable --now "$watcher"
+    for unit in "$recorder" "$mapper"; do
+        if "${ctl[@]}" is-active --quiet "$unit"; then "${ctl[@]}" stop "$unit"; fi
+    done
+    if [[ -f $drop ]]; then
+        rm -- "$drop"
+        "${ctl[@]}" daemon-reload
+        "${ctl[@]}" restart "$camera"
+    fi
+    exit 0
+fi
+
+case "${1:-}:$#" in
+    watch:2|start-bag:3) ;;
+    *) echo "Usage: $0 watch RUN | start-bag RUN MAPPER_INVOCATION | finish" >&2; exit 2 ;;
+esac
+template=$(realpath -e "$2")
+[[ $(dirname "$template") == "$root" && -x "$template/session" ]]
+# Serialized with the desktop panel's save/reset actions.
+exec 9>"$root/.floor19-panel.lock"
+flock -w 120 9
+
+free_bytes() { df -B1 --output=avail "$root" | tail -1; }
+start_bag() {
+    local dir=$1 name binary id state i
+    local -a topics
+    binary="$(dirname "$(realpath "$0")")/floor19-recorder"
+    [[ -x $binary && -s $dir/config/record-topics.txt ]] || { echo "Recorder or topic list missing" >&2; return 1; }
+    mapfile -t topics < "$dir/config/record-topics.txt"
+    name=recording-vslam-$(date +%Y%m%d-%H%M%S-%N)
+    systemd-run --user --collect --unit="$recorder" -p Type=exec -p KillSignal=SIGINT -p TimeoutStopSec=90 \
+        -p "StandardOutput=append:$dir/recorder.log" -p "StandardError=append:$dir/recorder.log" \
+        -- "$dir/session" exec "$binary" --output "$dir/$name" "${topics[@]}"
+    id=$("${ctl[@]}" show "$recorder" -p InvocationID --value)
+    state="$XDG_RUNTIME_DIR/floor19_recorder_$id.state"
+    for ((i=0; i<100; i++)); do
+        if [[ -s $state && -d $dir/$name ]]; then echo "$dir/$name"; return; fi
+        "${ctl[@]}" is-active --quiet "$recorder" || break
+        sleep .2
+    done
+    echo "녹화 시작을 확인하지 못했습니다. $dir/recorder.log" >&2
+    return 1
+}
+
+stopped="$root/.floor19-recording-stopped"
+if [[ $1 == start-bag ]]; then
+    [[ -n $3 && $("${ctl[@]}" show "$mapper" -p InvocationID --value) == "$3" ]] || {
+        echo '매핑 세션이 바뀌었습니다.' >&2; exit 1;
+    }
+    pid=$("${ctl[@]}" show "$mapper" -p MainPID --value)
+    [[ $(readlink -e "/proc/$pid/cwd") == "$template" ]] || exit 1
+    if "${ctl[@]}" is-active --quiet "$recorder"; then echo '이미 녹화 중입니다.' >&2; exit 1; fi
+    if (( $(free_bytes) <= reserve )); then echo '녹화에 필요한 디스크 여유는 10 GiB 초과입니다.' >&2; exit 1; fi
+    start_bag "$template"
+    rm -f -- "$stopped"
+    if "${ctl[@]}" is-enabled --quiet "$watcher"; then
+        "${ctl[@]}" start --no-block "$watcher"
+    fi
+    exit 0
+fi
+if (( $(free_bytes) <= reserve )); then
+    echo 'Mapping capture paused: 10 GiB disk reserve reached.' >&2
+    if "${ctl[@]}" is-active --quiet "$recorder"; then "${ctl[@]}" stop "$recorder"; fi
+    exit 0
+fi
+
+verify_release() {
+    [[ $(cat "$1/release.txt") == "$(realpath -e /opt/cleany/current)" ]] || {
+        echo 'The field release changed; verify camera parameters before resuming.' >&2; exit 1;
+    }
+}
+if ! [[ -r $template/config/record-topics.txt && -s $template/config/vslam-realsense.yaml &&
+        -s $template/config/vslam-realsense.launch.py ]]; then
+    echo "Incomplete mapping configuration: $template" >&2; exit 1
+fi
+verify_release "$template"
+if "${ctl[@]}" is-active --quiet "$mapper"; then
+    pid=$("${ctl[@]}" show "$mapper" -p MainPID --value)
+    run=$(readlink -e "/proc/$pid/cwd")
+    [[ $(dirname "$run") == "$root" && -x "$run/session" ]]
+    verify_release "$run"
+else
+    # Never open another owner's serial port or reuse a previous writable map.
+    if "${ctl[@]}" is-active --quiet "$recorder"; then
+        echo 'Recorder is still active; preserving it for the operator.' >&2
+        exit 1
+    fi
+    port=$(python3 -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["lidar"]["serial_port"])' "$template/config/profile.yaml")
+    [[ -c $port ]] || { echo "Waiting for $port" >&2; exit 1; }
+    if fuser "$port" >/dev/null 2>&1; then echo "LiDAR in use: $port" >&2; exit 1; fi
+    run="$root/$(date +%F_%H%M%S)_floor19"
+    mkdir -m 750 "$run"
+    cp -a "$template"/{session,release.txt,mapping.launch.py,config} "$run/"
+    mkdir "$run/checkpoints"
+fi
+
+share=/opt/cleany/current/native/install/cleany_perception/share/cleany_perception
+params=$(realpath -e "$share/config/realsense_pregrasp.yaml")
+launch=$(realpath -e "$share/launch/realsense.launch.py")
+mkdir -p "$(dirname "$drop")"
+tmp=$(mktemp "$drop.XXXXXX")
+trap 'rm -f -- "$tmp"' EXIT
+cat > "$tmp" <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/bwrap --bind / / --dev-bind /dev /dev --tmpfs /home --ro-bind $run/config/vslam-realsense.yaml $params --ro-bind $run/config/vslam-realsense.launch.py $launch -- /opt/cleany/current/native/run-jetson-native head-rgbd
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=150
+EOF
+if ! cmp -s "$tmp" "$drop"; then
+    mv -T "$tmp" "$drop"
+    "${ctl[@]}" daemon-reload
+    "${ctl[@]}" restart "$camera"
+fi
+if ! "${ctl[@]}" is-active --quiet "$mapper"; then
+    systemd-run --user --collect --unit="$mapper" -p KillSignal=SIGINT -p KillMode=mixed \
+        -p TimeoutStopSec=90 -- "$run/session" mapping
+fi
+if [[ ! -e $stopped ]] && ! "${ctl[@]}" is-active --quiet "$recorder"; then
+    start_bag "$run"
+fi
+flock -u 9
+exec 9>&-
+
+camera_device_id() {
+    local nodes=(/dev/v4l/by-id/*RealSense*435*-video-index0)
+    [[ ${#nodes[@]} == 1 && -c ${nodes[0]} ]] || return 1
+    stat -Lc '%d:%i' "${nodes[0]}"
+}
+
+camera_has_only_detached_video_fds() {
+    local group pid fds
+    group=$("${ctl[@]}" show "$camera" -p ControlGroup --value) || return 1
+    [[ -n $group && -r /sys/fs/cgroup$group/cgroup.procs ]] || return 1
+    while read -r pid; do
+        [[ $(readlink "/proc/$pid/exe") == */realsense2_camera_node ]] || continue
+        fds=$(find "/proc/$pid/fd" -maxdepth 1 -lname '/dev/video[0-9]*' -printf '%l\n' 2>/dev/null) || continue
+        if [[ -n $fds ]] && ! grep -qv ' (deleted)$' <<< "$fds"; then return 0; fi
+    done < "/sys/fs/cgroup$group/cgroup.procs"
+    return 1
+}
+
+last_device=''
+while sleep 5; do
+    if (( $(free_bytes) <= reserve )); then
+        # Serialize the stop with a possible in-progress bag replacement.
+        exec 9>"$root/.floor19-panel.lock"
+        flock 9
+        if (( $(free_bytes) <= reserve )); then
+            if "${ctl[@]}" is-active --quiet "$recorder"; then "${ctl[@]}" stop "$recorder"; fi
+            echo 'Bag closed at the 10 GiB reserve.' >&2
+            exit 0
+        fi
+        exec 9>&-
+    fi
+    # A USB reconnect can leave librealsense running on unlinked V4L devices.
+    device=$(camera_device_id) || device=''
+    if [[ -n $device && $device != "$last_device" ]] && camera_has_only_detached_video_fds; then
+        echo 'RealSense reconnected with stale video handles; reopening the head camera.' >&2
+        "${ctl[@]}" try-restart "$camera" || continue
+    fi
+    last_device=$device
+done
