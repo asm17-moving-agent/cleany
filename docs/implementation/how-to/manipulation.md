@@ -129,6 +129,20 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 
 ## 실물 수거와 팔 복귀
 
+기본 수거는 이미 실행 중인 헤드 RGB-D와 네이티브 YOLOE를 공유하고
+호스트 cuRobo에서 파지 자세를 계산합니다.
+[cuRobo 가상환경](../development-setup.md#실물-모션-기반)을 먼저 준비합니다.
+배포한 센서 및 인식 서비스가 실행 중이면 같은 ROS domain에서 해당 제공자를 사용합니다.
+
+수동 환경에서는 [공통 overlay](../running.md#공통-준비)를 적용한 각 터미널에서
+같은 ROS domain과 Fast DDS를 사용해 센서와 인식을 각각 시작합니다.
+
+```bash
+RMW_IMPLEMENTATION=rmw_fastrtps_cpp ros2 launch cleany_skill_executor head_rgbd.launch.py repository_root:="$PWD"
+# 별도 터미널에서 같은 ROS domain을 사용합니다.
+RMW_IMPLEMENTATION=rmw_fastrtps_cpp make perception-run
+```
+
 실물 준비 자세 실행 이후 수거, 복귀와 복구 명령은
 [실물 수거 안내](../../../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md)를 따른다.
 실물 프로필을 명시적으로 입력하며 `make collection-plan`과 실제 실행 명령을 구분한다.

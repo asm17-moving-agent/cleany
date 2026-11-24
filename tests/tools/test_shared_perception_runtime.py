@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def run_functions(tmp_path, body, *, shared=False, recorded_shared=None):
+def run_functions(tmp_path, body, *, shared=False, recorded_shared=None, recorded_motion=None):
     source = (ROOT/'tools/collection-runtime').read_text()
     library = tmp_path/'library.sh'
     library.write_text(source.split('\ncommand="${1:-}"\n', 1)[0])
@@ -22,6 +22,8 @@ def run_functions(tmp_path, body, *, shared=False, recorded_shared=None):
     state.mkdir()
     if recorded_shared is not None:
         (state/'perception-mode').write_text(str(recorded_shared).lower()+'\n')
+    if recorded_motion is not None:
+        (state/'motion-runtime').write_text(recorded_motion+'\n')
     script = f'''source "{library}"
 repo_root="{repo}"
 use_existing_perception={str(shared).lower()}
@@ -51,15 +53,16 @@ def test_shared_vision_does_not_start_or_stop_the_existing_provider(tmp_path, sh
 
 
 @pytest.mark.parametrize('shared', [False, True])
-def test_camera_sharing_preserves_gpu_container_launch(tmp_path, shared):
+def test_camera_sharing_preserves_native_gpu_launch(tmp_path, shared):
     result, _ = run_functions(tmp_path, 'start_hardware_support ignored.log ignored', shared=shared)
     assert result.returncode == 0, result.stderr
     assert 'motion_backend:=curobo_ik_moveit' in result.stdout
-    assert 'motion_runtime:=container' in result.stdout
+    assert 'motion_runtime:=native' in result.stdout
     assert ('start_head_camera:=false' if shared else 'start_head_camera:=true') in result.stdout
 
 
-def test_shutdown_preserves_recorded_shared_provider_even_from_a_default_shell(tmp_path):
+@pytest.mark.parametrize('motion', ['native', 'container'])
+def test_shutdown_preserves_recorded_shared_provider_even_from_a_default_shell(tmp_path, motion):
     body = '''managed_processes_alive() { return 1; }
 execution_owners_alive() { return 1; }
 wait_for_execution_shutdown() { return 0; }
@@ -67,15 +70,17 @@ source_ros() { :; }
 timeout() { :; }
 fuser() { return 1; }
 stop_runtime'''
-    result, trace = run_functions(tmp_path, body, recorded_shared=True)
+    result, trace = run_functions(tmp_path, body, recorded_shared=True, recorded_motion=motion)
     assert result.returncode == 0, result.stderr
     assert 'vision-container' not in trace
-    assert 'motion-container stop' in trace
+    assert ('motion-container stop' in trace) == (motion == 'container')
     assert 'feetech-torque off' in trace
 
 
 def test_existing_runtime_cannot_change_provider_ownership_in_place(tmp_path):
     body = '''printf 'curobo_ik_moveit geometric\\n' > "$planning_mode_file"
+printf 'native\\n' > "$motion_runtime_file"
+validate_planning_mode
 require_matching_planning_mode'''
     result, _ = run_functions(tmp_path, body, shared=True, recorded_shared=False)
     assert result.returncode == 1
