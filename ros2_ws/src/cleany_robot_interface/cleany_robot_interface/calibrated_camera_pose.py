@@ -1,6 +1,8 @@
 """Publish calibrated camera poses from a frozen, read-only kinematic model."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from functools import cached_property
 import hashlib
 import json
 import math
@@ -27,6 +29,36 @@ def origin(element: ET.Element | None) -> np.ndarray:
     return result
 
 
+@dataclass(frozen=True)
+class _Coordinate:
+    name: str
+    scale: float
+    offset: float
+    axis: np.ndarray
+
+
+@dataclass(frozen=True)
+class _CameraChain:
+    steps: tuple[tuple[np.ndarray, _Coordinate | None], ...]
+    joint_names: tuple[str, ...]
+    mount: np.ndarray
+
+
+@dataclass(frozen=True)
+class _Pose:
+    matrix: np.ndarray
+
+    @cached_property
+    def components(self) -> tuple[tuple[float, ...], tuple[float, ...]]:
+        # The symmetric eigenproblem is stable near pi rotations.
+        r = self.matrix[:3, :3]
+        k = np.array([[r[0,0]-r[1,1]-r[2,2], r[0,1]+r[1,0], r[0,2]+r[2,0], r[2,1]-r[1,2]],
+                      [r[0,1]+r[1,0], r[1,1]-r[0,0]-r[2,2], r[1,2]+r[2,1], r[0,2]-r[2,0]],
+                      [r[0,2]+r[2,0], r[1,2]+r[2,1], r[2,2]-r[0,0]-r[1,1], r[1,0]-r[0,1]],
+                      [r[2,1]-r[1,2], r[0,2]-r[2,0], r[1,0]-r[0,1], np.trace(r)]])
+        return tuple(map(float, self.matrix[:3, 3])), tuple(map(float, np.linalg.eigh(k)[1][:, -1]))
+
+
 class CameraPoseModel:
     """Evaluate base-to-optical poses without opening a device or commanding a joint.
 
@@ -48,41 +80,69 @@ class CameraPoseModel:
         if hashlib.sha256(model.read_bytes()).hexdigest() != self.config['model_sha256']:
             raise ValueError('Camera kinematic model hash mismatch')
         root = ET.parse(model).getroot()
-        self.incoming = {j.find('child').get('link'): j for j in root.findall('joint')}
-        self.chains = {}
+        incoming = {j.find('child').get('link'): j for j in root.findall('joint')}
+        self._chains: dict[str, _CameraChain] = {}
+        self._cache: dict[str, tuple[tuple[float, ...], _Pose]] = {}
         for camera, cfg in self.config['cameras'].items():
             chain, child = [], cfg['parent_frame']
             while child != 'base_link':
-                joint = self.incoming[child]
+                joint = incoming[child]
                 chain.append(joint)
                 child = joint.find('parent').get('link')
-            self.chains[camera] = list(reversed(chain))
             matrix = np.asarray(cfg['parent_T_camera'], dtype=float)
             if (matrix.shape != (4, 4) or not np.isfinite(matrix).all()
                     or not np.allclose(matrix[3], [0, 0, 0, 1])
                     or not np.allclose(matrix[:3, :3].T @ matrix[:3, :3], np.eye(3), atol=1e-8)
                     or not math.isclose(np.linalg.det(matrix[:3, :3]), 1., abs_tol=1e-8)):
                 raise ValueError('Invalid camera mount transform')
-
-    def poses(self, positions: dict[str, float]) -> dict[str, np.ndarray]:
-        result = {}
-        for camera, chain in self.chains.items():
-            matrix = np.eye(4)
+            steps = []
             try:
-                for joint in chain:
-                    matrix = matrix @ origin(joint.find('origin'))
+                for joint in reversed(chain):
+                    coordinate = None
                     if joint.get('type') != 'fixed':
-                        cfg = self.config['joint_coordinates'][joint.get('name')]
-                        q = positions[cfg['source_joint']] * cfg['scale'] + cfg['offset_rad']
-                        if not math.isfinite(q):
-                            raise ValueError('Nonfinite camera joint coordinate')
-                        turn = np.eye(4)
-                        turn[:3, :3] = rotation(np.fromstring(joint.find('axis').get('xyz'), sep=' '), q)
-                        matrix = matrix @ turn
+                        mapping = self.config['joint_coordinates'][joint.get('name')]
+                        coordinate = _Coordinate(
+                            mapping['source_joint'], mapping['scale'], mapping['offset_rad'],
+                            np.fromstring(joint.find('axis').get('xyz'), sep=' '))
+                    steps.append((origin(joint.find('origin')), coordinate))
             except KeyError:
                 continue
-            result[camera] = matrix @ np.array(self.config['cameras'][camera]['parent_T_camera'])
+            names = tuple(dict.fromkeys(coordinate.name for _, coordinate in steps if coordinate is not None))
+            self._chains[camera] = _CameraChain(tuple(steps), names, matrix)
+
+    def _evaluate(self, positions: dict[str, float]) -> dict[str, _Pose]:
+        result = {}
+        for camera, chain in self._chains.items():
+            try:
+                values = tuple(positions[name] for name in chain.joint_names)
+            except KeyError:
+                continue
+            cached = self._cache.get(camera)
+            if cached is not None and values == cached[0]:
+                result[camera] = cached[1]
+                continue
+            matrix = np.eye(4)
+            for transform, coordinate in chain.steps:
+                matrix = matrix @ transform
+                if coordinate is not None:
+                    q = positions[coordinate.name] * coordinate.scale + coordinate.offset
+                    if not math.isfinite(q):
+                        raise ValueError('Nonfinite camera joint coordinate')
+                    turn = np.eye(4)
+                    turn[:3, :3] = rotation(coordinate.axis, q)
+                    matrix = matrix @ turn
+            pose = _Pose(matrix @ chain.mount)
+            self._cache[camera] = (values, pose)
+            result[camera] = pose
         return result
+
+    def poses(self, positions: dict[str, float]) -> dict[str, np.ndarray]:
+        """Return independent base-to-camera matrices for complete joint chains."""
+        return {camera: pose.matrix.copy() for camera, pose in self._evaluate(positions).items()}
+
+    def pose_components(self, positions: dict[str, float]) -> dict[str, tuple[tuple[float, ...], tuple[float, ...]]]:
+        """Return the translation and xyzw rotation for each complete camera chain."""
+        return {camera: pose.components for camera, pose in self._evaluate(positions).items()}
 
 
 def remove_camera_frames(model: str, frames: set[str]) -> str:
@@ -137,25 +197,18 @@ def main(args=None):
             age = (self.get_clock().now().nanoseconds - stamp_ns) / 1e9
             if not 0 <= age < .5:
                 return
-            poses = self.model.poses(dict(zip(msg.name, msg.position)))
+            poses = self.model.pose_components(dict(zip(msg.name, msg.position)))
             messages = []
-            for camera, matrix in poses.items():
+            for camera, (translation, quaternion) in poses.items():
                 cfg = self.model.config['cameras'][camera]
-                # A symmetric eigenproblem avoids a scipy dependency near pi rotations.
-                r = matrix[:3, :3]
-                k = np.array([[r[0,0]-r[1,1]-r[2,2], r[0,1]+r[1,0], r[0,2]+r[2,0], r[2,1]-r[1,2]],
-                              [r[0,1]+r[1,0], r[1,1]-r[0,0]-r[2,2], r[1,2]+r[2,1], r[0,2]-r[2,0]],
-                              [r[0,2]+r[2,0], r[1,2]+r[2,1], r[2,2]-r[0,0]-r[1,1], r[1,0]-r[0,1]],
-                              [r[2,1]-r[1,2], r[0,2]-r[2,0], r[1,0]-r[0,1], np.trace(r)]])
-                quat = np.linalg.eigh(k)[1][:, -1]
                 for frame in cfg['optical_frames']:
                     transform = TransformStamped()
                     transform.header = msg.header
                     transform.header.frame_id = 'base_link'
                     transform.child_frame_id = frame
                     p, q = transform.transform.translation, transform.transform.rotation
-                    p.x, p.y, p.z = map(float, matrix[:3, 3])
-                    q.x, q.y, q.z, q.w = map(float, quat)
+                    p.x, p.y, p.z = translation
+                    q.x, q.y, q.z, q.w = quaternion
                     messages.append(transform)
             self.tf.sendTransform(messages)
             self.status.publish(String(data=json.dumps({'config_file': str(self.model.path),

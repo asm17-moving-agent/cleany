@@ -148,7 +148,7 @@ ros2 launch cleany_moveit_config freecad_inspection.launch.py
 
 ```bash
 collision_cache="$HOME/cleany-data/freecad-collision-indexed"
-"$HOME/cleany/runtime/curobo-venv/bin/python" tools/prepare_freecad_collision_cache.py \
+"${CLEANY_CUROBO_VENV:-$HOME/.local/opt/cleany/curobo078/venv}/bin/python" tools/prepare_freecad_collision_cache.py \
   ros2_ws/src/cleany_description "$collision_cache"
 ros2 launch cleany_moveit_config freecad_inspection.launch.py collision_cache:="$collision_cache"
 ```

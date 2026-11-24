@@ -289,6 +289,11 @@ class GraspNode(Node):
         )
         self.declare_parameter('geometric.approach_tilt_degrees', 0.0)
         self.declare_parameter('geometric.search_approach_tilts', False)
+        self.declare_parameter('geometric.search_side_approaches', False)
+        self.declare_parameter('geometric.side_approach_tilts', [65.0, 80.0, 90.0])
+        self.declare_parameter('geometric.side_depth_offset_m', 0.0)
+        self.declare_parameter('geometric.round_width_fit_tolerance_m', 0.0)
+        self.declare_parameter('geometric.ignore_topdown_support', False)
         self.declare_parameter('geometric.include_reverse_closing_axis', False)
         self.declare_parameter('geometric.prefer_upward_closing_axis', False)
         self.declare_parameter('geometric.search_longitudinal_contacts', False)
@@ -527,6 +532,13 @@ class GraspNode(Node):
                 raise ValueError('Approach reference positions need flattened xyz triples')
             return GeometricGraspPredictor(
                 GeometricGraspConfig(
+                    side_approach_tilts=tuple(self.get_parameter(
+                        'geometric.side_approach_tilts').value) if self.get_parameter(
+                            'geometric.search_side_approaches').value else (),
+                    side_depth_offset_m=float(self.get_parameter('geometric.side_depth_offset_m').value),
+                    round_width_fit_tolerance_m=float(self.get_parameter(
+                        'geometric.round_width_fit_tolerance_m').value),
+                    ignore_topdown_support=bool(self.get_parameter('geometric.ignore_topdown_support').value),
                     defer_support_plane_collision=bool(self.get_parameter(
                         'geometric.defer_support_plane_collision').value),
                     longitudinal_offset_fractions=tuple(float(v) for v in self.get_parameter(

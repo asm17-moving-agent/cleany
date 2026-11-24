@@ -357,11 +357,9 @@ make build-jetson-control
 source "$(make -s print-install-base)/setup.bash"
 ```
 
-`CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
-`CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
-`INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
-호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
-`INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
+빌드·설치 경로는 [빌드와 출력 경로](#6-빌드와-출력-경로)의 공통 규칙을 사용합니다.
+운영 Jetson은 체크아웃 루트의 빈 `.env.workspace-build`로 `ros2_ws`를 빌드 루트로 선택합니다.
+명시한 `CLEANY_BUILD_ROOT`가 우선합니다. 실제 설치 경로는 `make -s print-install-base`로 확인합니다.
 
 실물 실행은 [제어 실행 절차](how-to/manipulation.md#jetson-실물-실행-경로)를 따릅니다.
 

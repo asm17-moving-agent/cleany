@@ -194,6 +194,8 @@ class OperatorControl:
                        state='PENDING', created_at=time.time(), owner_pid=0)
             if action in ('approve', 'skip', 'propose'):
                 job.update(proposal=proposal or self.proposals.current(), proposal_policy=self.proposal_policy)
+            elif action == 'inspect':
+                job['proposal_policy'] = self.proposal_policy
             atomic_json(path, job)
             if action not in ('approve', 'skip'):
                 self.proposals.invalidate()

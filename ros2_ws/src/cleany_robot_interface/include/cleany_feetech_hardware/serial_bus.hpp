@@ -15,6 +15,11 @@ class ReadTimeout : public std::runtime_error
 public:
   using std::runtime_error::runtime_error;
 };
+class WriteReplyTimeout : public std::runtime_error
+{
+public:
+  using std::runtime_error::runtime_error;
+};
 class InvalidResponse : public std::runtime_error
 {
 public:

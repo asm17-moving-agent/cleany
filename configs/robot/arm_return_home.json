@@ -1,21 +1,21 @@
 {
   "frame": "base_link",
-  "recorded_at": "2026-10-27T01:22:28.418145+09:00",
-  "source": "ReadOnlyBus: median of 11 stable calibrated encoder samples; operator-designated persistent home; no register writes",
+  "recorded_at": "2026-11-23T06:46:23.208842+09:00",
+  "source": "ReadOnlyBus: median of 11 stable encoder samples verified against current control limits; operator-designated home",
   "arms": {
     "left": [
-      -1.5493205957644975,
-      3.437650945651722,
-      3.136990711226136,
-      -1.6398254622497503,
-      1.5938060386131812
+      -1.533980787885641,
+      3.462194638257892,
+      3.1231848841351653,
+      -3.2842528668631576,
+      1.4795244699157009
     ],
     "right": [
-      1.53091282630987,
-      3.451456772742693,
-      3.132388768862479,
-      -1.6352235198860934,
-      1.560058461279697
+      1.5615924420675826,
+      2.9421751511646597,
+      3.155398480680764,
+      -3.368621810196868,
+      1.5669613748251825
     ]
   }
 }

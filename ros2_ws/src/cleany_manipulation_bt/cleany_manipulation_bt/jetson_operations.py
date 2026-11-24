@@ -15,11 +15,12 @@ from cleany_interfaces.srv import (CheckManipulation, GetSceneSnapshot,
 from cleany_skill_executor.collection_pipeline import CollectionPipeline
 from cleany_skill_executor.core.automatic_goal import target_skill_name
 from cleany_skill_executor.core.collection import (
-    contact_verification_required, grasp_identity_verification_required, temporary_return_mode,
+    contact_verification_required, grasp_identity_verification_required, supervised_placement_mode, temporary_return_mode,
 )
 from cleany_skill_executor.core.physical_grasp_selection import (
     ARM_JOINT_NAMES, REQUIRED_JOINT_NAMES, InfrastructureError,
 )
+from cleany_skill_executor.core.rear_bin import rear_bin_mode
 from cleany_skill_executor.core.hardware_execution import ExecutionCanceled
 from cleany_skill_executor.core.target_filter import select_closest_eligible
 from cleany_skill_executor.manipulation.models import Error, ObjectState, Placement
@@ -329,7 +330,7 @@ class JetsonOperations(CollectionPipeline):
             stop_confirmed=True if context.stop_confirmed else None)
 
     def validate(self, context):
-        temporary = temporary_return_mode(self.config)
+        temporary = supervised_placement_mode(self.config)
         if self.config.get('operation_mode', 'full_collection') != 'full_collection' and not temporary:
             raise OperationError(Error.DESTINATION_UNAVAILABLE,
                 'Collection Actions require commissioned full_collection destinations; current profile is hold-only')
@@ -428,8 +429,9 @@ class JetsonOperations(CollectionPipeline):
         center = context.inspected.objects.objects[0].obb_pose.position
         arms = [arm for arm in (('left', 'right') if center.y >= 0 else ('right', 'left'))
                 if arm in self.config['arms']]
-        for arm in arms:
-            self._selection_detail = f'arm={arm}: waiting for candidate IK and path selection'
+        requests = ('',) if len(arms) == 2 and self.config.get('batch_grasp_ik_before_limit') else arms
+        for arm in requests:
+            self._selection_detail = f'arm={arm or "both"}: waiting for candidate IK and path selection'
             self._selection_progress(force=True)
             selected = self.run_action(self._selection, SelectReachableGrasp.Goal(
                 candidates=context.grasps.candidates, required_arm=arm),
@@ -447,7 +449,8 @@ class JetsonOperations(CollectionPipeline):
                 raise OperationError(code, f'{arm}: {selected.message}')
         else:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'No reachable commissioned arm')
-        if (selected.selected_arm != arm or selected.selected_candidate.snapshot_id != context.goal.snapshot_id
+        if (selected.selected_arm not in ((arm,) if arm else arms)
+                or selected.selected_candidate.snapshot_id != context.goal.snapshot_id
                 or selected.selected_candidate.object_id != context.goal.object_id):
             raise OperationError(Error.STALE_TARGET, 'Motion selector changed approved object or arm')
         result = ValidatePick.Result(success=True, reference_id=context.verification_id,
@@ -457,6 +460,8 @@ class JetsonOperations(CollectionPipeline):
         ValidatePickNode._copy_selection_result(result, selected)
         context.selected = result
         self.before_execution(result)
+        if rear_bin_mode(self.config):
+            self.check_rear_bin_standby(result.selected_arm)
         if self.destination != context.goal.destination_id:
             raise OperationError(Error.DESTINATION_UNAVAILABLE, 'Selected-arm destination mismatch')
         self.before_observation = self.after_observation = None
@@ -655,6 +660,9 @@ class JetsonOperations(CollectionPipeline):
         return Observation(object_state=ObjectState.HELD)
 
     def carry(self, context):
+        if rear_bin_mode(self.config):
+            self.carry_to_rear_bin(context.selected.selected_arm, self.report)
+            return Observation(message='Payload reached rear opening via route A')
         if temporary_return_mode(self.config):
             self.report.update(self.return_to_pickup(context.selected.selected_arm, self.pregrasp_pose))
             return Observation(message='Pickup return motion completed')
@@ -663,6 +671,12 @@ class JetsonOperations(CollectionPipeline):
         return Observation()
 
     def check_placement(self, context):
+        if rear_bin_mode(self.config):
+            try:
+                self.check_rear_bin_release(context.selected.selected_arm)
+            except ValueError as error:
+                raise OperationError(Error.DESTINATION_UNAVAILABLE, str(error)) from error
+            return Observation()
         if temporary_return_mode(self.config):
             try:
                 self.check_pickup_arrival(context.selected.selected_arm)
@@ -707,9 +721,13 @@ class JetsonOperations(CollectionPipeline):
         raise OperationError(Error.VERIFICATION_TIMEOUT, 'Independent object/destination outcome not confirmed')
 
     def confirm_release(self, context):
-        if temporary_return_mode(self.config):
+        if supervised_placement_mode(self.config):
             self.report.update(release_verified=False, placement_verified=False, placement_state='ASSUMED')
-            self.event('release_assumed_at_pickup', destination_id=context.goal.destination_id)
+            event = 'release_assumed_at_pickup'
+            if rear_bin_mode(self.config):
+                event = ('release_assumed_at_rear_bin' if self.current_node == 'ConfirmRelease'
+                         else 'release_assumed_in_place')
+            self.event(event, destination_id=context.goal.destination_id)
         else:
             self._outcome(context, CheckManipulation.Request.RELEASE, context.release_stamp_ns)
         context.release_confirmed = True
@@ -722,6 +740,12 @@ class JetsonOperations(CollectionPipeline):
 
     def return_arm(self, context):
         arm = context.selected.selected_arm
+        if rear_bin_mode(self.config) and self.current_node == 'ReturnArm':
+            if not context.release_confirmed:
+                raise RuntimeError('Rear bin return requires a completed release')
+            self.return_from_rear_bin(arm)
+            context.arm_recovered = True
+            return Observation(arm_recovered=True)
         retreat = temporary_return_mode(self.config) and context.release_confirmed
         prepare = getattr(self.real, 'return_preparation', None)
         with prepare(arm) if retreat and prepare is not None else nullcontext():
@@ -737,7 +761,7 @@ class JetsonOperations(CollectionPipeline):
         return move_arm_return(self, arm, home, gripper_closed, planned_event=planned_event)
 
     def verify(self, context):
-        placement = Placement.ASSUMED if temporary_return_mode(self.config) else Placement.CONFIRMED
+        placement = Placement.ASSUMED if supervised_placement_mode(self.config) else Placement.CONFIRMED
         if placement == Placement.CONFIRMED:
             self._outcome(context, CheckManipulation.Request.PLACEMENT, self.get_clock().now().nanoseconds)
         confirmed = self._assess_stationary(context, cancel=False, reuse_final=True)

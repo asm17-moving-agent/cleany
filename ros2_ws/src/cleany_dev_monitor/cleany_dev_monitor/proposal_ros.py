@@ -13,7 +13,7 @@ from uuid import uuid4
 from PIL import Image as PILImage, ImageDraw, ImageFont
 from cleany_interfaces.srv import GetSceneSnapshot, RevalidateTarget
 from cleany_skill_executor.core.automatic_goal import select_automatic_target
-from cleany_skill_executor.core.collection import temporary_local_target_selection, temporary_return_mode
+from cleany_skill_executor.core.collection import supervised_placement_mode, temporary_local_target_selection
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from sensor_msgs.msg import Image
 
@@ -62,7 +62,8 @@ class ProposalROS(OperatorROS):
         if skip:
             if not previous or previous.get('state') != 'READY':
                 raise ValueError('건너뛸 제안이 없습니다. 다시 제안받으세요.')
-            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=previous['snapshot_id']))
+            cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=previous['snapshot_id']),
+                               read_only_label='원본 장면 조회')
             if not cached.found or cached.detections.snapshot_id != previous['snapshot_id']:
                 raise ValueError('제안 관측이 만료되었습니다. 다시 제안받으세요.')
             scene = cached.detections
@@ -136,6 +137,25 @@ class ProposalROS(OperatorROS):
         self.store.save(proposal, jpeg)
         return proposal
 
+    def inspect_for_monitor(self, image_id, cancelled):
+        """Keep the detections and the numbered image from the same RGB capture."""
+        started = time.monotonic()
+        scene = self.inspect_scene(cancelled)
+        observed = time.monotonic()
+        data = self._observation_record(scene)
+        data['objects'] = data.pop('targets')
+        jpeg = self.capture_image(scene, None, cancelled)
+        if cancelled():
+            raise InterruptedError('장면 인식을 중단했습니다.')
+        data['image_available'] = jpeg is not None
+        if jpeg is not None:
+            self.store.save_image(image_id, jpeg)
+            frame = next((im for im in list(self.images) if im.header == scene.header), None)
+            if frame is not None:
+                data.update(source_width=frame.width, source_height=frame.height)
+        data["seconds"] = {"inspection": observed - started, "capture": time.monotonic() - observed}
+        return data
+
     def capture_image(self, scene, target, cancelled):
         deadline = time.monotonic() + 3.
         while not cancelled() and time.monotonic() < deadline:
@@ -174,7 +194,7 @@ class ProposalROS(OperatorROS):
             if cancelled():
                 raise InterruptedError('승인 실행을 취소했습니다.')
             config = self._validate_cached_approval(proposal)
-            if (temporary_return_mode(config) and config.get('assume_stationary_target') is True
+            if (supervised_placement_mode(config) and config.get('assume_stationary_target') is True
                     and config.get('visual_servo_enabled') is False
                     and config.get('wrist_observation_enabled') is False):
                 audit['mode'] = 'stationary_target_assumed'
@@ -192,7 +212,8 @@ class ProposalROS(OperatorROS):
             write_json(self.store.root / 'revalidations' / f"{proposal['id']}.json", audit)
 
     def _validate_cached_approval(self, proposal: dict) -> dict:
-        cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=proposal['snapshot_id']))
+        cached = self.call(self.lookup, GetSceneSnapshot.Request(snapshot_id=proposal['snapshot_id']),
+                           read_only_label='원본 장면 조회')
         if not cached.found or cached.detections.snapshot_id != proposal['snapshot_id']:
             raise ValueError('승인한 관측이 만료되었습니다. 다시 제안받으세요.')
         target = proposal['target']

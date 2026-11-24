@@ -1,0 +1,812 @@
+{
+  "schema_version": 1,
+  "intended_use": "offline nominal trajectory candidates, not live authorization",
+  "created_at": "2026-11-23T20:05:25.206387+09:00",
+  "dynamic_entry": "Plan at runtime from measured lift pose to first stored waypoint. No entry trajectory in this file.",
+  "stage_order": [
+    "rear_bin_transport",
+    "release_at_rear_bin",
+    "rear_bin_retreat",
+    "rear_bin_park",
+    "rear_bin_standby",
+    "rear_bin_close_at_standby"
+  ],
+  "note": "Arm trajectories only. Release and final gripper close retain their existing execution steps. Live dispatch must validate the measured start, wrist roll, payload, and latest scene.",
+  "interpolation": "monotone cubic, with continuous waypoint velocities in the left-arm return; points use ROS JointTrajectory seconds/nanoseconds and radians",
+  "planner_timing": {
+    "velocity_scaling": 0.1,
+    "joint_acceleration_limit_rad_s2": 1.0,
+    "acceleration_scaling": 0.1
+  },
+  "source_files": {
+    "robot_urdf": {
+      "path": "/home/cleany/.local/share/cleany/real_control/1795426738258577430/robot.urdf",
+      "sha256": "af2741288b56daefb1529a9449d78177297dad586a6dae3b047d2a0bd167eeec"
+    },
+    "rear_bin": {
+      "path": "/home/cleany/cleany/configs/robot/dev_monitor_rear_bin_a.json",
+      "sha256": "0ea93b43129ec9b1022aa4876c25a5ca1f2dbb4ba0cfb3fd4ba537b6ec76c232"
+    },
+    "home": {
+      "path": "/home/cleany/cleany/configs/robot/arm_return_home.json",
+      "sha256": "90db87c90e08b04fd21d8509e40928a777baaf4e1ab8519039c23ecf8cf2e621"
+    },
+    "collection": {
+      "path": "/home/cleany/cleany/configs/robot/jetson/collection.json",
+      "sha256": "6b120300b83545bc3bdbde88d35004ec6cfeebb18821815c6e4ea03bd583cd86"
+    },
+    "last_left_execution": {
+      "path": "/home/cleany/cleany/runtime/collection-operator/20261123-183855/logs/manipulation-action.log",
+      "sha256": "059cf27f7bf56d38a88987700c0b48037290f409d28eae6c703a8ef451e07fb4"
+    },
+    "archived_octomap": {
+      "path": "/home/cleany/cleany-data/runs/grasp-ik-shortlist-20261119.n5dfbr52/replay-world.cdr",
+      "sha256": "a5576a0c1407636a03b38371136eeb5d1faafd314da18524f66ec47307ee01fa"
+    },
+    "robot_control_urdf": {
+      "path": "/home/cleany/.local/share/cleany/real_control/1795426738258577430/robot_control.urdf",
+      "sha256": "7fd690edd50f12498d19e8892403fbddbe7262ef7999ae2eb5dcb07cd9826d51"
+    }
+  },
+  "home_recorded_at": "2026-11-23T06:46:23.208842+09:00",
+  "home_joint_rad": {
+    "left": [
+      -1.533980787885641,
+      3.462194638257892,
+      3.1231848841351653,
+      -3.2842528668631576,
+      1.4795244699157009
+    ],
+    "right": [
+      1.5615924420675826,
+      2.9421751511646597,
+      3.155398480680764,
+      -3.368621810196868,
+      1.5669613748251825
+    ]
+  },
+  "arms": {
+    "left": {
+      "wrist_roll_reference_rad": 1.4902623354309004,
+      "wrist_roll_source": "last left lift encoder value",
+      "carried_payload_in_replay": "18:41 attached box model",
+      "stages": {
+        "rear_bin_transport": {
+          "waypoints": [
+            "lift_complete",
+            "sweep_out",
+            "side_clearance",
+            "rear_sweep",
+            "rim_entry",
+            "release"
+          ],
+          "duration_sec": 20.70879075,
+          "trajectory": {
+            "joint_names": [
+              "left_shoulder_yaw_joint",
+              "left_shoulder_pitch_joint",
+              "left_elbow_pitch_joint",
+              "left_wrist_pitch_joint",
+              "left_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  -1.693546277,
+                  3.185909544,
+                  2.973387081,
+                  -0.963940735,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  -0.975791013,
+                  3.282663417,
+                  2.772425003,
+                  -0.666623992,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  0.18858007140970137,
+                  0.022540038490526763,
+                  -0.038456477850361034,
+                  0.07113649319147022,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 4,
+                  "nanosec": 957943522
+                }
+              },
+              {
+                "positions": [
+                  0.027951326,
+                  3.383658788,
+                  2.631302758,
+                  -0.336845991,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  0.21695053279732468,
+                  0.0,
+                  0.0,
+                  -2.889366205073613e-17,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 8,
+                  "nanosec": 800388355
+                }
+              },
+              {
+                "positions": [
+                  0.902185512,
+                  3.189578065,
+                  2.80380381,
+                  -0.878132021,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  0.18033782713643987,
+                  -0.052122243497714923,
+                  0.040672934780189074,
+                  -0.11319676234279959,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 13,
+                  "nanosec": 563526108
+                }
+              },
+              {
+                "positions": [
+                  1.418062674,
+                  2.991156814,
+                  2.935681837,
+                  -1.205663001,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  0.14383622284385847,
+                  -0.0038848851451300497,
+                  0.042627461038262225,
+                  -0.06297612282810437,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 16,
+                  "nanosec": 466602600
+                }
+              },
+              {
+                "positions": [
+                  1.919870453,
+                  2.983190847,
+                  3.104710605,
+                  -1.383685637,
+                  1.4902623354309004
+                ],
+                "velocities": [
+                  -2.617099914648743e-17,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 20,
+                  "nanosec": 708790750
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 608,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": false,
+              "first_invalid_sample": 0,
+              "contacts": [
+                {
+                  "body_1": "<octomap>",
+                  "body_2": "physical_payload_6cf01001-d598-48ca-a820-cb71e2d621c7",
+                  "position_m": [
+                    0.33649775192192927,
+                    0.13999258779965534,
+                    0.32868752730729656
+                  ],
+                  "depth_m": 0.0026249872455356197
+                }
+              ]
+            }
+          }
+        },
+        "rear_bin_return": {
+          "waypoints": [
+            "release",
+            "rim_entry",
+            "rear_sweep",
+            "return_side_clearance",
+            "park",
+            "captured_home"
+          ],
+          "duration_sec": 24.065498042,
+          "trajectory": {
+            "joint_names": [
+              "left_shoulder_yaw_joint",
+              "left_shoulder_pitch_joint",
+              "left_elbow_pitch_joint",
+              "left_wrist_pitch_joint",
+              "left_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  1.919870453,
+                  2.983190847,
+                  3.104710605,
+                  -1.383685637,
+                  1.4994662201582143
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  1.418062674,
+                  2.991156814,
+                  2.935681837,
+                  -1.205663001,
+                  1.4994662201582143
+                ],
+                "velocities": [
+                  -0.12148149861187116,
+                  0.003520463519677711,
+                  -0.03558783547259876,
+                  0.05442380291800165,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 4,
+                  "nanosec": 460112853
+                }
+              },
+              {
+                "positions": [
+                  0.902185512,
+                  3.189578065,
+                  2.80380381,
+                  -0.878132021,
+                  1.4994662201582143
+                ],
+                "velocities": [
+                  -0.13876462258186456,
+                  0.025852904642951386,
+                  7.076675297710473e-18,
+                  4.95367270839733e-17,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 8,
+                  "nanosec": 382233686
+                }
+              },
+              {
+                "positions": [
+                  0.025165644,
+                  3.287720031,
+                  2.918780997,
+                  -1.744335526,
+                  1.4994662201582143
+                ],
+                "velocities": [
+                  -0.16593295345816267,
+                  0.01856854890884651,
+                  0.021753787883687672,
+                  -0.16388648768213618,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 14,
+                  "nanosec": 304303270
+                }
+              },
+              {
+                "positions": [
+                  -0.803130898,
+                  3.380409666,
+                  3.027370562,
+                  -2.562416613,
+                  1.4795244699157009
+                ],
+                "velocities": [
+                  -0.15893609625168473,
+                  0.017785573190642816,
+                  0.020836500804799506,
+                  -0.15697592331606733,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 18,
+                  "nanosec": 749273281
+                }
+              },
+              {
+                "positions": [
+                  -1.533980787885641,
+                  3.462194638257892,
+                  3.1231848841351653,
+                  -3.2842528668631576,
+                  1.4795244699157009
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 24,
+                  "nanosec": 65498042
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 664,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": true
+            }
+          }
+        }
+      },
+      "stage_order": [
+        "rear_bin_transport",
+        "release",
+        "rear_bin_return",
+        "rear_bin_close_at_standby"
+      ],
+      "return_wrist_roll_reference_rad": 1.4994662201582143
+    },
+    "right": {
+      "wrist_roll_reference_rad": 1.5700293364009537,
+      "wrist_roll_source": "last observed idle right encoder value",
+      "carried_payload_in_replay": "none; no right-side payload recorded",
+      "stages": {
+        "rear_bin_transport": {
+          "waypoints": [
+            "lift_complete",
+            "sweep_out",
+            "side_clearance",
+            "rear_sweep",
+            "rim_entry",
+            "release"
+          ],
+          "duration_sec": 20.774589869,
+          "trajectory": {
+            "joint_names": [
+              "right_shoulder_yaw_joint",
+              "right_shoulder_pitch_joint",
+              "right_elbow_pitch_joint",
+              "right_wrist_pitch_joint",
+              "right_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  1.70927504,
+                  2.591263298,
+                  2.837625942,
+                  -0.90177752,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  0.991129317,
+                  2.761639158,
+                  2.811832613,
+                  -0.711604899,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -0.1863351955490598,
+                  0.02909217334966285,
+                  -0.009317847059717619,
+                  0.05289741225630936,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 4,
+                  "nanosec": 973368142
+                }
+              },
+              {
+                "positions": [
+                  -0.014279313,
+                  2.862339344,
+                  2.671735314,
+                  -0.388106253,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -0.2149270402345121,
+                  0.0,
+                  1.7590456578118236e-17,
+                  1.4072365262494587e-17,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 8,
+                  "nanosec": 918060466
+                }
+              },
+              {
+                "positions": [
+                  -0.883622929,
+                  2.668825872,
+                  2.842983521,
+                  -0.919085572,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -0.1805660893059861,
+                  -0.052294073904573336,
+                  0.04061456755992378,
+                  -0.11166007837281629,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 13,
+                  "nanosec": 635750553
+                }
+              },
+              {
+                "positions": [
+                  -1.397876252,
+                  2.470984558,
+                  2.973903742,
+                  -1.240379984,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -0.14372978628616356,
+                  -0.0038752694309636543,
+                  0.042365135135224746,
+                  -0.06182818476558168,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 16,
+                  "nanosec": 532591144
+                }
+              },
+              {
+                "positions": [
+                  -1.899328973,
+                  2.463041874,
+                  3.141704884,
+                  -1.415012863,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -2.6172167807343817e-17,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 20,
+                  "nanosec": 774589869
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 604,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": true
+            }
+          }
+        },
+        "rear_bin_retreat": {
+          "waypoints": [
+            "release",
+            "rim_entry",
+            "rear_sweep",
+            "side_clearance"
+          ],
+          "duration_sec": 13.03630663,
+          "trajectory": {
+            "joint_names": [
+              "right_shoulder_yaw_joint",
+              "right_shoulder_pitch_joint",
+              "right_elbow_pitch_joint",
+              "right_wrist_pitch_joint",
+              "right_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  -1.899328973,
+                  2.463041874,
+                  3.141704884,
+                  -1.415012863,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  -1.397876252,
+                  2.470984558,
+                  2.973903742,
+                  -1.240379984,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  0.1414537889563064,
+                  0.0038454521753933627,
+                  -0.041636308589823215,
+                  0.06101679742220568,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 4,
+                  "nanosec": 250096318
+                }
+              },
+              {
+                "positions": [
+                  -0.883622929,
+                  2.668825872,
+                  2.842983521,
+                  -0.919085572,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  0.16138604586302716,
+                  0.045988555834692066,
+                  -0.03602332459179709,
+                  0.09973199693296717,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 7,
+                  "nanosec": 241670989
+                }
+              },
+              {
+                "positions": [
+                  -0.014279313,
+                  2.862339344,
+                  2.671735314,
+                  -0.388106253,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  -5.747849010975584e-17,
+                  0.0,
+                  -4.789874175812988e-18,
+                  -5.747849010975584e-17,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 13,
+                  "nanosec": 36306630
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 372,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": true
+            }
+          }
+        },
+        "rear_bin_park": {
+          "waypoints": [
+            "side_clearance",
+            "park"
+          ],
+          "duration_sec": 9.628682587,
+          "trajectory": {
+            "joint_names": [
+              "right_shoulder_yaw_joint",
+              "right_shoulder_pitch_joint",
+              "right_elbow_pitch_joint",
+              "right_wrist_pitch_joint",
+              "right_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  -0.014279313,
+                  2.862339344,
+                  2.671735314,
+                  -0.388106253,
+                  1.5700293364009537
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  1.53091282630987,
+                  2.8,
+                  2.9,
+                  -0.9,
+                  1.560058461279697
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 9,
+                  "nanosec": 628682587
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 534,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": true
+            }
+          }
+        },
+        "rear_bin_standby": {
+          "waypoints": [
+            "park",
+            "stored_home"
+          ],
+          "duration_sec": 12.17034546,
+          "trajectory": {
+            "joint_names": [
+              "right_shoulder_yaw_joint",
+              "right_shoulder_pitch_joint",
+              "right_elbow_pitch_joint",
+              "right_wrist_pitch_joint",
+              "right_wrist_roll_joint"
+            ],
+            "points": [
+              {
+                "positions": [
+                  1.53091282630987,
+                  2.8,
+                  2.9,
+                  -0.9,
+                  1.560058461279697
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 0,
+                  "nanosec": 0
+                }
+              },
+              {
+                "positions": [
+                  1.5615924420675826,
+                  2.9421751511646597,
+                  3.155398480680764,
+                  -3.368621810196868,
+                  1.5669613748251825
+                ],
+                "velocities": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "time_from_start": {
+                  "sec": 12,
+                  "nanosec": 170345460
+                }
+              }
+            ]
+          },
+          "validation": {
+            "sample_step_rad": 0.0087,
+            "samples": 853,
+            "joint_limits": "passed",
+            "robot_geometry": {
+              "valid": true
+            },
+            "archived_octomap_20261118": {
+              "valid": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 from types import SimpleNamespace as NS
 import pytest
 from rcl_interfaces.msg import ParameterType, ParameterValue
+from rclpy.task import Future
+
 import cleany_skill_executor.runtime_readiness as module
 
 @pytest.fixture
@@ -16,9 +18,10 @@ def probe(monkeypatch):
     controllers = NS(controller=[NS(name=name, state='active') for name in
         ('left_arm_controller', 'left_gripper_controller')])
     future = lambda result: NS(done=lambda: True, result=lambda: result)
-    node = NS(gui=False, get_node_names_and_namespaces=lambda: nodes,
+    node = NS(cold_controllers=(), gui=False, get_node_names_and_namespaces=lambda: nodes,
         get_service_names_and_types=lambda: services,
         parameter_future=future(parameter), parameter_retry=None, controllers_future=future(controllers),
+        controllers_retry=None, controllers_query_at=0.,
         parameter_client=NS(service_is_ready=lambda: False),
         controllers_client=NS(service_is_ready=lambda: False),
         warmup_client=NS(service_is_ready=lambda: False), warmup_future=None,
@@ -205,6 +208,38 @@ def test_configuration_query_timeout_is_bounded_after_graph_ready(probe):
     with pytest.raises(RuntimeError, match='query timed out'): module.ReadinessProbe.pending(node)
 
 
+@pytest.mark.parametrize('reply_index', [0, 1, None])
+def test_delayed_or_lost_controller_state_reply_requeries_within_startup_budget(probe, reply_index):
+    node, clock, _, _, _, _, controllers = probe
+    node.controllers_future = None
+    queries = []
+
+    def request(_request):
+        future = Future()
+        queries.append(future)
+        return future
+
+    node.controllers_client = NS(service_is_ready=lambda: True, call_async=request)
+    assert 'Controller state' in module.ReadinessProbe.pending(node)
+    clock[0] += 4.
+    assert 'Controller state' in module.ReadinessProbe.pending(node)
+    assert len(queries) == 1
+    clock[0] += 1.
+    assert 'Controller state' in module.ReadinessProbe.pending(node)
+    assert len(queries) == 2
+    if reply_index is not None:
+        queries[reply_index].set_result(controllers)
+        assert set(module.ReadinessProbe.pending(node)) == set(module.FEEDBACK)
+        clock[0] += 1.
+        node.received = {name: clock[0] for name in module.FEEDBACK}
+        assert module.ReadinessProbe.pending(node) == []
+    else:
+        clock[0] += 5.
+        with pytest.raises(RuntimeError, match='query timed out: Controller state'):
+            module.ReadinessProbe.pending(node)
+        assert len(queries) == 2
+
+
 def test_warmup_waits_beyond_configuration_timeout_then_requires_new_feedback(probe):
     node, clock, *_ = probe
     node.warmup_ready = False
@@ -274,3 +309,121 @@ def test_lost_moveit_reply_retries_without_accepting_an_unsafe_mode(probe):
     parameter.values[0].bool_value = True
     with pytest.raises(RuntimeError, match='allow_trajectory_execution=false'):
         module.moveit_execution_disabled(node, clock[0] - 5.)
+
+
+@pytest.mark.parametrize('stage', module.PLANNING_STARTUP_STAGES)
+def test_planning_inputs_require_fresh_guard_and_stage_dependencies(monkeypatch, stage):
+    clock = [10.]
+    monkeypatch.setattr(module.time, 'monotonic', lambda: clock[0])
+    services = []
+    validation_ready = [False]
+    node = NS(guard=None, guard_received=0., guard_ready_at=None, inputs_ready_at=None,
+              stage=stage, validation=NS(server_is_ready=lambda: validation_ready[0])
+              if stage == 'validation' else None,
+              received={topic: 9. for topic in module.FEEDBACK},
+              get_service_names_and_types=lambda: services)
+    pending = module.PlanningInputsStartupProbe.pending
+    guard = module.PlanningInputsStartupProbe._guard
+    ready = NS(data='{"state": "ready"}')
+    assert pending(node) == ['/real_control/status ready']
+    guard(node, ready)
+    expected = set(module.FEEDBACK)
+    if stage != 'scene':
+        expected.add('/grasp/plan')
+    if stage == 'validation':
+        expected.add('/grasp/validate_pick (server)')
+    assert set(pending(node)) == expected
+    services.append(('/grasp/plan', []))
+    validation_ready[0] = True
+    clock[0] = 11.
+    node.received = {topic: clock[0] for topic in module.FEEDBACK}
+    assert pending(node) == ['Fresh controller feedback after planning inputs']
+    clock[0] = 12.
+    guard(node, ready)
+    node.received['/joint_states'] = clock[0]
+    assert pending(node) == []
+    guard(node, NS(data='{"state": "fault"}'))
+    with pytest.raises(RuntimeError, match='guard is not ready: fault'):
+        pending(node)
+
+
+def test_load_admission_requires_consecutive_quiet_intervals(monkeypatch):
+    from cleany_skill_executor import startup_cpu
+    ticks = iter([(0, 0), (100, 25), (200, 30), (300, 60), (400, 85)])
+    clock = [0.]
+    monkeypatch.setenv('CLEANY_COLLECTION_START_CPU_PERCENT', '80')
+    monkeypatch.setattr(startup_cpu, 'cpu_ticks', lambda: next(ticks))
+    monkeypatch.setattr(startup_cpu.time, 'monotonic', lambda: clock[0])
+    window = startup_cpu.StartupCpuWindow()
+    for now in (.5, 1., 2., 3.):
+        clock[0] = now
+        assert not window.ready()
+    clock[0] = 4.
+    assert window.ready()
+
+
+def test_action_start_requires_one_server_and_stable_feedback(monkeypatch, tmp_path):
+    owners = []
+    actions = []
+    feedback = [False]
+    marker = tmp_path / 'ready'
+    node = NS(ready=lambda: feedback[0], get_publishers_info_by_topic=lambda _: owners,
+              stable_since=None, startup_marker=marker, startup_cpu=None)
+    monkeypatch.setattr(module, 'get_action_server_names_and_types_by_node', lambda *_: actions)
+    monkeypatch.setattr(module, 'StartupCpuWindow', lambda: NS(ready=lambda: True))
+    pending = lambda: module.ManipulationStartupProbe.pending(node)
+    assert pending() and not marker.exists()
+    feedback[0] = True
+    assert pending() and marker.exists() and node.startup_marker is None
+    assert pending() and node.stable_since is None
+    owners.append(NS(node_name='server', node_namespace='/'))
+    assert pending()
+    actions.append(('/manipulation/execute_skill', ['cleany_interfaces/action/ExecuteManipulationSkill']))
+    feedback[0] = False
+    assert pending()
+    feedback[0] = True
+    assert not pending()
+    owners.append(owners[0])
+    with pytest.raises(RuntimeError, match='Multiple'):
+        pending()
+
+
+def test_one_probe_reuses_participant_through_warmup(monkeypatch, capsys):
+    stages = []
+    node = NS(stage='control', sensor_subscriptions=[], destroy_node=lambda: None)
+    def pending():
+        stages.append(node.stage)
+        return []
+    node.pending = pending
+    advance = module.PlanningSequenceProbe.advance
+    node.advance = lambda: advance(node)
+    monkeypatch.setattr(module, 'PlanningSequenceProbe', lambda: node)
+    clock = [0.]
+    monkeypatch.setattr(module.time, 'monotonic', lambda: clock[0])
+    monkeypatch.setattr(module.rclpy, 'init', lambda **_: None)
+    monkeypatch.setattr(module.rclpy, 'ok', lambda: True)
+    monkeypatch.setattr(module.rclpy, 'spin_once', lambda *_, **kw: clock.__setitem__(0, clock[0] + .5))
+    monkeypatch.setattr(module.rclpy, 'try_shutdown', lambda: None)
+    assert module.main(['--planning-sequence', '--timeout', '5']) == 0
+    assert stages == ['control', 'receipt', 'scene', 'grasp', 'validation', 'warmup']
+    assert capsys.readouterr().out.count('CLEANY_START_STAGE ') == 5
+
+
+def test_cold_preflight_requires_inactive_controllers_and_gpu_warmup(probe):
+    node, clock, *_ = probe
+    node.cold_controllers = ('left_arm_controller', 'left_gripper_controller')
+    pending = module.ReadinessProbe.pending
+    assert 'Inactive arm/gripper controllers' in pending(node)
+    reply = NS(controller=[NS(name=name, state='inactive') for name in node.cold_controllers])
+    node.controllers_future = NS(done=lambda: True, result=lambda: reply)
+    node.warmup_ready = False
+    node.warmup_client.service_is_ready = lambda: False
+    assert set(pending(node)) == {'Primary GPU IK warmup', *module.FEEDBACK}
+    node.warmup_ready = True
+    assert set(pending(node)) == set(module.FEEDBACK)
+    clock[0] += 1.
+    node.received = {name: clock[0] for name in module.FEEDBACK}
+    assert pending(node) == []
+    node.guard = 'fault'
+    with pytest.raises(RuntimeError, match='guard is not ready: fault'):
+        pending(node)

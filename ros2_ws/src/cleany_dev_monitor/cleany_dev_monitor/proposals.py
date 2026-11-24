@@ -70,11 +70,20 @@ class ProposalStore:
     def invalidate(self) -> None:
         write_json(self.pointer, {})
 
+    def save_image(self, image_id: str, jpeg: bytes) -> None:
+        """Publish an authenticated observation image without changing the active proposal."""
+        name = identifier(image_id)
+        self.directory.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=self.directory, delete=False) as stream:
+            stream.write(jpeg)
+            temporary = Path(stream.name)
+        temporary.replace(self.directory / f'{name}.jpg')
+
     def save(self, proposal: dict, jpeg: bytes | None = None) -> None:
         proposal_id = identifier(proposal['id'])
         self.directory.mkdir(parents=True, exist_ok=True)
         if jpeg:
-            (self.directory / f'{proposal_id}.jpg').write_bytes(jpeg)
+            self.save_image(proposal_id, jpeg)
         write_json(self.directory / f'{proposal_id}.json', proposal)
         write_json(self.pointer, {'id': proposal_id})
 

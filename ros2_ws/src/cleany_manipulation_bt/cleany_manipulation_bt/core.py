@@ -435,7 +435,7 @@ class ExecutionCore:
                         self.failed_stage, record.last_completed_stage, record.object_state,
                         record.placement_state, record.selected_arm, record.stop_confirmed,
                         record.arm_recovered, False,
-                        ('Temporary return-to-pick completed; release and placement assumed'
+                        (f'{record.goal.destination_id} completed; release and placement assumed'
                          if record.placement_state == Placement.ASSUMED else 'Verified single-object collection') if success else
                         (self.failure.message if self.failure else 'Execution failed'),
                         failed_substage=self.failed_substage, cancel_mode=record.cancel_mode)

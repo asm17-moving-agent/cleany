@@ -639,7 +639,7 @@ Jetson의 cuRobo CUDA 환경에서는 아래 명령으로 CAD 저장 자세의 �
 확인합니다. LiDAR 표면과 차체에서 떨어진 지점에 시험 구를 배치합니다.
 
 ```bash
-"$HOME/cleany/runtime/curobo-venv/bin/python" tools/validation/check_freecad_curobo.py \
+"${CLEANY_CUROBO_VENV:-$HOME/.local/opt/cleany/curobo078/venv}/bin/python" tools/validation/check_freecad_curobo.py \
   ros2_ws/src/cleany_description
 ```
 

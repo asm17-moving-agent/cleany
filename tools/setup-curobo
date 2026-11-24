@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 시스템 CUDA PyTorch는 유지하고 cuRobo는 전용 환경에 설치합니다.
+# Install cuRobo in a dedicated environment using the system CUDA PyTorch.
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 motion_env="${CLEANY_CUROBO_VENV:-${HOME}/.local/opt/cleany/curobo078/venv}"

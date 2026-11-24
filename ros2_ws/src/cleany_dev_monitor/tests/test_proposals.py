@@ -78,7 +78,7 @@ def test_approval_observes_only_bound_target_and_records_failure_without_reclass
     cached = scene()
     cached.snapshot_id = approved['snapshot_id']
     cached.detections[0].object_id = approved['target']['object_id']
-    adapter.call = lambda *_: NS(found=True, detections=cached)
+    adapter.call = lambda *_, **_kwargs: NS(found=True, detections=cached)
     adapter.inspect_scene = lambda *_args, **_kwargs: pytest.fail('Approval must not invoke full-scene/Gemini inspection')
     attempts = []
     def observe(value, cancelled, requested_ns):
@@ -137,7 +137,8 @@ def test_stationary_approval_binds_cached_object_without_a_new_image(tmp_path, c
         cached.tracking_epoch = 'new-epoch'
 
     lookups = []
-    def lookup(client, request):
+    def lookup(client, request, *, read_only_label):
+        assert read_only_label == '원본 장면 조회'
         assert client is adapter.lookup and request.snapshot_id == approved['snapshot_id']
         lookups.append(request.snapshot_id)
         return NS(found=case != 'cache_missing', detections=cached)

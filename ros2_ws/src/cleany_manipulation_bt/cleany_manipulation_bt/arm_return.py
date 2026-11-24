@@ -1,14 +1,11 @@
 """Saved operator home poses and an explicit open-then-return operation."""
 from dataclasses import dataclass
-import json
-import math
-from pathlib import Path
 import threading
 import time
 from typing import Callable
 from uuid import uuid4
 
-from cleany_skill_executor.core.collection import load_arm
+from cleany_skill_executor.core.collection import load_arm, load_arm_home as load_home
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.manipulation.models import Goal
 
@@ -21,22 +18,6 @@ def selected_arms(arm: str) -> tuple[str, ...]:
     if arm in ARM_JOINT_NAMES:
         return (arm,)
     raise ValueError('arm must be left, right or both')
-
-
-def load_home(path: str) -> dict[str, tuple[float, ...]]:
-    raw = json.loads(Path(path).expanduser().read_text())
-    if (not isinstance(raw, dict) or raw.get('frame') != 'base_link'
-            or not isinstance(raw.get('arms'), dict)
-            or set(raw['arms']) != set(ARM_JOINT_NAMES)):
-        raise ValueError('Saved home must contain both arms in base_link')
-    result = {}
-    for arm, names in ARM_JOINT_NAMES.items():
-        values = raw['arms'][arm]
-        if (not isinstance(values, list) or len(values) != len(names)
-                or any(type(q) not in (int, float) or not math.isfinite(q) for q in values)):
-            raise ValueError(f'{arm}: home must contain five finite joint positions')
-        result[arm] = tuple(float(q) for q in values)
-    return result
 
 
 @dataclass(frozen=True)

@@ -549,8 +549,18 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
         if (arm_.read_value(j.id, 42, 2) != *j.stopped_goal_raw) {
           throw std::runtime_error("Startup goal verification failed");
         }
-        arm_.write_value(j.id, 40, 1, 1);
-        if (arm_.read_value(j.id, 40, 1) != 1) {throw std::runtime_error("Torque enable verification failed");}
+        bool torque_reply_missing = false;
+        try {arm_.write_value(j.id, 40, 1, 1);}
+        catch (const WriteReplyTimeout & error) {
+          torque_reply_missing = true;
+          RCLCPP_WARN(logger, "%s; checking torque register without retransmitting", error.what());
+        }
+        if (arm_.read_value(j.id, 40, 1) != 1) {
+          throw std::runtime_error("Torque enable verification failed for ID " + std::to_string(j.id));
+        }
+        if (torque_reply_missing) {
+          RCLCPP_INFO(logger, "Torque enable verified by readback for ID %d", j.id);
+        }
       }
     }
     if (!read_only_) {
@@ -633,10 +643,20 @@ hardware_interface::return_type FeetechSystem::write(const rclcpp::Time &, const
   if (fault_) {return hardware_interface::return_type::ERROR;}
   if (read_only_ || !active_) {return hardware_interface::return_type::OK;}
   try {
-    double dt = period.seconds();
-    if (!std::isfinite(dt) || dt <= 0 || dt > max_state_age_ ||
-      std::chrono::duration<double>(std::chrono::steady_clock::now() - last_read_).count() > max_state_age_)
-    {throw std::runtime_error("Stale state/control cycle");}
+    const double dt = period.seconds();
+    const double feedback_age =
+      std::chrono::duration<double>(std::chrono::steady_clock::now() - last_read_).count();
+    const bool command_pending = recovery_hold_pending_ || !claimed_.empty();
+    if (feedback_age > max_state_age_ ||
+      (command_pending && (!std::isfinite(dt) || dt <= 0 || dt > max_state_age_)))
+    {
+      throw std::runtime_error("Stale state/control cycle: period_ms=" + std::to_string(dt * 1000) +
+              " feedback_age_ms=" + std::to_string(feedback_age * 1000) +
+              " limit_ms=" + std::to_string(max_state_age_ * 1000));
+    }
+    // Activation already verified the hardware hold. With no controller claiming a
+    // joint, the cycle that overlapped activation has no command to send.
+    if (!command_pending) {return hardware_interface::return_type::OK;}
     if (recovery_hold_pending_) {
       std::vector<std::pair<int, int>> hold_targets;
       for (auto & j : joints_) {

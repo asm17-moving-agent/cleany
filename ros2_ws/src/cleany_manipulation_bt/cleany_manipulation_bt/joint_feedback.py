@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from functools import lru_cache
 import math
 from typing import Sequence
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class JointSample:
     stamp_ns: int
     received_at: float
@@ -42,6 +43,13 @@ class JointSample:
                                        after_ns=after_ns, after_wall=after_wall)
 
 
+@lru_cache(maxsize=32)
+def _joint_layout(names: tuple[str, ...], required: tuple[str, ...]) -> tuple[tuple[int, str, bool], ...]:
+    counts = Counter(names)
+    return tuple((index, name, counts[name] == 1)
+                 for index, name in enumerate(names) if name in required)
+
+
 class JointFeedback:
     def __init__(self, required_names: Sequence[str]) -> None:
         self.required_names = tuple(required_names)
@@ -50,15 +58,12 @@ class JointFeedback:
     def update(self, names: Sequence[str], velocities: Sequence[float],
                stamp_ns: int, received_at: float, *, positions: Sequence[float] = (),
                maximum_position_interval_sec: float = 0.5) -> None:
-        counts = Counter(names)
         complete_velocities = len(names) == len(velocities)
         complete_positions = len(names) == len(positions)
-        for index, name in enumerate(names):
-            if name not in self.required_names:
-                continue
-            velocity = velocities[index] if complete_velocities and counts[name] == 1 else math.nan
+        for index, name, unique in _joint_layout(tuple(names), self.required_names):
+            velocity = velocities[index] if complete_velocities and unique else math.nan
             reason = ('missing_velocity' if not complete_velocities else
-                      'duplicate_joint' if counts[name] != 1 else
+                      'duplicate_joint' if not unique else
                       'non_finite_velocity' if not math.isfinite(velocity) else '')
             previous = self.samples.get(name)
             if previous is not None and stamp_ns <= previous.stamp_ns:
@@ -67,7 +72,7 @@ class JointFeedback:
                 reason = 'repeated_stamp' if stamp_ns == previous.stamp_ns else 'backward_stamp'
                 self.samples[name] = JointSample(previous.stamp_ns, previous.received_at, math.nan, reason)
             else:
-                position = positions[index] if complete_positions and counts[name] == 1 else math.nan
+                position = positions[index] if complete_positions and unique else math.nan
                 velocity_from_ns = None
                 # The physical guard publishes positions and omits unsupported
                 # velocities. Derive a rate only from two finite, advancing,

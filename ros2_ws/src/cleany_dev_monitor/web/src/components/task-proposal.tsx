@@ -5,10 +5,12 @@ import "./task-proposal.css";
 
 export function TaskProposal({
   proposal,
+  timing,
   reason,
   submit,
 }: {
   proposal?: Data | null;
+  timing: (action: string) => import("react").ReactNode;
   reason: (action: string) => string;
   submit: (action: string, args?: Data) => Promise<void>;
 }) {
@@ -71,9 +73,11 @@ export function TaskProposal({
               <p className="task-proposal-action">
                 {proposal.operation_mode === "pick_return_release"
                   ? "잡기 → 원래 위치에 놓기 → 팔 복귀"
-                  : target
-                    ? `${proposal.skill_name === "collect_lost_item" ? "분실물" : "쓰레기"} 수거 → ${proposal.destination_id}`
-                    : ""}
+                  : proposal.operation_mode === "pick_rear_bin_release"
+                    ? "잡기 → A 경로로 후방 수거함에 놓기 → 대기 자세 복귀"
+                    : target
+                      ? `${proposal.skill_name === "collect_lost_item" ? "분실물" : "쓰레기"} 수거 → ${proposal.destination_id}`
+                      : ""}
               </p>
               {(!nearestDetected || !target) && <p>{proposal.reason}</p>}
               <p className="task-proposal-state" role="status">
@@ -109,6 +113,7 @@ export function TaskProposal({
                 <Check />
                 승인하여 1회 실행
               </Button>
+              {timing("approve")}
             </span>
             {!nearestDetected && (
               <span title={reason("skip") || unavailable}>
@@ -121,6 +126,7 @@ export function TaskProposal({
                 >
                   <SkipForward />이 물체 건너뛰기
                 </Button>
+                {timing("skip")}
               </span>
             )}
             <span title={reason("propose")}>
@@ -132,6 +138,7 @@ export function TaskProposal({
                 <RefreshCw />
                 다시 제안받기
               </Button>
+              {timing("propose")}
             </span>
           </div>
           {ready && !nearestDetected && (

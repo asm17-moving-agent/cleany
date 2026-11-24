@@ -1,7 +1,10 @@
 """Physical collection configuration and evidence gates, independent of ROS."""
 from dataclasses import dataclass
+import json
 import math
+from pathlib import Path
 from .physical_grasp_selection import ARM_JOINT_NAMES
+from .rear_bin import REAR_BIN, RearBinRoute, rear_bin_mode
 from .height_correction import HeightCorrectionPolicy
 
 RETURN_TO_PICK = 'return_to_pick'
@@ -11,8 +14,12 @@ def temporary_return_mode(config: dict) -> bool:
     return config.get('operation_mode') == 'pick_return_release'
 
 
+def supervised_placement_mode(config: dict) -> bool:
+    return temporary_return_mode(config) or rear_bin_mode(config)
+
+
 def temporary_local_target_selection(config: dict) -> bool:
-    return temporary_return_mode(config) and config.get('temporary_ignore_decision') is True
+    return supervised_placement_mode(config) and config.get('temporary_ignore_decision') is True
 
 
 @dataclass(frozen=True)
@@ -67,7 +74,7 @@ def contact_verification_required(config: dict) -> bool:
 def grasp_identity_verification_required(config: dict) -> bool:
     """Only temporary return trials may retain motor contact without wrist identity."""
     return contact_verification_required(config) and not (
-        temporary_return_mode(config) and config.get('wrist_observation_enabled', True) is False)
+        supervised_placement_mode(config) and config.get('wrist_observation_enabled', True) is False)
 
 
 def configuration_issues(config: dict) -> list[str]:
@@ -83,7 +90,7 @@ def configuration_issues(config: dict) -> list[str]:
     except ValueError as error:
         issues.append(str(error))
     mode = config.get('operation_mode', 'full_collection')
-    if mode not in ('full_collection', 'grasp_lift_hold', 'grasp_lift_return_hold', 'pick_return_release'):
+    if mode not in ('full_collection', 'grasp_lift_hold', 'grasp_lift_return_hold', 'pick_return_release', 'pick_rear_bin_release'):
         issues.append('unknown operation_mode')
     full_collection = mode == 'full_collection'
     if temporary_return_mode(config):
@@ -95,8 +102,17 @@ def configuration_issues(config: dict) -> list[str]:
             issues.append('temporary return destination must be return_to_pick for all labels')
     if ('temporary_ignore_decision' in config and
             (type(config['temporary_ignore_decision']) is not bool
-             or (config['temporary_ignore_decision'] and not temporary_return_mode(config)))):
-        issues.append('temporary_ignore_decision requires a boolean and pick_return_release when enabled')
+             or (config['temporary_ignore_decision'] and not supervised_placement_mode(config)))):
+        issues.append('temporary_ignore_decision requires a boolean and a supervised placement mode when enabled')
+    if rear_bin_mode(config):
+        if config.get('temporary_contact_verification') != 'raw_feedback':
+            issues.append('Rear bin transport requires raw motor contact evidence')
+        if config.get('temporary_placement_verification') != 'assume_success':
+            issues.append('Rear bin transport requires explicit assumed placement')
+        if config.get('label_destinations') != {'*': REAR_BIN}:
+            issues.append('Rear bin transport requires the rear_bin_a destination')
+        if config.get('held_object_octomap_collision_check_enabled', True) is not True:
+            issues.append('Rear bin transport requires held-object collision checks')
     if 'continuous_scene_updates' in config and type(config['continuous_scene_updates']) is not bool:
         issues.append('continuous_scene_updates must be boolean')
     pregrasp_z = config.get('pregrasp_z_offset_m', 0.)
@@ -128,6 +144,8 @@ def configuration_issues(config: dict) -> list[str]:
         if full_collection and not raw.get('bins'):
             issues.append(f'{name}: bin joint positions are missing')
         try:
+            if rear_bin_mode(config):
+                RearBinRoute.from_config(config, name)
             arm = load_arm(raw, require_bins=full_collection)
             if full_collection:
                 for destination in destinations.values():
@@ -182,8 +200,8 @@ def configuration_issues(config: dict) -> list[str]:
         issues.append('assume_stationary_target must be boolean')
     elif stationary_target:
         # Explicit supervised trial assumption, not observed target stability.
-        if not temporary_return_mode(config):
-            issues.append('assume_stationary_target requires temporary pick_return_release mode')
+        if not supervised_placement_mode(config):
+            issues.append('assume_stationary_target requires a supervised placement mode')
         if visual is not False:
             issues.append('assume_stationary_target requires visual_servo_enabled=false')
         if wrist_observation is not False:
@@ -319,6 +337,23 @@ def configuration_issues(config: dict) -> list[str]:
                 if not fallback_step <= distance <= entry:
                     issues.append('wrist fallback requires step <= total distance <= entry distance')
     return list(dict.fromkeys(issues))
+
+
+def load_arm_home(path: str | Path) -> dict[str, tuple[float, ...]]:
+    """Load both saved arm targets in radians and hardware joint order."""
+    raw = json.loads(Path(path).expanduser().read_text())
+    if (not isinstance(raw, dict) or raw.get('frame') != 'base_link'
+            or not isinstance(raw.get('arms'), dict)
+            or set(raw['arms']) != set(ARM_JOINT_NAMES)):
+        raise ValueError('Saved home must contain both arms in base_link')
+    result = {}
+    for arm, names in ARM_JOINT_NAMES.items():
+        values = raw['arms'][arm]
+        if (not isinstance(values, list) or len(values) != len(names)
+                or any(type(q) not in (int, float) or not math.isfinite(q) for q in values)):
+            raise ValueError(f'{arm}: home must contain five finite joint positions')
+        result[arm] = tuple(float(q) for q in values)
+    return result
 
 
 def load_arm(raw: dict, *, require_bins: bool = True) -> ArmCollectionConfig:

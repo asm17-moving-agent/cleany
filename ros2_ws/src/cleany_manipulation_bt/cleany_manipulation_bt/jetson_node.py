@@ -15,7 +15,7 @@ from cleany_interfaces.msg import ManipulationExecutionRecord
 from cleany_interfaces.srv import CancelManipulation, ConfirmManipulationRecovery, GetManipulationExecution
 from cleany_skill_executor.manipulation_node import ManipulationNode, record_message
 from cleany_skill_executor.manipulation.models import RecordState
-from cleany_skill_executor.core.collection import temporary_return_mode
+from cleany_skill_executor.core.collection import supervised_placement_mode
 from .store import BTExecutionStore
 import rclpy
 from rclpy.action import ActionServer
@@ -109,14 +109,14 @@ class JetsonManipulationNode(ManipulationNode):
             backend = WorkerBackend(self.operations.execute, quiescent=self.operations.quiescent)
         self.backend = backend
         self.store = BTExecutionStore(self.get_parameter('database_path').value)
+        collection_config = getattr(self.operations, 'config', {})
         self.core = ExecutionCore(self.backend, self.store, self.get_parameter('tree_xml').value, Runner,
                                   timeout_sec=float(self.get_parameter('bt_operation_timeout_sec').value),
                                   stop_timeout_sec=float(self.get_parameter('bt_stop_timeout_sec').value) + 2.,
                                   execution_profile='jetson',
                                   operation_timeouts={'SelectArmAndPath': float(
                                       self.get_parameter('bt_selection_timeout_sec').value)},
-                                  allow_assumed_placement=temporary_return_mode(
-                                      getattr(self.operations, 'config', {})))
+                                  allow_assumed_placement=supervised_placement_mode(collection_config))
         self._handle = self._result_future = None
         self._closing = False
         self._futures = {}
@@ -183,6 +183,7 @@ class JetsonManipulationNode(ManipulationNode):
             active = record is not None and record.result is None and record.record_state == RecordState.ACTIVE
             operations = self.operations
             real = getattr(operations, 'real', None)
+            config = getattr(operations, 'config', {})
             guard = getattr(real, 'guard', None)
             guard_time = getattr(real, 'guard_time', None)
             max_age = real.value('hardware_guard_max_age_sec') if real is not None else 1.
@@ -201,7 +202,9 @@ class JetsonManipulationNode(ManipulationNode):
                 hardware_fault=getattr(real, 'fault', ''),
                 payload_attached=getattr(operations, 'carrying', None) is not None,
                 collection_config_sha256=self.collection_digest,
-                operation_mode=getattr(operations, 'config', {}).get('operation_mode', ''),
+                operation_mode=config.get('operation_mode', ''),
+                return_home_joint_rad={arm: settings.get('home_joint_rad')
+                                       for arm, settings in config.get('arms', {}).items()},
                 last_result=record_message(record).status if record is not None and record.result is not None else '',
                 last_stop_confirmed=record.stop_confirmed if record is not None and record.result is not None else False))
             response.success = True

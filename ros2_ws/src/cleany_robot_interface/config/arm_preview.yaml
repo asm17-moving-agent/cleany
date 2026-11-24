@@ -4,7 +4,7 @@
 # Current motor ranges: calibration/jetson_20261115_open160/.
 # Separate wrist CAD center references: calibration/jetson_20261115/reference/.
 # Wrist-roll centers 1983/1967 are not the legacy URDF zeros below.
-port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
+port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14111971-if00
 baudrate: 1000000
 rate_hz: 20.0
 calibration_dir: calibration/jetson_20261115_open160/motors

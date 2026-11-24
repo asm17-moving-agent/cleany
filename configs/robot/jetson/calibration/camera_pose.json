@@ -178,7 +178,7 @@
     "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_11_center.json": "4c02ee3d4a25a6bd2a27f1588072497f29aa59ffb3303e157cd97e32aa28f0f3",
     "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/reference/joint_12_gripper_reference.json": "ea782bfe29bed8d07b5fba892ee644e6cf7251330e331ed6b7332569a2baf14e",
     "cad-encoder-mapping.json": "d276a47464ab8f4588eb8f661e028710fdc2c762c67094abe86d7fd5a3dd1922",
-    "../../../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml": "41153bd2f135bc52e1401f65d1abb472b83bc42ca56ac94dc9f0b6cb1ee27552",
+    "../../../../ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml": "c6ebd711c6be9d616f36a2b526492ec429401fcbf2a5997fa3e804964b1f59f0",
     "../../head_preview_joints.json": "16dab47464ee42de91a833094208e9cc85cb52f09b827a35d8899bf31981a9b6",
     "../../../../ros2_ws/src/cleany_robot_interface/config/calibration/jetson_20261115/manifest.json": "b94eb6f244b8690d7b3e6c40938d4edd40ed47e8e1f74b0a756a9d6bcf9f9a0d"
   },

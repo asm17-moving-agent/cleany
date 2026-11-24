@@ -20,7 +20,9 @@ def _inspection_node(context):
             LaunchConfiguration('yoloe_config_file'),
             {
                 **{name: ParameterValue(LaunchConfiguration(name), value_type=bool)
-                   for name in ('use_sim_time', 'allow_external_images', 'enable_reference_observation', 'enable_wrist_observation', 'preload_models', 'vlm_ik_warmup_enabled', 'decision_enabled')},
+                   for name in ('use_sim_time', 'allow_external_images', 'enable_reference_observation',
+                                'enable_wrist_observation', 'preload_models', 'vlm_ik_warmup_enabled',
+                                'decision_enabled')},
                 'reference_ttl_seconds': ParameterValue(LaunchConfiguration('reference_ttl_seconds'), value_type=float),
                 **{name: LaunchConfiguration(name) for name in (
                     'yoloe_model_path', 'yoloe_text_encoder_directory',

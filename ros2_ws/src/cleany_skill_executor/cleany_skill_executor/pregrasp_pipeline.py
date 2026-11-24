@@ -101,7 +101,7 @@ class ReferenceObservationFailure(RuntimeError):
 
 
 class PregraspPipeline(Node):
-    def __init__(self, *, mode='plan_only', **kwargs):
+    def __init__(self, *, mode='plan_only', preserve_scene_attachments=False, **kwargs):
         if mode not in ('plan_only', 'mujoco', 'hardware'):
             raise ValueError('Unknown execution mode')
         super().__init__('pregrasp_pipeline', **kwargs)
@@ -143,7 +143,7 @@ class PregraspPipeline(Node):
             self.hardware = self.create_client(ListHardwareComponents, '/controller_manager/list_hardware_components')
             self.controllers = self.create_client(ListControllers, '/controller_manager/list_controllers')
             self.motion = MoveItGraspAdapter(self, MoveItAdapterConfig(
-                validate_motion_paths=True,
+                validate_motion_paths=True, preserve_scene_attachments=preserve_scene_attachments,
                 use_verified_local_fk=self.get_parameter('execution_use_verified_local_fk').value,
                 planning_timeout_sec=float(self.get_parameter('planning_timeout_sec').value),
                 planning_response_margin_sec=float(
@@ -198,6 +198,9 @@ class PregraspPipeline(Node):
         return ActionClient(self, action_type, name)
 
     def on_description(self, message):
+        scene = getattr(self, 'scene', None)
+        if scene is not None and self.mode == 'hardware':
+            scene.set_robot_description(message.data)
         with self.lock:
             self.description = message.data
 
@@ -415,7 +418,9 @@ class PregraspPipeline(Node):
             if getattr(self, 'real', None) is not None:
                 commanded_opening = self.arm_config.opened
                 minimum_opening = commanded_opening
-            if not defer and not self.motion.gripper_sweep_is_valid(
+            check_opening = getattr(self, 'config', {}).get(
+                'gripper_opening_collision_check_enabled', True)
+            if not defer and check_opening and not self.motion.gripper_sweep_is_valid(
                     arm, current, planned[f'{arm}_gripper_joint'], commanded_opening, .05):
                 raise RuntimeError('Opening the gripper intersects the current scene')
             self.motion.set_gripper_position(arm, commanded_opening)

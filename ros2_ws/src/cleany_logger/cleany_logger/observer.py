@@ -9,7 +9,7 @@ from collections import deque
 
 import rclpy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
-from rclpy.serialization import serialize_message
+from rclpy.serialization import deserialize_message, serialize_message
 from rclpy.action import (
     get_action_client_names_and_types_by_node,
     get_action_names_and_types,
@@ -44,6 +44,9 @@ class NoSlam:
     def close(self): pass
 
 
+_JOINT_SAMPLE_TYPES = {'sensor_msgs/msg/JointState', 'control_msgs/msg/DynamicJointState'}
+
+
 class ObservationNode(Node):
     """화면 없는 기록과 실시간 표시가 공유하는 범위 제한 ROS 관측입니다.
 
@@ -56,6 +59,7 @@ class ObservationNode(Node):
         self.recording_enabled = record
         defaults = {
             "resource_interval_s": 1.0,
+            "graph_refresh_period_s": 1.0 if record else 3.0,
             "resource_process_limit": 20,
             "resource_history_limit": 300,
             "host": "127.0.0.1",
@@ -170,8 +174,20 @@ class ObservationNode(Node):
         self.hub = hub_factory()
         if not record:
             self.hub.recording.configure({**self.hub.recording.settings, "active": False})
-        self.buffer = Buffer()
-        self.listener = TransformListener(self.buffer, self)
+        transform_buffer = None
+        if not self.recording_enabled and not self.get_parameter('use_sim_time').value:
+            try:
+                from cleany_tf_buffer import TransformBuffer
+            except ModuleNotFoundError as error:
+                if error.name != 'cleany_tf_buffer':
+                    raise
+            else:
+                transform_buffer = TransformBuffer(self)
+        if transform_buffer is None:
+            self.buffer = Buffer()
+            self.listener = TransformListener(self.buffer, self)
+        else:
+            self.buffer = transform_buffer
         self.config, self.fixed, self.layers, self.navigation_keys = routes(self.config)
         self.manipulation_events = self.config['manipulation_events_topic']
         self.hub.source_roles = source_roles(self.config)
@@ -195,7 +211,10 @@ class ObservationNode(Node):
         )
         steady = Clock(clock_type=ClockType.STEADY_TIME)
         self.create_timer(.25, lambda: self.slam.tick(), clock=steady)
-        self.create_timer(1.0, self.discover, clock=steady)
+        period = self.config["graph_refresh_period_s"]
+        if not 0.5 <= period <= 5.0:
+            raise ValueError("graph_refresh_period_s must be in [0.5, 5.0]")
+        self.create_timer(period, self.discover, clock=steady)
         self.create_timer(0.1, self.pose, clock=steady)
         self.create_timer(0.2, self.navigation_tick, clock=steady)
 
@@ -325,12 +344,15 @@ class ObservationNode(Node):
                             if compatibility == QoSCompatibility.ERROR:
                                 raise ValueError("QoS mismatch: " + reason)
                         cls = get_message(types[0])
+                        raw = (not self.recording_enabled and types[0] in _JOINT_SAMPLE_TYPES
+                               and name not in self.navigation_keys)
+                        if raw:
+                            callback = lambda data, topic=name, kind=cls: self.receive_joint_sample(topic, kind, data)
+                        else:
+                            callback = lambda msg, topic=name: self.receive(topic, msg)
                         sub = self.create_subscription(
-                            cls,
-                            name,
-                            lambda msg, topic=name: self.receive(topic, msg),
-                            qos,
-                            # 큐에 남은 폐기된 handle이 서비스 콜백 그룹을 막지 않아야 합니다.
+                            cls, name, callback, qos, raw=raw,
+                            # A queued retired handle must not strand the service callback group.
                             callback_group=MutuallyExclusiveCallbackGroup() if self.recording_enabled else None,
                         )
                         self.subs[name] = (sub, signature)
@@ -408,6 +430,13 @@ class ObservationNode(Node):
             critical=True,
         )
         self.runtime_boot, self.runtime_seq = boot_id, None
+
+    def receive_joint_sample(self, topic, message_type, data):
+        now = time.monotonic()
+        if now - self.last_ui.get(topic, 0) < 0.1:
+            self.rates.setdefault(topic, deque(maxlen=1000)).append(now)
+            return
+        self.receive(topic, deserialize_message(data, message_type))
 
     def receive(self, topic, message):
         now = time.monotonic()
@@ -746,10 +775,10 @@ class ObservationNode(Node):
 
     def pose(self):
         try:
-            pose = self.transform(self.config["base_frame"])
             tf = self.buffer.lookup_transform(
                 self.config["map_frame"], self.config["base_frame"], Time()
             )
+            pose = [tf.transform.translation.x, tf.transform.translation.y, yaw(tf.transform.rotation)]
             age = self.get_clock().now().nanoseconds / 1e9 - (
                 tf.header.stamp.sec + tf.header.stamp.nanosec / 1e9
             )

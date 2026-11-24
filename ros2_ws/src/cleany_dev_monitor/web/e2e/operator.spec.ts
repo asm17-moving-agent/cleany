@@ -299,7 +299,7 @@ test("torque, gripper and recovery confirmations are explicit and revisions stay
   await expect(
     dialog.getByRole("button", { name: "확인 후 요청" }),
   ).toBeDisabled();
-  await dialog.getByLabel("모터 토크 활성화를 확인했습니다.").check();
+  await dialog.getByLabel(/양쪽 그리퍼가 비었고 작업 범위가 비어 있음을 확인했습니다/).check();
   await dialog.getByRole("button", { name: "확인 후 요청" }).click();
   await expect(dialog).toHaveCount(0);
   expect(f.sent[0].args).toEqual({ confirm_torque_on: true });
@@ -489,4 +489,21 @@ test("operator controls omit the retired joint controls with an older executor",
   await expect(page.getByRole("region", { name: "관절 수동 조작" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "목표로 이동" })).toHaveCount(0);
   await expect(f.panel.getByRole("button", { name: "로봇 준비" })).toBeVisible();
+});
+
+test("completed inspection and prepare receipts expand under their actions without resubmission", async ({page})=>{
+  const f=await fixture(page);
+  f.status.jobs=[
+    {id:"inspection",action:"inspect",state:"SUCCEEDED",created_at:100,finished_at:105.9,result:{objects:[{object_id:4,label:"box",confidence:.73}]}},
+    {id:"preparation",action:"prepare",state:"SUCCEEDED",created_at:10,finished_at:137.4,prepare_progress:{gpu:{state:"done",seconds:26.5}}},
+  ];
+  await expect(f.panel.locator("#result-inspect")).toContainText("검출 물체 1개");
+  await expect(f.panel.getByRole("button",{name:"검출 결과 상세"})).toContainText("5.9초");
+  const toggle=f.panel.getByRole("button",{name:"준비 단계 상세"});
+  await expect(toggle).toContainText("127.4초");
+  await toggle.click();
+  await expect(f.panel.locator("#result-prepare")).toContainText("26.5초");
+  await toggle.click();
+  await expect(f.panel.locator("#result-prepare")).toHaveCount(0);
+  expect(f.sent).toHaveLength(0);
 });

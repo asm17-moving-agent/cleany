@@ -1,4 +1,4 @@
-"""제어 런타임과 독립적으로 헤드 RGB-D와 보정 프레임을 발행합니다."""
+"""Publish the head RGB-D stream and calibrated frames without arm control."""
 
 import json
 from pathlib import Path

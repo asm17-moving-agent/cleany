@@ -110,3 +110,22 @@ PRIVACY_MODELS=/var/opt/cleany/models/camera-privacy/active
 ```
 
 격리 ROS 도메인에서 카메라 노드의 입력을 `/privacy_fixture/raw`로 설정하고 프리뷰를 포트 18769에서 실행한다. `tools/validation/camera_privacy_ros.py --fixture staged-card.png`는 640×480 카드 시험 영상으로 ROS 출력의 원본 시각, 마스킹, 작업 물체 보존과 HTTP의 원본·만료 프레임 처리를 확인한다.
+
+## Jetson 수거와 작업 승인
+
+Jetson ROS 2 Humble 환경에서 [조작 패키지](how-to/manipulation.md#jetson-실물-실행-경로)를 빌드한 뒤 확인한다.
+ROS 시험은 localhost의 격리 도메인에서 모의 제어기와 입력으로 실행한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
+ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=173 python3 -m pytest -q \
+  tests/tools/test_collection_runtime.py \
+  ros2_ws/src/cleany_skill_executor/test/test_hardware_support_launch.py \
+  ros2_ws/src/cleany_manipulation_bt/test/test_rear_bin_route.py \
+  ros2_ws/src/cleany_dev_monitor/tests/test_operator.py
+```
+
+수거 검사는 기동 순서와 차단 후 재시도, 저장 경유점 후속 실행, 궤적 일치 조건과 충돌 거절을 확인한다.
+승인 검사는 원본 관측과 물체 번호·추적 ID의 대응, 만료, 캐시 소실 및 취소를 확인한다.
+정지 물체 프로필은 원본 관측을 사용하고, 재관찰 프로필은 새 관측을 확인한 뒤 원래 승인한 Goal을 한 번 전달한다.

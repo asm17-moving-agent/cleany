@@ -1,9 +1,9 @@
 """Runtime lifecycle and startup checks with no ROS or motor access."""
+import os
 from pathlib import Path
 import subprocess
 
 import pytest
-import os
 
 
 @pytest.fixture(autouse=True)
@@ -36,6 +36,14 @@ def test_collection_endpoint_limits_share_one_profile():
 
 
 SCRIPT = (Path(__file__).resolve().parents[2] / 'tools').joinpath('collection-runtime')
+
+@pytest.fixture
+def runtime_functions(tmp_path):
+    definitions, separator, _ = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')
+    assert separator
+    script = tmp_path / 'runtime-functions.sh'
+    script.write_text(definitions)
+    return script
 
 
 @pytest.mark.parametrize('failure', ['', 'startup', 'execution'])
@@ -291,57 +299,53 @@ recover_control || exit $?
 
 
 @pytest.mark.parametrize('backend,predictor,runtime', [
-    ('', '', 'native'),
+    ('', '', ''),
     ('moveit', 'geometric', 'native'),
     ('moveit', 'anygrasp', 'native'),
     ('curobo_ik_moveit', 'geometric', 'native'),
     ('curobo_ik_moveit', 'anygrasp', 'native'),
+    ('curobo_ik_moveit', 'anygrasp', 'container'),
 ])
 def test_hardware_support_keeps_automatic_arm_default_and_valid_launch_values(
-        tmp_path, backend, predictor, runtime):
-    definitions, separator, _ = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')
-    assert separator
-    shell = tmp_path / 'runtime-functions.sh'
-    shell.write_text(definitions)
+        runtime_functions, backend, predictor, runtime):
     transport = r'''
+export CLEANY_COLLECTION_MOTION_BACKEND="$2"
+export CLEANY_COLLECTION_GRASP_PREDICTOR="$3"
+export CLEANY_COLLECTION_MOTION_RUNTIME="$4"
+source "$1"
 start_group() { printf '%s\n' "$@"; }
 start_hardware_support /tmp/hardware-support.log /tmp/collection-test
 '''
     result = subprocess.run(
-        ['bash', '-c', 'export CLEANY_COLLECTION_MOTION_BACKEND="$2"\n'
-         'export CLEANY_COLLECTION_GRASP_PREDICTOR="$3"\nsource "$1"\n' + transport,
-         'hardware-support-test', str(shell), backend, predictor],
+        ['bash', '-c', transport, 'hardware-support-test', str(runtime_functions), backend, predictor, runtime],
         text=True, capture_output=True, timeout=5,
     )
     assert result.returncode == 0, result.stderr
-    arguments = result.stdout.splitlines()
-    assert arguments[2:6] == [
-        'ros2', 'launch', 'cleany_skill_executor', 'pregrasp_hardware_support.launch.py',
-    ]
-    launch_arguments = arguments[6:]
-    assert 'maximum_candidates:=32' in launch_arguments
-    for argument in launch_arguments:
-        name, separator, value = argument.partition(':=')
-        assert name and separator and value, argument
-    assert not any(argument.startswith('required_arm:=') for argument in launch_arguments)
-    assert f'motion_runtime:={runtime}' in launch_arguments
-    assert any(arg.startswith('curobo_python:=') for arg in launch_arguments) == (backend != 'moveit')
-    assert f'motion_backend:={backend or "curobo_ik_moveit"}' in launch_arguments
-    assert f'grasp_predictor:={predictor or "geometric"}' in launch_arguments
-    assert f'collection_config_file:={os.environ["CLEANY_MANIPULATION_COLLECTION_CONFIG"]}' in launch_arguments
+    group, log, *command = result.stdout.splitlines()
+    assert (group, log) == ('hardware_support', '/tmp/hardware-support.log')
+    assert command[:5] == ['env', 'OPENBLAS_NUM_THREADS=1', 'OMP_NUM_THREADS=1',
+                           'MKL_NUM_THREADS=1', 'ros2']
+    assert command[5:8] == ['launch', 'cleany_skill_executor', 'pregrasp_hardware_support.launch.py']
+    launch_args = dict(argument.split(':=', 1) for argument in command[8:])
+    assert all(launch_args.values())
+    assert 'required_arm' not in launch_args
+    assert launch_args['maximum_candidates'] == '32'
+    assert launch_args['motion_runtime'] == (runtime or 'native')
+    assert launch_args['motion_backend'] == (backend or 'curobo_ik_moveit')
+    assert launch_args['grasp_predictor'] == (predictor or 'geometric')
+    assert ('curobo_python' in launch_args) == (backend != 'moveit' and runtime != 'container')
+    assert launch_args['collection_config_file'] == os.environ['CLEANY_MANIPULATION_COLLECTION_CONFIG']
 
 
 @pytest.mark.parametrize('backend,predictor,requested,shared', [
     ('', '', '', ''),
     ('moveit', 'geometric', '', 'false'),
     ('moveit', 'anygrasp', '', 'false'),
-    ('curobo_ik_moveit', 'geometric', '', 'false'),
+    ('curobo_ik_moveit', 'geometric', 'native', 'false'),
     ('curobo_ik_moveit', 'anygrasp', 'container', 'false'),
 ])
-def test_planning_mode_starts_only_required_gpu_services(tmp_path, backend, predictor, requested, shared):
-    definitions, _, _ = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')
-    shell = tmp_path / 'runtime-functions.sh'
-    shell.write_text(definitions)
+def test_planning_mode_starts_only_required_gpu_services(
+        tmp_path, runtime_functions, backend, predictor, requested, shared):
     directory = tmp_path / 'tools'
     directory.mkdir()
     interpreter = tmp_path / 'curobo/bin/python'
@@ -350,11 +354,10 @@ def test_planning_mode_starts_only_required_gpu_services(tmp_path, backend, pred
     interpreter.chmod(0o755)
     for name in ('vision-container', 'motion-container'):
         script = directory / name
-        script.write_text('#!/bin/bash\nprintf "%s\\n" "' + name + ' $*"\n')
+        script.write_text(f'#!/bin/bash\nprintf "%s\\n" "{name} $*"\n')
         script.chmod(0o755)
     transport = r'''
-export CLEANY_COLLECTION_MOTION_BACKEND="$3"
-export CLEANY_COLLECTION_GRASP_PREDICTOR="$4"
+export CLEANY_COLLECTION_MOTION_BACKEND="$3" CLEANY_COLLECTION_GRASP_PREDICTOR="$4"
 export CLEANY_COLLECTION_MOTION_RUNTIME="$5" CLEANY_COLLECTION_USE_EXISTING_PERCEPTION="$6"
 export CLEANY_CUROBO_VENV="$2/curobo" CLEANY_COLLECTION_STATE_DIR="$2/state"
 source "$1"
@@ -365,13 +368,15 @@ prepare_motion_runtime
 start_vision /tmp/vision.log
 if [[ "$use_existing_perception" == true ]]; then status_runtime; fi
 '''
-    result = subprocess.run(['bash', '-c', transport, 'planning-mode-test',
-        str(shell), str(tmp_path), backend, predictor, requested, shared],
-        text=True, capture_output=True, timeout=5)
+    result = subprocess.run(
+        ['bash', '-c', transport, 'planning-mode-test', str(runtime_functions),
+         str(tmp_path), backend, predictor, requested, shared],
+        text=True, capture_output=True, timeout=5,
+    )
     assert result.returncode == 0, result.stderr
     backend = backend or 'curobo_ik_moveit'
     predictor = predictor or 'geometric'
-    assert ('native cuRobo preflight' in result.stdout) == (backend == 'curobo_ik_moveit' and not requested)
+    assert ('native cuRobo preflight' in result.stdout) == (backend == 'curobo_ik_moveit' and requested != 'container')
     assert ('motion-container check' in result.stdout) == (requested == 'container')
     assert ('motion-container stop' in result.stdout) == (requested == 'container')
     if shared != 'false':
@@ -395,10 +400,7 @@ if [[ "$use_existing_perception" == true ]]; then status_runtime; fi
     ('', '', 'curobo_ik_moveit anygrasp', None, 1),
 ])
 def test_running_runtime_does_not_silently_reuse_a_different_mode(
-        tmp_path, backend, requested, recorded_mode, recorded_runtime, returncode):
-    definitions, _, _ = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')
-    shell = tmp_path / 'runtime-functions.sh'
-    shell.write_text(definitions)
+        tmp_path, runtime_functions, backend, requested, recorded_mode, recorded_runtime, returncode):
     if recorded_mode is not None:
         (tmp_path / 'planning-mode').write_text(recorded_mode + '\n')
     if recorded_runtime is not None:
@@ -414,9 +416,10 @@ source_ros() { echo ROS; }
 wait_for_graph() { echo CHECKED; }
 start_runtime
 '''
-    result = subprocess.run(['bash', '-c', transport, 'mode-reuse-test',
-                             str(shell), str(tmp_path), backend, requested],
-                            text=True, capture_output=True, timeout=5)
+    result = subprocess.run(
+        ['bash', '-c', transport, 'mode-reuse-test', str(runtime_functions), str(tmp_path), backend, requested],
+        text=True, capture_output=True, timeout=5,
+    )
     assert result.returncode == returncode, result.stderr
     assert ('CHECKED' in result.stdout) == (returncode == 0)
     if returncode:
@@ -543,11 +546,7 @@ if ! start_runtime; then exit 23; fi
 
 
 @pytest.mark.parametrize('failure', ['', 'missing_snapshot', 'legacy_running', 'duplicate_action'])
-def test_action_start_requires_snapshot_and_one_server(tmp_path, failure):
-    definitions, separator, _ = SCRIPT.read_text().partition('\ncommand="${1:-}"\n')
-    assert separator
-    shell = tmp_path / 'runtime-functions.sh'
-    shell.write_text(definitions)
+def test_action_start_requires_snapshot_and_one_server(tmp_path, runtime_functions, failure):
     pids = tmp_path / 'pids'
     pids.write_text('')
     pipeline = tmp_path / 'pipeline.pid'
@@ -555,36 +554,46 @@ def test_action_start_requires_snapshot_and_one_server(tmp_path, failure):
     transport = r'''
 pids_file="$3"
 pipeline_pid_file="$4"
+fixture_run_dir="$5"
 require_runtime() { :; }
 check_managed_health() { :; }
 source_ros() { :; }
-current_run_dir() { printf '%s\n' /tmp/action-start-test; }
-alive() { [[ "$failure" == legacy_running ]]; }
-start_group() { printf '%s\n' STARTED; }
+current_run_dir() { printf '%s\n' "$fixture_run_dir"; }
+alive() {
+  if [[ "$1" == 123 ]]; then
+    [[ "$failure" == legacy_running ]]
+  else
+    kill -0 "$1" 2>/dev/null
+  fi
+}
+start_group() {
+  printf '%s\n' STARTED
+  : > "$fixture_run_dir/started"
+}
 wait_for_perception_snapshot() { [[ "$failure" != missing_snapshot ]]; }
-timeout() { shift; "$@"; }
-sleep() { SECONDS=$((SECONDS + 31)); }
-ros2() {
-  case "$1 $2" in
-    'action info')
-      if [[ "$failure" == duplicate_action ]]; then
-        printf '%s\n' 'Action servers: 2'
-      else
-        printf '%s\n' 'Action servers: 1'
-      fi ;;
-    *) return 90 ;;
-  esac
+wait_startup_cpu() { :; }
+wait_for_graph() {
+  [[ "$1" == --action-startup && "$2" == --before-action-marker ]] || return 1
+  : > "$3"
+  local deadline=$((SECONDS + 3))
+  until [[ -e "$fixture_run_dir/started" ]]; do
+    (( SECONDS < deadline )) || return 1
+    sleep .02
+  done
+  [[ "$failure" != duplicate_action ]]
 }
 start_action_server
 '''
     result = subprocess.run(
         ['bash', '-c', 'source "$1"; failure="$2"; ' + transport,
-         'action-start-test', str(shell), failure, str(pids), str(pipeline)],
+         'action-start-test', str(runtime_functions), failure, str(pids), str(pipeline), str(tmp_path)],
         capture_output=True, text=True, timeout=5,
     )
     assert result.returncode == (0 if not failure else 1), (result.stdout, result.stderr)
     if failure in ('missing_snapshot', 'legacy_running'):
         assert 'STARTED' not in result.stdout
+    else:
+        assert 'STARTED' in result.stdout
     if not failure:
         assert 'waiting for approved object Goals' in result.stdout
 
@@ -780,3 +789,56 @@ def test_manual_runtime_finds_restarted_rviz_review(tmp_path, domain, matching_c
                             text=True, capture_output=True, timeout=5)
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == expected
+
+@pytest.mark.parametrize('wrist_observation', ['true', 'false'])
+def test_collection_start_uses_wrist_camera_profile(tmp_path, wrist_observation):
+    script = SCRIPT.read_text()
+    startup = script.split('start_runtime() {', 1)[1].split('\nrecover_control() {', 1)[0]
+    definitions = tmp_path / 'startup.sh'
+    definitions.write_text('start_runtime() {' + startup)
+    tools = tmp_path / 'tools'
+    tools.mkdir()
+    torque = tools / 'feetech-torque'
+    torque.write_text('#!/bin/sh\ntest "$1" = check-off\n')
+    torque.chmod(0o755)
+    profile = tmp_path / 'collection.json'
+    profile.write_text('{"wrist_observation_enabled": ' + wrist_observation + '}')
+    program = r"""
+source "$1"
+repo_root="$2"
+CLEANY_MANIPULATION_COLLECTION_CONFIG="$3"
+state_dir="$2/state"
+run_dir_file="$state_dir/run_dir"
+planning_mode_file="$state_dir/planning_mode"
+motion_runtime_file="$state_dir/motion_runtime"
+perception_mode_file="$state_dir/perception_mode"
+perception_rmw_file="$state_dir/perception_rmw"
+pids_file="$state_dir/pids"
+pipeline_pid_file="$state_dir/pipeline.pid"
+present_arms=(left right)
+motor_ids=(1 2 3)
+gui=false
+record_motor_telemetry=false
+use_existing_perception=false
+GEMINI_API_KEY=fixture
+validate_planning_mode() { :; }
+check_dds_transport() { :; }
+managed_processes_alive() { return 1; }
+source_ros() { :; }
+check_control_profile() { :; }
+prepare_motion_runtime() { :; }
+fuser() { return 1; }
+start_vision() { :; }
+wait_startup_cpu() { :; }
+start_group() { printf '%s\n' "$1"; }
+wait_for_startup_service() { printf 'WAIT %s\n' "$1"; return 19; }
+start_real_control() { printf '%s\n' real_control; }
+wait_for_graph() { [[ "$1" == --control-startup ]] && return 23; }
+start_runtime
+"""
+    result = subprocess.run(['bash', '-c', program, 'test', str(definitions), str(tmp_path), str(profile)],
+                            capture_output=True, text=True)
+    assert result.returncode == 23, result.stderr or result.stdout
+    cameras = ['left_wrist_camera', 'right_wrist_camera'] if wrist_observation == 'true' else []
+    launched = result.stdout.splitlines()[1:]
+    assert launched == [*cameras, 'real_control']

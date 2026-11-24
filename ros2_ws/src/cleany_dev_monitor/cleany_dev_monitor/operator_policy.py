@@ -36,8 +36,11 @@ def validate_action(action: str, args: dict) -> dict:
     if not isinstance(args, dict):
         raise ValueError('잘못된 요청 인자입니다.')
     if action == 'prepare':
-        if set(args) != {'confirm_torque_on'} or args['confirm_torque_on'] is not True:
+        if set(args) not in ({'confirm_torque_on'}, {'confirm_torque_on', 'confirm_home_motion'}) or (
+                args['confirm_torque_on'] is not True):
             raise ValueError('모터 토크 활성화를 확인하세요.')
+        if 'confirm_home_motion' in args and args['confirm_home_motion'] is not True:
+            raise ValueError('이전 버전의 준비 요청 형식이 올바르지 않습니다.')
         return dict(args)
     if action in ('approve', 'skip'):
         from .proposals import identifier

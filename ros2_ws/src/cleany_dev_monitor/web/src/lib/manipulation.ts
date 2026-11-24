@@ -131,8 +131,17 @@ export function manipulationObservation(
       [config.runtime_namespace?.replace(/^\/+|\/+$/g, ""), eventTopic]
         .filter(Boolean)
         .join("/");
-  const fresh = (row: Row | undefined) =>
-    !!row && Math.max(0, timeAt - row.received_at) < 3 && (replay || connected);
+  const fresh = (row: Row | undefined, maximumAge = 3) =>
+    !!row &&
+    Math.max(0, timeAt - row.received_at) < maximumAge &&
+    (replay || connected);
+  const serverMode = config.manipulation_observation_mode === "server";
+  const graphPeriod = Number(config.graph_refresh_period_s);
+  // Allow one delayed discovery refresh while execution heartbeats stay fresh.
+  const graphMaximumAge =
+    serverMode && Number.isFinite(graphPeriod)
+      ? Math.max(3, 2 * graphPeriod)
+      : 3;
   const endpoint = graphRow?.data.topics?.find(
     (item: Data) => item.name === topic,
   );
@@ -144,7 +153,7 @@ export function manipulationObservation(
   const request = requestRow?.data;
   return {
     runtime,
-    serverMode: config.manipulation_observation_mode === "server",
+    serverMode,
     timeAt,
     live: replay || connected,
     summary,
@@ -153,7 +162,8 @@ export function manipulationObservation(
     requestFresh: fresh(requestRow) && request?.owner_alive === true,
     topic,
     runtimeFresh: fresh(runtimeRow),
-    serverPresent: fresh(graphRow) && !!endpoint?.publishers?.length,
+    serverPresent:
+      fresh(graphRow, graphMaximumAge) && !!endpoint?.publishers?.length,
   };
 }
 

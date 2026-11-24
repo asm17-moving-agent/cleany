@@ -81,3 +81,14 @@ Jetson 이벤트 전달 구성은 `cleany_trajectory_controller/JointTrajectoryC
 
 
 arm_preview.launch.py는 서보 버스를 열지 않고 공통 CAD 표시로 연결한다. 토픽과 상태는 [공통 CAD 런타임](../../cleany_description/docs/runtime-model.md)을 따른다.
+
+웹 준비에서 관절 상태 브로드캐스터의 활성화가 끝나면 명령 제어기를 그룹으로 활성화합니다.
+두 활성화 절차가 성공해야 보호 피드백 확인과 MoveIt 기동이 이어집니다.
+
+## MoveIt 기동 전 피드백 확인
+
+토크 OFF에서 시작하는 수거 준비는 `preload_cold_controllers`와 `defer_cold_activation`을 사용한다. 팔과 그리퍼 제어기, 모터 하드웨어를 inactive로 설정하고 관절 상태 브로드캐스터를 활성화한다. 보호 피드백을 1초간 확인한 뒤 MoveIt을 계획 전용으로 시작한다. 깊이 지도, 파지 검사와 GPU 예열까지 완료하면 다시 유효한 피드백을 확인한 뒤 하드웨어를 active로 전환한다. 새 피드백 확인을 통과하면 명령 제어기를 그룹으로 활성화하고 최종 보호 피드백을 확인한다. 읽기 전용 제어 상태 조회는 응답별 최대 2초에 최대 세 번 요청한다. 토크 활성화와 제어기 전환 요청은 한 번씩 보낸다. 토크 유지 복구는 `staged_moveit` 순서를 사용한다.
+
+수거 런타임은 Fast DDS에서 `feedback_fastdds_profile`을 사용한다. 제어기 매니저와 보호 노드는 UDP로 통신한다. RGB-D와 계획 노드는 기존 전송 설정을 사용한다. 보호 기준은 모터 표본 취득 시각부터 250 ms다.
+
+전송된 바이트가 없는 읽기 요청의 타임아웃은 응답 타임아웃과 같은 재시도 한도를 따른다. 일부만 전송된 요청과 쓰기 요청은 다시 보내지 않는다.

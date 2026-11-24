@@ -176,3 +176,55 @@ Jetson의 수동 인식은 현재 저장소의 기본 ROS 설치 경로를 사�
 YAML 또는 명시한 파일로 설정한다. 종류 후보와 질문은 실제 검출 이름을 힌트로 쓰지 않는다.
 시작 준비는 API를 호출하지 않으며 검출이 있는 새 관측에서 실제 접근을 확인한다.
 저장 이미지 검증과 실제 Jetson 배포는 구분한다.
+
+## Jetson dev-monitor 준비
+
+| 순서 | 준비 상태 |
+|---|---|
+| 1 | 토크 OFF에서 관절 상태 브로드캐스터를 시작하고 팔·그리퍼 제어기는 비활성으로 설정한다. 보호 피드백이 1초간 안정되면 MoveIt을 계획 전용으로 시작한다. |
+| 2 | 점군 수신, 깊이 지도, 파지 계산과 검증을 순서대로 시작한다. GPU 예열 뒤 ROS 그래프와 깊이 입력을 확인한다. |
+| 3 | 준비 검사를 통과하면 토크를 켜고 새 모터 피드백을 확인한 다음 명령 제어기를 그룹으로 활성화한다. |
+| 4 | 조작 Action 서버 하나와 1초간 유효한 피드백을 확인한다. 실행기가 수거 후 사용할 저장 기본 자세도 확인한다. |
+
+CLI 준비와 웹 준비는 시작과 최종 검사에서 MoveIt의 `allow_trajectory_execution=false`를 요구한다.
+웹 준비 중에는 팔과 그리퍼가 현재 위치를 유지한다. 손목 관측은 Jetson 기본 수거 프로필에서 꺼져 있다.
+
+`CLEANY_COLLECTION_START_CPU_PERCENT`는 주요 프로세스를 시작하기 전에 확인하는 CPU 사용량 기준이다.
+1초 구간 두 개가 기준 이하일 때 다음 프로세스를 시작하며 기본값은 80%다.
+`CLEANY_COLLECTION_FEEDBACK_CORES`는 모터 제어기와 보호 노드에 할당할 코어 수로 Jetson 기본값은 2다.
+Fast DDS에서는 두 노드에 UDP를 사용하고 센서·깊이 지도에는 공유 메모리 전송을 계속 사용한다.
+
+준비가 중단되면 `real-control.log`에서 마지막 유효 모터 피드백과 제어 주기 한도를 확인한다.
+작업 제안과 승인에서 사용하는 대상 확인 조건은 [dev-monitor 작업 제안 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안)에 있다.
+
+정지 물체 `pick_return_release` 프로파일은 원본 관측과 물체 번호로 승인합니다. 대상을 옮긴 경우 새 제안을 받습니다. 다른 프로파일은 승인 뒤 새 영상에서 대상을 재확인합니다.
+
+### Jetson 수거 서비스의 CPU 배치
+
+CPU 0–7이 모두 온라인이고 기본 피드백 코어 수를 사용하는 Jetson에서 모터 제어기와
+보호기는 CPU 6–7에서 실행합니다. 헤드 RGB-D, 인식과 Dev Monitor는 사용자
+systemd 설정을 설치하면 CPU 0–5를 공유합니다.
+
+저장소 루트에서 서비스 실행 계정으로 설정을 설치합니다.
+
+```bash
+drop_ins=configs/host/systemd/jetson-collection-cpu
+user_systemd="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+for path in "$drop_ins"/*.service.d/90-cleany-cpu-affinity.conf; do
+  install -D -m 0644 "$path" "$user_systemd/${path#"$drop_ins"/}"
+done
+systemctl --user daemon-reload
+```
+
+설정은 각 서비스의 다음 기동부터 적용합니다. 유휴 시간에 서비스를 다시 시작한 뒤
+유닛 설정과 메인 프로세스의 CPU 범위를 확인합니다.
+
+```bash
+for unit in cleany-head-rgbd.service cleany-perception.service cleany-dev-monitor.service; do
+  systemctl --user show "$unit" -p ActiveState -p CPUAffinity
+  pid=$(systemctl --user show "$unit" -p MainPID --value)
+  if [[ "$pid" -gt 0 ]]; then
+    taskset -pc "$pid"
+  fi
+done
+```

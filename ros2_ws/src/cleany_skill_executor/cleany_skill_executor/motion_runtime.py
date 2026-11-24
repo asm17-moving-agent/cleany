@@ -1,6 +1,7 @@
 """Shared selector runtime policy. Native launches never require Docker."""
 from __future__ import annotations
 
+import os
 import platform
 from pathlib import Path
 import shlex
@@ -27,6 +28,14 @@ def selector_prefix(backend: str, requested: str, root: Path, python: str) -> st
     if runtime == 'container':
         return shlex.quote(str(root / 'tools/launch-motion-container'))
     return shlex.quote(python) if backend != 'moveit' else ''
+
+
+def native_selector_parameters(root: Path) -> dict[str, str]:
+    cache = Path(os.environ.get('XDG_CACHE_HOME') or Path.home() / '.cache')
+    return {
+        'gpu_lock_path': str(root / 'configs/robot/gpu-work.lock'),
+        'curobo_geometry_cache_directory': str(cache / 'cleany/curobo/robot-geometry'),
+    }
 
 
 def motion_launch_arguments():

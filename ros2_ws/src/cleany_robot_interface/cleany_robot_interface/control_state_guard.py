@@ -19,6 +19,7 @@ EXPECTED_JOINTS = {f'{side}_{suffix}_joint' for side in ('left', 'right') for su
                    ('shoulder_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_pitch', 'wrist_roll', 'gripper')}
 EXPECTED_JOINTS.update(('head_pan_joint', 'head_tilt_joint'))
 CONTROLLERS = [f'{side}_{part}_controller' for side in ('left', 'right') for part in ('arm', 'gripper')]
+DEFAULT_MAX_STATE_AGE_S = .25
 
 
 def decode_feedback(message: DynamicJointState, expected: set[str],
@@ -71,7 +72,7 @@ class ControlStateGuard(Node):
 
     def __init__(self):
         super().__init__('real_control_state_guard')
-        self.declare_parameter('max_state_age_s', .25)
+        self.declare_parameter('max_state_age_s', DEFAULT_MAX_STATE_AGE_S)
         self.declare_parameter('startup_timeout_s', 30.0)
         self.declare_parameter('controller_names', CONTROLLERS)
         self.declare_parameter('cad_calibration_json', '')

@@ -40,6 +40,8 @@ import json
 
 from pathlib import Path
 
+from builtin_interfaces.msg import Duration
+
 from cleany_interfaces.action import SelectReachableGrasp, ValidatePick
 
 from cleany_interfaces.msg import GraspCandidate
@@ -134,8 +136,14 @@ def command_pipeline(monkeypatch):
     monkeypatch.setattr(transport, 'ActionClient', lambda *_: NS(destroy=lambda: None))
     target = Pose()
     target.position.z, target.orientation.w = .08, 1.
+    grasp_trajectory = JointTrajectory(joint_names=list(names), points=[
+        JointTrajectoryPoint(positions=[1.5, 0., 0., 0., 0.], velocities=[0.]*5),
+        JointTrajectoryPoint(positions=[1.8, .08, 0., 0., 0.], velocities=[0.]*5,
+                             time_from_start=Duration(sec=2)),
+    ])
     selected = NS(selected_arm='right', selected_candidate_index=0, fk_grasp_pose=target,
-        grasp_joint_state=JointState(name=list(names), position=[1.8, .08, 0., 0., 0.]))
+        grasp_joint_state=JointState(name=list(names), position=[1.8, .08, 0., 0., 0.]),
+        grasp_trajectory=grasp_trajectory)
     return node, selected, state, limits, plans, sent, trace
 
 
@@ -147,6 +155,7 @@ def test_approach_plans_from_measured_tcp_without_shifted_joint_limits(
     held_yaw, measured_yaw = node.real.arm_holds['right'].command[0], state.position[0]
     report = {}
     node.approach_target(selected, report)
+    assert report['approach_execution_route'] == 'replanned_from_arrival'
     assert [start[0] for start in plans] == [measured_yaw]
     assert len(sent) == 1 and node.real.motion_submissions == 1
     assert sent[0].points[0].positions[0] == held_yaw
@@ -160,10 +169,11 @@ def test_approach_plans_from_measured_tcp_without_shifted_joint_limits(
     assert node.real.last_execution_metrics['collision_checks_enabled'] is check_collisions
 
 
-@pytest.mark.parametrize('explicit_validation', [False, True])
-def test_explicit_support_conversion_preserves_the_measured_physical_destination(
-        command_pipeline, explicit_validation):
+@pytest.mark.parametrize('check_collisions', [False, True])
+def test_replanned_approach_preserves_the_grasp_goal_from_the_held_start(
+        command_pipeline, check_collisions):
     node, selected, state, _, plans, sent, _ = command_pipeline
+    node.config['approach_collision_check_enabled'] = check_collisions
     state.position = [1., 0., 0., 0., 0., .2]
     node.real.arm_holds['right'] = ArmHold((1., 0., 0., 0., 0.), (1., .02, 0., 0., 0.))
     action = node.run_action
@@ -179,8 +189,8 @@ def test_explicit_support_conversion_preserves_the_measured_physical_destination
     assert len(sent) == 1 and len(plans) == 2
     assert plans[0][1] == 0. and plans[1][1] == .02
     assert sent[0].points[0].positions[1] == .02
-    assert sent[0].points[-1].positions[1] == pytest.approx(.10)
-    assert node.pose('right').position.z == pytest.approx(.08)
+    assert sent[0].points[-1].positions[1] == pytest.approx(.08)
+    assert node.pose('right').position.z == pytest.approx(.06)
 
 
 @pytest.mark.parametrize('offset', [.0119081533721877, -.0119081533721877])
@@ -213,7 +223,7 @@ def test_next_cartesian_movement_plans_and_dispatches_from_measured_state_withou
 @pytest.mark.parametrize('stage', ['approach', 'lift', 'retreat_after_release'])
 @pytest.mark.parametrize('sag', [.03097461591006146, .075])
 @pytest.mark.parametrize('check_collisions', [False, True])
-def test_physical_planning_uses_measured_tcp_and_converts_support_only_once(
+def test_physical_planning_keeps_the_grasp_goal_and_compensates_other_motion_once(
         command_pipeline, stage, sag, check_collisions):
     from cleany_skill_executor.hardware_execution import HardwareExecution
     node, selected, state, _, plans, sent, trace = command_pipeline
@@ -234,22 +244,35 @@ def test_physical_planning_uses_measured_tcp_and_converts_support_only_once(
     node.run_action = loaded_action
     target = deepcopy(selected.fk_grasp_pose)
     target.position.z = .3
-    node.linear('right', target, stage, check_orientation=False, check_collisions=check_collisions)
+    if stage == 'approach':
+        stops = []
+        node.real.fail_stop = lambda: stops.append(node.real.motion_submissions)
+        with pytest.raises(RuntimeError, match='Physical TCP endpoint outside tolerance'):
+            node.linear('right', target, stage, check_orientation=False,
+                        check_collisions=check_collisions)
+        assert stops == [1]
+        command_target = .3
+        measured_target = .3-sag
+    else:
+        node.linear('right', target, stage, check_orientation=False,
+                    check_collisions=check_collisions)
+        metrics = node.real.last_execution_metrics
+        assert metrics['endpoint_target_source'] == 'physical_goal'
+        assert metrics['final_tcp_position_error_m'] < 1e-9
+        command_target = .3+sag
+        measured_target = .3
     assert plans == [measured, command]  # Physical planning, then explicit motor conversion.
     assert len(sent) == 1 and tuple(sent[0].points[0].positions) == command
     assert tuple(sent[0].points[0].velocities) == (0.,)*5
     # No downward command reset may unload support before the upward motion.
     assert min(point.positions[1] for point in sent[0].points) >= command[1]-1e-9
-    assert sent[0].points[-1].positions[1] == pytest.approx(.3+sag)
-    assert node.pose('right').position.z == pytest.approx(.3)
+    assert sent[0].points[-1].positions[1] == pytest.approx(command_target)
+    assert node.pose('right').position.z == pytest.approx(measured_target)
     assert target.position.z == .3
-    metrics = node.real.last_execution_metrics
-    assert metrics['endpoint_target_source'] == 'physical_goal'
-    assert metrics['final_tcp_position_error_m'] < 1e-9
     support = next(fields for event, fields in trace if event == 'cartesian_command_support')
     assert support['measured_start_position_m'] == (0., 0., .2)
     assert support['physical_target_position_m'] == (0., 0., .3)
-    assert support['command_target_position_m'][2] == pytest.approx(.3+sag)
+    assert support['command_target_position_m'][2] == pytest.approx(command_target)
 
 
 @pytest.mark.parametrize('stage', ['return_to_pickup'])

@@ -77,6 +77,14 @@ HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성
 
 ## 운영 제어와 상태
 
+`inspect` 결과의 `objects`는 같은 촬영의 검출 번호, 신뢰도, bbox와 유효한 대표점(미터)을 담는다.
+인증된 조작자는 기존 관측 이미지 경로 `/api/control/proposals/{id}/image`에 준비된 인식 작업 UUID로 번호가 표시된 촬영 이미지를 조회한다.
+작업별 경과 시간은 Jetson의 `created_at`부터 `finished_at`까지이며 실행 중에는 현재까지의 경과 시간을 표시한다.
+
+
+준비 작업의 `prepare_progress`에는 해당 실행 로그에서 확인한 단계와 경과 시간이 담긴다.
+`GET /api/control/status`로 진행 중인 작업과 마지막 준비 결과를 확인할 수 있다. GPU IK 예열은 계획 서비스 준비 시간에 포함된다. 이전 작업은 단계별 기록이 없을 수 있다.
+
 `control_enabled=false`가 기본값이다. `control_enabled=true`와
 `control_directory/enabled` 파일이 모두 있어야 변경 요청을 허용한다.
 `control_directory`는 기본 `~/.local/state/cleany/dev-monitor/operator`이며 CLI는
@@ -204,3 +212,8 @@ ROS 초기화 전에 `CLEANY_COLLECTION_SHARED_RMW_IMPLEMENTATION`을 적용하�
 기본값은 `rmw_fastrtps_cpp`입니다. `CLEANY_COLLECTION_USE_EXISTING_PERCEPTION=false`를
 저장하면 별도 Vision 컨테이너를 관리합니다. `CLEANY_COLLECTION_MOTION_RUNTIME`과
 `CLEANY_CUROBO_VENV`는 각각 수거 계획 실행 환경과 호스트 cuRobo 경로를 지정합니다.
+시작 전 읽기 전용 준비 검사와 RPC 응답을 확인하고, 종료 시 공유 제공자를 유지합니다.
+
+### 웹 로봇 준비
+
+표준 웹 준비는 모터 토크를 활성화하고 실행기가 수거 후 복귀에 사용할 저장 자세를 확인한다. 준비 중 팔이나 그리퍼에 이동 명령을 보내지 않는다. 기존 클라이언트의 `confirm_home_motion: true`도 같은 준비 절차를 사용한다.

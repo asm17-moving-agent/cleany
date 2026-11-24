@@ -242,6 +242,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 |---|---|---|---|---|
 | `/apply_planning_scene` | `moveit_msgs/srv/ApplyPlanningScene` | [`move_group`][ros-move-group] | [`collision_scene_applier`][ros-collision-scene-applier], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/base/enable` | `std_srvs/srv/SetBool` | [`cleany_base_driver`][ros-cleany-base-driver] | — | — |
+| `/check_grasp_octomap` | `cleany_interfaces/srv/CheckStateValidityBatch` | [`move_group`][ros-move-group] | [`grasp_selection_server`][ros-grasp-selection-server] | [Jetson CUDA 후보 검사](../../ros2_ws/src/cleany_moveit_collision/docs/calibrated-cad.md#jetson-파지-후보의-octomap-검사) |
 | `/check_state_validity` | `moveit_msgs/srv/GetStateValidity` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/compute_fk` | `moveit_msgs/srv/GetPositionFK` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator], [`grasp_selection_server`][ros-grasp-selection-server] | — |
 | `/compute_ik` | `moveit_msgs/srv/GetPositionIK` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
@@ -560,3 +561,5 @@ Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패�
 `FollowJointTrajectory` Action을 유지하면서 완료 결과를 이벤트로 전달한다.
 별도 노드 실행 파일은 추가하지 않는다. 설정과 취소 및 명령 교체 규약은
 [제어기 인터페이스](../../ros2_ws/src/cleany_trajectory_controller/docs/interfaces.md)를 따른다.
+
+Jetson의 `/check_grasp_octomap` 서비스는 [실물 충돌 검사](../../ros2_ws/src/cleany_moveit_collision/docs/calibrated-cad.md#jetson-파지-후보의-octomap-검사)에 설명합니다.
