@@ -6,6 +6,7 @@ LiDAR, 휠 피드백과 TF를 확인한 뒤 매핑 세션을 시작합니다. �
 |---|---|---|
 | 새 지도 만들기 | 현재 scan, wheel odom, TF | [실물 매핑](#실물-휠-odometry와-2d-lidar-매핑) → PGM/YAML + pbstream |
 | 재처리할 센서 기록 | 연속 raw 센서 입력 | [원본 bag](#오프라인-slam-비교용-원본-bag) → rosbag2 |
+| 19층 bag으로 지도 재계산 | 기록된 LiDAR, odometry, RGB-D와 IR | [Cartographer와 RTAB-Map 재처리](offline-floor-mapping.md) |
 | 저장 지도에서 주행 | 지도와 일치하는 현재 위치 | [Navigation](#저장-지도-navigation) |
 | 기존 지도 확장 | `.pbstream` + 유효한 AMCL 위치 | [병행 확장](#기존-지도-병행-확장) → 별도 namespace와 출력 |
 
