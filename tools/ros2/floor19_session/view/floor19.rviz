@@ -1,0 +1,158 @@
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+  Property Tree Widget:
+    Expanded:
+    - ''
+    Splitter Ratio: 0.52
+Visualization Manager:
+  Class: ''
+  Name: root
+  Enabled: true
+  Global Options:
+    Fixed Frame: map
+    Background Color: 43; 53; 61
+    Frame Rate: 20
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Tools:
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Measure
+  Displays:
+  - Name: 19F SLAM map
+    Class: rviz_default_plugins/Map
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /floor19/map
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+    Alpha: 0.97
+    Draw Behind: true
+    Color Scheme: map
+  - Name: SLAM trajectory
+    Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /floor19/trajectory_node_list
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+  - Name: Live scan
+    Class: rviz_default_plugins/LaserScan
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /floor19/scan
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+    Style: Flat Squares
+    Alpha: 1
+    Position Transformer: XYZ
+    Color Transformer: FlatColor
+    Color: 245; 75; 50
+    Size (m): 0.055
+    Size (Pixels): 3
+    Decay Time: 0
+  - Name: Robot outline and heading
+    Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /floor19/view/robot
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+  - Name: Mapping start
+    Class: rviz_default_plugins/MarkerArray
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /floor19/view/start
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+  - Name: Head camera
+    Class: rviz_default_plugins/Image
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /camera/sdk/color/image_raw/compressed
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+    Queue Size: 2
+    Transport Hint: compressed
+    Normalize Range: true
+  - Name: Submap origins
+    Class: rviz_default_plugins/MarkerArray
+    Enabled: false
+    Value: false
+    Topic:
+      Value: /floor19/view/submaps
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+  - Name: SLAM constraints
+    Class: rviz_default_plugins/MarkerArray
+    Enabled: false
+    Value: false
+    Topic:
+      Value: /floor19/constraint_list
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+  - Name: Raw 360 scan
+    Class: rviz_default_plugins/LaserScan
+    Enabled: false
+    Value: false
+    Topic:
+      Value: /floor19/scan_raw
+      Reliability Policy: Best Effort
+      Durability Policy: Volatile
+      History Policy: Keep Last
+      Depth: 3
+    Style: Flat Squares
+    Alpha: 1
+    Position Transformer: XYZ
+    Color Transformer: FlatColor
+    Color: 64; 180; 240
+    Size (m): 0.055
+    Size (Pixels): 3
+    Decay Time: 0
+  - Name: 1 m grid
+    Class: rviz_default_plugins/Grid
+    Enabled: false
+    Value: false
+    Cell Size: 1
+    Plane Cell Count: 60
+    Color: 110; 132; 150
+    Alpha: 0.35
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Scale: 76
+      X: 4.0
+      Y: 1.9
+      Angle: 0
+      Target Frame: <Fixed Frame>
+      Value: TopDownOrtho (rviz_default_plugins)
+  Value: true
+Window Geometry:
+  Width: 1520
+  Height: 980
+  Hide Left Dock: false
+  Hide Right Dock: false

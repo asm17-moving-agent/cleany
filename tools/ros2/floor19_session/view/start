@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Start one viewer process from the laptop's ROS environment.
+set -eo pipefail
+here=$(dirname "$(realpath "$0")")
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/cleany/floor19-rviz
+mkdir -p "$cache"
+source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+FASTRTPS_DEFAULT_PROFILES_FILE=$(python3 "$here/../../floor19_view_profile.py" "${CLEANY_JETSON_LAN_IP:?set the Jetson LAN IPv4 address}" "$cache")
+export FASTRTPS_DEFAULT_PROFILES_FILE RMW_IMPLEMENTATION=rmw_fastrtps_cpp ROS_LOCALHOST_ONLY=0 ROS_DOMAIN_ID=0
+case "${1:-}" in
+    rviz) exec rviz2 -d "$here/floor19.rviz" --ros-args -r /tf:=/floor19/tf -r /tf_static:=/floor19/tf_static ;;
+    overlays) exec python3 "$here/view_overlays.py" ;;
+    *) echo "Usage: $0 rviz|overlays" >&2; exit 2 ;;
+esac

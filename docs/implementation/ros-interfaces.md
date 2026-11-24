@@ -41,6 +41,7 @@ flowchart TB
 | 경로 | 조건 / 참조 |
 |---|---|
 | `d435_head_encoder_tf` | 명시 진단 도구. `/head/joint_states` (JointState, R10)와 D435 TF; 제품 bringup 자동 포함 아님. [읽기 전용과 모터 시험](calibration.md#d435와-lidar-벽-비교-및-헤드-관절-관측) |
+| `floor19_recorder_<InvocationID>/set_paused` (SetBool), `/floor19/map`, `/floor19/tf` | [19층 지도 수집과 녹화](how-to/mapping.md#19층-현장-수집) |
 | `slip_monitor`, `traction_brake`, `SlipRecovery` | [슬립 복구](../../ros2_ws/src/cleany_navigation/docs/interfaces.md#slip_monitor-traction_brake와-sliprecovery-bt) |
 | `localization_guard` | [상세 계약][ros-localization-guard]. `/initialpose` 발행과 `/request_nomotion_update` 호출은 검증된 정지 복구에서만 수행 |
 
