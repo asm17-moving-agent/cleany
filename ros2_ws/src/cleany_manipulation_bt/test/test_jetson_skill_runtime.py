@@ -82,7 +82,7 @@ def test_native_jetson_skill_preserves_target_and_requires_real_port_evidence(op
     inspected.objects.header.frame_id = 'base_link'
     candidate = GraspCandidate(snapshot_id='approved',object_id=2, required_opening_m=.04, target_object=obj)
     selected = SelectReachableGrasp.Result(success=True, selected_arm='left',
-        selected_candidate=candidate, gripper_joint_position=.5, selected_candidate_index=0)
+        selected_candidate=candidate, gripper_joint_position=1., selected_candidate_index=0)
     selected.grasp_joint_state = JointState(name=list(ARM_JOINT_NAMES['left']), position=[0.]*5)
     old_call = node.call
     def evidence(request):

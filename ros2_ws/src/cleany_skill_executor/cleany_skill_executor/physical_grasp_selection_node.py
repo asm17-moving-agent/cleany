@@ -121,6 +121,7 @@ class GraspSelectionNode(Node):
             'curobo_collision_margin_m': 0.0001,
             'curobo_collision_hull_max_expansion_m': 0.001,
             'curobo_moveit_shadow_validation': False,
+            'grasp_octomap_mode': 'off',
             'curobo_device_alignment_min_solutions': 32,
             'joint_state_topic': 'joint_states',
             'planning_frame': 'base_link',
@@ -151,6 +152,7 @@ class GraspSelectionNode(Node):
             'pregrasp_motion_enabled': True,
             'direct_grasp_shortcut_enabled': False,
             'grasp_ik_first': False,
+            'batch_grasp_ik_before_limit': False,
             'grasp_approach_offset_m': 0.0,
             'grasp_lateral_offset_m': 0.0,
             'grasp_use_aperture_centering': False,
@@ -379,7 +381,7 @@ class GraspSelectionNode(Node):
                     'asymmetric_gripper_enabled', 'stop_after_first_feasible',
                     'deduplicate_candidates', 'fast_candidate_paths_first',
                     'pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled',
-                    'grasp_ik_first')},
+                    'grasp_ik_first', 'batch_grasp_ik_before_limit')},
                 pregrasp_offset_m=float(self.get_parameter('pregrasp_offset_m').value),
                 pregrasp_z_offset_m=float(self.get_parameter('pregrasp_z_offset_m').value),
                 maximum_path_candidates=int(self.get_parameter('maximum_path_candidates').value),
@@ -636,9 +638,9 @@ class GraspSelectionNode(Node):
         selector = self._selector
         side = selector._config.fixed_jaw_closing_axis_sign
         arms = (required_arm,) if required_arm else ('left', 'right')
-        # Keep the existing score-ranked candidate budget even when geometry
-        # rejects candidates before the batched IK call.
-        ranked = sorted(candidates, key=lambda c: c.score, reverse=True)[:selector._config.maximum_candidates]
+        ranked = sorted(candidates, key=lambda c: c.score, reverse=True)
+        if not selector._config.batch_grasp_ik_before_limit:
+            ranked = ranked[:selector._config.maximum_candidates]
         corrected = []
         for candidate in ranked:
             if canceled():

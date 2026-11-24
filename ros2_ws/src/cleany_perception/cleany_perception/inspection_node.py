@@ -366,7 +366,8 @@ class InspectionNode(Node):
                             'gemini_api_key_environment').value),
                         timeout_seconds=float(self.get_parameter(
                             'detector_timeout_seconds').value),
-                    ), vlm_active=self._vlm_active, timing=self._log_inspection_timing)
+                    ), decision_enabled=self.get_parameter('decision_enabled').value,
+                        vlm_active=self._vlm_active, timing=self._log_inspection_timing)
                 else:
                     detector = yoloe
             else:
@@ -697,6 +698,7 @@ class InspectionNode(Node):
         )
         self.declare_parameter('allow_external_images', True)
         self.declare_parameter('detector_type', 'yoloe_gemini')
+        self.declare_parameter('decision_enabled', True)
         self.declare_parameter('segmenter_type', 'yoloe_seg')
         self.declare_parameter('simulation_color_minimum_pixels', 100)
         self.declare_parameter('simulation_color_profile', 'legacy')
@@ -1178,7 +1180,7 @@ class InspectionNode(Node):
         stamp = Time(nanoseconds=snapshot.stamp_ns).to_msg()
         return (
             colored_point_cloud_message(target, stamp, target_frame),
-            colored_point_cloud_message(context, stamp, target_frame),
+            colored_point_cloud_message(context, stamp, target_frame, viewpoint=capture_transform.translation),
         )
 
     def _publish_debug_image(self, message: Image) -> None:

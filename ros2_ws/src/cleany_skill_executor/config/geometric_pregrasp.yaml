@@ -17,6 +17,7 @@ grasp_server:
     geometric.maximum_candidates: 96
     geometric.collision_clearance_m: 0.008
     geometric.search_longitudinal_contacts: true
+    geometric.longitudinal_max_height_ratio: 0.0
     geometric.longitudinal_contact_height_offset_m: 0.0
     geometric.defer_support_plane_collision: false
     nms_rotation_threshold_degrees: 5.0

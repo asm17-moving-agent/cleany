@@ -55,7 +55,7 @@ def test_longitudinal_height_correction_only_applies_to_eligible_thin_objects():
 
 
 @pytest.mark.parametrize('fractions,ratio', [((), .4), ((.5,), .4), ((float('nan'),), .4),
-                                           ((0.,), 0.), ((0.,), float('nan'))])
+                                           ((0.,), -.1), ((0.,), float('nan'))])
 def test_invalid_longitudinal_search_rejected(fractions, ratio):
     with pytest.raises(ValueError, match='longitudinal'):
         GeometricGraspConfig(longitudinal_offset_fractions=fractions,
@@ -458,3 +458,34 @@ def test_contact_uses_volume_center_for_surface_biased_depth_cloud() -> None:
         + candidates[0].depth_m * candidates[0].rotation[:, 0]
     )
     assert np.allclose(contact, (0.0, 0.0, 0.04), atol=0.006)
+
+
+@pytest.mark.parametrize('height,upper_surface,expect_distal', [
+    (.022, True, True), (.050, True, False), (.022, False, False),
+])
+def test_distal_pad_preserves_center_and_requires_local_observations(height, upper_surface, expect_distal):
+    from cleany_grasping.core.selector import GraspConfig, rank_grasps
+
+    table = [(x, y, 0.) for x in np.linspace(-.15, .15, 16)
+             for y in np.linspace(-.12, .12, 16) if abs(x) > .06 or abs(y) > .04]
+    footprint = [(x, y) for x in np.linspace(-.04, .04, 15)
+                 for y in np.linspace(-.018, .018, 11)]
+    points = [(x, y, .002) for x, y in footprint]
+    points += [(x, y, height) for x, y in footprint if upper_surface or abs(x) > .03]
+    cfg = GeometricGraspConfig(pad_half_length_m=.015375, distal_pad_offset_m=.009,
+                               distal_contact_depth_m=.003, yaw_offsets_degrees=(0.,))
+    target = cloud(points)
+    poses = GeometricGraspPredictor(cfg).predict(target, cloud(points + table), np.zeros(6))
+    distal = [g for g in poses if g.pad_offset_m]
+    assert any(not g.pad_offset_m for g in poses)
+    assert bool(distal) == expect_distal
+    if distal:
+        g = distal[0]
+        tcp = g.translation + g.depth_m * g.rotation[:, 0]
+        contact = tcp + g.pad_offset_m * g.rotation[:, 0]
+        assert contact[2] == pytest.approx(height - .003)
+        assert tcp[2] == pytest.approx(contact[2] + .009)
+        center = next(p for p in poses if not p.pad_offset_m and np.allclose(p.rotation, g.rotation))
+        ranked = rank_grasps((g, center), target, GraspConfig(target_contact_margin_m=.001))
+        assert len(ranked) == 2
+        np.testing.assert_allclose(ranked[0].translation, tcp)

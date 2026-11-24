@@ -126,8 +126,13 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 
 ## 승인 기반 작업 제안
 
+`pick_return_release`에서 `temporary_ignore_decision=true`면 로봇 좌표계에서
+유효한 3D 거리가 가장 짧은 검출을 표시한다. 이전에 건너뛴 기록은 고려하지 않는다.
+추적 ID가 모호하거나 실행 조건을 충족하지 않으면 해당 대상을 `DISPLAY_ONLY`로 표시한다.
+운영자는 `READY` 상태의 대상만 승인할 수 있다.
+
 인증된 제어 경로의 `cleany_dev_monitor_operator_<pid>_<id>` adapter가 요청별 작업을
-수행한다. 제안은 InspectScene, 승인 재확인은 RevalidateTarget을 사용하며 팔 동작을 요청하지 않는다.
+수행한다. 제안은 InspectScene으로 생성하고 승인은 GetSceneSnapshot으로 원본을 확인한다. 새 관측이 필요한 승인에서는 RevalidateTarget도 호출한다.
 승인 작업은 기존 `manipulation_test_client`로 정확한 Goal을 한 번 전달한다.
 재관찰은 승인한 대상의 동일성, 분류, 위치, bbox, 깊이와 크기 조건을 검증한다.
 주변 검출 목록의 일치는 승인 조건이 아니며, `scene_context`와 `scene_object_count`는
@@ -153,11 +158,14 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 재확인 응답은 승인 관측의 분류 사유(`sorting_reason`)도 유지합니다. 제안의 `reason`은
 대상 선정 규칙이나 실행 불가 상태를 설명하는 로컬 메시지입니다.
 
-승인 시 원본 snapshot, object ID, track ID와 session을 재확인 서비스에 전달합니다.
-서비스는 Gemini를 호출하지 않고 승인한 종류명과 처리 분류를 해당 1회 작업에 유지합니다.
-최신 신뢰도, 깊이, 크기와 목적지 정책은 다시 검사합니다. 위치, 박스, 좌표계,
-설정, 원본 캐시 및 유효 기간 검사는 유지하며 실행 명령은 원래 승인한 snapshot/object를 사용합니다.
-원본 분류의 정확성을 새로 검증하는 경로는 아니며 다음 제안은 다시 분류합니다.
+승인은 원본 관측의 유효 기간, 물체 번호와 추적 ID의 대응, 세션, 설정 및 실행 적격 조건을 확인합니다.
+`pick_return_release`의 정지 물체 시험 설정(`assume_stationary_target=true`, `visual_servo_enabled=false`, `wrist_observation_enabled=false`)에서는
+원본 관측을 그대로 사용합니다. 기록의 `mode`는 `stationary_target_assumed`이고 `attempts`는 비어 있습니다.
+이 모드에서는 제안 이후 물체가 움직였는지 측정하지 않습니다.
+
+그 밖의 설정에서는 승인한 snapshot, 물체 번호, 추적 ID와 세션을 재확인 서비스에 전달합니다.
+새 영상의 위치, 박스, 깊이, 크기와 신뢰도를 검사하고 원본 이름과 처리 분류를 유지합니다.
+두 방식 모두 실행 명령은 원래 승인한 snapshot과 물체 번호를 사용합니다.
 
 마스크 대응 또는 RGB-D 수신 실패만 제한된 횟수로 새 영상을 요청합니다.
 이동, 낮은 박스 겹침, 깊이, 정책 또는 설정 실패에는 재시도하지 않습니다.
@@ -174,7 +182,7 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 | `proposal_execution_timeout_sec` | 1200.0 | 기존 CLI가 Action 결과를 기다리는 상한 |
 | `proposal_reobservation_attempts` | 2 | 새 영상 재확인 최대 시도 수, 1~3의 정수 |
 
-제안 상태는 `READY`, `NO_TARGET`, 조회 시 파생되는 `EXPIRED`, `CONSUMED`다. 실제
+제안 상태는 `READY`, `DISPLAY_ONLY`, `NO_TARGET`, 조회 시 파생되는 `EXPIRED`, `CONSUMED`다. 실제
 실행 결과와 독립적이며 `NO_TARGET`은 전체 작업 완료가 아니다. 진행 단계는
 `PROPOSING`, `REVALIDATING`, `EXECUTING`, `PROPOSING_NEXT`다. 승인 작업 실패 후에도
 소비된 제안은 재사용하지 않는다. `propose`, 별도 인식, 준비, 직접 실행, 복귀, 복구,

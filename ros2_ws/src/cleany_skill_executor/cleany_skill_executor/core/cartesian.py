@@ -115,6 +115,16 @@ def validate_position_endpoint(actual: CartesianPose, target: CartesianPose,
         raise ValueError(f'Cartesian endpoint mismatch: position={distance:.6f}m')
 
 
+def validate_position_endpoint(actual: CartesianPose, target: CartesianPose,
+                               position_tolerance_m: float) -> None:
+    """Validate Cartesian translation without making orientation a stop condition."""
+    if not math.isfinite(position_tolerance_m) or position_tolerance_m <= 0:
+        raise ValueError('Cartesian position tolerance must be finite and positive')
+    distance = math.dist(actual.position, target.position)
+    if distance > position_tolerance_m:
+        raise ValueError(f'Cartesian endpoint mismatch: position={distance:.6f}m')
+
+
 def validate_corridor_samples(samples: Sequence[CartesianPose], start: CartesianPose,
                               target: CartesianPose, radius_m: float,
                               orientation_tolerance_rad: float | None,

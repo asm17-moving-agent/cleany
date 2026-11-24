@@ -2,12 +2,113 @@ from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace as NS
 import json
+import math
 import pytest
 from cleany_skill_executor.core.collection import (
     configuration_issues, load_arm, check_evidence, selection_gripper_parameters,
 )
 from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
+
+
+@pytest.mark.parametrize('offset,latest_offset,held_offset,outcome', [
+    (0., 0., None, 'sent'), (.005, .005, None, 'sent'),
+    (.0051, .0051, None, 'replan'), (.003, .006, None, 'replan'),
+    (0., 0., .003, 'sent'), (0., 0., .02, 'replan'),
+    (0., 0., None, 'collision'), (0., 0., None, 'controller_error'),
+])
+def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
+        monkeypatch, offset, latest_offset, held_offset, outcome):
+    from contextlib import nullcontext
+    from geometry_msgs.msg import Pose
+    from sensor_msgs.msg import JointState
+    from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+    from cleany_skill_executor.collection_pipeline import CollectionPipeline
+    from cleany_skill_executor.core.cartesian import CartesianPose
+    from cleany_skill_executor.core.hardware_execution import ArmHold, CollisionValidationError
+    import cleany_skill_executor.hardware_execution as transport
+
+    arm = 'left'
+    names = ARM_JOINT_NAMES[arm]
+    selected = JointTrajectory(joint_names=list(names), points=[
+        JointTrajectoryPoint(positions=[0.]*5, velocities=[0.]*5, accelerations=[.03]*5),
+        JointTrajectoryPoint(positions=[.06]*5, velocities=[.08]*5, accelerations=[-.01]*5),
+        JointTrajectoryPoint(positions=[.1]*5, velocities=[0.]*5, accelerations=[-.05]*5),
+    ])
+    for index, point in enumerate(selected.points):
+        point.time_from_start.sec = index
+    msg = NS(selected_arm=arm, grasp_trajectory=selected, fk_grasp_pose=Pose())
+    goal = CartesianPose((.2, 0., .3), (0., 0., 0., 1.))
+    limit = PhysicalJointLimit(-2., 2., 2., 8., 2048., 1., 0., 0., 4095.)
+    values = {'hardware_velocity_rad_s': 2., 'hardware_acceleration_rad_s2': 8.,
+              'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
+              'hardware_start_tolerance_rad': .005, 'hardware_arrival_tolerance_rad': .1,
+              'hardware_uncommanded_tolerance_rad': .03}
+    sent, checked, replanned, stopped = [], [], [], []
+    state = JointState(name=list(names), position=[latest_offset, 0., 0., 0., 0.])
+
+    def run_action(_client, request, _timeout, **options):
+        assert options['monitor']
+        sent.append(deepcopy(request.trajectory))
+        if outcome == 'controller_error':
+            return NS(error_code=-1, SUCCESSFUL=0, error_string='rejected')
+        state.position = list(request.trajectory.points[-1].positions)
+        return NS(error_code=0, SUCCESSFUL=0)
+
+    monkeypatch.setattr(transport.HardwareExecution, '_wait_before_execution',
+        lambda *_: JointState(name=list(names), position=[offset, 0., 0., 0., 0.]))
+    monkeypatch.setattr(transport.HardwareExecution, '_start_motion_monitor', lambda *_: None)
+    def validate(_self, _arm, _names, samples, *_args, **kw):
+        checked.append((list(samples), kw['hold_bridge_samples']))
+        if outcome == 'collision':
+            raise CollisionValidationError('changed scene', phase='command_path', sample_index=2)
+
+    monkeypatch.setattr(transport.HardwareExecution, 'validate_collision_samples', validate)
+    node = NS(config={'approach_execution_replanning_enabled': True},
+              event=lambda *_, **__: None, cartesian_pose=lambda _: goal,
+              pose=lambda _: msg.fk_grasp_pose, run_action=run_action,
+              get_logger=lambda: NS(info=lambda *_: None, warning=lambda *_: None),
+              create_motion_client=lambda *_: NS(destroy=lambda: None),
+              replan_approach_from_arrival=lambda *args: replanned.append(args))
+    real = object.__new__(transport.HardwareExecution)
+    real.node, node.real = node, real
+    real.arm_holds, real.last_execution_metrics, real.uncommanded = {}, {}, None
+    if held_offset is not None:
+        real.arm_holds[arm] = ArmHold((0.,)*5, (held_offset, 0., 0., 0., 0.))
+    real.fail_stop = lambda: stopped.append(True)
+    real.motion_submissions = 0
+    real.frozen_sensor_scene = nullcontext
+    real.positive_integer = lambda _: 1
+    real.monitor = lambda: deepcopy(state)
+    real.verify = lambda _: dict.fromkeys(names, limit)
+    real.value = values.__getitem__
+    real.verify_arm_endpoint = lambda *a, **k: (state, {})
+    node.execute_selected_approach = lambda *a: CollectionPipeline.execute_selected_approach(node, *a)
+    report = {}
+    if outcome == 'collision':
+        with pytest.raises(CollisionValidationError, match='changed scene'):
+            CollectionPipeline._approach_target(node, msg, report)
+        assert not sent and not replanned and not stopped
+        return
+    if outcome == 'controller_error':
+        with pytest.raises(RuntimeError, match='Physical controller failure: rejected'):
+            CollectionPipeline._approach_target(node, msg, report)
+        assert sent == [selected] and stopped == [True] and not replanned
+        return
+    with real.record_arm_commands(arm) as recording:
+        CollectionPipeline._approach_target(node, msg, report)
+    assert not stopped
+    if outcome == 'replan':
+        assert report['approach_execution_route'] == 'replanned_from_arrival'
+        assert len(replanned) == 1
+        assert not sent and not recording.trajectories
+    else:
+        assert report['approach_execution_route'] == 'selected_trajectory'
+        assert sent == [selected]
+        assert len(checked) == 1 and len(checked[0][0]) > len(selected.points)
+        assert bool(checked[0][1]) == bool(offset)
+        assert not replanned
+        assert recording.trajectories[0].points[1].accelerations == tuple(selected.points[1].accelerations)
 
 def config():
     return {'frame':'base_link','commissioning_verified':True,'label_destinations':{'bottle':'recycling'},
@@ -315,7 +416,7 @@ def test_startup_home_is_explicit_and_not_confused_with_a_missing_pose():
 def test_single_destination_can_use_a_wildcard_label():
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
     selected=NS(selected_arm='left',selected_object=NS(label='earbud charging case'),
-                selected_candidate=NS(required_opening_m=.04),gripper_joint_position=.4)
+                gripper_joint_position=1.)
     limits={name:NS(check=lambda _:None) for name in (*ARM_JOINT_NAMES['left'],'left_gripper_joint')}
     node=NS(config={**config(),'label_destinations':{'*':'recycling'}},arm_config=None,
             destination='',real=NS(verify=lambda _:limits, closed_contact_position=lambda *_:0.),
@@ -323,6 +424,18 @@ def test_single_destination_can_use_a_wildcard_label():
             event=lambda *_,**__:None)
     CollectionPipeline.before_execution(node,selected)
     assert node.destination=='recycling'
+
+
+@pytest.mark.parametrize('planned_opening', [.4, math.nan])
+def test_invalid_selector_opening_is_rejected_before_hardware_verification(planned_opening):
+    from cleany_skill_executor.collection_pipeline import CollectionPipeline
+
+    selected = NS(selected_arm='left', selected_object=NS(label='bottle'),
+                  gripper_joint_position=planned_opening)
+    node = NS(config=config(), arm_config=None, destination='',
+              real=NS(verify=lambda _: pytest.fail('Mismatched selection reached hardware')))
+    with pytest.raises(RuntimeError, match='configured fully open gripper'):
+        CollectionPipeline.before_execution(node, selected)
 
 
 @pytest.mark.parametrize('state', ['CONTACT','EMPTY','UNKNOWN'])
@@ -810,7 +923,7 @@ def test_temporary_motor_contact_preflight_needs_no_wrist_evidence_provider():
               evidence=NS(wait_for_service=lambda **_: pytest.fail('Unexpected wrist evidence dependency')),
               event=lambda *_, **__: None)
     selected = NS(selected_arm='left', selected_candidate=NS(required_opening_m=.04),
-                  gripper_joint_position=.4)
+                  gripper_joint_position=1.)
     CollectionPipeline.before_execution(node, selected)
     assert contact_setup == [True] and node.destination == 'return_to_pick'
     node.config['operation_mode'] = 'full_collection'
