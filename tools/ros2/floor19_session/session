@@ -1,0 +1,15 @@
+#!/bin/bash
+set -eo pipefail
+cd "$(dirname "$(realpath "$0")")"
+release=$(cat release.txt)
+source /opt/ros/humble/setup.bash
+source "$release"/field/deps/install/local_setup.bash
+source "$release"/ros/local_setup.bash
+export ROS_DOMAIN_ID=0 ROS_LOCALHOST_ONLY=0 RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export FASTRTPS_DEFAULT_PROFILES_FILE=/etc/opt/cleany/field/fastdds.xml
+export ROS_LOG_DIR="$PWD/log" PYTHONDONTWRITEBYTECODE=1
+mkdir -p "$ROS_LOG_DIR"
+case "$1" in
+  mapping) exec ros2 launch "$PWD/mapping.launch.py" ;;
+  exec) shift; exec "$@" ;;
+esac

@@ -1,0 +1,15 @@
+[Unit]
+Description=Resume the Floor 19 mapping and VSLAM recording session
+ConditionUser=cleany
+ConditionPathIsDirectory=/etc/opt/cleany/field/floor19-capture-run
+After=cleany-head-rgbd.service
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/opt/cleany/tools/floor19-capture watch /etc/opt/cleany/field/floor19-capture-run
+Restart=on-failure
+RestartSec=20
+UMask=0027
+
+[Install]
+WantedBy=default.target
