@@ -8,11 +8,11 @@ from shared_perception_transport import shared_perception_rmw
 
 
 def test_managed_perception_keeps_existing_transport():
-    assert shared_perception_rmw({}) == ''
     assert shared_perception_rmw({'CLEANY_COLLECTION_USE_EXISTING_PERCEPTION': 'false'}) == ''
 
 
 def test_shared_native_provider_defaults_to_fastdds():
+    assert shared_perception_rmw({}) == 'rmw_fastrtps_cpp'
     assert shared_perception_rmw({'CLEANY_COLLECTION_USE_EXISTING_PERCEPTION': 'true'}) == 'rmw_fastrtps_cpp'
 
 
