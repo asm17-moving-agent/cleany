@@ -30,8 +30,16 @@ python3 tools/models/cad_inventory.py /path/to/Cleany-final.FCStd \
 ```bash
 python3 tools/docs/render_contract_figures.py
 python3 tools/docs/render_contract_figures.py --check
-python3 tools/docs/build_site.py
-python3 tools/docs/build_site.py --check
 ```
 
 `--check`는 PNG와 입력 해시를 다시 계산해 비교합니다. 렌더러 버전이 달라지면 그림을 검토한 뒤 다시 생성합니다. 원본 사진과 GIF는 재생성 대상이 아니며 [별도 출처](../docs/assets/visuals/imported.json)로 관리합니다.
+
+## 오프라인 문서 뷰어
+
+저장소 루트에서 구현 문서 뷰어를 생성한 뒤 `docs/index.html`을 브라우저에서 엽니다.
+Markdown이나 템플릿을 수정했으면 같은 명령으로 다시 생성합니다.
+
+```bash
+python3 tools/docs/build_site.py
+python3 tools/docs/build_site.py --check
+```

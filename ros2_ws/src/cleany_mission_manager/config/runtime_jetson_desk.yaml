@@ -1,0 +1,16 @@
+mission_runtime:
+  ros__parameters:
+    manipulation_backend: jetson
+    manipulation_action: manipulation/execute_skill
+    manipulation_query: manipulation/get_execution
+    manipulation_destination: demo_trash_bin
+    # Operator places a known disposable item at the demo seat. Inspection must independently classify it as trash.
+    allowed_trash_labels: ["crumpled paper", "crumpled tissue"]
+    collection_config: "/etc/opt/cleany/field/field-collection.json"
+    observation_directory: "/var/opt/cleany/control-plane/observations"
+    supervision_capabilities: [MOBILE_MANIPULATION]
+    navigation_timeout: 180.0
+    cleaning_timeout: 900.0
+    operation_timeout: 240.0
+    cancel_timeout: 15.0
+    max_skill_retries: 0

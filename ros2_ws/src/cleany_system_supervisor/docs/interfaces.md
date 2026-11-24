@@ -51,3 +51,7 @@ Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사합�
 추가하고 `/proximity_guard`의 health 발행을 허용합니다. source가 오래되거나 가용하지 않으면
 기존 lease 회수와 Mission stop 경로를 사용합니다. 일반 장애물 정지는 health 불가용으로
 보고하지 않습니다. ToF가 실제로 없는 구성에는 이 옵션을 적용하지 않습니다.
+
+실물 좌석 프로필은 `MOBILE_MANIPULATION` 정지를 `mission/stop`으로 전달한다. `ros.navigation_stop_action`을 지정한 경우 단독 `NAVIGATION` lease의 정지는 해당 Action으로 전달한다. 미확인 lease를 복원할 때 저장된 capability를 사용하고, capability가 없는 이전 기록은 기본 정지 Action을 사용한다.
+
+`system/state.permissions[].stop_confirmed`은 미션이 정지를 확인하고 lease를 반환했거나 Supervisor의 정지 Action이 완료되면 참입니다. 허가를 회수한 시점에는 거짓으로 유지됩니다.

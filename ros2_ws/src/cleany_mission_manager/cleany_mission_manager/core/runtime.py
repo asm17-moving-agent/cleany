@@ -3,7 +3,7 @@
 from dataclasses import asdict, replace, is_dataclass
 from collections import deque
 from typing import Callable
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import py_trees
 
@@ -34,10 +34,13 @@ class MissionRuntime:
                  on_accept: Callable[[], None] | None = None,
                  navigation_mode: str = "mock",
                  supervision: SupervisionPort | None = None) -> None:
-        if navigation_mode not in ("sim", "mock"):
-            raise ValueError("this runtime supports simulation or explicit mocks only")
-        self.execution_profile = {"navigation": navigation_mode, "perception": "mock",
-                                  "planning": "mock", "execution": "mock"}
+        if navigation_mode not in ("sim", "mock", "real"):
+            raise ValueError("unknown navigation mode")
+        if navigation_mode == "real" and supervision is None:
+            raise ValueError("physical missions require Supervisor permission")
+        desk_mode = "real" if navigation_mode == "real" else "mock"
+        self.execution_profile = {"navigation": navigation_mode, "perception": desk_mode,
+                                  "planning": desk_mode, "execution": desk_mode}
         self.supervision = supervision
         self.revoked = False
         self.authorized_once = False
@@ -65,13 +68,14 @@ class MissionRuntime:
         self.return_after_cancel = False
         self.error_code = self.journal.value("error_code")
         for request in self.journal.unfinished():
+            if self.error_code not in ("E_STOP", "HARDWARE_ERROR"):
+                self.error_code = "INTERRUPTED"
             self.journal.finish(RuntimeReport(
                 request, "INTERRUPTED", "Runtime restarted; operator confirmation required.",
                 failure_code="INTERRUPTED", needs_human_review=True,
+                cleaning_mode=self.journal.profile(request.mission_id).get("execution", "mock"),
                 execution_profile=self.journal.profile(request.mission_id),
-            ))
-            self.error_code = "INTERRUPTED"
-            self.journal.set("error_code", self.error_code)
+            ), error_code=self.error_code)
         self.state = RuntimeState.ERROR if self.error_code else RuntimeState.IDLE
         self.last_report = self.journal.latest()
         self.sequence = int(self.journal.value("sequence", "0"))
@@ -84,6 +88,8 @@ class MissionRuntime:
             return False, self.error_code or "ERROR"
         if self.state != RuntimeState.IDLE:
             return False, "BUSY"
+        if self.execution_profile["navigation"] == "real" and not self.navigator.at_home():
+            return False, "FIELD_HOME_NOT_CONFIRMED"
         safe, reason = self._safe_to_drive()
         if not safe:
             return False, reason
@@ -118,6 +124,11 @@ class MissionRuntime:
             if existing[0] != request:
                 return Admission(False, "MISSION_ID_CONFLICT")
             return Admission(True, duplicate=True, report=existing[1])
+        if self.execution_profile["navigation"] == "real":
+            try:
+                UUID(request.mission_id)
+            except ValueError:
+                return Admission(False, "INVALID_REQUEST")
         if request.mission_type != "clean_desk" or request.target_kind != "SEAT":
             return Admission(False, "UNSUPPORTED_MISSION")
         if request.target_id not in self.targets:
@@ -174,11 +185,14 @@ class MissionRuntime:
         safe, reason = self._safe_to_drive()
         if not safe:
             return Admission(False, reason)
-        ready, reason = self.navigator.ready()
+        try:
+            ready, reason = self.navigator.ready()
+        except Exception:
+            return Admission(False, "ADAPTER_ERROR")
         if not ready:
             return Admission(False, reason)
-        self.error_code = ""
         self.journal.set("error_code", "")
+        self.error_code = ""
         self.request = None
         self._enter(RuntimeState.IDLE)
         return Admission(True)
@@ -285,11 +299,12 @@ class MissionRuntime:
             return
         if self.state in (RuntimeState.NAVIGATE_TO_TARGET, RuntimeState.RETURN_HOME):
             returning = self.state == RuntimeState.RETURN_HOME
-            if self.operation_id is None:
+            if self.operation_id is None or self.execution_profile["execution"] == "real":
                 safe, reason = self._safe_to_drive()
                 if not safe:
                     self._begin_stop(ModuleResult.blocked(FailureCode.SKILL_FAIL, message=reason))
                     return
+            if self.operation_id is None:
                 self.navigation_is_home = returning
                 self.operation_id = self.navigator.start(
                     "home" if returning else self.request.target_id
@@ -323,11 +338,14 @@ class MissionRuntime:
                 self.cleaning = CleaningTree(
                     perception=self.desk_ports[0], planner=self.desk_ports[1],
                     executor=self.desk_ports[2], clock=self.clock, policy=self.policy,
-                    mission_id=self.request.mission_id, observer=self.observe,
+                    mission_id=self.request.mission_id, mode=self.execution_profile["perception"], observer=self.observe,
                 )
                 self._enter(RuntimeState.WORKING)
         elif self.state == RuntimeState.WORKING:
             assert self.cleaning is not None
+            if self.execution_profile["execution"] == "real" and not self.navigator.stopped():
+                self._begin_stop(ModuleResult.blocked(FailureCode.NAVIGATION_FAIL, message="Base stop feedback lost at desk"))
+                return
             if self.clock() - self.started_at >= self.policy.cleaning_timeout:
                 self._begin_stop(ModuleResult.failed(FailureCode.TIMEOUT,
                                                     message="Cleaning budget exhausted."))
@@ -433,9 +451,13 @@ class MissionRuntime:
             after_observation=context.after if context else "",
             navigation_result=self.navigation_result, return_result=self.return_result,
             actions=list(context.records) if context else [],
+            cleaning_mode=self.execution_profile["execution"],
             execution_profile=self.journal.profile(self.request.mission_id),
         )
-        self.journal.finish(report)
+        fatal = force_error or result is not None and result.status == ResultStatus.FATAL
+        error_code = (report.failure_code or "ERROR") if fatal else ""
+        self.journal.finish(report, error_code=error_code)
+        self.error_code = error_code
         self.last_report = report
         if self.supervision is not None:
             try:
@@ -445,9 +467,6 @@ class MissionRuntime:
             except Exception:
                 pass
         self.observe("mission_result", report.to_dict())
-        fatal = force_error or result is not None and result.status == ResultStatus.FATAL
-        self.error_code = report.failure_code or "ERROR" if fatal else ""
-        self.journal.set("error_code", self.error_code)
         self.request = None
         self._enter(RuntimeState.ERROR if fatal else RuntimeState.IDLE)
 
