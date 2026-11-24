@@ -53,15 +53,34 @@ jobs:
       - name: Test CI tools
         run: make test-ci-tools
 
+      - name: Identify debugger cache
+        id: debugger-key
+        run: |
+          if [[ -n "${ImageVersion:-}" ]]; then
+            echo "image=${ImageOS:-ubuntu22}-${ImageVersion}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Cache isolated debugger
+        if: steps.debugger-key.outputs.image != ''
+        continue-on-error: true
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/ci-debugger
+          key: cleany-debugger-${{ runner.arch }}-${{ steps.debugger-key.outputs.image }}-${{ hashFiles('tools/ci/prepare_debugger.py') }}
+
       - name: Prepare isolated debugger
         run: |
-          if ! command -v gdb >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends gdb
+          debugger="${RUNNER_TEMP}/ci-debugger"
+          if [[ ! -s "${debugger}/version.txt" ]] || ! "${debugger}/bin/gdb" --version >/dev/null; then
+            rm -rf -- "${debugger}"
+            if ! command -v gdb >/dev/null; then
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends gdb
+            fi
+            /usr/bin/python3 tools/ci/prepare_debugger.py "${debugger}"
           fi
-          /usr/bin/python3 tools/ci/prepare_debugger.py "${RUNNER_TEMP}/ci-debugger"
           mkdir -p "${RUNNER_TEMP}/cleany-builds"
-          cp "${RUNNER_TEMP}/ci-debugger/version.txt" "${RUNNER_TEMP}/cleany-builds/debugger-version.txt"
+          cp "${debugger}/version.txt" "${RUNNER_TEMP}/cleany-builds/debugger-version.txt"
 
       - name: Identify dependency image
         id: dependencies
@@ -159,12 +178,20 @@ jobs:
             python3 containers/ci/verify-versions.py
           '
 
-      - name: Publish dependency image
+      - name: Start dependency image publication
+        id: publish-image
         if: success() && steps.image.outputs.hit == 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         env:
           IMAGE: ${{ steps.dependencies.outputs.image }}
         run: |
-          docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
+          publication="${RUNNER_TEMP}/dependency-image-push"
+          # 게시 중에도 빌드와 테스트는 검증된 로컬 이미지를 사용합니다.
+          (
+            status=0
+            timeout --kill-after=10s 5m docker push "${IMAGE}" || status=$?
+            echo "${status}" > "${publication}.status"
+          ) </dev/null >"${publication}.log" 2>&1 &
+          echo "$!" > "${publication}.pid"
 
       - name: Prepare geometry test dependencies
         run: |
@@ -179,22 +206,15 @@ jobs:
         id: build
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run build --kind build --timeout 1200 -- make build COLCON_BUILD_ARGS="--cmake-force-configure --cmake-args -DCLEANY_MPPI_PORTABLE_BUILD=ON"
 
-      - name: Test workspace contracts in parallel
+      - name: Test workspace and navigation runtime in parallel
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace --kind contract --timeout 1200 --diagnostic-after 1200 -- bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py all'
+        run: |
+          tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run workspace --kind contract --timeout 1200 --diagnostic-after 1200 -- \
+            bash -c 'source /ci-builds/install/setup.bash && cd ros2_ws && xvfb-run -a python3 ../tools/ci/workspace_tests.py all --with-navigation-runtime'
 
       - name: Test motor core
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run motor --kind contract --timeout 180 -- make test-motor-core
-
-      - name: Test common navigation runtime
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          tools/ci/run python3 tools/ci/check.py --root /ci-builds/checks run ros-runtime --kind integration --timeout 600 -- \
-            make -o build-navigation test-navigation-runtime \
-            NAVIGATION_BUILD_BASE=/ci-builds/build \
-            NAVIGATION_INSTALL_BASE=/ci-builds/install \
-            NAVIGATION_LOG_BASE=/ci-builds/log
 
       - name: Require all checks and summarize failures
         if: always()
@@ -220,6 +240,21 @@ jobs:
         with:
           path: ${{ runner.temp }}/cleany-ccache
           key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+
+      - name: Report dependency image publication
+        if: ${{ !cancelled() && steps.publish-image.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          publication="${RUNNER_TEMP}/dependency-image-push"
+          timeout 5m15s bash -c '
+            while [[ ! -s "$1.status" ]] && kill -0 "$2" 2>/dev/null; do
+              sleep 1
+            done
+          ' bash "${publication}" "$(<"${publication}.pid")" || true
+          cat "${publication}.log"
+          if [[ ! -s "${publication}.status" ]] || [[ "$(<"${publication}.status")" != 0 ]]; then
+            echo '::warning::Image publication failed; subsequent runs may build dependencies locally.'
+          fi
 
       - name: Upload test results and environment
         if: always()

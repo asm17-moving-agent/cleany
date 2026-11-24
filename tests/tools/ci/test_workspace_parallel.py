@@ -74,6 +74,75 @@ class ParallelWorkspaceTest(unittest.TestCase):
                 WORKSPACE.package_environment(Path(directory), 'overflow', 60)
         self.assertEqual(dict(os.environ), before)
 
+    def test_long_packages_are_dispatched_before_short_and_new_packages(self):
+        names = ['new_package', 'cleany_navigation', 'cleany_gazebo_sim',
+                 'cleany_interfaces', 'cleany_base_driver', 'cleany_skill_executor']
+        seen = []
+
+        def runner(root, package, index, group, started):
+            seen.append(package)
+            return {'package': package, 'status': 'passed'}
+
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            status = WORKSPACE.run_groups(Path(directory), names, WORKSPACE.GROUPS, 1, runner)
+
+        self.assertEqual(status, 0)
+        self.assertEqual(seen, ['cleany_base_driver', 'cleany_skill_executor', 'cleany_navigation',
+                                'cleany_gazebo_sim', 'cleany_interfaces', 'new_package'])
+
+    def test_runtime_overlaps_package_and_keeps_separate_result(self):
+        names = ['cleany_base_driver', 'cleany_skill_executor', 'cleany_navigation', 'extra']
+        watchdog_finished = threading.Event()
+        skill_running = threading.Event()
+        runtime_finished = threading.Event()
+
+        def runner(root, package, index, group, started):
+            if package == 'cleany_base_driver':
+                watchdog_finished.set()
+            if package == 'cleany_skill_executor':
+                skill_running.set()
+                self.assertTrue(runtime_finished.wait(timeout=3))
+            return {'package': package, 'status': 'passed'}
+
+        def runtime(root, started):
+            self.assertTrue(watchdog_finished.is_set())
+            self.assertTrue(skill_running.wait(timeout=3))
+            runtime_finished.set()
+            return {'name': 'ros-runtime', 'status': 'failed'}
+
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            old_result = root/'checks/ros-runtime/result.json'
+            old_result.parent.mkdir(parents=True)
+            old_result.write_text('{"status":"passed"}')
+            status = WORKSPACE.run_groups(root, names, WORKSPACE.GROUPS, 2, runner,
+                                          navigation_runner=runtime)
+            self.assertEqual(status, 1)
+            self.assertFalse(old_result.exists())
+            schedule = json.loads((root/'checks/workspace/schedule.json').read_text())
+            self.assertCountEqual([p['package'] for p in schedule['packages']], names)
+            self.assertTrue(all(p['status'] == 'passed' for p in schedule['packages']))
+            self.assertEqual(schedule['ros-runtime']['status'], 'failed')
+
+    def test_runtime_reserves_domains_and_reuses_workspace_build(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            with mock.patch.object(WORKSPACE.subprocess, 'run',
+                                   return_value=subprocess.CompletedProcess([], 0)) as run:
+                result = WORKSPACE.run_navigation_runtime(root, time.monotonic())
+            command = run.call_args.args[0]
+            env = result['environment']
+            domain = int(env['CLEANY_TEST_ROS_DOMAIN_BASE'])
+            self.assertEqual({domain, domain + 2, domain + 4}, {30, 32, 34})
+            self.assertEqual(env['ROS_LOCALHOST_ONLY'], '1')
+            self.assertEqual(env['ROS_HOME'], str(root/'test-environments/ros-runtime/ros'))
+            self.assertEqual(env['TMPDIR'], str(root/'test-environments/ros-runtime/tmp'))
+            self.assertEqual(run.call_args.kwargs['cwd'], ROOT)
+            self.assertIn('ros-runtime', command)
+            self.assertEqual(command[-7:-3], ['make', '-o', 'build-navigation', 'test-navigation-runtime'])
+            self.assertIn(f'NAVIGATION_INSTALL_BASE={root/"install"}', command)
+            self.assertEqual(result['status'], 'passed')
+
     def test_zero_exit_without_fresh_result_is_failure(self):
         with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
             root = Path(directory)

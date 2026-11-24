@@ -1,3 +1,4 @@
+from functools import cache
 import importlib.util
 import os
 from pathlib import Path
@@ -9,18 +10,37 @@ from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
 
 
-@pytest.fixture
-def runtime(monkeypatch):
-    # Humble의 LaunchContext.environment는 os.environ입니다. SetEnvironmentVariable
-    # action 전에 두 키를 모두 monkeypatch에 등록합니다.
-    monkeypatch.setenv('FASTRTPS_DEFAULT_PROFILES_FILE', '')
-    monkeypatch.delenv('FASTRTPS_DEFAULT_PROFILES_FILE')
-    monkeypatch.setenv('MUJOCO_GL', os.environ.get('MUJOCO_GL', 'egl'))
+@pytest.fixture(scope='module')
+def learned_runtime():
     path = (Path(__file__).resolve().parents[1] / 'launch' /
             'study_cafe_nearest_grasp_demo.launch.py')
     spec = importlib.util.spec_from_file_location('learned_runtime', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope='module')
+def shoulder_reference_positions(learned_runtime):
+    read_positions = learned_runtime._shoulder_reference_positions
+
+    @cache
+    def resolve(model_profile):
+        return tuple(read_positions(model_profile))
+
+    return resolve
+
+
+@pytest.fixture
+def runtime(monkeypatch, learned_runtime, shoulder_reference_positions):
+    # Humble의 launch 환경 설정은 os.environ을 변경할 수 있습니다.
+    monkeypatch.setenv('FASTRTPS_DEFAULT_PROFILES_FILE', '')
+    monkeypatch.delenv('FASTRTPS_DEFAULT_PROFILES_FILE')
+    monkeypatch.setenv('MUJOCO_GL', os.environ.get('MUJOCO_GL', 'egl'))
+    module = learned_runtime
+    # 같은 모델을 사용하되 launch마다 별도 좌표 목록을 전달합니다.
+    monkeypatch.setattr(module, '_shoulder_reference_positions',
+                        lambda model_profile: list(shoulder_reference_positions(model_profile)))
     context = LaunchContext()
     description = module.generate_launch_description()
     for entity in description.entities:
@@ -31,6 +51,21 @@ def runtime(monkeypatch):
                         '/plugin' if package == 'moveit_ros_perception'
                         else original(package))
     return module, context
+
+
+@pytest.fixture(scope='module')
+def urdf_shoulder_origins():
+    urdf_path = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
+    urdf = ET.fromstring(subprocess.check_output(
+        ['xacro', str(urdf_path), 'model_profile:=jetson_20261009']
+    ))
+    return [
+        float(value)
+        for side in ('left', 'right')
+        for value in urdf.find(
+            f"joint[@name='{side}_shoulder_yaw_joint']/origin"
+        ).get('xyz').split()
+    ]
 
 
 def test_sorting_wrapper_uses_yoloe_seg_gemini_with_wrist():
@@ -317,7 +352,8 @@ def test_backend_options_are_forwarded(runtime, argument, custom):
 
 
 @pytest.mark.parametrize('sorting,wrist', [('false', 'false'), ('true', 'false'), ('true', 'true')])
-def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatch, sorting, wrist):
+def test_resolved_nodes_share_grasp_geometry_and_mode_guards(
+        runtime, monkeypatch, urdf_shoulder_origins, sorting, wrist):
     from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
     from launch_ros.utilities import evaluate_parameters, normalize_parameters
 
@@ -348,17 +384,6 @@ def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatc
     assert parameters['grasp_server']['geometric.defer_support_plane_collision'] is (sorting == 'true')
     assert parameters['grasp_server']['geometric.include_reverse_closing_axis'] is False
     assert tuple(parameters['grasp_server']['geometric.yaw_offsets_degrees']) == (-40., -20., 0., 20., 40.)
-    urdf_path = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
-    urdf = ET.fromstring(subprocess.check_output(
-        ['xacro', str(urdf_path), 'model_profile:=jetson_20261009']
-    ))
-    shoulder_origins = [
-        float(value)
-        for side in ('left', 'right')
-        for value in urdf.find(
-            f"joint[@name='{side}_shoulder_yaw_joint']/origin"
-        ).get('xyz').split()
-    ]
     assert parameters['grasp_server']['geometric.approach_reference_positions'] == pytest.approx(
-        shoulder_origins, abs=1e-9
+        urdf_shoulder_origins, abs=1e-9
     )

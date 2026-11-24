@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
@@ -13,6 +14,21 @@ import sys
 import time
 
 GROUPS = ('navigation', 'manipulation', 'workspace-rest')
+NAVIGATION_RUNTIME = 'ros-runtime'
+NAVIGATION_RUNTIME_DOMAIN_BASE = 30
+# 최근 CI에서 오래 걸린 패키지를 먼저 배정해 짧은 검사로 남는 자리를 채웁니다.
+PACKAGE_PRIORITY = (
+    'cleany_skill_executor',
+    'cleany_manipulation_bt',
+    'cleany_navigation',
+    'cleany_description',
+    'cleany_moveit_capabilities',
+    'cleany_gazebo_sim',
+    'cleany_system_supervisor',
+    'cleany_moveit_config',
+    'cleany_mujoco_sim',
+    'cleany_robot_interface',
+)
 SCRIPT = Path(__file__).resolve()
 EXCLUSIONS = json.loads(SCRIPT.with_name('workspace_test_exclusions.json').read_text())
 
@@ -27,21 +43,25 @@ def group_packages(names: list[str], group: str) -> list[str]:
     return [name for name in names if owner(name) == group and name not in EXCLUSIONS]
 
 
-def package_environment(root: Path, package: str, index: int) -> dict[str, str]:
-    if not 0 <= index < 60:
-        raise ValueError('Package domains must stay within 40..99')
-    directory = root/'test-environments'/package
+def isolated_environment(root: Path, name: str, domain: int) -> dict[str, str]:
+    directory = root/'test-environments'/name
     for child in ('tmp', 'ros'):
         (directory/child).mkdir(parents=True, exist_ok=True)
-    domain = str(40 + index)
-    environment = {
-        'ROS_DOMAIN_ID': domain, 'CLEANY_TEST_ROS_DOMAIN_ID': domain,
-        'BASE_TEST_ROS_DOMAIN_ID': domain, 'ROS_LOCALHOST_ONLY': '1',
+    return {
+        'ROS_DOMAIN_ID': str(domain), 'ROS_LOCALHOST_ONLY': '1',
         'ROS_HOME': str(directory/'ros'), 'TMPDIR': str(directory/'tmp'),
-        'IGN_PARTITION': f'cleany-ci-{package}', 'GZ_PARTITION': f'cleany-ci-{package}',
+        'IGN_PARTITION': f'cleany-ci-{name}', 'GZ_PARTITION': f'cleany-ci-{name}',
         'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
         'CTEST_PARALLEL_LEVEL': '1',
     }
+
+
+def package_environment(root: Path, package: str, index: int) -> dict[str, str]:
+    if not 0 <= index < 60:
+        raise ValueError('Package domains must stay within 40..99')
+    environment = isolated_environment(root, package, 40 + index)
+    domain = environment['ROS_DOMAIN_ID']
+    environment.update(CLEANY_TEST_ROS_DOMAIN_ID=domain, BASE_TEST_ROS_DOMAIN_ID=domain)
     if package == 'cleany_base_driver':
         environment['BASE_EKF_TEST_ROS_DOMAIN_ID'] = '26'
     if package == 'cleany_system_supervisor':
@@ -89,8 +109,26 @@ def run_package(root: Path, package: str, index: int, group: str, started: float
             'finished_seconds': round(time.monotonic() - started, 3)}
 
 
+def run_navigation_runtime(root: Path, started: float) -> dict:
+    environment = isolated_environment(root, NAVIGATION_RUNTIME, NAVIGATION_RUNTIME_DOMAIN_BASE)
+    environment['CLEANY_TEST_ROS_DOMAIN_BASE'] = str(NAVIGATION_RUNTIME_DOMAIN_BASE)
+    command = [sys.executable, str(SCRIPT.with_name('check.py')), '--root', str(root/'checks'),
+               'run', NAVIGATION_RUNTIME, '--kind', 'integration', '--timeout', '600', '--',
+               'make', '-o', 'build-navigation', 'test-navigation-runtime',
+               f'NAVIGATION_BUILD_BASE={root/"build"}',
+               f'NAVIGATION_INSTALL_BASE={root/"install"}',
+               f'NAVIGATION_LOG_BASE={root/"log"}']
+    begin = time.monotonic() - started
+    print('Starting common navigation runtime', flush=True)
+    status = subprocess.run(command, cwd=SCRIPT.parents[2], env={**os.environ, **environment}).returncode
+    return {'name': NAVIGATION_RUNTIME, 'status': 'failed' if status else 'passed',
+            'started_seconds': round(begin, 3), 'environment': environment,
+            'finished_seconds': round(time.monotonic() - started, 3)}
+
+
 def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: int,
-               runner=run_package) -> int:
+               runner=run_package, *,
+               navigation_runner: Callable[[Path, float], dict] | None = None) -> int:
     started = time.monotonic()
     selected = {group: group_packages(names, group) for group in groups}
     # 준비 실패도 이전 실행의 성공 결과를 남기지 않도록 먼저 표시합니다.
@@ -106,17 +144,21 @@ def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: i
         raise ValueError('At most 60 isolated package domains are available')
     tasks = [(package, names.index(package), group)
              for group in groups for package in selected[group]]
-    # 가장 긴 조작 검사를 먼저 배정해 마지막에 큰 검사 하나만 남는 일을 줄입니다.
-    tasks.sort(key=lambda item: (item[2] != 'manipulation', item[0]))
+    priority = {package: rank for rank, package in enumerate(PACKAGE_PRIORITY)}
+    tasks.sort(key=lambda item: (priority.get(item[0], len(priority)), item[0]))
     results = {group: [] for group in groups}
-    # The base fusion fixture exercises a real-clock mock MCU watchdog. Give its
-    # ROS processes the runner before starting the CPU-heavy package tests.
+    runtime = None
+    if navigation_runner is not None:
+        (root/'checks'/NAVIGATION_RUNTIME/'result.json').unlink(missing_ok=True)
+    # 실시간 mock MCU watchdog 검사가 끝난 뒤 다른 ROS 검사를 시작합니다.
     base = [task for task in tasks if task[0] == 'cleany_base_driver']
     remaining = [task for task in tasks if task[0] != 'cleany_base_driver']
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for batch in (base, remaining):
             pending = {pool.submit(runner, root, package, index, group, started): (package, group)
                        for package, index, group in batch}
+            if batch is remaining and navigation_runner is not None:
+                pending[pool.submit(navigation_runner, root, started)] = (NAVIGATION_RUNTIME, None)
             for future in as_completed(pending):
                 package, group = pending[future]
                 try:
@@ -124,7 +166,10 @@ def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: i
                 except Exception as error:
                     result = {'package': package, 'status': 'infrastructure_error', 'error': str(error)}
                     print(f'::error title={package}::{error}', flush=True)
-                results[group].append(result)
+                if group is None:
+                    runtime = result
+                else:
+                    results[group].append(result)
     elapsed = round(time.monotonic() - started, 3)
     failed = False
     for group, records in results.items():
@@ -140,8 +185,12 @@ def run_groups(root: Path, names: list[str], groups: tuple[str, ...], workers: i
         (root/'checks'/group/'result.json').write_text(json.dumps(result, indent=2))
     schedule = root/'checks/workspace'
     schedule.mkdir(parents=True, exist_ok=True)
-    (schedule/'schedule.json').write_text(json.dumps({'workers': workers, 'elapsed_seconds': elapsed,
-        'packages': [record for records in results.values() for record in records]}, indent=2))
+    schedule_result = {'workers': workers, 'elapsed_seconds': elapsed,
+                       'packages': [record for records in results.values() for record in records]}
+    if runtime is not None:
+        schedule_result[NAVIGATION_RUNTIME] = runtime
+        failed |= runtime['status'] != 'passed'
+    (schedule/'schedule.json').write_text(json.dumps(schedule_result, indent=2))
     return int(failed)
 
 
@@ -150,14 +199,18 @@ def main() -> int:
     parser.add_argument('group', nargs='?', default='all', choices=['all', *GROUPS])
     parser.add_argument('--workers', type=int, default=min(4, os.cpu_count() or 1))
     parser.add_argument('--package')
+    parser.add_argument('--with-navigation-runtime', action='store_true')
     args = parser.parse_args()
     if not 1 <= args.workers <= 4:
         parser.error('--workers must be between 1 and 4')
+    if args.package and args.with_navigation_runtime:
+        parser.error('--with-navigation-runtime cannot be combined with --package')
     root = Path(os.environ['CLEANY_BUILD_ROOT']).resolve()
     if args.package:
         return test_package(root, args.package)
     names = sorted(subprocess.check_output(['colcon', 'list', '--names-only'], text=True).splitlines())
-    return run_groups(root, names, GROUPS if args.group == 'all' else (args.group,), args.workers)
+    return run_groups(root, names, GROUPS if args.group == 'all' else (args.group,), args.workers,
+                      navigation_runner=run_navigation_runtime if args.with_navigation_runtime else None)
 
 
 if __name__ == '__main__':

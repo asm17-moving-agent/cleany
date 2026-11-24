@@ -65,16 +65,16 @@ CI는 Ubuntu 22.04 amd64에서 전체 workspace 검사, ESP32 motor core와 합�
 
 전체 빌드 이후 검사를 아래 단계로 분리합니다. 한 검사 단계가 실패해도 빌드가 성공했다면 나머지 독립 검사를 실행합니다. 주요 패키지와 runtime 검사는 실패 표시를 유지하면서 후속 검사를 계속 실행합니다. UI와 카메라 검사에 사용하는 `continue-on-error`도 마지막 집계에서 실제 실패로 반영합니다. 마지막 집계는 실패, 중단과 결과 누락을 모두 실패로 처리합니다.
 
-CI는 실시간 mock MCU watchdog을 사용하는 `cleany_base_driver` 검사를 단독으로 먼저 실행합니다. 나머지 패키지는 runner CPU 수에 따라 최대 4개까지 병렬 실행합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP thread는 하나로 제한해 중첩 병렬화를 막습니다. 빌드는 기존 병렬 설정을 유지하며, 별도 ROS runtime은 workspace 검사가 끝난 뒤 실행합니다.
+CI는 실시간 mock MCU watchdog을 사용하는 `cleany_base_driver` 검사를 단독으로 먼저 실행합니다. 이후 시간이 오래 걸리는 패키지부터 runner CPU 수에 따라 최대 4개를 배정합니다. 합성 Navigation 런타임 검사는 대기열 끝에서 같은 실행 한도를 사용하며 별도 결과를 기록합니다. 패키지 내부의 CTest는 순차 실행하고 BLAS와 OpenMP 스레드는 하나로 제한합니다.
 
-각 패키지는 ROS domain, ROS 로그와 임시 디렉터리, Gazebo transport partition을 분리합니다. 기본 domain은 40–99를 사용하고, 사례별 domain은 ToF에 10–25, 베이스 EKF에 26–28, Supervisor에 190–224를 배정합니다. 테스트가 고정값이나 무작위 domain을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 OS가 선택한 빈 포트를 사용합니다.
+각 검사는 ROS 도메인, ROS 로그와 임시 디렉터리, Gazebo 전송 파티션을 분리합니다. 패키지 기본 도메인은 40–99를 사용합니다. 사례별 도메인은 ToF에 10–25, 베이스 EKF에 26–28, 합성 Navigation 런타임에 30, 32, 34, Supervisor에 190–224를 배정합니다. 패키지 테스트가 고정값이나 무작위 도메인을 선택하던 경우에는 `CLEANY_TEST_ROS_DOMAIN_ID`를 우선 사용합니다. TCP 서버 검사는 운영체제가 선택한 빈 포트를 사용합니다.
 
 | 단계 | 범위 |
 |---|---|
 | ui / camera | 조작 UI 빌드와 입력 처리, 장치 없는 USB 카메라 초기화 검사 |
 | environment | 도구, Pillow 이미지 API, 의존성 버전과 시뮬레이터 환경 |
 | build | 전체 workspace 컴파일과 설치 |
-| workspace | 전체 패키지 병렬 실행과 실패 집계 |
+| workspace | 전체 패키지와 합성 Navigation 런타임 병렬 실행 및 실패 집계 |
 | navigation | Navigation 패키지 결과 묶음 |
 | manipulation | Skill executor와 manipulation BT 결과 묶음 |
 | workspace-rest | 위 그룹에 없는 모든 패키지 결과; 새 패키지도 자동 포함 |
@@ -107,6 +107,7 @@ CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 
 | 재사용 대상 | 갱신 조건 | 검증 경계 |
 |---|---|---|
 | GHCR 의존성 이미지 | 모든 `package.xml`, rosdep YAML, `containers/ci/`, 이미지 준비 도구, platform 변경 | ROS, apt, pip 의존성만 포함하며 응용 소스와 빌드 결과는 포함하지 않음 |
+| 격리 GDB 번들 | Runner 이미지 버전, 아키텍처, GDB 준비 스크립트 변경 | 복원한 GDB의 버전 명령 실행을 확인하고 실패하면 번들을 다시 준비 |
 | ccache | compiler 내용, 소스, header와 옵션에 따라 hit/miss 결정 | 빌드 명령은 매번 실행하며 CTest/pytest 결과는 캐시하지 않음 |
 | 같은 실행의 workspace | 전체 빌드 완료 후 runtime 검사에서 재사용 | 다른 실행의 `build/`, `install/`, test result는 복원하지 않음 |
 
@@ -120,7 +121,7 @@ CI 환경에는 스택 수집용 GDB와 컨테이너 내부 프로세스 추적 
 이 재사용은 응용 소스나 빌드 결과를 포함하지 않으며 전체 빌드와 테스트는 매번 실행합니다.
 기하 검사의 Python 패키지는 [검증용 버전 목록](../../../tests/requirements-geometry.txt)으로
 실행 컨테이너에 설치합니다. NumPy와 ROS Python 버전은 변경하지 않습니다.
-같은 저장소의 실행은 환경 확인 후 의존성 이미지를 게시합니다. 응용 테스트의 성공 여부와 별개로 의존성 이미지와 compiler cache를 보존해 실패 수정 시에도 재사용하며, 다음 실행의 전체 검사와 실패 판정은 그대로 유지합니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행도 동일한 의존성 이미지를 재사용합니다.
+같은 저장소의 실행은 환경 확인을 통과한 새 의존성 이미지를 빌드와 테스트가 진행되는 동안 게시합니다. 검사 뒤 게시 결과를 기록하며, 게시 실패는 경고로 표시합니다. 의존성 이미지와 compiler cache는 응용 테스트가 실패한 경우에도 재사용할 수 있습니다. Fork PR은 이미지를 게시하지 않습니다. 매주 월요일 실행도 동일한 의존성 이미지를 재사용합니다.
 
 기준은 2026-11-02에 조회한 Jetson의 system Python과 설치된 ROS 패키지입니다.
 [repository-snapshots.env](../../../containers/ci/repository-snapshots.env)는 Ubuntu와 ROS 저장소의 시점을,
