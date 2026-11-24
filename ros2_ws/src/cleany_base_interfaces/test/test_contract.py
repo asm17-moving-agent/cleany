@@ -1,6 +1,6 @@
 from rclpy.serialization import deserialize_message, serialize_message
 
-from cleany_base_interfaces.msg import WheelCommand, WheelState
+from cleany_base_interfaces.msg import WheelCommand, WheelDriveState, WheelState
 
 
 def test_fixed_command_roundtrip_preserves_sequence_deadline_and_wheel_order():
@@ -36,3 +36,18 @@ def test_fixed_state_roundtrip_preserves_signed_counters_and_pwm():
     assert len(payload) < 512
     assert WheelState.PROTOCOL_VERSION == WheelCommand.PROTOCOL_VERSION == 2
     assert 'session_id' not in state.get_fields_and_field_types()
+
+
+def test_drive_state_roundtrip_preserves_signed_duty_and_pending_times():
+    drive = WheelDriveState(
+        boot_id=1, sequence=3, timestamp_us=2**50, pwm_period_ticks=2048,
+        pwm_frequency_hz=20000, duty_ticks=[2040, -2040, 1, -1],
+        requested_pwm_percent=[100.0, -100.0, 0.125, -0.125],
+        first_sequence=0xffffffff, received_us=2**50 - 5000,
+        start_counts=[-(2**31), 2**31 - 1, 0, 7],
+        first_us=[0, 5000, -1, -1], fifth_us=[5000, -1, -1, -1],
+        onset_ticks=[0, -96, 0, 0],
+    )
+    payload = serialize_message(drive)
+    assert deserialize_message(payload, WheelDriveState) == drive
+    assert len(payload) < 512
