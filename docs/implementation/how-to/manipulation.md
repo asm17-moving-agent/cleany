@@ -182,3 +182,33 @@ Fast DDS에서는 두 노드에 UDP를 사용하고 센서·깊이 지도에는 
 
 준비가 중단되면 `real-control.log`에서 마지막 유효 모터 피드백과 제어 주기 한도를 확인한다.
 작업 제안과 승인에서 사용하는 대상 확인 조건은 [dev-monitor 작업 제안 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안)에 있다.
+
+### Jetson 수거 서비스의 CPU 배치
+
+CPU 0–7이 모두 온라인이고 기본 피드백 코어 수를 사용하는 Jetson에서 모터 제어기와
+보호기는 CPU 6–7에서 실행합니다. 헤드 RGB-D, 인식과 Dev Monitor는 사용자
+systemd 설정을 설치하면 CPU 0–5를 공유합니다.
+
+저장소 루트에서 서비스 실행 계정으로 설정을 설치합니다.
+
+```bash
+drop_ins=configs/host/systemd/jetson-collection-cpu
+user_systemd="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+for path in "$drop_ins"/*.service.d/90-cleany-cpu-affinity.conf; do
+  install -D -m 0644 "$path" "$user_systemd/${path#"$drop_ins"/}"
+done
+systemctl --user daemon-reload
+```
+
+설정은 각 서비스의 다음 기동부터 적용합니다. 유휴 시간에 서비스를 다시 시작한 뒤
+유닛 설정과 메인 프로세스의 CPU 범위를 확인합니다.
+
+```bash
+for unit in cleany-head-rgbd.service cleany-perception.service cleany-dev-monitor.service; do
+  systemctl --user show "$unit" -p ActiveState -p CPUAffinity
+  pid=$(systemctl --user show "$unit" -p MainPID --value)
+  if [[ "$pid" -gt 0 ]]; then
+    taskset -pc "$pid"
+  fi
+done
+```
