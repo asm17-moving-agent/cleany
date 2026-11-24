@@ -1,5 +1,6 @@
 """영속 수락 기록과 불변 종료 결과이며 ROS 의존성이 없습니다."""
 
+import fcntl
 import json
 import sqlite3
 from dataclasses import asdict
@@ -14,10 +15,20 @@ class MissionJournal:
     생성한 스레드에서 사용해야 합니다. 변경은 동기적으로 commit하며
     파일 시스템과 데이터베이스 오류는 호출자에게 전달합니다.
     """
-    def __init__(self, path: str = ":memory:") -> None:
+    def __init__(self, path: str = ":memory:", *, exclusive: bool = False) -> None:
+        self._owner = None
+        if exclusive and path == ":memory:":
+            raise ValueError("physical missions need a persistent journal")
         if path != ":memory:":
             Path(path).expanduser().parent.mkdir(parents=True, exist_ok=True)
             path = str(Path(path).expanduser())
+            if exclusive:
+                self._owner = open(path + ".lock", "a")
+                try:
+                    fcntl.flock(self._owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except OSError:
+                    self._owner.close()
+                    raise RuntimeError("field mission journal already has an owner") from None
         self.db = sqlite3.connect(path)
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(
@@ -25,6 +36,15 @@ class MissionJournal:
             "mission_id TEXT PRIMARY KEY, request TEXT NOT NULL, report TEXT);"
             "CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT);"
         )
+
+        # A legacy interruption could commit its report before persisting the lock.
+        # An old manual reset cannot be distinguished from that crash window.
+        if exclusive and not self.value("atomic_terminal_lock"):
+            with self.db:
+                latest = self.latest()
+                if latest and latest.outcome == "INTERRUPTED" and not self.value("error_code"):
+                    self.db.execute("INSERT OR REPLACE INTO metadata VALUES('error_code','INTERRUPTED')")
+                self.db.execute("INSERT OR REPLACE INTO metadata VALUES('atomic_terminal_lock','1')")
 
     def get(self, mission_id: str) -> tuple[RuntimeRequest, RuntimeReport | None] | None:
         row = self.db.execute(
@@ -53,8 +73,8 @@ class MissionJournal:
     def profile(self, mission_id: str) -> dict:
         return json.loads(self.value("profile:" + mission_id, "{}"))
 
-    def finish(self, report: RuntimeReport) -> None:
-        """수락된 임무의 첫 종료 보고서를 저장 확정합니다.
+    def finish(self, report: RuntimeReport, *, error_code: str) -> None:
+        """종료 보고서와 다음 임무 수락을 막는 오류 코드를 함께 저장합니다.
 
         Raises:
             RuntimeError: 알 수 없는 임무이거나 이미 종료 결과가 있는 경우.
@@ -66,6 +86,7 @@ class MissionJournal:
             ).rowcount
             if updated != 1:
                 raise RuntimeError("terminal outcome is immutable")
+            self.db.execute("INSERT OR REPLACE INTO metadata VALUES(?,?)", ("error_code", error_code))
 
     def unfinished(self) -> list[RuntimeRequest]:
         return [RuntimeRequest(**json.loads(row[0])) for row in self.db.execute(
@@ -93,3 +114,5 @@ class MissionJournal:
 
     def close(self) -> None:
         self.db.close()
+        if self._owner:
+            self._owner.close()

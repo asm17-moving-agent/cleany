@@ -24,3 +24,5 @@
 집계한다. `ACCEPTED`, `EXECUTING`, `CANCELING` 중 하나라도 있으면 `true`다.
 상태 구독은 `/<left|right>_<arm|gripper>_controller/follow_joint_trajectory/_action/status`,
 `action_msgs/msg/GoalStatusArray`와 기본 Action status QoS를 사용한다.
+
+`manipulation/control_state` 응답의 `collection_config_sha256`은 실행기가 읽은 수거 설정 JSON을 키 정렬한 뒤 공백 없이 직렬화한 SHA-256이다. Mission Runtime은 이 값으로 자신의 실측 설정이 실행기 설정과 같은지 확인한다.

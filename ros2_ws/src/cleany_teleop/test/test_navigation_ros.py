@@ -35,7 +35,8 @@ class Control:
         self.requests=[]
     def stop(self,reason):self.phase='idle';self.owner=None;self.stop_confirmed=True
     def stopped(self):return True
-    def request(self,payload):
+    def request(self, payload, *, navigation_input=False):
+        assert navigation_input
         self.requests.append(payload);self.owner=payload['client'];self.phase='moving'
 
 

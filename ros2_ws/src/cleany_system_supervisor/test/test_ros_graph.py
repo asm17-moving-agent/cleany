@@ -166,6 +166,41 @@ def test_ros_permission_service_and_recovery_verification(graph):
     assert peers.messages[-1].epoch == supervisor.core.epoch
 
 
+def test_revocation_reports_separate_stop_confirmation(graph):
+    from threading import Event
+    from cleany_interfaces.action import StopMission
+
+    peers, supervisor, _, _ = graph
+    confirm = Event()
+
+    def stop(handle):
+        assert confirm.wait(timeout=5)
+        handle.succeed()
+        return StopMission.Result(stopped=True)
+
+    server = ActionServer(peers, StopMission, 'mission/stop', stop, callback_group=peers.group)
+    client = peers.create_client(CheckPermission, 'system/check_permission', callback_group=peers.group)
+    wait(client.service_is_ready)
+    mission = 'awaiting-measured-stop'
+
+    def observed(granted, stopped):
+        return any(p.mission_id == mission and p.granted == granted and p.stop_confirmed == stopped
+                   for state in peers.messages for p in state.permissions)
+
+    try:
+        future = client.call_async(CheckPermission.Request(epoch=supervisor.core.epoch,
+            mission_id=mission, capabilities=['MOBILE_MANIPULATION']))
+        wait(future.done)
+        assert future.result().granted
+        wait(lambda: observed(True, False))
+        wait(lambda: observed(False, False))
+        confirm.set()
+        wait(lambda: observed(False, True))
+    finally:
+        confirm.set()
+        server.destroy()
+
+
 def test_sensor_validation_rejects_publish_only_health():
     scan = LaserScan(angle_increment=.1, range_min=.1, range_max=10., ranges=[float('nan')] * 10)
     scan.header.frame_id = 'laser'
@@ -197,3 +232,26 @@ def test_pose_covariance_allows_roundoff_but_rejects_invalid_variance(index):
     for value in (-1e-8, .50001, float('nan'), float('inf')):
         pose.pose.covariance[index] = value
         assert not valid_pose(pose, .5)
+
+
+
+def test_stop_endpoint_follows_original_lease_across_restart():
+    from types import SimpleNamespace
+    from cleany_system_supervisor.permissions import MissionPermissionManager
+    from cleany_system_supervisor.ros_transport import MissionStopPort
+
+    records = [
+        {"mission_id": "phone", "lease_id": "nav", "capabilities": ["NAVIGATION"]},
+        {"mission_id": "field", "lease_id": "both", "capabilities": ["MOBILE_MANIPULATION"]},
+        {"mission_id": "old", "lease_id": "unknown"},
+    ]
+    permissions = MissionPermissionManager("new-epoch", {})
+    permissions.restore(records)
+    assert permissions.persisted()[:2] == records[:2]
+    routed = {}
+    port = MissionStopPort.__new__(MissionStopPort)
+    port.endpoint, port.navigation_endpoint = "mission/stop", "navigation/stop"
+    port.calls = SimpleNamespace(send=lambda key, endpoint, goal: routed.update({key: endpoint}))
+    for lease in permissions.leases.values():
+        port.request(lease, "new-epoch")
+    assert routed == {"nav": "navigation/stop", "both": "mission/stop", "unknown": "mission/stop"}
