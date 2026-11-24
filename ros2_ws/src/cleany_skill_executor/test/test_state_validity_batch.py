@@ -13,6 +13,7 @@ def test_hardware_batches_all_samples_and_preserves_first_failure_contacts():
     checks = []
     def call(client, request, **kwargs):
         calls.append(request)
+        assert request.group_name == 'right_grasp_arm'
         assert kwargs['monitor']
         if len(calls) == 1:
             return CheckStateValidityBatch.Response(success=True, valid=[True]*32, first_invalid_index=-1)
@@ -21,7 +22,7 @@ def test_hardware_batches_all_samples_and_preserves_first_failure_contacts():
     batch = StateValidityBatch(object(), client=NS(service_is_ready=lambda: True))
     hardware = NS(_batch_validity=batch, monitor=lambda: checks.append(True), node=NS(call=call))
     states = [RobotState(is_diff=True) for _ in range(65)]
-    results = list(HardwareExecution._collision_responses(hardware, states))
+    results = list(HardwareExecution._collision_responses(hardware, states, 'right_grasp_arm'))
     assert [len(request.robot_states) for request in calls] == [32, 32]
     assert [index for index, _ in results] == list(range(34))
     assert not results[-1][1].valid
@@ -32,13 +33,15 @@ def test_hardware_batches_all_samples_and_preserves_first_failure_contacts():
 def test_missing_batch_service_keeps_native_full_state_checks():
     native = []
     def call(client, request):
+        assert request.group_name == 'right_grasp_arm'
         native.append(request.robot_state)
         return NS(valid=True)
     hardware = NS(_batch_validity=StateValidityBatch(object(),
         client=NS(service_is_ready=lambda: False)), monitor=lambda: None,
         validity=object(), node=NS(call=call))
     states = [RobotState(is_diff=True) for _ in range(35)]
-    assert len(list(HardwareExecution._collision_responses(hardware, states))) == len(states)
+    results = list(HardwareExecution._collision_responses(hardware, states, 'right_grasp_arm'))
+    assert len(results) == len(states)
     assert native == states
 
 

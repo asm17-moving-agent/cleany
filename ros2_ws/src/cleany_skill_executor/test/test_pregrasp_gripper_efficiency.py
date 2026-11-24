@@ -207,8 +207,10 @@ def test_larger_collision_batches_keep_all_states_and_global_failure_index(avail
     batch = StateValidityBatch(object(), batch_size=64, client=client)
     calls, seen = [], []
     states = [RobotState(joint_state=JointState(name=['q'], position=[float(i)])) for i in range(515)]
+    group_name = 'left_pregrasp_open'
 
     def call(actual_client, request, **_kwargs):
+        assert request.group_name == group_name
         chunk = request.robot_states if actual_client is client else [request.robot_state]
         calls.append(len(chunk))
         valid = []
@@ -223,7 +225,7 @@ def test_larger_collision_batches_keep_all_states_and_global_failure_index(avail
                 if actual_client is client else NS(valid=valid[0]))
 
     hw = NS(_batch_validity=batch, monitor=lambda: None, node=NS(call=call), validity=object())
-    result = list(HardwareExecution._collision_responses(hw, states))
+    result = list(HardwareExecution._collision_responses(hw, states, group_name))
     count = 515 if invalid is None else invalid+1
     assert seen == list(range(count))
     assert [index for index, _ in result] == seen
