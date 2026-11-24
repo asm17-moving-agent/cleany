@@ -1274,7 +1274,7 @@ class HardwareExecution:
             except (CollisionValidationError, JointRangeValidationError, CommandPathValidationError) as error:
                 # A communication resume can reject its remaining path after
                 # the original trajectory already moved. Do not start detours.
-                error.motion_started = bool(resumes)
+                error.motion_started = error.motion_started or bool(resumes)
                 raise
             except CommunicationRecovered as error:
                 if options.get('recorded_trajectory') is not None:
@@ -1305,14 +1305,14 @@ class HardwareExecution:
             self.node.get_logger().info('Small start drift: connecting measured joints to the planned path')
         return points
 
-    def _check_recorded_start(self, names, planned, measured):
-        joints = tuple(measured[name] for name in names)
+    def _check_recorded_start(self, planned: tuple[float, ...], joints: tuple[float, ...],
+                              *, reference: str = 'measured') -> None:
         if not all(math.isfinite(angle) for angle in joints):
-            raise CommandPathValidationError('Saved approach requires finite measured joints')
+            raise CommandPathValidationError(f'Saved approach requires finite {reference} joints')
         error = max(abs(actual-goal) for actual, goal in zip(joints, planned, strict=True))
         tolerance = self.value('hardware_start_tolerance_rad')
         if error > tolerance:
-            raise RecordedStartMismatch(error, tolerance)
+            raise RecordedStartMismatch(error, tolerance, reference=reference)
 
     def _can_refresh_path(self, drift, commanded, attempt):
         return (attempt < self.positive_integer('hardware_path_refresh_attempts')
@@ -1446,7 +1446,12 @@ class HardwareExecution:
         direct_replay = recorded_trajectory is not None and held_command is None
         if direct_replay:
             # A non-held replay has no new start point in the controller command.
-            HardwareExecution._check_recorded_start(self, expected, positions[0], baseline)
+            HardwareExecution._check_recorded_start(
+                self, positions[0], tuple(baseline[name] for name in expected))
+            hold = self.arm_holds.get(arm)
+            if hold is not None:
+                HardwareExecution._check_recorded_start(
+                    self, positions[0], hold.command, reference='held')
         nominal_target = positions[-1]
         if contact_close and (controller != 'gripper' or abs(
                 nominal_target[0]-self.closed_contact_position(arm, limits)) > 1e-9):
@@ -1568,8 +1573,9 @@ class HardwareExecution:
             self.value('hardware_start_tolerance_rad'),
             self.value('hardware_uncommanded_tolerance_rad'))
         if direct_replay and set(drift) <= set(expected):
+            latest_positions = dict(zip(latest.name, latest.position))
             HardwareExecution._check_recorded_start(
-                self, expected, positions[0], dict(zip(latest.name, latest.position)))
+                self, positions[0], tuple(latest_positions[name] for name in expected))
         if drift:
             if HardwareExecution._can_refresh_path(self, drift, expected, _refresh_attempt):
                 self.node.get_logger().info('Small drift during collision validation: refreshing the path once')
@@ -1720,11 +1726,15 @@ class HardwareExecution:
             return actual
         except BaseException as error:
             recording = getattr(self, '_arm_command_recording', None)
-            if submitted and controller == 'arm' and recording is not None and recording.arm == arm:
-                recording.interrupted = True
-            if isinstance(error, CommunicationRecovered) and action_terminal:
-                error.cancellation_confirmed = True
-            HardwareExecution.stop_after_execution_error(self, error)
+            if submitted:
+                if controller == 'arm' and recording is not None and recording.arm == arm:
+                    recording.interrupted = True
+                if isinstance(error, CommunicationRecovered) and action_terminal:
+                    error.cancellation_confirmed = True
+                if isinstance(error, (CollisionValidationError, JointRangeValidationError,
+                                      CommandPathValidationError)):
+                    error.motion_started = True
+                HardwareExecution.stop_after_execution_error(self, error)
             raise
         finally:
             HardwareExecution._finish_motion_monitor(self, motion_monitor)

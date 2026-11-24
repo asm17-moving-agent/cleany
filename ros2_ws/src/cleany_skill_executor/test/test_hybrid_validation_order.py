@@ -143,8 +143,7 @@ def test_octomap_batches_limit_64_and_keep_native_validation_for_survivors(gpu_a
     group = [alignment(i, 0.) for i in range(69)]
     batches, native = [], []
 
-    def map_hits(arm, items):
-        assert arm == 'left'
+    def map_hits(items):
         batches.append(len(items))
         return tuple(item is not group[-1] for item in items) if gpu_available else ()
 

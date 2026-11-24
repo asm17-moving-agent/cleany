@@ -59,6 +59,9 @@ class GeometricGraspConfig:
     body_connectivity_radius_m: float = BodyFilter.radius_m
     minimum_body_fraction: float = BodyFilter.minimum_fraction
 
+    body_connectivity_radius_m: float = BodyFilter.radius_m
+    minimum_body_fraction: float = BodyFilter.minimum_fraction
+
     def __post_init__(self) -> None:
         BodyFilter(self.body_connectivity_radius_m, self.minimum_body_fraction)
         if (not math.isfinite(self.top_face_tolerance_m) or self.top_face_tolerance_m < 0
@@ -255,7 +258,7 @@ def _minimum_width_axis(
 def _longitudinal_contacts(center, lateral, normal, target, config):
     """Sample locations inside the observed finger footprint.
 
-    관측에서 강건하게 추정한 범위 안에 손가락 전체 길이의 footprint를 유지합니다.
+    관측한 물체 범위 안에 손가락 전체 길이가 들어가는 위치를 찾습니다.
     후보 생성 단계이며 힘에 의한 구속이나 도달 가능성을 보장하지 않습니다.
     """
     if config.longitudinal_offset_fractions == (0.0,):

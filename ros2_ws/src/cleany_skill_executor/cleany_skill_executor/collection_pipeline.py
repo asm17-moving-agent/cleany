@@ -1169,24 +1169,28 @@ class CollectionPipeline(PregraspPipeline):
                            '; '+str(last_error)) from last_error
 
     def execute_selected_approach(self, selected, report: dict):
-        """Reuse the saved approach unless its first point no longer matches."""
+        """Reuse a saved approach when its start matches the current arm state."""
         arm = selected.selected_arm
+        trajectory = getattr(selected, 'grasp_trajectory', None)
+        if trajectory is None or not trajectory.points:
+            report['approach_execution_route'] = 'replanned_from_arrival'
+            self.event('approach_saved_trajectory_missing', arm=arm)
+            return self.replan_approach_from_arrival(selected, report)
         submissions = self.real.motion_submissions
         try:
             self.real.execute_selected_trajectory(
-                arm, selected.grasp_trajectory,
-                endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
+                arm, trajectory, endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
                 check_collisions=self.config.get('approach_collision_check_enabled', True))
         except RecordedStartMismatch as error:
             if error.motion_started or self.real.motion_submissions != submissions:
                 raise
             report['approach_execution_route'] = 'replanned_from_arrival'
-            self.event('approach_saved_start_mismatch', arm=arm,
+            self.event('approach_saved_start_mismatch', arm=arm, reference=error.reference,
                        error_rad=error.maximum_error_rad, tolerance_rad=error.tolerance_rad)
             return self.replan_approach_from_arrival(selected, report)
         report['approach_execution_route'] = 'selected_trajectory'
         self.event('approach_selected_trajectory_executed', arm=arm,
-                   command_points=len(selected.grasp_trajectory.points))
+                   command_points=len(trajectory.points))
         return self.pose(arm)
 
     def replan_approach_from_arrival(self, selected, report: dict):

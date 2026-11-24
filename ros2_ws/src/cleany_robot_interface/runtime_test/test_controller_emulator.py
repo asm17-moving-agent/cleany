@@ -1114,7 +1114,7 @@ def test_executor_cancels_and_reconnects_remaining_path_after_read_recovery(tmp_
         runtime.close()
 
 
-@pytest.mark.parametrize('side,motor,closed', [('left',6,3868), ('right',12,3868)])
+@pytest.mark.parametrize('side,motor,closed', [('left', 6, 3868), ('right', 12, 3868)])
 def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp_path, side, motor, closed):
     from control_msgs.msg import DynamicJointState, JointTolerance
     from cleany_skill_executor.core.gripper_contact import (
@@ -1163,14 +1163,13 @@ def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp
         assert decision.state == ContactState.CONTACT, decision
         assert int.from_bytes(mem[42:44], 'little') == closed
         assert int.from_bytes(mem[56:58], 'little') == closed-340
-        # Preserve the command while the encoder and electrical feedback become empty.
-        runtime.arms.load_offsets[motor] = 6
-        mem[56:58] = (closed-6).to_bytes(2, 'little')
+        # Keep the same encoder residual while changing the electrical evidence.
         mem[69:71] = (1).to_bytes(2, 'little')
         mem[60:62] = (36).to_bytes(2, 'little')
         runtime.spin(.6)
         decision = history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds)
         assert decision.state == ContactState.EMPTY, decision
+        assert int.from_bytes(mem[56:58], 'little') == closed-340
         assert int.from_bytes(mem[42:44], 'little') == closed
         # A high current is confirmed and latches the driver fault, without dropping torque.
         mem[69:71] = (250).to_bytes(2, 'little')

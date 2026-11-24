@@ -61,7 +61,6 @@ ACM은 기존 배포 구현을 따른다. 기존 제어 모델과의 충돌 구�
 생성과 별도 domain의 FK, 충돌, 계획 및 GPU 검증에는 모터 드라이버가 필요
 없다. 이 플래그를 수동으로 바꾸어 충돌 실패를 우회하지 않는다.
 
-
 ## Jetson 파지 후보의 OctoMap 검사
 
 Jetson Orin에서 `cleany_moveit_collision`을 `-DCLEANY_ENABLE_CUDA_OCTOMAP=ON`으로

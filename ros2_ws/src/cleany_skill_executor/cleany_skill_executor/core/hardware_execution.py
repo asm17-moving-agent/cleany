@@ -34,13 +34,15 @@ class CommandPathValidationError(RuntimeError):
 
 
 class RecordedStartMismatch(CommandPathValidationError):
-    """The settled arm is too far from the saved path's first point."""
+    """The arm state or hold is too far from the saved path's first point."""
 
-    def __init__(self, maximum_error_rad: float, tolerance_rad: float) -> None:
+    def __init__(self, maximum_error_rad: float, tolerance_rad: float,
+                 *, reference: str = 'measured') -> None:
         self.maximum_error_rad = maximum_error_rad
         self.tolerance_rad = tolerance_rad
-        super().__init__(f'Approach start differs by {maximum_error_rad:.6f}rad '
-                         f'(limit {tolerance_rad:.6f}rad)')
+        self.reference = reference
+        super().__init__(f'Approach start differs from {reference} joints by '
+                         f'{maximum_error_rad:.6f}rad (limit {tolerance_rad:.6f}rad)')
 
 
 class JointRangeValidationError(ValueError):

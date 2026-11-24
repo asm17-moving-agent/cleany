@@ -57,7 +57,7 @@ struct ModelData {
   std::vector<TransformRef> transforms;
   struct Unsupported { TransformRef transform; Vec lo,hi; std::string name; };
   std::vector<Unsupported> fallback;
-  std::vector<const moveit::core::LinkModel*> links;
+  std::vector<std::string> links;
   std::map<std::string,int> counts;
 };
 ModelData extract_model(const ModelGeometry& env,const Matrix& acm)
@@ -68,9 +68,9 @@ ModelData extract_model(const ModelGeometry& env,const Matrix& acm)
     const auto* ref=entry->collision_geometry_data_.get();
     if(ref->type!=collision_detection::BodyTypes::ROBOT_LINK) throw std::runtime_error("Unsupported attached geometry");
     const auto link=ref->ptr.link;
-    auto found=std::find(data.links.begin(),data.links.end(),link);
+    auto found=std::find(data.links.begin(),data.links.end(),link->getName());
     const int link_id=std::distance(data.links.begin(),found);
-    if(found==data.links.end()) data.links.push_back(link);
+    if(found==data.links.end()) data.links.push_back(link->getName());
     collision_detection::AllowedCollision::Type allowed{};
     if(acm.getAllowedCollision(link->getName(),"<octomap>",allowed)){
       if(allowed==collision_detection::AllowedCollision::ALWAYS) continue;
@@ -162,8 +162,7 @@ void populate_grid(Occupancy& result)
 }
 struct WorldTransforms {std::vector<Pose> gpu;std::vector<int> fallback;};
 WorldTransforms prepare(const cleany::CadLinkage& linkage,const ModelData& geo,const Occupancy& map,
-                        const Robot* input,size_t count,
-                        const moveit::core::JointModelGroup* group)
+                        const Robot* input,size_t count)
 {
   WorldTransforms result;
   result.gpu.resize(geo.transforms.size()*count);
@@ -183,7 +182,6 @@ WorldTransforms prepare(const cleany::CadLinkage& linkage,const ModelData& geo,c
         for(int col=0;col<4;++col) pose.r[row*4+col]=matrix(row,col);
     }
     for(const auto& part:geo.fallback){
-      if(group && !group->getUpdatedLinkModelsSet().count(part.transform.link)) continue;
       const auto& t=resolved.getCollisionBodyTransform(part.transform.link,part.transform.index);
       const Vec center=t*((part.lo+part.hi)/2);
       const Vec reach=t.linear().cwiseAbs()*((part.hi-part.lo)/2);
@@ -286,11 +284,8 @@ class GpuGraspOctomapCapability : public move_group::MoveGroupCapability
   void check(const Scene& scene,const Service::Request& req,Service::Response& out,bool compare)
   {
     const auto started=Clock::now();
-    if(req.constraints!=moveit_msgs::msg::Constraints())
-      throw std::runtime_error("Expected OctoMap query without constraints");
-    const auto* group=req.group_name.empty()?nullptr:scene.getRobotModel()->getJointModelGroup(req.group_name);
-    if(!req.group_name.empty() && !group)
-      throw std::runtime_error("Unknown OctoMap query group");
+    if(!req.group_name.empty() || req.constraints!=moveit_msgs::msg::Constraints())
+      throw std::runtime_error("Expected full-robot OctoMap query without constraints");
     if(scene.getCollisionDetectorName()!=CalibratedCADCollisionAllocator::NAME)
       throw std::runtime_error("CUDA grasp collision requires the calibrated CAD model");
     const auto object=scene.getWorld()->getObject(Scene::OCTOMAP_NS);
@@ -321,21 +316,10 @@ class GpuGraspOctomapCapability : public move_group::MoveGroupCapability
       ++map_revision_;
     }
     auto states=convert(scene,req);
-    const auto poses=prepare(*linkage_,model_data_,occupancy_,states.data(),states.size(),group);
+    const auto poses=prepare(*linkage_,model_data_,occupancy_,states.data(),states.size());
     if(std::any_of(poses.fallback.begin(),poses.fallback.end(),[](int value){return value!=0;}))
       throw std::runtime_error("Unsupported collider or joint state in grasp batch");
-    auto hits=query_gpu(gpu_.get(),poses.gpu.data(),states.size(),group!=nullptr);
-    if(group){
-      const auto& active=group->getUpdatedLinkModelsSet();
-      const auto link_count=model_data_.links.size();
-      std::vector<int> group_hits(states.size(),0);
-      for(std::size_t link=0;link<link_count;++link){
-        if(!active.count(model_data_.links[link])) continue;
-        for(std::size_t row=0;row<states.size();++row)
-          group_hits[row]|=hits[row*link_count+link];
-      }
-      hits=std::move(group_hits);
-    }
+    const auto hits=query_gpu(gpu_.get(),poses.gpu.data(),states.size(),false);
     const auto gpu_seconds=std::chrono::duration<double>(Clock::now()-started).count();
     double moveit_seconds=0.;
     unsigned mismatches=0;
@@ -345,7 +329,6 @@ class GpuGraspOctomapCapability : public move_group::MoveGroupCapability
       for(const auto& id:scene.getWorld()->getObjectIds())
         if(id!=Scene::OCTOMAP_NS) map_scene->getWorldNonConst()->removeObject(id);
       collision_detection::CollisionRequest request;
-      request.group_name=req.group_name;
       for(std::size_t i=0;i<states.size();++i){
         collision_detection::CollisionResult result;
         map_scene->getCollisionEnv()->checkRobotCollision(

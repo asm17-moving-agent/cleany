@@ -1,8 +1,8 @@
-"""해석적 미분 한계를 가진 단조 3차 관절 보간입니다.
+"""Joint interpolation with analytical derivative bounds.
 
-Positions + velocities reconstruct cubics in ROS 2 JTC's spline interpolator.
-Supplied accelerations select a quintic and are included in timed validation.
-This provides joint-rate bounds, not continuous Cartesian collision guarantees.
+Positions and velocities reconstruct a cubic in ROS 2 JTC. When both knots
+supply accelerations, the controller uses a quintic and validation samples it.
+These bounds do not certify continuous Cartesian collision clearance.
 """
 from __future__ import annotations
 

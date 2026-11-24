@@ -235,7 +235,7 @@ class _CandidateGpuAdapter(CuRoboBatchAdapter):
                 if use_octomap and batch_offset == 0:
                     prefilter = getattr(self._owner, 'grasp_octomap_hits', None)
                     if prefilter is not None:
-                        octomap = prefilter(arm, ordered[candidate_index:candidate_index+64])
+                        octomap = prefilter(ordered[candidate_index:candidate_index+64])
                 progress = getattr(self._owner, '_progress', None)
                 if progress is not None and finalize is None:
                     progress.update_detail(f'arm={arm} target={index+1}/{len(evaluated)} '
@@ -581,8 +581,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         gpu.set_deadline(self._deadline)
         return gpu
 
-    def grasp_octomap_hits(self, arm: str, ordered: Sequence[PoseAlignment]) -> tuple[bool, ...]:
-        """Reject selected arm contacts with occupied voxels before native scene validation."""
+    def grasp_octomap_hits(self, ordered: Sequence[PoseAlignment]) -> tuple[bool, ...]:
+        """Reject occupied-map overlaps; survivors use native full-scene validation."""
         if not self._config.validate_motion_paths or not self._node.has_parameter('grasp_octomap_mode'):
             return ()
         mode = self._node.get_parameter('grasp_octomap_mode').value
@@ -601,7 +601,7 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         if not client.service_is_ready():
             return ()
         states = [self._merged_state(item.solution) for item in ordered]
-        req = CheckStateValidityBatch.Request(robot_states=states, group_name=f'{arm}_grasp_arm')
+        req = CheckStateValidityBatch.Request(robot_states=states)
         try:
             with self._progress.stage('GPU_OCTOMAP', f'states={len(states)} mode={mode}'):
                 response = self._call(client, req, self._config.state_validity_timeout_sec)
