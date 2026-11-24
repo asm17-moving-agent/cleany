@@ -47,6 +47,7 @@ flowchart LR
 
 | 실행 옵션 | 생성되는 경계 |
 |---|---|
+| navigation_backend=mission_drive, manipulation_backend=jetson | `navigation/drive_mission_target` Action, 실물 팔과 촬영 관측. 아래의 Jetson 좌석 정리 계약 참조 |
 | navigation_backend=nav2 | Nav2 endpoint와 TF 구독 |
 | manipulation_backend=action_mock | ROS 조작 endpoint; 기본 mock은 process 내부 |
 | 기본 lifecycle 목록 | map_server / amcl / planner_server / controller_server / bt_navigator / collision_monitor |
@@ -86,3 +87,9 @@ SHA-256을 확인합니다. `validation_status=field_verified`, 유효한 복귀
 이는 목표 파일의 버전 확인입니다. 실제 AMCL 위치 정확도, 장애물 회피, 팔 도달성이나
 책상 정리 완료를 증명하지 않습니다. 배치 변경 후에는 Runtime을 재시작하여 새 파일을
 로드하고 Backend의 버전 일치를 확인합니다.
+
+## Jetson 좌석 정리
+
+`config/runtime_jetson_desk.yaml`은 `InspectScene`, 실제 팔의 `manipulation/execute_skill`, 그리고 `navigation/drive_mission_target`을 사용한다. 촬영 프레임과 시각이 인식 결과와 일치하는 JPEG를 Backend의 관측 디렉터리에 저장한다. 현장 서비스는 launch 인자 `collection_config`와 `observation_directory`로 팔 실행기와 Backend의 운영 경로를 전달한다. 인자를 생략하면 선택한 Runtime YAML의 값을 사용한다. 추적 가능한 허용 폐기물만 수거한다. 팔 실행기의 설정 해시, 양팔의 실측 복귀 자세와 독립적인 수거함 투입 확인을 사용한다. 좌석과 Home은 동일한 목표 파일에서 해석한다.
+
+재시작 후 미완료 미션은 중단 결과로 기록합니다.

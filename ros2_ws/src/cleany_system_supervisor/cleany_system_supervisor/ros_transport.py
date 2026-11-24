@@ -83,13 +83,17 @@ class RecoveryPort:
 
 
 class MissionStopPort:
-    def __init__(self, node, endpoint, group):
+    def __init__(self, node, endpoint, group, navigation_endpoint=None):
+        self.navigation_endpoint = navigation_endpoint
         self.calls, self.endpoint = ActionCalls(node, StopMission, group), endpoint
 
     def request(self, lease, epoch):
         goal = StopMission.Goal(epoch=epoch, mission_id=lease.mission_id,
                                 lease_id=lease.lease_id, reason=lease.reason)
-        self.calls.send(lease.lease_id, self.endpoint, goal)
+        endpoint = self.endpoint
+        if self.navigation_endpoint and lease.capabilities == ('NAVIGATION',):
+            endpoint = self.navigation_endpoint
+        self.calls.send(lease.lease_id, endpoint, goal)
 
     def poll(self, key):
         result = self.calls.poll(key)

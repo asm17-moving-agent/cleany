@@ -11,6 +11,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
+from cleany_control_bridge.device_auth import device_headers
 from cleany_control_bridge.session import BridgeSession
 
 
@@ -31,6 +32,7 @@ class ControlBridge(Node):
     def __init__(self) -> None:
         super().__init__("control_bridge")
         self.declare_parameter("url", "ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws")
+        self.token_file = self.declare_parameter("device_token_file", "").value
         self.declare_parameter("journal_path", "~/.local/state/cleany/control-bridge.db")
         self.declare_parameter("rpc_timeout", 3.0)
         self.declare_parameter("heartbeat_interval", 1.0)
@@ -132,7 +134,9 @@ class ControlBridge(Node):
         while not self.stop_event.is_set():
             try:
                 self._observe()
-                self.socket = websocket.create_connection(self.url, timeout=self.rpc_timeout)
+                headers = device_headers(self.token_file) if self.token_file else {}
+                self.socket = websocket.create_connection(
+                    self.url, timeout=self.rpc_timeout, suppress_origin=True, header=headers)
                 self.socket.settimeout(.2)
                 self.deferred_commands.clear()
                 self._send_snapshot(self.session.sync_event())

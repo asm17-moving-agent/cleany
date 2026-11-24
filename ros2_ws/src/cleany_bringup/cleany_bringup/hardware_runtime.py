@@ -15,6 +15,20 @@ from .hardware_profile import load_profile
 from cleany_navigation.motion_profile import resolve_motion_profile
 
 
+def field_supervisor_config(navigation, hardware):
+    """Keep the hardware interlocks and require LiDAR localization alignment on every drive."""
+    alignment = 'localization_alignment'
+    hardware['sources'][alignment] = navigation['sources'][alignment]
+    hardware['capabilities']['NAVIGATION']['sources'].append(alignment)
+    hardware['ros']['component_sources'].append(alignment)
+    hardware['ros']['trusted_publishers']['system/component_health'].append('/localization_guard')
+    hardware['ros']['navigation_stop_action'] = navigation['ros']['stop_action']
+    hardware['ros']['camera_topic'] = '/camera/color/image_raw'
+    # The field runtime allows 15 seconds to cancel arm and navigation actions.
+    hardware['stop_timeout_s'] = max(16., hardware['stop_timeout_s'])
+    return hardware
+
+
 def main():
     import rclpy
     from ament_index_python.packages import get_package_prefix, get_package_share_directory
@@ -173,6 +187,27 @@ def main():
             ),
         )
         if args.navigation_map:
+            supervisor_path = Path(get_package_share_directory('cleany_navigation')) / 'config/lidar_supervisor.yaml'
+            supervisor_command = ['ros2', 'run', 'cleany_system_supervisor', 'system_supervisor',
+                                  '--ros-args', '-p', 'config_file:=' + str(supervisor_path)]
+            if os.environ.get('CLEANY_MISSION_TARGETS_FILE'):
+                if node.count_publishers('system/state'):
+                    raise RuntimeError('Another Supervisor owns this domain; hand over before starting field supervision')
+                hardware_path = Path(get_package_share_directory('cleany_system_supervisor')) / 'config/system_supervisor.yaml'
+                settings = field_supervisor_config(yaml.safe_load(supervisor_path.read_text()),
+                                                   yaml.safe_load(hardware_path.read_text()))
+                supervisor_path = state / 'mission-supervisor.yaml'
+                atomic_bytes(supervisor_path, yaml.safe_dump(settings, sort_keys=False).encode())
+                names = set(node.get_node_names())
+                supervisor_command = [
+                    'ros2', 'launch', 'cleany_system_supervisor', 'supervision.launch.py',
+                    'supervisor_config:=' + str(supervisor_path),
+                    'arm_health:=' + str('arm_health_monitor' not in names).lower(),
+                    'safety_adapter:=' + str(not node.count_publishers('safety/status')).lower(),
+                    'lifecycle_recovery:=' + str('nav2_lifecycle_recovery' not in names).lower(),
+                    'estop_released_topic:=' + os.getenv('CLEANY_ESTOP_RELEASED_TOPIC', ''),
+                    'protection_ready_topic:=' + os.getenv('CLEANY_PROTECTION_READY_TOPIC', ''),
+                ]
             commands = (commands[0], ('navigation', [
                 'ros2', 'launch', 'cleany_navigation', 'lidar_navigation.launch.py',
                 'map:=' + str(args.navigation_map.resolve()),
@@ -181,8 +216,7 @@ def main():
                 'slip_recovery:=' + args.slip_recovery,
                 'depth_params_file:=' + args.depth_params,
                 'localization_evidence_directory:=' + str(state/'localization'),
-            ]), ('supervisor', ['ros2','run','cleany_system_supervisor','system_supervisor','--ros-args','-p',
-                'config_file:=' + str(Path(get_package_share_directory('cleany_navigation'))/'config/lidar_supervisor.yaml')]), ('logger', ['ros2','launch','cleany_logger','logger.launch.py', 'record_on_start:=true','config:='+profile['logger_config']]))
+            ]), ('supervisor', supervisor_command), ('logger', ['ros2','launch','cleany_logger','logger.launch.py', 'record_on_start:=true','config:='+profile['logger_config']]))
         for name, command in commands:
             stream = (state / (name + ".log")).open("ab")
             streams.append(stream)
@@ -217,7 +251,8 @@ def main():
                     "Owned hardware/session launch exited; see runtime logs"
                 )
     finally:
-        if args.navigation_map:
+        # A rejected handover must leave the existing operator's teleop service alone.
+        if args.navigation_map and any(name == "devices" and proc.poll() is None for name, proc in children):
             from std_srvs.srv import SetBool
             pause_client = node.create_client(SetBool, 'teleop/pause')
             if pause_client.wait_for_service(timeout_sec=1.):

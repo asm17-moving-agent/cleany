@@ -49,6 +49,8 @@ struct Joint
   int ticks(double radians) const;
 };
 
+void verify_field_park(const std::vector<Joint> & joints, const char * specification);
+
 class FeetechSystem : public hardware_interface::SystemInterface
 {
 public:
