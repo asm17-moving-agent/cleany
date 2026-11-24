@@ -355,7 +355,7 @@ TEST(CriticTests, LeadingLatticeRotationUsesItsEndHeading)
 {
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("rotation_test");
   node->declare_parameter("critic.respect_in_place_rotations", true);
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "rotation_costmap", "", "rotation_costmap");
   costmap_ros->on_configure(rclcpp_lifecycle::State());
   ParametersHandler parameters(node);
@@ -418,7 +418,7 @@ TEST(CriticTests, HolonomicPathAngleOnlyScoresExplicitRotations)
   auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("holonomic_angle_test");
   node->declare_parameter("critic.respect_in_place_rotations", true);
   node->declare_parameter("critic.rotation_only", true);
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "holonomic_angle_costmap", "", "holonomic_angle_costmap");
   costmap_ros->on_configure(rclcpp_lifecycle::State());
   ParametersHandler parameters(node);
@@ -455,7 +455,7 @@ TEST(CriticTests, HolonomicSegmentHeadingDoesNotAnticipateArrivalYaw)
   node->declare_parameter("critic.respect_in_place_rotations", true);
   node->declare_parameter("critic.rotation_only", true);
   node->declare_parameter("critic.follow_segment_heading", true);
-  auto costmap_ros = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+  auto costmap_ros = std::make_shared<cleany_navigation::mppi::test::TestCostmap>(
     "holonomic_angle_costmap", "", "holonomic_angle_costmap");
   costmap_ros->on_configure(rclcpp_lifecycle::State());
   ParametersHandler parameters(node);
