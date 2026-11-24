@@ -14,6 +14,7 @@ struct WheelCommand {
   uint64_t validUntilUs = 0;
   WheelMode mode = WheelMode::kStop;
   std::array<float, 4> velocity{};
+  uint64_t receivedUs = 0;
 };
 
 struct WheelGateConfig {

@@ -135,7 +135,7 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     cache = controller / ".pio/build/runtime/CMakeCache.txt"
     cache.parent.mkdir(parents=True)
     cache.write_text("previous runtime configure")
-    (controller / ".pio/cleany-sdkconfig-defaults").write_text(hashlib.sha256(
+    (controller / ".pio/cleany-sdkconfig-defaults-runtime").write_text(hashlib.sha256(
         (controller / "sdkconfig.defaults").read_bytes()).hexdigest())
     monkeypatch.setattr(setup, "ROOT", tmp_path)
     monkeypatch.setattr(setup, "CONTROLLER", controller)
@@ -159,6 +159,45 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     incomplete.mkdir()
     setup.refresh_component(controller, "runtime")
     assert incomplete.exists()  # 필요한 생성물이 모두 있으면 강제로 재생성하지 않습니다.
+
+
+def test_tof_type_support_is_regenerated_only_for_integrated_firmware(tmp_path, monkeypatch):
+    controller = tmp_path / "esp32"
+    controller.mkdir()
+    for name in ("app-colcon.meta", "sdkconfig.defaults", "platformio.ini", "lock.json"):
+        (controller / name).write_text(name)
+    base = tmp_path / "ros2_ws/src/cleany_base_interfaces"
+    base.mkdir(parents=True)
+    subset = controller / "mcu_interfaces/cleany_interfaces"
+    (subset / "msg").mkdir(parents=True)
+    for directory in (base, subset):
+        for name in ("CMakeLists.txt", "package.xml"):
+            (directory / name).write_text(name)
+    message = tmp_path / "TofFrame.msg"
+    message.write_text("bool sensor_ready\n")
+    (subset / "msg/TofFrame.msg").symlink_to(message)
+    output = controller / "micro_ros"
+    generated = output / "micro_ros_espidf_component/micro_ros_src/src/extra_packages"
+    generated.mkdir(parents=True)
+    monkeypatch.setattr(setup, "ROOT", tmp_path)
+    monkeypatch.setattr(setup, "CONTROLLER", controller)
+    monkeypatch.setattr(setup, "LOCK", controller / "lock.json")
+    monkeypatch.setattr(setup, "OUTPUT", output)
+    integrated = "esp32-s3-integrated"
+    legacy = "esp32-s3-microros"
+    legacy_fingerprint = setup.component_fingerprint(controller, legacy)
+    setup.refresh_component(controller, integrated)
+    link = controller / "extra_ros_packages/cleany_interfaces"
+    copied = generated / "cleany_interfaces/msg/TofFrame.msg"
+    assert link.resolve() == subset
+    assert copied.read_text() == message.read_text()
+    message.write_text("uint32 sequence\n")
+    setup.refresh_component(controller, integrated)
+    assert copied.read_text() == message.read_text()
+    assert setup.component_fingerprint(controller, legacy) == legacy_fingerprint
+    setup.refresh_component(controller, legacy)
+    assert not link.is_symlink()
+    assert not copied.exists()
 
 
 def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
@@ -204,8 +243,12 @@ def test_only_micro_ros_firmware_and_console_free_board_defaults():
 
     config = configparser.ConfigParser()
     config.read(setup.CONTROLLER / "platformio.ini")
-    assert config.sections() == ["platformio", "env:esp32-s3-microros"]
-    assert config["platformio"]["default_envs"] == "esp32-s3-microros"
+    assert config.sections() == ["platformio", "env:esp32-s3-microros", "env:esp32-s3-integrated"]
+    assert config["platformio"]["default_envs"] == "esp32-s3-integrated"
+    integrated = config["env:esp32-s3-integrated"]
+    assert integrated["extends"] == "env:esp32-s3-microros"
+    assert "-DCLEANY_ENABLE_BNO055=0" in integrated["build_flags"].split()
+    assert "-DCLEANY_TOF_I2C_HZ=400000" in integrated["build_flags"].split()
     assert config["env:esp32-s3-microros"]["platform"] == "espressif32@6.12.0"
     defaults = dict(
         line.split("=", 1) for line in

@@ -46,4 +46,10 @@ ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
 
 초기 hardware config는 바퀴를 띄운 시험용입니다. Launch 이후 구동 허가는 별도 절차로 수행하며, mock domain과 실제 MCU domain을 혼용하지 않습니다. 실물 시험은 [ESP32 가이드](../../../esp32/README.md)와 [base 계약](../../../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md)을 따릅니다.
 
+통합 보드에서 Agent가 연결되고 바퀴가 정지한 상태에서 다음 명령으로 네 바퀴의 적용 듀티가 0인지 확인합니다. `pwm_frequency_hz`는 20000, `pwm_period_ticks`는 2048입니다.
+
+```bash
+ros2 topic echo /base/wheel_drive_state --once --qos-reliability best_effort
+```
+
 Plot은 목표, slew/reversal 이후 목표, encoder 속도(rad/s), PWM(%), diagnostics를 표시합니다. `preset:=false wheel:=fl|fr|rl|rr|all`로 관측 범위를 바꿀 수 있습니다. GUI를 종료해도 별도로 실행한 driver/Agent는 계속 실행됩니다.
