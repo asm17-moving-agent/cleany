@@ -587,7 +587,7 @@ def test_guard_fault_latches_even_after_ready_and_rejects_stale_status(monkeypat
 
 @pytest.mark.parametrize('enabled', [None, True, False])
 @pytest.mark.parametrize('limit_scale', [.8, 1.])
-def test_uncommanded_motion_switch_is_loaded_from_ros_parameters(enabled, limit_scale):
+def test_hardware_motion_options_are_loaded_from_ros_parameters(enabled, limit_scale):
     import rclpy
     from rclpy.context import Context
     from rclpy.node import Node
@@ -597,10 +597,12 @@ def test_uncommanded_motion_switch_is_loaded_from_ros_parameters(enabled, limit_
     rclpy.init(context=context)
     overrides = [Parameter('hardware_trajectory_limit_scale', value=limit_scale)]
     if enabled is not None:
-        overrides.append(Parameter('hardware_uncommanded_motion_check_enabled', value=enabled))
+        overrides.extend([Parameter('hardware_uncommanded_motion_check_enabled', value=enabled),
+                          Parameter('hardware_retime_selected_approach', value=enabled)])
     node = Node('uncommanded_motion_test', context=context, parameter_overrides=overrides)
     try:
         execution = HardwareExecution(node)
+        assert execution.retime_selected_approach is (False if enabled is None else enabled)
         assert execution.uncommanded_motion_check_enabled is (True if enabled is None else enabled)
         assert execution.trajectory_limit_scale == limit_scale
         changed = node.set_parameters([Parameter('hardware_trajectory_limit_scale', value=.5)])

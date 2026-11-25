@@ -11,6 +11,7 @@ from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 
 
+@pytest.mark.parametrize('retime', [False, True])
 @pytest.mark.parametrize('offset,latest_offset,held_offset,outcome', [
     (0., 0., None, 'sent'), (.005, .005, None, 'sent'),
     (.0051, .0051, None, 'replan'), (.003, .006, None, 'replan'),
@@ -18,7 +19,7 @@ from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
     (0., 0., None, 'collision'), (0., 0., None, 'controller_error'),
 ])
 def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
-        monkeypatch, offset, latest_offset, held_offset, outcome):
+        monkeypatch, offset, latest_offset, held_offset, outcome, retime):
     from contextlib import nullcontext
     from geometry_msgs.msg import Pose
     from sensor_msgs.msg import JointState
@@ -26,6 +27,7 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
     from cleany_skill_executor.core.cartesian import CartesianPose
     from cleany_skill_executor.core.hardware_execution import ArmHold, CollisionValidationError
+    from cleany_skill_executor.trajectory_io import recorded_from_message
     import cleany_skill_executor.hardware_execution as transport
 
     arm = 'left'
@@ -44,7 +46,7 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
               'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
               'hardware_start_tolerance_rad': .005, 'hardware_arrival_tolerance_rad': .1,
               'hardware_uncommanded_tolerance_rad': .03}
-    sent, checked, replanned, stopped = [], [], [], []
+    sent, checked, replanned, stopped, events = [], [], [], [], []
     state = JointState(name=list(names), position=[latest_offset, 0., 0., 0., 0.])
 
     def run_action(_client, request, _timeout, **options):
@@ -65,13 +67,14 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
 
     monkeypatch.setattr(transport.HardwareExecution, 'validate_collision_samples', validate)
     node = NS(config={'approach_execution_replanning_enabled': True},
-              event=lambda *_, **__: None, cartesian_pose=lambda _: goal,
+              event=lambda key, **values: events.append((key, values)), cartesian_pose=lambda _: goal,
               pose=lambda _: msg.fk_grasp_pose, run_action=run_action,
               get_logger=lambda: NS(info=lambda *_: None, warning=lambda *_: None),
               create_motion_client=lambda *_: NS(destroy=lambda: None),
               replan_approach_from_arrival=lambda *args: replanned.append(args))
     real = object.__new__(transport.HardwareExecution)
     real.node, node.real = node, real
+    real.retime_selected_approach = retime
     real.arm_holds, real.last_execution_metrics, real.uncommanded = {}, {}, None
     if held_offset is not None:
         real.arm_holds[arm] = ArmHold((0.,)*5, (held_offset, 0., 0., 0., 0.))
@@ -93,7 +96,9 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     if outcome == 'controller_error':
         with pytest.raises(RuntimeError, match='Physical controller failure: rejected'):
             CollectionPipeline._approach_target(node, msg, report)
-        assert sent == [selected] and stopped == [True] and not replanned
+        assert len(sent) == 1 and stopped == [True] and not replanned
+        if not retime:
+            assert sent == [selected]
         return
     with real.record_arm_commands(arm) as recording:
         CollectionPipeline._approach_target(node, msg, report)
@@ -104,11 +109,23 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
         assert not sent and not recording.trajectories
     else:
         assert report['approach_execution_route'] == 'selected_trajectory'
-        assert sent == [selected]
+        assert len(sent) == 1
+        command = sent[0]
+        if retime:
+            assert ('selected_approach_timing', {'source_duration_sec': 2.,
+                    'command_duration_sec': 1., 'command_points': 3}) in events
+            for index, (actual, planned) in enumerate(zip(command.points, selected.points, strict=True)):
+                stamp = actual.time_from_start
+                assert stamp.sec * 10**9 + stamp.nanosec == index * 500_000_000
+                assert actual.positions == planned.positions
+                assert actual.velocities == pytest.approx([2 * v for v in planned.velocities])
+                assert actual.accelerations == pytest.approx([4 * a for a in planned.accelerations])
+        else:
+            assert command == selected
         assert len(checked) == 1 and len(checked[0][0]) > len(selected.points)
         assert bool(checked[0][1]) == bool(offset)
         assert not replanned
-        assert recording.trajectories[0].points[1].accelerations == tuple(selected.points[1].accelerations)
+        assert recording.trajectories[0].points == recorded_from_message(command).points
 
 def config():
     return {'frame':'base_link','commissioning_verified':True,'label_destinations':{'bottle':'recycling'},
