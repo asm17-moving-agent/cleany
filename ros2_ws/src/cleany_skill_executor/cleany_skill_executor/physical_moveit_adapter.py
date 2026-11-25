@@ -177,6 +177,7 @@ class MoveItGraspAdapter:
         self._verified_fk_arms: set[str] = set()
         self._fk_cache: dict[tuple, PoseValue] = {}
         self._joint_limits = {}
+        self._endpoint_margins = {}
         self.last_state_validity_rejection: dict | None = None
         self._state_joint_names = REQUIRED_JOINT_NAMES
         self._deadline = math.inf
@@ -217,7 +218,15 @@ class MoveItGraspAdapter:
                   for arm in ARM_JOINT_NAMES}
         limits = {}
         head_names = ('head_pan_joint', 'head_tilt_joint')
-        for joint in ET.fromstring(description).findall('joint'):
+        root = ET.fromstring(description)
+        margins = {}
+        for joint in root.findall('ros2_control/joint'):
+            ticks = joint.findtext("param[@name='endpoint_margin_ticks']")
+            if ticks is not None and joint.get('name') in (*ARM_JOINT_NAMES['left'], *ARM_JOINT_NAMES['right']):
+                if not 0 <= int(ticks) <= 20:
+                    raise ValueError('Invalid arm endpoint margin')
+                margins[joint.get('name')] = int(ticks) * math.tau / 4096
+        for joint in root.findall('joint'):
             if (joint.get('name') not in (*REQUIRED_JOINT_NAMES, *head_names)
                     or joint.get('type') == 'fixed'):
                 continue
@@ -231,6 +240,7 @@ class MoveItGraspAdapter:
         if not set(REQUIRED_JOINT_NAMES).issubset(limits):
             raise ValueError('Runtime URDF omits required joints')
         self._local_fk, self._joint_limits = chains, limits
+        self._endpoint_margins = margins
         self._state_joint_names = (*REQUIRED_JOINT_NAMES,
             *(name for name in head_names if name in limits))
         self._verified_fk_arms.clear()
@@ -272,7 +282,7 @@ class MoveItGraspAdapter:
         violations = [
             f'{name}={positions[name]:.6f} outside [{low:.6f}, {high:.6f}]'
             for name, (low, high, _) in self._joint_limits.items()
-            if not low <= positions[name] <= high
+            if max(low - positions[name], positions[name] - high) > self._endpoint_margins.get(name, 0.) + 1e-12
         ]
         if violations:
             raise ValueError('Measured joints exceed runtime URDF limits: ' + '; '.join(violations))
@@ -320,6 +330,16 @@ class MoveItGraspAdapter:
             )
             result.joint_state.velocity = [velocities[name] for name in result.joint_state.name]
         return result
+
+    def _planning_start(self, arm, solution):
+        state = self._merged_state(solution)
+        if solution is None:
+            # FK and collision queries still use the original encoder state.
+            for index, name in enumerate(state.joint_state.name):
+                if name in ARM_JOINT_NAMES[arm] and name in self._endpoint_margins:
+                    low, high, _ = self._joint_limits[name]
+                    state.joint_state.position[index] = min(high, max(low, state.joint_state.position[index]))
+        return state
 
     def _collision_states(
         self, names: Sequence[str], positions: Iterable[Sequence[float]],
@@ -473,7 +493,7 @@ class MoveItGraspAdapter:
         ik.group_name = group_name
         ik.ik_link_name = link_name
         ik.avoid_collisions = self._config.ik_collision_search
-        ik.robot_state = self._merged_state(seed)
+        ik.robot_state = self._planning_start(arm, seed)
         constraints = self._grasp_approach_constraints(arm)
         if constraints is not None:
             ik.constraints = constraints
@@ -546,9 +566,8 @@ class MoveItGraspAdapter:
         if seed is None:
             if self._current_state is None:
                 raise InfrastructureError('current joint state is unavailable')
-            values = dict(
-                zip(self._current_state.name, self._current_state.position, strict=True)
-            )
+            state = self._planning_start(arm, None).joint_state
+            values = dict(zip(state.name, state.position, strict=True))
             base = JointSolution(
                 ARM_JOINT_NAMES[arm],
                 tuple(float(values[name]) for name in ARM_JOINT_NAMES[arm]),
@@ -1035,7 +1054,7 @@ class MoveItGraspAdapter:
             if trajectory_scaling is None else float(trajectory_scaling))
         request.max_acceleration_scaling_factor = (self._config.acceleration_scaling
             if trajectory_scaling is None else float(trajectory_scaling))
-        request.start_state = self._merged_state(start)
+        request.start_state = self._planning_start(arm, start)
         approach_constraints = self._grasp_approach_constraints(arm)
         limit_closing_axis = (corridor is not None and start is not None
                               and 0.0 < self._config.closing_tolerance_degrees < 90.0)
@@ -1129,7 +1148,7 @@ class MoveItGraspAdapter:
         names = ARM_JOINT_NAMES[arm]
         if goal.names != names:
             raise InfrastructureError('Direct grasp has the wrong arm joint mapping')
-        state = self._merged_state(None).joint_state
+        state = self._planning_start(arm, None).joint_state
         positions = dict(zip(state.name, state.position, strict=True))
         start = tuple(float(positions[name]) for name in names)
         path = self._validated_cubic_path(arm, PlannedPath(names, (start, goal.positions)))
@@ -1205,7 +1224,7 @@ class MoveItGraspAdapter:
         request = GetCartesianPath.Request()
         request.header.frame_id = self._config.base_frame
         request.group_name, request.link_name = f'{arm}_grasp_arm', f'{arm}_grasp_tcp'
-        request.start_state = self._merged_state(start)
+        request.start_state = self._planning_start(arm, start)
         target = Pose()
         target.position.x, target.position.y, target.position.z = target_pose.position
         (target.orientation.x, target.orientation.y, target.orientation.z,
@@ -1282,28 +1301,45 @@ class MoveItGraspAdapter:
                            tuple(tuple(v/duration for v in item.derivatives) for item in knots))
 
     def _collision_samples_valid(self, arm, names, samples, expired=lambda: False):
+        return MoveItGraspAdapter._first_path_collision(
+            self, arm, names, [sample.positions for sample in samples], expired) is None
+
+    def first_invalid_motion_sample(self, arm: str, names: tuple[str, ...],
+                                    points: Sequence[tuple[float, ...]]) -> int | None:
+        """Check pre-sampled arm states with the same bounds and MoveIt group as a single check."""
+        if not self._config.validate_motion_paths:
+            return next((i for i, joints in enumerate(points)
+                         if not self.state_is_valid(arm, JointSolution(names, joints))), None)
+        if self._joint_limits:
+            limits = [self._planning_position_bounds(name) for name in names]
+            for i, joints in enumerate(points):
+                if any(not lower <= q <= upper
+                       for (lower, upper), q in zip(limits, joints, strict=True)):
+                    collision = self._first_path_collision(arm, names, points[:i])
+                    return i if collision is None else collision
+        return self._first_path_collision(arm, names, points)
+
+    def _first_path_collision(self, arm, names, points, expired=lambda: False):
         batch = getattr(self, '_batch_validity', None)
         size = batch.batch_size if batch is not None else self._config.state_validity_batch_size
-        for start in range(0, len(samples), size):
+        for start in range(0, len(points), size):
             if expired():
-                return False
-            chunk = samples[start:start+size]
+                return start
+            chunk = points[start:start+size]
             response = None
             if batch is not None:
                 self._check_active()
-                states = MoveItGraspAdapter._collision_states(self, names, (s.positions for s in chunk))
+                states = MoveItGraspAdapter._collision_states(self, names, chunk)
                 response = batch.check(states, lambda client, request: self._call(client, request,
                     self._config.state_validity_timeout_sec * len(states)))
             if response is not None:
                 if response.first_invalid_index != -1:
-                    return False
+                    return start + response.first_invalid_index
             else:
-                for sample in chunk:
-                    if expired():
-                        return False
-                    if not self.state_is_valid(arm, JointSolution(names, sample.positions)):
-                        return False
-        return True
+                for offset, joints in enumerate(chunk, start):
+                    if expired() or not self.state_is_valid(arm, JointSolution(names, joints)):
+                        return offset
+        return None
 
     def validate_approach_path(self, arm, path, start, target):
         samples = self._path_samples(path)

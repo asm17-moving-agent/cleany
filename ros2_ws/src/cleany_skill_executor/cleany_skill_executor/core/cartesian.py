@@ -94,11 +94,13 @@ def line_corridor(start: Vector3, end: Vector3, radius: float) -> LineCorridor:
 
 
 def validate_pose_endpoint(actual: CartesianPose, target: CartesianPose,
-                           position_tolerance_m: float, orientation_tolerance_rad: float) -> None:
+                           position_tolerance_m: float, orientation_tolerance_rad: float, *,
+                           check_height: bool = True) -> None:
     for limit in (position_tolerance_m, orientation_tolerance_rad):
         if not math.isfinite(limit) or limit <= 0:
             raise ValueError('Cartesian tolerances must be finite and positive')
-    distance = math.dist(actual.position, target.position)
+    distance = (math.dist(actual.position, target.position) if check_height
+                else math.dist(actual.position[:2], target.position[:2]))
     angle = orientation_error_rad(actual.orientation, target.orientation)
     if distance > position_tolerance_m or angle > orientation_tolerance_rad:
         raise ValueError(f'Cartesian endpoint mismatch: position={distance:.6f}m '

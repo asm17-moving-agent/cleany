@@ -16,6 +16,7 @@
     hardware_sparse_cubic_commands: true
     hardware_share_return_preparation: true
     hardware_retime_selected_approach: true
+    hardware_straight_cruise: true
     hardware_retime_retreat: true
     hardware_retreat_min_duration_sec: 0.3
     hardware_lift_min_duration_sec: 0.3

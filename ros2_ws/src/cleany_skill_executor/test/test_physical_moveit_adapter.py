@@ -1,5 +1,6 @@
 from moveit_test_support import ServiceClient, PlanClient, current_state
 import json
+import math
 from types import SimpleNamespace
 
 import pytest
@@ -34,7 +35,7 @@ def test_direct_grasp_selection_prefers_validated_joint_connection_and_falls_bac
         calls.append('rrt_from_current')
         return path
     adapter = SimpleNamespace(_check_active=lambda: None, _config=MoveItAdapterConfig(),
-        _merged_state=lambda start: RobotState(joint_state=state),
+        _planning_start=lambda arm, start: RobotState(joint_state=state),
         _validated_cubic_path=validate, plan=plan)
     adapter._direct_joint_path = lambda arm, goal: MoveItGraspAdapter._direct_joint_path(adapter, arm, goal)
     assert MoveItGraspAdapter.plan_direct_grasp(adapter, arm, goal) == path
@@ -505,6 +506,31 @@ def test_out_of_bounds_measured_joint_is_rejected_without_clamping():
         adapter.set_current_state(state)
     assert adapter._current_state is None
     assert state.position[state.name.index(joint)] == 3.397767
+
+
+@pytest.mark.parametrize('side', [-1, 1])
+@pytest.mark.parametrize('ticks', [1, 20, 21])
+def test_measured_endpoint_margin_is_only_used_for_the_planning_start(side, ticks):
+    adapter = MoveItGraspAdapter(object(), ik_client=object(), validity_client=object(), plan_client=object())
+    state = current_state()
+    joint = 'left_shoulder_pitch_joint'
+    slot = list(state.name).index(joint)
+    low, high = -.210155, 3.463729
+    bound = high if side > 0 else low
+    measured = bound + side * ticks * math.tau / 4096
+    adapter._joint_limits = {joint: (low, high, 1.)}
+    adapter._endpoint_margins = {joint: 20 * math.tau / 4096}
+    state.position[slot] = measured
+    if ticks > 20:
+        with pytest.raises(ValueError, match=joint):
+            adapter.set_current_state(state)
+        return
+    adapter.set_current_state(state)
+    start = adapter._planning_start('left', None).joint_state
+    original = adapter._merged_state(None).joint_state
+    assert start.position[list(start.name).index(joint)] == bound
+    assert original.position[list(original.name).index(joint)] == measured
+    assert state.position[slot] == measured
 
 
 def test_candidate_joint_limit_rejection_records_bounds_without_calling_moveit():

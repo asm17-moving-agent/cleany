@@ -341,3 +341,32 @@ def test_lift_at_target_or_above_target_needs_no_correction(sag):
     node, _, commands, _ = plant(sag=sag)
     node.correct_height_endpoint('right', pose(.5743888152472258), 'lift')
     assert commands == []
+
+
+def test_lift_uses_one_protected_sample_for_height_and_ik():
+    from sensor_msgs.msg import JointState
+
+    names = ARM_JOINT_NAMES['right']
+    sample = JointState(name=list(names), position=[0.1] * len(names))
+    sampled, planned = [], []
+    def monitor():
+        sampled.append(sample)
+        return sample
+
+    def fk(arm, solution):
+        assert arm == 'right' and solution.positions == tuple(sample.position)
+        return NS(position=(.2, .1, .35), orientation_xyzw=(0., 0., 0., 1.))
+
+    node = NS(config={'lift_from_measured_retreat_height': True,
+                                   'lift_height_m': .05, 'lift_height_correction_enabled': True},
+        motion=NS(set_current_state=lambda state: None, forward_kinematics=fk),
+        real=NS(monitor=monitor), pose_message=CollectionPipeline.pose_message,
+        linear=lambda arm, goal, stage, **options: planned.append((goal, options)))
+    node.lift_target = CollectionPipeline.lift_target.__get__(node)
+    pregrasp = Pose()
+    pregrasp.position.z = .5
+    bottom, target = CollectionPipeline.lift_after_retreat(node, 'right', pregrasp, check_collisions=True)
+    assert sampled == [sample]
+    assert bottom.position.z == pytest.approx(.35) and target.position.z == pytest.approx(.40)
+    assert planned[0][0] is target and planned[0][1]['measured_start'][0] is sample
+    assert planned[0][1]['check_collisions'] is True

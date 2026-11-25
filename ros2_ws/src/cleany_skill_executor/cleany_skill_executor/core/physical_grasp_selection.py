@@ -7,7 +7,7 @@ from contextlib import nullcontext
 from enum import Enum
 import math
 import time
-from typing import Callable, Protocol, Sequence
+from typing import Callable, Iterator, Protocol, Sequence
 
 from .alignment import vector_error_degrees as directed_axis_error_deg
 from .grasp_direction import GraspDirectionConfig, grasp_direction_pairs, order_grasp_directions
@@ -544,6 +544,28 @@ class GraspSelector:
             feedback(index, arm, EvaluationStage.POSE_ALIGNMENT,
                      self._alignment_failure('pregrasp', pregrasp))
 
+    def _shortlist_attempts(
+        self, requested: Sequence[tuple[Candidate, str]], qualified: Iterator[bool],
+        fallback: Sequence[tuple[Candidate, str]], limit: int,
+    ) -> Iterator[tuple[Candidate, str]]:
+        counts = dict.fromkeys(ARM_JOINT_NAMES, 0)
+        seen = set()
+
+        def appendable(candidate, arm):
+            key = (arm, replace(candidate, score=0., source_index=0))
+            if counts[arm] >= limit or key in seen:
+                return False
+            counts[arm] += 1
+            seen.add(key)
+            return True
+
+        for (candidate, arm), passed in zip(requested, qualified, strict=True):
+            if passed and appendable(candidate, arm):
+                yield candidate, arm
+        for candidate, arm in fallback:
+            if appendable(candidate, arm):
+                yield candidate, arm
+
     def select(
         self,
         candidates: Sequence[Candidate],
@@ -586,6 +608,7 @@ class GraspSelector:
         if not self._config.pregrasp_motion_enabled:
             return self._select_direct(attempts, check_canceled, feedback)
 
+        screened_attempts = None
         grasp_first = self._config.grasp_ik_first
         prepare = getattr(self._port, 'prepare_grasps' if grasp_first else 'prepare_pregrasps', None)
         if prepare is not None:
@@ -614,24 +637,18 @@ class GraspSelector:
                     first = requests[0]
                     feedback(first.candidate_index, first.arm, EvaluationStage.GRASP_IK,
                              'screening grasp IK before applying the candidate limit')
-                screened = screen(requests)
-                qualified = [attempt for attempt, request in zip(requested_attempts, requests, strict=True)
-                             if request in screened]
+                progressive = getattr(self._port, 'iter_prescreen_grasps', None)
+                if callable(progressive) and self._config.stop_after_first_feasible:
+                    qualified = progressive(
+                        requests, maximum_per_arm=limit,
+                        before_batch=lambda: self._port.set_target_contacts(None))
+                else:
+                    screened = screen(requests, maximum_per_arm=limit)
+                    qualified = (request in screened for request in requests)
                 fallback = self._evaluation_order(ranked, required_arm, check_canceled, limit=limit)
-                counts = {'left': 0, 'right': 0}
+                screened_attempts = self._shortlist_attempts(
+                    requested_attempts, qualified, fallback, limit)
                 attempts = []
-                seen = set()
-                for candidate, arm in (*qualified, *fallback):
-                    key = (arm, replace(candidate, score=0., source_index=0))
-                    if counts[arm] < limit and key not in seen:
-                        seen.add(key)
-                        attempts.append((candidate, arm))
-                        counts[arm] += 1
-                if attempts:
-                    candidate, arm = attempts[0]
-                    feedback(candidate.source_index, arm, EvaluationStage.GRASP_IK,
-                             f'batched grasp IK: {len(qualified)}/{len(requests)} arm-pose pairs '
-                             f'passed; {len(attempts)} shortlisted')
             check_canceled()
 
         planned_candidates: set[tuple[int, str]] = set()
@@ -651,7 +668,12 @@ class GraspSelector:
         def evaluation_passes():
             begin = getattr(self._port, 'begin_candidate_pass', None)
             deferred = begin(False) if begin is not None else False
-            yield from ((candidate, arm, fast_first) for candidate, arm in attempts)
+            if screened_attempts is None:
+                yield from ((candidate, arm, fast_first) for candidate, arm in attempts)
+            else:
+                for candidate, arm in screened_attempts:
+                    attempts.append((candidate, arm))
+                    yield candidate, arm, fast_first
             check_canceled()
             if fast_first and deferred_paths:
                 feedback(deferred_paths[0][0].source_index, required_arm,
@@ -664,6 +686,16 @@ class GraspSelector:
                          EvaluationStage.GRASP_IK if grasp_first else EvaluationStage.PREGRASP_IK,
                          'primary candidates exhausted; retrying deferred IK')
                 yield from ((candidate, arm, False) for candidate, arm in attempts)
+
+            refine = getattr(self._port, 'begin_grasp_refinements', None)
+            if grasp_first and refine is not None:
+                check_canceled()
+                pending = refine()
+                for candidate, arm in attempts:
+                    if (candidate.source_index, arm) in pending:
+                        feedback(candidate.source_index, arm, EvaluationStage.GRASP_IK,
+                                 'direct candidates exhausted; retrying auxiliary IK')
+                        yield candidate, arm, False
 
         for candidate, arm, fast_only in evaluation_passes():
             if id(candidate) in feasible_candidates:

@@ -39,12 +39,12 @@ from .core.cartesian import CartesianPose, orientation_error_rad, validate_heigh
 from .core.hardware_execution import (
     ArmHold, CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
     CommunicationRecovered, ExecutionCanceled, RecordedStartMismatch, bounded_path, bridge_joint_path,
-    continue_joint_path, physical_limits, prepare_bounded_path, remaining_joint_path,
+    continue_joint_path, joint_rate_limits, physical_limits, prepare_bounded_path, remaining_joint_path,
 )
-from .core.joint_path import executable_joint_path
+from .core.joint_path import CubicJointPath, executable_joint_path
 from .core.joint_stability import JointStabilityHistory
 from .core.recorded_trajectory import (
-    ArmCommandRecording, RecordedTrajectory, validate_recorded_trajectory,
+    ArmCommandRecording, CommandPoint, RecordedTrajectory, validate_recorded_trajectory,
     stopped_recorded_window, retime_recorded_trajectory,
 )
 from .core.motion_monitor import MotionMonitor, MotionMonitorConfig
@@ -148,7 +148,7 @@ class HardwareExecution:
         self.trajectory_limit_scale = float(scale)
         node.declare_parameter('hardware_reuse_settle_history', True)
         node.declare_parameter('hardware_reuse_scene_barrier', False)
-        for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation',
+        for name in ('parallel_model_queries', 'sparse_cubic_commands', 'straight_cruise', 'share_return_preparation',
                      'retime_selected_approach', 'retime_retreat', 'prepare_models_on_startup',
                      'prefetch_release_retreat'):
             parameter = 'hardware_'+name
@@ -757,6 +757,7 @@ class HardwareExecution:
     @timed_operation('endpoint_verification', node_attribute='node')
     def verify_arm_endpoint(self, arm, target, limits, actual=None, *, check_orientation=True,
                             allow_endpoint_error=False, defer_height_shortfall: bool = False,
+                            check_endpoint_height: bool = True,
                             endpoint_pose: CartesianPose | None = None):
         """Verify the settled TCP once without issuing additional arm goals."""
         if type(defer_height_shortfall) is not bool:
@@ -785,9 +786,10 @@ class HardwareExecution:
                 endpoint_pose.position, metrics['actual_tcp_position_m'])
             metrics['final_tcp_orientation_error_deg'] = math.degrees(orientation_error_rad(
                 endpoint_pose.orientation, tuple(metrics['actual_tcp_orientation_xyzw'])))
+        position_error = (metrics['final_tcp_position_error_m'] if check_endpoint_height else math.dist(
+            metrics['target_tcp_position_m'][:2], metrics['actual_tcp_position_m'][:2]))
         within = (
-            metrics['final_tcp_position_error_m']
-            <= self.value('hardware_tcp_position_tolerance_m')
+            position_error <= self.value('hardware_tcp_position_tolerance_m')
             and (not check_orientation
                  or metrics['final_tcp_orientation_error_deg']
                  <= self.value('hardware_tcp_orientation_tolerance_deg')))
@@ -807,6 +809,7 @@ class HardwareExecution:
                 pass
         summary = {**metrics, 'endpoint_corrections': 0,
                    'endpoint_history': [metrics],
+                   'endpoint_height_check_enabled': check_endpoint_height,
                    'endpoint_accuracy_checks_enabled': not allow_endpoint_error,
                    'endpoint_within_tolerance': within,
                    'endpoint_height_shortfall_deferred': height_deferred}
@@ -820,7 +823,7 @@ class HardwareExecution:
         self.node.get_logger().info(json.dumps(self.last_execution_metrics))
         if not within and not height_deferred:
             message = ('Physical TCP endpoint outside tolerance: '
-                f"position={metrics['final_tcp_position_error_m']:.6f}m "
+                f'position={position_error:.6f}m '
                 f"orientation={metrics['final_tcp_orientation_error_deg']:.3f}deg")
             if not allow_endpoint_error:
                 raise RuntimeError(message)
@@ -829,7 +832,7 @@ class HardwareExecution:
         preparation = getattr(self, '_return_preparation', None)
         if (preparation is not None and preparation.arm == arm and preparation.phase == 'retreat'
                 and within and check_orientation and not allow_endpoint_error
-                and not height_deferred and endpoint_pose is not None):
+                and check_endpoint_height and not height_deferred and endpoint_pose is not None):
             preparation.endpoint = ReturnEndpoint(endpoint_pose,
                 CartesianPose(tuple(metrics['actual_tcp_position_m']),
                               tuple(metrics['actual_tcp_orientation_xyzw'])),
@@ -1102,6 +1105,13 @@ class HardwareExecution:
             return self.contact_histories[arm].evaluate(
                 now_ns=self.node.get_clock().now().nanoseconds, after_ns=after_ns)
 
+    def measured_arm_entry(self, arm: str, positions: dict[str, float]) -> dict[str, float]:
+        """Use the same calibrated entry for pregrasp planning and hardware dispatch."""
+        limits = getattr(self, '_physical_limits', {}).get(arm)
+        if limits is None:
+            limits = self.verify(arm)
+        return {name: limits[name].measured_entry(positions[name]) for name in ARM_JOINT_NAMES[arm]}
+
     def closed_contact_position(self, arm, limits=None):
         """Propose the calibrated close goal; dispatch rechecks it against fresh limits."""
         if limits is None:
@@ -1145,6 +1155,8 @@ class HardwareExecution:
         recorded_window: tuple[int, int] | None = None,
         retime_recorded: bool = False,
         retime_selected_approach: bool = False,
+        check_endpoint_height: bool = True,
+        connect_selected_start: bool = False,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
         start_from_measured: bool = False,
@@ -1153,6 +1165,12 @@ class HardwareExecution:
         if type(defer_height_shortfall) is not bool:
             raise ValueError('defer_height_shortfall must be boolean')
         height_options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
+        if type(check_endpoint_height) is not bool or type(connect_selected_start) is not bool:
+            raise ValueError('Endpoint height and selected start switches must be boolean')
+        if not check_endpoint_height:
+            height_options['check_endpoint_height'] = False
+        if connect_selected_start:
+            height_options['connect_selected_start'] = True
         if recorded_window is not None:
             height_options['recorded_window'] = recorded_window
         if type(retime_recorded) is not bool:
@@ -1215,20 +1233,26 @@ class HardwareExecution:
             self._arm_command_recording = None
 
     def execute_selected_trajectory(self, arm: str, trajectory: JointTrajectory, *,
-                                    check_collisions: bool, endpoint_pose: CartesianPose):
-        """Dispatch the selected spline once its start matches the settled joints."""
+                                    check_collisions: bool, endpoint_pose: CartesianPose,
+                                    check_arrival: bool = True, connect_start: bool = False):
+        """Connect settled joints to the first knot and keep the timed selection."""
+        if type(check_arrival) is not bool:
+            raise ValueError('check_arrival must be boolean')
         recorded = recorded_from_message(trajectory)
         if any(abs(value) > 1e-9 for point in (recorded.points[0], recorded.points[-1])
                for value in point.velocities):
             raise CommandPathValidationError('Selected approach requires stopped endpoints')
+        arrival = ({'endpoint_pose': endpoint_pose} if check_arrival
+                   else {'terminal_check': False, 'allow_endpoint_error': True})
         return self.execute(arm, trajectory, 'arm', recorded_trajectory=recorded,
-                            endpoint_pose=endpoint_pose, check_orientation=False,
-                            check_collisions=check_collisions,
-                            retime_selected_approach=getattr(self, 'retime_selected_approach', False))
+                            check_orientation=False, check_collisions=check_collisions,
+                            connect_selected_start=connect_start,
+                            retime_selected_approach=getattr(self, 'retime_selected_approach', False), **arrival)
 
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
+                                   check_endpoint_height: bool = True,
                                    recorded_window: tuple[int, int] | None = None,
                                    retime: bool = False,
                                    endpoint_pose: CartesianPose | None = None,
@@ -1243,6 +1267,8 @@ class HardwareExecution:
         if type(defer_height_shortfall) is not bool:
             raise ValueError('defer_height_shortfall must be boolean')
         options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
+        if check_endpoint_height is not True:
+            options['check_endpoint_height'] = check_endpoint_height
         if recorded_window is not None:
             options['recorded_window'] = recorded_window
         if type(retime) is not bool:
@@ -1304,22 +1330,54 @@ class HardwareExecution:
                 self.node.get_logger().warning(
                     f'Communication recovered: rebuilding {controller} remaining path from fresh encoders')
 
-    def _bridge_start(self, names, positions, baseline):
+    def _bridge_start(self, names, positions, baseline, entry):
         actual = tuple(float(baseline[name]) for name in names)
-        points = bridge_joint_path(positions, actual, self.value('hardware_start_blend_max_rad'))
+        if tuple(positions[0]) == actual:
+            positions = [entry, *positions[1:]]
+        points = bridge_joint_path(positions, entry, self.value('hardware_start_blend_max_rad'))
         if max(abs(a-b) for a, b in zip(actual, positions[0], strict=True)) > self.value(
                 'hardware_start_tolerance_rad'):
             self.node.get_logger().info('Small start drift: connecting measured joints to the planned path')
         return points
 
-    def _check_recorded_start(self, planned: tuple[float, ...], joints: tuple[float, ...],
-                              *, reference: str = 'measured') -> None:
+    def _check_recorded_start(self, names, planned, measured, limits):
+        joints = tuple(measured[name] for name in names)
         if not all(math.isfinite(angle) for angle in joints):
-            raise CommandPathValidationError(f'Saved approach requires finite {reference} joints')
-        error = max(abs(actual-goal) for actual, goal in zip(joints, planned, strict=True))
+            raise CommandPathValidationError('Saved approach requires finite measured joints')
+        entry = (limits[name].measured_entry(q) for name, q in zip(names, joints, strict=True))
+        error = max(abs(actual-goal) for actual, goal in zip(entry, planned, strict=True))
         tolerance = self.value('hardware_start_tolerance_rad')
         if error > tolerance:
-            raise RecordedStartMismatch(error, tolerance, reference=reference)
+            raise RecordedStartMismatch(error, tolerance)
+
+    def _connect_selected_start(
+        self, recorded: RecordedTrajectory, measured: tuple[float, ...], limits,
+    ) -> RecordedTrajectory:
+        if not all(math.isfinite(angle) for angle in measured):
+            raise CommandPathValidationError('Saved approach requires finite measured joints')
+        if measured == recorded.points[0].positions:
+            return recorded
+        rates = joint_rate_limits(
+            recorded.joint_names, limits, velocity=self.value('hardware_velocity_rad_s'),
+            acceleration=self.value('hardware_acceleration_rad_s2'),
+            limit_scale=getattr(self, 'trajectory_limit_scale', .8))
+        # A velocity-only first knot makes JTC use a cubic for the entry,
+        # while subsequent segments retain their original acceleration fields.
+        entry = CubicJointPath([measured, recorded.points[0].positions])
+        entry_ns = math.ceil(entry.minimum_duration(*rates)*1.05*1e9)
+        points = (CommandPoint(0, measured, (0.,)*len(measured)), *(
+            replace(point, time_ns=point.time_ns+entry_ns) for point in recorded.points))
+        return RecordedTrajectory(recorded.joint_names, points)
+
+    @staticmethod
+    def _encoder_entry(names, baseline, limits, step):
+        """Collision samples from measured encoders to the first encodable setpoint."""
+        measured = tuple(baseline[name] for name in names)
+        entry = tuple(limits[name].measured_entry(value) for name, value in zip(names, measured))
+        if entry == measured:
+            return measured, []
+        bridge = executable_joint_path([measured, entry], simplification_tolerance=0.)
+        return entry, bridge.samples(step, 2)[:-1]
 
     def _can_refresh_path(self, drift, commanded, attempt):
         return (attempt < self.positive_integer('hardware_path_refresh_attempts')
@@ -1353,7 +1411,9 @@ class HardwareExecution:
         name = ARM_JOINT_NAMES[arm][0]
         yaw = limits[name]
         lower, upper = policy.intersect(name, *yaw.position_bounds())
-        return {**limits, name: replace(yaw, lower=lower, upper=upper)}
+        if (lower, upper) == yaw.position_bounds():
+            return limits
+        return {**limits, name: replace(yaw, lower=lower, upper=upper, endpoint_margin_ticks=0)}
 
     def _execute(
         self,
@@ -1371,6 +1431,8 @@ class HardwareExecution:
         recorded_trajectory=None,
         recorded_window: tuple[int, int] | None = None,
         timing_event: str | None = None,
+        check_endpoint_height: bool = True,
+        connect_selected_start: bool = False,
         _refresh_attempt=0,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
@@ -1400,6 +1462,8 @@ class HardwareExecution:
         if controller == 'arm':
             limits = HardwareExecution._with_grasp_approach_limits(
                 arm, limits, active_grasp_approach_yaw.get())
+        if not check_endpoint_height and (endpoint_pose is None or defer_height_shortfall):
+            raise ValueError('Horizontal endpoint verification requires an explicit arm pose')
         if timing_event is not None:
             if controller != 'arm' or recorded_trajectory is None or recorded_window is not None:
                 raise ValueError('Retiming requires one complete recorded arm trajectory')
@@ -1443,44 +1507,61 @@ class HardwareExecution:
         positions = [tuple(p.positions) for p in trajectory.points]
         if len(positions) < 2 or any(len(p) != len(expected) for p in positions):
             raise RuntimeError('Malformed physical trajectory positions')
+        entry, encoder_bridge = HardwareExecution._encoder_entry(
+            expected, baseline, limits, self.value('hardware_path_step_rad'))
         direct_replay = recorded_trajectory is not None and held_command is None
+        if connect_selected_start and not direct_replay:
+            raise ValueError('Selected approach entry requires a non-held recorded trajectory')
         if direct_replay:
-            # A non-held replay has no new start point in the controller command.
-            HardwareExecution._check_recorded_start(
-                self, positions[0], tuple(baseline[name] for name in expected))
             hold = self.arm_holds.get(arm)
+            if connect_selected_start:
+                tolerance = self.value('hardware_start_blend_max_rad')
+                gap = max(abs(q-p) for q, p in zip(entry, positions[0], strict=True))
+                if gap > tolerance:
+                    raise RecordedStartMismatch(gap, tolerance)
+            else:
+                HardwareExecution._check_recorded_start(self, expected, positions[0], baseline, limits)
             if hold is not None:
-                HardwareExecution._check_recorded_start(
-                    self, positions[0], hold.command, reference='held')
+                reference = entry if connect_selected_start else positions[0]
+                tolerance = self.value('hardware_arrival_tolerance_rad' if connect_selected_start
+                                       else 'hardware_start_tolerance_rad')
+                gap = max(abs(q-p) for q, p in zip(hold.command, reference, strict=True))
+                if gap > tolerance:
+                    raise RecordedStartMismatch(gap, tolerance, reference='held')
         nominal_target = positions[-1]
         if contact_close and (controller != 'gripper' or abs(
                 nominal_target[0]-self.closed_contact_position(arm, limits)) > 1e-9):
             raise RuntimeError('Contact closing requires the calibrated final gripper goal')
         # Continue from the previous held command at normal action boundaries
         # so the controller does not unload the gravity-loaded gear train.
+        command_recording = recorded_trajectory
+        selected_entry_ns = 0
         if recorded_trajectory is not None:
             if (controller != 'arm' or recorded_trajectory.joint_names != expected
                     or tuple(positions) != tuple(p.positions for p in recorded_trajectory.points)):
                 raise CommandPathValidationError('Recorded trajectory joint/controller mapping mismatch')
-            # These are the already transformed commands. Preserve their exact
-            # timestamps and derivatives; do not add a hold bias or simplify.
+            if connect_selected_start:
+                command_recording = HardwareExecution._connect_selected_start(
+                    self, recorded_trajectory, entry, limits)
+                if command_recording is not recorded_trajectory:
+                    selected_entry_ns = command_recording.points[1].time_ns
             replay_collision_samples = validate_recorded_trajectory(
-                recorded_trajectory, limits,
+                command_recording, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
                 step=self.value('hardware_path_step_rad'),
                 limit_scale=getattr(self, 'trajectory_limit_scale', .8))
-            samples = recorded_trajectory.command_samples()
-            duration = recorded_trajectory.points[-1].time_ns/1e9
+            samples = command_recording.command_samples()
+            duration = command_recording.points[-1].time_ns/1e9
         elif (controller == 'arm' and held_command is None and arm in self.arm_holds
               and not start_from_measured):
-            positions = HardwareExecution._bridge_start(self, expected, positions, baseline)
+            positions = HardwareExecution._bridge_start(self, expected, positions, baseline, entry)
             hold = self.arm_holds[arm]
             positions = continue_joint_path(positions, hold, self.value(
                 'hardware_command_continuity_max_offset_rad'))
             held_command = hold.command
         elif held_command is None:
-            positions = HardwareExecution._bridge_start(self, expected, positions, baseline)
+            positions = HardwareExecution._bridge_start(self, expected, positions, baseline, entry)
         if recorded_trajectory is None:
             range_exemptions = HardwareExecution.opening_position_range_exemptions(
                 self, arm, expected, positions, limits, contact_close=contact_close)
@@ -1488,9 +1569,10 @@ class HardwareExecution:
                 velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
                 step=self.value('hardware_path_step_rad'),
-                simplification_tolerance=self.value(
-                    'hardware_path_simplification_tolerance_rad'),
+                simplification_tolerance=self.value('hardware_path_simplification_tolerance_rad'),
                 position_range_exemptions=range_exemptions,
+                straight_cruise=(controller == 'arm' and check_collisions
+                                 and getattr(self, 'straight_cruise', False)),
                 minimum_duration_sec=minimum_duration_sec,
                 limit_scale=getattr(self, 'trajectory_limit_scale', .8))
             samples, duration = prepared.samples, prepared.duration
@@ -1499,9 +1581,12 @@ class HardwareExecution:
                                 joints=list(range_exemptions), raw_encoder_check_enabled=True)
         collision_samples = samples if recorded_trajectory is None else replay_collision_samples
         hold_bridge_samples = 0
+        if selected_entry_ns:
+            junction = samples[1].progress
+            hold_bridge_samples = sum(sample.progress <= junction for sample in collision_samples)
         if held_command is None and not direct_replay:
-            if any(abs(baseline[n]-q) > self.value('hardware_start_tolerance_rad')
-                   for n, q in zip(expected, samples[0].positions)):
+            if any(abs(e-q) > self.value('hardware_start_tolerance_rad')
+                   for e, q in zip(entry, samples[0].positions)):
                 raise RuntimeError('Physical start changed; replan required')
         if held_command is not None:
             held_command = tuple(float(value) for value in held_command)
@@ -1510,21 +1595,19 @@ class HardwareExecution:
                     or any(abs(value-start) > 1e-9 for value, start in zip(
                         held_command, samples[0].positions, strict=True))):
                 raise RuntimeError('Invalid held-command trajectory continuation')
-            measured_start = tuple(float(baseline[name]) for name in expected)
-            if any(abs(measured-command) > self.value(
-                    'hardware_arrival_tolerance_rad') for measured, command in zip(
-                        measured_start, held_command, strict=True)):
+            if any(abs(position-command) > self.value(
+                    'hardware_arrival_tolerance_rad') for position, command in zip(
+                        entry, held_command, strict=True)):
                 raise RuntimeError(
                     'Physical hold departed too far for continuous path')
         if direct_replay or held_command is not None:
-            measured_start = tuple(float(baseline[name]) for name in expected)
             command_start = samples[0].positions
             # Collision samples include the small gap from measured joints to
             # the first setpoint without inserting points into the command.
             if max(abs(measured-command) for measured, command in zip(
-                    measured_start, command_start, strict=True)) > 1e-7:
+                    entry, command_start, strict=True)) > 1e-7:
                 bridge, _ = bounded_path(
-                    expected, [measured_start, command_start], limits,
+                    expected, [entry, command_start], limits,
                     velocity=self.value('hardware_velocity_rad_s'),
                     acceleration=self.value('hardware_acceleration_rad_s2'),
                     step=self.value('hardware_path_step_rad'),
@@ -1535,6 +1618,9 @@ class HardwareExecution:
                 # Include the junction: samples[0] is the held setpoint and
                 # remains mandatory for every later waypoint candidate.
                 hold_bridge_samples = len(bridge)
+        if encoder_bridge:
+            collision_samples = [*encoder_bridge, *collision_samples]
+            hold_bridge_samples += len(encoder_bridge)
         # Validate the exact samples that will be sent, after hold continuation
         # and retiming. A planner's unmodified knots cannot authorize this command.
         path_preparation_sec = time.monotonic()-path_preparation_began
@@ -1547,16 +1633,13 @@ class HardwareExecution:
         # profile keeps updates enabled; only the explicit legacy freeze mode
         # pauses the sensor map for the enclosing operation.
         collision_began = time.monotonic()
-        if check_collisions:
-            HardwareExecution.validate_collision_samples(
-                self,
-                arm,
-                expected,
-                collision_samples,
-                baseline,
-                measured,
-                hold_bridge_samples=hold_bridge_samples,
-            )
+        validate_collisions = check_collisions or bool(encoder_bridge) or bool(selected_entry_ns)
+        if validate_collisions:
+            scene = self.frozen_sensor_scene() if not check_collisions else nullcontext()
+            with scene:
+                HardwareExecution.validate_collision_samples(
+                    self, arm, expected, collision_samples, baseline, measured,
+                    hold_bridge_samples=hold_bridge_samples)
         else:
             self.node.get_logger().info(json.dumps({
                 'stage': 'hardware_collision_validation_skipped',
@@ -1572,10 +1655,10 @@ class HardwareExecution:
             baseline, latest, expected,
             self.value('hardware_start_tolerance_rad'),
             self.value('hardware_uncommanded_tolerance_rad'))
-        if direct_replay and set(drift) <= set(expected):
+        if direct_replay and not connect_selected_start and set(drift) <= set(expected):
             latest_positions = dict(zip(latest.name, latest.position))
             HardwareExecution._check_recorded_start(
-                self, positions[0], tuple(latest_positions[name] for name in expected))
+                self, expected, positions[0], latest_positions, limits)
         if drift:
             if HardwareExecution._can_refresh_path(self, drift, expected, _refresh_attempt):
                 self.node.get_logger().info('Small drift during collision validation: refreshing the path once')
@@ -1587,9 +1670,10 @@ class HardwareExecution:
                     recorded_trajectory=recorded_trajectory,
                     _refresh_attempt=_refresh_attempt+1,
                     defer_height_shortfall=defer_height_shortfall,
+                    check_endpoint_height=check_endpoint_height,
                     minimum_duration_sec=minimum_duration_sec,
                     start_from_measured=start_from_measured,
-                    endpoint_pose=endpoint_pose)
+                    endpoint_pose=endpoint_pose, connect_selected_start=connect_selected_start)
             details = ', '.join(f'{name}={delta:.6f}rad' for name, delta in sorted(drift.items()))
             raise RuntimeError('Robot moved during path validation: '+details)
         drift_sec = time.monotonic()-drift_began
@@ -1611,7 +1695,7 @@ class HardwareExecution:
                 velocities=[v/duration for v in sample.derivatives])
             ns = round(sample.progress*duration*1e9)
             if recorded_trajectory is not None:
-                saved = recorded_trajectory.points[index]
+                saved = command_recording.points[index]
                 ns, point.velocities = saved.time_ns, list(saved.velocities)
                 point.accelerations = list(saved.accelerations)
             point.time_from_start.sec, point.time_from_start.nanosec = divmod(ns, 10**9)
@@ -1642,8 +1726,9 @@ class HardwareExecution:
             'start_stamp_ns': start_ns,
             'held_command_continuation': held_command is not None,
             'start_from_measured': start_from_measured,
-            'collision_checks_enabled': check_collisions,
+            'collision_checks_enabled': validate_collisions,
             'recorded_trajectory_replay': recorded_trajectory is not None,
+            'selected_entry_duration_sec': selected_entry_ns/1e9,
             'nominal_endpoint_rad': list(nominal_target),
             'command_start_rad': list(samples[0].positions),
             'command_endpoint_rad': list(samples[-1].positions),
@@ -1706,6 +1791,8 @@ class HardwareExecution:
                 endpoint_options = {'allow_endpoint_error': True} if allow_endpoint_error else {}
                 if defer_height_shortfall:
                     endpoint_options['defer_height_shortfall'] = True
+                if not check_endpoint_height:
+                    endpoint_options['check_endpoint_height'] = False
                 if endpoint_pose is not None:
                     endpoint_options['endpoint_pose'] = endpoint_pose
                 actual, metrics = self.verify_arm_endpoint(
@@ -1718,7 +1805,7 @@ class HardwareExecution:
             self.last_execution_metrics['joint_arrival_within_tolerance'] = joint_arrival
             self.last_execution_metrics['endpoint_accuracy_checks_enabled'] = not allow_endpoint_error
             self.last_execution_metrics['motion_monitor'] = motion_report
-            self.last_execution_metrics['collision_checks_enabled'] = check_collisions
+            self.last_execution_metrics['collision_checks_enabled'] = validate_collisions
             self.last_execution_metrics['start_from_measured'] = start_from_measured
             recording = getattr(self, '_arm_command_recording', None)
             if controller == 'arm' and recording is not None and recording.arm == arm:
@@ -1851,14 +1938,16 @@ class HardwareExecution:
             'hardware_path_simplification_tolerance_rad')
         arm_positions = [tuple(point.positions) for point in arm_trajectory.points]
         nominal_target = arm_positions[-1]
-        arm_positions = HardwareExecution._bridge_start(self, arm_names, arm_positions, baseline)
+        entry, encoder_bridge = HardwareExecution._encoder_entry(
+            combined_names, baseline, limits, self.value('hardware_path_step_rad'))
+        arm_positions = HardwareExecution._bridge_start(self, arm_names, arm_positions, baseline, entry[:-1])
         bridge_joint_path([(gripper_start,), (gripper_end,)], (baseline[gripper_name],),
                           self.value('hardware_start_blend_max_rad'))
         gripper_start = float(baseline[gripper_name])
         hold = self.arm_holds.get(arm)
         if hold is not None:
-            if any(abs(baseline[n]-q) > self.value('hardware_arrival_tolerance_rad')
-                   for n, q in zip(arm_names, hold.command)):
+            if any(abs(position-q) > self.value('hardware_arrival_tolerance_rad')
+                   for position, q in zip(entry[:-1], hold.command)):
                 raise RuntimeError('Physical hold departed too far for continuous pregrasp')
             arm_positions = continue_joint_path(arm_positions, hold, self.value(
                 'hardware_command_continuity_max_offset_rad'))
@@ -1882,6 +1971,8 @@ class HardwareExecution:
             step=self.value('hardware_path_step_rad'),
             simplification_tolerance=simplification_tolerance,
             position_range_exemptions=range_exemptions,
+            straight_cruise=(stage_prefix == 'synchronized_pregrasp' and check_collisions
+                             and getattr(self, 'straight_cruise', False)),
             limit_scale=getattr(self, 'trajectory_limit_scale', .8))
         samples, duration = prepared.samples, prepared.duration
         if range_exemptions:
@@ -1892,7 +1983,7 @@ class HardwareExecution:
         if hold is not None:
             bridge, _ = bounded_path(
                 combined_names,
-                [tuple(baseline[n] for n in combined_names), samples[0].positions], limits,
+                [entry, samples[0].positions], limits,
                 velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
                 step=self.value('hardware_path_step_rad'),
@@ -1903,10 +1994,16 @@ class HardwareExecution:
             collision_samples = [*bridge[:-1], *samples]
         path_preparation_sec = time.monotonic()-path_preparation_began
         collision_began = time.monotonic()
-        if check_collisions:
-            HardwareExecution.validate_collision_samples(
-                self, arm, combined_names, collision_samples, baseline, measured,
-                hold_bridge_samples=hold_bridge_samples, trajectory_stage=stage_prefix)
+        if encoder_bridge:
+            collision_samples = [*encoder_bridge, *collision_samples]
+            hold_bridge_samples += len(encoder_bridge)
+        validate_collisions = check_collisions or bool(encoder_bridge)
+        if validate_collisions:
+            scene = self.frozen_sensor_scene() if not check_collisions else nullcontext()
+            with scene:
+                HardwareExecution.validate_collision_samples(
+                    self, arm, combined_names, collision_samples, baseline, measured,
+                    hold_bridge_samples=hold_bridge_samples, trajectory_stage=stage_prefix)
         else:
             self.node.get_logger().info(json.dumps({
                 'stage': 'hardware_collision_validation_skipped',
@@ -1951,7 +2048,7 @@ class HardwareExecution:
             'trajectory_limit_scale': getattr(self, 'trajectory_limit_scale', .8),
             'controller_points': {key: len(value.points) for key, value in commands.items()},
             'sparse_cubic_command': compact_cubic,
-            'collision_checks_enabled': check_collisions,
+            'collision_checks_enabled': validate_collisions,
             'preparation_wall_sec': time.monotonic() - preparation_began,
             'path_preparation_wall_sec': path_preparation_sec,
             'collision_validation_wall_sec': collision_sec,
@@ -2109,7 +2206,7 @@ class HardwareExecution:
                 arm, nominal_target, limits, actual)
             metrics = {
                 'stage': stage_prefix + '_tracking',
-                'collision_checks_enabled': check_collisions,
+                'collision_checks_enabled': validate_collisions,
                 'controllers': tracking,
                 'motion_monitor': motion_report,
                 'duration_sec': duration,

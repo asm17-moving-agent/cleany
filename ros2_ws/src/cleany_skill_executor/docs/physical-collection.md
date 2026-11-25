@@ -42,6 +42,7 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 | `hardware_path_step_rad` | 0.02 | 궤적 충돌 검사 표본 간 관절 변화 상한. 명령점 수와 별개 |
 | `hardware_start_delay_sec`, `hardware_return_start_delay_sec` | 0.2초 | 팔과 그리퍼의 공통 시작 여유. 시작 전 수락 조건 유지 |
 | `hardware_retime_selected_approach` | true | 선택한 접근 경로의 시간을 실물 관절 한도에 맞게 계산합니다. 코드 기본값은 false입니다. |
+| `hardware_straight_cruise` | true | 충돌 검사를 수행하는 두 지점 직선 관절 명령에서 각 축의 속도와 가속도 한도로 가감속 시간을 계산 |
 | `hardware_retime_retreat` | true | 기록 후퇴 곡선의 속도와 가속도 극값으로 실행 시간을 다시 계산 |
 | `hardware_retreat_min_duration_sec`, `hardware_lift_min_duration_sec` | 0.3초 | 후퇴 역재생과 일반 들어올리기의 최소 시간. 실제 제한이 요구하면 더 길어짐 |
 | `hardware_prepare_models_on_startup` | true | 시작 시 정적 모델과 FK 준비. 전송 전 현재 모델과 controller 상태 조회 유지 |
@@ -52,14 +53,13 @@ Jetson 운용값은 [manipulation_jetson.yaml](../../cleany_manipulation_bt/conf
 URDF 회전축은 한 번 정규화한다. 측정 메시지의 필드를 직접 복사하고 하나의 응답
 대기 반복에서는 같은 측정을 두 번 만들지 않는다.
 
-파지 접근에서 선택된 궤적의 첫 점을 정착한 실측 관절각과 현재 유지 명령에 각각
-비교합니다. 모두 `hardware_start_tolerance_rad`(기본 0.005 rad) 이내이면 선택한 관절 경로를 사용합니다.
-Jetson은 모든 구간에 같은 시간 배율을 적용합니다. 위치와 곡선 모양을 유지하면서
-실물 관절의 속도와 가속도 상한 및 1초 최소 시간에 맞춥니다.
-`hardware_retime_selected_approach`가 꺼져 있으면 계획 당시의 시간을 사용합니다. 전송 직전에 실측 자세를 다시 비교합니다.
-저장된 접근 경로가 비었거나 시작 자세가 허용치를 넘으면 실측 자세에서 같은 파지
-TCP로 다시 계획합니다. 새 명령은 이전 유지 명령의 지지량을 한 번 보정한 뒤,
-물리 TCP 목표에 대해 확인합니다.
+Jetson은 `selected_approach_bridge_enabled=true`로 정착한 실측 관절각에서 선택 궤적의 첫 점까지 연결한다.
+연결 허용치는 `hardware_start_blend_max_rad`(기본 0.03 rad)다. 새 연결 구간이 생기면 전체 명령을 충돌 검사하며, 최종 전송 전에 실측 관절의 변동을 다시 확인한다.
+시작 차이가 허용치를 넘거나 저장 궤적이 비었으면 같은 파지 TCP로 다시 계획한다. Jetson의 다른 후보 재선택 횟수는 0이다.
+선택 구간은 `hardware_retime_selected_approach` 설정에 따라 기존 곡선에 같은 시간 배율을 적용하며, 추가한 연결 구간은 별도로 시간을 계산한다.
+Jetson의 `selected_approach_arrival_check_enabled=false`는 선택 접근 직후의 추가 도착 오차 검사를 생략한다. 제어기 결과와 모터 보호 상태는 계속 확인한다.
+
+`lift_from_measured_retreat_height=true`일 때 후퇴 끝에서는 수평 위치와 방향을 확인한다. 이어서 한 번 읽은 보호 관절 상태로 TCP 높이와 들기 시작 자세를 함께 구하고, 그 높이에 `lift_height_m`를 더한 절대 목표를 검증한다.
 
 제어기에 보낼 궤적은 관절 범위, 속도, 가속도와 운영 충돌 정책에 따라 전송 전에 검사합니다.
 전송 전에 경로 검사가 실패하면 해당 명령을 거절합니다. 전송 이후에 제어기 오류나
@@ -134,6 +134,7 @@ Jetson 운영 프로파일은 양쪽 그리퍼에서 토크 한도 읽기값 400
 | `hardware_path_step_rad` | `0.02` | 충돌 검사용 관절 보간 간격 |
 | `hardware_lift_min_duration_sec` | `0.3` | 들기 최소 시간. retimer의 속도와 가속도 제한 유지 |
 | `hardware_retreat_min_duration_sec` | `0.3` | 복귀 최소 시간 |
+| `hardware_straight_cruise` | true | 충돌 검사를 수행하는 두 지점 직선 관절 명령에서 각 축의 속도와 가속도 한도로 가감속 시간을 계산 |
 | `hardware_retime_retreat` | `true` | 현재 한도로 기록 경로 재타이밍 |
 | `hardware_return_start_delay_sec` | `0.2` | 팔과 그리퍼의 공통 시작 대기 |
 

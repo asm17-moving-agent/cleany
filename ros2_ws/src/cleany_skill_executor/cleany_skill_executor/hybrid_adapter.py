@@ -14,7 +14,7 @@ import math
 from pathlib import Path
 import time
 from xml.etree import ElementTree as ET
-from typing import Callable, Sequence
+from typing import Callable, Iterator, Sequence
 
 import numpy as np
 
@@ -312,6 +312,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         self._pregrasp_requests: list[PregraspRequest] = []
         self._pregrasp_finalized: set[PregraspRequest] = set()
         self._pregrasp_alignment_pending: set[PregraspRequest] = set()
+        self._deferred_grasp_refinements: set[PregraspRequest] = set()
+        self._refining_deferred_grasps = False
         self._prepared_grasps = False
         self._progress = PlanningProgress(self._monotonic)
         self._ik_context: tuple[int, str, PoseValue, str] | None = None
@@ -363,8 +365,7 @@ class HybridGraspAdapter(MoveItGraspAdapter):
     def begin_candidate_pass(self, retry: bool) -> bool:
         """Start one grasp-first pass or a legacy pregrasp retry pass."""
         if self._prepared_grasps:
-            # Grasp-first selection visits each candidate once. A failed grasp
-            # or seeded pregrasp goes straight to the next candidate.
+            # The selector handles deferred grasp refinements separately from seed retries.
             self._check_active()
             self._primary_only = True
             self._deferred_ik = False
@@ -380,6 +381,22 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         self._pregrasp_finalized.difference_update(
             r for r, value in self._pregrasp_cache.items() if value is None)
         return self._deferred_ik
+
+    def begin_grasp_refinements(self) -> set[tuple[int, str]]:
+        """Expose only cached grasps whose direct alternatives failed validation."""
+        self._check_active()
+        self._refining_deferred_grasps = True
+        return {(r.candidate_index, r.arm) for r in self._pregrasp_requests
+                if r in self._deferred_grasp_refinements}
+
+    def _refine_grasp(self, request: PregraspRequest):
+        primary_only = self._primary_only
+        self._primary_only = False
+        try:
+            return self._batch(request.arm, [request.target], [None], self._gpu_config.num_seeds,
+                               openings=[request.gripper_position])[0]
+        finally:
+            self._primary_only = primary_only
 
     def set_progress_callback(self, callback: Callable[[str], None] | None) -> None:
         self._progress.callback = callback
@@ -471,6 +488,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         self._pregrasp_requests.clear()
         self._pregrasp_finalized.clear()
         self._pregrasp_alignment_pending.clear()
+        self._deferred_grasp_refinements.clear()
+        self._refining_deferred_grasps = False
         self._prepared_grasps = False
         self._robot_model = None
         self._resources = CuRoboResources()
@@ -502,6 +521,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         self._pregrasp_requests.clear()
         self._pregrasp_finalized.clear()
         self._pregrasp_alignment_pending.clear()
+        self._deferred_grasp_refinements.clear()
+        self._refining_deferred_grasps = False
         self._prepared_grasps = False
         self._ik_context = None
         self._progress.reset()
@@ -829,36 +850,72 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         self._prepared_grasps = True
         self._prepare_pregrasps(requests)
 
-    def prescreen_grasps(self, requests: Sequence[PregraspRequest]) -> set[PregraspRequest]:
-        """Cache aligned GPU proposals and defer authoritative scene validation."""
+    def prescreen_grasps(
+        self, requests: Sequence[PregraspRequest], *, maximum_per_arm: int | None = None,
+    ) -> set[PregraspRequest]:
+        screened = self.iter_prescreen_grasps(requests, maximum_per_arm=maximum_per_arm)
+        return {request for request, qualified in zip(requests, screened, strict=True)
+                if qualified}
+
+    def iter_prescreen_grasps(
+        self, requests: Sequence[PregraspRequest], *,
+        maximum_per_arm: int | None = None,
+        before_batch: Callable[[], None] | None = None,
+    ) -> Iterator[bool]:
+        """Yield aligned GPU proposals in rank order, loading batches on demand."""
+        if maximum_per_arm is not None and maximum_per_arm <= 0:
+            raise ValueError('Grasp IK shortlist size must be positive')
+        group_openings = self._hybrid_config.group_gripper_openings
+
+        def group_key(request):
+            return request.arm, None if group_openings else request.gripper_position
+
         groups = defaultdict(list)
         for request in dict.fromkeys(requests):
-            opening = None if self._hybrid_config.group_gripper_openings else request.gripper_position
-            groups[request.arm, opening].append(request)
-        qualified = set()
-        size = self._hybrid_config.batch_size
-        for (arm, _), group in groups.items():
-            for start in range(0, len(group), size):
-                batch = group[start:start+size]
+            groups[group_key(request)].append(request)
+        counts = {arm: {'checked': 0, 'passed': 0} for arm in ARM_JOINT_NAMES}
+        self.last_ik_statistics['grasp_ik_prescreen'] = counts
+        width = self._hybrid_config.batch_size
+        offsets = defaultdict(int)
+        screened = {}
+        accepted = set()
+        for request in requests:
+            self._check_active()
+            if request in accepted:
+                yield True
+                continue
+            count = counts[request.arm]
+            if maximum_per_arm is not None and count['passed'] >= maximum_per_arm:
+                yield False
+                continue
+            if request not in screened:
+                key = group_key(request)
+                start = offsets[key]
+                batch = groups[key][start:start+width]
+                offsets[key] += len(batch)
+                if before_batch is not None:
+                    before_batch()
                 values = self._batch(
-                    arm, [request.target for request in batch], [None]*len(batch),
+                    request.arm, [item.target for item in batch], [None]*len(batch),
                     self._gpu_config.num_seeds, pad=True, validation_targets=set(),
-                    openings=[request.gripper_position for request in batch])
-                for request, value in zip(batch, values, strict=True):
+                    openings=[item.gripper_position for item in batch])
+                count['checked'] += len(batch)
+                for item, value in zip(batch, values, strict=True):
+                    screened[item] = value is not None
                     if value is not None:
-                        self._pregrasp_cache[request] = value
-                        qualified.add(request)
-        self.last_ik_statistics['grasp_ik_prescreen'] = {
-            arm: {'checked': sum(request.arm == arm for request in requests),
-                  'passed': sum(request.arm == arm for request in qualified)}
-            for arm in ARM_JOINT_NAMES
-        }
-        return qualified
+                        self._pregrasp_cache[item] = value
+            qualified = screened[request]
+            if qualified:
+                accepted.add(request)
+                count['passed'] += 1
+            yield qualified
 
     def _prepare_pregrasps(self, requests: Sequence[PregraspRequest]) -> None:
         self._pregrasp_cache.clear()
         self._pregrasp_finalized.clear()
         self._pregrasp_alignment_pending.clear()
+        self._deferred_grasp_refinements.clear()
+        self._refining_deferred_grasps = False
         self._pregrasp_requests = list(dict.fromkeys(requests))
         self._check_active()
         if self.prepares_pregrasps_lazily:
@@ -960,6 +1017,12 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         """Prime compatible primary targets; retry only the requested candidate."""
         self._check_active()
         arm, target = request.arm, request.target
+        if self._refining_deferred_grasps and request in self._deferred_grasp_refinements:
+            value = self._refine_grasp(request)
+            self._deferred_grasp_refinements.discard(request)
+            self._pregrasp_cache[request] = value
+            self._pregrasp_finalized.add(request)
+            return value
         current_was_checked = False
         if request not in self._pregrasp_cache:
             group = [request, *[r for r in self._pregrasp_requests
@@ -994,14 +1057,14 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             value = self._accept_alignment(arm, target, value, diagnostic)
             self._record_ik_diagnostic(diagnostic)
             if value is None and self._prepared_grasps and self._primary_only:
-                # A deferred batch retained one unchecked pose. Check the ranked
-                # primary solutions before discarding a feasible grasp orientation.
-                self._primary_only = False
-                try:
+                if self._hybrid_config.defer_candidate_ik_retries:
+                    # Check other direct seeds now; aim/project can require a new CUDA capture.
                     value = self._batch(arm, [target], [None], self._gpu_config.num_seeds,
                                         openings=[request.gripper_position])[0]
-                finally:
-                    self._primary_only = True
+                    if value is None:
+                        self._deferred_grasp_refinements.add(request)
+                else:
+                    value = self._refine_grasp(request)
         if value is None and self._primary_only:
             self._deferred_ik = True
             self._pregrasp_alignment_pending.add(request)

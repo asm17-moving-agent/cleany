@@ -521,7 +521,8 @@ def test_batch_grasp_screening_keeps_reachable_lower_score_before_candidate_limi
     from dataclasses import replace
 
     class ScreeningPort(GraspFirstPort):
-        def prescreen_grasps(self, requests):
+        def prescreen_grasps(self, requests, *, maximum_per_arm):
+            assert maximum_per_arm == 1
             self.calls.append(('screen', requests))
             return {request for request in requests
                     if request.candidate_index == 2 and request.arm == 'right'}
@@ -538,6 +539,37 @@ def test_batch_grasp_screening_keeps_reachable_lower_score_before_candidate_limi
         (1, 'left'), (1, 'right'), (2, 'left'), (2, 'right')}
     assert any(call[:2] == ('valid', 'right') for call in port.calls)
     assert any(call[:2] == ('plan_current', 'right') for call in port.calls)
+
+
+@pytest.mark.parametrize('failure,proposal,expected,screened_indices', [
+    ('', True, 1, [1]),
+    ('approach_path', True, 2, [1, 2]),
+    ('', False, 1, [1, 2, 3]),
+])
+def test_progressive_screen_checks_more_ranked_candidates_only_as_needed(
+        failure, proposal, expected, screened_indices):
+    from dataclasses import replace
+
+    class ProgressivePort(GraspFirstPort):
+        def prescreen_grasps(self, requests, *, maximum_per_arm):
+            pytest.fail('The first-feasible selector must consume the stream')
+
+        def iter_prescreen_grasps(self, requests, *, maximum_per_arm, before_batch):
+            assert maximum_per_arm == 3
+            for request in requests:
+                before_batch()
+                assert self.contacts is None
+                self.calls.append(('screened', request.candidate_index))
+                yield proposal
+
+    port = ProgressivePort(failure)
+    candidates = [replace(candidate(i, y=.2), score=1./i,
+                          position=(.5+.05*(i-1), .2, .8)) for i in range(1, 4)]
+    config = GraspSelectionConfig(grasp_ik_first=True, maximum_candidates=3,
+        batch_grasp_ik_before_limit=True, stop_after_first_feasible=True)
+    selected = GraspSelector(port, config).select(candidates, required_arm='left')
+    assert selected is not None and selected.candidate_index == expected
+    assert [call[1] for call in port.calls if call[0] == 'screened'] == screened_indices
 
 
 def test_grasp_first_registers_final_targets_and_seeds_pregrasp_from_grasp():
@@ -881,3 +913,35 @@ def test_full_open_and_z_offset_keep_final_tcp(grasp_first, arm):
 def test_pregrasp_z_rejects_nonfinite_values(offset):
     with pytest.raises(ValueError, match='pregrasp Z'):
         GraspSelectionConfig(pregrasp_z_offset_m=offset)
+
+
+@pytest.mark.parametrize('second_direct,expected,attempts', [
+    (True, 12, ['first', 'second']),
+    (False, 3, ['first', 'second', 'refine', 'first']),
+])
+def test_auxiliary_ik_waits_for_other_direct_grasps(second_direct, expected, attempts):
+    class DeferredPort(GraspFirstPort):
+        def __init__(self):
+            super().__init__()
+            self.order = []
+            self.refining = False
+
+        def solve_aligned_ik(self, arm, target, seed):
+            first = target.position[1] == .1
+            self.order.append('first' if first else 'second')
+            if (first and not self.refining) or (not first and not second_direct):
+                return None
+            return super().solve_aligned_ik(arm, target, seed)
+
+        def begin_grasp_refinements(self):
+            self.order.append('refine')
+            self.refining = True
+            return {(3, 'left')}
+
+    port = DeferredPort()
+    selector = GraspSelector(port, GraspSelectionConfig(grasp_ik_first=True, stop_after_first_feasible=True))
+    selected = selector.select([candidate(3,y=.1), candidate(12,y=.2)], required_arm='left')
+    assert selected.candidate_index == expected
+    assert port.order == attempts
+    assert any(call[0] == 'valid' for call in port.calls)
+    assert any(call[0] == 'plan_current' for call in port.calls)

@@ -38,7 +38,7 @@ def test_grasp_corridors_use_fine_collision_resolution_and_bounded_rounding():
     config = _load_yaml('ompl_planning.yaml')
     assert config['path_tolerance'] == 0.0001
     for side in SIDES:
-        assert config[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
+        assert config[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .01
 
 
 def _arm_joints(side: str) -> tuple[str, ...]:
@@ -416,7 +416,7 @@ def test_return_profile_keeps_collision_resolution_and_avoids_duplicate_simplifi
     approach = ompl['planner_configs']['RRTConnectGraspApproachkConfigDefault']
     assert approach['enforce_joint_model_state_space'] == 1
     assert 'longest_valid_segment_fraction' not in approach
-    assert 'longest_valid_segment_fraction' not in fast
+    assert fast['longest_valid_segment_fraction'] == .01
     for side in SIDES:
-        assert ompl[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
+        assert ompl[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .01
     assert 'cleany/RobustTimeParameterization' in ompl['request_adapters']
