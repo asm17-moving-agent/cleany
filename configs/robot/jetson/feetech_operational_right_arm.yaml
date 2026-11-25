@@ -8,9 +8,11 @@ command_joints:
   - right_wrist_roll_joint
   - right_gripper_joint
 update_rate: 50
+arm_endpoint_margin_ticks: 20
+arm_endpoint_load_raw: 300
 serial_timeout_ms: 20
 max_state_age_s: 0.1
-temperature_limit_c: 55
+temperature_limit_c: 80
 temperature_macd_fast_tau_s: 0.1
 temperature_macd_slow_tau_s: 0.5
 temperature_macd_signal_tau_s: 0.1
@@ -22,7 +24,7 @@ joint_defaults:
   acceleration_raw: 254
   torque_limit_raw: 800
 joint_overrides:
-  right_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 55, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
+  right_gripper_joint: {torque_limit_raw: 400, temperature_limit_c: 80, acceleration_raw: 1, speed_raw: 75, max_velocity: 0.06, max_acceleration: 0.1}
 controller:
   trajectory_tolerance: 0.0
   goal_tolerance: 0.03
