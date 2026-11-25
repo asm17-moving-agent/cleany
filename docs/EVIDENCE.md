@@ -256,3 +256,46 @@ Jetson Orin NX의 ROS 2 Humble 운영 작업본 `b38e68b5`에서 단일 승인 �
 Jetson `/var/opt/cleany/state/cleany/manipulation_jetson/executions.sqlite3`와
 `/home/cleany/cleany-worktrees/jetson-rear-bin-checks/runtime/collection-operator/`의
 `20261126-031907`, `20261126-025604` 실행 로그가 원본이다.
+
+## 2026-11-26 dev-monitor 배포 후 로봇 준비 경로 복구
+
+Jetson Orin NX의 ROS 2 Humble 운영 작업본 `b38e68b5`에서 03:13과 03:15에
+로봇 준비가 `Motor range return must be confirmed before command-controller startup`로
+중단됐다. 상주 워커 배포에 사용한 설치 환경에서 최근 제어 패키지 경로가 빠져
+관절 범위 복귀 완료 파일 `torque-ready`를 기록하는 제어기가 로드되지 않았다.
+실패한 준비는 토크를 활성화하기 전에 종료됐고 정리 후 모터 14개의 토크 OFF를
+다시 읽어 확인했다.
+
+직전 성공 시 사용한 ROS 설치 경로를 복원해 dev-monitor를 다시 설치했다. 모니터,
+상주 워커와 준비 하위 프로세스가 같은 다섯 패키지를 찾는 것을 확인했다. 관절 범위
+복귀와 준비 검사 58개가 통과했다. 실물 준비 재실행과 모터 명령은 없었다.
+원본은 Jetson `/home/cleany/cleany-worktrees/jetson-rear-bin-checks/runtime/collection-operator/20261126-031526/logs/`와
+`/home/cleany/cleany-data/runs/prepare-overlay-20261126.KC10DsRN/`에 있다.
+
+## 2026-11-26 dev-monitor 승인 작업의 ROS 연결 재사용
+
+Jetson Orin NX의 ROS 2 Humble 운영 작업본 `b38e68b5`에서 dev-monitor 상주 작업 서비스를 적용했다.
+단일 물체 승인은 상주 ROS Action 클라이언트를 통해 전달하고 실행기에서 확정 결과를 조회한다.
+격리 localhost 도메인 223에서 동일한 단일 물체와 모의 Action 서버로 기존 경로와
+새 설치본을 번갈아 각 5회 실행했다.
+
+| 구간 | 기존 중앙값 | 변경 후 중앙값 |
+| --- | ---: | ---: |
+| HTTP 승인 요청부터 ROS Action 접수 | 5.113초 | 0.047초 |
+| 작업 등록부터 ROS Action 접수 | 5.104초 | 0.032초 |
+| 작업 등록부터 작업 시작 | 2.839초 | 0.006초 |
+
+동일 요청을 다시 보내도 Goal은 한 번만 접수됐다. 승인 중 취소, Goal 거절과
+확정 실행 기록이 없을 때의 `UNKNOWN` 처리를 확인했다. 설치 패키지로 자동 검사
+177개가 통과했고 23개가 제외됐다. 운영 전환 뒤 모니터의 실행 파일과 HTTP 응답,
+상주 워커 소켓을 확인했다. 실물 실행기가 종료된 상태였고 이동 명령은 0건이었다.
+
+격리 도메인 225에서 03:00 실물 실행 `35117f15`의 로봇 모델, 관절 자세와
+후보 개구값으로 cuRobo IK를 재생했다. 8개 목표와 16개 시드 구성에서 양팔 모두
+예열 솔버 인스턴스를 재사용했다. 첫 호출은 바뀐 그리퍼 관절을 반영하는 전체
+운동학 갱신이 각 1회 실행돼 왼팔 0.469초, 오른팔 0.464초가 걸렸다. 같은 입력을
+반복하면 솔버 설정은 각각 약 1 ms였다. 이 구간은 솔버 설정 시간을 계측했다.
+
+작업 전후의 비교와 원본은 Jetson
+`/home/cleany/cleany-data/runs/approval-keepalive-20261126.wUZcH9bE/`의
+`benchmark-final.json`, `curobo-reuse.json`, `pytest-final.log`, `deployment.json`에 있다.

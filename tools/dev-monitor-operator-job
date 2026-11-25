@@ -23,4 +23,7 @@ else
     unset CYCLONEDDS_URI
 fi
 set -u
+if [[ "${1:-}" == --serve ]]; then
+    exec python3 -m cleany_dev_monitor.operator_service "$2" "${repo_root}"
+fi
 exec python3 -m cleany_dev_monitor.operator_jobs "$1" "${repo_root}"

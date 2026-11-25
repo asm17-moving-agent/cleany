@@ -13,15 +13,18 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_srvs.srv import Trigger
 
+from .approved_execution import ApprovedExecution
+
 
 class OperatorROS:
-    def __init__(self):
+    def __init__(self, *, approvals=False):
         # The monitor and detached command workers coexist in the same DDS graph.
         self.node = Node(f'cleany_dev_monitor_operator_{os.getpid()}_{uuid4().hex[:8]}')
         self.state_client = self.node.create_client(Trigger, '/manipulation/control_state')
         self.cancel_client = self.node.create_client(CancelManipulation, '/manipulation/cancel')
         self.recover_client = self.node.create_client(ConfirmManipulationRecovery, '/manipulation/confirm_recovery')
         self.inspection = ActionClient(self.node, InspectScene, '/perception/inspect_scene')
+        self.approved_execution = ApprovedExecution(self) if approvals else None
         self.executor = MultiThreadedExecutor(num_threads=2)
         self.executor.add_node(self.node)
         self.thread = threading.Thread(target=self.executor.spin, daemon=True)
@@ -61,7 +64,6 @@ class OperatorROS:
                         future.cancel()
 
     def snapshot(self):
-        # Job workers discover the executor from a new DDS participant.
         response = self.call(self.state_client, Trigger.Request(), discovery_timeout=3.,
                              read_only_label='실행기 상태 조회')
         if not response.success:
@@ -82,11 +84,11 @@ class OperatorROS:
         return dict(success=response.success, inhibited=response.inhibited, message=response.message)
 
     @staticmethod
-    def wait(future, timeout=10.):
+    def wait(future, timeout=10., label='인식'):
         ready = threading.Event()
         future.add_done_callback(lambda _: ready.set())
         if not ready.wait(timeout):
-            raise TimeoutError('인식 응답을 확인하지 못했습니다.')
+            raise TimeoutError(f'{label} 응답을 확인하지 못했습니다.')
         return future.result()
 
     def inspect_scene(self, cancelled, *, tracking_session_id='', timeout=180.):
@@ -123,4 +125,6 @@ class OperatorROS:
         self.executor.shutdown(timeout_sec=3.)
         self.thread.join(timeout=3.)
         self.inspection.destroy()
+        if self.approved_execution is not None:
+            self.approved_execution.close()
         self.node.destroy_node()

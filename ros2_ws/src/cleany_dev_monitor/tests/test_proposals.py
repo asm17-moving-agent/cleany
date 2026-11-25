@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-from cleany_dev_monitor.operator_jobs import approved_command, atomic_json
+from cleany_dev_monitor.operator_jobs import atomic_json
 from cleany_dev_monitor.proposals import DEFAULTS, ProposalStore, fingerprint, scene_context, validate_fresh_target
 from operator_fixture import environment
 
@@ -177,10 +177,13 @@ def test_revalidation_accepts_same_track_with_new_local_number_but_never_changes
     before = deepcopy(approved)
     validate_fresh_target(approved, scene(), config, DEFAULTS, time.time())
     assert approved == before
-    command = approved_command(Path('/repo'), dict(id=str(uuid4()), proposal=approved, proposal_policy=DEFAULTS))
-    assert '--auto-select' not in command
-    assert command[command.index('--snapshot-id')+1] == 'approved-scene'
-    assert command[command.index('--object-id')+1] == '3'
+    pytest.importorskip('rclpy')
+    from cleany_dev_monitor.approved_execution import approved_goal
+    request_id = str(uuid4())
+    goal = approved_goal(dict(id=request_id, proposal=approved))
+    assert (goal.snapshot_id, goal.object_id, goal.execution_id) == ('approved-scene', 3, request_id)
+    assert (goal.mission_id, goal.task_id, goal.skill_name, goal.destination_id) == (
+        approved['tracking_session_id'], approved['id'], approved['skill_name'], approved['destination_id'])
 
 
 @pytest.mark.parametrize('change', ['moved', 'missing', 'ambiguous', 'category', 'label', 'epoch',
@@ -313,7 +316,14 @@ def test_worker_checks_before_dispatch_and_next_proposal_never_executes(tmp_path
         proposal=approved, proposal_policy=DEFAULTS, state='PENDING', created_at=time.time()))
 
     class Adapter(Port):
-        def __init__(self, *_): super().__init__()
+        def __init__(self, *_):
+            super().__init__()
+            self.approved_execution = NS(execute=self.execute)
+        def execute(self, job, cancelled):
+            calls.append('execute')
+            assert job['id'] == request_id and not cancelled()
+            return dict(execution_id=request_id, status='SUCCESS', stop_confirmed=True,
+                        arm_recovered=True, placement_state='ASSUMED')
         def revalidate(self, value, cancelled):
             calls.append('revalidate')
             assert value == approved
@@ -326,25 +336,16 @@ def test_worker_checks_before_dispatch_and_next_proposal_never_executes(tmp_path
             return value
         def close(self): pass
 
-    class Process:
-        pid = 1234
-        returncode = 0
-        def __init__(self, command, **kwargs):
-            calls.append(command)
-            path.with_suffix('.log').write_text(json.dumps(dict(found=True, record=dict(
-                has_result=True, execution_id=request_id, status='SUCCESS', stop_confirmed=True,
-                arm_recovered=True, placement_state='ASSUMED'))))
-        def poll(self): return 0
-
     monkeypatch.setattr(adapter, 'ProposalROS', Adapter)
-    monkeypatch.setattr('cleany_dev_monitor.operator_jobs.runtime_info', lambda: dict(managed=True, pipeline_busy=False))
-    monkeypatch.setattr('cleany_dev_monitor.operator_jobs.subprocess.Popen', Process)
+    monkeypatch.setattr('cleany_dev_monitor.operator_jobs.runtime_info', lambda: dict(
+        managed=True, pipeline_busy=False, processes={'manipulation_action': True}))
+    monkeypatch.setattr('cleany_dev_monitor.operator_jobs.subprocess.Popen',
+                        lambda *a, **kw: pytest.fail('Approval must not spawn a CLI'))
     execute_job(path, tmp_path)
     result = json.loads(path.read_text())
     if changed:
         assert result['state'] == 'FAILED' and calls == ['revalidate']
     else:
         assert result['state'] == 'SUCCEEDED'
-        assert len([value for value in calls if isinstance(value, list)]) == 1
-        assert calls[0] == 'revalidate' and calls[-1] == 'propose'
+        assert calls == ['revalidate', 'execute', 'propose']
         assert store.current()['id'] != approved['id'] and store.current()['state'] == 'READY'

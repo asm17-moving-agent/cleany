@@ -139,9 +139,9 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 추적 ID가 모호하거나 실행 조건을 충족하지 않으면 해당 대상을 `DISPLAY_ONLY`로 표시한다.
 운영자는 `READY` 상태의 대상만 승인할 수 있다.
 
-인증된 제어 경로의 `cleany_dev_monitor_operator_<pid>_<id>` adapter가 요청별 작업을
-수행한다. 제안은 InspectScene으로 생성하고 승인은 GetSceneSnapshot으로 원본을 확인한다. 새 관측이 필요한 승인에서는 RevalidateTarget도 호출한다.
-승인 작업은 기존 `manipulation_test_client`로 정확한 Goal을 한 번 전달한다.
+인증된 제어 경로의 상주 작업 서비스가 `cleany_dev_monitor_operator_<pid>_<id>` ROS 연결을 재사용한다. 제안은 InspectScene으로 생성하고 승인은 GetSceneSnapshot으로 원본을 확인한다. 새 관측이 필요한 승인에서는 RevalidateTarget도 호출한다.
+승인 작업은 상주 Action 클라이언트에서 저장된 제안의 Goal을 한 번 전달하고 실행 기록을 조회한다.
+확정 결과를 찾지 못하면 `UNKNOWN` 상태로 남기고 같은 요청을 재전송하지 않는다.
 재관찰은 승인한 대상의 동일성, 분류, 위치, bbox, 깊이와 크기 조건을 검증한다.
 주변 검출 목록의 일치는 승인 조건이 아니며, `scene_context`와 `scene_object_count`는
 제안 당시 관측 기록으로 유지한다. 경로와 충돌 검사는 승인 이후 실행기가 수행한다.
@@ -153,7 +153,8 @@ Linux에서 PID별 stat 한 번으로 CPU, 시작 tick과 RSS를 읽고 PID 재�
 | 서비스 Client | `/perception/get_scene_snapshot` | `cleany_interfaces/srv/GetSceneSnapshot`, 승인 관측의 잔존 여부 확인 |
 | 토픽 구독 | `/perception/debug_image_latched` | `sensor_msgs/msg/Image`, reliable/transient_local/depth 1; `proposal_debug_image_topic` |
 | 서비스 Client | `/manipulation/control_state` | `std_srvs/srv/Trigger`, 실행 전후 현재 소유권과 차단 조회 |
-| Action Client, 기존 CLI | `/manipulation/execute_skill` | `cleany_interfaces/action/ExecuteManipulationSkill`, 승인된 snapshot/object/skill/destination; execution ID는 승인 작업 UUID |
+| Action Client | `/manipulation/execute_skill` | `cleany_interfaces/action/ExecuteManipulationSkill`, 승인된 snapshot/object/skill/destination; execution ID는 승인 작업 UUID |
+| 서비스 Client | `/manipulation/get_execution` | `cleany_interfaces/srv/GetManipulationExecution`, 승인 실행의 확정 결과 조회 |
 
 `POST /api/control/jobs`의 `action=propose`는 빈 `args`로 제안한다. `approve`, `skip`은
 `args={"proposal_id":"UUID"}`만 허용한다. 대상과 동작은 서버의 불변 제안에서 읽는다.

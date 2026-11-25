@@ -12,6 +12,7 @@ from aiohttp import web
 
 from .operator_jobs import alive, atomic_json, cancel_external_client, selection_message, command_report, process_start, runtime_info
 from .operator_policy import capabilities, validate_action
+from .operator_service import DispatchUncertain, submit_job
 from .proposals import ProposalStore, identifier, policy_settings
 
 
@@ -204,12 +205,9 @@ class OperatorControl:
                 if runner:
                     await runner(path, self.repo)
                 else:
-                    process = await asyncio.create_subprocess_exec('systemd-run', '--user', '--scope', '--quiet',
-                        '--unit', f'cleany-operator-{request_id}', str(self.repo / 'tools/dev-monitor-operator-job'),
-                        str(path), stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-                        start_new_session=True)
-                    # The worker writes its own durable result independently of this HTTP process.
-                    asyncio.create_task(process.wait())
+                    await submit_job(path, self.repo)
+            except DispatchUncertain as error:
+                raise web.HTTPServiceUnavailable(text=str(error)) from error
             except Exception as error:
                 atomic_json(path, {**job, 'state': 'FAILED', 'message': str(error)})
                 raise

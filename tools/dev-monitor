@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 service=cleany-dev-monitor.service
+worker_service=cleany-operator.service
 operator_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/dev-monitor/operator"
 source "${repo_root}/tools/ros2/cleany-install-env"
 
@@ -29,6 +30,9 @@ case "${1:-run}" in
     set -u
     control_enabled=false
     [[ ! -f "${operator_dir}/enabled" ]] || control_enabled=true
+    if [[ "${control_enabled}" == true ]]; then
+      "${repo_root}/tools/dev-monitor" operator-start
+    fi
     exec ros2 run cleany_dev_monitor dev_monitor --ros-args \
       --params-file "${repo_root}/ros2_ws/src/cleany_dev_monitor/config/monitor.yaml" \
       --params-file "${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson.yaml" \
@@ -37,6 +41,9 @@ case "${1:-run}" in
       -p "manipulation_request_file:=${CLEANY_MANIPULATION_PROGRESS_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/manipulation/request.json}" "$@"
     ;;
   start)
+    if [[ -f "${operator_dir}/enabled" ]]; then
+      "${repo_root}/tools/dev-monitor" operator-start
+    fi
     if systemctl --user is-active --quiet "${service}"; then
       systemctl --user status "${service}" --no-pager
       exit 0
@@ -53,6 +60,36 @@ case "${1:-run}" in
     ;;
   stop) systemctl --user stop "${service}" ;;
   status) systemctl --user status "${service}" --no-pager ;;
+  operator-start)
+    [[ -f "${operator_dir}/enabled" ]] || { echo '웹 제어를 먼저 활성화하세요.' >&2; exit 2; }
+    if systemctl --user is-active --quiet "${worker_service}"; then exit 0; fi
+    systemctl --user reset-failed "${worker_service}" 2>/dev/null || true
+    systemd-run --user --unit="${worker_service}" --collect \
+      --property=Type=notify --property=NotifyAccess=main \
+      --property=Restart=on-failure --property=RestartSec=3 --property=KillMode=process \
+      --setenv="CLEANY_INSTALL_BASE=${CLEANY_INSTALL_BASE}" \
+      --setenv="CLEANY_COLLECTION_ROS_DOMAIN_ID=${CLEANY_COLLECTION_ROS_DOMAIN_ID:-0}" \
+      --setenv="XDG_STATE_HOME=${XDG_STATE_HOME:-${HOME}/.local/state}" \
+      --setenv="CLEANY_COLLECTION_STATE_DIR=${CLEANY_COLLECTION_STATE_DIR:-/tmp/cleany-collection-runtime-${UID}}" \
+      "${repo_root}/tools/dev-monitor-operator-job" --serve "${operator_dir}"
+    ;;
+  operator-stop)
+    PYTHONPATH="${repo_root}/ros2_ws/src/cleany_dev_monitor:${PYTHONPATH:-}" \
+      python3 - "${operator_dir}" "${worker_service}" <<'PY'
+import fcntl,json,subprocess,sys,time
+from pathlib import Path
+root=Path(sys.argv[1]);root.mkdir(parents=True,exist_ok=True)
+with (root/'operation.lock').open('a') as lock:
+    try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except BlockingIOError:raise SystemExit('실행 중인 웹 명령을 먼저 종료하세요.')
+    for path in (root/'jobs').glob('*.json'):
+        job=json.loads(path.read_text())
+        if job['state']=='PENDING' and time.time()-job['created_at']<15:
+            raise SystemExit('시작 중인 웹 명령을 먼저 확인하세요.')
+    subprocess.run(['systemctl','--user','stop',sys.argv[2]],check=True)
+PY
+    ;;
+  operator-status) systemctl --user status "${worker_service}" --no-pager ;;
   control-on|control-off)
     mode="$1"
     mkdir -p "${operator_dir}"
@@ -82,8 +119,9 @@ with (root/'operation.lock').open('a') as lock:
 print('웹 제어 켜짐' if mode=='control-on' else '관측 전용 모드로 복귀')
 PY
     systemctl --user stop "${service}" 2>/dev/null || true
+    "${repo_root}/tools/dev-monitor" operator-stop
     exec "${repo_root}/tools/dev-monitor" start
     ;;
   control-key) cat "${operator_dir}/key" ;;
-  *) echo 'Usage: tools/dev-monitor {run [ROS_ARGS...]|start|stop|status|control-on|control-off|control-key}' >&2; exit 2 ;;
+  *) echo 'Usage: tools/dev-monitor {run [ROS_ARGS...]|start|stop|status|operator-start|operator-stop|operator-status|control-on|control-off|control-key}' >&2; exit 2 ;;
 esac

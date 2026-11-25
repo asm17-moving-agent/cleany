@@ -35,7 +35,7 @@ class ProposalROS(OperatorROS):
     """
 
     def __init__(self, root: Path, policy: dict):
-        super().__init__()
+        super().__init__(approvals=True)
         self.store, self.policy = ProposalStore(root), policy
         self.images = deque(maxlen=3)
         self.image_subscription = self.node.create_subscription(Image,

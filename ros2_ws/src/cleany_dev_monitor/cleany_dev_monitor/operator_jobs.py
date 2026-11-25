@@ -167,22 +167,18 @@ def prepare_executor_state(port, *, require_execution_available: bool = True) ->
     return state
 
 
-def approved_command(repo: Path, job: dict) -> list[str]:
-    """Only server-stored, approved fields become the explicit Action goal."""
-    proposal = job['proposal']
-    return ['ros2', 'run', 'cleany_skill_executor', 'manipulation_test_client',
-        '--namespace', '/', '--execution-id', job['id'], '--mission-id', proposal['tracking_session_id'],
-        '--task-id', proposal['id'], '--snapshot-id', proposal['snapshot_id'],
-        '--object-id', str(proposal['target']['object_id']), '--skill-name', proposal['skill_name'],
-        '--destination-id', proposal['destination_id'],
-        '--timeout', str(job['proposal_policy']['proposal_execution_timeout_sec']),
-        '--ros-args', '--params-file', str(repo / 'ros2_ws/src/cleany_manipulation_bt/config/manipulation_jetson.yaml')]
-
-
 def selection_message(message: str) -> str:
     if message == 'No reachable commissioned arm':
         return '설정된 팔에서 자세, 충돌, 경로 조건을 모두 통과한 파지 후보를 찾지 못했습니다.'
     return message
+
+
+def execution_report(record: dict) -> dict:
+    result = {key: record[key] for key in ('execution_id', 'status', 'error_code', 'message',
+        'failed_stage', 'failed_substage', 'object_id', 'object_state', 'placement_state',
+        'arm_recovered', 'stop_confirmed') if key in record}
+    message = str(record.get('message', ''))[:1000]
+    return dict(result=result, message=selection_message(message))
 
 
 def command_report(path: Path) -> dict:
@@ -206,11 +202,7 @@ def command_report(path: Path) -> dict:
                 or record.get('status') not in ('SUCCESS', 'FAILED', 'BLOCKED', 'CANCELED')
                 or not isinstance(record.get('execution_id'), str)):
             continue
-        result = {key: record[key] for key in ('execution_id', 'status', 'error_code', 'message',
-            'failed_stage', 'failed_substage', 'object_id', 'object_state', 'placement_state',
-            'arm_recovered', 'stop_confirmed') if key in record}
-        message = str(record.get('message', ''))[:1000]
-        return dict(result=result, message=selection_message(message))
+        return execution_report(record)
     for line in reversed(lines):
         if line.startswith('Collection readiness failed:'):
             return dict(message='로봇 준비 확인 실패: ' + line.split(':', 1)[1].strip()[:1000])
@@ -238,7 +230,36 @@ def previous_action_times(path: Path) -> dict:
     return times
 
 
-def execute_job(path: Path, repo: Path):
+def execute_approval(port, path: Path, value: dict, cancelled) -> None:
+    value['phase'] = 'REVALIDATING'
+    atomic_json(path, value)
+    port.revalidate(value['proposal'], cancelled)
+    state = {**port.snapshot(), 'available': True}
+    reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['approve']
+    if reason:
+        raise RuntimeError(reason)
+    value['phase'] = 'EXECUTING'
+    atomic_json(path, value)
+    record = port.approved_execution.execute(value, cancelled)
+    value.update(execution_report(record))
+    if not cancelled() and record['stop_confirmed'] and record['arm_recovered']:
+        try:
+            state = {**port.snapshot(), 'available': True}
+            reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['propose']
+            if reason:
+                raise RuntimeError(reason)
+            value['phase'] = 'PROPOSING_NEXT'
+            atomic_json(path, value)
+            value['next_proposal_id'] = port.propose(cancelled, previous=value['proposal'],
+                                                    last_result=value['result'])['id']
+        except Exception as error:
+            value['next_proposal_error'] = str(error)
+    if record['status'] != 'SUCCESS':
+        raise RuntimeError(value['message'] or '조작 실행이 실패했습니다.')
+
+
+def execute_job(path: Path, repo: Path, *, ports=None):
+    from .approved_execution import ExecutionUnconfirmed
     from .operator_ros import OperatorROS
     value = json.loads(path.read_text())
     os.environ['CLEANY_WEB_CONTROL_DIRECTORY'] = str(path.parent.parent)
@@ -248,6 +269,7 @@ def execute_job(path: Path, repo: Path):
     lock = (path.parent.parent / 'operation.lock').open('a')
     port = None
     record_result = True
+    inherited_lock = os.environ.get('CLEANY_CONTROL_RUNTIME_LOCKED')
     profile_key = 'CLEANY_MANIPULATION_COLLECTION_CONFIG'
     original_profile = os.environ.get(profile_key)
     web_profile = None
@@ -279,13 +301,15 @@ def execute_job(path: Path, repo: Path):
                 expected_home = {arm: settings['home_joint_rad'] for arm, settings in
                                  json.loads(web_profile.read_text())['arms'].items()}
         if action == 'prepare' and expected_home is not None:
-            port = OperatorROS()
+            port = ports.get() if ports is not None else OperatorROS()
             if runtime_info().get('processes', {}).get('manipulation_action'):
                 state = prepare_executor_state(port)
                 restart_executor = (state.get('operation_mode') != 'pick_rear_bin_release'
                                     or state.get('return_home_joint_rad') != expected_home)
         if action != 'prepare':
-            if action in ('inspect', 'propose', 'approve', 'skip'):
+            if ports is not None:
+                port = ports.get(value.get('proposal_policy'))
+            elif action in ('inspect', 'propose', 'approve', 'skip'):
                 from .proposals import policy_settings
                 from .proposal_ros import ProposalROS
                 port = ProposalROS(path.parent.parent, value.get('proposal_policy') or policy_settings({}))
@@ -319,18 +343,10 @@ def execute_job(path: Path, repo: Path):
             value['phase'] = 'PROPOSING'
             atomic_json(path, value)
             value['result'] = port.propose(cancelled.is_file, previous=value.get('proposal'), skip=action == 'skip')
+        elif action == 'approve':
+            execute_approval(port, path, value, cancelled.is_file)
         else:
-            if action == 'approve':
-                value['phase'] = 'REVALIDATING'
-                atomic_json(path, value)
-                port.revalidate(value['proposal'], cancelled.is_file)
-                state = {**port.snapshot(), 'available': True}
-                reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['approve']
-                if reason:
-                    raise RuntimeError(reason)
-                value['phase'] = 'EXECUTING'
-                atomic_json(path, value)
-            commands = [approved_command(repo, value)] if action == 'approve' else command_vectors(repo, action, args)
+            commands = command_vectors(repo, action, args)
             if restart_executor:
                 commands[1][1] = 'action-restart'
             for command in commands:
@@ -352,22 +368,8 @@ def execute_job(path: Path, repo: Path):
                         os.killpg(process.pid, signal.SIGINT)
                         signalled = True
                     time.sleep(.2)
-                if action in ('run', 'approve'):
+                if action == 'run':
                     value.update(command_report(path.with_suffix('.log')))
-                if action == 'approve' and not cancelled.exists():
-                    result = value.get('result', {})
-                    if result.get('stop_confirmed') and result.get('arm_recovered'):
-                        try:
-                            state = {**port.snapshot(), 'available': True}
-                            reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['propose']
-                            if reason:
-                                raise RuntimeError(reason)
-                            value['phase'] = 'PROPOSING_NEXT'
-                            atomic_json(path, value)
-                            value['next_proposal_id'] = port.propose(cancelled.is_file,
-                                previous=value['proposal'], last_result=result)['id']
-                        except Exception as error:
-                            value['next_proposal_error'] = str(error)
                 if process.returncode:
                     raise RuntimeError(value.get('message') or f'명령 종료 코드 {process.returncode}; 상세 로그와 실물 상태를 확인하세요.')
             if action == 'prepare' and expected_home is not None:
@@ -376,10 +378,12 @@ def execute_job(path: Path, repo: Path):
                 if prepared.get('inhibited'):
                     value['message'] = '로봇 준비가 완료됐습니다. 수거 실행 차단이 남아 있습니다.'
         value['state'] = 'SUCCEEDED'
+    except ExecutionUnconfirmed as error:
+        value.update(state='UNKNOWN', message=str(error))
     except BaseException as error:
         value.update(state='INTERRUPTED' if cancelled.exists() else 'FAILED', message=str(error))
     finally:
-        if port is not None:
+        if port is not None and ports is None:
             try:
                 port.close()
             except Exception:
@@ -395,6 +399,10 @@ def execute_job(path: Path, repo: Path):
                 os.environ.pop(profile_key, None)
             else:
                 os.environ[profile_key] = original_profile
+        if inherited_lock is None:
+            os.environ.pop('CLEANY_CONTROL_RUNTIME_LOCKED', None)
+        else:
+            os.environ['CLEANY_CONTROL_RUNTIME_LOCKED'] = inherited_lock
 
 
 def main():

@@ -210,6 +210,11 @@ ros2 launch cleany_bringup pose_observation.launch.py enable_backend:=true \
    make dev-monitor-control-key
    ```
 
+   웹 제어를 켜면 `cleany-operator.service`가 승인 작업을 맡는다.
+   `tools/dev-monitor operator-status`와 `journalctl --user -u cleany-operator.service`로
+   상태와 로그를 확인한다. dev-monitor 빌드를 교체할 때는 모니터와 작업 서비스 모두 실물 제어
+   패키지가 포함된 동일한 ROS 설치 환경을 사용한다.
+
 4. 웹에서 운영자 이름과 조작키로 연결한다. `로봇 준비`의 토크 활성화를 확인한 뒤
    `다음 작업 제안받기`를 선택한다. 이미지, 대상과 행동을 검토하고
    `승인하여 1회 실행` 또는 `이 물체 건너뛰기`를 선택한다.
@@ -221,7 +226,7 @@ ros2 launch cleany_bringup pose_observation.launch.py enable_backend:=true \
    복귀 시 그리퍼가 먼저 열리는 점을 확인하고, 차단 해제는 정지, 빈 그리퍼와
    검토한 실행 기록의 revision을 확인한 뒤 요청한다.
 6. 유휴 상태에서 `make dev-monitor-control-off`로 관측 전용으로 되돌린다.
-   전환은 모니터만 재시작하며 로봇을 종료하거나 작업을 자동 재개하지 않는다.
+   전환 시 작업 서비스가 종료되고 모니터가 관측 전용으로 다시 시작된다.
    로봇 종료는 웹의 `로봇 종료·토크 해제` 또는 기존 CLI에서 별도로 요청한다.
 
 기본 ROS domain은 `CLEANY_COLLECTION_ROS_DOMAIN_ID=0`이다. Loopback 접속은
