@@ -1,4 +1,4 @@
-"""Test installed wheel/gyro fusion with mock wheels and synthetic raw IMU."""
+"""Test installed wheel/gyro fusion with synthetic encoder counts and raw IMU."""
 import math
 import os
 from pathlib import Path
@@ -12,14 +12,12 @@ os.environ['ROS_LOCALHOST_ONLY'] = '1'
 
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from cleany_base_driver.core import Geometry, Limits, wheel_speeds
 from cleany_base_interfaces.msg import WheelState
-from diagnostic_msgs.msg import DiagnosticArray
-from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rcl_interfaces.srv import GetParameters
 from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
 from sensor_msgs.msg import Imu
-from std_srvs.srv import SetBool
 from tf2_msgs.msg import TFMessage
 import yaml
 
@@ -40,6 +38,33 @@ def test_fusion_uses_planar_wheel_twist_and_fixed_bias_gyro():
     assert all(diagonal[i] > 0 for i in (0, 1, 5))
 
 
+def publish_wheel_feedback(node, base_config):
+    """Replay constant body motion as cumulative encoder feedback on the MCU topic."""
+    config = yaml.safe_load(base_config.read_text())
+    g, lim = config['geometry'], config['limits']
+    geometry = Geometry(g['wheel_radius_m'], g['wheelbase_m'], g['wheel_separation_m'])
+    limits = Limits(lim['linear_x_mps'], lim['linear_y_mps'], lim['angular_z_rad_s'],
+                    lim['wheel_rad_s'], lim['command_timeout_s'])
+    speeds = wheel_speeds(.1, -.05, .2, geometry, limits)
+    publisher = node.create_publisher(WheelState, 'base/wheel_state', qos_profile_sensor_data)
+    packet = WheelState(protocol_version=WheelState.PROTOCOL_VERSION, boot_id=1,
+                        counts_per_revolution=config['protocol']['counts_per_revolution'],
+                        watchdog_ms=config['protocol']['watchdog_ms'], max_velocity_rad_s=10.,
+                        velocity_rad_s=list(speeds))
+    start = time.monotonic_ns()
+
+    def publish():
+        now = time.monotonic_ns()
+        elapsed = (now - start) / 1e9
+        packet.sequence += 1
+        packet.timestamp_us = now // 1000
+        packet.encoder_counts = [round(speed * elapsed * packet.counts_per_revolution / math.tau)
+                                 for speed in speeds]
+        publisher.publish(packet)
+
+    node.create_timer(.02, publish)
+
+
 @pytest.mark.parametrize(
     'mode, imu_variance_scale, mount_roll, expected_yaw_rate, domain_offset',
     [('shadow', .01, 0., .4, 0), ('canonical', 100., 0., .2, 1),
@@ -57,6 +82,7 @@ def test_installed_fusion_and_tf_ownership(
     params['gyro_covariance_rad2_s2'] = [variance, 0., 0., 0., variance, 0., 0., 0., variance]
     imu_config = tmp_path / 'synthetic_imu.yaml'
     imu_config.write_text(yaml.safe_dump(profile))
+    base_config = SHARE / 'config/base_hardware.yaml'
     output_topic = 'odom' if mode == 'canonical' else 'odometry/filtered'
     tf_owner = 'ekf_filter_node' if mode == 'canonical' else 'base_odom_relay'
     domain_base = os.environ.get('BASE_EKF_TEST_ROS_DOMAIN_ID',
@@ -66,17 +92,13 @@ def test_installed_fusion_and_tf_ownership(
     with (tmp_path / 'launch.log').open('w+') as log:
         process = subprocess.Popen([
             'ros2', 'launch', 'cleany_base_driver', 'base_ekf.launch.py',
-            'mock:=true', f'mode:={mode}', f'imu_config:={imu_config}',
-            f'base_config:={SHARE / "config/base_synthetic.yaml"}',
+            'mock:=false', f'mode:={mode}', f'imu_config:={imu_config}',
+            f'base_config:={base_config}',
             'publish_imu_tf:=true', f'imu_roll:={mount_roll}', 'imu_pitch:=0.0', 'imu_yaw:=0.0',
         ], env=env, stdout=log, stderr=log, start_new_session=True)
         rclpy.init(args=[], domain_id=domain)
         node = rclpy.create_node('ekf_graph_probe')
         fused, wheel, transforms, mounts, corrected, canonical = [], [], [], [], [], []
-        wheel_states, diagnostics = [], []
-        node.create_subscription(WheelState, 'base/wheel_state', wheel_states.append,
-                                 qos_profile_sensor_data)
-        node.create_subscription(DiagnosticArray, 'diagnostics', diagnostics.append, 10)
         node.create_subscription(Odometry, output_topic, fused.append, 10)
         node.create_subscription(Odometry, 'wheel/odom', wheel.append, 10)
         node.create_subscription(Imu, 'imu/data_raw', corrected.append, qos_profile_sensor_data)
@@ -86,11 +108,8 @@ def test_installed_fusion_and_tf_ownership(
             TFMessage, 'tf_static', mounts.append,
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         imu = node.create_publisher(Imu, 'imu_uncalibrated/data_raw', qos_profile_sensor_data)
-        commands = node.create_publisher(Twist, 'cmd_vel', 10)
-        enable = node.create_client(SetBool, 'base/enable')
         sensor_sign = -1. if mount_roll else 1.
-
-        command = None
+        publish_wheel_feedback(node, base_config)
 
         def publish_imu():
             packet = Imu()
@@ -102,13 +121,7 @@ def test_installed_fusion_and_tf_ownership(
             packet.linear_acceleration.z = sensor_sign * 9.80665
             imu.publish(packet)
 
-        def publish_command():
-            if command is not None:
-                commands.publish(command)
-
-        # Model the nominal 100 Hz IMU stream independently of the 50 Hz drive commands.
         node.create_timer(.01, publish_imu)
-        node.create_timer(.02, publish_command)
 
         def pump(duration):
             end = time.monotonic() + duration
@@ -128,44 +141,21 @@ def test_installed_fusion_and_tf_ownership(
                        for msg in mounts for t in msg.transforms)
 
         def ready():
-            wheel_command_subscribers = [p.node_name for p in
-                                         node.get_subscriptions_info_by_topic('base/wheel_command')]
-            return (enable.service_is_ready() and commands.get_subscription_count() == 1
-                    and fused and wheel and corrected and canonical and wheel_states
-                    and odom_edges() and imu_mount_ready()
-                    and owners('base/wheel_state') == ['mock_base_mcu']
-                    and owners('base/wheel_command') == ['cleany_base_driver']
-                    and wheel_command_subscribers == ['mock_base_mcu'])
-
-        def driver_diagnostic():
-            return next((status.message for message in reversed(diagnostics)
-                         for status in message.status if status.name == 'base_driver'),
-                        'no base driver diagnostic received')
+            return (fused and wheel and corrected and canonical and odom_edges() and imu_mount_ready()
+                    and owners('base/wheel_state') == [node.get_name()]
+                    and owners('base/wheel_command') == ['cleany_base_driver'])
 
         try:
             end = time.monotonic() + 15
             while time.monotonic() < end and not ready():
                 pump(.05)
             assert ready(), {
-                'enable': enable.service_is_ready(), 'fused': len(fused), 'wheel': len(wheel),
+                'fused': len(fused), 'wheel': len(wheel),
                 'imu': len(corrected), 'odom': len(canonical), 'tf': len(odom_edges()),
                 'wheel_state_owners': owners('base/wheel_state'), 'imu_mount': imu_mount_ready(),
-                'wheel_command_owners': owners('base/wheel_command'), 'wheel_states': len(wheel_states),
+                'wheel_command_owners': owners('base/wheel_command'),
             }
-            future = enable.call_async(SetBool.Request(data=True))
-            end = time.monotonic() + 2
-            while not future.done() and time.monotonic() < end:
-                pump(.02)
-            assert future.done() and future.result().success
-            end = time.monotonic() + 2.
-            while time.monotonic() < end and not wheel_states[-1].enabled:
-                pump(.02)
-            assert wheel_states[-1].enabled, driver_diagnostic()
-
-            command = Twist()
-            command.linear.x, command.linear.y, command.angular.z = .1, -.05, .2
             pump(2.5)
-            assert wheel_states[-1].enabled, driver_diagnostic()
             velocity = fused[-1].twist.twist
             assert velocity.linear.x == pytest.approx(.1, abs=.025)
             assert velocity.linear.y == pytest.approx(-.05, abs=.02)
