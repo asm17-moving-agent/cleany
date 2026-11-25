@@ -149,7 +149,8 @@ class HardwareExecution:
         node.declare_parameter('hardware_reuse_settle_history', True)
         node.declare_parameter('hardware_reuse_scene_barrier', False)
         for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation',
-                     'retime_retreat', 'prepare_models_on_startup', 'prefetch_release_retreat'):
+                     'retime_selected_approach', 'retime_retreat', 'prepare_models_on_startup',
+                     'prefetch_release_retreat'):
             parameter = 'hardware_'+name
             node.declare_parameter(parameter, False)
             enabled = node.get_parameter(parameter).value
@@ -1143,6 +1144,7 @@ class HardwareExecution:
         recorded_trajectory=None,
         recorded_window: tuple[int, int] | None = None,
         retime_recorded: bool = False,
+        retime_selected_approach: bool = False,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
         start_from_measured: bool = False,
@@ -1155,8 +1157,12 @@ class HardwareExecution:
             height_options['recorded_window'] = recorded_window
         if type(retime_recorded) is not bool:
             raise ValueError('retime_recorded must be boolean')
-        if retime_recorded:
-            height_options['retime_recorded'] = True
+        if type(retime_selected_approach) is not bool or (retime_recorded and retime_selected_approach):
+            raise ValueError('Select a single recorded trajectory timing mode')
+        if retime_selected_approach:
+            height_options['timing_event'] = 'selected_approach_timing'
+        elif retime_recorded:
+            height_options['timing_event'] = 'retreat_replay_timing'
         if minimum_duration_sec != 1.:
             height_options['minimum_duration_sec'] = minimum_duration_sec
         if type(start_from_measured) is not bool:
@@ -1210,14 +1216,15 @@ class HardwareExecution:
 
     def execute_selected_trajectory(self, arm: str, trajectory: JointTrajectory, *,
                                     check_collisions: bool, endpoint_pose: CartesianPose):
-        """Dispatch the timed selection unchanged once the settled joints match."""
+        """Dispatch the selected spline once its start matches the settled joints."""
         recorded = recorded_from_message(trajectory)
         if any(abs(value) > 1e-9 for point in (recorded.points[0], recorded.points[-1])
                for value in point.velocities):
             raise CommandPathValidationError('Selected approach requires stopped endpoints')
         return self.execute(arm, trajectory, 'arm', recorded_trajectory=recorded,
                             endpoint_pose=endpoint_pose, check_orientation=False,
-                            check_collisions=check_collisions)
+                            check_collisions=check_collisions,
+                            retime_selected_approach=getattr(self, 'retime_selected_approach', False))
 
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
@@ -1363,7 +1370,7 @@ class HardwareExecution:
         command_path_validator=None,
         recorded_trajectory=None,
         recorded_window: tuple[int, int] | None = None,
-        retime_recorded: bool = False,
+        timing_event: str | None = None,
         _refresh_attempt=0,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
@@ -1389,29 +1396,22 @@ class HardwareExecution:
             raise ValueError('Relaxed arrival is only allowed for an arm trajectory')
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
-        if type(retime_recorded) is not bool:
-            raise ValueError('retime_recorded must be boolean')
-        if retime_recorded and (controller != 'arm' or recorded_trajectory is None
-                                or recorded_window is not None):
-            raise ValueError('Retiming requires one complete recorded arm trajectory')
         limits = self.verify(arm)
         if controller == 'arm':
             limits = HardwareExecution._with_grasp_approach_limits(
                 arm, limits, active_grasp_approach_yaw.get())
-        if type(retime_recorded) is not bool:
-            raise ValueError('retime_recorded must be boolean')
-        if retime_recorded and (controller != 'arm' or recorded_trajectory is None
-                                or recorded_window is not None):
-            raise ValueError('Retiming requires one complete recorded arm trajectory')
-        if retime_recorded:
+        if timing_event is not None:
+            if controller != 'arm' or recorded_trajectory is None or recorded_window is not None:
+                raise ValueError('Retiming requires one complete recorded arm trajectory')
             recorded_trajectory.validate()
             source_duration = recorded_trajectory.points[-1].time_ns/1e9
             recorded_trajectory = retime_recorded_trajectory(
                 recorded_trajectory, limits, velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
-                minimum_duration_sec=self.value('hardware_retreat_min_duration_sec'),
+                minimum_duration_sec=(minimum_duration_sec if timing_event == 'selected_approach_timing'
+                                      else self.value('hardware_retreat_min_duration_sec')),
                 limit_scale=getattr(self, 'trajectory_limit_scale', .8))
-            self.node.event('retreat_replay_timing', source_duration_sec=source_duration,
+            self.node.event(timing_event, source_duration_sec=source_duration,
                             command_duration_sec=recorded_trajectory.points[-1].time_ns/1e9,
                             command_points=len(recorded_trajectory.points))
         if recorded_window is not None:
