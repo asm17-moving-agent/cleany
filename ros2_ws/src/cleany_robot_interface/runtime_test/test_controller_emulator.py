@@ -1301,8 +1301,8 @@ def test_cold_start_missing_torque_ack_requires_readback(tmp_path, servo_type, a
     assert runtime.arms.writes.count({'id': 2, 'address': 40, 'data': [1]}) == 1
 
 
-@pytest.mark.parametrize('planning_ok', [True, False])
-def test_deferred_activation_waits_for_planning_with_all_torques_off(tmp_path, planning_ok):
+@pytest.mark.parametrize('planning_ok,staged', [(True, False), (False, False), (True, True), (False, True)])
+def test_deferred_command_controllers_wait_for_planning(tmp_path, planning_ok, staged):
     runtime = Runtime(tmp_path, False, shared_bus=True, servo_type=ProcessServos, cold_start=True)
     process = None
     try:
@@ -1331,12 +1331,15 @@ class PlanningFixture(Node):
         return []
 
 runtime_readiness.ReadinessProbe = PlanningFixture
+options = ['--cold-startup-dir', sys.argv[1]] if sys.argv[3] == 'staged' else []
 raise SystemExit(runtime_readiness.main(
-    ['--timeout', '18', '--activate-cold-controllers', *sys.argv[3:]]))
+    ['--timeout', '18', *options, '--activate-cold-controllers', *sys.argv[4:]]))
 """
+        if staged:
+            (tmp_path/'torque-not-requested').touch()
         process = subprocess.Popen(
             ['python3', '-c', script, str(tmp_path), 'ready' if planning_ok else 'failed',
-             *runtime.profile.controller_names],
+             'staged' if staged else 'joint', *runtime.profile.controller_names],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         deadline = time.monotonic() + 10.
         while (not (tmp_path/'waiting-for-planning').exists() and process.poll() is None
@@ -1345,7 +1348,11 @@ raise SystemExit(runtime_readiness.main(
         assert (tmp_path/'waiting-for-planning').exists()
         runtime.spin(.2)
         assert process.poll() is None
-        assert all(memory[40] == 0 for memory in runtime.arms.registers.values())
+        assert all(memory[40] == (1 if staged and motor <= 12 else 0)
+                   for motor, memory in runtime.arms.registers.items())
+        states = runtime.wait(runtime.list.call_async(ListControllers.Request())).controller
+        assert all(c.state == 'inactive' for c in states if c.name in runtime.profile.controller_names)
+        assert (tmp_path/'torque-ready').exists() is staged
         (tmp_path/'planning-result').touch()
         deadline = time.monotonic() + 19.
         while process.poll() is None and time.monotonic() < deadline:
@@ -1359,7 +1366,7 @@ raise SystemExit(runtime_readiness.main(
         actual = {c.name: c.state for c in states}
         assert all(actual[name] == ('active' if planning_ok else 'inactive')
                    for name in runtime.profile.controller_names)
-        assert all(memory[40] == (1 if planning_ok and motor <= 12 else 0)
+        assert all(memory[40] == (1 if (planning_ok or staged) and motor <= 12 else 0)
                    for motor, memory in runtime.arms.registers.items())
     finally:
         if process is not None and process.poll() is None:

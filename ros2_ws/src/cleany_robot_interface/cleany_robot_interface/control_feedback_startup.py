@@ -70,8 +70,10 @@ class ControlFeedbackStartupProbe(Node):
         return now - self.stable_since >= STABLE_FEEDBACK_SEC
 
 
-def activate_cold_controllers(node, controllers, deadline):
-    """Activate torque and the preconfigured controller group only from verified feedback."""
+def activate_cold_controllers(node, controllers, deadline, *, phase="both", before_torque_request=None):
+    """Activate hardware, command controllers, or both from verified feedback."""
+    if phase not in ('both', 'torque', 'controllers'):
+        raise ValueError('Unsupported cold activation phase')
     def wait_for(predicate, until=deadline):
         while rclpy.ok():
             remaining = until - time.monotonic()
@@ -83,7 +85,7 @@ def activate_cold_controllers(node, controllers, deadline):
                 return True
         return False
 
-    def call(service, name, request, *, read_only=False, require_feedback=False):
+    def call(service, name, request, *, read_only=False, require_feedback=False, before_send=None):
         client = node.create_client(service, '/controller_manager/' + name)
         try:
             discovery_deadline = (min(deadline, time.monotonic() + READ_ONLY_DISCOVERY_TIMEOUT_SEC)
@@ -91,7 +93,8 @@ def activate_cold_controllers(node, controllers, deadline):
             if not wait_for(client.service_is_ready, discovery_deadline):
                 raise RuntimeError('Cold startup timed out finding ' + name)
             if require_feedback:
-                node.stable_since = None
+                if phase != 'torque':
+                    node.stable_since = None
                 if not wait_for(node.ready):
                     raise RuntimeError('Cold startup timed out waiting for stable feedback before ' + name)
             attempts = READ_ONLY_ATTEMPTS if read_only else 1
@@ -100,6 +103,8 @@ def activate_cold_controllers(node, controllers, deadline):
                     break
                 reply_deadline = (min(deadline, time.monotonic() + READ_ONLY_REPLY_TIMEOUT_SEC)
                                   if read_only else deadline)
+                if before_send is not None:
+                    before_send()
                 future = client.call_async(request)
                 if wait_for(future.done, reply_deadline):
                     result = future.result()
@@ -119,18 +124,29 @@ def activate_cold_controllers(node, controllers, deadline):
         if states.get('joint_state_broadcaster') != 'active' or any(states.get(name) != state for name in controllers):
             raise RuntimeError(f'Expected preloaded controllers {state} and active broadcaster: {states}')
 
+    if phase == 'torque':
+        # The broadcaster starts after the inactive command controllers are preloaded.
+        require_stable_feedback(node, deadline)
     require_controllers('inactive')
     components = call(ListHardwareComponents, 'list_hardware_components',
                       ListHardwareComponents.Request(), read_only=True)
-    if [part.state.label for part in components.component if part.name == 'FeetechSystem'] != ['inactive']:
-        raise RuntimeError('Expected configured, inactive FeetechSystem before cold activation')
-    request = SetHardwareComponentState.Request(name='FeetechSystem')
-    request.target_state.label = 'active'
-    request.target_state.id = request.target_state.PRIMARY_STATE_ACTIVE
-    result = call(SetHardwareComponentState, 'set_hardware_component_state', request, require_feedback=True)
-    if not result.ok or result.state.id != request.target_state.id:
-        raise RuntimeError('FeetechSystem activation did not reach active state')
-    print('Motor hardware active after controller preloading', flush=True)
+    expected = 'active' if phase == 'controllers' else 'inactive'
+    if [part.state.label for part in components.component if part.name == 'FeetechSystem'] != [expected]:
+        raise RuntimeError(f'Expected configured, {expected} FeetechSystem before cold activation')
+    if phase != 'controllers':
+        request = SetHardwareComponentState.Request(name='FeetechSystem')
+        request.target_state.label = 'active'
+        request.target_state.id = request.target_state.PRIMARY_STATE_ACTIVE
+        result = call(SetHardwareComponentState, 'set_hardware_component_state', request,
+                      require_feedback=True, before_send=before_torque_request)
+        if not result.ok or result.state.id != request.target_state.id:
+            raise RuntimeError('FeetechSystem activation did not reach active state')
+        print('Motor hardware active after controller preloading', flush=True)
+
+    if phase == 'torque':
+        node.stable_since = None
+        require_stable_feedback(node, deadline)
+        return
 
     switch = SwitchController.Request()
     switch.activate_controllers = list(controllers)

@@ -26,7 +26,7 @@ from cleany_skill_executor.startup_cpu import StartupCpuWindow
 from cleany_robot_interface.control_feedback_startup import (
     ControlFeedbackStartupProbe, activate_cold_controllers, require_stable_feedback,
 )
-from cleany_robot_interface.control_state_guard import DEFAULT_MAX_STATE_AGE_S
+from cleany_robot_interface.control_state_guard import DEFAULT_MAX_STATE_AGE_S, EXPECTED_JOINTS
 
 
 REQUIRED_SERVICES = (
@@ -155,15 +155,21 @@ class PlanningInputsStartupProbe(Node):
         self.guard_received = 0.
         self.inputs_ready_at = None
         self.received = {}
+        self.joint_state = None
         qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.sensor_subscriptions = []
         for topic, kind in FEEDBACK.items():
             sub = self.create_subscription(kind, topic,
-                lambda message, topic=topic: self.received.__setitem__(topic, time.monotonic()), qos,
+                lambda message, topic=topic: self._receive_feedback(topic, message), qos,
                 raw=(kind is Image))
             if topic != '/joint_states':
                 self.sensor_subscriptions.append(sub)
         self.create_subscription(String, '/real_control/status', self._guard, qos)
+
+    def _receive_feedback(self, topic, message):
+        self.received[topic] = time.monotonic()
+        if topic == '/joint_states':
+            self.joint_state = message
 
     def _guard(self, message):
         try:
@@ -234,8 +240,17 @@ def warmup_ready(probe, now):
 class PlanningSequenceProbe(PlanningInputsStartupProbe):
     """Keep the same DDS participant while advancing the hardware launch one stage at a time."""
 
-    def __init__(self):
+    def __init__(self, cold_startup_dir=None):
         super().__init__('control')
+        self.cold_startup_dir = cold_startup_dir
+        self.inputs_announced = False
+        self.scene_monitor = None
+        if cold_startup_dir:
+            self.pose_client = self.create_client(GetPlanningScene, '/get_planning_scene')
+            self.pose_future = None
+            self.pose_requested = 0.
+            self.torque_ready_ns = None
+        self.started_at = time.monotonic()
         self.warmup_client = self.create_client(Trigger, '/grasp/warmup_status')
         self.warmup_future = None
         self.warmup_ready = False
@@ -243,13 +258,85 @@ class PlanningSequenceProbe(PlanningInputsStartupProbe):
 
     def pending(self):
         if self.stage != 'warmup':
-            return super().pending()
+            pending = super().pending()
+            if pending or self.stage != 'validation' or not self.cold_startup_dir:
+                return pending
+            if not self.inputs_announced:
+                print(json.dumps({'event': 'planning_inputs_ready',
+                                  'wall_sec': time.monotonic() - self.started_at,
+                                  'status': 'ready'}), flush=True)
+                self.inputs_announced = True
+            return self.pending_recovered_scene()
         if self.guard not in (None, 'waiting', 'ready'):
             raise RuntimeError(f'Real-control guard is not ready: {self.guard}')
         now = time.monotonic()
         if self.guard != 'ready' or now - self.guard_received > DEFAULT_MAX_STATE_AGE_S:
             return ['/real_control/status ready']
         return [] if warmup_ready(self, now) else ['Primary GPU IK warmup']
+
+    def pending_recovered_scene(self):
+        if self.torque_ready_ns is None:
+            try:
+                self.torque_ready_ns = int((self.cold_startup_dir / 'torque-ready').read_text())
+            except FileNotFoundError:
+                return ['Motor torque and joint limit return']
+            if self.torque_ready_ns <= 0:
+                raise ValueError('Invalid protected joint feedback timestamp')
+        pose = self.joint_state
+        if pose is None:
+            return ['Joint feedback after recovery']
+        stamp = pose.header.stamp
+        stamp_ns = stamp.sec * 1_000_000_000 + stamp.nanosec
+        if (stamp_ns < self.torque_ready_ns
+                or not 0 <= self.get_clock().now().nanoseconds - stamp_ns <= DEFAULT_MAX_STATE_AGE_S * 1e9):
+            return ['Joint feedback after recovery']
+
+        from cleany_skill_executor.core.physical_grasp_selection import InfrastructureError
+        from cleany_skill_executor.sensor_scene import SensorSceneMonitor
+
+        if self.scene_monitor is None:
+            self.scene_monitor = SensorSceneMonitor(self, required=True)
+        try:
+            self.scene_monitor.check(after_stamp_ns=self.torque_ready_ns)
+        except InfrastructureError:
+            return ['Processed depth frame and populated MoveIt map after recovery']
+
+        now = time.monotonic()
+        if self.pose_future is not None and not self.pose_future.done():
+            if now - self.pose_requested < CONFIG_QUERY_TIMEOUT_S:
+                return ['MoveIt joint state after recovery']
+            self.pose_client.remove_pending_request(self.pose_future)
+            self.pose_future.cancel()
+            self.pose_future = None
+        if self.pose_future is not None:
+            result = self.pose_future.result()
+            self.pose_future = None
+            if result is not None:
+                model = result.scene.robot_state.joint_state
+                positions = dict(zip(model.name, model.position))
+                measured = {name: value for name, value in zip(pose.name, pose.position)
+                            if name in EXPECTED_JOINTS}
+                if set(measured) == EXPECTED_JOINTS and all(
+                        abs(value - positions.get(name, math.inf)) <= math.tau / 4096
+                        for name, value in measured.items()):
+                    print(json.dumps({'event': 'planning_scene_ready', 'status': 'ready',
+                                      'wall_sec': now - self.started_at}), flush=True)
+                    return []
+        if self.pose_client.service_is_ready():
+            request = GetPlanningScene.Request()
+            request.components.components = PlanningSceneComponents.ROBOT_STATE
+            self.pose_future = self.pose_client.call_async(request)
+            self.pose_requested = now
+        return ['MoveIt joint state after recovery']
+
+    def close_scene_monitor(self):
+        if self.scene_monitor is not None:
+            self.scene_monitor.close()
+            self.scene_monitor = None
+
+    def destroy_node(self):
+        self.close_scene_monitor()
+        return super().destroy_node()
 
     def advance(self):
         """Emit one line for the launch event handler after each verified stage."""
@@ -259,6 +346,7 @@ class PlanningSequenceProbe(PlanningInputsStartupProbe):
         self.guard_ready_at = time.monotonic()
         self.inputs_ready_at = None
         if self.stage == 'warmup':
+            self.close_scene_monitor()
             for subscription in self.sensor_subscriptions:
                 self.destroy_subscription(subscription)
         print('CLEANY_START_STAGE ' + self.stage, flush=True)
@@ -440,7 +528,10 @@ def main(args=None) -> int:
     stages.add_argument('--activate-cold-controllers', nargs='+', metavar='NAME')
     stages.add_argument('--planning-inputs-startup', nargs='?', const='grasp',
                         choices=PLANNING_STARTUP_STAGES)
+    parser.add_argument('--cold-startup-dir', type=Path)
     options = parser.parse_args(args)
+    if options.cold_startup_dir and not (options.planning_sequence or options.activate_cold_controllers):
+        parser.error('--cold-startup-dir requires a staged cold start')
     if options.before_action_marker and not options.action_startup:
         parser.error('--before-action-marker requires --action-startup')
     if not math.isfinite(options.timeout) or options.timeout <= 0:
@@ -448,7 +539,7 @@ def main(args=None) -> int:
     began = time.monotonic()
     rclpy.init(args=[])
     if options.planning_sequence:
-        node, event = PlanningSequenceProbe(), 'planning_sequence_ready'
+        node, event = PlanningSequenceProbe(options.cold_startup_dir), 'planning_sequence_ready'
     elif options.action_startup:
         node, event = ManipulationStartupProbe(options.before_action_marker), 'manipulation_startup_ready'
     elif options.control_startup:
@@ -456,6 +547,8 @@ def main(args=None) -> int:
     elif options.planning_inputs_startup:
         node = PlanningInputsStartupProbe(options.planning_inputs_startup)
         event = 'planning_inputs_startup_ready'
+    elif options.cold_startup_dir:
+        node, event = ControlFeedbackStartupProbe(), 'collection_readiness'
     else:
         node = ReadinessProbe(gui=options.gui, cold_controllers=options.activate_cold_controllers or ())
         event = 'collection_readiness'
@@ -463,6 +556,24 @@ def main(args=None) -> int:
     last_log = began - 5.
     next_check = began
     try:
+        if options.activate_cold_controllers and options.cold_startup_dir:
+            directory = options.cold_startup_dir
+            marker = directory / 'torque-ready'
+            if marker.exists():
+                raise RuntimeError('Unexpected marker before cold torque activation')
+            # Once an activation request may have reached the controller, preserve its hold.
+            torque_not_requested = directory / 'torque-not-requested'
+            activate_cold_controllers(node, options.activate_cold_controllers,
+                                      began + options.timeout, phase='torque',
+                                      before_torque_request=torque_not_requested.unlink)
+            if node.sample_stamp_ns is None or node.sample_stamp_ns <= 0:
+                raise RuntimeError('No protected joint timestamp after torque recovery')
+            pending_marker = directory / '.torque-ready'
+            pending_marker.write_text(f'{node.sample_stamp_ns}\n')
+            pending_marker.replace(marker)
+            torque_probe = node
+            node = ReadinessProbe(gui=options.gui, cold_controllers=options.activate_cold_controllers)
+            torque_probe.destroy_node()
         while rclpy.ok():
             rclpy.spin_once(node, timeout_sec=max(0., next_check - time.monotonic()))
             now = time.monotonic()
@@ -492,12 +603,16 @@ def main(args=None) -> int:
                 continue
             if not pending:
                 if options.activate_cold_controllers:
-                    print('Planning and GPU ready; checking feedback before torque activation', flush=True)
+                    print('Planning and GPU ready; checking feedback before enabling command controllers', flush=True)
                     planning_probe = node
                     node = ControlFeedbackStartupProbe()
                     planning_probe.destroy_node()
                     deadline = began + options.timeout
-                    activate_cold_controllers(node, options.activate_cold_controllers, deadline)
+                    if options.cold_startup_dir:
+                        activate_cold_controllers(node, options.activate_cold_controllers,
+                                                  deadline, phase='controllers')
+                    else:
+                        activate_cold_controllers(node, options.activate_cold_controllers, deadline)
                     require_stable_feedback(node, deadline)
                 result = {'event': event, 'wall_sec': time.monotonic() - began, 'status': 'ready'}
                 if options.planning_inputs_startup:

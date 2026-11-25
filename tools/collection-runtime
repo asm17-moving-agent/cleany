@@ -310,9 +310,11 @@ start_hardware_support() {
   local run_dir="$2"
   local staged_startup="${3:-false}"
   local startup_ready_file="${4:-}"
+  local cold_startup_dir="${5:-}"
   validate_planning_mode || return
   local selection_args=("motion_runtime:=${motion_runtime}")
   [[ -z "${startup_ready_file}" ]] || selection_args+=("startup_ready_file:=${startup_ready_file}")
+  [[ -z "${cold_startup_dir}" ]] || selection_args+=("cold_startup_dir:=${cold_startup_dir}")
   if [[ "${motion_backend}" == curobo_ik_moveit && "${motion_runtime}" == native ]]; then
     selection_args+=("curobo_python:=${curobo_python}")
   fi
@@ -498,8 +500,10 @@ start_runtime() {
   : > "${pids_file}"
   rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
 
-  local cold_status=0
-  prepare_cold_runtime "${run_dir}" "${log_dir}" || cold_status=$?
+  local cold_status=0 cold_startup_dir
+  cold_startup_dir="$(mktemp -d "${run_dir}/startup.XXXXXXXX")" || return
+  touch "${cold_startup_dir}/torque-not-requested" || return
+  prepare_cold_runtime "${run_dir}" "${log_dir}" "${cold_startup_dir}" || cold_status=$?
   if (( cold_status != 0 )); then
     echo "Collection startup failed before torque activation. Logs: ${log_dir}" >&2
     stop_runtime check-off || echo "Cold startup cleanup could not be verified; inspect the runtime before retrying." >&2
@@ -512,7 +516,13 @@ start_runtime() {
   for controller_arm in left right; do
     cold_controllers+=("${controller_arm}_arm_controller" "${controller_arm}_gripper_controller")
   done
-  if ! wait_for_graph --activate-cold-controllers "${cold_controllers[@]}"; then
+  if ! wait_for_graph --cold-startup-dir "${cold_startup_dir}" \
+      --activate-cold-controllers "${cold_controllers[@]}"; then
+    if [[ -f "${cold_startup_dir}/torque-not-requested" ]]; then
+      echo "Collection startup failed before torque activation. Logs: ${log_dir}" >&2
+      stop_runtime check-off || echo "Cold startup cleanup could not be verified; inspect the runtime before retrying." >&2
+      return 1
+    fi
     echo "Startup preflight failed. Runtime is left running for inspection." >&2
     echo "Logs: ${log_dir}" >&2
     echo "Stop explicitly with: make collection-stop" >&2
@@ -531,7 +541,7 @@ start_runtime() {
 }
 
 prepare_cold_runtime() {
-  local run_dir="$1" log_dir="$2"
+  local run_dir="$1" log_dir="$2" cold_startup_dir="$3"
   export CLEANY_REFERENCE_OBSERVATION=true
   export CLEANY_WRIST_OBSERVATION=true
   export CLEANY_PERCEPTION_USE_SIM_TIME=false
@@ -583,7 +593,8 @@ PYWRIST
       ros2 run cleany_robot_interface motor_telemetry_recorder || return
   fi
   wait_startup_cpu depth_scene || return
-  start_staged_hardware_support "${log_dir}/hardware-support.log" "${run_dir}" || return
+  start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}" true \
+    "${cold_startup_dir}/ready" "${cold_startup_dir}" || return
   if [[ "${gui}" == true ]]; then
     start_group bbox_view "${log_dir}/bbox-view.log" \
       ros2 run rqt_image_view rqt_image_view \
