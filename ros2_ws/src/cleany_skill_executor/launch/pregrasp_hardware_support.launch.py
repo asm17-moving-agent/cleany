@@ -22,10 +22,13 @@ from cleany_skill_executor.motion_runtime import (
 )
 
 
-def staged_planning_actions(stages, timeout, ready_file):
+def staged_planning_actions(stages, timeout, ready_file, cold_startup_dir=''):
+    command = [sys.executable, '-m', 'cleany_skill_executor.runtime_readiness',
+               '--planning-sequence', '--timeout', timeout, '--settle-cpu']
+    if cold_startup_dir:
+        command.extend(['--cold-startup-dir', cold_startup_dir])
     probe = ExecuteProcess(
-        cmd=[sys.executable, '-m', 'cleany_skill_executor.runtime_readiness',
-             '--planning-sequence', '--timeout', timeout, '--settle-cpu'],
+        cmd=command,
         name='planning_sequence_startup', output='screen',
         additional_env={'OPENBLAS_NUM_THREADS': '1'})
     remaining = list(stages)
@@ -187,11 +190,15 @@ def setup(context):
         parameters=validation_parameters,
     )
     selection = [selector_exit_handler(selector), selector]
-    if value('staged_startup') == 'true':
+    cold_startup_dir = value('cold_startup_dir')
+    staged_startup = value('staged_startup') == 'true'
+    if cold_startup_dir and not staged_startup:
+        raise ValueError('Cold startup coordination requires staged startup')
+    if staged_startup:
         return staged_planning_actions(
             {'receipt': [*sensors, receipt], 'scene': [depth], 'grasp': grasp_nodes,
              'validation': [validator], 'warmup': selection},
-            value('startup_timeout_sec'), value('startup_ready_file'))
+            value('startup_timeout_sec'), value('startup_ready_file'), cold_startup_dir)
     return [*grasp_nodes, *sensors, depth, receipt, validator, *selection]
 
 
@@ -203,6 +210,7 @@ def generate_launch_description():
         DeclareLaunchArgument('collection_config_file', default_value=''),
         DeclareLaunchArgument('start_head_camera', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('startup_ready_file', default_value=''),
+        DeclareLaunchArgument('cold_startup_dir', default_value=''),
         DeclareLaunchArgument('staged_startup', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('startup_timeout_sec', default_value='300.0'),
         DeclareLaunchArgument('workspace_config_file', default_value=''),

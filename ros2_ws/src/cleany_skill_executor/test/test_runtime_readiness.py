@@ -390,14 +390,15 @@ def test_action_start_requires_one_server_and_stable_feedback(monkeypatch, tmp_p
 
 def test_one_probe_reuses_participant_through_warmup(monkeypatch, capsys):
     stages = []
-    node = NS(stage='control', sensor_subscriptions=[], destroy_node=lambda: None)
+    node = NS(stage='control', sensor_subscriptions=[], destroy_node=lambda: None,
+              close_scene_monitor=lambda: None)
     def pending():
         stages.append(node.stage)
         return []
     node.pending = pending
     advance = module.PlanningSequenceProbe.advance
     node.advance = lambda: advance(node)
-    monkeypatch.setattr(module, 'PlanningSequenceProbe', lambda: node)
+    monkeypatch.setattr(module, 'PlanningSequenceProbe', lambda _cold_startup_dir: node)
     clock = [0.]
     monkeypatch.setattr(module.time, 'monotonic', lambda: clock[0])
     monkeypatch.setattr(module.rclpy, 'init', lambda **_: None)
@@ -427,3 +428,110 @@ def test_cold_preflight_requires_inactive_controllers_and_gpu_warmup(probe):
     node.guard = 'fault'
     with pytest.raises(RuntimeError, match='guard is not ready: fault'):
         pending(node)
+
+
+def test_staged_selector_waits_for_the_recovered_pose_and_fresh_scene(tmp_path, monkeypatch, capsys):
+    from cleany_skill_executor.core.physical_grasp_selection import InfrastructureError
+    from cleany_skill_executor import sensor_scene
+
+    measured = NS(header=NS(stamp=NS(sec=9, nanosec=990_000_000)),
+                  name=sorted(module.EXPECTED_JOINTS), position=[1.] * len(module.EXPECTED_JOINTS))
+    mapped = NS(name=measured.name, position=[0.] * len(measured.name))
+    results = NS(done=lambda: True, result=lambda: NS(scene=NS(robot_state=NS(joint_state=mapped))))
+    capture = [9_990_000_000]
+    calls = []
+
+    class SceneMonitor:
+        def __init__(self, node, *, required):
+            assert required
+
+        def check(self, *, after_stamp_ns):
+            calls.append(after_stamp_ns)
+            if capture[0] <= after_stamp_ns:
+                raise InfrastructureError('Old depth capture')
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(sensor_scene, 'SensorSceneMonitor', SceneMonitor)
+    monkeypatch.setattr(module.PlanningInputsStartupProbe, 'pending', lambda self: [])
+    probe = module.PlanningSequenceProbe.__new__(module.PlanningSequenceProbe)
+    probe.stage = 'validation'
+    probe.cold_startup_dir = tmp_path
+    probe.inputs_announced = False
+    probe.started_at = module.time.monotonic()
+    probe.sensor_subscriptions = []
+    probe.torque_ready_ns = None
+    probe.scene_monitor = None
+    probe.pose_future = None
+    probe.pose_requested = 0.
+    probe.joint_state = measured
+    probe.get_clock = lambda: NS(now=lambda: NS(nanoseconds=10_080_000_000))
+    probe.pose_client = NS(service_is_ready=lambda: True, call_async=lambda request: results)
+
+    assert probe.pending() == ['Motor torque and joint limit return']
+    assert probe.scene_monitor is None
+    (tmp_path / 'torque-ready').write_text('10000000000')
+    assert probe.pending() == ['Joint feedback after recovery']
+    measured.header.stamp = NS(sec=10, nanosec=50_000_000)
+    assert probe.pending() == ['Processed depth frame and populated MoveIt map after recovery']
+    capture[0] = 10_050_000_000
+    assert probe.pending() == ['MoveIt joint state after recovery']
+    assert probe.pending() == ['MoveIt joint state after recovery']  # Cached pre-recovery joints.
+    assert 'CLEANY_START_STAGE warmup' not in capsys.readouterr().out
+    mapped.position = [1.] * len(measured.name)
+    assert probe.pending() == []
+    assert all(value == 10_000_000_000 for value in calls)
+    probe.advance()
+    assert probe.stage == 'warmup'
+    assert 'CLEANY_START_STAGE warmup' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize('failure', [None, 'before_torque', 'after_torque'])
+def test_staged_cold_start_splits_torque_and_controller_activation(tmp_path, monkeypatch, failure):
+    not_requested = tmp_path / 'torque-not-requested'
+    not_requested.touch()
+    events = []
+
+    class TorqueProbe:
+        sample_stamp_ns = 103
+
+        def destroy_node(self):
+            pass
+
+    class GraphProbe(TorqueProbe):
+        def __init__(self, *, gui, cold_controllers):
+            assert cold_controllers == ['left_arm_controller']
+            assert (tmp_path / 'torque-ready').read_text().strip() == '103'
+
+        def pending(self):
+            events.append('warmup-verified')
+            return []
+
+    def activate(node, controllers, deadline, *, phase, before_torque_request=None):
+        events.append(phase)
+        if phase == 'torque':
+            assert not (tmp_path / 'torque-ready').exists()
+            if failure == 'before_torque':
+                raise RuntimeError('Protected feedback unavailable')
+            before_torque_request()
+            if failure == 'after_torque':
+                raise RuntimeError('Motor failed to return')
+        else:
+            assert events == ['torque', 'warmup-verified', 'controllers']
+
+    monkeypatch.setattr(module, 'ControlFeedbackStartupProbe', TorqueProbe)
+    monkeypatch.setattr(module, 'ReadinessProbe', GraphProbe)
+    monkeypatch.setattr(module, 'activate_cold_controllers', activate)
+    monkeypatch.setattr(module, 'require_stable_feedback', lambda *args: events.append('final-feedback'))
+    monkeypatch.setattr(module.rclpy, 'init', lambda **kwargs: None)
+    monkeypatch.setattr(module.rclpy, 'try_shutdown', lambda: None)
+    monkeypatch.setattr(module.rclpy, 'ok', lambda: True)
+    monkeypatch.setattr(module.rclpy, 'spin_once', lambda *args, **kwargs: None)
+
+    result = module.main(['--cold-startup-dir', str(tmp_path), '--activate-cold-controllers',
+                          'left_arm_controller'])
+    assert result == (0 if failure is None else 1)
+    assert not_requested.exists() == (failure == 'before_torque')
+    assert events == (['torque', 'warmup-verified', 'controllers', 'final-feedback']
+                      if failure is None else ['torque'])
