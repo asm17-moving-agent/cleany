@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "intended_use": "offline nominal trajectory candidates, not live authorization",
-  "created_at": "2026-11-23T20:05:25.206387+09:00",
+  "created_at": "2026-11-25T10:57:44.029974+09:00",
   "dynamic_entry": "Plan at runtime from measured lift pose to first stored waypoint. No entry trajectory in this file.",
   "stage_order": [
     "rear_bin_transport",
@@ -20,19 +20,19 @@
   },
   "source_files": {
     "robot_urdf": {
-      "path": "/home/cleany/.local/share/cleany/real_control/1795426738258577430/robot.urdf",
-      "sha256": "af2741288b56daefb1529a9449d78177297dad586a6dae3b047d2a0bd167eeec"
+      "path": "/home/cleany/.local/share/cleany/real_control/1795563876154125695/robot.urdf",
+      "sha256": "83a2171514df7518192a5618d82bcd1c7cf118ef6799c7efa17dfbffc51f317b"
     },
     "rear_bin": {
-      "path": "/home/cleany/cleany/configs/robot/dev_monitor_rear_bin_a.json",
+      "path": "/home/cleany/cleany-worktrees/jetson-arm-home-20ticks/configs/robot/dev_monitor_rear_bin_a.json",
       "sha256": "0ea93b43129ec9b1022aa4876c25a5ca1f2dbb4ba0cfb3fd4ba537b6ec76c232"
     },
     "home": {
-      "path": "/home/cleany/cleany/configs/robot/arm_return_home.json",
-      "sha256": "90db87c90e08b04fd21d8509e40928a777baaf4e1ab8519039c23ecf8cf2e621"
+      "path": "/home/cleany/cleany-worktrees/jetson-arm-home-20ticks/configs/robot/arm_return_home.json",
+      "sha256": "cfb36ad66d986e6459ea34a1161517794060e2001def2c8db07ddf5c8b540ee6"
     },
     "collection": {
-      "path": "/home/cleany/cleany/configs/robot/jetson/collection.json",
+      "path": "/home/cleany/cleany-worktrees/jetson-arm-home-20ticks/configs/robot/jetson/collection.json",
       "sha256": "6b120300b83545bc3bdbde88d35004ec6cfeebb18821815c6e4ea03bd583cd86"
     },
     "last_left_execution": {
@@ -44,23 +44,23 @@
       "sha256": "a5576a0c1407636a03b38371136eeb5d1faafd314da18524f66ec47307ee01fa"
     },
     "robot_control_urdf": {
-      "path": "/home/cleany/.local/share/cleany/real_control/1795426738258577430/robot_control.urdf",
-      "sha256": "7fd690edd50f12498d19e8892403fbddbe7262ef7999ae2eb5dcb07cd9826d51"
+      "path": "/home/cleany/.local/share/cleany/real_control/1795563876154125695/robot_control.urdf",
+      "sha256": "e95962948e0265c8a0f2a72c79d6db63f162fce23be560cb5760ee8b8f6a132f"
     }
   },
   "home_recorded_at": "2026-11-23T06:46:23.208842+09:00",
   "home_joint_rad": {
     "left": [
       -1.533980787885641,
-      3.462194638257892,
-      3.1231848841351653,
+      3.433049003288065,
+      3.098641191528995,
       -3.2842528668631576,
       1.4795244699157009
     ],
     "right": [
       1.5615924420675826,
-      2.9421751511646597,
-      3.155398480680764,
+      2.9114955354069467,
+      3.1354567304382504,
       -3.368621810196868,
       1.5669613748251825
     ]
@@ -244,7 +244,7 @@
             "rear_sweep",
             "return_side_clearance",
             "park",
-            "captured_home"
+            "stored_home"
           ],
           "duration_sec": 24.065498042,
           "trajectory": {
@@ -285,10 +285,10 @@
                   1.4994662201582143
                 ],
                 "velocities": [
-                  -0.12148149861187116,
-                  0.003520463519677711,
-                  -0.03558783547259876,
-                  0.05442380291800165,
+                  -0.1214814986139362,
+                  0.0035204635196206717,
+                  -0.0355878354733902,
+                  0.05442380291835152,
                   0.0
                 ],
                 "time_from_start": {
@@ -305,10 +305,10 @@
                   1.4994662201582143
                 ],
                 "velocities": [
-                  -0.13876462258186456,
-                  0.025852904642951386,
-                  7.076675297710473e-18,
-                  4.95367270839733e-17,
+                  -0.13876462259092312,
+                  0.025852904644519583,
+                  7.076675298246456e-18,
+                  0.0,
                   0.0
                 ],
                 "time_from_start": {
@@ -325,10 +325,10 @@
                   1.4994662201582143
                 ],
                 "velocities": [
-                  -0.16593295345816267,
-                  0.01856854890884651,
-                  0.021753787883687672,
-                  -0.16388648768213618,
+                  -0.16593295344676653,
+                  0.018568548907571238,
+                  0.021753787882193634,
+                  -0.16388648767088057,
                   0.0
                 ],
                 "time_from_start": {
@@ -345,10 +345,10 @@
                   1.4795244699157009
                 ],
                 "velocities": [
-                  -0.15893609625168473,
-                  0.017785573190642816,
-                  0.020836500804799506,
-                  -0.15697592331606733,
+                  -0.15893609624594995,
+                  0.013571209829780745,
+                  0.017463536086958904,
+                  -0.15697592331040328,
                   0.0
                 ],
                 "time_from_start": {
@@ -359,16 +359,16 @@
               {
                 "positions": [
                   -1.533980787885641,
-                  3.462194638257892,
-                  3.1231848841351653,
+                  3.433049003288065,
+                  3.098641191528995,
                   -3.2842528668631576,
                   1.4795244699157009
                 ],
                 "velocities": [
+                  -1.0441836778326127e-16,
                   0.0,
                   0.0,
-                  0.0,
-                  0.0,
+                  2.0883673556652255e-17,
                   0.0
                 ],
                 "time_from_start": {
@@ -775,8 +775,8 @@
               {
                 "positions": [
                   1.5615924420675826,
-                  2.9421751511646597,
-                  3.155398480680764,
+                  2.9114955354069467,
+                  3.1354567304382504,
                   -3.368621810196868,
                   1.5669613748251825
                 ],
@@ -808,5 +808,6 @@
         }
       }
     }
-  }
+  },
+  "home_adjusted_at": "2026-11-25T10:57:44.029974+09:00"
 }

@@ -7,11 +7,13 @@ from types import SimpleNamespace as NS
 
 from geometry_msgs.msg import Pose, Vector3
 import pytest
+import yaml
 
 from cleany_manipulation_bt.backend import OperationError
 from cleany_manipulation_bt.jetson_operations import JetsonOperations
+from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_skill_executor.collection_pipeline import CollectionPipeline
-from cleany_skill_executor.core.collection import configuration_issues
+from cleany_skill_executor.core.collection import configuration_issues, load_arm_home
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.core.hardware_execution import ArmHold, CollisionValidationError
 from cleany_skill_executor.core.rear_bin import RearBinRoute, RearBinTrajectories, TRAJECTORY_STAGES
@@ -147,6 +149,34 @@ def test_standalone_rear_release_checks_payload_before_opening(trial, valid):
         assert stages[-1] == 'release_check'
         assert 'release_at_rear_bin' not in stages and not node.releasing
         assert report['payload_preserved_on_failure'] and node.carrying['arm'] == arm
+
+
+def test_jetson_home_clearance_and_cached_return_endpoints():
+    robot = ROOT / 'configs/robot'
+    profile = json.loads((robot / 'cad_grasp.json').read_text())
+    arm_file = ROOT / profile['arm_config']
+    arm_config = yaml.safe_load(arm_file.read_text())
+    directory = motor_calibration_directory(arm_file, arm_config)
+    calibrations = {arm: json.loads((directory / cfg['calibration']).read_text())
+                    for arm, cfg in arm_config['arms'].items()}
+    joints = {joint.name: joint for joint in mappings(arm_config, calibrations)}
+
+    home_file = robot / 'arm_return_home.json'
+    home = load_arm_home(home_file)
+    cache_file = robot / 'jetson/rear_bin_trajectories.json'
+    document = json.loads(cache_file.read_text())
+    assert document['source_files']['home']['sha256'] == sha256(home_file.read_bytes()).hexdigest()
+    cache = RearBinTrajectories.load(str(cache_file))
+    for arm, stage in [('left', 'rear_bin_return'), ('right', 'rear_bin_standby')]:
+        positions = dict(zip(ARM_JOINT_NAMES[arm], home[arm], strict=True))
+        shoulder = joints[f'{arm}_shoulder_pitch_joint']
+        elbow = joints[f'{arm}_elbow_pitch_joint']
+        assert positions[shoulder.name] == pytest.approx(shoulder.radians(shoulder.range_min + 20), abs=1e-12, rel=0)
+        assert positions[elbow.name] == pytest.approx(elbow.radians(elbow.range_max - 20), abs=1e-12, rel=0)
+        assert tuple(document['home_joint_rad'][arm]) == home[arm]
+        path = cache.paths[arm][stage]
+        assert path.joint_names == ARM_JOINT_NAMES[arm]
+        assert path.points[-1].positions == home[arm]
 
 
 @pytest.fixture
