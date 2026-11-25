@@ -1,21 +1,22 @@
 {
   "frame": "base_link",
   "recorded_at": "2026-11-23T06:46:23.208842+09:00",
-  "source": "ReadOnlyBus: median of 11 stable encoder samples verified against current control limits; operator-designated home",
+  "source": "Operator-designated Home based on the median of 11 stable encoder samples. Both shoulder pitch and elbow pitch targets were subsequently set 20 encoder ticks inside their nearest calibrated limits.",
   "arms": {
     "left": [
       -1.533980787885641,
-      3.462194638257892,
-      3.1231848841351653,
+      3.433049003288065,
+      3.098641191528995,
       -3.2842528668631576,
       1.4795244699157009
     ],
     "right": [
       1.5615924420675826,
-      2.9421751511646597,
-      3.155398480680764,
+      2.9114955354069467,
+      3.1354567304382504,
       -3.368621810196868,
       1.5669613748251825
     ]
-  }
+  },
+  "adjusted_at": "2026-11-25T10:57:44.029974+09:00"
 }
