@@ -1,3 +1,4 @@
+import math
 from types import SimpleNamespace
 
 import pytest
@@ -154,6 +155,33 @@ def test_trajectory_cannot_jump_to_a_different_start():
     with pytest.raises(RuntimeError, match='planning start'):
         check_path_start(trajectory, {'joint': 0.})
     check_path_start(trajectory, {'joint': .1})
+
+
+def test_pregrasp_matches_only_the_calibrated_endpoint_at_encoder_overrun():
+    from cleany_skill_executor.core.hardware_execution import PhysicalJointLimit
+    from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
+    from cleany_skill_executor.hardware_execution import HardwareExecution
+
+    names = ARM_JOINT_NAMES['left']
+    pitch = 'left_shoulder_pitch_joint'
+    tick = math.tau / 4096
+    limit = PhysicalJointLimit(-1., 1., 1., 2., 2048., 1., 0., 0., 4095., 20)
+    hw = SimpleNamespace(_physical_limits={'left': dict.fromkeys(names, limit)})
+    encoders = dict.fromkeys(names, 0.)
+    encoders[pitch] = 1. + 2 * tick
+    knot = SimpleNamespace(positions=[1. if n == pitch else 0. for n in names])
+    path = SimpleNamespace(joint_names=names, points=[knot])
+    with pytest.raises(RuntimeError, match=pitch):
+        check_path_start(path, encoders)
+    entry = HardwareExecution.measured_arm_entry(hw, 'left', encoders)
+    check_path_start(path, entry)
+    assert encoders[pitch] == 1. + 2 * tick
+    knot.positions[names.index(pitch)] -= 2 * tick
+    with pytest.raises(RuntimeError, match=pitch):
+        check_path_start(path, entry)
+    encoders[pitch] = 1. + 21 * tick
+    with pytest.raises(ValueError, match='endpoint margin'):
+        HardwareExecution.measured_arm_entry(hw, 'left', encoders)
 
 
 def test_action_timeout_keeps_result_available_until_cancel_confirmed():

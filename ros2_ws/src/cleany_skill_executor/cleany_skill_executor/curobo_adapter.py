@@ -326,9 +326,10 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
                 f"cuRobo planning-scene error: {error}"
             ) from error
         state = self._state()
-        start = start or JointSolution(
-            ARM_JOINT_NAMES[arm], tuple(state[n] for n in ARM_JOINT_NAMES[arm])
-        )
+        if start is None:
+            initial = self._planning_start(arm, None).joint_state
+            entry = dict(zip(initial.name, initial.position, strict=True))
+            start = JointSolution(ARM_JOINT_NAMES[arm], tuple(entry[n] for n in ARM_JOINT_NAMES[arm]))
         result = self._compute(
             self._engine.plan,
             arm,

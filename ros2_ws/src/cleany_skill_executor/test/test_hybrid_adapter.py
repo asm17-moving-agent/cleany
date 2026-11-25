@@ -1036,3 +1036,74 @@ def test_grasp_first_checks_other_primary_solutions_if_cached_pose_collides():
     selected = adapter.solve_aligned_ik('left', items[1].target, None)
     assert selected is not None and selected.solution != cached.solution
     assert [c['gpu_test_double'] for c in trace if isinstance(c, dict)] == [16, 16]
+
+
+def test_grasp_prescreen_ends_only_when_each_arm_has_enough_ranked_proposals():
+    from dataclasses import replace
+    adapter, _ = make_adapter(hybrid_config=HybridConfig(batch_size=2, group_gripper_openings=True))
+    left = requests(6)
+    right = [replace(item, arm='right') for item in left]
+    order = [item for pair in zip(left, right, strict=True) for item in pair]
+
+    def batch(arm, targets, *_args, **options):
+        assert options['validation_targets'] == set()
+        return targets if arm == 'left' else [None]*len(targets)
+
+    adapter._batch = batch
+    assert adapter.prescreen_grasps(order, maximum_per_arm=2) == set(left[:2])
+    assert set(adapter._pregrasp_cache) == set(left[:2])
+    assert adapter.last_ik_statistics['grasp_ik_prescreen'] == {
+        'left': {'checked': 2, 'passed': 2},
+        'right': {'checked': 6, 'passed': 0},
+    }
+
+
+def test_first_screened_candidate_uses_only_its_arms_first_gpu_batch():
+    from dataclasses import replace
+    adapter, _ = make_adapter(hybrid_config=HybridConfig(batch_size=2, group_gripper_openings=True))
+    left = requests(4)
+    right = [replace(item, arm='right') for item in left]
+    ranked = [item for pair in zip(left, right, strict=True) for item in pair]
+    batches = []
+
+    def batch(arm, targets, *_args, **_options):
+        batches.append((arm, targets))
+        return targets
+
+    adapter._batch = batch
+    screened = adapter.iter_prescreen_grasps(ranked, maximum_per_arm=3)
+    assert next(screened)
+    assert batches == [('left', [item.target for item in left[:2]])]
+    assert next(screened)
+    assert batches[1] == ('right', [item.target for item in right[:2]])
+    assert next(screened)
+    assert len(batches) == 2
+
+
+@pytest.mark.parametrize('refinement_succeeds', [True, False])
+def test_blocked_cached_grasp_full_search_runs_once_after_direct_pass(refinement_succeeds):
+    from dataclasses import replace
+    adapter, _ = make_adapter(hybrid_config=HybridConfig(progressive_pregrasp=True,
+        defer_candidate_ik_retries=True, group_gripper_openings=True, cpu_ik_fallback=False))
+    item = replace(requests(1)[0], candidate_index=3)
+    adapter.prepare_grasps([item])
+    assert item in adapter.prescreen_grasps([item])
+    proposal = adapter._pregrasp_cache[item]
+    adapter.begin_candidate_pass(False)
+    adapter.set_gripper_position(item.arm, item.gripper_position)
+    adapter.state_is_valid = lambda arm, solution: False
+    modes = []
+
+    def batch(arm, targets, seeds, count, **kwargs):
+        modes.append(adapter._primary_only)
+        return [proposal if not adapter._primary_only and refinement_succeeds else None]
+
+    adapter._batch = batch
+    assert adapter.solve_aligned_ik(item.arm, item.target, None) is None
+    assert modes == [True]
+    assert adapter.begin_grasp_refinements() == {(3, 'left')}
+    result = adapter.solve_aligned_ik(item.arm, item.target, None)
+    assert bool(result) == refinement_succeeds
+    assert adapter.solve_aligned_ik(item.arm, item.target, None) is result
+    assert modes == [True, False] and adapter._primary_only
+    assert not adapter.begin_grasp_refinements()

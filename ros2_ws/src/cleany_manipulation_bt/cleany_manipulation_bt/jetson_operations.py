@@ -627,17 +627,13 @@ class JetsonOperations(CollectionPipeline):
         if not lift_collisions:
             self.event('lift_collision_checks_disabled', arm=arm)
         with self.record_pickup_departure(arm):
+            pregrasp = None
             if self.config.get('pregrasp_motion_enabled', True):
-                self.retreat_to_pregrasp(arm, self.pregrasp_pose, self.report,
+                pregrasp = self.pregrasp_pose
+                self.retreat_to_pregrasp(arm, pregrasp, self.report,
                                         check_collisions=lift_collisions)
-            bottom = self.pose(arm)
-            top = deepcopy(bottom)
-            if (self.config.get('lift_height_correction_enabled', False)
-                    and self.config.get('pregrasp_motion_enabled', True)):
-                top.position.z = max(top.position.z, self.pregrasp_pose.position.z)
-            top.position.z += self.config['lift_height_m']
             self.lift_after_ns = self.get_clock().now().nanoseconds
-            self.linear(arm, top, 'lift', check_collisions=lift_collisions)
+            bottom, top = self.lift_after_retreat(arm, pregrasp, check_collisions=lift_collisions)
             if self.config.get('lift_height_correction_enabled', False):
                 self.correct_height_endpoint(arm, top, 'lift', self.report,
                                              check_collisions=lift_collisions)

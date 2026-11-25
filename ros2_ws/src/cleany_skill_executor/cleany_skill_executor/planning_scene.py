@@ -437,6 +437,14 @@ class SceneAwarePort:
     def prescreen_grasps(self):
         return getattr(self._adapter, 'prescreen_grasps', None)
 
+    @property
+    def iter_prescreen_grasps(self):
+        return getattr(self._adapter, 'iter_prescreen_grasps', None)
+
+    def begin_grasp_refinements(self):
+        begin = getattr(self._adapter, 'begin_grasp_refinements', None)
+        return begin() if begin is not None else set()
+
     def begin_candidate_pass(self, retry: bool) -> bool:
         begin = getattr(self._adapter, 'begin_candidate_pass', None)
         return begin(retry) if begin is not None else False

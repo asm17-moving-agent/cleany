@@ -186,6 +186,8 @@ def configuration_issues(config: dict) -> list[str]:
         issues.append('gripper_opening_collision_check_enabled must be boolean')
     if type(config.get('lift_collision_check_enabled', True)) is not bool:
         issues.append('lift_collision_check_enabled must be boolean')
+    if type(config.get('lift_from_measured_retreat_height', False)) is not bool:
+        issues.append('lift_from_measured_retreat_height must be boolean')
     if type(config.get('retreat_after_release_collision_check_enabled', True)) is not bool:
         issues.append('retreat_after_release_collision_check_enabled must be boolean')
     if type(config.get('retreat_reverse_approach_enabled', False)) is not bool:
@@ -225,6 +227,10 @@ def configuration_issues(config: dict) -> list[str]:
         timeout = config.get('approach_candidate_selection_timeout_sec', 60.)
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             issues.append('invalid approach_candidate_selection_timeout_sec')
+    if type(config.get('selected_approach_bridge_enabled', False)) is not bool:
+        issues.append('selected_approach_bridge_enabled must be boolean')
+    if type(config.get('selected_approach_arrival_check_enabled', True)) is not bool:
+        issues.append('selected_approach_arrival_check_enabled must be boolean')
     approach_collision_check = config.get('approach_collision_check_enabled', True)
     if type(approach_collision_check) is not bool:
         issues.append('approach_collision_check_enabled must be boolean')

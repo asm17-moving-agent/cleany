@@ -621,6 +621,7 @@ class CollectionPipeline(PregraspPipeline):
                    wrist_roll_rad=roll, collision_checks_enabled=check_collisions)
         actual = None
         defer_shortfall = height_correction_enabled(self.config)
+        check_height = not self.config.get('lift_from_measured_retreat_height', False)
         endpoint_options = {'defer_height_shortfall': True} if defer_shortfall else {}
         goal = self.cartesian_pose(target)
         for index, path in enumerate(reversed_paths):
@@ -651,13 +652,21 @@ class CollectionPipeline(PregraspPipeline):
                        physical_target_position_m=endpoint.position,
                        physical_target_orientation_xyzw=endpoint.orientation,
                        orientation_target_source='measured_start_fixed_roll_replay')
+            if index == len(reversed_paths)-1 and not check_height:
+                endpoint_options.pop('defer_height_shortfall', None)
+                endpoint_options['check_endpoint_height'] = False
             if getattr(self.real, 'retime_retreat', False):
                 endpoint_options['retime'] = True
             actual = self.real.execute_recorded_trajectory(
                 arm, path, check_collisions=check_collisions, endpoint_pose=endpoint, **endpoint_options)
         try:
             actual_pose = self.cartesian_pose(self.pose(arm))
-            if defer_shortfall:
+            if not check_height:
+                validate_pose_endpoint(actual_pose, goal,
+                    self.real.value('hardware_tcp_position_tolerance_m'),
+                    math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg')),
+                    check_height=False)
+            elif defer_shortfall:
                 validate_height_correctable_endpoint(actual_pose, goal,
                     self.real.value('hardware_tcp_position_tolerance_m'),
                     math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg')))
@@ -671,6 +680,57 @@ class CollectionPipeline(PregraspPipeline):
                           retreat_recorded_trajectories=len(reversed_paths))
         self.event('retreat_reverse_approach_completed', arm=arm)
         return actual
+
+    def lift_target(self, bottom: Pose, pregrasp: Pose | None) -> Pose:
+        """Offset the measured TCP by the configured lift distance in base Z."""
+        top = deepcopy(bottom)
+        if (pregrasp is not None and self.config.get('lift_height_correction_enabled', False)
+                and self.config.get('pregrasp_motion_enabled', True)
+                and not self.config.get('lift_from_measured_retreat_height', False)):
+            top.position.z = max(top.position.z, pregrasp.position.z)
+        top.position.z += self.config['lift_height_m']
+        return top
+
+    def lift_after_retreat(self, arm: str, pregrasp: Pose | None, *, check_collisions: bool
+                           ) -> tuple[Pose, Pose]:
+        """Use the same protected joint sample for the lift origin and its IK start."""
+        options = {}
+        if self.config.get('lift_from_measured_retreat_height', False):
+            state = self.real.monitor()
+            self.motion.set_current_state(state)
+            positions = dict(zip(state.name, state.position, strict=True))
+            names = ARM_JOINT_NAMES[arm]
+            value = self.motion.forward_kinematics(
+                arm, JointSolution(names, tuple(positions[name] for name in names)))
+            start = CartesianPose(value.position, value.orientation_xyzw)
+            bottom = self.pose_message(start)
+            options['measured_start'] = (state, start)
+        else:
+            bottom = self.pose(arm)
+        target = self.lift_target(bottom, pregrasp)
+        real = getattr(self, 'real', None)
+        submissions = getattr(real, 'motion_submissions', None)
+        try:
+            self.linear(arm, target, 'lift', check_collisions=check_collisions, **options)
+        except CollisionValidationError as error:
+            payload = self.carrying
+            if (not payload or payload['arm'] != arm or error.motion_started
+                    or error.phase != 'command_path' or error.entry_blocked
+                    or submissions is None or submissions != real.motion_submissions
+                    or real.sensor_scene_frozen or not self.scene_monitor.required):
+                raise
+            pair = {payload['object_id'], '<octomap>'}
+            if not error.contacts or any(
+                    {c.get('body_1'), c.get('body_2')} != pair for c in error.contacts):
+                raise
+            self.event('lift_rechecking_payload_octomap', arm=arm,
+                       sample=error.sample_index, contacts=error.contacts)
+            real.wait_for_fresh_sensor_scene('lift_payload_octomap_recheck')
+            if self.carrying is not payload or real.motion_submissions != submissions:
+                raise
+            # Replan from measured joints to the original absolute lift target.
+            self.linear(arm, target, 'lift', check_collisions=True)
+        return bottom, target
 
     def correct_height_endpoint(self, arm: str, target: Pose, phase: str,
                                 report: dict | None = None, *,
@@ -793,17 +853,24 @@ class CollectionPipeline(PregraspPipeline):
                wrist_roll_target: float | None = None, *,
                check_orientation: bool = True, route: ApproachRoute | None = None,
                check_collisions: bool = True, validate_command_path: bool = False,
-               command_target: CartesianPose | None = None):
+               command_target: CartesianPose | None = None,
+               measured_start: tuple[JointState, CartesianPose] | None = None):
         """Plan physical geometry from measured FK, then convert motor support."""
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
         if command_target is not None and (stage != 'lift_height_correction'
                                           or not isinstance(command_target, CartesianPose)):
             raise ValueError('Explicit command target is restricted to lift height correction')
-        defer_shortfall = (stage in ('retreat', 'lift', 'lift_height_correction')
+        check_height = stage != 'retreat' or not self.config.get('lift_from_measured_retreat_height', False)
+        defer_shortfall = (check_height and stage in ('retreat', 'lift', 'lift_height_correction')
                            and height_correction_enabled(self.config))
-        measured = self.real.monitor()
-        self.motion.set_current_state(measured)
+        if measured_start is not None and stage != 'lift':
+            raise ValueError('A measured handoff is restricted to lift')
+        if measured_start is None:
+            measured = self.real.monitor()
+            self.motion.set_current_state(measured)
+        else:
+            measured = measured_start[0]
         names = ARM_JOINT_NAMES[arm]
         positions = dict(zip(measured.name, measured.position, strict=True))
         measured_joints = tuple(positions[name] for name in names)
@@ -811,7 +878,8 @@ class CollectionPipeline(PregraspPipeline):
             self.real.monitor()
             value = self.motion.forward_kinematics(arm, JointSolution(names, tuple(q)))
             return CartesianPose(value.position, value.orientation_xyzw)
-        start, goal = fk(measured_joints), self.cartesian_pose(target)
+        start = fk(measured_joints) if measured_start is None else measured_start[1]
+        goal = self.cartesian_pose(target)
         self.event(stage+'_measured_start', arm=arm, start_source='measured',
                    measured_joint_rad=list(measured_joints), measured_tcp_position_m=list(start.position))
         if route is not None and route.waypoints[-1] != goal:
@@ -835,15 +903,19 @@ class CollectionPipeline(PregraspPipeline):
             arm, measured, waypoints, stage, wrist_roll_target, check_collisions)
         try:
             nominal = executable_joint_path([tuple(p.positions) for p in trajectory.points])
-            nominal_poses = []
-            for index, sample in enumerate(nominal.samples(.01, 2, 10000)):
-                if check_collisions and not self.motion.state_is_valid(
-                        arm, JointSolution(names, sample.positions)):
+            points = [sample.positions for sample in nominal.samples(.01, 2, 10000)]
+            if check_collisions:
+                batch = getattr(self.motion, 'first_invalid_motion_sample', None) if stage == 'lift' else None
+                if batch is not None:
+                    index = batch(arm, names, points)
+                else:
+                    index = next((i for i, joints in enumerate(points)
+                                  if not self.motion.state_is_valid(arm, JointSolution(names, joints))), None)
+                if index is not None:
                     raise CollisionValidationError(
                         f'{stage}: wrist-roll-preserved Cartesian path is in collision: sample={index}',
                         phase='cartesian_path', sample_index=index)
-                nominal_poses.append(fk(sample.positions))
-            validate(nominal_poses, start)
+            validate([fk(joints) for joints in points], start)
         except ValueError as error:
             raise CartesianPathUnavailable(
                 f'{stage}: Cartesian FK corridor rejected: {error}',
@@ -906,6 +978,8 @@ class CollectionPipeline(PregraspPipeline):
                 'hardware_release_retreat_min_duration_sec')
         if defer_shortfall:
             execution_options['defer_height_shortfall'] = True
+        if not check_height:
+            execution_options['check_endpoint_height'] = False
         def validate_final_command(samples, actual):
             self.motion.set_current_state(actual)
             current = dict(zip(actual.name, actual.position, strict=True))
@@ -935,7 +1009,12 @@ class CollectionPipeline(PregraspPipeline):
         if actual is None:
             actual = self.cartesian_pose(self.pose(arm))
         try:
-            if defer_shortfall:
+            if not check_height:
+                validate_pose_endpoint(actual, goal,
+                    self.real.value('hardware_tcp_position_tolerance_m'),
+                    math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg'))
+                    if check_orientation else math.pi, check_height=False)
+            elif defer_shortfall:
                 validate_height_correctable_endpoint(actual, goal,
                     self.real.value('hardware_tcp_position_tolerance_m'),
                     math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg'))
@@ -1178,9 +1257,16 @@ class CollectionPipeline(PregraspPipeline):
             return self.replan_approach_from_arrival(selected, report)
         submissions = self.real.motion_submissions
         try:
+            options = {}
+            if self.config.get('selected_approach_bridge_enabled', False):
+                options['connect_start'] = True
+            check_arrival = self.config.get('selected_approach_arrival_check_enabled', True)
+            if not check_arrival:
+                options['check_arrival'] = False
             self.real.execute_selected_trajectory(
                 arm, trajectory, endpoint_pose=self.cartesian_pose(selected.fk_grasp_pose),
-                check_collisions=self.config.get('approach_collision_check_enabled', True))
+                check_collisions=self.config.get('approach_collision_check_enabled', True), **options)
+            report['approach_arrival_checks_enabled'] = check_arrival
         except RecordedStartMismatch as error:
             if error.motion_started or self.real.motion_submissions != submissions:
                 raise
@@ -2060,14 +2146,8 @@ class CollectionPipeline(PregraspPipeline):
                 if self.config.get('pregrasp_motion_enabled', True):
                     self.retreat_to_pregrasp(arm, pregrasp, report,
                                             check_collisions=lift_collisions)
-                bottom = self.pose(arm)
-                top = deepcopy(bottom)
-                if (self.config.get('lift_height_correction_enabled', False)
-                        and self.config.get('pregrasp_motion_enabled', True)):
-                    top.position.z = max(top.position.z, pregrasp.position.z)
-                top.position.z += self.config['lift_height_m']
                 before_lift = self.get_clock().now().nanoseconds
-                self.linear(arm, top, 'lift', check_collisions=lift_collisions)
+                bottom, top = self.lift_after_retreat(arm, pregrasp, check_collisions=lift_collisions)
                 if self.config.get('lift_height_correction_enabled', False):
                     self.correct_height_endpoint(arm, top, 'lift', report,
                                                  check_collisions=lift_collisions)

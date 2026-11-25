@@ -152,3 +152,11 @@ ROS 2 Humble 격리 도메인에서 모의 관절 피드백과 좌우 팔의 후
 Jetson `/home/cleany/cleany-data/runs/jetson-runtime-followup-verify.efl7bd/`의
 `rear-and-path.log`, `bt-build.log`, `bt-tests.log`, `grasping.log`, `operator.log`에
 최종 실행 결과가 있다.
+
+### 2026-11-25 Jetson 모터 및 드라이버 온도 한도 판독
+
+Jetson Orin의 ROS 2 Humble 환경에서 기준 커밋 `98d33162`의 현장 설정으로 판독했다.
+08:27에 토크가 해제된 모터 ID 1~14의 EEPROM 레지스터 13이 모두 80°C였다.
+08:29에 기동한 드라이버 모델에서도 14개 관절의 온도 한도가 각각 80°C였다.
+EEPROM 쓰기 건수는 0건이었고, 드라이버 준비 상태에 fault가 없었다.
+원본은 Jetson의 `/home/cleany/cleany-data/runs/temperature-80-operating-profiles-20261125.q0ftr0yv/` 아래 `readback.json`과 `live-verified.json`이다.

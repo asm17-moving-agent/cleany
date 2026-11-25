@@ -64,11 +64,13 @@ def check_path_start(trajectory, planned, tolerance=0.002):
     if not trajectory.points:
         raise RuntimeError('Empty pregrasp trajectory')
     first = trajectory.points[0]
-    if (len(first.positions) != len(trajectory.joint_names)
-            or any(name not in planned or not math.isfinite(q)
-                   or abs(planned[name]-q) > tolerance
-                   for name, q in zip(trajectory.joint_names, first.positions))):
-        raise RuntimeError('Trajectory does not begin at the planning start state')
+    if len(first.positions) != len(trajectory.joint_names):
+        raise RuntimeError('Malformed pregrasp trajectory start')
+    for name, knot in zip(trajectory.joint_names, first.positions):
+        entry = planned.get(name, math.nan)
+        if not math.isfinite(entry) or not math.isfinite(knot) or abs(entry - knot) > tolerance:
+            raise RuntimeError(f'Trajectory does not begin at the planning start state: '
+                               f'{name} entry={entry:.6f}, first={knot:.6f}, tolerance={tolerance:.6f} rad')
 
 
 def reference_observation_metrics(observation):
@@ -325,6 +327,7 @@ class PregraspPipeline(Node):
                            check_collisions=True, allow_endpoint_error=False,
                            held_command=None, command_path_validator=None,
                            defer_height_shortfall: bool = False, minimum_duration_sec=1.,
+                           check_endpoint_height: bool = True,
                            start_from_measured: bool = False,
                            endpoint_pose: CartesianPose | None = None):
         if getattr(self, 'real', None) is not None:
@@ -339,6 +342,8 @@ class PregraspPipeline(Node):
                 raise ValueError('defer_height_shortfall must be boolean')
             if defer_height_shortfall:
                 endpoint_options['defer_height_shortfall'] = True
+            if check_endpoint_height is not True:
+                endpoint_options['check_endpoint_height'] = check_endpoint_height
             if minimum_duration_sec != 1.:
                 endpoint_options['minimum_duration_sec'] = minimum_duration_sec
             if type(start_from_measured) is not bool:
@@ -349,7 +354,7 @@ class PregraspPipeline(Node):
                 arm, trajectory, controller,
                 check_orientation=check_orientation, check_collisions=check_collisions,
                 **endpoint_options)
-        if allow_endpoint_error or defer_height_shortfall:
+        if allow_endpoint_error or defer_height_shortfall or not check_endpoint_height:
             raise ValueError('Relaxed grasp arrival requires physical collection mode')
         self.verify_simulator(arm)
         client = ActionClient(self, FollowJointTrajectory, f'/{arm}_{controller}_controller/follow_joint_trajectory')
@@ -396,7 +401,9 @@ class PregraspPipeline(Node):
         if (tuple(trajectory.joint_names) != ARM_JOINT_NAMES[arm] or len(trajectory.points) < 2
                 or not all(len(p.velocities) == len(trajectory.joint_names) for p in trajectory.points)):
             raise RuntimeError('Selection does not contain a validated executable cubic path')
-        check_path_start(trajectory, planned)
+        # Compare the knot to the commandable start. Drift checks use the original encoders.
+        entry = real.measured_arm_entry(arm, planned) if real is not None else planned
+        check_path_start(trajectory, entry)
         self.scene.begin(selected.selected_candidate, f'pregrasp_execution_{time.monotonic_ns()}')
         primary_error = None
         try:
@@ -412,7 +419,7 @@ class PregraspPipeline(Node):
                 else:
                     self.scene_monitor.wait(after_stamp_ns=self.get_clock().now().nanoseconds)
             self.motion.set_current_state(measured)
-            current = JointSolution(ARM_JOINT_NAMES[arm], tuple(planned[n] for n in ARM_JOINT_NAMES[arm]))
+            current = JointSolution(ARM_JOINT_NAMES[arm], tuple(entry[n] for n in ARM_JOINT_NAMES[arm]))
             minimum_opening = float(selected.gripper_joint_position)
             commanded_opening = minimum_opening
             if getattr(self, 'real', None) is not None:

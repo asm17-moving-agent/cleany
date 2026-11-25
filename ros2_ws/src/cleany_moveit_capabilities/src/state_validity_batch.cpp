@@ -70,7 +70,7 @@ void check_state_batch(const planning_scene::PlanningScene& scene,
   }
   collision_detection::CollisionRequest collision_request;
   collision_request.group_name = request.group_name;
-  collision_request.contacts = true;
+  collision_request.contacts = false;
   const auto geometry_count = scene.getWorld()->size() +
       scene.getRobotModel()->getLinkModelsWithCollisionGeometry().size();
   collision_request.max_contacts = geometry_count * geometry_count;
@@ -87,7 +87,11 @@ void check_state_batch(const planning_scene::PlanningScene& scene,
       // Indexed setters also update mimic joints and dirty transforms.
       const auto& positions = request.robot_states[index].joint_state.position;
       for (std::size_t joint = 0; joint < variable_indices.size(); ++joint)
-        state.setVariablePosition(variable_indices[joint], positions[joint]);
+      {
+        const int variable = variable_indices[joint];
+        if (state.getVariablePosition(variable) != positions[joint])
+          state.setVariablePosition(variable, positions[joint]);
+      }
       state.update();
     }
     else
@@ -109,6 +113,13 @@ void check_state_batch(const planning_scene::PlanningScene& scene,
     if (!valid)
     {
       response.first_invalid_index = static_cast<int32_t>(index);
+      // Collect detailed contacts only for the rejected state, on the same locked scene.
+      if (collision.collision)
+      {
+        collision_request.contacts = true;
+        collision.clear();
+        scene.checkCollision(collision_request, collision, state);
+      }
       for (const auto& entry : collision.contacts)
         for (const auto& contact : entry.second)
         {

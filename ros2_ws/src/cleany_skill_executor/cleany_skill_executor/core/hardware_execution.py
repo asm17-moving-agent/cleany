@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from collections.abc import Sequence
 import math
 
+from .straight_joint_timing import retime_straight
+
 
 class ExecutionCanceled(RuntimeError):
     """Tracked cancellation; the execution owner must independently prove stop."""
@@ -161,6 +163,18 @@ class PhysicalJointLimit:
     offset: float
     raw_min: float
     raw_max: float
+    endpoint_margin_ticks: int = 0
+
+    def measured_entry(self, value: float) -> float:
+        """Project a small encoder excursion onto the legal command interval."""
+        if not self.endpoint_margin_ticks:
+            return value
+        lower, upper = self.position_bounds()
+        projected = min(max(value, lower), upper)
+        if (not math.isfinite(value)
+                or abs(projected - value) > self.endpoint_margin_ticks * math.tau / 4096 + 1e-12):
+            raise ValueError('Measured arm joint exceeds endpoint margin')
+        return projected
 
     def position_bounds(self) -> tuple[float, float]:
         raw_positions = tuple(
@@ -204,7 +218,10 @@ def physical_limits(description: str, arm: str) -> dict[str, PhysicalJointLimit]
         p = {v.get('name'): float(v.text) for v in joint.findall('param')}
         values = [p[k] for k in ('lower', 'upper', 'max_velocity', 'max_acceleration',
                                   'zero_tick', 'direction', 'offset_rad', 'range_min', 'range_max')]
-        limit = PhysicalJointLimit(*values)
+        margin = p.get('endpoint_margin_ticks', 0.)
+        if margin != int(margin) or not 0 <= margin <= 20:
+            raise ValueError('Invalid arm endpoint margin')
+        limit = PhysicalJointLimit(*values, endpoint_margin_ticks=int(margin))
         if (not all(math.isfinite(v) for v in values) or limit.lower >= limit.upper
                 or min(limit.velocity, limit.acceleration) <= 0 or abs(limit.direction) != 1):
             raise ValueError('Invalid physical limits')
@@ -237,7 +254,8 @@ def prepare_bounded_path(names, positions, limits, *, velocity: float, accelerat
                  step: float = .01, maximum_points: int = 10000,
                  simplification_tolerance: float = .002,
                  position_range_exemptions: Sequence[str] = (),
-                 minimum_duration_sec: float = 1., limit_scale: float = .8):
+                 minimum_duration_sec: float = 1., limit_scale: float = .8,
+                 straight_cruise: bool = False):
     if not names or len(set(names)) != len(names) or not set(names) <= limits.keys():
         raise ValueError('Unexpected commanded joints')
     exempt = frozenset(position_range_exemptions)
@@ -266,7 +284,10 @@ def prepare_bounded_path(names, positions, limits, *, velocity: float, accelerat
     duration = max(minimum_duration_sec,
                    path.minimum_duration(velocity_limits, acceleration_limits)*1.05)
     knots = (path.sample(0, 0.), *(path.sample(i, 1.) for i in range(len(path.positions)-1)))
-    return BoundedJointPath(samples, duration, knots)
+    plan = BoundedJointPath(samples, duration, knots)
+    if straight_cruise and len(positions) == 2:
+        return retime_straight(plan, velocity_limits, acceleration_limits, minimum_duration_sec, maximum_points)
+    return plan
 
 
 def bounded_path(names, positions, limits, *, velocity: float, acceleration: float,

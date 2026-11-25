@@ -161,6 +161,7 @@ def test_scene_wait_consolidation_keeps_real_dispatch_freshness_and_cleanup(defe
         arm_config=NS(opening=lambda width: width*10, width=.1, opened=1., closed=0.),
         release_grasp_scene_freeze=lambda: None)
     hw = NS(node=node, monitor=lambda: state, fault='', value=lambda _: .03,
+                measured_arm_entry=lambda arm, positions: {n: positions[n] for n in names},
             positive_integer=lambda _: 1, capture_scene_barrier=lambda _: None,
             _execute_pregrasp_parallel=lambda *_args, **_kwargs: trace.append('submit') or state)
 

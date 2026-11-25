@@ -16,6 +16,7 @@ from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
     (0., 0., None, 'sent'), (.005, .005, None, 'sent'),
     (.0051, .0051, None, 'replan'), (.003, .006, None, 'replan'),
     (0., 0., .003, 'sent'), (0., 0., .02, 'replan'),
+    (.012, .012, None, 'bridged'), (.04, .04, None, 'bridge_replan'),
     (0., 0., None, 'collision'), (0., 0., None, 'controller_error'),
 ])
 def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
@@ -43,7 +44,7 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     goal = CartesianPose((.2, 0., .3), (0., 0., 0., 1.))
     limit = PhysicalJointLimit(-2., 2., 2., 8., 2048., 1., 0., 0., 4095.)
     values = {'hardware_velocity_rad_s': 2., 'hardware_acceleration_rad_s2': 8.,
-              'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
+              'hardware_start_blend_max_rad': .03, 'hardware_path_step_rad': .02, 'hardware_path_simplification_tolerance_rad': .002,
               'hardware_start_tolerance_rad': .005, 'hardware_arrival_tolerance_rad': .1,
               'hardware_uncommanded_tolerance_rad': .03}
     sent, checked, replanned, stopped, events = [], [], [], [], []
@@ -66,7 +67,9 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
             raise CollisionValidationError('changed scene', phase='command_path', sample_index=2)
 
     monkeypatch.setattr(transport.HardwareExecution, 'validate_collision_samples', validate)
-    node = NS(config={'approach_execution_replanning_enabled': True},
+    node = NS(config={'approach_execution_replanning_enabled': True,
+                      'selected_approach_bridge_enabled': outcome in ('bridged', 'bridge_replan'),
+                      'selected_approach_arrival_check_enabled': outcome != 'bridged'},
               event=lambda key, **values: events.append((key, values)), cartesian_pose=lambda _: goal,
               pose=lambda _: msg.fk_grasp_pose, run_action=run_action,
               get_logger=lambda: NS(info=lambda *_: None, warning=lambda *_: None),
@@ -103,7 +106,7 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
     with real.record_arm_commands(arm) as recording:
         CollectionPipeline._approach_target(node, msg, report)
     assert not stopped
-    if outcome == 'replan':
+    if outcome in ('replan', 'bridge_replan'):
         assert report['approach_execution_route'] == 'replanned_from_arrival'
         assert len(replanned) == 1
         assert not sent and not recording.trajectories
@@ -111,6 +114,17 @@ def test_approach_dispatch_keeps_selected_spline_or_replans_from_arrival(
         assert report['approach_execution_route'] == 'selected_trajectory'
         assert len(sent) == 1
         command = sent[0]
+        if outcome == 'bridged':
+            assert report['approach_arrival_checks_enabled'] is False
+            assert list(command.points[0].positions) == [offset, 0., 0., 0., 0.]
+            assert [p.positions for p in command.points[1:]] == [p.positions for p in selected.points]
+            assert checked[0][1] > 0 and not replanned
+            assert recording.trajectories[0].points == recorded_from_message(command).points
+            selected_ns = [p.time_from_start.sec * 10**9 + p.time_from_start.nanosec
+                           for p in command.points[1:]]
+            assert selected_ns[0] > 0
+            assert selected_ns[-1] - selected_ns[0] == (1 if retime else 2) * 10**9
+            return
         if retime:
             assert ('selected_approach_timing', {'source_duration_sec': 2.,
                     'command_duration_sec': 1., 'command_points': 3}) in events
@@ -546,6 +560,8 @@ def test_collection_sequence_stops_before_transport_without_lift_evidence():
     node.record_approach_commands=lambda arm:CollectionPipeline.record_approach_commands(node,arm)
     node.record_pickup_departure=lambda arm:CollectionPipeline.record_pickup_departure(node,arm)
     node.retreat_to_pregrasp=lambda *args,**kwargs:CollectionPipeline.retreat_to_pregrasp(node,*args,**kwargs)
+    node.lift_after_retreat = CollectionPipeline.lift_after_retreat.__get__(node)
+    node.lift_target = CollectionPipeline.lift_target.__get__(node)
     node.selected_grasp_roll=CollectionPipeline.selected_grasp_roll
     node.stop_wrist_camera=lambda:events.append('camera-off')
     node.wrist_observation_required=lambda:False
@@ -594,6 +610,8 @@ def test_return_hold_mode_requires_contact_and_lift_evidence_and_keeps_payload()
     node.record_approach_commands=lambda arm:CollectionPipeline.record_approach_commands(node,arm)
     node.record_pickup_departure=lambda arm:CollectionPipeline.record_pickup_departure(node,arm)
     node.retreat_to_pregrasp=lambda *args,**kwargs:CollectionPipeline.retreat_to_pregrasp(node,*args,**kwargs)
+    node.lift_after_retreat = CollectionPipeline.lift_after_retreat.__get__(node)
+    node.lift_target = CollectionPipeline.lift_target.__get__(node)
     node.selected_grasp_roll=CollectionPipeline.selected_grasp_roll
     node.stop_wrist_camera=lambda:events.append('camera-off')
     node.wrist_observation_required=lambda:False

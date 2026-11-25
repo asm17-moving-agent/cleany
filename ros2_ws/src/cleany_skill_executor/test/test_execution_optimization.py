@@ -233,6 +233,7 @@ def test_deferred_pregrasp_keeps_final_dispatch_gate_and_cleanup(defer, reject):
             PlannedPath(names, ((0.,)*5, (.1,)*5), (0., 1.), ((0.,)*5, (0.,)*5)))
     node = NS(verify_simulator=lambda *_: calls.append('outer_verify'), measured=lambda: state,
         real=NS(value=lambda *_: .03, fault=False, capture_scene_barrier=lambda *_: 'settled',
+                measured_arm_entry=lambda arm, positions: {n: positions[n] for n in names},
                 execute_pregrasp_parallel=dispatch),
         scene=NS(begin=lambda *_: None, restore=lambda: calls.append('restore')),
         scene_monitor=NS(wait=lambda **_: calls.append('preliminary_scene_wait')), motion=motion,
