@@ -160,3 +160,99 @@ Jetson Orin의 ROS 2 Humble 환경에서 기준 커밋 `98d33162`의 현장 설�
 08:29에 기동한 드라이버 모델에서도 14개 관절의 온도 한도가 각각 80°C였다.
 EEPROM 쓰기 건수는 0건이었고, 드라이버 준비 상태에 fault가 없었다.
 원본은 Jetson의 `/home/cleany/cleany-data/runs/temperature-80-operating-profiles-20261125.q0ftr0yv/` 아래 `readback.json`과 `live-verified.json`이다.
+
+## 2026-11-26 운영 Jetson UDP 수신 버퍼 8 MiB 적용
+
+Jetson Orin NX 운영 작업본 `b38e68b5`의 ROS 2 Humble, Fast DDS 2.6.12에서
+조작 실행기가 읽는 `fastdds_rgbd.xml`에 `receiveBufferSize=8388608`을 추가했다.
+진행 중인 동작과 부착 물체가 없는 상태에서 조작 Action 서버만 재시작했다.
+기동 검사가 Action 서버와 최신 보호 피드백을 확인했다. 커널이 표시하는 실행기의
+DDS 수신 소켓 `SO_RCVBUF`는 16,777,216바이트였다.
+
+동일 설정의 읽기 전용 서비스 묶음 32회에서 128건이 모두 응답했다. 최대 왕복은
+`list_hardware_components` 17.6 ms, `list_controllers` 17.0 ms,
+제어기 및 MoveIt `get_parameters` 각각 16.8 ms였다. 이 약 11초 동안 운영 실행기의
+UDP 드롭 증가는 0건이었다. 재시작 전부터 Action 서버에 수거 실행 차단이 걸려 있었고
+재시작 뒤 상태 조회에서도 확인했다. 모터 명령은 보내지 않았다.
+
+Jetson 원본과 변경 전 프로파일은
+`/home/cleany/cleany-data/runs/udp-buffer-deploy-20261126.NT2tplVb/`에 있다.
+
+## 2026-11-26 제어기 목록 응답 재전송 원인 조사
+
+Jetson Orin NX 운영 작업본 `b38e68b5`의 ROS 2 Humble, Fast DDS 2.6.12에서
+조작 실행기와 같은 프로파일로 읽기 전용 조회 네 건을 함께 요청했다. 진단 클라이언트에서
+DDS 응답 발행 및 수신 시각, UDP 패킷의 RTPS 헤더와 소켓 드롭 카운터를 기록했다.
+
+03:38:41.701 KST의 `/controller_manager/list_controllers` 호출은 2,797.5 ms가
+걸렸다. 요청 전송 직후 2.5 ms에 응답이 발행됐다. 응답을 받는 UDP 소켓의 드롭
+카운터가 최초 발행을 포함하는 약 100 ms 계측 구간에 1 증가했다. 호출 후 2,783.7 ms에
+DDS `HEARTBEAT`가 응답 시퀀스 285를 알렸고, 2,790.9 ms에 클라이언트가 `ACKNACK`을
+보냈다. 같은 시퀀스의 재전송은 2,796.7 ms에 도착했다. `list_hardware_components`에서도
+같은 흐름을 관측했다. Fast DDS의 기본 주기적 `HEARTBEAT` 간격은 3초다.
+[Fast DDS WriterTimes](https://fast-dds.docs.eprosima.com/en/2.6.x/fastdds/api_reference/rtps/attributes/WriterTimes.html).
+
+제어기 프로파일은 UDP만 사용하고, 조작 실행기는 공유 메모리 및 UDP를 사용한다.
+Jetson의 실행기 프로파일에는 UDP `receiveBufferSize`가 빠져 있었다. 위 호출과
+같이 요청한 제어기 `robot_description` 응답의 UDP 데이터그램 네 개는 합계
+약 234 KiB였고, 같은 소켓에 약 0.24 ms 사이에 들어왔다. 03:25의 3.046초와
+3.036초 검증은 당시 패킷 기록이 없어 개별 재전송을 대조할 수 없다.
+
+비교에 사용한 별도 진단 클라이언트는 운영 프로파일과 `receiveBufferSize`만
+8 MiB로 지정한 사본을 번갈아 사용했다. 커널 `SO_RCVBUF` 표시값은 기존
+212,992바이트, 8 MiB 요청 시 16,777,216바이트였다. 작업공간의 RGB-D
+프로파일에는 이미 8 MiB 요청이 들어 있다.
+
+완료된 첫 비교는 조건마다 같은 요청 묶음을 32회 실행했다. 두 목록 조회
+64건의 최대 왕복은 기본값 2,794.3 ms, 8 MiB 요청 시 17.0 ms였다. 진단
+클라이언트의 UDP 드롭은 각각 1,428건과 0건이었다.
+
+모터 명령, 운영 설정 변경과 제어기 재시작은 없었다. 계측 원본은 Jetson
+`/home/cleany/cleany-data/runs/controller-rpc-cause-20261126.yfTDsl3z/` 아래
+`live_udp/`와 `buffer_ab/`에 있다.
+
+## 2026-11-26 접근 전 ROS 서비스별 응답과 중복 검증 조사
+
+Jetson Orin NX 운영 작업본 `b38e68b5`의 ROS 2 Humble, controller_manager
+2.54.0에서 파지 실행기가 사용하는 환경으로 읽기 전용 서비스 네 개를 20회
+동시에 요청했다. 서비스 발견은 모두 0.513 ms 이내였다.
+
+| 서비스 | 왕복 중앙값 | 최대 왕복 | 2.5초 초과 |
+| --- | ---: | ---: | ---: |
+| `/controller_manager/list_hardware_components` | 9.10 ms | 3.019초 | 2회 |
+| `/controller_manager/list_controllers` | 9.80 ms | 2.879초 | 5회 |
+| `/controller_manager/get_parameters` | 8.65 ms | 106 ms | 0회 |
+| `/move_group/get_parameters` | 8.85 ms | 27 ms | 0회 |
+
+한 묶음에서 두 목록 조회가 2.807초와 2.810초 지연되는 동안 파라미터 조회는
+각각 4.5 ms와 2.5 ms였다. 두 목록 서비스는 controller_manager의 배타적 콜백
+그룹과 서비스 잠금을 공유한다. 03:25 실물 로그의 두 검증에는 서비스별 시간이
+없고, 읽기 재현은 서버 콜백, 잠금, 전송 각각의 내부 시간을 구분하지 않는다.
+[ROS 2 Humble controller_manager 2.54.0 구현](https://github.com/ros-controls/ros2_control/blob/2.54.0/controller_manager/src/controller_manager.cpp#L500-L540).
+
+격리 도메인 227의 사본에서 안정화된 실측 시작점과 저장 궤적의 시작점을 먼저
+대조하는 후보를 검사했다. 기존 코드와 후보의 모의 시나리오 20개씩이 통과했다.
+시작점 불일치 경로의 모델 조회 횟수는 두 번에서 한 번으로 줄었다. 실제 전송에
+대한 최신 검증을 그대로 수행하고, 맞는 궤적의 조회 횟수도 한 번이었다.
+운영 코드 변경이나 모터 명령은 없다. Jetson 원본은
+`/home/cleany/cleany-data/runs/approach-rpc-breakdown-20261126.aey2m6p4/`에 있다.
+
+## 2026-11-26 pregrasp 도착과 접근 명령 사이 지연
+
+Jetson Orin NX의 ROS 2 Humble 운영 작업본 `b38e68b5`에서 단일 승인 기록의
+`MoveToPregrasp` 성공 시각과 `ApproachObject`의 첫 궤적 전송 직전 시각을 대조했다.
+
+| 실행 | pregrasp 완료 후 접근 명령까지 | 모델 및 제어기 검증 | Cartesian 계획 호출 합계 |
+| --- | ---: | ---: | ---: |
+| 03:25 `8e277c8e` | 6.49초 | 3.046초, 3.036초 | 0.077초 |
+| 03:21 `3a18c27f` | 0.74초 | 0.044초, 0.022초 | 0.086초 |
+| 03:01 `35117f15` | 3.47초 | 3.025초, 0.046초 | 0.067초 |
+
+03:25의 저장 접근 경로는 시작 관절 편차 0.0352 rad가 허용치 0.030 rad를 넘었다.
+실측에서 재계획한 경로로 넘어가며 검증을 한 번 더 실행했다. 당시 로그는 모델과
+제어기의 읽기 전용 조회 네 건을 한 묶음으로 계측한다. 운영 작업이 진행 중이어서
+개별 서비스 재계측을 생략했다. 코드와 로봇 상태를 변경하지 않았다.
+
+Jetson `/var/opt/cleany/state/cleany/manipulation_jetson/executions.sqlite3`와
+`/home/cleany/cleany-worktrees/jetson-rear-bin-checks/runtime/collection-operator/`의
+`20261126-031907`, `20261126-025604` 실행 로그가 원본이다.

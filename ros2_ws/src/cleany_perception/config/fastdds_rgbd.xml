@@ -7,6 +7,7 @@ endpoint QoS나 최신성 및 기하 수락 조건은 바꾸지 않습니다. --
     <transport_descriptor>
       <transport_id>cleany_rgbd_udp</transport_id>
       <type>UDPv4</type>
+      <receiveBufferSize>8388608</receiveBufferSize>
     </transport_descriptor>
     <transport_descriptor>
       <transport_id>cleany_rgbd_shm</transport_id>

@@ -193,6 +193,8 @@ CLI 준비와 웹 준비는 시작과 최종 검사에서 MoveIt의 `allow_traje
 1초 구간 두 개가 기준 이하일 때 다음 프로세스를 시작하며 기본값은 80%다.
 `CLEANY_COLLECTION_FEEDBACK_CORES`는 모터 제어기와 보호 노드에 할당할 코어 수로 Jetson 기본값은 2다.
 Fast DDS에서는 두 노드에 UDP를 사용하고 센서·깊이 지도에는 공유 메모리 전송을 계속 사용한다.
+조작 실행기가 사용하는 RGB-D 프로파일은 UDP 수신 버퍼 8 MiB를 요청한다.
+Jetson의 `net.core.rmem_max`는 8 MiB 이상이어야 하며 버퍼 크기는 ROS 프로세스를 시작할 때 적용된다.
 
 준비가 중단되면 `real-control.log`에서 마지막 유효 모터 피드백과 제어 주기 한도를 확인한다.
 작업 제안과 승인에서 사용하는 대상 확인 조건은 [dev-monitor 작업 제안 계약](../../../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안)에 있다.
