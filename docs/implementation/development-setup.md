@@ -83,6 +83,16 @@ python3.12 -m venv /tmp/cleany-cad-export
 추가로 필요하며 `vtk==9.6.2`에서 검증했습니다. 생성된 GLB 캐시를 읽는 ROS와
 cuRobo runtime에는 VTK를 설치하지 않습니다.
 
+보정 파지 모델의 충돌 후보 생성과 거리 검사에는 같은 오프라인 가상환경을 사용합니다.
+`libigl`은 병합 형상의 표면 거리 검사에 사용합니다.
+
+```bash
+/tmp/cleany-cad-export/bin/python -m pip install scipy trimesh fast-simplification libigl pytest
+```
+
+선택적 meshoptimizer 백엔드는 v1.0 공유 라이브러리 경로를
+`optimize_cad_collision.py --meshoptimizer-library`로 지정합니다.
+
 ## 1. Ubuntu 기본 설정
 
 UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비합니다.

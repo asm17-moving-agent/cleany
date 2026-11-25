@@ -14,6 +14,7 @@ import yaml
 from cleany_robot_interface.core import mappings, motor_calibration_directory
 from cleany_robot_interface.joint_bounds import apply_joint_bounds, calibrated_joint_bounds
 from cleany_robot_interface.rigid_accessories import attach_rigid_accessories
+from cleany_robot_interface.rigid_collision import apply_rigid_collision_groups
 
 
 def apply_collision_mesh_overrides(
@@ -149,11 +150,20 @@ def prepare_state_profile(profile_file: Path, repository_root: Path, output: Pat
             binding['cad_metadata'], -float(config['grasp_tcp_y_m']))
         command = []
         tree = ET.fromstring(xml)
-        if 'collision_mesh_overrides' in config:
+        collision_config = config
+        if 'cad_collision_profile' in config:
+            if {'collision_mesh_overrides', 'shared_world_collision_links', 'rigid_collision_groups'} & config.keys():
+                raise ValueError('CAD collision settings must come from a single profile')
+            _, collision_config = read(config['cad_collision_profile'])
+        if 'collision_mesh_overrides' in collision_config:
             sources.update(apply_collision_mesh_overrides(
-                tree, config['collision_mesh_overrides'], repository_root))
-        if 'shared_world_collision_links' in config:
-            share_world_collision_geometry(tree, config['shared_world_collision_links'])
+                tree, collision_config['collision_mesh_overrides'], repository_root))
+        if 'shared_world_collision_links' in collision_config:
+            share_world_collision_geometry(tree, collision_config['shared_world_collision_links'])
+        if 'rigid_collision_groups' in collision_config:
+            sources.update(apply_rigid_collision_groups(
+                tree, collision_config['rigid_collision_groups'], repository_root))
+        if 'shared_world_collision_links' in collision_config or 'rigid_collision_groups' in collision_config:
             cad_report['collision_shapes_retained'] = len(tree.findall('link/collision'))
         xml = ET.tostring(tree, encoding='unicode')
     else:
