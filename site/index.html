@@ -1,11 +1,262 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Cleany</title>
-  </head>
-  <body>
-    <h1>Hello World!</h1>
-  </body>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ef">
+  <meta name="description" content="이용이 끝난 무인 공간의 점검과 수거를 돕는 공간 관리 로봇, 끌리니.">
+  <title>Cleany 끌리니 | 다음 이용을 준비하는 공간 관리 로봇</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 이동</a>
+  <header class="site-header" id="top">
+    <div class="shell header-inner">
+      <a class="brand" href="#top" aria-label="Cleany 홈">
+        <img class="brand-mark" src="./assets/favicon.svg" alt="" width="29" height="29"><span lang="en">cleany</span>
+      </a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="sr-only">메뉴</span><span class="menu-icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="site-nav" aria-label="주 메뉴">
+        <a href="#workflow">작동 방식</a>
+        <a href="#comparison">작업 전후</a>
+        <a href="#robot">로봇 살펴보기</a>
+        <a href="#developers">개발 문서</a>
+      </nav>
+      <button class="button button--header" type="button" data-video-dialog="live-dialog" aria-haspopup="dialog"><span class="play-icon" aria-hidden="true"></span>실물 동작 보기</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="shell hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow hero-eyebrow"><span class="accent-line" aria-hidden="true"></span>무인 공간 관리 로봇</p>
+        <h1 id="hero-title" lang="en">Ready for<br>what’s next<span class="hero-period">.</span></h1>
+        <p class="hero-lede"><strong>다음 이용을 준비하는 로봇, 끌리니.</strong><br>이용이 끝난 자리를 살피고 남겨진 물건을 수거해,<br class="desktop-break"> 무인 스터디카페의 반복적인 점검을 돕습니다.</p>
+        <div class="hero-actions">
+          <button class="button button--primary" type="button" data-video-dialog="live-dialog" aria-haspopup="dialog"><span class="play-icon" aria-hidden="true"></span>실물 동작 보기</button>
+          <a class="button button--outline" href="#robot">로봇 살펴보기</a>
+        </div>
+      </div>
+      <figure class="hero-figure">
+        <img src="./assets/hero.webp" srcset="./assets/hero-small.webp 920w, ./assets/hero.webp 1536w" sizes="(max-width: 760px) calc(100vw - 36px), 55vw" alt="카메라와 두 로봇팔, 미소를 띤 디스플레이가 달린 흰색 끌리니 프로토타입" width="1536" height="1024" fetchpriority="high">
+        <figcaption><span lang="en">Cleany Prototype</span><span class="hero-caption-detail">실물 사진 기반 AI 보정</span></figcaption>
+      </figure>
+    </section>
+
+    <div class="shell product-strip" aria-label="로봇 주요 구성">
+      <div><strong>듀얼 로봇팔</strong><span>물체 집기와 수거</span></div>
+      <div><strong>RGB-D 카메라</strong><span>대상 관측과 거리 추정</span></div>
+      <div><strong>4륜 메카넘</strong><span>전방향 이동 베이스</span></div>
+      <div><strong>ROS 2</strong><span>로봇 제어 소프트웨어</span></div>
+    </div>
+
+    <section class="workflow" id="workflow" aria-labelledby="workflow-title">
+      <div class="shell section-inner">
+        <div class="section-heading paired-heading">
+          <div>
+            <p class="eyebrow eyebrow--light"><span class="accent-line" aria-hidden="true"></span>작동 방식</p>
+            <h2 id="workflow-title">한 번의 이용이 끝나면.</h2>
+          </div>
+          <p>운영자가 점검할 구역을 지정하면 끌리니가 이동합니다. 남겨진 물건을 확인하고, 작업 전후의 상태를 운영 화면에 남기는 것이 첫 시연의 목표입니다.</p>
+        </div>
+        <div class="workflow-grid">
+          <div class="workflow-tabs" role="tablist" aria-label="작업 단계" aria-orientation="vertical">
+            <button class="step-tab" type="button" id="step-inspect" role="tab" aria-selected="true" aria-controls="panel-inspect">
+              <span class="step-index" aria-hidden="true">01</span>
+              <span><strong>지정 구역 점검</strong><span>요청받은 위치로 이동해<br class="wide-break"> 남겨진 물건을 확인합니다.</span></span>
+              <span class="step-indicator" aria-hidden="true"></span>
+            </button>
+            <button class="step-tab" type="button" id="step-collect" role="tab" aria-selected="false" aria-controls="panel-collect" tabindex="-1">
+              <span class="step-index" aria-hidden="true">02</span>
+              <span><strong>물건 분류 및 수거</strong><span>쓰레기와 분실물 후보를 구분해<br class="wide-break"> 다른 곳에 담는 흐름을 구현합니다.</span></span>
+              <span class="step-indicator" aria-hidden="true"></span>
+            </button>
+            <button class="step-tab" type="button" id="step-report" role="tab" aria-selected="false" aria-controls="panel-report" tabindex="-1">
+              <span class="step-index" aria-hidden="true">03</span>
+              <span><strong>작업 결과 확인</strong><span>대시보드에서 작업 전후의<br class="wide-break"> 공간 상태를 확인합니다.</span></span>
+              <span class="step-indicator" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="workflow-panels">
+            <figure class="workflow-panel workflow-panel--map" id="panel-inspect" role="tabpanel" aria-labelledby="step-inspect" tabindex="0">
+              <div class="workflow-media"><img src="./assets/map.webp" alt="주행 시험에서 생성한 D-Hub의 실내 지도" width="852" height="914" loading="lazy"></div>
+              <figcaption><strong>D-Hub 실내 지도</strong><span>주행 시험 기록</span><p class="mobile-step-description">요청받은 위치로 이동해 남겨진 물건을 확인합니다.</p></figcaption>
+            </figure>
+            <figure class="workflow-panel workflow-panel--grasp" id="panel-collect" role="tabpanel" aria-labelledby="step-collect" tabindex="0" hidden>
+              <div class="workflow-media"><img src="./assets/grasp.webp" alt="실물 끌리니의 그리퍼가 페트병을 잡은 모습" width="720" height="900" loading="lazy"></div>
+              <figcaption><strong>페트병 파지</strong><span>실물 집기 시험</span><p class="mobile-step-description">쓰레기와 분실물 후보를 구분해 다른 곳에 담는 흐름을 구현합니다.</p></figcaption>
+            </figure>
+            <figure class="workflow-panel workflow-panel--report" id="panel-report" role="tabpanel" aria-labelledby="step-report" tabindex="0" hidden>
+              <div class="workflow-media"><img src="./assets/report.webp" alt="작업 전과 작업 후에 촬영한 사진을 보여주는 끌리니 관제 화면" width="1400" height="788" loading="lazy"></div>
+              <figcaption><strong>작업 전후 비교</strong><span>관제 화면 예시</span><p class="mobile-step-description">대시보드에서 작업 전후의 공간 상태를 확인합니다.</p></figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="compare-section" id="comparison" aria-labelledby="comparison-title">
+      <div class="shell compare-layout">
+        <div class="compare-copy">
+          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>관제 화면 예시</p>
+          <h2 id="comparison-title">수거 전후를<br>한눈에.</h2>
+          <p>컵과 휴지가 사라진 자리에는 수첩이 남아 있습니다. 운영자가 작업 전후를 비교하고, 남은 물건을 확인하는 예시입니다.</p>
+          <a class="text-link" href="#workflow">작동 방식 보기</a>
+        </div>
+        <figure class="desk-compare" id="desk-compare">
+          <div class="compare-stage">
+            <img class="compare-after" src="./assets/desk-after.webp" alt="작업 후 예시. 책상 위에 남색 수첩이 남아 있습니다." width="382" height="254" loading="lazy">
+            <span class="compare-tag compare-tag--after" aria-hidden="true">작업 후</span>
+            <div class="compare-before">
+              <img src="./assets/desk-before.webp" alt="작업 전 예시. 책상 위에 컵과 휴지, 남색 수첩이 놓여 있습니다." width="382" height="254" loading="lazy">
+              <span class="compare-tag compare-tag--before" aria-hidden="true">작업 전</span>
+            </div>
+            <span class="compare-divider" aria-hidden="true"></span>
+            <span class="compare-handle" aria-hidden="true"><i></i><i></i></span>
+            <input class="compare-range" id="comparison-range" type="range" min="0" max="100" value="58" aria-label="작업 전후 사진 비교" aria-describedby="comparison-help" aria-valuetext="작업 전 사진 58퍼센트">
+          </div>
+          <figcaption><strong>D-Hub 07번 좌석</strong><span id="comparison-help">슬라이더를 움직여 비교</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="shell section-inner hardware" id="robot" aria-labelledby="robot-title">
+      <div class="section-heading">
+        <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>끌리니 하드웨어</p>
+        <h2 id="robot-title">보고, 집고, 움직입니다.</h2>
+      </div>
+      <div class="hardware-grid">
+        <figure class="hardware-photo">
+          <div class="hardware-image">
+            <img src="./assets/prototype.webp" alt="개발 공간에서 촬영한 끌리니 실물 프로토타입" width="1200" height="1600" loading="lazy">
+            <button class="hotspot hotspot--camera" type="button" data-part="camera" aria-label="RGB-D 카메라 설명" aria-controls="part-camera" aria-pressed="true"><span aria-hidden="true"></span></button>
+            <button class="hotspot hotspot--arms" type="button" data-part="arms" aria-label="듀얼 로봇팔 설명" aria-controls="part-arms" aria-pressed="false"><span aria-hidden="true"></span></button>
+            <button class="hotspot hotspot--base" type="button" data-part="base" aria-label="메카넘 베이스 설명" aria-controls="part-base" aria-pressed="false"><span aria-hidden="true"></span></button>
+          </div>
+          <figcaption>실물 프로토타입 <span>개발 공간 촬영</span></figcaption>
+        </figure>
+
+        <div class="hardware-copy">
+          <p class="hardware-lede">XLeRobot을 기반으로, 실내를 이동하는 베이스 위에 깊이 카메라와 두 개의 로봇팔을 얹었습니다.</p>
+          <div class="hardware-details" id="hardware-details">
+            <details id="part-camera" name="robot-part" open>
+              <summary>RGB-D 카메라<span class="toggle-icon" aria-hidden="true"></span></summary>
+              <p>색상과 깊이 정보를 함께 얻어, 작업 영역 안의 물체와 로봇 사이의 거리를 추정합니다.</p>
+            </details>
+            <details id="part-arms" name="robot-part">
+              <summary>듀얼 로봇팔<span class="toggle-icon" aria-hidden="true"></span></summary>
+              <p>그리퍼가 달린 두 개의 팔로 대상 물체에 접근합니다. 페트병처럼 사전에 정한 물체의 파지와 수거를 시험하고 있습니다.</p>
+            </details>
+            <details id="part-base" name="robot-part">
+              <summary>4륜 메카넘 베이스<span class="toggle-icon" aria-hidden="true"></span></summary>
+              <p>메카넘 바퀴 네 개를 구동해 앞으로 가거나 옆으로 이동하고, 제자리에서 방향을 바꿀 수 있도록 설계했습니다.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="demo-section" aria-labelledby="demo-title">
+      <div class="shell demo-content">
+        <div class="demo-copy">
+          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>수거 경로 시뮬레이션</p>
+          <h2 id="demo-title">책상에서<br>수거함까지.</h2>
+          <p>책상 위 물체에 접근하고, 뒤쪽 수거함으로 옮긴 뒤 대기 자세로 돌아오는 로봇팔의 경로를 확인해 보세요.</p>
+          <button class="button button--dark" type="button" data-video-dialog="demo-dialog" aria-haspopup="dialog"><span class="play-icon" aria-hidden="true"></span>영상 재생</button>
+        </div>
+        <button class="demo-cover" type="button" data-video-dialog="demo-dialog" aria-haspopup="dialog" aria-label="수거 동작 RViz 재생 영상 보기">
+          <img src="./assets/demo-poster.webp" alt="" width="1200" height="676" loading="lazy">
+          <span class="demo-cover-play" aria-hidden="true"><span class="play-icon"></span></span>
+          <span class="demo-cover-caption">RViz 계획 재생 <span>0:33</span></span>
+        </button>
+      </div>
+    </section>
+
+    <section class="shell section-inner developers" id="developers" aria-labelledby="developers-title">
+      <div class="section-heading paired-heading">
+        <div>
+          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>개발 문서</p>
+          <h2 id="developers-title">끌리니를 만드는 기술.</h2>
+        </div>
+        <p>ROS 2 런타임, 시뮬레이션, 펌웨어와 검증 기록을 Cleany 저장소에서 확인할 수 있습니다.</p>
+      </div>
+      <div class="resource-grid">
+        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/DEVELOPMENT_SETUP.md">
+          <strong>개발 환경 설치</strong><span>Ubuntu, ROS 2 Humble 및 빌드 안내</span>
+        </a>
+        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/RUNNING.md">
+          <strong>실행 가이드</strong><span>시뮬레이션과 실물 실행 경로</span>
+        </a>
+        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/EVIDENCE.md">
+          <strong>검증 기록</strong><span>시험 환경, 실행 결과와 원본 자료</span>
+        </a>
+      </div>
+      <a class="text-link" href="https://github.com/asm17-moving-agent/cleany">GitHub 저장소</a>
+    </section>
+
+    <section class="faq" aria-labelledby="faq-title">
+      <div class="shell faq-layout">
+        <h2 id="faq-title">자주 묻는 질문</h2>
+        <div class="faq-list">
+          <details>
+            <summary>어떤 공간을 위해 만들고 있나요?<span class="toggle-icon" aria-hidden="true"></span></summary>
+            <p>첫 적용 대상으로 무인 스터디카페를 상정했습니다. 이용자가 떠난 뒤 점검과 수거가 필요한 상황에 집중하고, 초기 시연은 개발 공간에서 진행합니다.</p>
+          </details>
+          <details>
+            <summary>수거한 물건은 어떻게 처리하나요?<span class="toggle-icon" aria-hidden="true"></span></summary>
+            <p>초기 시나리오에서는 쓰레기는 수거함으로, 분실물 후보는 별도 보관함으로 옮깁니다. 판단이 어려운 물건은 운영자가 확인할 수 있도록 남기는 흐름을 계획하고 있습니다.</p>
+          </details>
+          <details>
+            <summary>지금 도입할 수 있나요?<span class="toggle-icon" aria-hidden="true"></span></summary>
+            <p>현재는 개발 중인 프로토타입입니다. 구현 현황과 시험 범위는 위의 개발 문서와 검증 기록에서 확인할 수 있습니다.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <div>
+        <a class="brand" href="#top" aria-label="Cleany 홈"><img class="brand-mark" src="./assets/favicon.svg" alt="" width="29" height="29"><span lang="en">cleany</span></a>
+        <p>AI 에이전트는 움직이고 싶어</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/asm17-moving-agent/cleany">GitHub</a>
+        <a href="#top">맨 위로</a>
+      </div>
+    </div>
+  </footer>
+
+  <dialog class="demo-dialog demo-dialog--live" id="live-dialog" aria-labelledby="live-dialog-title">
+    <div class="dialog-header">
+      <div><h2 id="live-dialog-title">실물 로봇팔 접근 시험</h2><p>헤드 카메라 사진 20장을 촬영 순서대로 재생합니다. 이 시험은 그리퍼 접촉 하중이 낮아 수거 실패로 기록됐습니다.</p></div>
+      <form method="dialog">
+        <button type="submit" class="dialog-close" aria-label="영상 닫기" autofocus><span aria-hidden="true"></span></button>
+      </form>
+    </div>
+    <video controls playsinline preload="none" poster="./assets/approach-poster.webp" width="640" height="480" aria-label="실물 로봇팔이 파란 펜에 접근해 그리퍼를 닫는 무음 시험 기록">
+      <source src="./assets/approach.mp4" type="video/mp4">
+      <a href="./assets/approach.mp4">실물 동작 영상 파일 열기</a>
+    </video>
+  </dialog>
+
+  <dialog class="demo-dialog" id="demo-dialog" aria-labelledby="demo-dialog-title">
+    <div class="dialog-header">
+      <div><h2 id="demo-dialog-title">수거 동작 데모</h2><p>MoveIt에서 계획한 로봇팔 경로를 RViz에서 재생한 영상입니다.</p></div>
+      <form method="dialog">
+        <button type="submit" class="dialog-close" aria-label="영상 닫기" autofocus><span aria-hidden="true"></span></button>
+      </form>
+    </div>
+    <video id="demo-video" controls playsinline preload="none" poster="./assets/demo-poster.webp" width="1920" height="1080" aria-label="물체 접근, 수거함으로 이동, 대기 자세 복귀를 보여주는 무음 RViz 데모">
+      <source src="./assets/demo.mp4" type="video/mp4">
+      <a href="./assets/demo.mp4">데모 영상 파일 열기</a>
+    </video>
+  </dialog>
+</body>
 </html>
