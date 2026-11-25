@@ -44,6 +44,11 @@ struct Joint
   bool recovery_telemetry{false};
   int raw{};
   std::optional<int> stopped_goal_raw;
+  int endpoint_margin{}, endpoint_load{}, contact_samples{}, contact_origin{}, contact_side{};
+  std::optional<int> endpoint_hold;
+  bool near_range(int measured) const;
+  void observe_endpoint();
+  int endpoint_target(int target);
   bool enabled{false}, powered{false};
   double radians(int ticks) const;
   int ticks(double radians) const;

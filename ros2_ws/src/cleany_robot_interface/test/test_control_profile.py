@@ -329,6 +329,22 @@ def test_single_arm_operational_profiles_match_normal_speed_and_temperature(file
     assert profile['joint_defaults']['max_velocity'] == 1.0
 
 
+@pytest.mark.parametrize('filename', ['feetech_control.yaml', 'feetech_operational_left_arm.yaml',
+                                      'feetech_operational_right_arm.yaml'])
+def test_jetson_motor_protection_reaches_driver(tmp_path, state_profile_file, filename):
+    control = ROOT/'configs/robot/jetson'/filename
+    model = ET.parse(prepare_control_profile(state_profile_file, ROOT, tmp_path/'jetson', control).model)
+    assert model.findtext("ros2_control/hardware/param[@name='temperature_limit_c']") == '80'
+    for joint in model.findall('ros2_control/joint'):
+        params = {p.get('name'): p.text for p in joint.findall('param')}
+        motor_id = int(params['motor_id'])
+        assert params.get('temperature_limit_c', '80') == '80'
+        if motor_id <= 12 and motor_id not in (6, 12):
+            assert (params['endpoint_margin_ticks'], params['endpoint_load_raw']) == ('20', '300')
+        else:
+            assert 'endpoint_margin_ticks' not in params and 'endpoint_load_raw' not in params
+
+
 @pytest.mark.parametrize('profile,arms', [
     ('feetech_control.yaml', ('left', 'right')),
     ('feetech_operational_left_arm.yaml', ('left',)),

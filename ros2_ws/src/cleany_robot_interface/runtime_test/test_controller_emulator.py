@@ -341,7 +341,7 @@ class Runtime:
         goal.trajectory.joint_names = ['wrong_joint'] if bad_joint else joints
         for seconds, shift in ((0, 0), (duration, delta)):
             point = JointTrajectoryPoint()
-            point.positions = [actual[j]+shift for j in joints]
+            point.positions = [actual[j] + (shift[j] if isinstance(shift, dict) else shift) for j in joints]
             point.velocities = [0.0]*len(joints)
             point.accelerations = [0.0]*len(joints)
             point.time_from_start.sec = seconds
@@ -715,6 +715,56 @@ def test_position_commands_clamp_without_driver_speed_or_tracking_limits(tmp_pat
         assert 'LATCHED hardware fault' not in (tmp_path/'manager.log').read_text()
         assert {w['id'] for w in runtime.arms.writes} == {5}
         assert not runtime.head.writes
+    finally:
+        runtime.close()
+
+
+@pytest.mark.parametrize('side', [-1, 1])
+def test_loaded_endpoint_holds_one_joint_and_accepts_inward_goal(tmp_path, side):
+    def stop_at_contact(goal, stop):
+        return min(goal, stop) if side > 0 else max(goal, stop)
+
+    class EndpointServos(Servos):
+        def update(self, motor, address, data):
+            super().update(motor, address, data)
+            if motor != 5 or not self.registers[motor][40]:
+                return
+            registers = self.registers[motor]
+            offset = 11 if side > 0 else 9
+            stop = int.from_bytes(registers[offset:offset + 2], 'little') - side * 12
+            goal = int.from_bytes(registers[42:44], 'little')
+            measured = stop_at_contact(goal, stop)
+            registers[56:58] = measured.to_bytes(2, 'little')
+            registers[60:62] = (1324 if goal != measured else 0).to_bytes(2, 'little')
+
+    config = yaml.safe_load((ROOT/'configs/robot/jetson/feetech_control.yaml').read_text())
+    pitch, roll = 'left_wrist_pitch_joint', 'left_wrist_roll_joint'
+    config['command_joints'] = [pitch, roll]
+    control = tmp_path/'endpoint.yaml'
+    control.write_text(yaml.safe_dump(config))
+    runtime = Runtime(tmp_path, False, control, servo_type=EndpointServos, current_calibration=True)
+    try:
+        joint = ET.parse(runtime.profile.model).find("ros2_control/joint[@name='left_wrist_roll_joint']")
+        p = {v.get('name'): float(v.text) for v in joint.findall('param')}
+        assert p['endpoint_margin_ticks'] == 20
+        registers = runtime.arms.registers[5]
+        limit = int(p['range_max' if side > 0 else 'range_min'])
+        pitch_registers = runtime.arms.registers[4]
+        pitch_start = int.from_bytes(pitch_registers[56:58], 'little')
+        for target, pitch_shift in ((limit, 0.), (limit, .08), (limit - side * 90, 0.)):
+            now = int.from_bytes(registers[56:58], 'little')
+            delta = {roll: p['direction'] * (target - now) * math.tau / 4096, pitch: pitch_shift}
+            handle, _ = runtime.goal('left_arm_controller', delta, 1)
+            assert handle.accepted
+            assert runtime.wait(handle.get_result_async()).result.error_code == 0
+            runtime.spin(.3)
+            wire = int.from_bytes(registers[42:44], 'little')
+            assert wire == stop_at_contact(target, limit - side * 12)
+            assert registers[40] == 1
+            if pitch_shift:
+                assert abs(int.from_bytes(pitch_registers[56:58], 'little') - pitch_start) == 52
+        assert 'holding at endpoint' in (tmp_path/'manager.log').read_text()
+        assert 'LATCHED hardware fault' not in (tmp_path/'manager.log').read_text()
     finally:
         runtime.close()
 

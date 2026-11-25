@@ -83,6 +83,11 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
             or temperature_filter['temperature_macd_fast_tau_s']
             >= temperature_filter['temperature_macd_slow_tau_s']):
         raise ValueError('Invalid temperature MACD time constants')
+    margin = limits.get('arm_endpoint_margin_ticks', 0)
+    load = limits.get('arm_endpoint_load_raw', 300)
+    if (type(margin) is not int or not 0 <= margin <= 20
+            or type(load) is not int or not 1 <= load <= 1000):
+        raise ValueError('Invalid arm endpoint settings')
     defaults = limits['joint_defaults']
     mapped = mappings(arm, calibrations)
     overrides = limits.get('joint_overrides', {})
@@ -170,6 +175,8 @@ def add_control_model(model: str, arm: dict, calibrations: dict, head: dict,
                 or not 1 <= joint_values.get('temperature_limit_c', limits['temperature_limit_c'])
                 <= limits['temperature_limit_c']):
             raise ValueError('Invalid per-joint register limits')
+        if margin and joint.motor_id not in (6, 12):
+            values.update(endpoint_margin_ticks=margin, endpoint_load_raw=load)
         values.update(lower=float(bound.get('lower')), upper=float(bound.get('upper')), **joint_values)
         # Host trajectory validation also reads the dynamic limits from this model.
         for key, value in values.items():

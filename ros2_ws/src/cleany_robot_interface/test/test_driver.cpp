@@ -34,6 +34,43 @@ Joint sample()
   return j;
 }
 
+TEST(Endpoint, LoadMustPersistNearTheLimitWithoutEncoderProgress)
+{
+  for (int side : {-1, 1}) {
+    auto j = sample();
+    j.endpoint_margin = 20;
+    j.endpoint_load = 300;
+    j.powered = true;
+    const int limit = side > 0 ? j.raw_max : j.raw_min;
+    j.sent_goal_raw = j.goal_position_raw = limit;
+    j.load_magnitude_raw = 310;
+    j.raw = limit - side * 21;
+    for (int i = 0; i < 4; ++i) {j.observe_endpoint();}
+    EXPECT_FALSE(j.endpoint_hold);
+    for (int distance : {19, 15, 12, 8}) {
+      j.raw = limit - side * distance;
+      j.observe_endpoint();
+    }
+    EXPECT_FALSE(j.endpoint_hold);
+    j.load_magnitude_raw = 299;
+    j.observe_endpoint();
+    j.load_magnitude_raw = 300;
+    j.observe_endpoint();
+    j.observe_endpoint();
+    EXPECT_EQ(j.endpoint_target(limit), limit);
+    j.observe_endpoint();
+    ASSERT_EQ(j.endpoint_hold, j.raw);
+    const int hold = j.raw;
+    j.raw -= side * 3;
+    EXPECT_EQ(j.endpoint_target(limit), hold);
+    EXPECT_EQ(j.endpoint_target(hold), hold);
+    EXPECT_EQ(j.endpoint_target(hold - side * 5), hold - side * 5);
+    EXPECT_FALSE(j.endpoint_hold);
+    EXPECT_TRUE(j.near_range(limit + side * 20));
+    EXPECT_FALSE(j.near_range(limit + side * 21));
+  }
+}
+
 TEST(Mapping, DirectionAndNoDuplicateHoming)
 {
   auto j = sample();

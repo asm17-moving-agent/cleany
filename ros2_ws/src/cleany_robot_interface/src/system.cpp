@@ -86,7 +86,48 @@ int Joint::ticks(double value) const
   if (!std::isfinite(raw) || raw < 0 || raw > 4095) {
     throw std::runtime_error(name + ": invalid encoder target");
   }
-  return static_cast<int>(std::lround(raw));
+  const int target = static_cast<int>(std::lround(raw));
+  return endpoint_margin ? std::clamp(target, raw_min, raw_max) : target;
+}
+
+bool Joint::near_range(int measured) const
+{
+  return raw_min - endpoint_margin <= measured && measured <= raw_max + endpoint_margin;
+}
+
+void Joint::observe_endpoint()
+{
+  if (!endpoint_margin || endpoint_hold) {return;}
+  const int first = ticks(lower), last = ticks(upper);
+  const int lo = std::max(raw_min, std::min(first, last));
+  const int hi = std::min(raw_max, std::max(first, last));
+  const int side = goal_position_raw > raw && raw >= hi - endpoint_margin ? 1 :
+    (goal_position_raw < raw && raw <= lo + endpoint_margin ? -1 : 0);
+  if (!side || !powered || goal_position_raw != sent_goal_raw || load_magnitude_raw < endpoint_load) {
+    contact_samples = 0;
+    return;
+  }
+  // Count complete bus snapshots, never controller writes. Restart on encoder progress.
+  if (!contact_samples || side != contact_side || std::abs(raw - contact_origin) > 2) {
+    contact_origin = raw;
+    contact_side = side;
+    contact_samples = 0;
+  }
+  if (++contact_samples == 3) {
+    endpoint_hold = std::clamp(raw, lo, hi);
+    RCLCPP_WARN(logger, "%s: holding at endpoint %d (goal %.0f, load %.0f)",
+      name.c_str(), *endpoint_hold, goal_position_raw, load_magnitude_raw);
+  }
+}
+
+int Joint::endpoint_target(int target)
+{
+  if (endpoint_hold) {
+    if (contact_side * (target - *endpoint_hold) >= 0) {return *endpoint_hold;}
+    endpoint_hold.reset();
+    contact_samples = 0;
+  }
+  return target;
 }
 
 FeetechSystem::~FeetechSystem() {std::lock_guard<std::recursive_mutex> lock(io_mutex_); hold();}
@@ -177,6 +218,14 @@ hardware_interface::CallbackReturn FeetechSystem::on_init(const hardware_interfa
         j.homing = integer(v, "homing_offset");
         j.raw_min = integer(v, "range_min"); j.raw_max = integer(v, "range_max");
         j.lower = number(v, "lower"); j.upper = number(v, "upper");
+        if (v.count("endpoint_margin_ticks") || v.count("endpoint_load_raw")) {
+          j.endpoint_margin = integer(v, "endpoint_margin_ticks");
+          j.endpoint_load = integer(v, "endpoint_load_raw");
+          if (j.id % 6 == 0 || j.endpoint_margin < 1 || j.endpoint_margin > 20 ||
+            j.endpoint_load < 1 || j.endpoint_load > 1000 ||
+            j.raw_max - j.raw_min <= 2 * j.endpoint_margin)
+          {throw std::runtime_error("Invalid arm endpoint settings");}
+        }
         j.speed = integer(v, "speed_raw"); j.acceleration = integer(v, "acceleration_raw");
         j.torque = integer(v, "torque_limit_raw");
         j.temperature_limit = v.count("temperature_limit_c") ?
@@ -388,6 +437,9 @@ void FeetechSystem::snapshot(int64_t stamp_ns)
       }
       int value = state[16] + 256 * state[17];
       j.radians(value);
+      if (!read_only_ && j.enabled && j.endpoint_margin && !j.near_range(value)) {
+        throw std::runtime_error(j.name + ": encoder beyond endpoint margin: " + std::to_string(value));
+      }
       raw.push_back(value);
       snapshots.push_back(state);
     }
@@ -415,6 +467,11 @@ void FeetechSystem::snapshot(int64_t stamp_ns)
     joints_[i].position_raw = raw[i];
     joints_[i].current_raw = (snapshots[i][29] + 256 * snapshots[i][30]) & 0x7fff;
     joints_[i].load_magnitude_raw = (snapshots[i][20] + 256 * snapshots[i][21]) & 0x3ff;
+    if (active_ && claimed_.count(joints_[i].name + "/position")) {
+      joints_[i].observe_endpoint();
+    } else {
+      joints_[i].contact_samples = 0;
+    }
     joints_[i].moving_flag = snapshots[i][26];
     // SerialBus rejects nonzero packet errors and bad checksums before returning.
     joints_[i].protocol_error_code = 0;
@@ -443,7 +500,7 @@ void FeetechSystem::hold_for_read_recovery(int id, int address)
   }
   std::vector<std::pair<int, int>> targets;
   for (const auto & j : joints_) {
-    if (j.enabled && j.powered) {targets.emplace_back(j.id, j.ticks(j.position));}
+    if (j.enabled && j.powered) {targets.emplace_back(j.id, j.endpoint_hold.value_or(j.ticks(j.position)));}
   }
   if (!targets.empty()) {arm_.goals(targets);}
   recovery_hold_pending_ = true;
@@ -454,6 +511,10 @@ hardware_interface::CallbackReturn FeetechSystem::on_activate(const rclcpp_lifec
   std::lock_guard<std::recursive_mutex> lock(io_mutex_);
   if (fault_) {return CallbackReturn::ERROR;}
   try {
+    for (auto & joint : joints_) {
+      joint.contact_samples = 0;
+      joint.endpoint_hold.reset();
+    }
     snapshot();
     if (const char * park = std::getenv("CLEANY_FIELD_PARK_JOINTS"); park && !read_only_) {
       verify_field_park(joints_, park);
@@ -599,13 +660,14 @@ void FeetechSystem::hold(const std::vector<std::string> & interfaces) noexcept
     try {
       int raw = arm_.read_value(j.id, 56, 2);
       j.radians(raw);
-      if ((raw < j.raw_min || raw > j.raw_max) && !j.stopped_goal_raw) {
+      if (!j.near_range(raw) && !j.stopped_goal_raw) {
         throw std::runtime_error("Hold position outside EEPROM range");
       }
       // Stop at measured position once. Fault handling, deactivation, cleanup
       // and destruction may all call hold: re-latching each sagged encoder
       // value would progressively lower a loaded arm while torque stays ON.
-      const int target = j.stopped_goal_raw.value_or(raw);
+      const int measured_hold = j.endpoint_margin ? j.ticks(j.radians(raw)) : raw;
+      const int target = j.stopped_goal_raw.value_or(j.endpoint_hold.value_or(measured_hold));
       if (target < j.raw_min || target > j.raw_max) {
         throw std::runtime_error("Hold target outside EEPROM range");
       }
@@ -661,7 +723,7 @@ hardware_interface::return_type FeetechSystem::write(const rclcpp::Time &, const
       std::vector<std::pair<int, int>> hold_targets;
       for (auto & j : joints_) {
         if (!j.enabled) {continue;}
-        hold_targets.emplace_back(j.id, j.ticks(j.position));
+        hold_targets.emplace_back(j.id, j.endpoint_hold.value_or(j.ticks(j.position)));
         j.command = j.position;
         j.sent_goal_raw = hold_targets.back().second;
         j.sent_position = j.radians(hold_targets.back().second);
@@ -673,9 +735,9 @@ hardware_interface::return_type FeetechSystem::write(const rclcpp::Time &, const
     std::vector<std::pair<int, int>> targets;
     std::vector<std::pair<size_t, int>> sent;
     for (size_t index = 0; index < joints_.size(); ++index) {
-      const auto & j = joints_[index];
+      auto & j = joints_[index];
       if (j.enabled && claimed_.count(j.name + "/position")) {
-        const int target = j.ticks(j.command);
+        const int target = j.endpoint_target(j.ticks(j.command));
         // An idle position controller may initialize from the encoder. Preserve
         // the loaded hold until it requests a distinct target.
         if (require_powered_hold() && j.stopped_goal_raw &&
