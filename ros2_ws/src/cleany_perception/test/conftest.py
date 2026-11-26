@@ -73,6 +73,6 @@ def gemini_privacy_model(monkeypatch, tmp_path):
         output[:, bgr.shape[1] // 2:] = (86, 76, 66)
         return SimpleNamespace(image=output)
 
-    monkeypatch.delenv('CLEANY_GEMINI_IMAGE_MODE', raising=False)
+    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', 'redacted')
     monkeypatch.setenv('CLEANY_CAMERA_PRIVACY_GPU_LOCK', str(tmp_path / 'gpu.lock'))
     monkeypatch.setattr(external_image, '_redactor', lambda: SimpleNamespace(redact=redact))

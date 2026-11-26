@@ -438,9 +438,14 @@ def test_classification_keeps_required_evidence_for_existing_collection(reason):
         parse_gemini_classifications(json.dumps({'objects': [item]}), (detection,))
 
 
-def test_demo_uses_independent_original_rgb_without_running_redaction(monkeypatch):
+@pytest.mark.parametrize('mode', [None, 'original'])
+def test_original_rgb_is_copied_without_running_redaction(monkeypatch, mode):
     from cleany_perception import external_image
-    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', 'original')
+
+    if mode is None:
+        monkeypatch.delenv('CLEANY_GEMINI_IMAGE_MODE')
+    else:
+        monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', mode)
     monkeypatch.setattr(external_image, '_redactor', lambda: pytest.fail('Unexpected privacy inference'))
     source = np.arange(60 * 40 * 3, dtype=np.uint8).reshape(40, 60, 3)[:, ::-1]
     saved = source.copy()
@@ -450,9 +455,10 @@ def test_demo_uses_independent_original_rgb_without_running_redaction(monkeypatc
     np.testing.assert_array_equal(source, saved)
 
 
-def test_unrecognized_gemini_mode_keeps_redaction(monkeypatch):
+@pytest.mark.parametrize('mode', ['', 'origina'])
+def test_unrecognized_gemini_mode_keeps_redaction(monkeypatch, mode):
     from cleany_perception import external_image
-    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', 'origina')
+    monkeypatch.setenv('CLEANY_GEMINI_IMAGE_MODE', mode)
     source = np.zeros((20, 30, 3), np.uint8)
     result = np.asarray(external_image.for_gemini(source))
     np.testing.assert_array_equal(result[10, 20], [66, 76, 86])

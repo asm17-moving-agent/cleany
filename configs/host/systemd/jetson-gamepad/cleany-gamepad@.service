@@ -1,0 +1,21 @@
+[Unit]
+Description=Cleany physical gamepad %i
+ConditionUser=cleany
+PartOf=cleany-gamepad.target
+ConditionFileIsExecutable=/opt/cleany/current/field/repo/tools/ros2/run-gamepad-service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/cleany/current
+Environment=HOME=/var/opt/cleany/state XDG_STATE_HOME=/var/opt/cleany/state XDG_CACHE_HOME=/var/opt/cleany/cache
+Environment=ROS_LOG_DIR=/var/opt/cleany/ros-log ROS_DOMAIN_ID=0 ROS_LOCALHOST_ONLY=0 RMW_IMPLEMENTATION=rmw_fastrtps_cpp FASTRTPS_DEFAULT_PROFILES_FILE=/etc/opt/cleany/field/fastdds.xml
+Environment=PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=/etc/opt/cleany/field/gamepad.env
+ExecStart=/usr/bin/bwrap --bind / / --dev-bind /dev /dev --tmpfs /home -- /opt/cleany/current/field/repo/tools/ros2/run-gamepad-service %i
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=30
+UMask=0077

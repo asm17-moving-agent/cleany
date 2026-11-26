@@ -28,6 +28,12 @@ class RedactedFrame:
     counts: dict[str, int]
 
 
+@dataclass(frozen=True)
+class CameraViews:
+    preview: RedactedFrame
+    archive: RedactedFrame
+
+
 def cover_box(mask: np.ndarray, box, margin: float) -> None:
     """Cover continuous xyxy coordinates including a margin at the frame edge."""
     x1, y1, x2, y2 = map(float, box)
@@ -38,6 +44,21 @@ def cover_box(mask: np.ndarray, box, margin: float) -> None:
     x1, x2 = np.clip([np.floor(x1 - dx), np.ceil(x2 + dx)], 0, w).astype(int)
     y1, y2 = np.clip([np.floor(y1 - dy), np.ceil(y2 + dy)], 0, h).astype(int)
     mask[y1:y2, x1:x2] = 255
+
+
+def cover_person_head(mask: np.ndarray, box, silhouette: np.ndarray | None) -> None:
+    """Cover the upper silhouette for side and rear views without a detected face."""
+    x1, y1, x2, y2 = box
+    height, width = y2 - y1, x2 - x1
+    # A wide, horizontal silhouette has no reliable vertical head position.
+    depth = height if width > 1.35 * height else min(height, max(.32 * height, .65 * width))
+    if silhouette is None or not np.any(silhouette):
+        cover_box(mask, (x1, y1, x2, y1 + depth), .12)
+        return
+    if silhouette.shape != mask.shape:
+        raise ValueError('Invalid silhouette size')
+    end = int(np.clip(np.ceil(y1 + depth), 0, mask.shape[0]))
+    np.copyto(mask[:end], 255, where=silhouette[:end] != 0)
 
 
 def opaque_frame(bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -67,7 +88,7 @@ class CameraRedactor:
         self._mean = np.array([.485, .456, .406], np.float32)[None, :, None, None]
         self._std = np.array([.229, .224, .225], np.float32)[None, :, None, None]
 
-    def _objects(self, bgr: np.ndarray, mask: np.ndarray, counts: dict[str, int], stamp) -> np.ndarray:
+    def _objects(self, bgr, mask, heads, counts, stamp) -> np.ndarray:
         result = self.segmenter.predict(
             bgr, device=self.device, conf=.016, imgsz=640, rect=False,
             retina_masks=True, verbose=False, max_det=100,
@@ -94,6 +115,12 @@ class CameraRedactor:
             if score < threshold:
                 continue
             counts[name] = counts.get(name, 0) + 1
+            if name == 'face':
+                # Include hair and ears around the face detector's tighter box.
+                cover_box(heads, box, .45)
+            elif name == 'person':
+                silhouette = silhouettes[i] if i < len(silhouettes) else None
+                cover_person_head(heads, box, silhouette)
             if i < len(silhouettes):
                 pixels = silhouettes[i]
                 if pixels.shape != mask.shape:
@@ -120,6 +147,7 @@ class CameraRedactor:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (radius * 2 + 1,) * 2)
         surfaces = self.history.apply(bgr, surfaces, stamp)
         cv2.bitwise_or(mask, cv2.dilate(surfaces, kernel), dst=mask)
+        cv2.dilate(heads, kernel, dst=heads)
         return cv2.dilate(body, kernel)
 
     def _faces(self, view: np.ndarray, mask: np.ndarray) -> int:
@@ -176,19 +204,29 @@ class CameraRedactor:
         return len(centers)
 
     def redact(self, bgr: np.ndarray, stamp: float | None = None) -> RedactedFrame | None:
-        """Warm the screen tracker on the first video frame after an input gap."""
+        """Return the full-body policy used by existing snapshot and archive consumers."""
+        views = self.redact_views(bgr, stamp)
+        return views.archive if views is not None else None
+
+    def redact_views(self, bgr: np.ndarray, stamp: float | None = None) -> CameraViews | None:
+        """Produce both outputs from the same detections; withhold both during warm-up."""
         if bgr.dtype != np.uint8 or bgr.ndim != 3 or bgr.shape[2] != 3 or not bgr.size:
             raise ValueError('Expected an 8-bit BGR frame')
         mask = np.zeros(bgr.shape[:2], np.uint8)
         counts: dict[str, int] = {}
         emit = stamp is None or self.history.continuous(stamp)
-        people = self._objects(bgr, mask, counts, stamp)
+        heads = np.zeros_like(mask)
+        people = self._objects(bgr, mask, heads, counts, stamp)
         ratio = min(1., 640 / max(mask.shape))
         view = cv2.resize(bgr, None, fx=ratio, fy=ratio, interpolation=cv2.INTER_AREA) if ratio < 1 else bgr
-        counts['face_yunet'] = self._faces(view, people)
+        counts['face_yunet'] = self._faces(view, heads)
         counts['text_region'] = self._letters(view, mask)
         if not emit:
             return None
-        output = opaque_frame(bgr, mask)
-        output[people != 0] = PERSON_FILL
-        return RedactedFrame(output, mask | people, counts)
+        preview = opaque_frame(bgr, mask)
+        preview[heads != 0] = PERSON_FILL
+        preview_mask = mask | heads
+        archive = preview.copy()
+        archive[people != 0] = PERSON_FILL
+        return CameraViews(RedactedFrame(preview, preview_mask, counts),
+                           RedactedFrame(archive, preview_mask | people, counts))

@@ -32,7 +32,7 @@ def for_gemini(rgb: RgbArray) -> Image.Image:
     pixels = np.asarray(rgb)
     if pixels.dtype != np.uint8 or pixels.ndim != 3 or pixels.shape[2] != 3 or not pixels.size:
         raise InspectionFailure(FailureKind.DETECTOR_RESPONSE, 'Expected an HxWx3 uint8 RGB image')
-    if os.environ.get('CLEANY_GEMINI_IMAGE_MODE') == 'original':
+    if os.environ.get('CLEANY_GEMINI_IMAGE_MODE', 'original') == 'original':
         return Image.fromarray(pixels.copy())
     try:
         lock = Path(os.environ.get('CLEANY_CAMERA_PRIVACY_GPU_LOCK', DEFAULT_GPU_LOCK))

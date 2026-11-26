@@ -48,3 +48,22 @@ LS와 RS를 놓으면 가운데를 지나 양쪽으로 튀는 동안 해당 축�
 운전 중 서보 보호 정지가 발생하면 로그에 축 ID, 실측 위치, 상태 코드, 온도가 표시됩니다. 양쪽 서보에서 1초간 정상값을 확인한 뒤 RS를 가운데에 놓고 다시 기울이면 조향이 재개됩니다.
 
 첫 구동은 바퀴를 띄운 상태에서 설정된 저속으로 확인합니다. 스틱과 버튼의 중립 복귀, 패드 전원 끄기, 리시버 분리와 어댑터 종료를 시험하고 MCU의 정지 확인 및 측정 휠 속도를 기록합니다. 입력 만료 설정과 측정한 정지 시간을 구분해 기록합니다.
+
+## Jetson 부팅 시 수동 조종
+
+운영 배포본은 `configs/host/systemd/jetson-gamepad`의 사용자 유닛과
+`tools/ros2/run-gamepad-service`를 사용합니다. `python3-evdev`와 현재 커널용 수신기
+드라이버를 설치하고, `/etc/opt/cleany/field/gamepad.env`의 `CLEANY_GAMEPAD_MCU`에는
+휠 피드백으로 식별한 MCU의 `/dev/serial/by-id/` 경로를 지정합니다. Backend의
+`CLEANY_GAMEPAD_SOCKET`에는 같은 사용자의 `$XDG_RUNTIME_DIR/cleany-gamepad.sock`에
+해당하는 절대 경로를 설정합니다.
+
+`cleany-gamepad.target`은 USB Agent, 베이스, loopback 조종 서버, 패드 입력과 중계를
+관리합니다. 필드 주행 서비스와 수동 전용 타깃은 베이스를 단독으로 사용합니다.
+수동 운용 시 타깃을 enable하고 패드가 중립인 상태에서 start합니다. 운용을 마치면
+`systemctl --user stop cleany-gamepad.target`으로 종료합니다. `/joy` 입력과
+`/wheel/odom` 수신, 조종 상태의 MCU 연결과 정지 피드백을 각각 확인합니다.
+
+운영 호스트에서는 검증된 커널 모듈 경로를 인자로
+`tools/ros2/install-gamepad-services /path/to/cleany_xpad.ko`를 실행합니다.
+이 명령은 부팅 설정만 등록합니다. 커널 ABI가 바뀌면 새 모듈을 빌드해 다시 설치합니다.

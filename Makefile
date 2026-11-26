@@ -425,7 +425,7 @@ build-handeye:
 build-telemetry:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_telemetry
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_telemetry
 
 test-telemetry: build-telemetry
 	source "$(ROS_SETUP)" && \

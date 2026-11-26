@@ -80,10 +80,11 @@ RGB와 원본 깊이의 시각 차이는 `maximum_pair_skew_s` 이하일 때만 
 | 방향 | 기본 토픽 | 타입 | QoS |
 |---|---|---|---|
 | 구독 | `/camera/color/image_raw` | `sensor_msgs/msg/Image`, RGB8 또는 BGR8 | Best effort, volatile, depth 1 |
-| 발행 | `/camera/head/color/image_redacted` | `sensor_msgs/msg/Image`, BGR8 | Best effort, volatile, depth 1 |
+| 발행 | `/camera/head/color/image_preview_redacted` (관리 화면) | `sensor_msgs/msg/Image`, BGR8 | Best effort, volatile, depth 1 |
+| 발행 | `/camera/head/color/image_redacted` (저장 및 공유) | `sensor_msgs/msg/Image`, BGR8 | Best effort, volatile, depth 1 |
 
-검출기는 각 프레임에서 사람, 얼굴, 화면, 문서와 글자 위치를 확인한다. 사람과 민감한 표면을 서로 다른 불투명 색으로 채운다. 화면 검출이 잠시 끊기면 배경의 움직임을 확인한 뒤 최대 0.48초 동안 이전 화면 영역을 보강한다. 구독자가 있을 때 기본 최대 5 Hz로 처리한다. 입력 시각이 오래됐거나 추론이 실패하거나 GPU 잠금을 얻지 못하면 해당 프레임은 발행하지 않는다.
+검출기는 각 프레임에서 사람, 얼굴, 화면, 문서와 글자 위치를 확인한다. 프리뷰는 얼굴 주변과 사람 실루엣의 머리 쪽을 가린다. 가로로 누운 형태는 머리 위치가 불분명해 범위를 넓힌다. 녹화본은 여기에 사람의 몸통, 손과 팔까지 가린다. 두 영상은 같은 프레임의 검출 결과를 공유하며 화면, 문서, 글자에는 같은 가림 처리를 한다. 화면 검출이 잠시 끊기면 배경의 움직임을 확인한 뒤 최대 0.48초 동안 이전 화면 영역을 보강한다. 구독자가 있을 때 기본 최대 5 Hz로 처리한다. 입력 시각이 오래됐거나 추론이 실패하거나 GPU 잠금을 얻지 못하면 해당 프레임은 발행하지 않는다.
 
 영상에 클라우드 인식을 허용하지 않는 현장 구성에서는 `inspect_scene.launch.py`에 `allow_external_images:=false`를 전달한다. 이 설정에서 Gemini 어댑터를 선택하면 노드가 기동 시 중단된다. 기존 원본 ROS 토픽의 접근 권한은 배포 환경이 관리한다.
 
-Gemini 탐지, 파일 업로드, 번호 분류와 Decision API는 기본적으로 비식별 RGB 스냅샷을 사용한다. 시연용 인식 서비스에 `CLEANY_GEMINI_IMAGE_MODE=original`을 지정하면 가리지 않은 스냅샷을 사용한다. 번호 분류에는 선택한 영상의 복사본에 검출 상자와 번호를 그린다. 이 설정의 적용 범위는 Gemini 이미지 요청이다.
+Gemini 탐지, 파일 업로드, 번호 분류와 Decision API는 기본적으로 원본 RGB 스냅샷을 사용한다. 인식 서비스에 `CLEANY_GEMINI_IMAGE_MODE=redacted`를 설정하면 비식별 영상을 사용한다. 빈 문자열이나 알 수 없는 값을 지정해도 비식별 처리를 적용한다. 번호 분류에는 선택한 영상의 복사본에 검출 상자와 번호를 그린다. 이 설정의 적용 범위는 Gemini 이미지 요청이다.

@@ -159,7 +159,7 @@ def test_provider_resolves_preview_and_rejects_depth_without_leasing():
 
 
 def test_operational_preview_only_catalogs_redacted_source():
-    topic = '/camera/head/color/image_redacted'
+    topic = '/camera/head/color/image_preview_redacted'
     c = Cameras(allowed_topic=topic)
     c.discover({k: ['sensor_msgs/msg/Image'] for k in
                 (topic, '/camera/color/image_raw', '/perception/debug_image_latched')})

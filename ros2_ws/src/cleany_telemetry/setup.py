@@ -17,5 +17,6 @@ setup(
     description="Read-only robot pose observations and camera previews.",
     license="Apache-2.0",
     entry_points={"console_scripts": ["pose_observer = cleany_telemetry.pose_node:main",
-                                      "camera_preview = cleany_telemetry.camera_node:main"]},
+                                      "camera_preview = cleany_telemetry.camera_node:main",
+                                      "robot_observer = cleany_telemetry.robot_node:main"]},
 )

@@ -1,0 +1,26 @@
+#!/bin/bash
+# Run one owner of the physical gamepad control path.
+set -eo pipefail
+root=/opt/cleany/current
+source /opt/ros/humble/setup.bash
+source "$root/field/deps/install/local_setup.bash"
+source "$root/ros/local_setup.bash"
+profile="$root/ros/cleany_base_driver/share/cleany_base_driver/config/base_hardware.yaml"
+teleop="$root/ros/cleany_teleop"
+case "${1:?role required}" in
+  agent)
+    port=${CLEANY_GAMEPAD_MCU:?configure the commissioned wheel MCU by serial ID}
+    [[ $port == /dev/serial/by-id/* ]] || exit 2
+    while [[ ! -c "$port" ]]; do sleep 2; done
+    if fuser -s "$port"; then echo "Wheel MCU is already in use" >&2; exit 1; fi
+    exec "$root/field/deps/install/micro_ros_agent/lib/micro_ros_agent/micro_ros_agent" serial --dev "$port" -b 115200 ;;
+  base) exec ros2 launch cleany_base_driver base_driver.launch.py mock:=false relay_odom:=false "config:=$profile" ;;
+  control)
+    exec "$teleop/lib/cleany_teleop/phone_remote" --host 127.0.0.1 --port 8766 --base-config "$profile" \
+      --token-file /etc/opt/cleany/control-plane/web-token --event-log /var/opt/cleany/state/cleany/teleop/gamepad-session.jsonl >/dev/null ;;
+  input) exec "$teleop/lib/cleany_teleop/gamepad_input" ;;
+  relay)
+    until [[ -S "$XDG_RUNTIME_DIR/cleany-gamepad.sock" ]]; do sleep 1; done
+    exec "$teleop/lib/cleany_teleop/gamepad_teleop" --ros-args --params-file "$teleop/share/cleany_teleop/config/gamepad.yaml" ;;
+  *) echo "Expected agent, base, control, input or relay" >&2; exit 2 ;;
+esac
