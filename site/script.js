@@ -35,50 +35,54 @@ const sectionObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: "-20% 0px -60% 0px" });
 navSections.forEach((section) => sectionObserver.observe(section));
 
-const tabList = document.querySelector(".workflow-tabs");
-const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
+const workflowTabs = document.querySelector(".workflow-tabs");
 const mobileLayout = matchMedia("(max-width: 760px)");
 
 function resetResponsiveControls() {
-  tabList.setAttribute("aria-orientation", mobileLayout.matches ? "horizontal" : "vertical");
+  workflowTabs.setAttribute("aria-orientation", mobileLayout.matches ? "horizontal" : "vertical");
   if (!mobileLayout.matches) setMenu(false);
-}
-
-function selectTab(activeTab) {
-  for (const tab of tabs) {
-    const active = tab === activeTab;
-    tab.setAttribute("aria-selected", String(active));
-    tab.tabIndex = active ? 0 : -1;
-    document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
-  }
 }
 
 resetResponsiveControls();
 mobileLayout.addEventListener("change", resetResponsiveControls);
 
-tabList.addEventListener("click", (event) => {
-  const tab = event.target.closest('[role="tab"]');
-  if (tab) selectTab(tab);
-});
-tabList.addEventListener("keydown", (event) => {
-  const index = tabs.indexOf(document.activeElement);
-  if (index === -1) return;
+for (const tabList of document.querySelectorAll('[role="tablist"]')) {
+  const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
 
-  let next;
-  const backward = mobileLayout.matches ? "ArrowLeft" : "ArrowUp";
-  const forward = mobileLayout.matches ? "ArrowRight" : "ArrowDown";
-  switch (event.key) {
-    case "Home": next = 0; break;
-    case "End": next = tabs.length - 1; break;
-    case backward: next = (index + tabs.length - 1) % tabs.length; break;
-    case forward: next = (index + 1) % tabs.length; break;
-    default: return;
+  function selectTab(activeTab) {
+    for (const tab of tabs) {
+      const active = tab === activeTab;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+      document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
+    }
   }
 
-  event.preventDefault();
-  selectTab(tabs[next]);
-  tabs[next].focus();
-});
+  tabList.addEventListener("click", (event) => {
+    const tab = event.target.closest('[role="tab"]');
+    if (tab) selectTab(tab);
+  });
+  tabList.addEventListener("keydown", (event) => {
+    const index = tabs.indexOf(document.activeElement);
+    if (index === -1) return;
+
+    let next;
+    const vertical = tabList.getAttribute("aria-orientation") === "vertical";
+    const backward = vertical ? "ArrowUp" : "ArrowLeft";
+    const forward = vertical ? "ArrowDown" : "ArrowRight";
+    switch (event.key) {
+      case "Home": next = 0; break;
+      case "End": next = tabs.length - 1; break;
+      case backward: next = (index + tabs.length - 1) % tabs.length; break;
+      case forward: next = (index + 1) % tabs.length; break;
+      default: return;
+    }
+
+    event.preventDefault();
+    selectTab(tabs[next]);
+    tabs[next].focus();
+  });
+}
 
 const hotspots = document.querySelectorAll(".hotspot");
 

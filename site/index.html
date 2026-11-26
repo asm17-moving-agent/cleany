@@ -97,9 +97,9 @@
       <div class="shell compare-layout">
         <div class="compare-copy">
           <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>관제 화면 예시</p>
-          <h2 id="comparison-title">수거 전후를<br>한눈에.</h2>
+          <h2 id="comparison-title">수거 전후를 <br>한눈에.</h2>
           <p>컵과 휴지가 사라진 자리에는 수첩이 남아 있습니다. 운영자가 작업 전후를 비교하고, 남은 물건을 확인하는 예시입니다.</p>
-          <a class="text-link" href="#workflow">작동 방식 보기</a>
+          <a class="text-link" href="#technology">로봇이 판단하는 과정 보기</a>
         </div>
         <figure class="desk-compare" id="desk-compare">
           <div class="compare-stage">
@@ -115,6 +115,62 @@
           </div>
           <figcaption><strong>D-Hub 07번 좌석</strong><span id="comparison-help">슬라이더를 움직여 비교</span></figcaption>
         </figure>
+      </div>
+    </section>
+
+    <section class="shell section-inner technology" id="technology" aria-labelledby="technology-title">
+      <div class="section-heading paired-heading">
+        <div>
+          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>수거에 쓰이는 기술</p>
+          <h2 id="technology-title">로봇은 무엇을 보고 <br>움직일까요?</h2>
+        </div>
+        <p>책상 앞에 도착해 물건을 집기까지, 끌리니는 공간과 물체를 차례로 확인합니다.</p>
+      </div>
+      <div class="technology-tabs" role="tablist" aria-label="수거에 쓰이는 기술" aria-orientation="horizontal">
+        <button type="button" id="tech-tab-approach" role="tab" aria-selected="true" aria-controls="tech-approach">책상 접근</button>
+        <button type="button" id="tech-tab-classify" role="tab" aria-selected="false" aria-controls="tech-classify" tabindex="-1">물건 구분</button>
+        <button type="button" id="tech-tab-plan" role="tab" aria-selected="false" aria-controls="tech-plan" tabindex="-1">집기 경로</button>
+      </div>
+      <div class="technology-panels">
+        <div class="technology-panel" id="tech-approach" role="tabpanel" aria-labelledby="tech-tab-approach" tabindex="0">
+          <figure class="technology-figure">
+            <div class="technology-media">
+              <img src="./assets/tech-approach.webp" width="1290" height="840" alt="깊이 카메라로 관측한 책상과 주변 장애물" loading="lazy">
+            </div>
+            <figcaption><span>깊이 카메라로 관측한 책상 상판과 장애물</span><a href="./assets/tech-approach.webp" target="_blank" rel="noopener">이미지 크게 보기</a></figcaption>
+          </figure>
+          <div class="technology-copy">
+            <h3>책상 앞에 정렬합니다.</h3>
+            <p>수평으로 거리를 재는 라이다는 튀어나온 상판을 놓칠 수 있습니다. 깊이 카메라의 관측을 주행 지도에 더하고, 가까운 곳에서는 전면 ToF 센서로 책상과의 거리와 각도를 맞춥니다.</p>
+            <p class="technology-tools">LiDAR, RGB-D, ToF</p>
+          </div>
+        </div>
+        <div class="technology-panel" id="tech-classify" role="tabpanel" aria-labelledby="tech-tab-classify" tabindex="0" hidden>
+          <figure class="technology-figure">
+            <div class="technology-media">
+              <img src="./assets/tech-classify.webp" width="1280" height="960" alt="끌리니 헤드 카메라 사진에 물체 10개의 검출 박스와 분할 마스크, 운영자 확인을 반영한 분류를 표시했습니다. 병과 휴지는 쓰레기, 노트북은 분실물로 표시됩니다." loading="lazy">
+            </div>
+            <figcaption><span>헤드 카메라 검출·분할 결과와 운영자 확인을 반영한 분류</span><a href="./assets/tech-classify.webp" target="_blank" rel="noopener">이미지 크게 보기</a></figcaption>
+          </figure>
+          <div class="technology-copy">
+            <h3>무엇을 수거할지 판단합니다.</h3>
+            <p>YOLOE는 물체를 둘러싼 박스와 윤곽 마스크를 만들고, 비전 언어 모델은 처리 분류를 제안합니다. 이 장면에서는 운영자 확인을 반영해 병과 휴지를 쓰레기로, 노트북을 분실물로 표시했습니다.</p>
+            <p class="technology-tools">YOLOE 검출·분할, Gemini Decision 분류, 운영자 확인</p>
+          </div>
+        </div>
+        <div class="technology-panel" id="tech-plan" role="tabpanel" aria-labelledby="tech-tab-plan" tabindex="0" hidden>
+          <figure class="technology-figure">
+            <div class="technology-media">
+              <img src="./assets/tech-plan.webp" width="1440" height="671" alt="카메라 영상과 3차원 점군에 표시한 로봇팔의 파지 후보" loading="lazy">
+            </div>
+            <figcaption><span>작업대의 물체 위에 계산한 그리퍼 자세 후보</span><a href="./assets/tech-plan.webp" target="_blank" rel="noopener">이미지 크게 보기</a></figcaption>
+          </figure>
+          <div class="technology-copy">
+            <h3>팔이 지나갈 경로를 확인합니다.</h3>
+            <p>물체를 잡을 자세를 여러 개 계산합니다. 로봇팔이 닿을 수 있는 자세를 고르고, MoveIt으로 책상과 주변 물체에 부딪히지 않는 접근 경로를 검사합니다.</p>
+            <p class="technology-tools">3차원 파지 후보, MoveIt</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -157,15 +213,25 @@
     <section class="demo-section" aria-labelledby="demo-title">
       <div class="shell demo-content">
         <div class="demo-copy">
-          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>수거 경로 시뮬레이션</p>
-          <h2 id="demo-title">책상에서<br>수거함까지.</h2>
-          <p>책상 위 물체에 접근하고, 뒤쪽 수거함으로 옮긴 뒤 대기 자세로 돌아오는 로봇팔의 경로를 확인해 보세요.</p>
-          <button class="button button--primary" type="button" data-video-dialog="demo-dialog" aria-haspopup="dialog"><span class="play-icon" aria-hidden="true"></span>영상 재생</button>
+          <p class="eyebrow"><span class="accent-line" aria-hidden="true"></span>실물 수거 시험</p>
+          <h2 id="demo-title">책상에서 <br>수거함까지.</h2>
+          <dl class="demo-metric">
+            <dt>단일 물체 수거 시간</dt>
+            <dd class="demo-metric-values">
+              <span><strong>52.0<small>초</small></strong><span>개선 전</span></span>
+              <span><strong>25.8<small>초</small></strong><span>개선 후</span></span>
+            </dd>
+          </dl>
+          <p>실물 한 대로 물체 하나를 수거한 시험 결과입니다. 명령 준비와 팔의 구동 조건을 개선했습니다.</p>
+          <div class="demo-actions">
+            <button class="button button--primary" type="button" data-video-dialog="live-dialog" aria-haspopup="dialog"><span class="play-icon" aria-hidden="true"></span>실물 영상 보기</button>
+            <button class="button button--outline" type="button" data-video-dialog="demo-dialog" aria-haspopup="dialog">RViz 경로 재생</button>
+          </div>
         </div>
-        <button class="demo-cover" type="button" data-video-dialog="demo-dialog" aria-haspopup="dialog" aria-label="수거 동작 RViz 재생 영상 보기">
-          <img src="./assets/demo-poster.webp" alt="" width="1200" height="676" loading="lazy">
+        <button class="demo-cover" type="button" data-video-dialog="live-dialog" aria-haspopup="dialog" aria-label="실물 단일 물체 수거 영상 보기">
+          <img src="./assets/collection-poster.webp" alt="" width="336" height="336" loading="lazy">
           <span class="demo-cover-play" aria-hidden="true"><span class="play-icon"></span></span>
-          <span class="demo-cover-caption">RViz 계획 재생 <span>0:33</span></span>
+          <span class="demo-cover-caption">실물 수거 기록 <span>0:11</span></span>
         </button>
       </div>
     </section>
@@ -179,14 +245,17 @@
         <p>ROS 2 런타임, 시뮬레이션, 펌웨어와 검증 기록을 Cleany 저장소에서 확인할 수 있습니다.</p>
       </div>
       <div class="resource-grid">
-        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/DEVELOPMENT_SETUP.md">
+        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/implementation/development-setup.md">
           <strong>개발 환경 설치</strong><span>Ubuntu, ROS 2 Humble 및 빌드 안내</span>
         </a>
-        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/RUNNING.md">
+        <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/implementation/running.md">
           <strong>실행 가이드</strong><span>시뮬레이션과 실물 실행 경로</span>
         </a>
         <a href="https://github.com/asm17-moving-agent/cleany/blob/main/docs/EVIDENCE.md">
           <strong>검증 기록</strong><span>시험 환경, 실행 결과와 원본 자료</span>
+        </a>
+        <a href="https://asm17-moving-agent.github.io/cleany-explorer/">
+          <strong>Cleany Explorer</strong><span>3D 로봇 모델, 부품, ROS 연결도</span>
         </a>
       </div>
       <a class="text-link" href="https://github.com/asm17-moving-agent/cleany">GitHub 저장소</a>
@@ -228,14 +297,14 @@
 
   <dialog class="demo-dialog demo-dialog--live" id="live-dialog" aria-labelledby="live-dialog-title">
     <div class="dialog-header">
-      <div><h2 id="live-dialog-title">실물 로봇팔 접근 시험</h2><p>헤드 카메라 사진 20장을 촬영 순서대로 재생합니다. 이 시험은 그리퍼 접촉 하중이 낮아 수거 실패로 기록됐습니다.</p></div>
+      <div><h2 id="live-dialog-title">실물 단일 물체 수거</h2><p>발표 자료에 담긴 실물 시험 장면입니다. 영상은 수거 동작을 보여주는 편집본입니다.</p></div>
       <form method="dialog">
         <button type="submit" class="dialog-close" aria-label="영상 닫기" autofocus><span aria-hidden="true"></span></button>
       </form>
     </div>
-    <video controls playsinline preload="none" poster="./assets/approach-poster.webp" width="640" height="480" aria-label="실물 로봇팔이 파란 펜에 접근해 그리퍼를 닫는 무음 시험 기록">
-      <source src="./assets/approach.mp4" type="video/mp4">
-      <a href="./assets/approach.mp4">실물 동작 영상 파일 열기</a>
+    <video controls playsinline preload="none" poster="./assets/collection-poster.webp" width="336" height="336" aria-label="끌리니 로봇팔의 실물 수거 동작을 담은 무음 시험 영상">
+      <source src="./assets/collection.mp4" type="video/mp4">
+      <a href="./assets/collection.mp4">실물 동작 영상 파일 열기</a>
     </video>
   </dialog>
 
