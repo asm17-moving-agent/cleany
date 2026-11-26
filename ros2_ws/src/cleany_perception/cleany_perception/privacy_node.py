@@ -22,7 +22,9 @@ class CameraPrivacyNode(Node):
     Subscriptions:
         /camera/color/image_raw (sensor_msgs/msg/Image): Configurable head RGB input.
     Publishers:
-        /camera/head/color/image_redacted (sensor_msgs/msg/Image): Opaque BGR preview.
+        /camera/head/color/image_redacted (sensor_msgs/msg/Image): Full-body redaction for recording.
+        /camera/head/color/image_preview_redacted (sensor_msgs/msg/Image): Head and private
+            surface redaction for the live dashboard.
     QoS:
         Volatile, best effort, keep last one. Slow inference drops queued source frames.
     """
@@ -33,13 +35,15 @@ class CameraPrivacyNode(Node):
         profile = Path(get_package_share_directory('cleany_perception')) / 'config/yoloe_privacy.yaml'
         p = {k: self.declare_parameter(k, v).value for k, v in {
             'input_topic': '/camera/color/image_raw', 'output_topic': '/camera/head/color/image_redacted',
+            'preview_topic': '/camera/head/color/image_preview_redacted',
             'weights': str(root / 'privacy.engine'), 'face_model': str(root / 'face.onnx'),
             'text_model': str(root / 'text.plan'), 'device': '0', 'max_frame_age_s': 1.0,
             'max_fps': 5.0, 'gpu_lock_path': '',
         }.items()}
         source = self.resolve_topic_name(p['input_topic'])
         target = self.resolve_topic_name(p['output_topic'])
-        if source == target or not 0 < p['max_frame_age_s'] or not 0 < p['max_fps']:
+        preview = self.resolve_topic_name(p['preview_topic'])
+        if len({source, target, preview}) != 3 or not 0 < p['max_frame_age_s'] or not 0 < p['max_fps']:
             raise ValueError('Privacy node needs distinct topics and positive timing limits')
         cv2.setNumThreads(2)
         self.redactor = CameraRedactor(Path(p['weights']), Path(p['face_model']),
@@ -51,11 +55,14 @@ class CameraPrivacyNode(Node):
         qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT,
                          durability=DurabilityPolicy.VOLATILE)
         self.output = self.create_publisher(Image, target, qos)
+        self.preview_output = self.create_publisher(Image, preview, qos)
         self.subscription = self.create_subscription(Image, source, self.receive, qos)
 
     def receive(self, message: Image) -> None:
         start = time.monotonic()
-        if not self.output.get_subscription_count() or start - self.last_start < self.period:
+        if start - self.last_start < self.period:
+            return
+        if not (self.output.get_subscription_count() or self.preview_output.get_subscription_count()):
             return
         stamp = message.header.stamp.sec + message.header.stamp.nanosec * 1e-9
         if not self.fresh(stamp):
@@ -69,15 +76,16 @@ class CameraPrivacyNode(Node):
                 except BlockingIOError:
                     return
             try:
-                frame = self.redactor.redact(bgr, stamp)
+                views = self.redactor.redact_views(bgr, stamp)
             finally:
                 if self.gpu_lock:
                     fcntl.flock(self.gpu_lock, fcntl.LOCK_UN)
-            if frame is None or not self.fresh(stamp):
+            if views is None or not self.fresh(stamp):
                 return
-            result = Image(header=message.header, height=message.height, width=message.width,
-                           encoding='bgr8', step=message.width * 3, data=frame.image.tobytes())
-            self.output.publish(result)
+            for publisher, frame in ((self.output, views.archive), (self.preview_output, views.preview)):
+                if publisher.get_subscription_count():
+                    publisher.publish(Image(header=message.header, height=message.height, width=message.width,
+                                            encoding='bgr8', step=message.width * 3, data=frame.image.tobytes()))
         except Exception as exc:
             self.redactor.history.clear()
             self.get_logger().error(f'Privacy frame withheld ({type(exc).__name__})', throttle_duration_sec=5.)

@@ -1,0 +1,23 @@
+#!/bin/bash
+# Install boot-time components for the reviewed Jetson receiver. Do not start the robot.
+set -euo pipefail
+repo=$(cd "$(dirname "$0")/../.." && pwd)
+module=$(realpath -e "${1:?path to the tested cleany_xpad.ko required}")
+kernel=$(uname -r)
+[[ $(modinfo -F name "$module") == cleany_xpad && $(modinfo -F vermagic "$module") == "$kernel "* ]]
+modinfo -F alias "$module" | grep -Fx 'usb:v4131p3519d*dc*dsc*dp*icFFisc5Dip01in*' >/dev/null
+rules="$repo/configs/host/udev/72-cleany-gamepad.rules"
+units="$repo/configs/host/systemd/jetson-gamepad"
+sudo -v
+if ! /usr/bin/python3 -c 'import evdev' 2>/dev/null; then sudo apt-get install -y python3-evdev; fi
+sudo install -Dm644 "$module" "/lib/modules/$kernel/updates/cleany/cleany_xpad.ko"
+sudo depmod -a "$kernel"
+sudo install -Dm644 "$rules" /etc/udev/rules.d/72-cleany-gamepad.rules
+sudo udevadm control --reload-rules
+sudo modprobe cleany_xpad
+for event in /sys/class/input/event*; do
+    if [[ $(cat "$event/device/name") == 'LeadJoy Xeno Plus' ]]; then sudo udevadm trigger --action=change "$event"; fi
+done
+sudo install -D -m644 -t /etc/systemd/user "$units"/cleany-gamepad{.target,@.service}
+sudo systemctl --global enable cleany-gamepad.target
+systemctl --user daemon-reload

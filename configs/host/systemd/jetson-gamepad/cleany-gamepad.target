@@ -1,0 +1,11 @@
+[Unit]
+Description=Cleany physical gamepad and wheel odometry
+ConditionUser=cleany
+ConditionPathExists=/etc/opt/cleany/field/gamepad.env
+ConditionFileIsExecutable=/opt/cleany/current/field/repo/tools/ros2/run-gamepad-service
+Wants=cleany-gamepad@agent.service cleany-gamepad@base.service cleany-gamepad@control.service cleany-gamepad@input.service cleany-gamepad@relay.service
+Conflicts=cleany-field@navigation.service
+Before=cleany-field@navigation.service
+
+[Install]
+WantedBy=default.target
