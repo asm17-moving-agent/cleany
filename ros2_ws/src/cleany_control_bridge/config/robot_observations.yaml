@@ -1,0 +1,28 @@
+robot_observer:
+  ros__parameters:
+    joints_topic: /joint_states
+    joint_targets_topic: ""
+    battery_topic: /battery_state
+    odom_topic: /odom
+    supervisor_state_topic: /system/state
+    supervisor_faults_topic: /system/faults
+    supervisor_recoveries_topic: /system/recoveries
+    supervisor_events_topic: /system/events
+    safety_topic: /safety/status
+    output_topic: /telemetry/robot_observations
+    rate: 10.0
+    input_timeout: 3.0
+    battery_timeout: 30.0
+    supervisor_timeout: 5.0
+    future_tolerance: 0.1
+    event_capacity: 100
+robot_observation_bridge:
+  ros__parameters:
+    input_topic: /telemetry/robot_observations
+    rate: 10.0
+    input_timeout: 3.0
+    battery_timeout: 30.0
+    supervisor_timeout: 5.0
+    reconnect_initial: 1.0
+    reconnect_max: 30.0
+    event_capacity: 100

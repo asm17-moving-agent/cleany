@@ -90,3 +90,35 @@ Dashboard 외부 접근은 Backend에서 사용자·시설 권한을 검사해�
 JPEG는 다시 인코딩하지 않고 최신 수신 프레임을 유지하며 `camera_fps`로 감속하지 않습니다.
 
 운영 카메라의 `allowed_topic` 값은 `/camera/head/color/image_preview_redacted`다. 이 값이 설정되면 HTTP 목록과 영상 요청에는 지정한 토픽만 노출한다. ROS 개발용 다중 카메라 프리뷰는 이 매개변수를 비워 사용한다.
+
+## robot_observer
+
+실행 파일은 `robot_observer`입니다. [robot_node.py](../cleany_telemetry/robot_node.py)는
+관절과 배터리, Odometry, Supervisor 정보를 읽으며 명령, 서비스, TF를 발행하지 않습니다.
+출력은 `/telemetry/robot_observations`의 `std_msgs/msg/String` JSON이며 reliable volatile
+깊이100입니다. 출처 `provenance`를 `real`, `sim`, `mock` 중 하나로 명시해야 시작합니다.
+
+| 기본 구독 | 타입 | QoS | 의미 |
+| --- | --- | --- | --- |
+| `/joint_states` | sensor_msgs/msg/JointState | sensor_data | 실제 관절 위치 |
+| `joint_targets_topic` (기본 비활성) | sensor_msgs/msg/JointState | sensor_data | 별도 명령 목표; 실측 대체 금지 |
+| `/battery_state` | sensor_msgs/msg/BatteryState | sensor_data | percentage 0~1을 0~100으로 변환; NaN은 null |
+| `/odom` | nav_msgs/msg/Odometry | sensor_data | 원본 frame, 위치, 정규화 회전, 속도 |
+| `/system/state` | cleany_interfaces/msg/SystemState | reliable transient_local, depth1 | 운용 상태 |
+| `/system/faults` | cleany_interfaces/msg/SystemFaults | reliable transient_local, depth1 | 장애 목록 |
+| `/system/recoveries` | cleany_interfaces/msg/SystemRecoveries | reliable transient_local, depth1 | 복구 상태 |
+| `/system/events` | cleany_interfaces/msg/SystemEvent | reliable volatile, depth100 | 주요 사건 |
+| `/safety/status` | cleany_interfaces/msg/SafetyStatus | reliable volatile, depth10 | 보호, 물리 해제, 정지 관측 |
+
+토픽 이름, 출력 주기(10Hz), 원본 관측 만료(관절/odom 3초, Supervisor/safety 5초,
+배터리30초), 미래 허용 오차(0.1초), 이벤트 용량(100)은 ROS 파라미터입니다.
+[기본 설정](../../cleany_control_bridge/config/robot_observations.yaml)을 사용합니다.
+관절 이름과 단위는 Robot description의 회전 rad, 직선 m을 그대로 사용합니다.
+부분 JointState는 관절별 원본 시각을 유지하여 다른 관절 입력으로 갱신되지 않습니다.
+오래된 입력, 잘못된 길이와 NaN은 거부합니다. ROS clock이 역행하면 새 boot_id로
+전환합니다. odom을 map으로 바꾸지 않으며 명령 목표가 없으면 생성하지 않습니다.
+
+관측 JSON 계약의 Source of Truth는 control-plane 저장소
+`packages/contracts/schemas/robot-observation.schema.json`입니다. ROS clock의 원본 시각과
+현재까지 경과한 나이, 관절별 추가 나이, boot_id와 sequence를 포함합니다. Backend 인증과
+ACK 처리는 [robot_observation_bridge](../../cleany_control_bridge/docs/interfaces.md#robot_observation_bridge)가 소유합니다.
